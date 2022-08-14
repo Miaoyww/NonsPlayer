@@ -1,9 +1,11 @@
 ﻿using NeteaseCloudMusicControl.Config;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Timers;
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+
 using static System.Net.Mime.MediaTypeNames;
 using System.IO;
 using System.Net;
@@ -19,11 +21,11 @@ namespace NeteaseCloudMusicControl.Services
         public static string albumId;
         public static string albumPicUrl;
         public static string albumPicPath;
+        public static string copiedPath;
         public static string postMes = "已提交指令:";
         public static int pid;
         public static IntPtr hwnd;
         public static IntPtr maindHwnd;
-
         public static string tempPath = $"{Path.GetTempPath()}alpics\\";
 
         [DllImport("user32.dll")]
@@ -87,26 +89,33 @@ namespace NeteaseCloudMusicControl.Services
             }
             else
             {
-                string[] titleSpilt = apptitle.Split('-');
-                if (titleSpilt.Length <= 1)
+                if (apptitle != null)
                 {
-                    title = AppConfig.NullTitle;
-                    artist = AppConfig.NullArtists;
-                }
-                else
-                {
-                    string lastTitle = title;
-                    string lastArtist = artist;
-                    title = titleSpilt[0].Remove(titleSpilt[0].Length - 1, 1);
-                    artist = titleSpilt[1].Remove(0, 1);
-                    if (!lastTitle.Equals(title) || !lastArtist.Equals(artist))
+                    string[] titleSpilt = Regex.Split(apptitle, " - ");
+                    if (titleSpilt.Length <= 1)
                     {
-                        PostInfo.InputLog("当前播放: ", apptitle);
+                        title = AppConfig.NullTitle;
+                        artist = AppConfig.NullArtists;
+                    }
+                    else
+                    {
+                        string lastTitle = title;
+                        string lastArtist = artist;
+                        title = titleSpilt[0];
+                        artist = titleSpilt[1];
+                        if (!lastTitle.Equals(title) || !lastArtist.Equals(artist))
+                        {
+                            PostInfo.InputLog("当前播放: ", apptitle);
+                            GetCover();
+                        }
                     }
                 }
             }
         }
+        public static void ReceiveCommand(object source, ElapsedEventArgs e)
+        {
 
+        }
         public static void Reload()
         {
             User32.GetWindowTitle("OrpheusBrowserHost", out title, out pid);
@@ -135,7 +144,7 @@ namespace NeteaseCloudMusicControl.Services
                 ResetWindow();
             }
         }
-        public static string ReadFile(string path)
+        public static byte[] ReadFile(string path)
         {
             bool _isExist = false;
             if (!File.Exists(path))
@@ -168,28 +177,32 @@ namespace NeteaseCloudMusicControl.Services
                 fsSource.Close();
                 if (_isExist)
                 {
-                    string msg = System.Text.Encoding.UTF8.GetString(bytes);
-                    if (msg.Equals(""))
-                    {
-                        return string.Empty;
-                    }
-                    byte[] buffer = Encoding.UTF8.GetBytes(msg);
-                    string sResult = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
-                    byte[] bomBuffer = new byte[] { 0xef, 0xbb, 0xbf };
-                    if (buffer[0] == bomBuffer[0] && buffer[1] == bomBuffer[1] && buffer[2] == bomBuffer[2])
-                    {
-                        int copyLength = buffer.Length - 3;
-                        byte[] dataNew = new byte[copyLength];
-                        Buffer.BlockCopy(buffer, 3, dataNew, 0, copyLength);
-                        sResult = System.Text.Encoding.UTF8.GetString(dataNew);
-                    }
-                    return sResult;
+                    return bytes;
                 }
                 else
                 {
-                    return string.Empty;
+                    return null;
                 }
             }
+        }
+        public static string B2S(byte[] bytes)
+        {
+            string msg = System.Text.Encoding.UTF8.GetString(bytes);
+            if (msg.Equals("")) 
+            {
+                return string.Empty;
+            }
+            byte[] buffer = Encoding.UTF8.GetBytes(msg);
+            string sResult = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+            byte[] bomBuffer = new byte[] { 0xef, 0xbb, 0xbf };
+            if (buffer[0] == bomBuffer[0] && buffer[1] == bomBuffer[1] && buffer[2] == bomBuffer[2])
+            {
+                int copyLength = buffer.Length - 3;
+                byte[] dataNew = new byte[copyLength];
+                Buffer.BlockCopy(buffer, 3, dataNew, 0, copyLength);
+                sResult = System.Text.Encoding.UTF8.GetString(dataNew);
+            }
+            return sResult;
         }
 
         public static void WriteFile(string path, string content)
@@ -204,7 +217,6 @@ namespace NeteaseCloudMusicControl.Services
                 fsNew.Close();
             }
         }
-
         public static Stream HttpGet(string url)
         {
             WebRequest wrGETURL;
@@ -222,9 +234,12 @@ namespace NeteaseCloudMusicControl.Services
                     PostInfo.InputLog("api连接失败, 3秒后重试");
                     Thread.Sleep(3);
                 }
+                catch (InvalidOperationException)
+                {
+
+                }
             }
         }
-
         public static void GetAlumbInfo(Stream stream, string processedTitle, string processedArtists)
         {
             StreamReader objReader = new StreamReader(stream);
@@ -262,7 +277,6 @@ namespace NeteaseCloudMusicControl.Services
                 }
             }
         }
-
         public static void Download2ApplyAlbumPic(string url, string albumid)
         {
             albumPicPath = $"./alpics/{albumId}.jpg";
@@ -297,23 +311,22 @@ namespace NeteaseCloudMusicControl.Services
             PostInfo.InputLog("已切换封面, 歌曲名称:", CloudMusic.title);
 
         }
-
         public static void ApplyAlbumPic(string albumid)
         {
-            string copiedPath = CloudMusic.tempPath + $"{albumid}.jpg";
+            copiedPath = tempPath + $"{albumid}.jpg";
             if (!File.Exists(copiedPath))
             {
                 File.Copy(albumPicPath, copiedPath, true);
             }
         }
-
         public static void GetCover()
         {
             string sURL = $"http://localhost:3000/cloudsearch?keywords={CloudMusic.title} -{CloudMusic.artist}&limit=10";
 
             string processedTitle = CloudMusic.title.Replace(" ", "");  // 为方便对比, 将所有空格去掉
             string processedArtist = CloudMusic.artist.Replace(" ", "");
-            string readResult = ReadFile(AppConfig.SoundsPath);
+            byte[] readResultBytes = ReadFile(AppConfig.SoundsPath);
+            string readResult = B2S(readResultBytes);
             string savingContent = $"{CloudMusic.title} -{CloudMusic.artist}"; // 用于储存在sounds.json followings中的成员
             JObject result;
             JArray? albumList = new();
@@ -388,6 +401,5 @@ namespace NeteaseCloudMusicControl.Services
             result = new JObject { { "sounds", albumList } };
             WriteFile(AppConfig.SoundsPath, result.ToString());
         }
-
     }
 }
