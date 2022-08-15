@@ -4,9 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Ui
+namespace NeteaseCloudMusicControl
 {
-    internal class AppConfig
+    public static class AppConfig
     {
+        public static string AppVersion = "0.1.5";
+
+        public static string RegPath = @"HKEY_CURRENT_USER\SOFTWARE\Miaoywww\NeteaseCloudMusicControl\";
+
     }
 }
