@@ -35,7 +35,9 @@
                 <Separator Height="20" BorderThickness="0,0,0,0" />
                 <StackPanel Orientation="Horizontal" Width="512">
                     <Label x:Name="label_currentTime" Content="0:00" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" />
-                    <ProgressBar Width="462" />
+                    <Separator Opacity="0" Width="5"/>
+                    <Slider x:Name="slider_postion" Width="448"/>
+                    <Separator Opacity="0" Width="5"/>
                     <Label x:Name="label_wholeTime" Content="0:00" Padding="0,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
                 </StackPanel>
                 <Separator Height="10" BorderThickness="0,0,0,0" />

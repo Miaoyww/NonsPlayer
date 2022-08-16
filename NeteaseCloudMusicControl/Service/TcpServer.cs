@@ -8,6 +8,7 @@ using System.Threading;
 
 namespace NeteaseCloudMusicControl.Service
 {
+    /*
     public static class TcpServer
     {
         public static Socket socketListen;
@@ -52,6 +53,7 @@ namespace NeteaseCloudMusicControl.Service
             listen.Start();
             PostInfo.InputLog("服务启动成功, 开放端口: ", port.ToString());
         }
+
 
         public static void ListenClientSocket()
         {
@@ -99,5 +101,5 @@ namespace NeteaseCloudMusicControl.Service
 
             }
         }
-    }
+    }*/
 }

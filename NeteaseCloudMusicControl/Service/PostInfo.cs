@@ -15,7 +15,7 @@ namespace NeteaseCloudMusicControl.Service
             {
                 output += action + " ";
             }
-            CurrentResources.Log += output + "\r\n";
+            CurrentResources.log += output + "\r\n";
         }
     }
 }

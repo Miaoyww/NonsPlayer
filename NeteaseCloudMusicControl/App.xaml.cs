@@ -24,9 +24,9 @@ namespace NeteaseCloudMusicControl
                     Registry.SetValue(AppConfig.RegPath, key.Name, key.Value);
                 }
             }
-            CurrentResources.ServerIp = Registry.GetValue(AppConfig.RegPath, "ServerIpAddress", "127.0.0.1").ToString();
-            CurrentResources.ServerPort = Registry.GetValue(AppConfig.RegPath, "ServerPort", "4000").ToString();
-            CurrentResources.CurrentVolume = Registry.GetValue(AppConfig.RegPath, "CurrentVolume", "100").ToString();
+            CurrentResources.serverIp = Registry.GetValue(AppConfig.RegPath, "ServerIpAddress", "127.0.0.1").ToString();
+            CurrentResources.serverPort = Registry.GetValue(AppConfig.RegPath, "ServerPort", "4000").ToString();
+            CurrentResources.currentVolume = Registry.GetValue(AppConfig.RegPath, "CurrentVolume", "100").ToString();
             CurrentResources.musicplayer = new();
             CurrentResources.musicplayer.UnloadedBehavior = MediaState.Manual;
             CurrentResources.musicplayer.LoadedBehavior = MediaState.Manual;

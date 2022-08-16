@@ -187,7 +187,7 @@ namespace NeteaseCloudMusicControl.Views
         {
             PageFrame.Content = PageHome;
             ScreenFrame.Content = PagePlayer;
-            slider_volume.Value = double.Parse(CurrentResources.CurrentVolume);
+            slider_volume.Value = double.Parse(CurrentResources.currentVolume);
             isUser = true;
         }
 
@@ -219,7 +219,7 @@ namespace NeteaseCloudMusicControl.Views
             if (isUser)
             {
                 RegEditer("CurrentVolume", slider_volume.Value);
-                CurrentResources.CurrentVolume = slider_volume.Value.ToString();
+                CurrentResources.currentVolume = slider_volume.Value.ToString();
             }
             switch (slider_volume.Value)
             {
@@ -243,7 +243,7 @@ namespace NeteaseCloudMusicControl.Views
 
         private void btn_volume_Click(object sender, RoutedEventArgs e)
         {
-            if (double.Parse(CurrentResources.CurrentVolume) != 0)
+            if (double.Parse(CurrentResources.currentVolume) != 0)
             {
                 lastVolume = slider_volume.Value;
                 slider_volume.Value = 0;

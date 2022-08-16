@@ -11,8 +11,7 @@
       Title="Home">
 
     <Grid>
-        <ui:TextBox x:Name="tbox_url" HorizontalAlignment="Center" PlaceholderText="音乐的url..."  Width="400" />
-        <Button Height="59" Width="192" VerticalAlignment="Center" Click="Button_Click" HorizontalAlignment="Center" Margin="0,200,0,0"/>
-
+        <ui:TextBox x:Name="tbox_id" HorizontalAlignment="Left" Margin="153,252,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="251"/>
+        <Button Content="Button" Height="54" Margin="156,343,0,0" VerticalAlignment="Top" Width="275" Click="Button_Click"/>
     </Grid>
 </Page>

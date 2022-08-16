@@ -1,16 +1,14 @@
-﻿using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.Timers;
-using System.Threading;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
+using System;
 using System.IO;
 using System.Net;
 using System.Text;
-using System;
+using System.Threading;
 
 namespace NeteaseCloudMusicControl.Service
 {
+    /*
     public static class CloudMusic
     {
         public static System.Timers.Timer timer = new System.Timers.Timer();
@@ -87,50 +85,11 @@ namespace NeteaseCloudMusicControl.Service
             return sResult;
         }
 
-        public static void WriteFile(string path, string content)
-        {
-            var writeInto = Encoding.UTF8.GetBytes(content);
-            int numBytesToWrite = writeInto.Length;
-            using (FileStream fsNew = new FileStream(path,
-                       FileMode.Create, FileAccess.Write))
-            {
-                fsNew.Write(writeInto, 0, numBytesToWrite);
-                fsNew.Flush();
-                fsNew.Close();
-            }
-        }
-        public static Stream HttpGet(string url)
-        {
-            WebRequest wrGETURL;
-            wrGETURL = WebRequest.Create(url);
-            Stream objStream;
-            while (true)
-            {
-                try
-                {
-                    objStream = wrGETURL.GetResponse().GetResponseStream();
-                    return objStream;
-                }
-                catch (WebException)
-                {
-                    PostInfo.InputLog("api连接失败, 3秒后重试");
-                    Thread.Sleep(3);
-                }
-                catch (InvalidOperationException)
-                {
-
-                }
-            }
-        }
         public static void GetAlumbInfo(Stream stream, string processedTitle, string processedArtists)
         {
             StreamReader objReader = new StreamReader(stream);
             JObject result = (JObject)JsonConvert.DeserializeObject(objReader.ReadLine());
 
-            /*
-             * 为了防止匹配到非正确的专辑封面
-             * 将对标题和作者进行双重匹配
-             */
             foreach (JToken token in result["result"]["songs"])
             {
                 string targetTitle = string.Empty;
@@ -191,7 +150,6 @@ namespace NeteaseCloudMusicControl.Service
             ApplyAlbumPic(albumid);
 
             PostInfo.InputLog("已切换封面, 歌曲名称:", title);
-
         }
         public static void ApplyAlbumPic(string albumid)
         {
@@ -277,7 +235,6 @@ namespace NeteaseCloudMusicControl.Service
                         albumList.Add(currentSoundInfo);
                         Download2ApplyAlbumPic(albumPicUrl, albumId);
                     }
-
                 }
             }
             result = new JObject { { "sounds", albumList } };
@@ -287,8 +244,192 @@ namespace NeteaseCloudMusicControl.Service
             }
             catch (IOException)
             {
-
             }
         }
     }
+    */
+
+    public static class HttpRequest
+    {
+        public static Stream StreamHttpGet(string url)
+        {
+            WebRequest wrGETURL;
+            wrGETURL = WebRequest.Create(url);
+            Stream objStream;
+            while (true)
+            {
+                try
+                {
+                    objStream = wrGETURL.GetResponse().GetResponseStream();
+                    return objStream;
+                }
+                catch (WebException)
+                {
+                    Thread.Sleep(3);
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            }
+        }
+
+        public static JObject JObjectHttpGet(Stream stream)
+        {
+            StreamReader objReader = new StreamReader(stream);
+            return (JObject)JsonConvert.DeserializeObject(objReader.ReadLine());
+        }
+
+        public static JObject GetJson(string url)
+        {
+            return JObjectHttpGet(StreamHttpGet(url));
+        }
+    }
+
+    public static class Tool
+    {
+        public static DateTime TimestampToDateTime(string timeStamp)
+        {
+            DateTime dd = DateTime.SpecifyKind(new DateTime(1970, 1, 1, 0, 0, 0, 0), DateTimeKind.Local);
+            long longTimeStamp = long.Parse(timeStamp + "0000");
+            TimeSpan ts = new TimeSpan(longTimeStamp);
+            return dd.Add(ts);
+        }
+    }
+
+    public static class Apis
+    {
+        public static string playListDetail(string id)
+        {
+            return AppConfig.ApiUrl + "/playlist/detail?id=" + id;
+        }
+
+        public static string songUrl(string id)
+        {
+            return AppConfig.ApiUrl + "/song/url?id=" + id;
+        }
+
+        public static string songDetail(string id)
+        {
+            return AppConfig.ApiUrl + "/song/detail?ids=" + id;
+        }
+    }
+
+    public class CloudMusic
+    {
+        public string __id = string.Empty;
+        public string __name = string.Empty;
+        public Stream? __cover;
+
+
+        public string Name
+        { get { return __name; } }
+
+        public Stream Cover
+        { get { return __cover; } }
+
+    }
+
+    public class PlayList : CloudMusic
+    {
+        private string description = string.Empty;
+        private string[] tags;
+        private string[] songIds;
+        private DateTime createTime;
+
+        public PlayList(string in_id)
+        {
+            __id = in_id;
+            JObject playlistDetail = (JObject)HttpRequest.GetJson(Apis.playListDetail(__id))["playlist"];
+            __name = playlistDetail["name"].ToString();
+            description = playlistDetail["description"].ToString();
+
+            JObject jsonTags = (JObject)playlistDetail["tags"];
+            tags = new string[(jsonTags).Count];
+            for (int index = 0; index < tags.Length; index++)
+            {
+                tags[index] = jsonTags[index].ToString();
+            }
+
+            __cover = HttpRequest.StreamHttpGet(playlistDetail["coverImgUrl"].ToString());
+
+            JObject jsonSongs = (JObject)playlistDetail["trackIds"];
+            songIds = new string[jsonSongs.Count];
+            for (int index = 0; index < songIds.Length; index++)
+            {
+                songIds[index] = jsonSongs[index]["id"].ToString();
+            }
+
+            string timestampTemp = playlistDetail["createTime"].ToString();
+            createTime = Tool.TimestampToDateTime(timestampTemp.Remove(timestampTemp.Length - 2));
+        }
+
+        public void InitArtWorkList()
+        {
+        }
+    }
+
+    public class Song : CloudMusic
+    {
+        private string songUrl;
+        private string songType;
+        private string[] artists;
+        private string albumName;
+        private string albumId;
+
+        public Song(string in_id)
+        {
+            __id = in_id;
+            JObject songDetail = (JObject)HttpRequest.GetJson(Apis.songDetail(__id))["songs"][0];
+            __name = songDetail["name"].ToString();
+            JObject temp = (JObject)HttpRequest.GetJson(Apis.songUrl(__id))["data"][0];
+            songUrl = temp["url"].ToString();
+            songType = temp["type"].ToString();
+            JArray artistsJson = (JArray)songDetail["ar"];
+            artists = new string[artistsJson.Count];
+            for (int index = 0; index < artists.Length; index++)
+            {
+                artists[index] = artistsJson[index]["name"].ToString();
+            }
+
+            albumId = songDetail["al"]["id"].ToString();
+            albumName = songDetail["al"]["name"].ToString();
+            __cover = HttpRequest.StreamHttpGet(songDetail["al"]["picUrl"].ToString());
+        }
+
+        public string[] Artists
+        { get { return artists; } }
+
+        public string AlbumName 
+        { get { return albumName; } }
+
+        public string AlbumId 
+        { get { return albumId; } }
+
+        public string GetFile()
+        {
+            string path = AppConfig.SongsPath(__id, songType);
+            if (!File.Exists(path))
+            {
+                if (!Directory.Exists(AppConfig.SongsDirectory))
+                {
+                    Directory.CreateDirectory(AppConfig.SongsDirectory);
+                }
+                FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                Stream songStream = HttpRequest.StreamHttpGet(songUrl);
+                byte[] bArr = new byte[1024];
+                int size = songStream.Read(bArr, 0, (int)bArr.Length);
+                while (size > 0)
+                {
+                    //stream.Write(bArr, 0, size);
+                    fs.Write(bArr, 0, size);
+                    size = songStream.Read(bArr, 0, (int)bArr.Length);
+                }
+                fs.Close();
+                songStream.Close();
+
+            }
+            return path;
+        }
+    }
+
 }

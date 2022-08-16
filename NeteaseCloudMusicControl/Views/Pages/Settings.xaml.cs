@@ -23,15 +23,15 @@ namespace NeteaseCloudMusicControl.Views.Pages
         private void RegEditer(string key, object value)
         {
             Registry.SetValue(AppConfig.RegPath, key, value);
-            CurrentResources.ServerIp = tbox_ipaddress.Text;
-            CurrentResources.ServerPort = tbox_port.Text;
+            CurrentResources.serverIp = tbox_ipaddress.Text;
+            CurrentResources.serverPort = tbox_port.Text;
         }
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
             tblock_Version.Text = $"v{AppConfig.AppVersion}";
-            tbox_ipaddress.Text = CurrentResources.ServerIp;
-            tbox_port.Text = CurrentResources.ServerPort;
+            tbox_ipaddress.Text = CurrentResources.serverIp;
+            tbox_port.Text = CurrentResources.serverPort;
             isUser = true;
         }
 

@@ -32,7 +32,7 @@ namespace NeteaseCloudMusicControl.Views.Methods
                 if (!CurrentResources.isPlayed)
                 {
                     CurrentResources.musicplayer.Volume += 0.1;
-                    if (CurrentResources.musicplayer.Volume - (double.Parse(CurrentResources.CurrentVolume) / 100) <= 0.005)
+                    if (CurrentResources.musicplayer.Volume - (double.Parse(CurrentResources.currentVolume) / 100) <= 0.005)
                     {
                         timer.Stop();
                         CurrentResources.isPlayed = true;
@@ -52,23 +52,33 @@ namespace NeteaseCloudMusicControl.Views.Methods
             }));
         }
 
-        public static void RePlay()
+        public static void RePlay(string path)
         {
-            CurrentResources.musicplayer.Source = new Uri(CurrentResources.soundPath);
-            Play();
+            CurrentResources.soundPath = path;
+            CurrentResources.musicplayer.Source = new Uri(path);
+            Play(true);
         }
 
-        public static void Play()
+        public static void Play(bool re = false)
         {
-            if (!CurrentResources.isPlayed)
+            if (!re)
             {
-                CurrentResources.musicplayer.Play();
-                CurrentResources.isPlayed = true;
+                if (!CurrentResources.isPlayed)
+                {
+                    CurrentResources.musicplayer.Play();
+                    CurrentResources.isPlayed = true;
+                }
+                else
+                {
+                    CurrentResources.musicplayer.Pause();
+                    CurrentResources.isPlayed = false;
+                }
             }
             else
             {
-                CurrentResources.musicplayer.Pause();
-                CurrentResources.isPlayed = false;
+                CurrentResources.isPlayed = true;
+                CurrentResources.musicplayer.Position = TimeSpan.Zero;
+                CurrentResources.musicplayer.Play();
             }
         }
 
@@ -84,6 +94,7 @@ namespace NeteaseCloudMusicControl.Views.Methods
 
         public static void Musicplayer_MediaOpened(object sender, RoutedEventArgs e)
         {
+            CurrentResources.currentPlayWholeTime = (int)CurrentResources.musicplayer.NaturalDuration.TimeSpan.TotalSeconds;
             CurrentResources.isPlayed = true;
         }
 

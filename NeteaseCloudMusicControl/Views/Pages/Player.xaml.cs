@@ -26,6 +26,7 @@ namespace NeteaseCloudMusicControl.Views.Pages
     {
         public static Player playerPage;
         public static System.Timers.Timer timer = new System.Timers.Timer();
+        public static System.Timers.Timer timerPostion = new System.Timers.Timer();
         private bool isPlayed = false;
         public Player()
         {
@@ -34,6 +35,24 @@ namespace NeteaseCloudMusicControl.Views.Pages
             timer.Interval = 100;
             timer.Elapsed += Timer_Elapsed;
             timer.Start();
+            timerPostion.Interval = 800;
+            timerPostion.Elapsed += TimerPostion_Elapsed;
+            timerPostion.Start();
+        }
+
+        private void TimerPostion_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (CurrentResources.isPlayed)
+                {
+                    slider_postion.Maximum = CurrentResources.currentPlayWholeTime;
+                    CurrentResources.currentPlayPostion = (int)CurrentResources.musicplayer.Position.Duration().TotalSeconds;
+                    slider_postion.Value = CurrentResources.currentPlayPostion;
+                    label_currentTime.Content = CurrentResources.currentPlayPostionString;
+                    label_wholeTime.Content = CurrentResources.currentPlayWholeTimeString;
+                }
+            }));
         }
 
         private void Timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
