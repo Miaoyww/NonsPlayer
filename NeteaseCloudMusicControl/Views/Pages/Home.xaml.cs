@@ -15,11 +15,12 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using NeteaseCloudMusicControl.Views.Methods;
 using System.Timers;
-using NeteaseCloudMusicControl.Service;
+using NcmPlayer.Service;
+using NcmPlayer;
+using NeteaseCloudMusicControl;
 
-namespace NeteaseCloudMusicControl.Views.Pages
+namespace NcmPlayer.Views.Pages
 {
     public partial class Home : Page
     {
@@ -30,7 +31,17 @@ namespace NeteaseCloudMusicControl.Views.Pages
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            Song song = new(tbox_id.Text);
+            Song song;
+            try
+            {
+                song = new(tbox_id.Text);
+            }
+            catch (InvalidCastException er)
+            {
+                MainWindow.ShowMyDialog(er.Message, "错误");
+                return;
+            }
+            
             string path = song.GetFile();
             string[] artist = song.Artists;
             string name = song.Name;
@@ -46,19 +57,9 @@ namespace NeteaseCloudMusicControl.Views.Pages
                     artists += artist[i];
                 }
             }
-            BitmapImage image = new BitmapImage();
-            image.BeginInit();
-            image.StreamSource = song.Cover;
-            image.EndInit();
-            ImageBrush brush = new();
-            brush.ImageSource = image;
-            MainWindow.mainWindow.btn_albumPic.Background = brush;
-            MainWindow.mainWindow.tblock_title.Text = name;
-            MainWindow.mainWindow.tblock_artists.Text = artists;
-            Player.playerPage.b_image.Background = brush;
-            Player.playerPage.tblock_title.Text = name;
-            Player.playerPage.tblock_artists.Text = artists;
-            PlayerMethods.RePlay(path);
+            MusicPlayer.RePlay(path, name, artists, song.Cover);
+            Res.res.CPlayAlbumPicUrl = song.coverUrl;
+            Res.res.CPlayAlbumId = song.AlbumId;
         }
     }
 }

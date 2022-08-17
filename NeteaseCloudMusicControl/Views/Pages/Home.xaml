@@ -1,9 +1,9 @@
-﻿<Page x:Class="NeteaseCloudMusicControl.Views.Pages.Home"
+﻿<Page x:Class="NcmPlayer.Views.Pages.Home"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:local="clr-namespace:NeteaseCloudMusicControl.Views.Pages" 
+      xmlns:local="clr-namespace:NcmPlayer.Views.Pages" 
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       mc:Ignorable="d"
       Style="{StaticResource UiPage}"
@@ -11,7 +11,7 @@
       Title="Home">
 
     <Grid>
-        <ui:TextBox x:Name="tbox_id" HorizontalAlignment="Left" Margin="153,252,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="251"/>
-        <Button Content="Button" Height="54" Margin="156,343,0,0" VerticalAlignment="Top" Width="275" Click="Button_Click"/>
+        <ui:TextBox x:Name="tbox_id" HorizontalAlignment="Center" TextWrapping="Wrap" Text="1971144922" PlaceholderText="在这里输入音乐id" VerticalAlignment="Center" Width="251" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+        <Button Content="播放" Height="54" VerticalAlignment="Center" Width="275" Click="Button_Click" HorizontalAlignment="Center" Margin="0,200,0,0"/>
     </Grid>
 </Page>

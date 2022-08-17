@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using NeteaseCloudMusicControl;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -6,56 +7,52 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Threading;
-using Wpf.Ui.Controls.Interfaces;
-using Wpf.Ui.Mvvm.Contracts;
 
-namespace NeteaseCloudMusicControl.Views.Methods
+namespace NcmPlayer
 {
-    public static class PlayerMethods
+    public static class MusicPlayer
     {
-        public static System.Timers.Timer timer;
+        public static MediaElement musicplayer = new();
+
+        public static Timer updateInfo;
         public static Socket client_socket;
-        public static Stream imageStream;
 
-
-        public static void Timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        public static void InitPlayer()
         {
-            CurrentResources.musicplayer.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (!CurrentResources.isPlayed)
-                {
-                    CurrentResources.musicplayer.Volume += 0.1;
-                    if (CurrentResources.musicplayer.Volume - (double.Parse(CurrentResources.currentVolume) / 100) <= 0.005)
-                    {
-                        timer.Stop();
-                        CurrentResources.isPlayed = true;
-                    }
-                }
-                else
-                {
-                    CurrentResources.musicplayer.Volume -= 0.1;
-                    if(CurrentResources.musicplayer.Volume <= 0)
-                    {
-                        CurrentResources.musicplayer.Pause();
-                        timer.Stop();
-                        CurrentResources.isPlayed = false;
-                    }
-                }
+            musicplayer.UnloadedBehavior = MediaState.Manual;
+            musicplayer.LoadedBehavior = MediaState.Manual;
+            musicplayer.MediaOpened += Musicplayer_MediaOpened;
+            musicplayer.MediaFailed += Musicplayer_MediaFailed;
+            musicplayer.MediaEnded += Musicplayer_MediaEnded;
+            musicplayer.Visibility = Visibility.Hidden;
+            musicplayer.Volume = Res.res.CVolume / 100;
 
+            updateInfo = new();
+            updateInfo.Elapsed += Timer_Elapsed;
+            updateInfo.Interval = 100;
+            updateInfo.Start();
+        }
+
+        // 信息更新
+        public static void Timer_Elapsed(object? sender, ElapsedEventArgs e)
+        {
+            musicplayer.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                Res.res.CPlayPostion = (int)musicplayer.Position.Duration().TotalSeconds;
+                musicplayer.Volume = (double)Res.res.CVolume / 100;
             }));
         }
 
-        public static void RePlay(string path)
+        public static void RePlay(string path, string name, string artists, Stream cover)
         {
-            CurrentResources.soundPath = path;
-            CurrentResources.musicplayer.Source = new Uri(path);
+            Res.res.CPlayName = name;
+            Res.res.CPlayArtists = artists;
+            Res.res.cSongPath = path;
+            Res.res.Cover(cover);
+            musicplayer.Source = new Uri(path);
             Play(true);
         }
 
@@ -63,44 +60,52 @@ namespace NeteaseCloudMusicControl.Views.Methods
         {
             if (!re)
             {
-                if (!CurrentResources.isPlayed)
+                if (!Res.res.IsPlaying)
                 {
-                    CurrentResources.musicplayer.Play();
-                    CurrentResources.isPlayed = true;
+                    musicplayer.Play();
+                    Res.res.IsPlaying = true;
                 }
                 else
                 {
-                    CurrentResources.musicplayer.Pause();
-                    CurrentResources.isPlayed = false;
+                    musicplayer.Pause();
+                    Res.res.IsPlaying = false;
                 }
             }
             else
             {
-                CurrentResources.isPlayed = true;
-                CurrentResources.musicplayer.Position = TimeSpan.Zero;
-                CurrentResources.musicplayer.Play();
+                Res.res.IsPlaying = true;
+                musicplayer.Position = TimeSpan.Zero;
+                musicplayer.Play();
             }
         }
 
         public static void Volume(double volume)
         {
-            CurrentResources.musicplayer.Volume = volume;
+            musicplayer.Volume = volume;
+        }
+
+        public static void Postion(int secs)
+        {
+            if (Res.res.IsPlaying)
+            {
+                musicplayer.Position = TimeSpan.FromSeconds(secs);
+            }
         }
 
         public static void Musicplayer_MediaEnded(object sender, RoutedEventArgs e)
         {
-            CurrentResources.isPlayed = false;
+            Res.res.IsPlaying = false;
         }
 
         public static void Musicplayer_MediaOpened(object sender, RoutedEventArgs e)
         {
-            CurrentResources.currentPlayWholeTime = (int)CurrentResources.musicplayer.NaturalDuration.TimeSpan.TotalSeconds;
-            CurrentResources.isPlayed = true;
+            Res.res.CPlayWholeTime = (int)musicplayer.NaturalDuration.TimeSpan.TotalSeconds;
+            Res.res.IsPlaying = true;
         }
 
         public static void Musicplayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         /*
@@ -141,9 +146,9 @@ namespace NeteaseCloudMusicControl.Views.Methods
                 try
                 {
                     client_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    IPAddress ipAdress = IPAddress.Parse(CurrentResources.ServerIp);
+                    IPAddress ipAdress = IPAddress.Parse(Res.res.ServerIp);
                     //网络端点：为待请求连接的IP地址和端口号
-                    IPEndPoint ipEndpoint = new IPEndPoint(ipAdress, int.Parse(CurrentResources.ServerPort));
+                    IPEndPoint ipEndpoint = new IPEndPoint(ipAdress, int.Parse(Res.res.ServerPort));
                     while (true)
                     {
                         try

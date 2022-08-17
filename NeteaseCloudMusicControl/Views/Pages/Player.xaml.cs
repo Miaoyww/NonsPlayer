@@ -1,72 +1,54 @@
 ﻿using Microsoft.Win32;
-using NeteaseCloudMusicControl.Views.Methods;
+using NcmPlayer.Service;
+using NeteaseCloudMusicControl;
 using System;
-using System.Collections.Generic;
+using System.Collections;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Net;
+using System.Security.Policy;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
-namespace NeteaseCloudMusicControl.Views.Pages
+namespace NcmPlayer.Views.Pages
 {
     /// <summary>
     /// Player.xaml 的交互逻辑
     /// </summary>
-    public partial class Player : Page, INotifyPropertyChanged
+    public partial class Player : Page
     {
         public static Player playerPage;
         public static System.Timers.Timer timer = new System.Timers.Timer();
         public static System.Timers.Timer timerPostion = new System.Timers.Timer();
-        private bool isPlayed = false;
+        private bool isPlaying = false;
+        private bool isUser = false;
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected void OnPropertyChanged(string propertyName)
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
-            }
-        }
-            public Player()
+        public Player()
         {
             InitializeComponent();
             playerPage = this;
             timerPostion.Elapsed += TimerPostion_Elapsed;
             timerPostion.Interval = 800;
             timerPostion.Start();
-            CurrentResources resources = new();
-            slider_postion.DataContext = resources;
-            label_currentTime.DataContext = resources;
-            label_wholeTime.DataContext = resources;
+
+            b_image.DataContext = Res.res;
+            tblock_title.DataContext = Res.res;
+            tblock_artists.DataContext = Res.res;
+            slider_postion.DataContext = Res.res;
+            label_currentTime.DataContext = Res.res;
+            label_wholeTime.DataContext = Res.res;
         }
 
         private void TimerPostion_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (CurrentResources.isPlayed)
+                if (Res.res.IsPlaying)
                 {
-                    // slider_postion.Maximum = CurrentResources.currentPlayWholeTime;
-                    CurrentResources.currentPlayPostion = (int)CurrentResources.musicplayer.Position.Duration().TotalSeconds;
-                    OnPropertyChanged("currentPlayPostion");
-                    OnPropertyChanged("currentPlayPostionString");
-                    OnPropertyChanged("currentPlayWholeTime");
-                    OnPropertyChanged("currentPlayWholeTimeString");
-                    // slider_postion.Value = CurrentResources.currentPlayPostion;
-                    // label_currentTime.Content = CurrentResources.currentPlayPostionString;
-                    // label_wholeTime.Content = CurrentResources.currentPlayWholeTimeString;
+                    // slider_postion.Maximum = Res.res.currentPlayWholeTime;
+                    // slider_postion.Value = Res.res.currentPlayPostion;
+                    // label_currentTime.Content = Res.res.currentPlayPostionString;
+                    // label_wholeTime.Content = Res.res.currentPlayWholeTimeString;
                 }
             }));
         }
@@ -75,20 +57,20 @@ namespace NeteaseCloudMusicControl.Views.Pages
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (CurrentResources.isPlayed)
+                if (Res.res.IsPlaying)
                 {
-                    if (!isPlayed)
+                    if (!isPlaying)
                     {
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Pause24;
-                        isPlayed = true;
+                        isPlaying = true;
                     }
                 }
                 else
                 {
-                    if (isPlayed)
+                    if (isPlaying)
                     {
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Play24;
-                        isPlayed = false;
+                        isPlaying = false;
                     }
                 }
             }));
@@ -101,7 +83,7 @@ namespace NeteaseCloudMusicControl.Views.Pages
 
         private void btn_play_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            PlayerMethods.Play();
+            MusicPlayer.Play();
         }
 
         private void btn_next_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -134,17 +116,34 @@ namespace NeteaseCloudMusicControl.Views.Pages
             if ((bool)sfd.ShowDialog())
             {
                 string path = sfd.FileName;
-                StreamWriter streamWriter = new(path);
-                streamWriter.Write(PlayerMethods.imageStream.ReadByte());
-                streamWriter.Flush();
-                streamWriter.Close();
+                using (WebClient client = new WebClient())
+                {
+                    client.DownloadFileAsync(new Uri(Res.res.CPlayAlbumPicUrl), path);
+                }
             }
-
         }
 
         private void btn_playerHide_Click(object sender, RoutedEventArgs e)
         {
             MainWindow.ScreenControl();
+        }
+
+        private void slider_postion_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (isUser)
+            {
+                MusicPlayer.Postion((int)slider_postion.Value);
+            }
+        }
+
+        private void slider_postion_PreviewMouseDown(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            isUser = true;
+        }
+
+        private void slider_postion_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            isUser = false;
         }
     }
 }

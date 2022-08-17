@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
-using NeteaseCloudMusicControl.Views.Methods;
+using NcmPlayer;
+using NeteaseCloudMusicControl;
 using System;
 using System.Timers;
 using System.Windows;
@@ -7,7 +8,7 @@ using System.Windows.Controls;
 using Wpf.Ui.Controls.Interfaces;
 using Wpf.Ui.Mvvm.Contracts;
 
-namespace NeteaseCloudMusicControl.Views
+namespace NcmPlayer.Views
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -18,10 +19,10 @@ namespace NeteaseCloudMusicControl.Views
         private Pages.Settings PageSettings;
         private Pages.Player PagePlayer = new();
         private bool isUser = false;
-        private bool isPlayed = false;
+        private bool isPlaying = false;
         private double lastVolume;
         private System.Timers.Timer timer = new System.Timers.Timer();
-        public static string currentpage = string.Empty;
+        public static string cpage = string.Empty;
         public static Page lastPage;
         public static Frame screenframe;
         public static Frame pageframe;
@@ -33,6 +34,10 @@ namespace NeteaseCloudMusicControl.Views
             mainWindow = this;
             screenframe = ScreenFrame;
             pageframe = PageFrame;
+            btn_albumPic.DataContext = Res.res;
+            tblock_artists.DataContext = Res.res;
+            tblock_title.DataContext = Res.res;
+            slider_volume.DataContext = Res.res;
             timer.Interval = 100;
             timer.Elapsed += Timer_Elapsed;
             timer.Start();
@@ -42,28 +47,55 @@ namespace NeteaseCloudMusicControl.Views
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (CurrentResources.isPlayed)
+                if (Res.res.IsPlaying)
                 {
-                    if (!isPlayed)
+                    if (!isPlaying)
                     {
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Pause24;
-                        isPlayed = true;
+                        isPlaying = true;
                     }
                 }
                 else
                 {
-                    if (isPlayed)
+                    if (isPlaying)
                     {
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Play24;
-                        isPlayed = false;
+                        isPlaying = false;
                     }
                 }
 
-                CurrentResources.musicplayer.Dispatcher.BeginInvoke(new Action(() =>
+                switch (slider_volume.Value)
                 {
-                    CurrentResources.musicplayer.Volume = slider_volume.Value / 100;
-                }));
+                    case <= 1:
+                        btn_volume.Icon = Wpf.Ui.Common.SymbolRegular.SpeakerOff24;
+                        break;
+
+                    case double n when (n >= 10 && n < 30):
+                        btn_volume.Icon = Wpf.Ui.Common.SymbolRegular.Speaker024;
+                        break;
+
+                    case double n when (n >= 30 && n < 80):
+                        btn_volume.Icon = Wpf.Ui.Common.SymbolRegular.Speaker124;
+                        break;
+
+                    case >= 80:
+                        btn_volume.Icon = Wpf.Ui.Common.SymbolRegular.Speaker224;
+                        break;
+                }
             }));
+        }
+
+        public static void ShowMyDialog(string content, string title)
+        {
+            mainWindow.dialog.Visibility = Visibility.Visible;
+            mainWindow.dialog.Title = title;
+            mainWindow.dialog.Content = content;
+            mainWindow.dialog.Show();
+        }
+
+        private void dialog_btn_click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            dialog.Hide();
         }
 
         #region Windows
@@ -144,20 +176,20 @@ namespace NeteaseCloudMusicControl.Views
                 screenframe.Visibility = Visibility.Visible;
                 lastPage = (Page)pageframe.Content;
                 pageframe.Content = null;
-                currentpage = string.Empty;
+                cpage = string.Empty;
             }
         }
 
         private static void ChangePage(Page page)
         {
-            if (!currentpage.Equals(page.Title.ToString()))
+            if (!cpage.Equals(page.Title.ToString()))
             {
                 if (screenframe.Visibility == Visibility.Visible)
                 {
                     screenframe.Visibility = Visibility.Hidden;
                 }
                 pageframe.Content = page;
-                currentpage = page.Title;
+                cpage = page.Title;
             }
         }
 
@@ -172,7 +204,7 @@ namespace NeteaseCloudMusicControl.Views
 
         private void btn_play_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            PlayerMethods.Play();
+            MusicPlayer.Play();
         }
 
         private void btn_next_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -187,7 +219,6 @@ namespace NeteaseCloudMusicControl.Views
         {
             PageFrame.Content = PageHome;
             ScreenFrame.Content = PagePlayer;
-            slider_volume.Value = double.Parse(CurrentResources.currentVolume);
             isUser = true;
         }
 
@@ -218,32 +249,14 @@ namespace NeteaseCloudMusicControl.Views
         {
             if (isUser)
             {
-                RegEditer("CurrentVolume", slider_volume.Value);
-                CurrentResources.currentVolume = slider_volume.Value.ToString();
-            }
-            switch (slider_volume.Value)
-            {
-                case 0:
-                    btn_volume.Icon = Wpf.Ui.Common.SymbolRegular.SpeakerOff24;
-                    break;
-
-                case double n when (n >= 10 && n < 30):
-                    btn_volume.Icon = Wpf.Ui.Common.SymbolRegular.Speaker024;
-                    break;
-
-                case double n when (n >= 30 && n < 80):
-                    btn_volume.Icon = Wpf.Ui.Common.SymbolRegular.Speaker124;
-                    break;
-
-                case >= 80:
-                    btn_volume.Icon = Wpf.Ui.Common.SymbolRegular.Speaker224;
-                    break;
+                RegEditer("CurrentVolume", ((int)slider_volume.Value).ToString());
+                Res.res.CVolume = (int)slider_volume.Value;
             }
         }
 
         private void btn_volume_Click(object sender, RoutedEventArgs e)
         {
-            if (double.Parse(CurrentResources.currentVolume) != 0)
+            if (Res.res.CVolume != 0)
             {
                 lastVolume = slider_volume.Value;
                 slider_volume.Value = 0;

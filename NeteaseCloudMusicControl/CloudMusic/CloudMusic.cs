@@ -3,10 +3,13 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
 using System.Net;
+using System.Security.Policy;
 using System.Text;
 using System.Threading;
+using System.Windows.Markup;
+using System.Windows.Shapes;
 
-namespace NeteaseCloudMusicControl.Service
+namespace NcmPlayer.Service
 {
     /*
     public static class CloudMusic
@@ -165,7 +168,7 @@ namespace NeteaseCloudMusicControl.Service
 
             string processedTitle = title.Replace(" ", "");  // 为方便对比, 将所有空格去掉
             string processedArtist = artist.Replace(" ", "");
-            byte[] readResultBytes = ReadFile(CurrentResources.SoundsPath);
+            byte[] readResultBytes = ReadFile(Res.res.SoundsPath);
             string readResult = B2S(readResultBytes);
             string savingContent = $"{title} -{artist}"; // 用于储存在sounds.json followings中的成员
             JObject result;
@@ -240,7 +243,7 @@ namespace NeteaseCloudMusicControl.Service
             result = new JObject { { "sounds", albumList } };
             try
             {
-                WriteFile(CurrentResources.SoundsPath, result.ToString());
+                WriteFile(Res.res.SoundsPath, result.ToString());
             }
             catch (IOException)
             {
@@ -255,12 +258,14 @@ namespace NeteaseCloudMusicControl.Service
         {
             WebRequest wrGETURL;
             wrGETURL = WebRequest.Create(url);
+
             Stream objStream;
             while (true)
             {
                 try
                 {
                     objStream = wrGETURL.GetResponse().GetResponseStream();
+                    StreamReader objReader = new StreamReader(objStream);
                     return objStream;
                 }
                 catch (WebException)
@@ -316,16 +321,16 @@ namespace NeteaseCloudMusicControl.Service
 
     public class CloudMusic
     {
-        public string __id = string.Empty;
-        public string __name = string.Empty;
-        public Stream? __cover;
-
+        public string id = string.Empty;
+        public string name = string.Empty;
+        public Stream? cover;
+        public string coverUrl;
 
         public string Name
-        { get { return __name; } }
+        { get { return name; } }
 
         public Stream Cover
-        { get { return __cover; } }
+        { get { return cover; } }
 
     }
 
@@ -338,9 +343,9 @@ namespace NeteaseCloudMusicControl.Service
 
         public PlayList(string in_id)
         {
-            __id = in_id;
-            JObject playlistDetail = (JObject)HttpRequest.GetJson(Apis.playListDetail(__id))["playlist"];
-            __name = playlistDetail["name"].ToString();
+            id = in_id;
+            JObject playlistDetail = (JObject)HttpRequest.GetJson(Apis.playListDetail(id))["playlist"];
+            name = playlistDetail["name"].ToString();
             description = playlistDetail["description"].ToString();
 
             JObject jsonTags = (JObject)playlistDetail["tags"];
@@ -350,8 +355,9 @@ namespace NeteaseCloudMusicControl.Service
                 tags[index] = jsonTags[index].ToString();
             }
 
-            __cover = HttpRequest.StreamHttpGet(playlistDetail["coverImgUrl"].ToString());
-
+            coverUrl = playlistDetail["coverImgUrl"].ToString();
+            cover = HttpRequest.StreamHttpGet(coverUrl);
+            
             JObject jsonSongs = (JObject)playlistDetail["trackIds"];
             songIds = new string[jsonSongs.Count];
             for (int index = 0; index < songIds.Length; index++)
@@ -378,10 +384,19 @@ namespace NeteaseCloudMusicControl.Service
 
         public Song(string in_id)
         {
-            __id = in_id;
-            JObject songDetail = (JObject)HttpRequest.GetJson(Apis.songDetail(__id))["songs"][0];
-            __name = songDetail["name"].ToString();
-            JObject temp = (JObject)HttpRequest.GetJson(Apis.songUrl(__id))["data"][0];
+            id = in_id;
+            JObject songDetail;
+            try
+            {
+                songDetail = (JObject)((JArray)HttpRequest.GetJson(Apis.songDetail(id))["songs"])[0];
+
+            }
+            catch (InvalidCastException)
+            {
+                throw new InvalidCastException($"未能发现此音乐{in_id}");
+            }
+            name = songDetail["name"].ToString();
+            JObject temp = (JObject)HttpRequest.GetJson(Apis.songUrl(id))["data"][0];
             songUrl = temp["url"].ToString();
             songType = temp["type"].ToString();
             JArray artistsJson = (JArray)songDetail["ar"];
@@ -393,7 +408,8 @@ namespace NeteaseCloudMusicControl.Service
 
             albumId = songDetail["al"]["id"].ToString();
             albumName = songDetail["al"]["name"].ToString();
-            __cover = HttpRequest.StreamHttpGet(songDetail["al"]["picUrl"].ToString());
+            coverUrl = songDetail["al"]["picUrl"].ToString();
+            cover = HttpRequest.StreamHttpGet(coverUrl);
         }
 
         public string[] Artists
@@ -407,7 +423,7 @@ namespace NeteaseCloudMusicControl.Service
 
         public string GetFile()
         {
-            string path = AppConfig.SongsPath(__id, songType);
+            string path = AppConfig.SongsPath(id, songType);
             if (!File.Exists(path))
             {
                 if (!Directory.Exists(AppConfig.SongsDirectory))

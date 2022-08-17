@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace NeteaseCloudMusicControl.Views.Pages
+namespace NcmPlayer.Views.Pages
 {
     /// <summary>
     /// ControlService.xaml 的交互逻辑

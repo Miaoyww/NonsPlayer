@@ -1,5 +1,5 @@
 ﻿<ui:UiWindow
-    x:Class="NeteaseCloudMusicControl.Views.MainWindow"
+    x:Class="NcmPlayer.Views.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -28,17 +28,17 @@
         <Grid>
             <Frame x:Name="PageFrame" />
         </Grid>
-        <Border VerticalAlignment="Bottom" Height="101" Background="White" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9" Margin="120,0,0,0">
+        <Border VerticalAlignment="Top" Height="101" Background="White" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9" Margin="0,657,0,0">
             <Grid Margin="5,5,5,5">
                 <StackPanel Orientation="Horizontal" Width="370" HorizontalAlignment="Left" Margin="60,0,0,0">
                     <Separator Height="4" Width="10" BorderThickness="0,0,0,0" />
-                    <Button x:Name="btn_albumPic" Width="60" Height="60" HorizontalAlignment="Center" Background="#B3A9A9A9" BorderThickness="0,0,0,0" Cursor="Hand" Click="btn_albumPic_Click" />
+                    <Button x:Name="btn_albumPic" Width="60" Height="60" HorizontalAlignment="Center" Background="{Binding CoverBrush, Mode=OneWay}" BorderThickness="0,0,0,0" Cursor="Hand" Click="btn_albumPic_Click" />
                     <Separator Height="4" Width="10" BorderThickness="0,0,0,0" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock x:Name="tblock_title" Text="当前未播放音乐" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="18" FontFamily="Bahnschrift SemiBold" Cursor="Hand" />
-                        <TextBlock x:Name="tblock_artists" Text="无" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Foreground="#E4868686" Cursor="Hand" />
+                        <TextBlock x:Name="tblock_title" Text="{Binding CPlayName}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="18" FontFamily="Bahnschrift SemiBold" Cursor="Hand" />
+                        <TextBlock x:Name="tblock_artists" Text="{Binding CPlayArtists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Foreground="#E4868686" Cursor="Hand" />
                     </StackPanel>
-                    <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="20" Width="35" Height="35" BorderThickness="0,0,0,0" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Top" HorizontalAlignment="Right" Padding="0,0,0,0" Margin="0,6,0,0" Cursor="Hand" />
+                    <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="20" Width="35" Height="35" BorderThickness="0,0,0,0" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Top" HorizontalAlignment="Right" Padding="0,0,0,0" Margin="0,15,0,0" Cursor="Hand" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Width="180" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <ui:Button x:Name="btn_last" Icon="ArrowPrevious24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#00000000" BorderThickness="0,0,0,0" Click="btn_last_Click" Cursor="Hand" />
@@ -50,7 +50,7 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,80,0">
                     <ui:Button x:Name="btn_volume" Icon="Speaker248" FontSize="26" Cursor="Hand" Click="btn_volume_Click" />
                     <Separator Opacity="0" Width="5" />
-                    <Slider x:Name="slider_volume" HorizontalAlignment="Center" VerticalAlignment="Center" IsSelectionRangeEnabled="True" Maximum="100" Value="100" ValueChanged="slider_volume_ValueChanged" />
+                    <Slider x:Name="slider_volume" Value="{Binding CVolume}" HorizontalAlignment="Center" VerticalAlignment="Center" IsSelectionRangeEnabled="True" Maximum="100" ValueChanged="slider_volume_ValueChanged" />
                     <Separator Opacity="0" Width="20" />
                     <ui:Button x:Name="btn_playerShow" Width="40" Height="40" Icon="ArrowUp24" FontSize="20" BorderThickness="0" Click="btn_playerShow_Click"/>
                 </StackPanel>
@@ -70,5 +70,6 @@
             </StackPanel>
         </Grid>
         <Frame x:Name="ScreenFrame" Visibility="Hidden" Margin="0,40,0,0"/>
+        <ui:Dialog x:Name="dialog" ButtonLeftName="明白了" ButtonRightName="关闭" ButtonLeftClick="dialog_btn_click" ButtonRightClick="dialog_btn_click" Visibility="Hidden"/>
     </Grid>
 </ui:UiWindow>

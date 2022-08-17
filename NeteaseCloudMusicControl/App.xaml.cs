@@ -1,20 +1,20 @@
 ﻿using Microsoft.Win32;
-using NeteaseCloudMusicControl.Views.Methods;
+using NcmPlayer;
+using NeteaseCloudMusicControl;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Net;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace NeteaseCloudMusicControl
+namespace NcmPlayer
 {
     public partial class App : Application
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             JObject keys = new();
-            keys.Add("ServerIpAddress", "127.0.0.1");
-            keys.Add("ServerPort", "4000");
+            keys.Add("ServerPort", Res.res.serverPort);
             keys.Add("CurrentVolume", "100");
             IEnumerable<JProperty> properties = keys.Properties();
             foreach (JProperty key in properties)
@@ -24,19 +24,9 @@ namespace NeteaseCloudMusicControl
                     Registry.SetValue(AppConfig.RegPath, key.Name, key.Value);
                 }
             }
-            CurrentResources.serverIp = Registry.GetValue(AppConfig.RegPath, "ServerIpAddress", "127.0.0.1").ToString();
-            CurrentResources.serverPort = Registry.GetValue(AppConfig.RegPath, "ServerPort", "4000").ToString();
-            CurrentResources.currentVolume = Registry.GetValue(AppConfig.RegPath, "CurrentVolume", "100").ToString();
-            CurrentResources.musicplayer = new();
-            CurrentResources.musicplayer.UnloadedBehavior = MediaState.Manual;
-            CurrentResources.musicplayer.LoadedBehavior = MediaState.Manual;
-            CurrentResources.musicplayer.MediaOpened += PlayerMethods.Musicplayer_MediaOpened;
-            CurrentResources.musicplayer.MediaFailed += PlayerMethods.Musicplayer_MediaFailed;
-            CurrentResources.musicplayer.MediaEnded += PlayerMethods.Musicplayer_MediaEnded;
-            CurrentResources.musicplayer.Visibility = Visibility.Hidden;
-            PlayerMethods.timer = new();
-            PlayerMethods.timer.Elapsed += PlayerMethods.Timer_Elapsed;
+            Res.res.serverPort = Registry.GetValue(AppConfig.RegPath, "ServerPort", Res.res.serverPort).ToString();
+            Res.res.CVolume = int.Parse(Registry.GetValue(AppConfig.RegPath, "CurrentVolume", "100").ToString());
+            MusicPlayer.InitPlayer();
         }
-
     }
 }

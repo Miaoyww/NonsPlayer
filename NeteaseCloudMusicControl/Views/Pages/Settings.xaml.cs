@@ -1,9 +1,10 @@
 ﻿using Microsoft.Win32;
+using NeteaseCloudMusicControl;
 using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Controls;
 
-namespace NeteaseCloudMusicControl.Views.Pages
+namespace NcmPlayer.Views.Pages
 {
     public partial class Settings : Page
     {
@@ -23,44 +24,12 @@ namespace NeteaseCloudMusicControl.Views.Pages
         private void RegEditer(string key, object value)
         {
             Registry.SetValue(AppConfig.RegPath, key, value);
-            CurrentResources.serverIp = tbox_ipaddress.Text;
-            CurrentResources.serverPort = tbox_port.Text;
         }
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
             tblock_Version.Text = $"v{AppConfig.AppVersion}";
-            tbox_ipaddress.Text = CurrentResources.serverIp;
-            tbox_port.Text = CurrentResources.serverPort;
             isUser = true;
-        }
-
-        private void tbox_port_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (isUser)
-            {
-                if (tbox_port.Text != "")
-                {
-                    if (int.Parse(tbox_port.Text) > 0 && int.Parse(tbox_port.Text) <= 65535)
-                    {
-                        port = tbox_port.Text;
-                        RegEditer(Port, tbox_port.Text);
-                    }
-                    else
-                    {
-                        tbox_port.Text = "4000";
-                    }
-                }
-            }
-        }
-
-        private void tbox_ipaddress_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (isUser)
-            {
-                ip = tbox_ipaddress.Text;
-                RegEditer(IpAddress, tbox_ipaddress.Text);
-            }
         }
     }
 }

@@ -1,10 +1,11 @@
-﻿using System;
+﻿using NeteaseCloudMusicControl;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NeteaseCloudMusicControl.Service
+namespace NcmPlayer.Service
 {
     public static class PostInfo
     {
@@ -15,7 +16,7 @@ namespace NeteaseCloudMusicControl.Service
             {
                 output += action + " ";
             }
-            CurrentResources.log += output + "\r\n";
+            Res.res.log += output + "\r\n";
         }
     }
 }

@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace NeteaseCloudMusicControl.Service
+namespace NcmPlayer.Service
 {
     public class User32
     {

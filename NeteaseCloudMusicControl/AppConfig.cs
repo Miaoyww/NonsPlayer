@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NeteaseCloudMusicControl
+namespace NcmPlayer
 {
     public static class AppConfig
     {
         public static string AppVersion = "0.1.5";
 
-        public static string RegPath = @"HKEY_CURRENT_USER\SOFTWARE\Miaoywww\NeteaseCloudMusicControl\";
+        public static string RegPath = @"HKEY_CURRENT_USER\SOFTWARE\Miaoywww\NcmPlayer\";
 
         public static string ApiUrl = "http://localhost:3000";
 
@@ -20,7 +20,5 @@ namespace NeteaseCloudMusicControl
         {
             return $"{SongsDirectory}{id}.{type}";
         }
-
-        public static CurrentResources resources;
     }
 }
