@@ -37,7 +37,7 @@
 
 Copyright Miaomiaoywww 2022.
 
-Distributed under the terms of the [MIT license](https://github.com/Miaoywww/Minecraft-Media-Player/blob/main/LICENSE).
+Distributed under the terms of the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
 
 # 灵感来源
 
