@@ -20,5 +20,7 @@ namespace NeteaseCloudMusicControl
         {
             return $"{SongsDirectory}{id}.{type}";
         }
+
+        public static CurrentResources resources;
     }
 }

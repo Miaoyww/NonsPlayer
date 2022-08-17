@@ -3,7 +3,7 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:neteasecloudmusiccontrol="clr-namespace:NeteaseCloudMusicControl"
       mc:Ignorable="d"
       d:DesignHeight="758" d:DesignWidth="1339"
       Title="Home" Height="718">
@@ -34,11 +34,11 @@
                 </Grid>
                 <Separator Height="20" BorderThickness="0,0,0,0" />
                 <StackPanel Orientation="Horizontal" Width="512">
-                    <Label x:Name="label_currentTime" Content="0:00" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" />
+                    <Label x:Name="label_currentTime" Content="{Binding currentPlayPostionString, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" />
                     <Separator Opacity="0" Width="5"/>
-                    <Slider x:Name="slider_postion" Width="448"/>
+                    <Slider x:Name="slider_postion" Value="{Binding currentPlayPostion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="448"/>
                     <Separator Opacity="0" Width="5"/>
-                    <Label x:Name="label_wholeTime" Content="0:00" Padding="0,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
+                    <Label x:Name="label_wholeTime" Content="{Binding currentPlayWholeTimeString, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="0,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
                 </StackPanel>
                 <Separator Height="10" BorderThickness="0,0,0,0" />
                 <StackPanel Orientation="Horizontal" Height="50" VerticalAlignment="Center" Width="180" HorizontalAlignment="Center">

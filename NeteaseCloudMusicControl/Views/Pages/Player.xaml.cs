@@ -2,6 +2,7 @@
 using NeteaseCloudMusicControl.Views.Methods;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -22,22 +23,33 @@ namespace NeteaseCloudMusicControl.Views.Pages
     /// <summary>
     /// Player.xaml 的交互逻辑
     /// </summary>
-    public partial class Player : Page
+    public partial class Player : Page, INotifyPropertyChanged
     {
         public static Player playerPage;
         public static System.Timers.Timer timer = new System.Timers.Timer();
         public static System.Timers.Timer timerPostion = new System.Timers.Timer();
         private bool isPlayed = false;
-        public Player()
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+        }
+            public Player()
         {
             InitializeComponent();
             playerPage = this;
-            timer.Interval = 100;
-            timer.Elapsed += Timer_Elapsed;
-            timer.Start();
-            timerPostion.Interval = 800;
             timerPostion.Elapsed += TimerPostion_Elapsed;
+            timerPostion.Interval = 800;
             timerPostion.Start();
+            CurrentResources resources = new();
+            slider_postion.DataContext = resources;
+            label_currentTime.DataContext = resources;
+            label_wholeTime.DataContext = resources;
         }
 
         private void TimerPostion_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
@@ -46,11 +58,15 @@ namespace NeteaseCloudMusicControl.Views.Pages
             {
                 if (CurrentResources.isPlayed)
                 {
-                    slider_postion.Maximum = CurrentResources.currentPlayWholeTime;
+                    // slider_postion.Maximum = CurrentResources.currentPlayWholeTime;
                     CurrentResources.currentPlayPostion = (int)CurrentResources.musicplayer.Position.Duration().TotalSeconds;
-                    slider_postion.Value = CurrentResources.currentPlayPostion;
-                    label_currentTime.Content = CurrentResources.currentPlayPostionString;
-                    label_wholeTime.Content = CurrentResources.currentPlayWholeTimeString;
+                    OnPropertyChanged("currentPlayPostion");
+                    OnPropertyChanged("currentPlayPostionString");
+                    OnPropertyChanged("currentPlayWholeTime");
+                    OnPropertyChanged("currentPlayWholeTimeString");
+                    // slider_postion.Value = CurrentResources.currentPlayPostion;
+                    // label_currentTime.Content = CurrentResources.currentPlayPostionString;
+                    // label_wholeTime.Content = CurrentResources.currentPlayWholeTimeString;
                 }
             }));
         }

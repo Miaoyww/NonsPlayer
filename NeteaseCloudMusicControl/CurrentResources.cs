@@ -4,7 +4,7 @@ using System.Windows.Controls;
 
 namespace NeteaseCloudMusicControl
 {
-    public static class CurrentResources
+    public class CurrentResources
     {
         // 播放器
         public static MediaElement musicplayer;
