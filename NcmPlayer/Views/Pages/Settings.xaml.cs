@@ -1,5 +1,5 @@
 ﻿using Microsoft.Win32;
-using NeteaseCloudMusicControl;
+using NcmPlayer;
 using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Controls;

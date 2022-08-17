@@ -1,6 +1,6 @@
 ﻿using Microsoft.Win32;
-using NcmPlayer.Service;
-using NeteaseCloudMusicControl;
+using NcmPlayer.Player;
+using NcmPlayer.CloudMusic;
 using System;
 using System.Collections;
 using System.ComponentModel;

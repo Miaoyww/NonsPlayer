@@ -1,4 +1,4 @@
-﻿using NcmPlayer.Service;
+﻿using NcmPlayer.CloudMusic;
 using System;
 using System.ComponentModel;
 using System.IO;
@@ -6,13 +6,13 @@ using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace NeteaseCloudMusicControl
+namespace NcmPlayer
 {
-    public class Resources: INotifyPropertyChanged
+    public class Resources : INotifyPropertyChanged
     {
         // c current
         public string cSongPath = string.Empty; // 当前播放音乐的路径
-        
+
         public string serverPort = "21111"; // 开放端口 第二位 11月11日
         public string log = string.Empty;  // 运行日志, 以供诊断错误
         public string playlistPath = string.Empty; // 预留, 储存播放列表, 何以储存有待考虑

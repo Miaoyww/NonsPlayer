@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace NcmPlayer.Service
+namespace NcmPlayer.CloudMusic
 {
     public class User32
     {

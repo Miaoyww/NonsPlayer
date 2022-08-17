@@ -1,6 +1,5 @@
 ﻿using Microsoft.Win32;
-using NcmPlayer;
-using NeteaseCloudMusicControl;
+using NcmPlayer.Player;
 using System;
 using System.Timers;
 using System.Windows;

@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace NcmPlayer.Service
+namespace NcmPlayer.CloudMusic
 {
     /*
     public static class TcpServer

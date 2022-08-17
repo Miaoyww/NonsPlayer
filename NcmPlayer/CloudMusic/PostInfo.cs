@@ -1,11 +1,10 @@
-﻿using NeteaseCloudMusicControl;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NcmPlayer.Service
+namespace NcmPlayer.CloudMusic
 {
     public static class PostInfo
     {

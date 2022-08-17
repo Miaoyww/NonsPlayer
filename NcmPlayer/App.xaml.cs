@@ -1,6 +1,5 @@
 ﻿using Microsoft.Win32;
-using NcmPlayer;
-using NeteaseCloudMusicControl;
+using NcmPlayer.Player;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Net;

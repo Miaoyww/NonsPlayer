@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32804.467
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NcmPlayer", "NeteaseCloudMusicControl\NcmPlayer.csproj", "{71CE92DD-BD42-48C2-9FBE-59FD2C7EA060}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NcmPlayer", "NcmPlayer\NcmPlayer.csproj", "{71CE92DD-BD42-48C2-9FBE-59FD2C7EA060}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

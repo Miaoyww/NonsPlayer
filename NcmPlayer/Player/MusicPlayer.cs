@@ -1,5 +1,4 @@
 ﻿using Microsoft.Win32;
-using NeteaseCloudMusicControl;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -11,7 +10,7 @@ using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace NcmPlayer
+namespace NcmPlayer.Player
 {
     public static class MusicPlayer
     {

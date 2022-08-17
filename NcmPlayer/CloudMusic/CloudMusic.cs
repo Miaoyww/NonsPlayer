@@ -9,7 +9,7 @@ using System.Threading;
 using System.Windows.Markup;
 using System.Windows.Shapes;
 
-namespace NcmPlayer.Service
+namespace NcmPlayer.CloudMusic
 {
     /*
     public static class CloudMusic
@@ -349,7 +349,7 @@ namespace NcmPlayer.Service
             description = playlistDetail["description"].ToString();
 
             JObject jsonTags = (JObject)playlistDetail["tags"];
-            tags = new string[(jsonTags).Count];
+            tags = new string[jsonTags.Count];
             for (int index = 0; index < tags.Length; index++)
             {
                 tags[index] = jsonTags[index].ToString();
@@ -357,7 +357,7 @@ namespace NcmPlayer.Service
 
             coverUrl = playlistDetail["coverImgUrl"].ToString();
             cover = HttpRequest.StreamHttpGet(coverUrl);
-            
+
             JObject jsonSongs = (JObject)playlistDetail["trackIds"];
             songIds = new string[jsonSongs.Count];
             for (int index = 0; index < songIds.Length; index++)
@@ -415,10 +415,10 @@ namespace NcmPlayer.Service
         public string[] Artists
         { get { return artists; } }
 
-        public string AlbumName 
+        public string AlbumName
         { get { return albumName; } }
 
-        public string AlbumId 
+        public string AlbumId
         { get { return albumId; } }
 
         public string GetFile()
@@ -433,12 +433,12 @@ namespace NcmPlayer.Service
                 FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
                 Stream songStream = HttpRequest.StreamHttpGet(songUrl);
                 byte[] bArr = new byte[1024];
-                int size = songStream.Read(bArr, 0, (int)bArr.Length);
+                int size = songStream.Read(bArr, 0, bArr.Length);
                 while (size > 0)
                 {
                     //stream.Write(bArr, 0, size);
                     fs.Write(bArr, 0, size);
-                    size = songStream.Read(bArr, 0, (int)bArr.Length);
+                    size = songStream.Read(bArr, 0, bArr.Length);
                 }
                 fs.Close();
                 songStream.Close();

@@ -16,9 +16,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Timers;
-using NcmPlayer.Service;
-using NcmPlayer;
-using NeteaseCloudMusicControl;
+using NcmPlayer.Player;
+using NcmPlayer.CloudMusic;
 
 namespace NcmPlayer.Views.Pages
 {
