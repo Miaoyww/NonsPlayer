@@ -27,6 +27,7 @@ namespace NcmPlayer.Views.Pages
         {
             InitializeComponent();
             playerPage = this;
+            DataContext = Res.res;
             timerPostion.Elapsed += TimerPostion_Elapsed;
             timerPostion.Interval = 800;
             timerPostion.Start();
@@ -109,16 +110,19 @@ namespace NcmPlayer.Views.Pages
 
         private void SaveImageTo_Click(object sender, RoutedEventArgs e)
         {
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Title = "选择保存至的位置";
-            sfd.Filter = "图片| *.jpg;*.png";
-            sfd.FileName = tblock_title.Text;
-            if ((bool)sfd.ShowDialog())
+            if (Res.res.CPlayAlbumPicUrl != null)
             {
-                string path = sfd.FileName;
-                using (WebClient client = new WebClient())
+                SaveFileDialog sfd = new SaveFileDialog();
+                sfd.Title = "选择保存至的位置";
+                sfd.Filter = "图片| *.jpg;*.png";
+                sfd.FileName = tblock_title.Text;
+                if ((bool)sfd.ShowDialog())
                 {
-                    client.DownloadFileAsync(new Uri(Res.res.CPlayAlbumPicUrl), path);
+                    string path = sfd.FileName;
+                    using (WebClient client = new WebClient())
+                    {
+                        client.DownloadFileAsync(new Uri(Res.res.CPlayAlbumPicUrl), path);
+                    }
                 }
             }
         }

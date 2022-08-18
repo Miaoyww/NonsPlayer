@@ -5,7 +5,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Title="Main"
     Width="1339"
     Height="758"
     MinHeight="758"
@@ -16,8 +17,7 @@
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d"
     WindowStyle="None"
-    Closed="Window_Closed"
-    Loaded="Window_Loaded">
+    Closed="Window_Closed" SizeChanged="UiWindow_SizeChanged">
     <ui:UiWindow.Resources>
         <ContextMenu x:Key="UserMenu">
             <ui:MenuItem Header="设置" x:Name="mitem_settings" Click="mitem_settings_Click" SymbolIcon="Settings24"/>
@@ -26,9 +26,9 @@
     </ui:UiWindow.Resources>
     <Grid>
         <Grid>
-            <Frame x:Name="PageFrame" />
+            <Frame x:Name="PageFrame" Margin="0,40,0,0"/>
         </Grid>
-        <Border VerticalAlignment="Top" Height="101" Background="White" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9" Margin="0,657,0,0">
+        <Border x:Name="PlayBar" VerticalAlignment="Bottom" Height="101" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9">
             <Grid Margin="5,5,5,5">
                 <StackPanel Orientation="Horizontal" Width="370" HorizontalAlignment="Left" Margin="60,0,0,0">
                     <Separator Height="4" Width="10" BorderThickness="0,0,0,0" />
@@ -40,7 +40,7 @@
                     </StackPanel>
                     <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="20" Width="35" Height="35" BorderThickness="0,0,0,0" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Top" HorizontalAlignment="Right" Padding="0,0,0,0" Margin="0,15,0,0" Cursor="Hand" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Width="180" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel x:Name="PlayerController" Orientation="Horizontal" Width="180" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <ui:Button x:Name="btn_last" Icon="ArrowPrevious24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#00000000" BorderThickness="0,0,0,0" Click="btn_last_Click" Cursor="Hand" />
                     <Separator Opacity="0" Width="15" />
                     <ui:Button x:Name="btn_play" Icon="Play24" FontSize="30" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_play_Click" Cursor="Hand" />
@@ -48,11 +48,10 @@
                     <ui:Button x:Name="btn_next" Icon="ArrowNext24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_next_Click" Cursor="Hand" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,80,0">
-                    <ui:Button x:Name="btn_volume" Icon="Speaker248" FontSize="26" Cursor="Hand" Click="btn_volume_Click" />
+                    <ui:Button x:Name="btn_volume" Background="Transparent" Icon="Speaker248" FontSize="26" Cursor="Hand" Click="btn_volume_Click" BorderThickness="0,0,0,0" />
                     <Separator Opacity="0" Width="5" />
                     <Slider x:Name="slider_volume" Value="{Binding CVolume}" HorizontalAlignment="Center" VerticalAlignment="Center" IsSelectionRangeEnabled="True" Maximum="100" ValueChanged="slider_volume_ValueChanged" />
                     <Separator Opacity="0" Width="20" />
-                    <ui:Button x:Name="btn_playerShow" Width="40" Height="40" Icon="ArrowUp24" FontSize="20" BorderThickness="0" Click="btn_playerShow_Click"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -67,6 +66,8 @@
             </Border>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ui:Button x:Name="btn_Home"  Width="68" Height="40" BorderThickness="0,0,0,0" Content="首页" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Home_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
+                <Separator BorderThickness="0" Width="5"/>
+                <ui:Button x:Name="btn_Explore"  Width="68" Height="40" BorderThickness="0,0,0,0" Content="发现" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Explore_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
             </StackPanel>
         </Grid>
         <Frame x:Name="ScreenFrame" Visibility="Hidden" Margin="0,40,0,0"/>

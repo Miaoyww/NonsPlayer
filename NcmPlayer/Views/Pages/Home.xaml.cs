@@ -26,6 +26,7 @@ namespace NcmPlayer.Views.Pages
         public Home()
         {
             InitializeComponent();
+            DataContext = Res.res;
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)

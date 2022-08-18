@@ -23,6 +23,7 @@ namespace NcmPlayer.Views.Pages
         public Explore()
         {
             InitializeComponent();
+            DataContext = Res.res;
         }
     }
 }

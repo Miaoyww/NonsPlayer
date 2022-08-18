@@ -6,47 +6,62 @@
       xmlns:local="clr-namespace:NcmPlayer.Views.Pages" 
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       mc:Ignorable="d"
-      Style="{StaticResource UiPage}"
-      d:DesignHeight="527" d:DesignWidth="1068"
-      Title="Settings" Loaded="Page_Loaded">
+      MinHeight="718"
+      MinWidth="1339"
+      d:DesignHeight="718" d:DesignWidth="1339"
+      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+      Height="{Binding PageSize[1]}"
+      Width="{Binding PageSize[0]}"
+      Loaded="Page_Loaded"
+      Title="Settings">
     <Grid>
         <ScrollViewer>
-            <StackPanel Margin="20,20,0,0">
-                <Grid Width="1034">
-                    <StackPanel>
-                        <Label Content="远程" FontSize="26" Background="Transparent" Foreground="Black" FontFamily="Bahnschrift SemiBold SemiCondensed" />
-                        <Separator VerticalAlignment="Center" Width="1048"/>
-                        <Separator VerticalAlignment="Center" Width="1048" Height="20" BorderThickness="0,0,0,0"/>
-                        <Separator BorderThickness="0,0,0,0" Height="5"/>
-                        <ui:CardControl Icon="Image24" BorderThickness="0,0,0,0">
-                            <ui:CardControl.Header>
-                                <StackPanel>
-                                    <Label Content="发送封面" Foreground="#E5000000" Width="364" HorizontalAlignment="Left" FontSize="14"/>
-                                    <Label Content="发送专辑封面" Foreground="#7F000000" Width="364" HorizontalAlignment="Left" FontSize="14"/>
-                                </StackPanel>
-                            </ui:CardControl.Header>
-                            <ui:CardControl.Content>
-                                <StackPanel Orientation="Horizontal">
-                                    <ui:ToggleSwitch Width="41" IsChecked="True" Height="22" RenderTransformOrigin="0.467,0.497">
-                                        <ui:ToggleSwitch.RenderTransform>
-                                            <TransformGroup>
-                                                <ScaleTransform/>
-                                                <SkewTransform/>
-                                                <RotateTransform Angle="0"/>
-                                                <TranslateTransform/>
-                                            </TransformGroup>
-                                        </ui:ToggleSwitch.RenderTransform>
-                                    </ui:ToggleSwitch>
-                                </StackPanel>
-                            </ui:CardControl.Content>
-                        </ui:CardControl>
-                    </StackPanel>
-                </Grid>
+            <StackPanel Margin="30,20,30,20">
+                <StackPanel>
+                    <TextBlock Text="个性化" FontSize="26" Background="Transparent" FontFamily="Bahnschrift SemiBold SemiCondensed" />
+                    <Separator VerticalAlignment="Center"/>
+                    <Separator Width="1048" Height="20" BorderThickness="0,0,0,0"/>
+                    <ui:CardControl Icon="DarkTheme24" FontSize="16" BorderThickness="0,0,0,0">
+                        <ui:CardControl.Header>
+                            <StackPanel>
+                                <TextBlock Text="主题" Width="364" HorizontalAlignment="Left" FontSize="16"/>
+                                <Label Content="更改主题为Light或者Dark" Width="364" HorizontalAlignment="Left" FontSize="13"/>
+                            </StackPanel>
+                        </ui:CardControl.Header>
+                        <ui:CardControl.Content>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Dark" Margin="0,0,10,0" />
+                                <ui:ToggleSwitch x:Name="tgs_theme" Width="41" IsChecked="True" Height="22" BorderThickness="0,0,0,0" Click="tgs_theme_Click"/>
+                                <TextBlock Text="Light" Margin="10,0,0,0"/>
+                            </StackPanel>
+                        </ui:CardControl.Content>
+                    </ui:CardControl>
+                    <Separator BorderThickness="0" Height="20"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="远程" FontSize="26" Background="Transparent" FontFamily="Bahnschrift SemiBold SemiCondensed" />
+                    <Separator VerticalAlignment="Center"/>
+                    <Separator Width="1048" Height="20" BorderThickness="0,0,0,0"/>
+                    <ui:CardControl Icon="Image24" FontSize="16"  BorderThickness="0,0,0,0">
+                        <ui:CardControl.Header>
+                            <StackPanel>
+                                <TextBlock Text="发送封面" Width="364" HorizontalAlignment="Left" FontSize="16"/>
+                                <Label Content="发送专辑封面" Width="364" HorizontalAlignment="Left" FontSize="14"/>
+                            </StackPanel>
+                        </ui:CardControl.Header>
+                        <ui:CardControl.Content>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:ToggleSwitch Width="41" IsChecked="True" Height="22" />
+                            </StackPanel>
+                        </ui:CardControl.Content>
+                    </ui:CardControl>
+                    <Separator BorderThickness="0" Height="20"/>
+                </StackPanel>
                 <Grid VerticalAlignment="Center" Height="72" Width="1052" HorizontalAlignment="Center">
                     <StackPanel>
                         <TextBlock Text="MADE BY MIAOYWWW" HorizontalAlignment="Center" VerticalAlignment="Center"  FontSize="16" FontFamily="Humnst777 BlkCn BT" />
                         <Separator BorderThickness="0,0,0,0" Height="5"/>
-                        <TextBlock x:Name="tblock_Version" HorizontalAlignment="Center" VerticalAlignment="Center" Text="v0.1.5" Foreground="#D8000000" FontSize="14" />
+                        <TextBlock x:Name="tblock_Version" HorizontalAlignment="Center" VerticalAlignment="Center" Text="v0.1.5" FontSize="14" />
                         <Separator BorderThickness="0,0,0,0" Height="5"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <ui:Hyperlink HorizontalAlignment="Center" VerticalAlignment="Center" NavigateUri="https://github.com/Miaoywww/NcmPlayer" Icon="Link48" Content="Github" FontSize="13" FontWeight="Bold" />
@@ -54,7 +69,6 @@
                         </StackPanel>
                     </StackPanel>
                 </Grid>
-
             </StackPanel>
         </ScrollViewer>
     </Grid>

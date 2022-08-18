@@ -7,7 +7,11 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       mc:Ignorable="d"
       Style="{StaticResource UiPage}"
-      d:DesignHeight="527" d:DesignWidth="1068"
+      MinHeight="718"
+      MinWidth="1339"
+      d:DesignHeight="718" d:DesignWidth="1339"
+      Height="{Binding PageSize[1]}"
+      Width="{Binding PageSize[0]}"
       Title="Home">
 
     <Grid>

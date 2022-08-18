@@ -5,11 +5,61 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Wpf.Ui.Appearance;
 
 namespace NcmPlayer
 {
     public class Resources : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged = delegate { };
+
+        private ThemeType currentTheme;
+        public ThemeType CurrentTheme
+        {
+            get => currentTheme;
+            set
+            {
+                if (!global::System.Collections.Generic.EqualityComparer<global::Wpf.Ui.Appearance.ThemeType>.Default.Equals(currentTheme, value))
+                {
+                    currentTheme = value;
+                    PropertyChanged(this, new PropertyChangedEventArgs("ScreenSize"));
+                }
+            }
+        }
+
+        #region Page与Player Size Settings
+
+        private double[] screenSize = new double[2];
+
+        public double[] ScreenSize
+        {
+            get
+            {
+                return screenSize;
+            }
+            set
+            {
+                screenSize = value;
+                PropertyChanged(this, new PropertyChangedEventArgs("ScreenSize"));
+            }
+        }
+
+        private double[] pageSize = new double[2];
+
+        public double[] PageSize
+        {
+            get
+            {
+                return pageSize;
+            }
+            set
+            {
+                pageSize = value;
+                PropertyChanged(this, new PropertyChangedEventArgs("PageSize"));
+            }
+        }
+
+        #endregion
         // c current
         public string cSongPath = string.Empty; // 当前播放音乐的路径
 
@@ -18,7 +68,6 @@ namespace NcmPlayer
         public string playlistPath = string.Empty; // 预留, 储存播放列表, 何以储存有待考虑
 
         #region 与当前音乐有关信息
-        public event PropertyChangedEventHandler? PropertyChanged = delegate { };
         #region 当前是否在播放
         private bool isPlaying = false;
         public bool IsPlaying

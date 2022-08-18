@@ -23,6 +23,7 @@ namespace NcmPlayer.Views.Pages
         public Login()
         {
             InitializeComponent();
+            DataContext = Res.res;
         }
     }
 }

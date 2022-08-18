@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.Player;
 using System;
+using System.Drawing.Printing;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,6 +17,8 @@ namespace NcmPlayer.Views
     {
         private Pages.Home PageHome = new();
         private Pages.Settings PageSettings;
+        private Pages.Explore PageExplore;
+        private Pages.Login PageLogin;
         private Pages.Player PagePlayer = new();
         private bool isUser = false;
         private bool isPlaying = false;
@@ -37,6 +40,10 @@ namespace NcmPlayer.Views
             tblock_artists.DataContext = Res.res;
             tblock_title.DataContext = Res.res;
             slider_volume.DataContext = Res.res;
+
+            PageFrame.Content = PageHome;
+            ScreenFrame.Content = PagePlayer;
+            isUser = true;
             timer.Interval = 100;
             timer.Elapsed += Timer_Elapsed;
             timer.Start();
@@ -44,6 +51,7 @@ namespace NcmPlayer.Views
 
         private void Timer_Elapsed(object? sender, ElapsedEventArgs e)
         {
+            GC.Collect();
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (Res.res.IsPlaying)
@@ -168,10 +176,12 @@ namespace NcmPlayer.Views
             if (screenframe.Visibility == Visibility.Visible)
             {
                 screenframe.Visibility = Visibility.Hidden;
+                mainWindow.PlayBar.Visibility = Visibility.Visible;
                 ChangePage(lastPage);
             }
             else
             {
+                mainWindow.PlayBar.Visibility = Visibility.Hidden;
                 screenframe.Visibility = Visibility.Visible;
                 lastPage = (Page)pageframe.Content;
                 pageframe.Content = null;
@@ -185,7 +195,7 @@ namespace NcmPlayer.Views
             {
                 if (screenframe.Visibility == Visibility.Visible)
                 {
-                    screenframe.Visibility = Visibility.Hidden;
+                    ScreenControl();
                 }
                 pageframe.Content = page;
                 cpage = page.Title;
@@ -195,6 +205,15 @@ namespace NcmPlayer.Views
         private void btn_Home_Click(object sender, RoutedEventArgs e)
         {
             ChangePage(PageHome);
+        }
+
+        private void btn_Explore_Click(object sender, RoutedEventArgs e)
+        {
+            if (PageExplore == null)
+            {
+                PageExplore = new();
+            }
+            ChangePage(PageExplore);
         }
 
         private void btn_last_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -214,13 +233,6 @@ namespace NcmPlayer.Views
         {
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            PageFrame.Content = PageHome;
-            ScreenFrame.Content = PagePlayer;
-            isUser = true;
-        }
-
         private void btn_playerShow_Click(object sender, RoutedEventArgs e)
         {
             ScreenControl();
@@ -228,6 +240,11 @@ namespace NcmPlayer.Views
 
         private void mitem_login_Click(object sender, RoutedEventArgs e)
         {
+            if (PageLogin == null)
+            {
+                PageLogin = new();
+            }
+            ChangePage(PageLogin);
         }
 
         private void mitem_settings_Click(object sender, RoutedEventArgs e)
@@ -264,6 +281,13 @@ namespace NcmPlayer.Views
             {
                 slider_volume.Value = lastVolume;
             }
+        }
+
+        private void UiWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            Res.res.ScreenSize = new double[] { ScreenFrame.RenderSize.Width, ScreenFrame.RenderSize.Height};
+            Res.res.PageSize = new double[] { PageFrame.RenderSize.Width, PageFrame.RenderSize.Height};
+
         }
     }
 }
