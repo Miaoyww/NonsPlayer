@@ -1,8 +1,12 @@
-﻿using NcmPlayer.CloudMusic;
+﻿using Microsoft.Win32;
+using NcmPlayer.CloudMusic;
+using NcmPlayer.Player;
+using NcmPlayer.Views;
 using System;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Wpf.Ui.Appearance;
@@ -12,7 +16,19 @@ namespace NcmPlayer
     public class Resources : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged = delegate { };
+        // c current
+        public string cSongPath = string.Empty; // 当前播放音乐的路径
 
+        public bool isShowingPlayer = false;
+        public string serverPort = "21111"; // 开放端口 第二位 11月11日
+        public string log = string.Empty;  // 运行日志, 以供诊断错误
+        public string playlistPath = string.Empty; // 预留, 储存播放列表, 何以储存有待考虑
+        public static void RegEditer(string key, object value)
+        {
+            Registry.SetValue(AppConfig.RegPath, key, value);
+        }
+
+        #region 主题切换事件
         private ThemeType currentTheme;
         public ThemeType CurrentTheme
         {
@@ -22,11 +38,12 @@ namespace NcmPlayer
                 if (!global::System.Collections.Generic.EqualityComparer<global::Wpf.Ui.Appearance.ThemeType>.Default.Equals(currentTheme, value))
                 {
                     currentTheme = value;
+                    RegEditer("Theme", value);
                     PropertyChanged(this, new PropertyChangedEventArgs("ScreenSize"));
                 }
             }
         }
-
+        #endregion
         #region Page与Player Size Settings
 
         private double[] screenSize = new double[2];
@@ -60,13 +77,6 @@ namespace NcmPlayer
         }
 
         #endregion
-        // c current
-        public string cSongPath = string.Empty; // 当前播放音乐的路径
-
-        public string serverPort = "21111"; // 开放端口 第二位 11月11日
-        public string log = string.Empty;  // 运行日志, 以供诊断错误
-        public string playlistPath = string.Empty; // 预留, 储存播放列表, 何以储存有待考虑
-
         #region 与当前音乐有关信息
         #region 当前是否在播放
         private bool isPlaying = false;
@@ -91,6 +101,7 @@ namespace NcmPlayer
             set
             {
                 cVolume = value;
+                MusicPlayer.Volume((double)value / 100);
                 PropertyChanged(this, new PropertyChangedEventArgs("CVolume"));
             }
             get

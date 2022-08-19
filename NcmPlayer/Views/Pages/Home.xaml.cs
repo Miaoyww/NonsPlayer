@@ -31,35 +31,23 @@ namespace NcmPlayer.Views.Pages
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            Song song;
-            try
-            {
-                song = new(tbox_id.Text);
-            }
-            catch (InvalidCastException er)
-            {
-                MainWindow.ShowMyDialog(er.Message, "错误");
-                return;
-            }
-            
-            string path = song.GetFile();
-            string[] artist = song.Artists;
-            string name = song.Name;
-            string artists = string.Empty;
-            for(int i = 0;i <= artist.Length - 1; i++)
-            {
-                if (i != artist.Length - 1)
-                {
-                    artists += artist[i] + "/";
-                }
-                else
-                {
-                    artists += artist[i];
-                }
-            }
-            MusicPlayer.RePlay(path, name, artists, song.Cover);
-            Res.res.CPlayAlbumPicUrl = song.coverUrl;
-            Res.res.CPlayAlbumId = song.AlbumId;
+            PlayList playList = new(tbox_id.Text);
+            string name = playList.Name;
+            string creator = playList.Creator;
+            Stream playlistCover = playList.Cover;
+            string description = playList.Description;
+            string createTime = playList.CreateTime.ToString();
+            int songsCount = playList.SongsCount;
+            Song[] songs = playList.InitArtWorkList(0, 5);
+            Playlist newone = new();
+            newone.Name = name;
+            newone.Creator = creator;
+            newone.CreateTime = createTime;
+            newone.SetCover(playlistCover);
+            newone.Description = description;
+            newone.SongsCount = songsCount.ToString();
+            newone.UpdateSongsList(songs);
+            MainWindow.mainWindow.PageFrame.Content = newone;
         }
     }
 }

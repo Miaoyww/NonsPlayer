@@ -30,7 +30,7 @@ namespace NcmPlayer.Views.Pages
             {
                 case true:
                     if (Res.res.CurrentTheme == ThemeType.Light)
-                        break;
+                       break;
 
                     Theme.Apply(ThemeType.Light);
                     Res.res.CurrentTheme = ThemeType.Light;

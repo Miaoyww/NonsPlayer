@@ -1,0 +1,44 @@
+﻿<Page x:Class="NcmPlayer.Views.Pages.Playlist"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      Style="{StaticResource UiPage}"
+      MinHeight="718"
+      MinWidth="1339"
+      d:DesignHeight="718" d:DesignWidth="1339"
+      Height="{Binding PageSize[1]}"
+      Width="{Binding PageSize[0]}"
+      Title="Album">
+
+    <Grid>
+        <Grid Margin="30,30,30,0">
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Height="280" Margin="0,-20,0,0" Width="1005">
+                <Border x:Name="PlaylistCover" BorderBrush="#00000000" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#FFC8C3C3" CornerRadius="10,10,10,10" Margin="30,0,0,0" >
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="20" Color="#FFA7A7A7" Opacity="0.6" />
+                    </Border.Effect>
+                </Border>
+                <Grid Margin="320,0,0,10">
+                    <TextBlock x:Name="PlaylistName" Text="Name" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="40" />
+                    <TextBlock x:Name="PlaylistDescription" Text="description" FontSize="18" Margin="0,56,0,170" HorizontalAlignment="Left" Width="665" />
+                    <StackPanel Orientation="Horizontal" Margin="0,170,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <TextBlock x:Name="PlaylistSongsCount" Text="NaN 首歌曲" HorizontalAlignment="Left" VerticalAlignment="Bottom" FontSize="16" FontWeight="Bold" FontFamily="Humnst777 BlkCn BT" />
+                        <Separator BorderThickness="0" Width="50" Height="0" />
+                        <TextBlock x:Name="PlaylistCreator" Text="创建人" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontWeight="Bold" FontFamily="Humnst777 BlkCn BT" />
+                        <Separator BorderThickness="0" Width="3" Height="0" />
+                        <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontWeight="Bold" FontFamily="Humnst777 BlkCn BT" />
+                    </StackPanel>
+                    <Grid Height="65" Width="140" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,0,0,10">
+                        <ui:Button x:Name="PlayAll"  Content="播放" Icon="Play24" FontSize="18" Background="#7FDBE2FF" BorderThickness="0" Foreground="#FF002BEB"  Padding="0,0,0,0" IconFilled="True" IconForeground="#FF002BEB" FontWeight="Bold" Width="120" Height="50"/>
+                        <Grid.Effect>
+                            <DropShadowEffect BlurRadius="10" Color="#FFA7A7A7" Opacity="0.8" RenderingBias="Performance" />
+                        </Grid.Effect>
+                    </Grid>
+                </Grid>
+            </Grid>
+            <ListBox x:Name="Songs" Margin="0,260,0,0" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" PreviewMouseDoubleClick="Songs_PreviewMouseDoubleClick"/>
+        </Grid>
+    </Grid>
+</Page>

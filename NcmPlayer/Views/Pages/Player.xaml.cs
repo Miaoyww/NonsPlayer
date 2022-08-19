@@ -39,17 +39,18 @@ namespace NcmPlayer.Views.Pages
             label_currentTime.DataContext = Res.res;
             label_wholeTime.DataContext = Res.res;
         }
-
+         
         private void TimerPostion_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (Res.res.IsPlaying)
                 {
-                    // slider_postion.Maximum = Res.res.currentPlayWholeTime;
-                    // slider_postion.Value = Res.res.currentPlayPostion;
-                    // label_currentTime.Content = Res.res.currentPlayPostionString;
-                    // label_wholeTime.Content = Res.res.currentPlayWholeTimeString;
+                    btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Pause24;
+                }
+                else
+                {
+                    btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Play24;
                 }
             }));
         }

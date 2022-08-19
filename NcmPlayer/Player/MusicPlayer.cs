@@ -41,7 +41,6 @@ namespace NcmPlayer.Player
             musicplayer.Dispatcher.BeginInvoke(new Action(() =>
             {
                 Res.res.CPlayPostion = (int)musicplayer.Position.Duration().TotalSeconds;
-                musicplayer.Volume = (double)Res.res.CVolume / 100;
             }));
         }
 

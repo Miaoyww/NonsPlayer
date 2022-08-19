@@ -3,11 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
 using System.Net;
-using System.Security.Policy;
-using System.Text;
 using System.Threading;
-using System.Windows.Markup;
-using System.Windows.Shapes;
 
 namespace NcmPlayer.CloudMusic
 {
@@ -294,10 +290,8 @@ namespace NcmPlayer.CloudMusic
     {
         public static DateTime TimestampToDateTime(string timeStamp)
         {
-            DateTime dd = DateTime.SpecifyKind(new DateTime(1970, 1, 1, 0, 0, 0, 0), DateTimeKind.Local);
-            long longTimeStamp = long.Parse(timeStamp + "0000");
-            TimeSpan ts = new TimeSpan(longTimeStamp);
-            return dd.Add(ts);
+            DateTime sTime = new DateTime(1970, 1, 1, 0, 0, 0).ToLocalTime();
+            return sTime.AddSeconds(double.Parse(timeStamp));
         }
     }
 
@@ -321,84 +315,164 @@ namespace NcmPlayer.CloudMusic
 
     public class CloudMusic
     {
-        public string id = string.Empty;
-        public string name = string.Empty;
-        public Stream? cover;
-        public string coverUrl;
+        private string id = string.Empty;
+        private string name = string.Empty;
+        private Stream? cover;
+        private string coverUrl;
+
+        public string Id
+        {
+            get
+            {
+                return id;
+            }
+            set
+            {
+                id = value;
+            }
+        }
 
         public string Name
-        { get { return name; } }
+        {
+            get
+            {
+                return name;
+            }
+            set
+            {
+                name = value;
+            }
+        }
 
         public Stream Cover
-        { get { return cover; } }
+        {
+            get
+            {
+                if (cover == null)
+                {
+                    cover = HttpRequest.StreamHttpGet(coverUrl);
+                }
+                return cover;
+            }
+            set
+            {
+                cover = value;
+            }
+        }
 
+        public string CoverUrl
+        {
+            get
+            {
+                return coverUrl;
+            }
+            set
+            {
+                coverUrl = value;
+            }
+        }
     }
 
     public class PlayList : CloudMusic
     {
         private string description = string.Empty;
         private string[] tags;
-        private string[] songIds;
+        private string[] songsId;
         private DateTime createTime;
+        private string creator = String.Empty;
 
         public PlayList(string in_id)
         {
-            id = in_id;
-            JObject playlistDetail = (JObject)HttpRequest.GetJson(Apis.playListDetail(id))["playlist"];
-            name = playlistDetail["name"].ToString();
+            Id = in_id;
+            JObject playlistDetail = (JObject)HttpRequest.GetJson(Apis.playListDetail(Id))["playlist"];
+            Name = playlistDetail["name"].ToString();
             description = playlistDetail["description"].ToString();
 
-            JObject jsonTags = (JObject)playlistDetail["tags"];
+            JArray jsonTags = (JArray)playlistDetail["tags"];
             tags = new string[jsonTags.Count];
             for (int index = 0; index < tags.Length; index++)
             {
                 tags[index] = jsonTags[index].ToString();
             }
 
-            coverUrl = playlistDetail["coverImgUrl"].ToString();
-            cover = HttpRequest.StreamHttpGet(coverUrl);
+            CoverUrl = playlistDetail["coverImgUrl"].ToString();
+            Cover = HttpRequest.StreamHttpGet(CoverUrl);
 
-            JObject jsonSongs = (JObject)playlistDetail["trackIds"];
-            songIds = new string[jsonSongs.Count];
-            for (int index = 0; index < songIds.Length; index++)
+            JArray jsonSongs = (JArray)playlistDetail["trackIds"];
+            songsId = new string[jsonSongs.Count];
+            for (int index = 0; index < songsId.Length; index++)
             {
-                songIds[index] = jsonSongs[index]["id"].ToString();
+                songsId[index] = jsonSongs[index]["id"].ToString();
             }
 
             string timestampTemp = playlistDetail["createTime"].ToString();
-            createTime = Tool.TimestampToDateTime(timestampTemp.Remove(timestampTemp.Length - 2));
+            createTime = Tool.TimestampToDateTime(timestampTemp.Remove(timestampTemp.Length - 3));
+            creator = playlistDetail["creator"]["nickname"].ToString();
         }
 
-        public void InitArtWorkList()
+        public Song[] InitArtWorkList(int start, int end)
         {
+            string[] ids = SongsId[start..end];
+            Song[] songs = new Song[end - start];
+            for (int index = 0; index < songs.Length; index++)
+            {
+                Song one = new(ids[index]);
+                songs[index] = one;
+            }
+            return songs;
+        }
+
+        public string[] SongsId
+        {
+            get
+            {
+                return songsId;
+            }
+        }
+
+        public string Creator
+        {
+            get => creator;
+        }
+
+        public string Description
+        {
+            get => description;
+        }
+
+        public int SongsCount
+        {
+            get => songsId.Length;
+        }
+
+        public DateTime CreateTime
+        {
+            get => createTime;
         }
     }
 
     public class Song : CloudMusic
     {
-        private string songUrl;
-        private string songType;
+        private string songUrl = string.Empty;
+        private string songType = string.Empty;
         private string[] artists;
-        private string albumName;
-        private string albumId;
+        private string albumName = string.Empty;
+        private string albumId = string.Empty;
+        private string duartionTime = string.Empty;
 
         public Song(string in_id)
         {
-            id = in_id;
+            Id = in_id;
             JObject songDetail;
             try
             {
-                songDetail = (JObject)((JArray)HttpRequest.GetJson(Apis.songDetail(id))["songs"])[0];
-
+                songDetail = (JObject)((JArray)HttpRequest.GetJson(Apis.songDetail(Id))["songs"])[0];
             }
             catch (InvalidCastException)
             {
                 throw new InvalidCastException($"未能发现此音乐{in_id}");
             }
-            name = songDetail["name"].ToString();
-            JObject temp = (JObject)HttpRequest.GetJson(Apis.songUrl(id))["data"][0];
-            songUrl = temp["url"].ToString();
-            songType = temp["type"].ToString();
+            Name = songDetail["name"].ToString();
             JArray artistsJson = (JArray)songDetail["ar"];
             artists = new string[artistsJson.Count];
             for (int index = 0; index < artists.Length; index++)
@@ -406,10 +480,13 @@ namespace NcmPlayer.CloudMusic
                 artists[index] = artistsJson[index]["name"].ToString();
             }
 
+            TimeSpan timespan = TimeSpan.FromMilliseconds(int.Parse(songDetail["dt"].ToString()));
+            int min = timespan.Minutes;
+            int sec = timespan.Seconds;
+            duartionTime = $"{min}:{sec}";
             albumId = songDetail["al"]["id"].ToString();
             albumName = songDetail["al"]["name"].ToString();
-            coverUrl = songDetail["al"]["picUrl"].ToString();
-            cover = HttpRequest.StreamHttpGet(coverUrl);
+            CoverUrl = songDetail["al"]["picUrl"].ToString();
         }
 
         public string[] Artists
@@ -421,9 +498,14 @@ namespace NcmPlayer.CloudMusic
         public string AlbumId
         { get { return albumId; } }
 
+        public string DuartionTime
+        {
+            get { return duartionTime; }
+        }
+
         public string GetFile()
         {
-            string path = AppConfig.SongsPath(id, songType);
+            string path = AppConfig.SongsPath(Id, SongType);
             if (!File.Exists(path))
             {
                 if (!Directory.Exists(AppConfig.SongsDirectory))
@@ -431,7 +513,7 @@ namespace NcmPlayer.CloudMusic
                     Directory.CreateDirectory(AppConfig.SongsDirectory);
                 }
                 FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                Stream songStream = HttpRequest.StreamHttpGet(songUrl);
+                Stream songStream = HttpRequest.StreamHttpGet(SongUrl);
                 byte[] bArr = new byte[1024];
                 int size = songStream.Read(bArr, 0, bArr.Length);
                 while (size > 0)
@@ -442,10 +524,34 @@ namespace NcmPlayer.CloudMusic
                 }
                 fs.Close();
                 songStream.Close();
-
             }
             return path;
         }
-    }
 
+        public string SongUrl
+        {
+            get {
+                if (songUrl.Equals(string.Empty))
+                {
+                    JObject temp = (JObject)HttpRequest.GetJson(Apis.songUrl(Id))["data"][0];
+                    songUrl = temp["url"].ToString();
+                    songType = temp["type"].ToString();
+                }
+                return songUrl;
+            }
+        }
+
+        public string SongType
+        {
+            get {
+                if (songType.Equals(string.Empty))
+                {
+                    JObject temp = (JObject)HttpRequest.GetJson(Apis.songUrl(Id))["data"][0];
+                    songUrl = temp["url"].ToString();
+                    songType = temp["type"].ToString();
+                }
+                return songType; 
+            }
+        }
+    }
 }

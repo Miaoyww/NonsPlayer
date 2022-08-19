@@ -1,10 +1,12 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.Player;
 using System;
-using System.Drawing.Printing;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls.Interfaces;
 using Wpf.Ui.Mvvm.Contracts;
 
@@ -23,16 +25,18 @@ namespace NcmPlayer.Views
         private bool isUser = false;
         private bool isPlaying = false;
         private double lastVolume;
-        private System.Timers.Timer timer = new System.Timers.Timer();
+        private Timer timer = new Timer();
         public static string cpage = string.Empty;
         public static Page lastPage;
         public static Frame screenframe;
         public static Frame pageframe;
         public static MainWindow mainWindow;
+        private bool isUserPostion = false;
 
         public MainWindow()
         {
             InitializeComponent();
+            Theme.Apply(Res.res.CurrentTheme);
             mainWindow = this;
             screenframe = ScreenFrame;
             pageframe = PageFrame;
@@ -40,6 +44,9 @@ namespace NcmPlayer.Views
             tblock_artists.DataContext = Res.res;
             tblock_title.DataContext = Res.res;
             slider_volume.DataContext = Res.res;
+            label_currentTime.DataContext = Res.res;
+            label_wholeTime.DataContext = Res.res;
+            slider_postion.DataContext = Res.res;
 
             PageFrame.Content = PageHome;
             ScreenFrame.Content = PagePlayer;
@@ -173,20 +180,37 @@ namespace NcmPlayer.Views
 
         public static void ScreenControl()
         {
-            if (screenframe.Visibility == Visibility.Visible)
+            if (!Res.res.isShowingPlayer)
             {
-                screenframe.Visibility = Visibility.Hidden;
-                mainWindow.PlayBar.Visibility = Visibility.Visible;
-                ChangePage(lastPage);
+                Res.res.IsPlaying = true;
+                Res.res.ScreenSize = new double[] { screenframe.RenderSize.Width, screenframe.RenderSize.Height };
+                
+                Res.res.PageSize = new double[] { pageframe.RenderSize.Width, pageframe.RenderSize.Height };
+                if (screenframe.Visibility == Visibility.Visible)
+                {
+                    screenframe.RenderTransform = new TranslateTransform(0, 0);
+                    Storyboard story = (Storyboard)mainWindow.Resources["HidePlayer"];
+                    story.Completed += delegate
+                    {
+                        screenframe.Visibility = Visibility.Hidden;
+                        Res.res.isShowingPlayer = false;
+                    };
+                    story.Begin(screenframe);
+                }
+                else
+                {
+                    screenframe.RenderTransform = new TranslateTransform(0, 0);
+                    Storyboard story = (Storyboard)mainWindow.Resources["ShowPlayer"];
+                    story.Completed += delegate
+                    {
+                        Res.res.isShowingPlayer = false;
+                    };
+                    story.Begin(screenframe);
+                    screenframe.Visibility = Visibility.Visible;
+                }
+
             }
-            else
-            {
-                mainWindow.PlayBar.Visibility = Visibility.Hidden;
-                screenframe.Visibility = Visibility.Visible;
-                lastPage = (Page)pageframe.Content;
-                pageframe.Content = null;
-                cpage = string.Empty;
-            }
+            
         }
 
         private static void ChangePage(Page page)
@@ -285,9 +309,26 @@ namespace NcmPlayer.Views
 
         private void UiWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            Res.res.ScreenSize = new double[] { ScreenFrame.RenderSize.Width, ScreenFrame.RenderSize.Height};
-            Res.res.PageSize = new double[] { PageFrame.RenderSize.Width, PageFrame.RenderSize.Height};
+            Res.res.ScreenSize = new double[] { ScreenFrame.RenderSize.Width, ScreenFrame.RenderSize.Height };
+            Res.res.PageSize = new double[] { PageFrame.RenderSize.Width, PageFrame.RenderSize.Height };
+        }
 
+        private void slider_postion_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (isUserPostion)
+            {
+                MusicPlayer.Postion((int)slider_postion.Value);
+            }
+        }
+
+        private void slider_postion_PreviewMouseDown(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            isUserPostion = true;
+        }
+
+        private void slider_postion_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            isUserPostion = false;
         }
     }
 }
