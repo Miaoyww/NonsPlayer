@@ -57,6 +57,15 @@ namespace NcmPlayer.Views.Pages
         {
             tblock_Version.Text = $"v{AppConfig.AppVersion}";
             isUser = true;
+            switch (Res.res.CurrentTheme)
+            {
+                case ThemeType.Light:
+                    tgs_theme.IsChecked = true;
+                    break;
+                case ThemeType.Dark:
+                    tgs_theme.IsChecked = false;
+                    break;
+            }
         }
 
         private void tgs_theme_Click(object sender, RoutedEventArgs e)

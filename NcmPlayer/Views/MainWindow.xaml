@@ -23,10 +23,10 @@
             <ui:MenuItem Header="设置" x:Name="mitem_settings" Click="mitem_settings_Click" SymbolIcon="Settings24"/>
             <ui:MenuItem Header="登录" x:Name="mitem_login" Click="mitem_login_Click" SymbolIcon="ArrowEnter20"/>
         </ContextMenu>
-        <Storyboard x:Key="ShowPlayer">
+        <Storyboard x:Key="Show">
             <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Y" Duration="0:0:0.4" DecelerationRatio="1" From="750" To="0"/>
         </Storyboard>
-        <Storyboard x:Key="HidePlayer">
+        <Storyboard x:Key="Hide">
             <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Y" Duration="0:0:0.4" DecelerationRatio="1" From="0" To="750"/>
         </Storyboard>
     </ui:UiWindow.Resources>
@@ -70,13 +70,13 @@
                             <Label x:Name="label_wholeTime" Content="{Binding CPlayWholeTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" />
                         </StackPanel>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,80,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,30,0">
                         <ui:Button x:Name="btn_volume" Background="Transparent" Icon="Speaker248" FontSize="26" Cursor="Hand" Click="btn_volume_Click" BorderThickness="0,0,0,0" />
                         <Separator Opacity="0" Width="5" />
                         <Slider x:Name="slider_volume" Value="{Binding CVolume}" HorizontalAlignment="Center" VerticalAlignment="Center" IsSelectionRangeEnabled="True" Maximum="100" ValueChanged="slider_volume_ValueChanged" />
                         <Separator Opacity="0" Width="20" />
+                        <ui:Button x:Name="btn_showPlaylist" Background="Transparent" Icon="List24" FontSize="26" Cursor="Hand" BorderThickness="0,0,0,0" Click="btn_showPlaylist_Click" />
                     </StackPanel>
-
                 </Grid>
             </Grid>
         </Border>
@@ -95,6 +95,7 @@
                 <ui:Button x:Name="btn_Explore"  Width="68" Height="40" BorderThickness="0,0,0,0" Content="发现" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Explore_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
             </StackPanel>
         </Grid>
+        <Frame x:Name="PlayListBar" HorizontalAlignment="Right" Visibility="Hidden" Margin="0,40,0,103" Width="450"/>
         <Frame x:Name="ScreenFrame" Visibility="Hidden"/>
         <ui:Dialog x:Name="dialog" ButtonLeftName="明白了" ButtonRightName="关闭" ButtonLeftClick="dialog_btn_click" ButtonRightClick="dialog_btn_click" Visibility="Hidden"/>
     </Grid>

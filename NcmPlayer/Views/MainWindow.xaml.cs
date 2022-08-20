@@ -22,6 +22,7 @@ namespace NcmPlayer.Views
         private Pages.Explore PageExplore;
         private Pages.Login PageLogin;
         private Pages.Player PagePlayer = new();
+        public static Pages.PlaylistBar PagePlaylistBar = new();
         private bool isUser = false;
         private bool isPlaying = false;
         private double lastVolume;
@@ -30,6 +31,7 @@ namespace NcmPlayer.Views
         public static Page lastPage;
         public static Frame screenframe;
         public static Frame pageframe;
+        public static Frame playlistbarframe;
         public static MainWindow mainWindow;
         private bool isUserPostion = false;
 
@@ -40,6 +42,8 @@ namespace NcmPlayer.Views
             mainWindow = this;
             screenframe = ScreenFrame;
             pageframe = PageFrame;
+            playlistbarframe = PlayListBar;
+
             btn_albumPic.DataContext = Res.res;
             tblock_artists.DataContext = Res.res;
             tblock_title.DataContext = Res.res;
@@ -50,6 +54,8 @@ namespace NcmPlayer.Views
 
             PageFrame.Content = PageHome;
             ScreenFrame.Content = PagePlayer;
+            PlayListBar.Content = PagePlaylistBar;
+
             isUser = true;
             timer.Interval = 100;
             timer.Elapsed += Timer_Elapsed;
@@ -180,16 +186,15 @@ namespace NcmPlayer.Views
 
         public static void ScreenControl()
         {
+            Res.res.ScreenSize = new double[] { screenframe.RenderSize.Width, screenframe.RenderSize.Height };
+            Res.res.PageSize = new double[] { pageframe.RenderSize.Width, pageframe.RenderSize.Height };
             if (!Res.res.isShowingPlayer)
             {
                 Res.res.IsPlaying = true;
-                Res.res.ScreenSize = new double[] { screenframe.RenderSize.Width, screenframe.RenderSize.Height };
-                
-                Res.res.PageSize = new double[] { pageframe.RenderSize.Width, pageframe.RenderSize.Height };
                 if (screenframe.Visibility == Visibility.Visible)
                 {
                     screenframe.RenderTransform = new TranslateTransform(0, 0);
-                    Storyboard story = (Storyboard)mainWindow.Resources["HidePlayer"];
+                    Storyboard story = (Storyboard)mainWindow.Resources["Hide"];
                     story.Completed += delegate
                     {
                         screenframe.Visibility = Visibility.Hidden;
@@ -200,7 +205,7 @@ namespace NcmPlayer.Views
                 else
                 {
                     screenframe.RenderTransform = new TranslateTransform(0, 0);
-                    Storyboard story = (Storyboard)mainWindow.Resources["ShowPlayer"];
+                    Storyboard story = (Storyboard)mainWindow.Resources["Show"];
                     story.Completed += delegate
                     {
                         Res.res.isShowingPlayer = false;
@@ -208,9 +213,28 @@ namespace NcmPlayer.Views
                     story.Begin(screenframe);
                     screenframe.Visibility = Visibility.Visible;
                 }
-
             }
-            
+        }
+
+        public static void PlaylistBarControl()
+        {
+            if (playlistbarframe.Visibility == Visibility.Visible)
+            {
+                playlistbarframe.RenderTransform = new TranslateTransform(0, 0);
+                Storyboard story = (Storyboard)mainWindow.Resources["Hide"];
+                story.Completed += delegate
+                {
+                    playlistbarframe.Visibility = Visibility.Hidden;
+                };
+                story.Begin(playlistbarframe);
+            }
+            else
+            {
+                playlistbarframe.RenderTransform = new TranslateTransform(0, 0);
+                Storyboard story = (Storyboard)mainWindow.Resources["Show"];
+                story.Begin(playlistbarframe);
+                playlistbarframe.Visibility = Visibility.Visible;
+            }
         }
 
         private static void ChangePage(Page page)
@@ -242,6 +266,7 @@ namespace NcmPlayer.Views
 
         private void btn_last_Click(object sender, System.Windows.RoutedEventArgs e)
         {
+            Res.wholePlaylist.Last();
         }
 
         private void btn_play_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -251,6 +276,7 @@ namespace NcmPlayer.Views
 
         private void btn_next_Click(object sender, System.Windows.RoutedEventArgs e)
         {
+            Res.wholePlaylist.Next();
         }
 
         private void btn_like_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -330,5 +356,11 @@ namespace NcmPlayer.Views
         {
             isUserPostion = false;
         }
+
+        private void btn_showPlaylist_Click(object sender, RoutedEventArgs e)
+        {
+            PlaylistBarControl();
+        }
+
     }
 }

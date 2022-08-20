@@ -1,7 +1,7 @@
 ﻿using NcmPlayer.CloudMusic;
 using NcmPlayer.Player;
-using NcmPlayer.Views.Methods;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,10 +19,13 @@ namespace NcmPlayer.Views.Pages
         public Playlist()
         {
             InitializeComponent();
-            DataContext = new ViewModel();
         }
 
+        #region 属性及初始化
+
         public Grid[] grids;
+
+        public List<Song> songlist = new List<Song>();
 
         public string Name
         {
@@ -31,7 +34,7 @@ namespace NcmPlayer.Views.Pages
 
         public string CreateTime
         {
-            set => PlaylistCreateTime.Text = value;
+            set => PlaylistCreateTime.Text = $"创建时间 {value.Split(" ")[0]}";
         }
 
         public string SongsCount
@@ -67,6 +70,7 @@ namespace NcmPlayer.Views.Pages
             for (int index = 0; index < gridCount; index++)
             {
                 Song one = songs[index];
+                songlist.Add(one);
                 grids[index] = new Grid();
                 grids[index].Tag = one.Id;
                 string artists = string.Empty;
@@ -128,87 +132,22 @@ namespace NcmPlayer.Views.Pages
 
         private void Play(object pramparameter)
         {
-            Song song;
-            try
-            {
-                song = new(pramparameter.ToString());
-            }
-            catch (InvalidCastException er)
-            {
-                MainWindow.ShowMyDialog(er.Message, "错误");
-                return;
-            }
-
-            string path = song.GetFile();
-            string[] artist = song.Artists;
-            string name = song.Name;
-            string artists = string.Empty;
-            for (int i = 0; i <= artist.Length - 1; i++)
-            {
-                if (i != artist.Length - 1)
-                {
-                    artists += artist[i] + "/";
-                }
-                else
-                {
-                    artists += artist[i];
-                }
-            }
-            MusicPlayer.RePlay(path, name, artists, song.Cover);
-            Res.res.CPlayAlbumPicUrl = song.CoverUrl;
-            Res.res.CPlayAlbumId = song.AlbumId;
+            MainWindow.PagePlaylistBar.Play(pramparameter.ToString());
         }
+
+        #endregion 属性及初始化
 
         private void Songs_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             Grid currentSelected = (Grid)Songs.SelectedItem;
             Play(currentSelected.Tag);
         }
-    }
 
-    public class ViewModel
-    {
-        public ICommand Command => new PagePlaylistMethods(Play, CanExec);
-
-        private bool isCanExec = true;
-
-        private void Play(object pramparameter)
+        private void PlayAll_Click(object sender, RoutedEventArgs e)
         {
-            Song song;
-            try
-            {
-                song = new(pramparameter.ToString());
-            }
-            catch (InvalidCastException er)
-            {
-                MainWindow.ShowMyDialog(er.Message, "错误");
-                return;
-            }
-
-            string path = song.GetFile();
-            string[] artist = song.Artists;
-            string name = song.Name;
-            string artists = string.Empty;
-            for (int i = 0; i <= artist.Length - 1; i++)
-            {
-                if (i != artist.Length - 1)
-                {
-                    artists += artist[i] + "/";
-                }
-                else
-                {
-                    artists += artist[i];
-                }
-            }
-            MusicPlayer.RePlay(path, name, artists, song.Cover);
-            Res.res.CPlayAlbumPicUrl = song.CoverUrl;
-            Res.res.CPlayAlbumId = song.AlbumId;
-            isCanExec = false;
-        }
-
-        private bool CanExec(object pramparameter)
-        {
-            return isCanExec;
+            MainWindow.PagePlaylistBar.ClearSongs();
+            MainWindow.PagePlaylistBar.UpdateSongsList(songlist);
+            Res.wholePlaylist.Play(0);
         }
     }
 }

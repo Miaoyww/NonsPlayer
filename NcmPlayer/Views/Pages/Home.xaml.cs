@@ -31,23 +31,31 @@ namespace NcmPlayer.Views.Pages
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            PlayList playList = new(tbox_id.Text);
-            string name = playList.Name;
-            string creator = playList.Creator;
-            Stream playlistCover = playList.Cover;
-            string description = playList.Description;
-            string createTime = playList.CreateTime.ToString();
-            int songsCount = playList.SongsCount;
-            Song[] songs = playList.InitArtWorkList(0, 5);
-            Playlist newone = new();
-            newone.Name = name;
-            newone.Creator = creator;
-            newone.CreateTime = createTime;
-            newone.SetCover(playlistCover);
-            newone.Description = description;
-            newone.SongsCount = songsCount.ToString();
-            newone.UpdateSongsList(songs);
-            MainWindow.mainWindow.PageFrame.Content = newone;
+            Thread thread = new(() =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    CloudMusic.PlayList playList = new(tbox_id.Text);
+                    string name = playList.Name;
+                    string creator = playList.Creator;
+                    Stream playlistCover = playList.Cover;
+                    string description = playList.Description;
+                    string createTime = playList.CreateTime.ToString();
+                    int songsCount = playList.SongsCount;
+                    Playlist newone = new();
+                    MainWindow.mainWindow.PageFrame.Content = newone;
+                    newone.Name = name;
+                    newone.Creator = creator;
+                    newone.CreateTime = createTime;
+                    newone.SetCover(playlistCover);
+                    newone.Description = description;
+                    newone.SongsCount = songsCount.ToString();
+                    Song[] songs = playList.InitArtWorkList(0, 20);
+                    newone.UpdateSongsList(songs);
+                }));
+            });
+            thread.IsBackground = true;
+            thread.Start();
         }
     }
 }

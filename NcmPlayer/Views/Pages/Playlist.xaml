@@ -10,7 +10,7 @@
       d:DesignHeight="718" d:DesignWidth="1339"
       Height="{Binding PageSize[1]}"
       Width="{Binding PageSize[0]}"
-      Title="Album">
+      Title="Playlist">
 
     <Grid>
         <Grid Margin="30,30,30,0">
@@ -31,14 +31,11 @@
                         <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontWeight="Bold" FontFamily="Humnst777 BlkCn BT" />
                     </StackPanel>
                     <Grid Height="65" Width="140" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,0,0,10">
-                        <ui:Button x:Name="PlayAll"  Content="播放" Icon="Play24" FontSize="18" Background="#7FDBE2FF" BorderThickness="0" Foreground="#FF002BEB"  Padding="0,0,0,0" IconFilled="True" IconForeground="#FF002BEB" FontWeight="Bold" Width="120" Height="50"/>
-                        <Grid.Effect>
-                            <DropShadowEffect BlurRadius="10" Color="#FFA7A7A7" Opacity="0.8" RenderingBias="Performance" />
-                        </Grid.Effect>
+                        <ui:Button x:Name="PlayAll"  Content="播放" Icon="Play24" FontSize="18" BorderThickness="0" Padding="0,0,0,0" IconFilled="True" FontWeight="Bold" Width="120" Height="50" Click="PlayAll_Click"/>
                     </Grid>
                 </Grid>
             </Grid>
-            <ListBox x:Name="Songs" Margin="0,260,0,0" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" PreviewMouseDoubleClick="Songs_PreviewMouseDoubleClick"/>
+            <ListBox x:Name="Songs" Margin="0,260,0,103" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" PreviewMouseDoubleClick="Songs_PreviewMouseDoubleClick"/>
         </Grid>
     </Grid>
 </Page>

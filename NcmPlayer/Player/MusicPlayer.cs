@@ -97,8 +97,15 @@ namespace NcmPlayer.Player
 
         public static void Musicplayer_MediaOpened(object sender, RoutedEventArgs e)
         {
-            Res.res.CPlayWholeTime = (int)musicplayer.NaturalDuration.TimeSpan.TotalSeconds;
-            Res.res.IsPlaying = true;
+            try
+            {
+                Res.res.CPlayWholeTime = (int)musicplayer.NaturalDuration.TimeSpan.TotalSeconds;
+                Res.res.IsPlaying = true;
+            }
+            catch (InvalidOperationException)
+            {
+
+            }
         }
 
         public static void Musicplayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
