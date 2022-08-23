@@ -40,16 +40,15 @@ namespace NcmPlayer.Player
         {
             musicplayer.Dispatcher.BeginInvoke(new Action(() =>
             {
-                Res.res.CPlayPostion = (int)musicplayer.Position.Duration().TotalSeconds;
+                Res.res.CPlayPostion = musicplayer.Position.Duration().TotalSeconds;
             }));
         }
 
-        public static void RePlay(string path, string name, string artists, Stream cover)
+        public static void RePlay(string path, string name, string artists)
         {
             Res.res.CPlayName = name;
             Res.res.CPlayArtists = artists;
             Res.res.cSongPath = path;
-            Res.res.Cover(cover);
             musicplayer.Source = new Uri(path);
             Play(true);
         }
@@ -82,11 +81,11 @@ namespace NcmPlayer.Player
             musicplayer.Volume = volume;
         }
 
-        public static void Postion(int secs)
+        public static void Postion(double postion)
         {
             if (Res.res.IsPlaying)
             {
-                musicplayer.Position = TimeSpan.FromSeconds(secs);
+                musicplayer.Position = TimeSpan.FromSeconds(postion);
             }
         }
 

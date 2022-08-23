@@ -1,8 +1,10 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.Player;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Appearance;
@@ -11,8 +13,18 @@ namespace NcmPlayer
 {
     public partial class App : Application
     {
+        private Timer gcClear = new Timer();
+
+        public void GcClear(object? sender, ElapsedEventArgs e)
+        {
+            GC.Collect();
+        }
+
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            gcClear.Interval = 2000;
+            gcClear.Elapsed += GcClear;
+            gcClear.Start();
             JObject keys = new();
             keys.Add("ServerPort", Res.res.serverPort);
             keys.Add("CurrentVolume", "100");
@@ -37,7 +49,6 @@ namespace NcmPlayer
                     Res.res.CurrentTheme = ThemeType.Dark;
                     break;
             }
-
         }
     }
 }

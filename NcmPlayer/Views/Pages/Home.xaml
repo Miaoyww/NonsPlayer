@@ -15,7 +15,7 @@
       Title="Home">
 
     <Grid>
-        <ui:TextBox x:Name="tbox_id" HorizontalAlignment="Center" TextWrapping="Wrap" Text="6914482583" PlaceholderText="在这里输入音乐id" VerticalAlignment="Center" Width="251" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Cursor="IBeam"/>
+        <ui:TextBox x:Name="tbox_id" HorizontalAlignment="Center" TextWrapping="Wrap" Text="6682087298" PlaceholderText="在这里输入音乐id" VerticalAlignment="Center" Width="251" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Cursor="IBeam"/>
         <Button Content="播放" Height="54" VerticalAlignment="Center" Width="275" Click="Button_Click" HorizontalAlignment="Center" Margin="0,200,0,0"/>
     </Grid>
 </Page>

@@ -1,14 +1,13 @@
 ﻿using Microsoft.Win32;
-using NcmPlayer.Player;
 using NcmPlayer.CloudMusic;
+using NcmPlayer.Player;
 using System;
-using System.Collections;
-using System.ComponentModel;
-using System.IO;
+using System.Collections.Generic;
 using System.Net;
-using System.Security.Policy;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using Brush = System.Windows.Media.Brush;
 
 namespace NcmPlayer.Views.Pages
 {
@@ -18,16 +17,46 @@ namespace NcmPlayer.Views.Pages
     public partial class Player : Page
     {
         public static Player playerPage;
+
+        public class LrcVis
+        {
+            private TimeSpan showTime;
+            private string lrcContent;
+            private StackPanel vis;
+
+            public TimeSpan ShowTime
+            {
+                get => showTime;
+                set => showTime = value;
+            }
+
+            public string LrcContent
+            {
+                get => lrcContent;
+                set => lrcContent = value;
+            }
+
+            public StackPanel Vis
+            {
+                get => vis;
+                set => vis = value;
+            }
+        }
+
         public static System.Timers.Timer timer = new System.Timers.Timer();
         public static System.Timers.Timer timerPostion = new System.Timers.Timer();
         private bool isPlaying = false;
         private bool isUser = false;
+        public List<LrcVis> lrcVis = new List<LrcVis>();
 
         public Player()
         {
             InitializeComponent();
             playerPage = this;
             DataContext = Res.res;
+            timer.Interval = 100;
+            timer.Elapsed += Timer_Elapsed;
+            timer.Start();
             timerPostion.Elapsed += TimerPostion_Elapsed;
             timerPostion.Interval = 800;
             timerPostion.Start();
@@ -38,8 +67,9 @@ namespace NcmPlayer.Views.Pages
             slider_postion.DataContext = Res.res;
             label_currentTime.DataContext = Res.res;
             label_wholeTime.DataContext = Res.res;
+            listview_lrc.Items.Add(getPanel("当前未播放音乐"));
         }
-         
+
         private void TimerPostion_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             Dispatcher.BeginInvoke(new Action(() =>
@@ -59,6 +89,7 @@ namespace NcmPlayer.Views.Pages
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                Views.Pages.Player.playerPage.ChangeVisLrc();
                 if (Res.res.IsPlaying)
                 {
                     if (!isPlaying)
@@ -78,9 +109,88 @@ namespace NcmPlayer.Views.Pages
             }));
         }
 
+        public StackPanel getPanel(string content)
+        {
+            StackPanel panel = new();
+            var bc = new BrushConverter();
+            Label lrc = new()
+            {
+                Name = "lrcContent",
+                Content = content,
+                FontSize = 30,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)bc.ConvertFrom("#FF9C9C9C"),
+                FontWeight = FontWeights.Bold
+            };
+            Separator separator = new()
+            {
+                BorderThickness = new Thickness(0),
+                Height = 30,
+            };
+            panel.Children.Add(lrc);
+            // panel.Children.Add(separator);
+            return panel;
+        }
+
+        public void ClearLrc()
+        {
+            listview_lrc.Items.Clear();
+            lrcVis.Clear();
+        }
+
+        public void UpdateLrc(Lrcs lrcs)
+        {
+            foreach (Lrc item in lrcs.GetLrcs)
+            {
+                StackPanel vis = getPanel(item.GetLrc);
+                LrcVis lrv = new LrcVis();
+                lrv.LrcContent = item.GetLrc;
+                lrv.ShowTime = item.GetTime;
+                lrv.Vis = vis;
+                lrcVis.Add(lrv);
+                listview_lrc.Items.Add(vis);
+            }
+        }
+
+        public void ChangeVisLrc()
+        {
+            if (listview_lrc.Items.Count > 1)
+            {
+                for (int index = 0; index < lrcVis.Count; index++)
+                {
+                    if (lrcVis.Count != 0)
+                    {
+                        if (Res.res.CPlayPostion >= lrcVis[index].ShowTime.TotalSeconds && index + 1 < lrcVis.Count - 1 && Res.res.CPlayPostion < lrcVis[index + 1].ShowTime.TotalSeconds)
+                        {
+                            Label content = ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]);
+                            if (content.Content != "")
+                            {
+                                content.FontSize = 35;
+                            }
+                            var bc = new BrushConverter();
+                            ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#ffffff");
+                            listview_lrc.ScrollIntoView(listview_lrc.Items[index + 8]);
+                            for (int i = 0; i <= lrcVis.Count; i++)
+                            {
+                                if (i != index)
+                                {
+                                    if (listview_lrc.Items.Count - 8 >= i)
+                                    {
+                                        ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).FontSize = 30;
+                                        ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#FF9C9C9C");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         private void btn_last_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            // PlayerMethods.SendMessage("last");
+            Res.wholePlaylist.Last();
         }
 
         private void btn_play_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -90,7 +200,7 @@ namespace NcmPlayer.Views.Pages
 
         private void btn_next_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            // PlayerMethods.SendMessage("next");
+            Res.wholePlaylist.Next();
         }
 
         private void btn_like_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -100,13 +210,6 @@ namespace NcmPlayer.Views.Pages
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            /*
-            Thread thread = new(() =>
-            {
-                // PlayerMethods.SendMessage("connect");
-            });
-            thread.IsBackground = true;
-            thread.Start();*/
         }
 
         private void SaveImageTo_Click(object sender, RoutedEventArgs e)
@@ -137,7 +240,7 @@ namespace NcmPlayer.Views.Pages
         {
             if (isUser)
             {
-                MusicPlayer.Postion((int)slider_postion.Value);
+                MusicPlayer.Postion(slider_postion.Value);
             }
         }
 

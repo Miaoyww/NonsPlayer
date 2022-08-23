@@ -17,36 +17,42 @@
         </ContextMenu>
     </Page.Resources>
     <Grid Background="#FF222222">
-        <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Height="330" Width="330" Margin="0,0,0,150">
-            <Border x:Name="b_image" Background="{Binding CoverBrush}" CornerRadius="10" BorderThickness="2,2,2,2" Width="300" Height="300" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand" ContextMenu="{StaticResource SaveImage}">
-                <Border.Effect>
-                    <DropShadowEffect Color="DarkGray" RenderingBias="Quality" BlurRadius="10" />
-                </Border.Effect>
-            </Border>
-        </Grid>
-        <StackPanel Margin="10,0,10,15" VerticalAlignment="Bottom" Height="173">
-            <Grid HorizontalAlignment="Center" Width="512">
-                <StackPanel>
-                    <TextBlock x:Name="tblock_title" Text="{Binding CPlayName}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="20" Foreground="#E4FFFFFF" />
-                    <TextBlock x:Name="tblock_artists" Text="{Binding CPlayArtists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" Foreground="#E4FFFFFF" />
+        <Grid HorizontalAlignment="Left" Width="670">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Height="330" Width="330" Margin="0,0,0,150">
+                <Border x:Name="b_image" Background="{Binding CoverBrush}" CornerRadius="10" BorderThickness="2,2,2,2" Width="300" Height="300" HorizontalAlignment="Center" VerticalAlignment="Center" Cursor="Hand" ContextMenu="{StaticResource SaveImage}">
+                    <Border.Effect>
+                        <DropShadowEffect Color="DarkGray" RenderingBias="Quality" BlurRadius="10" />
+                    </Border.Effect>
+                </Border>
+            </Grid>
+            <StackPanel Margin="10,0,10,15" VerticalAlignment="Bottom" Height="173">
+                <Grid HorizontalAlignment="Center" Width="512">
+                    <StackPanel>
+                        <TextBlock x:Name="tblock_title" Text="{Binding CPlayName}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="20" Foreground="#E4FFFFFF" />
+                        <TextBlock x:Name="tblock_artists" Text="{Binding CPlayArtists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" Foreground="#E4FFFFFF" />
+                    </StackPanel>
+                    <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="18" Width="35" Height="35" BorderThickness="0,0,0,0" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Center" HorizontalAlignment="Right" Padding="0,0,0,0" IconForeground="#E4FFFFFF" />
+                </Grid>
+                <Separator Height="20" BorderThickness="0,0,0,0" />
+                <Grid Width="512" Height="38">
+                    <Label x:Name="label_currentTime" Content="{Binding CPlayPostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" Foreground="#E4FFFFFF" />
+                    <Slider x:Name="slider_postion" Value="{Binding CPlayPostion}" Maximum="{Binding CPlayWholeTime}" Width="400" HorizontalAlignment="Center" VerticalAlignment="Center" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" PreviewMouseUp="slider_postion_PreviewMouseUp"/>
+                    <Label x:Name="label_wholeTime" Content="{Binding CPlayWholeTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" Foreground="#E4FFFFFF" />
+                </Grid>
+                <Separator Height="10" BorderThickness="0,0,0,0" />
+                <StackPanel Orientation="Horizontal" Height="50" VerticalAlignment="Center" Width="180" HorizontalAlignment="Center">
+                    <ui:Button x:Name="btn_last" Icon="ArrowPrevious24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#00000000" BorderThickness="0,0,0,0" Click="btn_last_Click" IconForeground="#E4FFFFFF" />
+                    <Separator Opacity="0" Width="15" />
+                    <ui:Button x:Name="btn_play" Icon="Play24" FontSize="30" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_play_Click" IconForeground="#E4FFFFFF" />
+                    <Separator Opacity="0" Width="15" />
+                    <ui:Button x:Name="btn_next" Icon="ArrowNext24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_next_Click" IconForeground="#E4FFFFFF" />
                 </StackPanel>
-                <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="18" Width="35" Height="35" BorderThickness="0,0,0,0" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Center" HorizontalAlignment="Right" Padding="0,0,0,0" IconForeground="#E4FFFFFF" />
-            </Grid>
-            <Separator Height="20" BorderThickness="0,0,0,0" />
-            <Grid Width="512" Height="38">
-                <Label x:Name="label_currentTime" Content="{Binding CPlayPostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" Foreground="#E4FFFFFF" />
-                <Slider x:Name="slider_postion" Value="{Binding CPlayPostion}" Maximum="{Binding CPlayWholeTime}" Width="400" HorizontalAlignment="Center" VerticalAlignment="Center" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" PreviewMouseUp="slider_postion_PreviewMouseUp"/>
-                <Label x:Name="label_wholeTime" Content="{Binding CPlayWholeTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" Foreground="#E4FFFFFF" />
-            </Grid>
-            <Separator Height="10" BorderThickness="0,0,0,0" />
-            <StackPanel Orientation="Horizontal" Height="50" VerticalAlignment="Center" Width="180" HorizontalAlignment="Center">
-                <ui:Button x:Name="btn_last" Icon="ArrowPrevious24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#00000000" BorderThickness="0,0,0,0" Click="btn_last_Click" IconForeground="#E4FFFFFF" />
-                <Separator Opacity="0" Width="15" />
-                <ui:Button x:Name="btn_play" Icon="Play24" FontSize="30" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_play_Click" IconForeground="#E4FFFFFF" />
-                <Separator Opacity="0" Width="15" />
-                <ui:Button x:Name="btn_next" Icon="ArrowNext24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_next_Click" IconForeground="#E4FFFFFF" />
             </StackPanel>
-        </StackPanel>
+        </Grid>
+        <Grid Margin="670,0,0,0">
+            <ListView x:Name="listview_lrc" BorderThickness="0"/>
+
+        </Grid>
         <ui:Button x:Name="btn_playerHide" Width="60" Height="60" Icon="ArrowDown24" FontSize="20" BorderThickness="0" Click="btn_playerHide_Click" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="75,0,0,20" Background="Transparent" IconForeground="#E4FFFFFF"/>
     </Grid>
 </Page>

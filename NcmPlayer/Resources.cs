@@ -1,15 +1,16 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.CloudMusic;
 using NcmPlayer.Player;
-using NcmPlayer.Views;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Wpf.Ui.Appearance;
 
 namespace NcmPlayer
@@ -297,13 +298,13 @@ namespace NcmPlayer
         // 当前播放音乐的进度
         private string cPlayPostionString = string.Empty;
 
-        private int cPlayPostion;
+        private double cPlayPostion;
 
         public string CPlayPostionString
         {
             set
             {
-                TimeSpan timespan = TimeSpan.FromSeconds(int.Parse(value));
+                TimeSpan timespan = TimeSpan.FromSeconds(double.Parse(value));
                 int min = timespan.Minutes;
                 int sec = timespan.Seconds;
                 cPlayPostionString = timespan.ToString(@"mm\:ss");
@@ -322,7 +323,7 @@ namespace NcmPlayer
             }
         }
 
-        public int CPlayPostion
+        public double CPlayPostion
         {
             set
             {
@@ -343,13 +344,13 @@ namespace NcmPlayer
         // 当前播放音乐的总时长
         private string cPlayWholeTimeString = string.Empty;
 
-        private int cPlayWholeTime;
+        private double cPlayWholeTime;
 
         public string CPlayWholeTimeString
         {
             set
             {
-                TimeSpan timespan = TimeSpan.FromSeconds(int.Parse(value));
+                TimeSpan timespan = TimeSpan.FromSeconds(double.Parse(value));
                 int min = timespan.Minutes;
                 int sec = timespan.Seconds;
                 cPlayWholeTimeString = timespan.ToString(@"mm\:ss");
@@ -368,7 +369,7 @@ namespace NcmPlayer
             }
         }
 
-        public int CPlayWholeTime
+        public double CPlayWholeTime
         {
             set
             {
@@ -390,6 +391,7 @@ namespace NcmPlayer
     public class SongVis
     {
         private int selfIndex;
+
         public int Index
         {
             set
@@ -401,6 +403,7 @@ namespace NcmPlayer
                 return selfIndex;
             }
         }
+
         public string Id { get; set; }
         public Song Song;
         public ListBoxItem View { get; set; }
@@ -475,7 +478,6 @@ namespace NcmPlayer
             return songvis;
         }
 
-
         public void PostSong(SongVis song)
         {
             song.Index = list.Count - 1;
@@ -485,7 +487,6 @@ namespace NcmPlayer
                 Res.res.CPlayCount = Count.ToString();
                 UpdateIndex();
             }
-            
         }
 
         private void PlaySong(int index)
@@ -495,6 +496,7 @@ namespace NcmPlayer
             string[] artist = song.Artists;
             string name = song.Name;
             string artists = string.Empty;
+            Lrcs songLrc = song.GetLrc;
             for (int i = 0; i <= artist.Length - 1; i++)
             {
                 if (i != artist.Length - 1)
@@ -506,10 +508,26 @@ namespace NcmPlayer
                     artists += artist[i];
                 }
             }
-            MusicPlayer.RePlay(path, name, artists, song.Cover);
+            
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                Views.MainWindow.mainWindow.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Res.res.Cover(song.Cover);
+                }));
+            });
+            MusicPlayer.RePlay(path, name, artists);
             Res.res.CPlayAlbumPicUrl = song.CoverUrl;
             Res.res.CPlayAlbumId = song.AlbumId;
-
+            Views.Pages.Player.playerPage.ClearLrc();
+            Views.Pages.Player.playerPage.UpdateLrc(songLrc);
+            if (Views.Pages.Player.playerPage.lrcVis.Count >= 8)
+            {
+                for (int i = 0; i <= 8; i++)
+                {
+                    Views.Pages.Player.playerPage.UpdateLrc(new Lrcs("[99:00.000]"));
+                }
+            }
             Index = index;
             UpdateIndex();
         }

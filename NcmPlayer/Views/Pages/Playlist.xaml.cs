@@ -65,7 +65,7 @@ namespace NcmPlayer.Views.Pages
 
         public void UpdateSongsList(Song[] songs)
         {
-            int gridCount = songs.Length - 1;
+            int gridCount = songs.Length;
             grids = new Grid[songs.Length];
             for (int index = 0; index < gridCount; index++)
             {
@@ -136,6 +136,7 @@ namespace NcmPlayer.Views.Pages
         }
 
         #endregion 属性及初始化
+
 
         private void Songs_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
         {

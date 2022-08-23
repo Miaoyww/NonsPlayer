@@ -64,7 +64,6 @@ namespace NcmPlayer.Views
 
         private void Timer_Elapsed(object? sender, ElapsedEventArgs e)
         {
-            GC.Collect();
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (Res.res.IsPlaying)
@@ -110,7 +109,25 @@ namespace NcmPlayer.Views
             mainWindow.dialog.Visibility = Visibility.Visible;
             mainWindow.dialog.Title = title;
             mainWindow.dialog.Content = content;
+            mainWindow.dialog.ButtonLeftVisibility = Visibility.Visible;
+            mainWindow.dialog.ButtonRightVisibility = Visibility.Visible;
             mainWindow.dialog.Show();
+        }
+
+        public static void ShowMyDialog(object content)
+        {
+            mainWindow.dialog.Visibility = Visibility.Visible;
+            mainWindow.dialog.Title = "";
+            mainWindow.dialog.Content = content;
+            mainWindow.dialog.ButtonLeftVisibility = Visibility.Hidden;
+            mainWindow.dialog.ButtonRightVisibility = Visibility.Hidden;
+            mainWindow.dialog.Background = null;
+            mainWindow.dialog.Show();
+        }
+
+        public static void HideMyDialog()
+        {
+            mainWindow.dialog.Hide();
         }
 
         private void dialog_btn_click(object sender, System.Windows.RoutedEventArgs e)
