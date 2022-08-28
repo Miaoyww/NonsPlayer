@@ -1,9 +1,13 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.CloudMusic;
 using NcmPlayer.Player;
+using NcmPlayer.Resources;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -44,8 +48,6 @@ namespace NcmPlayer.Views.Pages
         }
 
         public static System.Timers.Timer timer = new System.Timers.Timer();
-        public static System.Timers.Timer timerPostion = new System.Timers.Timer();
-        private bool isPlaying = false;
         private bool isUser = false;
         public List<LrcVis> lrcVis = new List<LrcVis>();
 
@@ -57,9 +59,6 @@ namespace NcmPlayer.Views.Pages
             timer.Interval = 100;
             timer.Elapsed += Timer_Elapsed;
             timer.Start();
-            timerPostion.Elapsed += TimerPostion_Elapsed;
-            timerPostion.Interval = 800;
-            timerPostion.Start();
 
             b_image.DataContext = Res.res;
             tblock_title.DataContext = Res.res;
@@ -67,22 +66,19 @@ namespace NcmPlayer.Views.Pages
             slider_postion.DataContext = Res.res;
             label_currentTime.DataContext = Res.res;
             label_wholeTime.DataContext = Res.res;
-            listview_lrc.Items.Add(getPanel("当前未播放音乐"));
-        }
 
-        private void TimerPostion_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
-        {
-            Dispatcher.BeginInvoke(new Action(() =>
+            Res.res.CPlayPostion = double.Parse((string)RegGeter.RegGet("Song", "SongPostion"));
+            Res.res.CPlayName = (string)RegGeter.RegGet("Song", "SongName");
+            Res.res.CPlayArtists = (string)RegGeter.RegGet("Song", "SongArtists");
+            Res.res.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongCover"))));
+            Res.res.CPlayPath = (string)RegGeter.RegGet("Song", "SongPath");
+            Res.res.CPlayAlbumPicUrl = (string)RegGeter.RegGet("Song", "SongAlbumUrl");
+            UpdateLrc(new Lrcs(Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongLrc")))));
+            MusicPlayer.Init(Res.res.CPlayPath);
+            if (listview_lrc.Items.Count == 0)
             {
-                if (Res.res.IsPlaying)
-                {
-                    btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Pause24;
-                }
-                else
-                {
-                    btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Play24;
-                }
-            }));
+                listview_lrc.Items.Add(getPanel("当前未播放音乐"));
+            }
         }
 
         private void Timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
@@ -92,18 +88,16 @@ namespace NcmPlayer.Views.Pages
                 Views.Pages.Player.playerPage.ChangeVisLrc();
                 if (Res.res.IsPlaying)
                 {
-                    if (!isPlaying)
+                    if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Pause24)
                     {
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Pause24;
-                        isPlaying = true;
                     }
                 }
                 else
                 {
-                    if (isPlaying)
+                    if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Play24)
                     {
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Play24;
-                        isPlaying = false;
                     }
                 }
             }));

@@ -1,5 +1,6 @@
 ﻿using NcmPlayer.CloudMusic;
 using NcmPlayer.Player;
+using NcmPlayer.Resources;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -15,7 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using static NcmPlayer.Resources;
+using static NcmPlayer.Resources.Resources;
 
 namespace NcmPlayer.Views.Pages
 {

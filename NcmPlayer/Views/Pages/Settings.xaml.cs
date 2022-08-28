@@ -1,5 +1,5 @@
 ﻿using Microsoft.Win32;
-using NcmPlayer;
+using NcmPlayer.Resources;
 using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Appearance;

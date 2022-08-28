@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using NcmPlayer.Resources;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -9,6 +10,7 @@ using System.Text;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Shapes;
 
 namespace NcmPlayer.Player
 {
@@ -44,18 +46,33 @@ namespace NcmPlayer.Player
             }));
         }
 
+        public static void Init(string uri)
+        {
+            musicplayer.Source = new Uri(uri);
+            musicplayer.Position = TimeSpan.FromSeconds(Res.res.CPlayPostion);
+            musicplayer.Play();
+            musicplayer.Pause();
+            Res.res.IsPlaying = false;
+        }
+
         public static void RePlay(string path, string name, string artists)
         {
             Res.res.CPlayName = name;
             Res.res.CPlayArtists = artists;
-            Res.res.cSongPath = path;
+            Res.res.CPlayPath = path;
             musicplayer.Source = new Uri(path);
             Play(true);
         }
 
         public static void Play(bool re = false)
         {
-            if (!re)
+            if (re)
+            {
+                Res.res.IsPlaying = true;
+                musicplayer.Position = TimeSpan.Zero;
+                musicplayer.Play();
+            }
+            else
             {
                 if (!Res.res.IsPlaying)
                 {
@@ -67,12 +84,6 @@ namespace NcmPlayer.Player
                     musicplayer.Pause();
                     Res.res.IsPlaying = false;
                 }
-            }
-            else
-            {
-                Res.res.IsPlaying = true;
-                musicplayer.Position = TimeSpan.Zero;
-                musicplayer.Play();
             }
         }
 
@@ -99,7 +110,7 @@ namespace NcmPlayer.Player
             try
             {
                 Res.res.CPlayWholeTime = (int)musicplayer.NaturalDuration.TimeSpan.TotalSeconds;
-                Res.res.IsPlaying = true;
+             
             }
             catch (InvalidOperationException)
             {

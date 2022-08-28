@@ -1,14 +1,14 @@
-﻿using NcmPlayer.Views;
+﻿using NcmApi;
+using NcmPlayer.Resources;
+using NcmPlayer.Views;
 using NcmPlayer.Views.Pages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Security.Policy;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Wpf.Ui.Controls;
@@ -108,29 +108,6 @@ namespace NcmPlayer.CloudMusic
         }
     }
 
-    public static class Apis
-    {
-        public static string playListDetail(string id)
-        {
-            return AppConfig.ApiUrl + "/playlist/detail?id=" + id;
-        }
-
-        public static string songUrl(string id)
-        {
-            return AppConfig.ApiUrl + "/song/url?id=" + id;
-        }
-
-        public static string songDetail(string id)
-        {
-            return AppConfig.ApiUrl + "/song/detail?ids=" + id;
-        }
-
-        public static string lyric(string id)
-        {
-            return AppConfig.ApiUrl + "/lyric?id=" + id;
-        }
-    }
-
     public class CloudMusic
     {
         private string id = string.Empty;
@@ -206,13 +183,14 @@ namespace NcmPlayer.CloudMusic
         private string creator = String.Empty;
         private Song[] songs;
         private bool[] threadDone;
+        private List<JArray> songPages = new List<JArray>();
 
         public PlayList(string in_id)
         {
             Id = in_id;
             Stopwatch stopwatch = new();
             stopwatch.Start();
-            JObject playlistDetail = (JObject)HttpRequest.GetJson(Apis.playListDetail(Id))["playlist"];
+            JObject playlistDetail = (JObject)Api.Playlist.Detail(Id, Res.ncm)["playlist"];
             stopwatch.Stop();
             Debug.WriteLine($"获取歌单详情耗时{stopwatch.ElapsedMilliseconds}ms");
             Name = playlistDetail["name"].ToString();
@@ -237,62 +215,39 @@ namespace NcmPlayer.CloudMusic
             creator = playlistDetail["creator"]["nickname"].ToString();
         }
 
-        public Song[] InitArtWorkList(int start = 0, int end = 0)
+        public Song[] InitArtWorkList()
         {
             /*
-            int maxWorkerThreads = 10;
-            ThreadPool.SetMaxThreads(maxWorkerThreads, maxWorkerThreads);
-            string[] ids;
-            if (SongsId.Length < (end - start))
+            if (songDetail.Count >= 500)
             {
-                end = SongsId.Length;
-            }
-            ids = SongsId[start..end];
-            threadDone = new bool[end - start];
-            songs = new Song[end - start];
-
-            int index = 0;
-            foreach (string id in SongsId[start..end])
-            {
-                ThreadPool.QueueUserWorkItem(GetSongDetail, new object[] { SongsId[index], index});
-                index++;
-            }
-            
-            while (true)
-            {
-                bool isThreadDone = true;
-                foreach (bool threadState in threadDone)
+                int pageCount = songDetail.Count / 500;
+                int diffrence = songDetail.Count - (pageCount * 500);
+                int countSongIndex = 0;
+                for (int _ = 0; _ <= pageCount; _++)
                 {
-                    if (!threadState)
+                    JArray lst = new();
+                    for (int index = countSongIndex; index < countSongIndex + 500; index ++)
                     {
-                        isThreadDone = threadState;
+                        lst.Add(songDetail[index]);
                     }
-                }
-                if (isThreadDone)
-                {
-                    return songs;
+                    songPages.Add(lst);
                 }
             }*/
-            string requestIds = string.Empty;
-            for (int i = 0; i <= songTrackIds.Length - 1; i++)
+            JArray songDetail;
+            if (songTrackIds.Length >= 500)
             {
-                if (i != songTrackIds.Length - 1)
-                {
-                    requestIds += songTrackIds[i] + ",";
-                }
-                else
-                {
-                    requestIds += songTrackIds[i];
-                }
+                songDetail = (JArray)Api.Song.Detail(songTrackIds[0..500], Res.ncm)["songs"];
             }
-            JArray songDetail = (JArray)HttpRequest.GetJson(Apis.songDetail(requestIds))["songs"];
+            else
+            {
+                songDetail = (JArray)Api.Song.Detail(songTrackIds, Res.ncm)["songs"];
+            }
             songs = new Song[songDetail.Count];
             for (int index = 0; index < songs.Length; index++)
             {
                 songs[index] = new Song((JObject)songDetail[index]);
             }
             return songs;
-
         }
 
         private void GetSongDetail(object parm)
@@ -344,6 +299,7 @@ namespace NcmPlayer.CloudMusic
         private string albumName = string.Empty;
         private string albumId = string.Empty;
         private string duartionTime = string.Empty;
+        private string lrcString = string.Empty;
         private Lrcs lrc;
 
         // 哈，注意了，这里的JObject是由Playlist.Tracks获得的
@@ -370,7 +326,7 @@ namespace NcmPlayer.CloudMusic
             JObject songDetail;
             try
             {
-                songDetail = (JObject)((JArray)HttpRequest.GetJson(Apis.songDetail(Id))["songs"])[0];
+                songDetail = (JObject)((JArray)Api.Song.Detail(new string[] { Id }, Res.ncm)["songs"])[0];
             }
             catch (InvalidCastException)
             {
@@ -411,11 +367,25 @@ namespace NcmPlayer.CloudMusic
             {
                 if (lrc == null)
                 {
-                    string songLrc = HttpRequest.GetJson(Apis.lyric(Id))["lrc"]["lyric"].ToString();
-                    lrc = new(songLrc);
+                    object? content = Api.Lyric.Lrc(Id, Res.ncm).Property("lrc");
+                    if (content != null)
+                    {
+                        lrcString = ((JProperty)content).Value["lyric"].ToString();
+                        lrc = new(lrcString);
+                    }
+                    else
+                    {
+                        lrcString = "[99:99.000] 暂无歌词";
+                        lrc = new(lrcString);
+                    }
                 }
                 return lrc;
             }
+        }
+
+        public string GetLrcString
+        {
+            get => lrcString;
         }
 
         public string GetFile()
@@ -449,7 +419,7 @@ namespace NcmPlayer.CloudMusic
             {
                 if (songUrl.Equals(string.Empty))
                 {
-                    JObject temp = (JObject)HttpRequest.GetJson(Apis.songUrl(Id))["data"][0];
+                    JObject temp = (JObject)Api.Song.Url(new string[] { Id }, Res.ncm)["data"][0];
                     songUrl = temp["url"].ToString();
                     songType = temp["type"].ToString();
                 }
@@ -463,7 +433,7 @@ namespace NcmPlayer.CloudMusic
             {
                 if (songType.Equals(string.Empty))
                 {
-                    JObject temp = (JObject)HttpRequest.GetJson(Apis.songUrl(Id))["data"][0];
+                    JObject temp = (JObject)Api.Song.Url(new string[] { Id }, Res.ncm)["data"][0];
                     songUrl = temp["url"].ToString();
                     songType = temp["type"].ToString();
                 }
@@ -489,13 +459,21 @@ namespace NcmPlayer.CloudMusic
         public Lrcs(string lrc)
         {
             string[] sp = Regex.Split(lrc, @"\n");
-            foreach (string item in sp)
+            if (sp.Length != 0)
             {
-                if (!item.Equals(""))
+                foreach (string item in sp)
                 {
-                    Lrc one = new(item);
-                    lrcs.Add(one);
+                    if (!item.Equals(""))
+                    {
+                        Lrc one = new(item);
+                        lrcs.Add(one);
+                    }
                 }
+            }
+            else
+            {
+                Lrc one = new(lrc);
+                lrcs.Add(one);
             }
         }
     }

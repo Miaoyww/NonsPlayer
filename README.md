@@ -1,5 +1,4 @@
 <div align="center">
-
 <!--![Alt](exp.png "exp")-->
 
 # NcmPlayer
@@ -15,6 +14,8 @@
 ***
 
 </div>
+
+[当前Track](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/BugTracks.md)
 
 # 📦️下载
 

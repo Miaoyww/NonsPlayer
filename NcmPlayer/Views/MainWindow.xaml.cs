@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.Player;
+using NcmPlayer.Resources;
 using System;
 using System.Timers;
 using System.Windows;
@@ -20,11 +21,10 @@ namespace NcmPlayer.Views
         private Pages.Home PageHome = new();
         private Pages.Settings PageSettings;
         private Pages.Explore PageExplore;
-        private Pages.Login PageLogin;
+        private Pages.Login PageLogin = new();
         private Pages.Player PagePlayer = new();
         public static Pages.PlaylistBar PagePlaylistBar = new();
         private bool isUser = false;
-        private bool isPlaying = false;
         private double lastVolume;
         private Timer timer = new Timer();
         public static string cpage = string.Empty;
@@ -68,20 +68,19 @@ namespace NcmPlayer.Views
             {
                 if (Res.res.IsPlaying)
                 {
-                    if (!isPlaying)
+                    if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Pause24)
                     {
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Pause24;
-                        isPlaying = true;
                     }
                 }
                 else
                 {
-                    if (isPlaying)
+                    if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Play24)
                     {
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Play24;
-                        isPlaying = false;
                     }
                 }
+
 
                 switch (slider_volume.Value)
                 {
@@ -207,7 +206,6 @@ namespace NcmPlayer.Views
             Res.res.PageSize = new double[] { pageframe.RenderSize.Width, pageframe.RenderSize.Height };
             if (!Res.res.isShowingPlayer)
             {
-                Res.res.IsPlaying = true;
                 if (screenframe.Visibility == Visibility.Visible)
                 {
                     screenframe.RenderTransform = new TranslateTransform(0, 0);
@@ -378,6 +376,5 @@ namespace NcmPlayer.Views
         {
             PlaylistBarControl();
         }
-
     }
 }
