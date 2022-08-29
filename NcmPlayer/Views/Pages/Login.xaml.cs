@@ -163,9 +163,9 @@ namespace NcmPlayer.Views.Pages
                 }
                 else
                 {
-                    if (MainWindow.mainWindow.IsLoaded)
+                    if (MainWindow.acc.IsLoaded)
                     {
-                        MainWindow.ShowMyDialog("token错误", "警告");
+                        PublicMethod.ShowDialog("token错误", "警告");
                     }
                 }
             }
@@ -206,7 +206,7 @@ namespace NcmPlayer.Views.Pages
                         }
                         catch (NcmApi.LoginFailed error)
                         {
-                            MainWindow.ShowMyDialog(error.ToString(), "错误");
+                            PublicMethod.ShowDialog(error.ToString(), "错误");
                         }
                     }
                     else
@@ -219,13 +219,13 @@ namespace NcmPlayer.Views.Pages
                         }
                         catch (NcmApi.LoginFailed error)
                         {
-                            MainWindow.ShowMyDialog(error.ToString(), "错误");
+                            PublicMethod.ShowDialog(error.ToString(), "错误");
                         }
                     }
                 }
                 else
                 {
-                    MainWindow.ShowMyDialog("请输入账号密码!");
+                    PublicMethod.ShowDialog("请输入账号密码!");
                 }
             }
 

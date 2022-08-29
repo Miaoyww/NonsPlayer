@@ -48,7 +48,7 @@
                         BorderThickness="0,0,0,0"
                         Cursor="Hand"
                         Command="{Binding }"
-                        Click="btn_albumPic_Click" />
+                        Click="btn_screener_Click" />
                         <Separator Height="4" Width="10" BorderThickness="0,0,0,0" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock x:Name="tblock_title" Text="{Binding CPlayName}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="18" FontFamily="Bahnschrift SemiBold" Cursor="Hand" />

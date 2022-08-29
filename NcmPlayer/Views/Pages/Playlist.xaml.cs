@@ -133,7 +133,7 @@ namespace NcmPlayer.Views.Pages
 
         private void Play(object pramparameter)
         {
-            MainWindow.PagePlaylistBar.Play(pramparameter.ToString());
+            PublicMethod.PagePlaylistBar.Play(pramparameter.ToString());
         }
 
         #endregion 属性及初始化
@@ -147,8 +147,8 @@ namespace NcmPlayer.Views.Pages
 
         private void PlayAll_Click(object sender, RoutedEventArgs e)
         {
-            MainWindow.PagePlaylistBar.ClearSongs();
-            MainWindow.PagePlaylistBar.UpdateSongsList(songlist);
+            PublicMethod.PagePlaylistBar.ClearSongs();
+            PublicMethod.PagePlaylistBar.UpdateSongsList(songlist);
             Res.wholePlaylist.Play(0);
         }
     }

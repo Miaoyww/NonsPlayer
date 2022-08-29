@@ -64,22 +64,13 @@ namespace NcmPlayer.CloudMusic
         public static void OpenPlayListDetail(string id)
         {
             Playlist newone = new();
-            MainWindow.mainWindow.PageFrame.Content = newone;
-            ProgressRing progressRing = new();
-            progressRing.IsIndeterminate = true;
-            progressRing.Progress = 50;
-            MainWindow.ShowMyDialog(progressRing);
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
+            PublicMethod.ChangePage(newone);
             PlayList playList = new(id);
-            stopwatch.Stop();
-            Debug.WriteLine($"创建Playlist共计(ms):{stopwatch.Elapsed.TotalSeconds}");
             string name = playList.Name;
             string creator = playList.Creator;
             string description = playList.Description;
             string createTime = playList.CreateTime.ToString();
             int songsCount = playList.SongsCount;
-            stopwatch.Restart();
             newone.Name = name;
             newone.Creator = creator;
             newone.CreateTime = createTime;
@@ -91,20 +82,10 @@ namespace NcmPlayer.CloudMusic
                 {
                     Stream playlistCover = playList.Cover;
                     newone.SetCover(playlistCover);
-                    MainWindow.HideMyDialog();
                 }));
             });
-
-            stopwatch.Stop();
-            Debug.WriteLine($"上传playlist信息共计(ms):{stopwatch.Elapsed.TotalSeconds}");
-            stopwatch.Restart();
             Song[] songs = playList.InitArtWorkList();
-            stopwatch.Stop();
-            Debug.WriteLine($"InitArtWorkList共计(ms):{stopwatch.Elapsed.TotalSeconds}");
-            stopwatch.Restart();
             newone.UpdateSongsList(songs);
-            stopwatch.Stop();
-            Debug.WriteLine($"UpdateSongsList共计(ms):{stopwatch.Elapsed.TotalSeconds}");
         }
     }
 

@@ -227,7 +227,7 @@ namespace NcmPlayer.Views.Pages
 
         private void btn_playerHide_Click(object sender, RoutedEventArgs e)
         {
-            MainWindow.ScreenControl();
+            PublicMethod.ScreenControl();
         }
 
         private void slider_postion_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
