@@ -21,7 +21,7 @@ namespace NcmPlayer.Resources
         public static Settings PageSettings;
         public static Explore PageExplore;
         public static Login PageLogin = new();
-        public static Views.Pages.Player PagePlayer = new();
+        public static Player PagePlayer = new();
         public static PlaylistBar PagePlaylistBar = new();
         public static string CurrentPage = string.Empty;
 
@@ -36,6 +36,8 @@ namespace NcmPlayer.Resources
             window.PageFrame.Content = PageHome;
             window.ScreenFrame.Content = PagePlayer;
             window.PlayListBar.Content = PagePlaylistBar;
+
+            MusicPlayer.InitPlayer();
         }
 
         public static void ShowDialog(string content, string title)

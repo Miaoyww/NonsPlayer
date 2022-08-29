@@ -1,6 +1,5 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.CloudMusic;
-using NcmPlayer.Player;
 using NcmPlayer.Resources;
 using Newtonsoft.Json.Linq;
 using System;
@@ -71,10 +70,10 @@ namespace NcmPlayer.Views.Pages
             Res.res.CPlayName = (string)RegGeter.RegGet("Song", "SongName");
             Res.res.CPlayArtists = (string)RegGeter.RegGet("Song", "SongArtists");
             Res.res.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongCover"))));
-            Res.res.CPlayPath = (string)RegGeter.RegGet("Song", "SongPath");
+            // Res.res.CPlayPath = (string)RegGeter.RegGet("Song", "SongPath");
             Res.res.CPlayAlbumPicUrl = (string)RegGeter.RegGet("Song", "SongAlbumUrl");
             UpdateLrc(new Lrcs(Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongLrc")))));
-            MusicPlayer.Init(Res.res.CPlayPath);
+            // MusicPlayer.Init(Res.res.CPlayPath);
             if (listview_lrc.Items.Count == 0)
             {
                 listview_lrc.Items.Add(getPanel("当前未播放音乐"));

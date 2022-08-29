@@ -1,37 +1,22 @@
-﻿using Microsoft.Win32;
+﻿using NAudio.Wave;
 using NcmPlayer.Resources;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using NcmPlayer.Views;
 using System;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using System.Timers;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Shapes;
 
-namespace NcmPlayer.Player
+namespace NcmPlayer
 {
     public static class MusicPlayer
     {
-        public static MediaElement musicplayer = new();
-
-        public static Timer updateInfo;
-        public static Socket client_socket;
+        private static WaveOut waveOut;
+        private static WaveStream mp3;
+        public static Timer updateInfo = new();
+        private static bool isInited = false;
 
         public static void InitPlayer()
         {
-            musicplayer.UnloadedBehavior = MediaState.Manual;
-            musicplayer.LoadedBehavior = MediaState.Manual;
-            musicplayer.MediaOpened += Musicplayer_MediaOpened;
-            musicplayer.MediaFailed += Musicplayer_MediaFailed;
-            musicplayer.MediaEnded += Musicplayer_MediaEnded;
-            musicplayer.Visibility = Visibility.Hidden;
-            musicplayer.Volume = Res.res.CVolume / 100;
-
-            updateInfo = new();
+            waveOut = new();
             updateInfo.Elapsed += Timer_Elapsed;
             updateInfo.Interval = 100;
             updateInfo.Start();
@@ -40,28 +25,38 @@ namespace NcmPlayer.Player
         // 信息更新
         public static void Timer_Elapsed(object? sender, ElapsedEventArgs e)
         {
-            musicplayer.Dispatcher.BeginInvoke(new Action(() =>
+            MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
             {
-                Res.res.CPlayPostion = musicplayer.Position.Duration().TotalSeconds;
+                if (isInited && waveOut != null)
+                {
+                    Res.res.CPlayPostion = waveOut.GetPosition();
+                }
             }));
         }
 
-        public static void Init(string uri)
+        public static void Init(Stream waveStream)
         {
-            musicplayer.Source = new Uri(uri);
-            musicplayer.Position = TimeSpan.FromSeconds(Res.res.CPlayPostion);
-            musicplayer.Play();
-            musicplayer.Pause();
+            Stream ms = new MemoryStream();
+                byte[] buffer = new byte[32768];
+            int read;
+            while ((read = waveStream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                ms.Write(buffer, 0, read);
+            }
+            mp3 = WaveFormatConversionStream.CreatePcmStream((WaveStream)ms);
+            mp3.CurrentTime = TimeSpan.FromSeconds(Res.res.CPlayPostion);
+            waveOut.Init(mp3);
+            isInited = true;
             Res.res.IsPlaying = false;
         }
 
-        public static void RePlay(string path, string name, string artists)
+        public static void RePlay(Stream waveStream, string name, string artists)
         {
             Res.res.CPlayName = name;
             Res.res.CPlayArtists = artists;
-            Res.res.CPlayPath = path;
-            musicplayer.Source = new Uri(path);
-            Play(true);
+            mp3 = WaveFormatConversionStream.CreatePcmStream((WaveStream)waveStream);
+            waveOut.Init(mp3);
+            isInited = true;
         }
 
         public static void Play(bool re = false)
@@ -69,19 +64,19 @@ namespace NcmPlayer.Player
             if (re)
             {
                 Res.res.IsPlaying = true;
-                musicplayer.Position = TimeSpan.Zero;
-                musicplayer.Play();
+                mp3.CurrentTime = TimeSpan.Zero;
+                waveOut.Play();
             }
             else
             {
                 if (!Res.res.IsPlaying)
                 {
-                    musicplayer.Play();
+                    waveOut.Play();
                     Res.res.IsPlaying = true;
                 }
                 else
                 {
-                    musicplayer.Pause();
+                    waveOut.Pause();
                     Res.res.IsPlaying = false;
                 }
             }
@@ -89,140 +84,18 @@ namespace NcmPlayer.Player
 
         public static void Volume(double volume)
         {
-            musicplayer.Volume = volume;
+            if (waveOut != null)
+            {
+                waveOut.Volume = (float)volume;
+            }
         }
 
         public static void Postion(double postion)
         {
             if (Res.res.IsPlaying)
             {
-                musicplayer.Position = TimeSpan.FromSeconds(postion);
+                mp3.CurrentTime = TimeSpan.FromSeconds(postion);
             }
         }
-
-        public static void Musicplayer_MediaEnded(object sender, RoutedEventArgs e)
-        {
-            Res.res.IsPlaying = false;
-        }
-
-        public static void Musicplayer_MediaOpened(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                Res.res.CPlayWholeTime = (int)musicplayer.NaturalDuration.TimeSpan.TotalSeconds;
-             
-            }
-            catch (InvalidOperationException)
-            {
-
-            }
-        }
-
-        public static void Musicplayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
-        /*
-        public static void ReGetInfo(object source, ElapsedEventArgs e)
-        {
-            Thread thread = new(() =>
-            {
-                SendMessage("reget_info");
-            });
-            thread.Start();
-            thread.IsBackground = true;
-        }
-
-        public static string B2S(byte[] bytes)
-        {
-            string msg = Encoding.UTF8.GetString(bytes);
-            if (msg.Equals(""))
-            {
-                return string.Empty;
-            }
-            byte[] buffer = Encoding.UTF8.GetBytes(msg);
-            string sResult = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
-            byte[] bomBuffer = new byte[] { 0xef, 0xbb, 0xbf };
-            if (buffer[0] == bomBuffer[0] && buffer[1] == bomBuffer[1] && buffer[2] == bomBuffer[2])
-            {
-                int copyLength = buffer.Length - 3;
-                byte[] dataNew = new byte[copyLength];
-                Buffer.BlockCopy(buffer, 3, dataNew, 0, copyLength);
-                sResult = Encoding.UTF8.GetString(dataNew);
-            }
-            return sResult;
-        }
-
-        public static void SendMessage(string cmd)
-        {
-            Thread send = new Thread(() =>
-            {
-                try
-                {
-                    client_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    IPAddress ipAdress = IPAddress.Parse(Res.res.ServerIp);
-                    //网络端点：为待请求连接的IP地址和端口号
-                    IPEndPoint ipEndpoint = new IPEndPoint(ipAdress, int.Parse(Res.res.ServerPort));
-                    while (true)
-                    {
-                        try
-                        {
-                            client_socket.Connect(ipEndpoint);
-                            break;
-                        }
-                        catch
-                        {
-                            break;
-                        }
-                    }
-                    if (client_socket.IsBound)
-                    {
-                        JObject jsonData = new JObject();
-                        jsonData.Add("name", Environment.MachineName);
-                        jsonData.Add("command", cmd);
-                        client_socket.Send(Encoding.UTF8.GetBytes(jsonData.ToString()));
-                        byte[] buffer = new byte[1024 * 1024 * 20];
-                        int num = client_socket.Receive(buffer);
-                        string reDataString = B2S(buffer);
-                        if (reDataString != null)
-                        {
-                            try
-                            {
-                                JObject reData = (JObject)JsonConvert.DeserializeObject(reDataString);
-                                if (reData != null)
-                                {
-                                    Pages.Player.playerPage.Dispatcher.BeginInvoke(new Action(() =>
-                                    {
-                                        Pages.Player.playerPage.tblock_title.Text = reData["title"].ToString();
-                                        Pages.Player.playerPage.tblock_artists.Text = reData["artist"].ToString();
-                                        byte[] imgBytes = Convert.FromBase64String(reData["albumPic"].ToString());
-                                        imageStream = new MemoryStream(imgBytes);
-                                        BitmapImage image = new BitmapImage();
-                                        image.BeginInit();
-                                        image.StreamSource = imageStream;
-                                        image.EndInit();
-                                        ImageBrush imgBrush = new ImageBrush();
-                                        imgBrush.ImageSource = image;
-                                        Pages.Player.playerPage.b_image.Background = imgBrush;
-                                    }));
-                                }
-
-                                client_socket.Close();
-                            }
-                            catch (JsonReaderException)
-                            {
-                            }
-                        }
-                    }
-                }
-                catch (SocketException)
-                {
-                }
-            });
-            send.IsBackground = true;
-            send.Start();
-        }
-        */
     }
 }

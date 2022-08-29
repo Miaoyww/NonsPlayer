@@ -1,5 +1,4 @@
 ﻿using Microsoft.Win32;
-using NcmPlayer.Player;
 using NcmPlayer.Resources;
 using System;
 using System.Timers;
@@ -33,8 +32,8 @@ namespace NcmPlayer.Views
         public MainWindow()
         {
             InitializeComponent();
-            PublicMethod.Init(this);
             acc = this;
+            PublicMethod.Init(this);
 
             btn_albumPic.DataContext = Res.res;
             tblock_artists.DataContext = Res.res;

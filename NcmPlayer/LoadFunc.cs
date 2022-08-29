@@ -1,5 +1,4 @@
 ﻿using Microsoft.Win32;
-using NcmPlayer.Player;
 using NcmPlayer.Resources;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
@@ -77,7 +76,6 @@ namespace NcmPlayer
 
             Res.res.serverPort = Registry.GetValue(AppConfig.RegPath, "ServerPort", Res.res.serverPort).ToString();
             Res.res.CVolume = int.Parse(Registry.GetValue(AppConfig.RegPath, "CurrentVolume", "100").ToString());
-            MusicPlayer.InitPlayer();
             switch (RegGeter.RegGet("Theme").ToString())
             {
                 case "Light":
