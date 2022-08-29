@@ -1,6 +1,5 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.CloudMusic;
-using NcmPlayer.Player;
 using NcmApi;
 using System;
 using System.Collections.Generic;

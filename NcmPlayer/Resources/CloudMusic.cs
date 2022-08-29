@@ -1,14 +1,10 @@
 ﻿using NcmPlayer.CloudMusic;
-using NcmPlayer.Player;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Controls;
-using System.Windows;
 using System.IO;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
 
 namespace NcmPlayer.Resources
 {
@@ -116,7 +112,6 @@ namespace NcmPlayer.Resources
         private void PlaySong(int index)
         {
             Song song = list[index].Song;
-            string path = song.GetFile();
             string[] artist = song.Artists;
             string name = song.Name;
             string artists = string.Empty;
@@ -133,7 +128,7 @@ namespace NcmPlayer.Resources
                 }
             }
             Res.res.Cover(song.Cover);
-            MusicPlayer.RePlay(path, name, artists);
+            MusicPlayer.RePlay(song.GetWaveStream(), name, artists);
             Res.res.CPlayAlbumPicUrl = song.CoverUrl;
             Res.res.CPlayAlbumId = song.AlbumId;
             Views.Pages.Player.playerPage.ClearLrc();
@@ -152,7 +147,6 @@ namespace NcmPlayer.Resources
             MemoryStream ms = new MemoryStream();
             song.Cover.CopyTo(ms);
             Regediter.Regedit("Song", "SongCover", Convert.ToBase64String(ms.ToArray()));
-            Regediter.Regedit("Song", "SongPath", path);
             Regediter.Regedit("Song", "SongAlbumUrl", song.CoverUrl);
             Regediter.Regedit("Song", "SongLrc", Convert.ToBase64String(Encoding.UTF8.GetBytes(song.GetLrcString)));
         }
@@ -283,5 +277,4 @@ namespace NcmPlayer.Resources
             }
         }
     }
-
 }

@@ -1,6 +1,5 @@
 ﻿using NcmApi;
 using NcmPlayer.Resources;
-using NcmPlayer.Views;
 using NcmPlayer.Views.Pages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -11,17 +10,19 @@ using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Wpf.Ui.Controls;
 
 namespace NcmPlayer.CloudMusic
 {
     public static class HttpRequest
     {
-        public static Stream StreamHttpGet(string url)
+        public static Stream StreamHttpGet(string url, int start = 0, int end = 0)
         {
             WebRequest wrGETURL;
             wrGETURL = WebRequest.Create(url);
-
+            if (end != 0)
+            {
+                wrGETURL.Headers.Add("Range", $"bytes={start}-{end}");
+            }
             Stream objStream;
             while (true)
             {
@@ -198,22 +199,6 @@ namespace NcmPlayer.CloudMusic
 
         public Song[] InitArtWorkList()
         {
-            /*
-            if (songDetail.Count >= 500)
-            {
-                int pageCount = songDetail.Count / 500;
-                int diffrence = songDetail.Count - (pageCount * 500);
-                int countSongIndex = 0;
-                for (int _ = 0; _ <= pageCount; _++)
-                {
-                    JArray lst = new();
-                    for (int index = countSongIndex; index < countSongIndex + 500; index ++)
-                    {
-                        lst.Add(songDetail[index]);
-                    }
-                    songPages.Add(lst);
-                }
-            }*/
             JArray songDetail;
             if (songTrackIds.Length >= 500)
             {
@@ -281,6 +266,9 @@ namespace NcmPlayer.CloudMusic
         private string albumId = string.Empty;
         private string duartionTime = string.Empty;
         private string lrcString = string.Empty;
+        private int songSize = 0;
+        private List<int[]> sizeRange = new List<int[]>();
+        private int chuckIndex = 0;
         private Lrcs lrc;
 
         // 哈，注意了，这里的JObject是由Playlist.Tracks获得的
@@ -369,8 +357,18 @@ namespace NcmPlayer.CloudMusic
             get => lrcString;
         }
 
-        public string GetFile()
+        public Stream GetWaveStream()
         {
+            string _songUrl = SongUrl;
+            int[] range = sizeRange[chuckIndex];
+            Stream songStream = HttpRequest.StreamHttpGet(_songUrl, range[0], range[1]);
+            chuckIndex++;
+            return songStream;
+        }
+
+        public void GetMp3()
+        {
+            string _songUrl = SongUrl;
             string path = AppConfig.SongsPath(Id, SongType);
             if (!File.Exists(path))
             {
@@ -391,18 +389,47 @@ namespace NcmPlayer.CloudMusic
                 fs.Close();
                 songStream.Close();
             }
-            return path;
+        }
+
+        private void getSongFileInfo()
+        {
+            JObject temp = (JObject)Api.Song.Url(new string[] { Id }, Res.ncm)["data"][0];
+            sizeRange.Clear();
+            songSize = (int)temp["size"];
+            songUrl = temp["url"].ToString();
+            songType = temp["type"].ToString();
+
+            int step = songSize / 8; // 这里是一块的大小，分8块分段请求
+            int difference = songSize - (step * 8);
+            int lastChuckSize = 0;
+            for (int i = 1; i < step - 1; i++)
+            {
+                int currentChuckSize = (step * i);
+                int[] chuck;
+                if (songSize - currentChuckSize == difference)
+                {
+                    chuck = new int[] { lastChuckSize, songSize};
+                }
+                else if(currentChuckSize < songSize)
+                {
+                    chuck = new int[] { lastChuckSize, currentChuckSize};
+                }
+                else
+                {
+                    break;
+                }
+                lastChuckSize = currentChuckSize;
+                sizeRange.Add(chuck);
+            }
         }
 
         public string SongUrl
         {
             get
             {
-                if (songUrl.Equals(string.Empty))
+                if (string.IsNullOrEmpty(songUrl))
                 {
-                    JObject temp = (JObject)Api.Song.Url(new string[] { Id }, Res.ncm)["data"][0];
-                    songUrl = temp["url"].ToString();
-                    songType = temp["type"].ToString();
+                    getSongFileInfo();
                 }
                 return songUrl;
             }
@@ -414,9 +441,7 @@ namespace NcmPlayer.CloudMusic
             {
                 if (songType.Equals(string.Empty))
                 {
-                    JObject temp = (JObject)Api.Song.Url(new string[] { Id }, Res.ncm)["data"][0];
-                    songUrl = temp["url"].ToString();
-                    songType = temp["type"].ToString();
+                    getSongFileInfo();
                 }
                 return songType;
             }
