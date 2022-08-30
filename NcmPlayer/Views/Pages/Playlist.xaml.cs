@@ -1,12 +1,15 @@
-﻿using NcmPlayer.CloudMusic;
+﻿using Microsoft.VisualBasic.Devices;
+using NcmPlayer.CloudMusic;
 using NcmPlayer.Resources;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
 namespace NcmPlayer.Views.Pages
@@ -21,9 +24,14 @@ namespace NcmPlayer.Views.Pages
             InitializeComponent();
         }
 
+        private UIElement lastMoveOn;
+        private UIElement currentMoveOn;
+        private bool storyboardLoaded = false;
+        private bool mouseItemsMoving = false;
+        private int clickCount = 0;
         #region 属性及初始化
 
-        public Grid[] grids;
+        public Border[] songBorderList;
 
         public List<Song> songlist = new List<Song>();
 
@@ -34,7 +42,7 @@ namespace NcmPlayer.Views.Pages
 
         public string CreateTime
         {
-            set => PlaylistCreateTime.Text = $"创建时间 {value.Split(" ")[0]}";
+            set => PlaylistCreateTime.Text = $"· {value.Split(" ")[0]}";
         }
 
         public string SongsCount
@@ -49,7 +57,7 @@ namespace NcmPlayer.Views.Pages
 
         public string Creator
         {
-            set => PlaylistCreator.Text = value;
+            set => PlaylistCreator.Text = $"By {value}";
         }
 
         public void SetCover(Stream stream)
@@ -66,70 +74,120 @@ namespace NcmPlayer.Views.Pages
         public void UpdateSongsList(Song[] songs)
         {
             int gridCount = songs.Length;
-            grids = new Grid[songs.Length];
+            songBorderList = new Border[songs.Length];
             for (int index = 0; index < gridCount; index++)
             {
                 Song one = songs[index];
                 songlist.Add(one);
-                grids[index] = new Grid();
-                grids[index].Tag = one.Id;
-                string artists = string.Empty;
-                for (int i = 0; i <= one.Artists.Length - 1; i++)
+                Border parent = new()
                 {
-                    if (i != one.Artists.Length - 1)
+                    Height = 40,
+                    Tag = one.Id,
+                    CornerRadius = new CornerRadius(10, 10, 10, 10),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    Background = new SolidColorBrush(Color.FromArgb(100, 212, 212, 212))
+                };
+                parent.Background.Opacity = 0;
+                parent.PreviewMouseMove += Parent_PreviewMouseMove;
+                parent.PreviewMouseLeftButtonDown += Parent_PreviewMouseLeftButtonDown;
+                Border corner = new()
+                {
+                    CornerRadius = new CornerRadius(10, 10, 10, 10),
+                    Margin = new Thickness(0, 5, 0, 5)
+                };
+                Grid content = new();
+                string artists = string.Empty;
+                if (one.Artists[0] == string.Empty && one.Artists.Length == 1)
+                {
+                    artists = "未知艺人";
+                }
+                else
+                {
+                    for (int i = 0; i <= one.Artists.Length - 1; i++)
                     {
-                        artists += one.Artists[i] + "/";
-                    }
-                    else
-                    {
-                        artists += one.Artists[i];
+                        if (i != one.Artists.Length - 1)
+                        {
+                            artists += one.Artists[i] + " / ";
+                        }
+                        else
+                        {
+                            artists += one.Artists[i];
+                        }
                     }
                 }
-                Label label_index = new()
-                {
-                    Content = (index + 1).ToString(),
-                    FontSize = 20,
-                    Padding = new Thickness(0, 5, 0, 0),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                Separator separator = new()
-                {
-                    BorderThickness = new Thickness(0)
-                };
                 TextBlock tblock_Name = new()
                 {
                     Text = one.Name,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
+                    FontWeight = FontWeights.Bold,
                     FontSize = 20,
-                    Margin = new Thickness(50, 0, 0, 0)
+                    Margin = new Thickness(20,0,0,0)
                 };
                 TextBlock tblock_Artists = new()
                 {
                     Text = artists,
-                    HorizontalAlignment = HorizontalAlignment.Left,
+                    HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    FontSize = 20,
-                    Margin = new Thickness(800, 0, 0, 0)
+                    FontSize = 16
                 };
                 TextBlock tblock_Time = new()
                 {
-                    Text = one.DuartionTime,
+                    Text = one.DuartionTimeString,
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center,
-                    FontSize = 20
+                    FontSize = 14,
+                    Margin = new Thickness(0, 0, 20, 0)
                 };
-
-                grids[index].Children.Add(label_index);
-                grids[index].Children.Add(separator);
-                grids[index].Children.Add(tblock_Name);
-                grids[index].Children.Add(tblock_Artists);
-                grids[index].Children.Add(tblock_Time);
-                Songs.Items.Add(grids[index]);
+                content.Children.Add(tblock_Name);
+                content.Children.Add(tblock_Artists);
+                content.Children.Add(tblock_Time);
+                corner.Child = content;
+                parent.Child = corner;
+                songBorderList[index] = parent;
+                Songs.Children.Add(songBorderList[index]);
+                Songs.Children.Add(new Separator() { BorderThickness = new Thickness(0), Height = 5 });
             }
         }
 
+        private void Parent_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            clickCount++;
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                Thread.Sleep(150);
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (clickCount >= 2)
+                    {
+                        Play(((Border)sender).Tag.ToString());
+                        clickCount = 0;
+                    }
+                    else
+                    {
+                        clickCount = 0;
+                    }
+                }));
+            });
+        }
+
+        private void Parent_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            mouseItemsMoving = true;
+            if (lastMoveOn != (Border)sender)
+            {
+                if (lastMoveOn != null)
+                {
+                    Storyboard storyboardEnd = (Storyboard)Resources["MouseMoveOut"];
+                    storyboardEnd.Begin((Border)lastMoveOn);
+                }
+                Storyboard storyboardStart = (Storyboard)Resources["MouseMoveOn"];
+                storyboardStart.Begin((Border)sender);
+                storyboardLoaded = true;
+                lastMoveOn = (Border)sender;
+            }
+            mouseItemsMoving = false;
+        }
         private void Play(object pramparameter)
         {
             PublicMethod.PagePlaylistBar.Play(pramparameter.ToString());
@@ -137,18 +195,25 @@ namespace NcmPlayer.Views.Pages
 
         #endregion 属性及初始化
 
-
         private void Songs_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
+            /*
             Grid currentSelected = (Grid)Songs.SelectedItem;
-            Play(currentSelected.Tag);
+            if (currentSelected != null)
+            {
+                Play(currentSelected.Tag);
+            }*/
         }
 
         private void PlayAll_Click(object sender, RoutedEventArgs e)
         {
             PublicMethod.PagePlaylistBar.ClearSongs();
             PublicMethod.PagePlaylistBar.UpdateSongsList(songlist);
-            Res.wholePlaylist.Play(0);
+            ResEntry.wholePlaylist.Play(0);
+        }
+
+        private void Page_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
         }
     }
 }

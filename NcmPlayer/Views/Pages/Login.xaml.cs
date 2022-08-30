@@ -20,7 +20,7 @@ namespace NcmPlayer.Views.Pages
         public Login()
         {
             InitializeComponent();
-            DataContext = Res.res;
+            DataContext = ResEntry.res;
 
             tokenMD5 = RegGeter.RegGet("Account", "TokenMD5").ToString();
             DecryptAndLogin(RegGeter.RegGet("Account", "Token").ToString());
@@ -159,7 +159,7 @@ namespace NcmPlayer.Views.Pages
 
                 if (Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(result))).Equals(tokenMD5))
                 {
-                    Res.ncm.Login(result);
+                    ResEntry.ncm.Login(result);
                 }
                 else
                 {
@@ -173,7 +173,7 @@ namespace NcmPlayer.Views.Pages
         #endregion
         public bool CheckLogin()
         {
-            if (Res.ncm.isLoggedin)
+            if (ResEntry.ncm.isLoggedin)
             {
                 grid_loggedin.Visibility = Visibility.Visible;
                 grid_login.Visibility = Visibility.Hidden;
@@ -200,8 +200,8 @@ namespace NcmPlayer.Views.Pages
                     {
                         try
                         {
-                            Res.ncm.Login(phone, tbox_password.Text);
-                            Encrypt(Res.ncm.Token);
+                            ResEntry.ncm.Login(phone, tbox_password.Text);
+                            Encrypt(ResEntry.ncm.Token);
                             CheckLogin();
                         }
                         catch (NcmApi.LoginFailed error)
@@ -213,8 +213,8 @@ namespace NcmPlayer.Views.Pages
                     {
                         try
                         {
-                            Res.ncm.Login(email, tbox_password.Password);
-                            Encrypt(Res.ncm.Token);
+                            ResEntry.ncm.Login(email, tbox_password.Password);
+                            Encrypt(ResEntry.ncm.Token);
                             CheckLogin();
                         }
                         catch (NcmApi.LoginFailed error)

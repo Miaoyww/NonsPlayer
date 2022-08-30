@@ -5,6 +5,8 @@
     xmlns:local="clr-namespace:NcmPlayer"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     Startup="Application_Startup"
+    
+    Exit="Application_Exit"
     StartupUri="Views/MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>

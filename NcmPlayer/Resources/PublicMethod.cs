@@ -1,6 +1,5 @@
 ﻿using NcmPlayer.Views;
 using NcmPlayer.Views.Pages;
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -28,7 +27,8 @@ namespace NcmPlayer.Resources
         // 由于大部分的ui都在MainWindow中，在此传递以便初始化
         public static void Init(MainWindow window)
         {
-            Theme.Apply(Res.res.CurrentTheme);
+            MusicPlayer.InitPlayer();
+            Theme.Apply(ResEntry.res.CurrentTheme);
             Screenframe = window.ScreenFrame;
             Pageframe = window.PageFrame;
             Playlistbarframe = window.PlayListBar;
@@ -37,7 +37,6 @@ namespace NcmPlayer.Resources
             window.ScreenFrame.Content = PagePlayer;
             window.PlayListBar.Content = PagePlaylistBar;
 
-            MusicPlayer.InitPlayer();
         }
 
         public static void ShowDialog(string content, string title)
@@ -81,9 +80,9 @@ namespace NcmPlayer.Resources
 
         public static void ScreenControl()
         {
-            Res.res.ScreenSize = new double[] { Screenframe.RenderSize.Width, Screenframe.RenderSize.Height };
-            Res.res.PageSize = new double[] { Pageframe.RenderSize.Width, Pageframe.RenderSize.Height };
-            if (!Res.res.isShowingPlayer)
+            ResEntry.res.ScreenSize = new double[] { Screenframe.RenderSize.Width, Screenframe.RenderSize.Height };
+            ResEntry.res.PageSize = new double[] { Pageframe.RenderSize.Width, Pageframe.RenderSize.Height };
+            if (!ResEntry.res.isShowingPlayer)
             {
                 if (Screenframe.Visibility == Visibility.Visible)
                 {
@@ -92,7 +91,7 @@ namespace NcmPlayer.Resources
                     story.Completed += delegate
                     {
                         Screenframe.Visibility = Visibility.Hidden;
-                        Res.res.isShowingPlayer = false;
+                        ResEntry.res.isShowingPlayer = false;
                     };
                     story.Begin(Screenframe);
                 }
@@ -102,7 +101,7 @@ namespace NcmPlayer.Resources
                     Storyboard story = (Storyboard)MainWindow.acc.Resources["Show"];
                     story.Completed += delegate
                     {
-                        Res.res.isShowingPlayer = false;
+                        ResEntry.res.isShowingPlayer = false;
                     };
                     story.Begin(Screenframe);
                     Screenframe.Visibility = Visibility.Visible;

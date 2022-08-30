@@ -47,12 +47,11 @@
                         Background="{Binding CoverBrush, Mode=OneWay}"
                         BorderThickness="0,0,0,0"
                         Cursor="Hand"
-                        Command="{Binding }"
                         Click="btn_screener_Click" />
                         <Separator Height="4" Width="10" BorderThickness="0,0,0,0" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock x:Name="tblock_title" Text="{Binding CPlayName}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="18" FontFamily="Bahnschrift SemiBold" Cursor="Hand" />
-                            <TextBlock x:Name="tblock_artists" Text="{Binding CPlayArtists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Foreground="#E4868686" Cursor="Hand" />
+                            <TextBlock x:Name="tblock_title" Text="{Binding Name}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="18" FontFamily="Bahnschrift SemiBold" Cursor="Hand" />
+                            <TextBlock x:Name="tblock_artists" Text="{Binding Artists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Foreground="#E4868686" Cursor="Hand" />
                         </StackPanel>
                         <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="20" Width="35" Height="35" BorderThickness="0,0,0,0" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Top" HorizontalAlignment="Right" Padding="0,0,0,0" Margin="0,15,0,0" Cursor="Hand" />
                     </StackPanel>
@@ -65,15 +64,15 @@
                             <ui:Button x:Name="btn_next" Icon="ArrowNext24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_next_Click" Cursor="Hand" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <Label x:Name="label_currentTime" Content="{Binding CPlayPostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" />
-                            <Slider x:Name="slider_postion" Value="{Binding CPlayPostion}" Maximum="{Binding CPlayWholeTime}" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" PreviewMouseUp="slider_postion_PreviewMouseUp" HorizontalAlignment="Center" Width="362" VerticalAlignment="Center"/>
-                            <Label x:Name="label_wholeTime" Content="{Binding CPlayWholeTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" />
+                            <Label x:Name="label_currentTime" Content="{Binding PostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" />
+                            <Slider x:Name="slider_postion" Value="{Binding PostionDouble}" Maximum="{Binding DurationTimeDouble}" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" PreviewMouseUp="slider_postion_PreviewMouseUp" HorizontalAlignment="Center" Width="362" VerticalAlignment="Center"/>
+                            <Label x:Name="label_wholeTime" Content="{Binding DurationTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" />
                         </StackPanel>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,30,0">
                         <ui:Button x:Name="btn_volume" Background="Transparent" Icon="Speaker248" FontSize="26" Cursor="Hand" Click="btn_volume_Click" BorderThickness="0,0,0,0" />
                         <Separator Opacity="0" Width="5" />
-                        <Slider x:Name="slider_volume" Value="{Binding CVolume}" HorizontalAlignment="Center" VerticalAlignment="Center" IsSelectionRangeEnabled="True" Maximum="100" ValueChanged="slider_volume_ValueChanged" />
+                        <Slider x:Name="slider_volume" Value="{Binding Volume}" HorizontalAlignment="Center" VerticalAlignment="Center" IsSelectionRangeEnabled="True" Maximum="100" ValueChanged="slider_volume_ValueChanged" />
                         <Separator Opacity="0" Width="20" />
                         <ui:Button x:Name="btn_showPlaylist" Background="Transparent" Icon="List24" FontSize="26" Cursor="Hand" BorderThickness="0,0,0,0" Click="btn_showPlaylist_Click" />
                     </StackPanel>

@@ -1,25 +1,53 @@
-﻿using NAudio.Wave;
-using NcmPlayer.Resources;
+﻿using NcmPlayer.Resources;
 using NcmPlayer.Views;
 using System;
-using System.IO;
 using System.Timers;
+using System.Windows.Controls;
 
 namespace NcmPlayer
 {
     public static class MusicPlayer
     {
-        private static WaveOut waveOut;
-        private static WaveStream mp3;
+        private static MediaElement player;
         public static Timer updateInfo = new();
         private static bool isInited = false;
 
         public static void InitPlayer()
         {
-            waveOut = new();
+            player = new();
+            player.LoadedBehavior = MediaState.Manual;
+            player.UnloadedBehavior = MediaState.Manual;
+            player.MediaOpened += Player_MediaOpened;
+            player.MediaEnded += Player_MediaEnded;
             updateInfo.Elapsed += Timer_Elapsed;
             updateInfo.Interval = 100;
             updateInfo.Start();
+        }
+
+        public static void Reload()
+        {
+            try
+            {
+                player.Source = new Uri(ResEntry.songInfo.FilePath);
+                player.Volume = ResEntry.songInfo.Volume;
+                player.Position = ResEntry.songInfo.Postion;
+            }
+            catch
+            {
+
+            }
+
+        }
+
+        private static void Player_MediaEnded(object sender, System.Windows.RoutedEventArgs e)
+        {
+            ResEntry.songInfo.IsPlaying = false;
+            ResEntry.wholePlaylist.Next();
+        }
+
+        private static void Player_MediaOpened(object sender, System.Windows.RoutedEventArgs e)
+        {
+            ResEntry.songInfo.IsPlaying = true;
         }
 
         // 信息更新
@@ -27,74 +55,56 @@ namespace NcmPlayer
         {
             MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (isInited && waveOut != null)
-                {
-                    Res.res.CPlayPostion = waveOut.GetPosition();
-                }
+                ResEntry.songInfo.Postion = player.Position;
             }));
         }
 
-        public static void Init(Stream waveStream)
+        public static void RePlay(string path, string name, string artists)
         {
-            Stream ms = new MemoryStream();
-                byte[] buffer = new byte[32768];
-            int read;
-            while ((read = waveStream.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                ms.Write(buffer, 0, read);
-            }
-            mp3 = WaveFormatConversionStream.CreatePcmStream((WaveStream)ms);
-            mp3.CurrentTime = TimeSpan.FromSeconds(Res.res.CPlayPostion);
-            waveOut.Init(mp3);
-            isInited = true;
-            Res.res.IsPlaying = false;
-        }
-
-        public static void RePlay(Stream waveStream, string name, string artists)
-        {
-            Res.res.CPlayName = name;
-            Res.res.CPlayArtists = artists;
-            mp3 = WaveFormatConversionStream.CreatePcmStream((WaveStream)waveStream);
-            waveOut.Init(mp3);
-            isInited = true;
+            ResEntry.songInfo.Name = name;
+            ResEntry.songInfo.Artists = artists;
+            player.Source = new Uri(path);
+            Play(true);
         }
 
         public static void Play(bool re = false)
         {
             if (re)
             {
-                Res.res.IsPlaying = true;
-                mp3.CurrentTime = TimeSpan.Zero;
-                waveOut.Play();
+                ResEntry.songInfo.IsPlaying = true;
+                player.Position = TimeSpan.Zero;
+                player.Play();
             }
             else
             {
-                if (!Res.res.IsPlaying)
+                if (!ResEntry.songInfo.IsPlaying)
                 {
-                    waveOut.Play();
-                    Res.res.IsPlaying = true;
+                    player.Play();
+                    ResEntry.songInfo.IsPlaying = true;
+                    ResEntry.songInfo.DurationTime = player.NaturalDuration.TimeSpan;
                 }
                 else
                 {
-                    waveOut.Pause();
-                    Res.res.IsPlaying = false;
+                    player.Pause();
+                    ResEntry.songInfo.IsPlaying = false;
+                    ResEntry.songInfo.DurationTime = player.NaturalDuration.TimeSpan;
                 }
             }
         }
 
         public static void Volume(double volume)
         {
-            if (waveOut != null)
+            if (player != null)
             {
-                waveOut.Volume = (float)volume;
+                player.Volume = volume;
             }
         }
 
-        public static void Postion(double postion)
+        public static void Position(double position)
         {
-            if (Res.res.IsPlaying)
+            if (ResEntry.songInfo.IsPlaying)
             {
-                mp3.CurrentTime = TimeSpan.FromSeconds(postion);
+                player.Position = TimeSpan.FromSeconds(position);
             }
         }
     }

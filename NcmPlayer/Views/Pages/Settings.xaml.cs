@@ -21,7 +21,7 @@ namespace NcmPlayer.Views.Pages
         {
             InitializeComponent();
             settingsPage = this;
-            DataContext = Res.res;
+            DataContext = ResEntry.res;
         }
 
         private void OnChangeTheme(bool isChecked)
@@ -29,20 +29,20 @@ namespace NcmPlayer.Views.Pages
             switch (isChecked)
             {
                 case true:
-                    if (Res.res.CurrentTheme == ThemeType.Light)
+                    if (ResEntry.res.CurrentTheme == ThemeType.Light)
                        break;
 
                     Theme.Apply(ThemeType.Light);
-                    Res.res.CurrentTheme = ThemeType.Light;
+                    ResEntry.res.CurrentTheme = ThemeType.Light;
 
                     break;
 
                 default:
-                    if (Res.res.CurrentTheme == ThemeType.Dark)
+                    if (ResEntry.res.CurrentTheme == ThemeType.Dark)
                         break;
 
                     Theme.Apply(ThemeType.Dark);
-                    Res.res.CurrentTheme = ThemeType.Dark;
+                    ResEntry.res.CurrentTheme = ThemeType.Dark;
 
                     break;
             }
@@ -57,7 +57,7 @@ namespace NcmPlayer.Views.Pages
         {
             tblock_Version.Text = $"v{AppConfig.AppVersion}";
             isUser = true;
-            switch (Res.res.CurrentTheme)
+            switch (ResEntry.res.CurrentTheme)
             {
                 case ThemeType.Light:
                     tgs_theme.IsChecked = true;

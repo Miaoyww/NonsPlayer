@@ -23,9 +23,6 @@ namespace NcmPlayer.Views
         private double lastVolume;
         private Timer timer = new Timer();
         public static string CurrentPage = string.Empty;
-
-
-
         public static MainWindow acc;
         private bool isUserPostion = false;
 
@@ -33,16 +30,14 @@ namespace NcmPlayer.Views
         {
             InitializeComponent();
             acc = this;
+            btn_albumPic.DataContext = ResEntry.songInfo;
+            tblock_artists.DataContext = ResEntry.songInfo;
+            tblock_title.DataContext = ResEntry.songInfo;
+            slider_volume.DataContext = ResEntry.songInfo;
+            label_currentTime.DataContext = ResEntry.songInfo;
+            label_wholeTime.DataContext = ResEntry.songInfo;
+            slider_postion.DataContext = ResEntry.songInfo;
             PublicMethod.Init(this);
-
-            btn_albumPic.DataContext = Res.res;
-            tblock_artists.DataContext = Res.res;
-            tblock_title.DataContext = Res.res;
-            slider_volume.DataContext = Res.res;
-            label_currentTime.DataContext = Res.res;
-            label_wholeTime.DataContext = Res.res;
-            slider_postion.DataContext = Res.res;
-
             timer.Interval = 100;
             timer.Elapsed += Timer_Elapsed;
             timer.Start();
@@ -54,7 +49,7 @@ namespace NcmPlayer.Views
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 // ui更新
-                if (Res.res.IsPlaying)
+                if (ResEntry.songInfo.IsPlaying)
                 {
                     if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Pause24)
                     {
@@ -99,7 +94,6 @@ namespace NcmPlayer.Views
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
-
             // Make sure that closing this window will begin the process of closing the application.
             Application.Current.Shutdown();
         }
@@ -117,6 +111,7 @@ namespace NcmPlayer.Views
 
         private void Window_Closed(object sender, EventArgs e)
         {
+            OnCloseFunc.Close();
             // 以防有资源未卸载的情况
             GC.Collect();
             GC.WaitForFullGCComplete();
@@ -161,12 +156,16 @@ namespace NcmPlayer.Views
 
         private void btn_Explore_Click(object sender, RoutedEventArgs e)
         {
+            if (PublicMethod.PageExplore == null)
+            {
+                PublicMethod.PageExplore = new();
+            }
             PublicMethod.ChangePage(PublicMethod.PageExplore);
         }
 
         private void btn_last_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            Res.wholePlaylist.Last();
+            ResEntry.wholePlaylist.Last();
         }
 
         private void btn_play_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -176,7 +175,7 @@ namespace NcmPlayer.Views
 
         private void btn_next_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            Res.wholePlaylist.Next();
+            ResEntry.wholePlaylist.Next();
         }
 
         private void btn_like_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -195,6 +194,10 @@ namespace NcmPlayer.Views
 
         private void mitem_settings_Click(object sender, RoutedEventArgs e)
         {
+            if (PublicMethod.PageSettings == null)
+            {
+                PublicMethod.PageSettings = new();
+            }
             PublicMethod.ChangePage(PublicMethod.PageSettings);
         }
 
@@ -202,14 +205,13 @@ namespace NcmPlayer.Views
         {
             if (isUser)
             {
-                Regediter.Regedit("CurrentVolume", ((int)slider_volume.Value).ToString());
-                Res.res.CVolume = (int)slider_volume.Value;
+                ResEntry.songInfo.Volume = (int)slider_volume.Value;
             }
         }
 
         private void btn_volume_Click(object sender, RoutedEventArgs e)
         {
-            if (Res.res.CVolume != 0)
+            if (ResEntry.songInfo.Volume != 0)
             {
                 lastVolume = slider_volume.Value;
                 slider_volume.Value = 0;
@@ -222,15 +224,15 @@ namespace NcmPlayer.Views
 
         private void UiWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            Res.res.ScreenSize = new double[] { ScreenFrame.RenderSize.Width, ScreenFrame.RenderSize.Height };
-            Res.res.PageSize = new double[] { PageFrame.RenderSize.Width, PageFrame.RenderSize.Height };
+            ResEntry.res.ScreenSize = new double[] { ScreenFrame.RenderSize.Width, ScreenFrame.RenderSize.Height };
+            ResEntry.res.PageSize = new double[] { PageFrame.RenderSize.Width, PageFrame.RenderSize.Height };
         }
 
         private void slider_postion_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (isUserPostion)
             {
-                MusicPlayer.Postion((int)slider_postion.Value);
+                MusicPlayer.Position((int)slider_postion.Value);
             }
         }
 

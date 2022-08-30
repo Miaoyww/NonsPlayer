@@ -54,38 +54,46 @@ namespace NcmPlayer.Views.Pages
         {
             InitializeComponent();
             playerPage = this;
-            DataContext = Res.res;
+            DataContext = ResEntry.res;
             timer.Interval = 100;
             timer.Elapsed += Timer_Elapsed;
             timer.Start();
 
-            b_image.DataContext = Res.res;
-            tblock_title.DataContext = Res.res;
-            tblock_artists.DataContext = Res.res;
-            slider_postion.DataContext = Res.res;
-            label_currentTime.DataContext = Res.res;
-            label_wholeTime.DataContext = Res.res;
+            b_image.DataContext = ResEntry.songInfo;
+            tblock_title.DataContext = ResEntry.songInfo;
+            tblock_artists.DataContext = ResEntry.songInfo;
+            slider_postion.DataContext = ResEntry.songInfo;
+            label_currentTime.DataContext = ResEntry.songInfo;
+            label_wholeTime.DataContext = ResEntry.songInfo;
 
-            Res.res.CPlayPostion = double.Parse((string)RegGeter.RegGet("Song", "SongPostion"));
-            Res.res.CPlayName = (string)RegGeter.RegGet("Song", "SongName");
-            Res.res.CPlayArtists = (string)RegGeter.RegGet("Song", "SongArtists");
-            Res.res.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongCover"))));
-            // Res.res.CPlayPath = (string)RegGeter.RegGet("Song", "SongPath");
-            Res.res.CPlayAlbumPicUrl = (string)RegGeter.RegGet("Song", "SongAlbumUrl");
-            UpdateLrc(new Lrcs(Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongLrc")))));
-            // MusicPlayer.Init(Res.res.CPlayPath);
-            if (listview_lrc.Items.Count == 0)
+            try
             {
-                listview_lrc.Items.Add(getPanel("当前未播放音乐"));
+                // ResEntry.songInfo.Postion = TimeSpan.Parse((string)RegGeter.RegGet("Song", "SongPostion"));
+                ResEntry.songInfo.Name = (string)RegGeter.RegGet("Song", "SongName");
+                ResEntry.songInfo.Artists = (string)RegGeter.RegGet("Song", "SongArtists");
+                ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongCover"))));
+                ResEntry.songInfo.FilePath = (string)RegGeter.RegGet("Song", "SongPath");
+                ResEntry.songInfo.AlbumCoverUrl = (string)RegGeter.RegGet("Song", "SongAlbumUrl");
+                UpdateLrc(new Lrcs(Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongLrc")))));
+                // MusicPlayer.Init(ResEntry.res.CPlayPath);
+                if (listview_lrc.Items.Count == 0)
+                {
+                    listview_lrc.Items.Add(getPanel("当前未播放音乐"));
+                }
             }
+            catch
+            {
+
+            }
+            MusicPlayer.Reload();
         }
 
         private void Timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                Views.Pages.Player.playerPage.ChangeVisLrc();
-                if (Res.res.IsPlaying)
+                playerPage.ChangeVisLrc();
+                if (ResEntry.songInfo.IsPlaying)
                 {
                     if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Pause24)
                     {
@@ -110,7 +118,7 @@ namespace NcmPlayer.Views.Pages
             {
                 Name = "lrcContent",
                 Content = content,
-                FontSize = 30,
+                FontSize = 25,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)bc.ConvertFrom("#FF9C9C9C"),
@@ -119,7 +127,7 @@ namespace NcmPlayer.Views.Pages
             Separator separator = new()
             {
                 BorderThickness = new Thickness(0),
-                Height = 30,
+                Height = 20,
             };
             panel.Children.Add(lrc);
             // panel.Children.Add(separator);
@@ -134,6 +142,15 @@ namespace NcmPlayer.Views.Pages
 
         public void UpdateLrc(Lrcs lrcs)
         {
+            if (lrcs.Count <= 3)
+            {
+                int[] _ = new int[5];
+                foreach (int item in _)
+                {
+                    StackPanel vis = getPanel("");
+                    listview_lrc.Items.Add(vis);
+                }
+            }
             foreach (Lrc item in lrcs.GetLrcs)
             {
                 StackPanel vis = getPanel(item.GetLrc);
@@ -143,6 +160,14 @@ namespace NcmPlayer.Views.Pages
                 lrv.Vis = vis;
                 lrcVis.Add(lrv);
                 listview_lrc.Items.Add(vis);
+            }
+            if (Views.Pages.Player.playerPage.lrcVis.Count >= 8)
+            {
+                for (int i = 0; i <= 8; i++)
+                {
+                    StackPanel vis = getPanel("");
+                    listview_lrc.Items.Add(vis);
+                }
             }
         }
 
@@ -154,12 +179,12 @@ namespace NcmPlayer.Views.Pages
                 {
                     if (lrcVis.Count != 0)
                     {
-                        if (Res.res.CPlayPostion >= lrcVis[index].ShowTime.TotalSeconds && index + 1 < lrcVis.Count - 1 && Res.res.CPlayPostion < lrcVis[index + 1].ShowTime.TotalSeconds)
+                        if (ResEntry.songInfo.Postion >= lrcVis[index].ShowTime && index + 1 < lrcVis.Count - 1 && ResEntry.songInfo.Postion < lrcVis[index + 1].ShowTime)
                         {
                             Label content = ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]);
                             if (content.Content != "")
                             {
-                                content.FontSize = 35;
+                                content.FontSize = 29;
                             }
                             var bc = new BrushConverter();
                             ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#ffffff");
@@ -170,7 +195,7 @@ namespace NcmPlayer.Views.Pages
                                 {
                                     if (listview_lrc.Items.Count - 8 >= i)
                                     {
-                                        ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).FontSize = 30;
+                                        ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).FontSize = 25;
                                         ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#FF9C9C9C");
                                     }
                                 }
@@ -183,7 +208,7 @@ namespace NcmPlayer.Views.Pages
 
         private void btn_last_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            Res.wholePlaylist.Last();
+            ResEntry.wholePlaylist.Last();
         }
 
         private void btn_play_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -193,7 +218,7 @@ namespace NcmPlayer.Views.Pages
 
         private void btn_next_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            Res.wholePlaylist.Next();
+            ResEntry.wholePlaylist.Next();
         }
 
         private void btn_like_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -207,7 +232,7 @@ namespace NcmPlayer.Views.Pages
 
         private void SaveImageTo_Click(object sender, RoutedEventArgs e)
         {
-            if (Res.res.CPlayAlbumPicUrl != null)
+            if (ResEntry.songInfo.AlbumCoverUrl != null)
             {
                 SaveFileDialog sfd = new SaveFileDialog();
                 sfd.Title = "选择保存至的位置";
@@ -218,7 +243,7 @@ namespace NcmPlayer.Views.Pages
                     string path = sfd.FileName;
                     using (WebClient client = new WebClient())
                     {
-                        client.DownloadFileAsync(new Uri(Res.res.CPlayAlbumPicUrl), path);
+                        client.DownloadFileAsync(new Uri(ResEntry.songInfo.AlbumCoverUrl), path);
                     }
                 }
             }
@@ -233,7 +258,7 @@ namespace NcmPlayer.Views.Pages
         {
             if (isUser)
             {
-                MusicPlayer.Postion(slider_postion.Value);
+                MusicPlayer.Position(slider_postion.Value);
             }
         }
 
@@ -245,6 +270,11 @@ namespace NcmPlayer.Views.Pages
         private void slider_postion_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             isUser = false;
+        }
+
+        private void Grid_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            MainWindow.acc.DragMove();
         }
     }
 }

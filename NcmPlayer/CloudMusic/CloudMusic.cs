@@ -1,5 +1,6 @@
 ﻿using NcmApi;
 using NcmPlayer.Resources;
+using NcmPlayer.Views;
 using NcmPlayer.Views.Pages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -64,29 +65,35 @@ namespace NcmPlayer.CloudMusic
 
         public static void OpenPlayListDetail(string id)
         {
-            Playlist newone = new();
-            PublicMethod.ChangePage(newone);
-            PlayList playList = new(id);
-            string name = playList.Name;
-            string creator = playList.Creator;
-            string description = playList.Description;
-            string createTime = playList.CreateTime.ToString();
-            int songsCount = playList.SongsCount;
-            newone.Name = name;
-            newone.Creator = creator;
-            newone.CreateTime = createTime;
-            newone.Description = description;
-            newone.SongsCount = songsCount.ToString();
             ThreadPool.QueueUserWorkItem(_ =>
             {
-                newone.Dispatcher.BeginInvoke(new Action(() =>
+                MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    Stream playlistCover = playList.Cover;
-                    newone.SetCover(playlistCover);
+                    Playlist newone = new();
+                    PublicMethod.ChangePage(newone);
+                    PlayList playList = new(id);
+                    string name = playList.Name;
+                    string creator = playList.Creator;
+                    string description = playList.Description;
+                    string createTime = playList.CreateTime.ToString();
+                    int songsCount = playList.SongsCount;
+                    newone.Name = name;
+                    newone.Creator = creator;
+                    newone.CreateTime = createTime;
+                    newone.Description = description;
+                    newone.SongsCount = songsCount.ToString();
+                    ThreadPool.QueueUserWorkItem(_ =>
+                    {
+                        newone.Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            Stream playlistCover = playList.Cover;
+                            newone.SetCover(playlistCover);
+                        }));
+                    });
+                    Song[] songs = playList.InitArtWorkList();
+                    newone.UpdateSongsList(songs);
                 }));
             });
-            Song[] songs = playList.InitArtWorkList();
-            newone.UpdateSongsList(songs);
         }
     }
 
@@ -96,7 +103,7 @@ namespace NcmPlayer.CloudMusic
         private string name = string.Empty;
         private Stream? cover;
         private string coverUrl;
-        private readonly string IMGSIZE = "?param=200y200";
+        private readonly string IMGSIZE = "?param=400y400";
 
         public string Id
         {
@@ -172,7 +179,7 @@ namespace NcmPlayer.CloudMusic
             Id = in_id;
             Stopwatch stopwatch = new();
             stopwatch.Start();
-            JObject playlistDetail = (JObject)Api.Playlist.Detail(Id, Res.ncm)["playlist"];
+            JObject playlistDetail = (JObject)Api.Playlist.Detail(Id, ResEntry.ncm)["playlist"];
             stopwatch.Stop();
             Debug.WriteLine($"获取歌单详情耗时{stopwatch.ElapsedMilliseconds}ms");
             Name = playlistDetail["name"].ToString();
@@ -202,11 +209,11 @@ namespace NcmPlayer.CloudMusic
             JArray songDetail;
             if (songTrackIds.Length >= 500)
             {
-                songDetail = (JArray)Api.Song.Detail(songTrackIds[0..500], Res.ncm)["songs"];
+                songDetail = (JArray)Api.Song.Detail(songTrackIds[0..500], ResEntry.ncm)["songs"];
             }
             else
             {
-                songDetail = (JArray)Api.Song.Detail(songTrackIds, Res.ncm)["songs"];
+                songDetail = (JArray)Api.Song.Detail(songTrackIds, ResEntry.ncm)["songs"];
             }
             songs = new Song[songDetail.Count];
             for (int index = 0; index < songs.Length; index++)
@@ -264,7 +271,8 @@ namespace NcmPlayer.CloudMusic
         private string[] artists;
         private string albumName = string.Empty;
         private string albumId = string.Empty;
-        private string duartionTime = string.Empty;
+        private TimeSpan duartionTime = TimeSpan.Zero;
+        private string duartionTimeString = string.Empty;
         private string lrcString = string.Empty;
         private int songSize = 0;
         private List<int[]> sizeRange = new List<int[]>();
@@ -276,8 +284,8 @@ namespace NcmPlayer.CloudMusic
         {
             Name = playlistSongTrack["name"].ToString();
             Id = playlistSongTrack["id"].ToString();
-            TimeSpan timespan = TimeSpan.FromMilliseconds(int.Parse(playlistSongTrack["dt"].ToString()));
-            duartionTime = timespan.ToString(@"mm\:ss");
+            duartionTime = TimeSpan.FromMilliseconds(int.Parse(playlistSongTrack["dt"].ToString()));
+            duartionTimeString = duartionTime.ToString(@"mm\:ss");
             CoverUrl = playlistSongTrack["al"]["picUrl"].ToString();
             albumName = playlistSongTrack["al"]["name"].ToString();
             albumId = playlistSongTrack["al"]["id"].ToString();
@@ -288,14 +296,13 @@ namespace NcmPlayer.CloudMusic
                 artists[index] = artistsJson[index]["name"].ToString();
             }
         }
-
         public Song(string in_id)
         {
             Id = in_id;
             JObject songDetail;
             try
             {
-                songDetail = (JObject)((JArray)Api.Song.Detail(new string[] { Id }, Res.ncm)["songs"])[0];
+                songDetail = (JObject)((JArray)Api.Song.Detail(new string[] { Id }, ResEntry.ncm)["songs"])[0];
             }
             catch (InvalidCastException)
             {
@@ -309,64 +316,23 @@ namespace NcmPlayer.CloudMusic
                 artists[index] = artistsJson[index]["name"].ToString();
             }
 
-            TimeSpan timespan = TimeSpan.FromMilliseconds(int.Parse(songDetail["dt"].ToString()));
-            duartionTime = timespan.ToString(@"mm\:ss");
+            duartionTime = TimeSpan.FromMilliseconds(int.Parse(songDetail["dt"].ToString()));
+            duartionTimeString = duartionTime.ToString(@"mm\:ss");
             albumId = songDetail["al"]["id"].ToString();
             albumName = songDetail["al"]["name"].ToString();
             CoverUrl = songDetail["al"]["picUrl"].ToString();
         }
 
-        public string[] Artists
-        { get { return artists; } }
-
-        public string AlbumName
-        { get { return albumName; } }
-
-        public string AlbumId
-        { get { return albumId; } }
-
-        public string DuartionTime
-        {
-            get { return duartionTime; }
-        }
-
-        public Lrcs GetLrc
-        {
-            get
-            {
-                if (lrc == null)
-                {
-                    object? content = Api.Lyric.Lrc(Id, Res.ncm).Property("lrc");
-                    if (content != null)
-                    {
-                        lrcString = ((JProperty)content).Value["lyric"].ToString();
-                        lrc = new(lrcString);
-                    }
-                    else
-                    {
-                        lrcString = "[99:99.000] 暂无歌词";
-                        lrc = new(lrcString);
-                    }
-                }
-                return lrc;
-            }
-        }
-
-        public string GetLrcString
-        {
-            get => lrcString;
-        }
-
         public Stream GetWaveStream()
         {
             string _songUrl = SongUrl;
-            int[] range = sizeRange[chuckIndex];
-            Stream songStream = HttpRequest.StreamHttpGet(_songUrl, range[0], range[1]);
-            chuckIndex++;
+            // int[] range = sizeRange[chuckIndex];
+            // Stream songStream = HttpRequest.StreamHttpGet(_songUrl, range[0], range[1]);
+            Stream songStream = HttpRequest.StreamHttpGet(_songUrl);
+            // chuckIndex++;
             return songStream;
         }
-
-        public void GetMp3()
+        public string GetMp3()
         {
             string _songUrl = SongUrl;
             string path = AppConfig.SongsPath(Id, SongType);
@@ -377,7 +343,7 @@ namespace NcmPlayer.CloudMusic
                     Directory.CreateDirectory(AppConfig.SongsDirectory);
                 }
                 FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                Stream songStream = HttpRequest.StreamHttpGet(SongUrl);
+                Stream songStream = HttpRequest.StreamHttpGet(_songUrl);
                 byte[] bArr = new byte[1024];
                 int size = songStream.Read(bArr, 0, bArr.Length);
                 while (size > 0)
@@ -389,11 +355,11 @@ namespace NcmPlayer.CloudMusic
                 fs.Close();
                 songStream.Close();
             }
+            return path;
         }
-
         private void getSongFileInfo()
         {
-            JObject temp = (JObject)Api.Song.Url(new string[] { Id }, Res.ncm)["data"][0];
+            JObject temp = (JObject)Api.Song.Url(new string[] { Id }, ResEntry.ncm)["data"][0];
             sizeRange.Clear();
             songSize = (int)temp["size"];
             songUrl = temp["url"].ToString();
@@ -422,7 +388,6 @@ namespace NcmPlayer.CloudMusic
                 sizeRange.Add(chuck);
             }
         }
-
         public string SongUrl
         {
             get
@@ -434,7 +399,6 @@ namespace NcmPlayer.CloudMusic
                 return songUrl;
             }
         }
-
         public string SongType
         {
             get
@@ -445,6 +409,49 @@ namespace NcmPlayer.CloudMusic
                 }
                 return songType;
             }
+        }
+        public Lrcs GetLrc
+        {
+            get
+            {
+                if (lrc == null)
+                {
+                    object? content = Api.Lyric.Lrc(Id, ResEntry.ncm).Property("lrc");
+                    if (content != null)
+                    {
+                        lrcString = ((JProperty)content).Value["lyric"].ToString();
+                        lrc = new(lrcString);
+                    }
+                    else
+                    {
+                        lrcString = "[99:99.000] 暂无歌词";
+                        lrc = new(lrcString);
+                    }
+                }
+                return lrc;
+            }
+        }
+        public string GetLrcString
+        {
+            get => lrcString;
+        }
+        public string[] Artists
+        { 
+            get {
+                return artists; 
+            } 
+        }
+        public string AlbumName
+        { get { return albumName; } }
+        public string AlbumId
+        { get { return albumId; } }
+        public TimeSpan DuartionTime
+        {
+            get => duartionTime;
+        }
+        public string DuartionTimeString
+        {
+            get => duartionTimeString;
         }
     }
 

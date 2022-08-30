@@ -21,7 +21,7 @@ namespace NcmPlayer
             #region 基础路径
 
             JObject basePath = new();
-            basePath.Add("ServerPort", Res.res.serverPort);
+            basePath.Add("ServerPort", ResEntry.res.serverPort);
             basePath.Add("CurrentVolume", "100");
             basePath.Add("Theme", "Light");
             properties = basePath.Properties();
@@ -74,19 +74,19 @@ namespace NcmPlayer
 
             #endregion 账号路径
 
-            Res.res.serverPort = Registry.GetValue(AppConfig.RegPath, "ServerPort", Res.res.serverPort).ToString();
-            Res.res.CVolume = int.Parse(Registry.GetValue(AppConfig.RegPath, "CurrentVolume", "100").ToString());
+            ResEntry.res.serverPort = Registry.GetValue(AppConfig.RegPath, "ServerPort", ResEntry.res.serverPort).ToString();
+            ResEntry.songInfo.Volume = int.Parse(Registry.GetValue(AppConfig.RegPath, "CurrentVolume", "100").ToString());
             switch (RegGeter.RegGet("Theme").ToString())
             {
                 case "Light":
-                    Res.res.CurrentTheme = ThemeType.Light;
+                    ResEntry.res.CurrentTheme = ThemeType.Light;
                     break;
 
                 case "Dark":
-                    Res.res.CurrentTheme = ThemeType.Dark;
+                    ResEntry.res.CurrentTheme = ThemeType.Dark;
                     break;
                 default:
-                    Res.res.CurrentTheme = ThemeType.Dark;
+                    ResEntry.res.CurrentTheme = ThemeType.Dark;
                     break;
             }
 

@@ -8,5 +8,10 @@ namespace NcmPlayer
         {
             OnloadFunc.Load();
         }
+
+        private void Application_Exit(object sender, ExitEventArgs e)
+        {
+            OnCloseFunc.Close();
+        }
     }
 }

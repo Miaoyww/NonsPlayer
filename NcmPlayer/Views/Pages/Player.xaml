@@ -25,19 +25,19 @@
                     </Border.Effect>
                 </Border>
             </Grid>
-            <StackPanel Margin="10,0,10,15" VerticalAlignment="Bottom" Height="173">
-                <Grid HorizontalAlignment="Center" Width="512">
+            <StackPanel Margin="100,0,100,50" VerticalAlignment="Bottom" Height="173">
+                <Grid>
                     <StackPanel>
-                        <TextBlock x:Name="tblock_title" Text="{Binding CPlayName}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="20" Foreground="#E4FFFFFF" />
-                        <TextBlock x:Name="tblock_artists" Text="{Binding CPlayArtists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" Foreground="#E4FFFFFF" />
+                        <TextBlock x:Name="tblock_title" Text="{Binding Name}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="20" Foreground="#E4FFFFFF" />
+                        <TextBlock x:Name="tblock_artists" Text="{Binding Artists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" Foreground="#E4FFFFFF" />
                     </StackPanel>
                     <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="18" Width="35" Height="35" BorderThickness="0,0,0,0" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Center" HorizontalAlignment="Right" Padding="0,0,0,0" IconForeground="#E4FFFFFF" />
                 </Grid>
                 <Separator Height="20" BorderThickness="0,0,0,0" />
                 <Grid Width="512" Height="38">
-                    <Label x:Name="label_currentTime" Content="{Binding CPlayPostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" Foreground="#E4FFFFFF" />
-                    <Slider x:Name="slider_postion" Value="{Binding CPlayPostion}" Maximum="{Binding CPlayWholeTime}" Width="400" HorizontalAlignment="Center" VerticalAlignment="Center" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" PreviewMouseUp="slider_postion_PreviewMouseUp"/>
-                    <Label x:Name="label_wholeTime" Content="{Binding CPlayWholeTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" Foreground="#E4FFFFFF" />
+                    <Label x:Name="label_currentTime" Content="{Binding PostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" Foreground="#E4FFFFFF" />
+                    <Slider x:Name="slider_postion" Value="{Binding PostionDouble}" Maximum="{Binding DurationTimeDouble }" Width="400" HorizontalAlignment="Center" VerticalAlignment="Center" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" PreviewMouseUp="slider_postion_PreviewMouseUp"/>
+                    <Label x:Name="label_wholeTime" Content="{Binding DurationTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" Foreground="#E4FFFFFF" />
                 </Grid>
                 <Separator Height="10" BorderThickness="0,0,0,0" />
                 <StackPanel Orientation="Horizontal" Height="50" VerticalAlignment="Center" Width="180" HorizontalAlignment="Center">
@@ -54,5 +54,6 @@
 
         </Grid>
         <ui:Button x:Name="btn_playerHide" Width="60" Height="60" Icon="ArrowDown24" FontSize="20" BorderThickness="0" Click="btn_playerHide_Click" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="75,0,0,20" Background="Transparent" IconForeground="#E4FFFFFF"/>
+        <ui:TitleBar ShowMaximize="False"/>
     </Grid>
 </Page>

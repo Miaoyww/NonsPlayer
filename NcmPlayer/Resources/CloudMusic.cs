@@ -1,8 +1,9 @@
 ﻿using NcmPlayer.CloudMusic;
+using NcmPlayer.Views;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -84,7 +85,7 @@ namespace NcmPlayer.Resources
             };
             TextBlock tblock_Time = new()
             {
-                Text = song.DuartionTime,
+                Text = song.DuartionTimeString,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
                 FontSize = 14
@@ -104,51 +105,51 @@ namespace NcmPlayer.Resources
             if (IndexOf(song) == -1)
             {
                 list.Add(song);
-                Res.res.CPlayCount = Count.ToString();
+                ResEntry.res.CPlayCount = Count.ToString();
                 UpdateIndex();
             }
         }
 
         private void PlaySong(int index)
         {
-            Song song = list[index].Song;
-            string[] artist = song.Artists;
-            string name = song.Name;
-            string artists = string.Empty;
-            Lrcs songLrc = song.GetLrc;
-            for (int i = 0; i <= artist.Length - 1; i++)
+            ThreadPool.QueueUserWorkItem(_ =>
             {
-                if (i != artist.Length - 1)
+                MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    artists += artist[i] + "/";
-                }
-                else
-                {
-                    artists += artist[i];
-                }
-            }
-            Res.res.Cover(song.Cover);
-            MusicPlayer.RePlay(song.GetWaveStream(), name, artists);
-            Res.res.CPlayAlbumPicUrl = song.CoverUrl;
-            Res.res.CPlayAlbumId = song.AlbumId;
-            Views.Pages.Player.playerPage.ClearLrc();
-            Views.Pages.Player.playerPage.UpdateLrc(songLrc);
-            if (Views.Pages.Player.playerPage.lrcVis.Count >= 8)
-            {
-                for (int i = 0; i <= 8; i++)
-                {
-                    Views.Pages.Player.playerPage.UpdateLrc(new Lrcs("[99:00.000]"));
-                }
-            }
-            Index = index;
-            UpdateIndex();
-            Regediter.Regedit("Song", "SongName", name);
-            Regediter.Regedit("Song", "SongArtists", artists);
-            MemoryStream ms = new MemoryStream();
-            song.Cover.CopyTo(ms);
-            Regediter.Regedit("Song", "SongCover", Convert.ToBase64String(ms.ToArray()));
-            Regediter.Regedit("Song", "SongAlbumUrl", song.CoverUrl);
-            Regediter.Regedit("Song", "SongLrc", Convert.ToBase64String(Encoding.UTF8.GetBytes(song.GetLrcString)));
+                    Song song = list[index].Song;
+                    string[] artist = song.Artists;
+                    string name = song.Name;
+                    string artists = string.Empty;
+                    Lrcs songLrc = song.GetLrc;
+                    for (int i = 0; i <= artist.Length - 1; i++)
+                    {
+                        if (i != artist.Length - 1)
+                        {
+                            artists += artist[i] + "/";
+                        }
+                        else
+                        {
+                            artists += artist[i];
+                        }
+                    }
+                    MemoryStream stream = new();
+                    song.Cover.CopyTo(stream);
+                    Regediter.Regedit("Song", "SongCover", Convert.ToBase64String(stream.ToArray()));
+                    ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String(RegGeter.RegGet("Song", "SongCover").ToString())));
+                    ResEntry.songInfo.FilePath = song.GetMp3();
+                    MusicPlayer.RePlay(ResEntry.songInfo.FilePath, name, artists);
+                    ResEntry.songInfo.DurationTime = song.DuartionTime;
+                    ResEntry.songInfo.AlbumCoverUrl = song.CoverUrl;
+                    ResEntry.songInfo.AlbumId = song.AlbumId;
+                    ResEntry.songInfo.LrcString = song.GetLrcString;
+                    
+                    Views.Pages.Player.playerPage.ClearLrc();
+                    Views.Pages.Player.playerPage.UpdateLrc(songLrc);
+
+                    Index = index;
+                    UpdateIndex();
+                }));
+            });
         }
 
         public void Play(int index)
