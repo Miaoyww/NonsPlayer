@@ -1,18 +1,6 @@
-﻿using Microsoft.Win32;
-using NcmApi;
-using NcmPlayer.CloudMusic;
-using NcmPlayer.Resources;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
+﻿using NcmPlayer.Resources;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Markup;
-using System.Windows.Media.Imaging;
 
 namespace NcmPlayer.Views.Pages.LoginPage
 {
@@ -22,7 +10,6 @@ namespace NcmPlayer.Views.Pages.LoginPage
         {
             InitializeComponent();
             DataContext = ResEntry.res;
-
         }
 
         private void btn_login_Click(object sender, RoutedEventArgs e)
@@ -64,7 +51,6 @@ namespace NcmPlayer.Views.Pages.LoginPage
                 {
                     PublicMethod.ShowDialog("请输入账号密码!");
                 }
-
             }
             else
             {

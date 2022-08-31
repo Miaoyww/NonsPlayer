@@ -1,12 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-
-namespace NcmPlayer.CloudMusic
+﻿namespace NcmPlayer.CloudMusic
 {
     /*
     public static class TcpServer
@@ -54,12 +46,10 @@ namespace NcmPlayer.CloudMusic
             PostInfo.InputLog("服务启动成功, 开放端口: ", port.ToString());
         }
 
-
         public static void ListenClientSocket()
         {
             while (true)
             {
-
                 Socket clientSocket = serverSocket.Accept();//接受客户端的连接
                 byte[] buffer = new byte[1024 * 1024];
                 int num;
@@ -98,7 +88,6 @@ namespace NcmPlayer.CloudMusic
                 catch (SocketException)
                 {
                 }
-
             }
         }
     }*/

@@ -10,7 +10,6 @@ namespace NcmPlayer.Resources
     {
         public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
-
         private string filePath = string.Empty; // 当前播放音乐的路径
         private bool isPlaying = false;
         private int volume;// 当前的音量
@@ -115,7 +114,7 @@ namespace NcmPlayer.Resources
                 {
                     image.StreamSource = stream;
                 }
-                catch(Exception error)
+                catch (Exception error)
                 {
                     PublicMethod.ShowDialog(error.Message, "错误");
                 }
@@ -123,7 +122,7 @@ namespace NcmPlayer.Resources
                 ImageBrush brush = new();
                 brush.ImageSource = image;
                 CoverStream = stream;
-                CoverBrush =  brush;
+                CoverBrush = brush;
                 return brush;
             }
             else
@@ -225,6 +224,7 @@ namespace NcmPlayer.Resources
                 return position.TotalSeconds;
             }
         }
+
         public TimeSpan Postion
         {
             set

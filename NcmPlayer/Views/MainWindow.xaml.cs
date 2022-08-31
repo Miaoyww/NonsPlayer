@@ -1,12 +1,8 @@
-﻿using Microsoft.Win32;
-using NcmPlayer.Resources;
+﻿using NcmPlayer.Resources;
 using System;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls.Interfaces;
 using Wpf.Ui.Mvvm.Contracts;
 
@@ -17,8 +13,6 @@ namespace NcmPlayer.Views
     /// </summary>
     public partial class MainWindow : INavigationWindow
     {
-
-
         private bool isUser = false;
         private double lastVolume;
         private Timer timer = new Timer();
@@ -150,6 +144,7 @@ namespace NcmPlayer.Views
         }
 
         #endregion Windows
+
         private void btn_Home_Click(object sender, RoutedEventArgs e)
         {
             PublicMethod.ChangePage(PublicMethod.PageHome);

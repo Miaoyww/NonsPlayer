@@ -3,20 +3,9 @@ using NcmPlayer.CloudMusic;
 using NcmPlayer.Resources;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace NcmPlayer.Views.Pages.LoginPage
 {
@@ -65,9 +54,7 @@ namespace NcmPlayer.Views.Pages.LoginPage
             }
             catch
             {
-
             }
-
         }
 
         public void RegetAccountDetail()
@@ -88,6 +75,5 @@ namespace NcmPlayer.Views.Pages.LoginPage
             Regediter.Regedit("Account", "AccountName", Login.acc.Name);
             Regediter.Regedit("Account", "AccountId", Login.acc.Id);
         }
-
     }
 }

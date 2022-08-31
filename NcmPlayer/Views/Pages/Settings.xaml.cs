@@ -1,9 +1,7 @@
-﻿using Microsoft.Win32;
-using NcmPlayer.Resources;
+﻿using NcmPlayer.Resources;
 using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Appearance;
-using Wpf.Ui.Controls;
 
 namespace NcmPlayer.Views.Pages
 {
@@ -30,7 +28,7 @@ namespace NcmPlayer.Views.Pages
             {
                 case true:
                     if (ResEntry.res.CurrentTheme == ThemeType.Light)
-                       break;
+                        break;
 
                     Theme.Apply(ThemeType.Light);
                     ResEntry.res.CurrentTheme = ThemeType.Light;
@@ -56,6 +54,7 @@ namespace NcmPlayer.Views.Pages
                 case ThemeType.Light:
                     tgs_theme.IsChecked = true;
                     break;
+
                 case ThemeType.Dark:
                     tgs_theme.IsChecked = false;
                     break;

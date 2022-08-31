@@ -1,11 +1,11 @@
 ﻿<Page x:Class="NcmPlayer.Views.Pages.LoginPage.Loggedin"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:local="clr-namespace:NcmPlayer.Views.Pages.LoginPage"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-      mc:Ignorable="d" 
+      mc:Ignorable="d"
       MinHeight="718"
       MinWidth="1339"
       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
@@ -16,9 +16,9 @@
 
     <Grid>
         <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Width="770" Height="349">
-            <Border x:Name="Face" Width="150" Height="150" CornerRadius="20,20,20,20" BorderThickness="2,2,2,2" BorderBrush="White" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,30,0,0"/>
+            <Border x:Name="Face" Width="150" Height="150" CornerRadius="20,20,20,20" BorderThickness="2,2,2,2" BorderBrush="White" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,30,0,0" />
             <TextBlock x:Name="tblock_name"  FontSize="38" FontWeight="Bold" Text="Name" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,100" />
         </Grid>
-        <TextBlock Text="打开音乐库 发现你的世界" FontSize="34" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,100,0,0"/>
+        <TextBlock Text="打开音乐库 发现你的世界" FontSize="34" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,100,0,0" />
     </Grid>
 </Page>

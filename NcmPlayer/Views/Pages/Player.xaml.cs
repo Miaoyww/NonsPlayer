@@ -1,7 +1,6 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.CloudMusic;
 using NcmPlayer.Resources;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -92,7 +91,6 @@ namespace NcmPlayer.Views.Pages
             }
             catch
             {
-
             }
             MusicPlayer.Reload();
         }
@@ -182,41 +180,41 @@ namespace NcmPlayer.Views.Pages
 
         public void ChangeVisLrc()
         {
-                if (listview_lrc.Items.Count > 1)
+            if (listview_lrc.Items.Count > 1)
+            {
+                for (int index = 0; index < lrcVis.Count; index++)
                 {
-                    for (int index = 0; index < lrcVis.Count; index++)
-                    {
                     if (lrcVis.Count == 0)
                     {
                         break;
                     }
-                            if (ResEntry.songInfo.Postion >= lrcVis[index].ShowTime && index + 1 < lrcVis.Count - 1 && ResEntry.songInfo.Postion < lrcVis[index + 1].ShowTime)
+                    if (ResEntry.songInfo.Postion >= lrcVis[index].ShowTime && index + 1 < lrcVis.Count - 1 && ResEntry.songInfo.Postion < lrcVis[index + 1].ShowTime)
+                    {
+                        Label content = ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]);
+                        if (content.Content != "")
+                        {
+                            content.FontSize = 29;
+                        }
+                        var bc = new BrushConverter();
+                        ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#ffffff");
+                        if (!lrcControling)
+                        {
+                            currentlrc = index;
+                            listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc + 8]);
+                        }
+                        for (int i = 0; i <= lrcVis.Count; i++)
+                        {
+                            if (i != index)
                             {
-                                Label content = ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]);
-                                if (content.Content != "")
+                                if (listview_lrc.Items.Count - 8 >= i)
                                 {
-                                    content.FontSize = 29;
-                                }
-                                var bc = new BrushConverter();
-                                ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#ffffff");
-                                if (!lrcControling)
-                                {
-                                    currentlrc = index;
-                                    listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc + 8]);
-                                }
-                                for (int i = 0; i <= lrcVis.Count; i++)
-                                {
-                                    if (i != index)
-                                    {
-                                        if (listview_lrc.Items.Count - 8 >= i)
-                                        {
-                                            ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).FontSize = 25;
-                                            ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#FF9C9C9C");
-                                        }
-                                    }
+                                    ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).FontSize = 25;
+                                    ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#FF9C9C9C");
                                 }
                             }
+                        }
                     }
+                }
             }
         }
 
@@ -298,7 +296,7 @@ namespace NcmPlayer.Views.Pages
             }
             MusicPlayer.Position(positionTemp);
             slider_postion.DataContext = ResEntry.songInfo;
-            isUser=false;
+            isUser = false;
         }
 
         private void listview_lrc_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -334,7 +332,15 @@ namespace NcmPlayer.Views.Pages
                         }
                         catch (ArgumentOutOfRangeException)
                         {
-                            listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc]);
+                            try
+                            {
+                                listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc]);
+
+                            }
+                            catch (ArgumentOutOfRangeException)
+                            {
+
+                            }
                         }
                     }
                 }));

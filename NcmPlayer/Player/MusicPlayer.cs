@@ -34,9 +34,7 @@ namespace NcmPlayer
             }
             catch
             {
-
             }
-
         }
 
         private static void Player_MediaEnded(object sender, System.Windows.RoutedEventArgs e)
@@ -84,7 +82,6 @@ namespace NcmPlayer
                         player.Play();
                         ResEntry.songInfo.IsPlaying = true;
                         ResEntry.songInfo.DurationTime = player.NaturalDuration.TimeSpan;
-
                     }
                     else
                     {
@@ -96,7 +93,6 @@ namespace NcmPlayer
             }
             catch (InvalidOperationException)
             {
-
             }
         }
 

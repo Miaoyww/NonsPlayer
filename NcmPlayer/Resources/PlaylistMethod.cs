@@ -147,7 +147,7 @@ namespace NcmPlayer.Resources
                     ResEntry.songInfo.AlbumCoverUrl = song.CoverUrl;
                     ResEntry.songInfo.AlbumId = song.AlbumId;
                     ResEntry.songInfo.LrcString = song.GetLrcString;
-                    
+
                     Views.Pages.Player.playerPage.ClearLrc();
                     Views.Pages.Player.playerPage.UpdateLrc(songLrc);
 

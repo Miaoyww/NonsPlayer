@@ -11,7 +11,6 @@ namespace NcmPlayer
         public static void Load()
         {
             RegRegistered();
-
         }
 
         private static void RegRegistered()
@@ -89,11 +88,11 @@ namespace NcmPlayer
                 case "Dark":
                     ResEntry.res.CurrentTheme = ThemeType.Dark;
                     break;
+
                 default:
                     ResEntry.res.CurrentTheme = ThemeType.Dark;
                     break;
             }
-
         }
     }
 }

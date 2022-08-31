@@ -1,23 +1,11 @@
-﻿using NcmApi;
-using NcmPlayer.Resources;
+﻿using NcmPlayer.Resources;
 using NcmPlayer.Views.Pages.LoginPage;
-using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace NcmPlayer.Views.Pages
 {
@@ -34,6 +22,7 @@ namespace NcmPlayer.Views.Pages
         public int LastSignin = 0;
 
         public static Login acc;
+
         public Login()
         {
             InitializeComponent();
@@ -48,6 +37,7 @@ namespace NcmPlayer.Views.Pages
             LastSignin = int.Parse(RegGeter.RegGet("Account", "LastSignin").ToString() ?? "0");
             CheckLogin();
         }
+
         #region AES加密解密
 
         private static string AESEncrypt(string Data, string Key)
@@ -129,7 +119,9 @@ namespace NcmPlayer.Views.Pages
         #endregion AES加密解密
 
         #region 加密解密 Token
+
         private string machineCode = string.Empty;
+
         private string MachineCode
         {
             get
@@ -192,7 +184,8 @@ namespace NcmPlayer.Views.Pages
                 }
             }
         }
-        #endregion
+
+        #endregion 加密解密 Token
 
         public void CheckLogin()
         {

@@ -1,9 +1,6 @@
 ﻿using NcmPlayer.Resources;
-using Newtonsoft.Json.Linq;
-using System.Text;
 using System;
-using System.Xml.Linq;
-using System.IO;
+using System.Text;
 
 namespace NcmPlayer
 {

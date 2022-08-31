@@ -1,21 +1,9 @@
 ﻿using NcmPlayer.CloudMusic;
 using NcmPlayer.Resources;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using static NcmPlayer.Resources.Resources;
 
 namespace NcmPlayer.Views.Pages
 {
@@ -65,7 +53,7 @@ namespace NcmPlayer.Views.Pages
         private void UpdateInfo()
         {
             Playlist.Items.Clear();
-            for (int index = 0;index < ResEntry.wholePlaylist.Count; index ++)
+            for (int index = 0; index < ResEntry.wholePlaylist.Count; index++)
             {
                 Playlist.Items.Add(ResEntry.wholePlaylist.GetSongVis(index).View);
             }
@@ -75,6 +63,5 @@ namespace NcmPlayer.Views.Pages
         {
             ResEntry.wholePlaylist.Play(Playlist.SelectedIndex);
         }
-
     }
 }

@@ -3,7 +3,7 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:NcmPlayer="clr-namespace:NcmPlayer"
       mc:Ignorable="d"
       MinHeight="758"
@@ -29,15 +29,15 @@
             <StackPanel Margin="100,0,100,50" VerticalAlignment="Bottom" Height="173">
                 <Grid>
                     <StackPanel>
-                        <TextBlock x:Name="tblock_title" Text="{Binding Name}" Width="400" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="20" Foreground="#E4FFFFFF" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock x:Name="tblock_artists" Text="{Binding Artists}" Width="200" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" Foreground="#E4FFFFFF" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="tblock_title" Text="{Binding Name}" Width="400" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="20" Foreground="#E4FFFFFF" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="tblock_artists" Text="{Binding Artists}" Width="200" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" Foreground="#E4FFFFFF" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="18" Width="35" Height="35" BorderThickness="0,0,0,0" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Center" HorizontalAlignment="Right" Padding="0,0,0,0" IconForeground="#E4FFFFFF" />
                 </Grid>
                 <Separator Height="20" BorderThickness="0,0,0,0" />
                 <Grid Height="38">
                     <Label x:Name="label_currentTime" Content="{Binding PostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" Foreground="#E4FFFFFF" />
-                    <Slider x:Name="slider_postion" IsMoveToPointEnabled="False" Focusable="False" Value="{Binding PostionDouble}" Maximum="{Binding DurationTimeDouble}" Width="350" HorizontalAlignment="Center" VerticalAlignment="Center" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown"  Thumb.DragStarted="slider_postion_DragStarted" Thumb.DragCompleted="slider_postion_DragCompleted"/>
+                    <Slider x:Name="slider_postion" IsMoveToPointEnabled="False" Focusable="False" Value="{Binding PostionDouble}" Maximum="{Binding DurationTimeDouble}" Width="350" HorizontalAlignment="Center" VerticalAlignment="Center" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown"  Thumb.DragStarted="slider_postion_DragStarted" Thumb.DragCompleted="slider_postion_DragCompleted" />
                     <Label x:Name="label_wholeTime" Content="{Binding DurationTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" Foreground="#E4FFFFFF" />
                 </Grid>
                 <Separator Height="10" BorderThickness="0,0,0,0" />
@@ -51,9 +51,9 @@
             </StackPanel>
         </Grid>
         <Grid Margin="670,0,0,0">
-            <ListView x:Name="listview_lrc" BorderThickness="0" PreviewMouseDown="listview_lrc_PreviewMouseDown" PreviewMouseUp="listview_lrc_PreviewMouseUp" PreviewMouseWheel="listview_lrc_PreviewMouseWheel"/>
+            <ListView x:Name="listview_lrc" BorderThickness="0" PreviewMouseDown="listview_lrc_PreviewMouseDown" PreviewMouseUp="listview_lrc_PreviewMouseUp" PreviewMouseWheel="listview_lrc_PreviewMouseWheel" />
         </Grid>
-        <ui:Button x:Name="btn_playerHide" Width="60" Height="60" Icon="ArrowDown24" FontSize="20" BorderThickness="0" Click="btn_playerHide_Click" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="75,0,0,20" Background="Transparent" IconForeground="#E4FFFFFF"/>
-        <ui:TitleBar ShowMaximize="False"/>
+        <ui:Button x:Name="btn_playerHide" Width="60" Height="60" Icon="ArrowDown24" FontSize="20" BorderThickness="0" Click="btn_playerHide_Click" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="75,0,0,20" Background="Transparent" IconForeground="#E4FFFFFF" />
+        <ui:TitleBar ShowMaximize="False" />
     </Grid>
 </Page>

@@ -1,11 +1,6 @@
 ﻿using Microsoft.Win32;
-using NcmApi;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using Wpf.Ui.Appearance;
 
 namespace NcmPlayer.Resources
@@ -114,7 +109,5 @@ namespace NcmPlayer.Resources
         }
 
         #endregion Page, Player Size, PlaylistBar Settings
-
-        
     }
 }

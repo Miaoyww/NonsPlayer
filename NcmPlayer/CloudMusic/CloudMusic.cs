@@ -295,6 +295,7 @@ namespace NcmPlayer.CloudMusic
                 artists[index] = artistsJson[index]["name"].ToString();
             }
         }
+
         public Song(string in_id)
         {
             Id = in_id;
@@ -331,6 +332,7 @@ namespace NcmPlayer.CloudMusic
             // chuckIndex++;
             return songStream;
         }
+
         public string GetMp3()
         {
             string _songUrl = SongUrl;
@@ -356,6 +358,7 @@ namespace NcmPlayer.CloudMusic
             }
             return path;
         }
+
         private void getSongFileInfo()
         {
             JObject temp = (JObject)Api.Song.Url(new string[] { Id }, ResEntry.ncm)["data"][0];
@@ -373,11 +376,11 @@ namespace NcmPlayer.CloudMusic
                 int[] chuck;
                 if (songSize - currentChuckSize == difference)
                 {
-                    chuck = new int[] { lastChuckSize, songSize};
+                    chuck = new int[] { lastChuckSize, songSize };
                 }
-                else if(currentChuckSize < songSize)
+                else if (currentChuckSize < songSize)
                 {
-                    chuck = new int[] { lastChuckSize, currentChuckSize};
+                    chuck = new int[] { lastChuckSize, currentChuckSize };
                 }
                 else
                 {
@@ -387,6 +390,7 @@ namespace NcmPlayer.CloudMusic
                 sizeRange.Add(chuck);
             }
         }
+
         public string SongUrl
         {
             get
@@ -398,6 +402,7 @@ namespace NcmPlayer.CloudMusic
                 return songUrl;
             }
         }
+
         public string SongType
         {
             get
@@ -409,6 +414,7 @@ namespace NcmPlayer.CloudMusic
                 return songType;
             }
         }
+
         public Lrcs GetLrc
         {
             get
@@ -430,24 +436,31 @@ namespace NcmPlayer.CloudMusic
                 return lrc;
             }
         }
+
         public string GetLrcString
         {
             get => lrcString;
         }
+
         public string[] Artists
-        { 
-            get {
-                return artists; 
-            } 
+        {
+            get
+            {
+                return artists;
+            }
         }
+
         public string AlbumName
         { get { return albumName; } }
+
         public string AlbumId
         { get { return albumId; } }
+
         public TimeSpan DuartionTime
         {
             get => duartionTime;
         }
+
         public string DuartionTimeString
         {
             get => duartionTimeString;

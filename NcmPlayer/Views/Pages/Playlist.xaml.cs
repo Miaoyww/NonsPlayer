@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic.Devices;
-using NcmPlayer.CloudMusic;
+﻿using NcmPlayer.CloudMusic;
 using NcmPlayer.Resources;
 using System;
 using System.Collections.Generic;
@@ -29,6 +28,7 @@ namespace NcmPlayer.Views.Pages
         private bool storyboardLoaded = false;
         private bool mouseItemsMoving = false;
         private int clickCount = 0;
+
         #region 属性及初始化
 
         public Border[] songBorderList;
@@ -122,7 +122,7 @@ namespace NcmPlayer.Views.Pages
                     VerticalAlignment = VerticalAlignment.Center,
                     FontWeight = FontWeights.Bold,
                     FontSize = 20,
-                    Margin = new Thickness(20,0,0,0),
+                    Margin = new Thickness(20, 0, 0, 0),
                     Width = 330,
                     TextTrimming = TextTrimming.CharacterEllipsis
                 };
@@ -192,6 +192,7 @@ namespace NcmPlayer.Views.Pages
             }
             mouseItemsMoving = false;
         }
+
         private void Play(object pramparameter)
         {
             PublicMethod.PagePlaylistBar.Play(pramparameter.ToString());

@@ -14,18 +14,18 @@
 
     <Page.Resources>
         <Storyboard x:Key="MouseMoveOn">
-            <DoubleAnimation Storyboard.TargetProperty="Background.Opacity" Duration="0:0:0.15" From="0" To="1"/>
+            <DoubleAnimation Storyboard.TargetProperty="Background.Opacity" Duration="0:0:0.15" From="0" To="1" />
         </Storyboard>
         <Storyboard x:Key="MouseMoveOut">
-            <DoubleAnimation Storyboard.TargetProperty="Background.Opacity" Duration="0:0:0.25" From="1" To="0"/>
+            <DoubleAnimation Storyboard.TargetProperty="Background.Opacity" Duration="0:0:0.25" From="1" To="0" />
         </Storyboard>
     </Page.Resources>
     <Grid>
-        <Grid x:Name="MainContent" >
+        <Grid x:Name="MainContent">
             <ScrollViewer Margin="80,30,0,102" Focusable="False" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" PreviewMouseDoubleClick="Songs_PreviewMouseDoubleClick">
                 <StackPanel>
                     <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Height="280"  Width="1005">
-                        <Border x:Name="PlaylistCover" BorderBrush="#00000000" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#FFC8C3C3" CornerRadius="10,10,10,10" Margin="30,0,0,0" >
+                        <Border x:Name="PlaylistCover" BorderBrush="#00000000" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#FFC8C3C3" CornerRadius="10,10,10,10" Margin="30,0,0,0">
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="20" Color="#FFA7A7A7" Opacity="0.6" />
                             </Border.Effect>
@@ -43,7 +43,7 @@
                                 </StackPanel>
                             </StackPanel>
                             <Grid Height="65" Width="140" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,0,0,10">
-                                <ui:Button x:Name="PlayAll"  Content="播放" Icon="Play24" FontSize="18" BorderThickness="0" Padding="0,0,0,0" IconFilled="True" FontWeight="Bold" Width="120" Height="50" Click="PlayAll_Click"/>
+                                <ui:Button x:Name="PlayAll"  Content="播放" Icon="Play24" FontSize="18" BorderThickness="0" Padding="0,0,0,0" IconFilled="True" FontWeight="Bold" Width="120" Height="50" Click="PlayAll_Click" />
                             </Grid>
                         </Grid>
                     </Grid>

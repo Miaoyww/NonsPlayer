@@ -8,7 +8,6 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Common;
-using Wpf.Ui.Controls;
 
 namespace NcmPlayer.Resources
 {
@@ -40,7 +39,6 @@ namespace NcmPlayer.Resources
             window.PageFrame.Content = PageHome;
             window.ScreenFrame.Content = PagePlayer;
             window.PlayListBar.Content = PagePlaylistBar;
-
         }
 
         public static void ShowDialog(string content, string title)

@@ -1,10 +1,8 @@
-﻿using System;
-using System.Diagnostics;
+﻿using NcmPlayer.Resources;
+using System;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using NcmPlayer.Resources;
-using Wpf.Ui.Controls;
 
 namespace NcmPlayer.Views.Pages
 {

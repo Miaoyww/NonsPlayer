@@ -1,9 +1,9 @@
 ﻿using Microsoft.Win32;
-using System.Collections.Generic;
 
 namespace NcmPlayer.Resources
 {
-    public class Regediter{
+    public class Regediter
+    {
         public static void Regedit(string key, object value)
         {
             Registry.SetValue(AppConfig.RegPath, key, value);
@@ -27,5 +27,4 @@ namespace NcmPlayer.Resources
             return Registry.GetValue(AppConfig.RegPath + path, key, null);
         }
     }
-
 }

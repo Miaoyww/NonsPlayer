@@ -1,12 +1,14 @@
-﻿using System.Security.Cryptography;
-using System.Management;
+﻿using System.Management;
+using System.Security.Cryptography;
 using System.Text;
+
 namespace NcmApi.Security
 {
     // Copy from https://www.codeproject.com/Articles/28678/Generating-Unique-Key-Finger-Print-for-a-Computer
     public class FingerPrint
     {
         private static string fingerPrint = string.Empty;
+
         public static string Value()
         {
             if (string.IsNullOrEmpty(fingerPrint))
@@ -15,6 +17,7 @@ namespace NcmApi.Security
             }
             return fingerPrint;
         }
+
         private static string GetHash(string s)
         {
             MD5 sec = new MD5CryptoServiceProvider();
@@ -22,6 +25,7 @@ namespace NcmApi.Security
             byte[] bt = enc.GetBytes(s);
             return GetHexString(sec.ComputeHash(bt));
         }
+
         private static string GetHexString(byte[] bt)
         {
             string s = string.Empty;
@@ -44,7 +48,9 @@ namespace NcmApi.Security
             }
             return s;
         }
+
         #region Original Device ID Getting Code
+
         //Return a hardware identifier
         private static string identifier
         (string wmiClass, string wmiProperty, string wmiMustBeTrue)
@@ -73,6 +79,7 @@ namespace NcmApi.Security
             }
             return result;
         }
+
         //Return a hardware identifier
         private static string identifier(string wmiClass, string wmiProperty)
         {
@@ -82,6 +89,7 @@ namespace NcmApi.Security
             ManagementObjectCollection moc = mc.GetInstances();
             return result;
         }
+
         private static string cpuId()
         {
             //Uses first CPU identifier available in order of preference
@@ -103,6 +111,7 @@ namespace NcmApi.Security
             }
             return retVal;
         }
+
         //BIOS Identifier
         private static string biosId()
         {
@@ -113,6 +122,7 @@ namespace NcmApi.Security
             + identifier("Win32_BIOS", "ReleaseDate")
             + identifier("Win32_BIOS", "Version");
         }
+
         //Main physical hard drive ID
         private static string diskId()
         {
@@ -121,6 +131,7 @@ namespace NcmApi.Security
             + identifier("Win32_DiskDrive", "Signature")
             + identifier("Win32_DiskDrive", "TotalHeads");
         }
+
         //Motherboard ID
         private static string baseId()
         {
@@ -129,18 +140,21 @@ namespace NcmApi.Security
             + identifier("Win32_BaseBoard", "Name")
             + identifier("Win32_BaseBoard", "SerialNumber");
         }
+
         //Primary video controller ID
         private static string videoId()
         {
             return identifier("Win32_VideoController", "DriverVersion")
             + identifier("Win32_VideoController", "Name");
         }
+
         //First enabled network card ID
         private static string macId()
         {
             return identifier("Win32_NetworkAdapterConfiguration",
                 "MACAddress", "IPEnabled");
         }
-        #endregion
+
+        #endregion Original Device ID Getting Code
     }
 }

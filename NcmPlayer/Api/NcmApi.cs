@@ -1,14 +1,10 @@
 ﻿using NcmApi.Utils;
-using NcmPlayer;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Unicode;
 
 namespace NcmApi;
 
@@ -16,7 +12,7 @@ public class Ncm
 {
     private HttpClient _httpClient = new HttpClient();
     private string _token = string.Empty;
-    
+
     public bool isLoggedin
     {
         get
@@ -45,6 +41,7 @@ public class Ncm
     }
 
     #region 登录
+
     public void Login(string token)
     {
         _token = token;
@@ -53,7 +50,8 @@ public class Ncm
     public void Login(string email, string password)
     {
         JObject result = Api.Login.Email(email, password, this);
-        if ((int)result["code"] == 502) {
+        if ((int)result["code"] == 502)
+        {
             throw new LoginFailed("账号或密码错误");
         }
         else
@@ -75,7 +73,7 @@ public class Ncm
         }
     }
 
-    public void Login(int phone,int captcha)
+    public void Login(int phone, int captcha)
     {
         JObject result = Api.Login.PhoneVer(phone, captcha, this);
         if ((int)result["code"] == 502)
@@ -86,9 +84,10 @@ public class Ncm
         {
             _token = result["token"].ToString();
         }
-        
     }
-    #endregion
+
+    #endregion 登录
+
     public JObject Request(HttpMethod method, string url, HttpContent postData = null)
     {
         HttpRequestMessage msg = new(method, url);
@@ -131,7 +130,6 @@ public class Ncm
         result.Headers.Add("Cookie", "os=pc;appver=2.9.7");
         return result;
     }
-
 }
 
 public static class Api
@@ -223,7 +221,7 @@ public static class Api
             return ncm.Request(HttpMethod.Post, _URL, ncm.DefaultContent(data));
         }
 
-        public static JObject PhonePsw(int phone, string password, Ncm ncm, int countryCode=86)
+        public static JObject PhonePsw(int phone, string password, Ncm ncm, int countryCode = 86)
         {
             string _URL = "https://music.163.com/api/login/cellphone";
             string pswMD5 = ncm.MD5(password);
