@@ -116,43 +116,46 @@ namespace NcmPlayer.Resources
             {
                 MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    Song song = list[index].Song;
-                    string[] artist = song.Artists;
-                    string name = song.Name;
-                    string artists = string.Empty;
-                    Lrcs songLrc = song.GetLrc;
-                    for (int i = 0; i <= artist.Length - 1; i++)
+                    if (list.Count != 0)
                     {
-                        if (i != artist.Length - 1)
+                        Song song = list[index].Song;
+                        string[] artist = song.Artists;
+                        string name = song.Name;
+                        string artists = string.Empty;
+                        Lrcs songLrc = song.GetLrc;
+                        for (int i = 0; i <= artist.Length - 1; i++)
                         {
-                            artists += artist[i] + "/";
+                            if (i != artist.Length - 1)
+                            {
+                                artists += artist[i] + "/";
+                            }
+                            else
+                            {
+                                artists += artist[i];
+                            }
                         }
-                        else
+                        MemoryStream ms = new();
+                        Stream songCover = song.Cover;
+                        songCover.CopyTo(ms);
+                        string b64Cover = Convert.ToBase64String(ms.ToArray());
+                        if (!string.IsNullOrEmpty(b64Cover))
                         {
-                            artists += artist[i];
+                            Regediter.Regedit("Song", "SongCover", b64Cover);
                         }
-                    }
-                    MemoryStream ms = new();
-                    Stream songCover = song.Cover;
-                    songCover.CopyTo(ms);
-                    string b64Cover = Convert.ToBase64String(ms.ToArray());
-                    if (!string.IsNullOrEmpty(b64Cover))
-                    {
-                        Regediter.Regedit("Song", "SongCover", b64Cover);
-                    }
-                    ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String(RegGeter.RegGet("Song", "SongCover").ToString())));
-                    ResEntry.songInfo.FilePath = song.GetMp3();
-                    MusicPlayer.RePlay(ResEntry.songInfo.FilePath, name, artists);
-                    ResEntry.songInfo.DurationTime = song.DuartionTime;
-                    ResEntry.songInfo.AlbumCoverUrl = song.CoverUrl;
-                    ResEntry.songInfo.AlbumId = song.AlbumId;
-                    ResEntry.songInfo.LrcString = song.GetLrcString;
+                        ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String(RegGeter.RegGet("Song", "SongCover").ToString())));
+                        ResEntry.songInfo.FilePath = song.GetMp3();
+                        MusicPlayer.RePlay(ResEntry.songInfo.FilePath, name, artists);
+                        ResEntry.songInfo.DurationTime = song.DuartionTime;
+                        ResEntry.songInfo.AlbumCoverUrl = song.CoverUrl;
+                        ResEntry.songInfo.AlbumId = song.AlbumId;
+                        ResEntry.songInfo.LrcString = song.GetLrcString;
 
-                    Views.Pages.Player.playerPage.ClearLrc();
-                    Views.Pages.Player.playerPage.UpdateLrc(songLrc);
+                        Views.Pages.Player.playerPage.ClearLrc();
+                        Views.Pages.Player.playerPage.UpdateLrc(songLrc);
 
-                    Index = index;
-                    UpdateIndex();
+                        Index = index;
+                        UpdateIndex();
+                    }
                 }));
             });
         }

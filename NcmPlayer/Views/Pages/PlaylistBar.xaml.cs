@@ -61,7 +61,10 @@ namespace NcmPlayer.Views.Pages
 
         private void Playlist_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            ResEntry.wholePlaylist.Play(Playlist.SelectedIndex);
+            if (Playlist.SelectedIndex != -1)
+            {
+                ResEntry.wholePlaylist.Play(Playlist.SelectedIndex);
+            }
         }
     }
 }
