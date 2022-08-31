@@ -22,7 +22,7 @@ namespace NcmPlayer
 
             JObject basePath = new();
             basePath.Add("ServerPort", ResEntry.res.serverPort);
-            basePath.Add("CurrentVolume", "100");
+            basePath.Add("DailySignin", ResEntry.res.allowDailySignin);
             basePath.Add("Theme", "Light");
             properties = basePath.Properties();
             foreach (JProperty key in properties)
@@ -39,8 +39,10 @@ namespace NcmPlayer
 
             JObject songPath = new();
             songPath.Add("SongPostion", "");
+            songPath.Add("SongDurationTime", "");
             songPath.Add("SongName", "");
             songPath.Add("SongArtists", "");
+            songPath.Add("SongVolume", 50);
             songPath.Add("SongCover", "");
             songPath.Add("SongPath", "");
             songPath.Add("SongAlbumUrl", "");
@@ -63,6 +65,9 @@ namespace NcmPlayer
             accountPath.Add("TokenMD5", "");
             accountPath.Add("AccountName", "");
             accountPath.Add("AccountFace", "");
+            accountPath.Add("AccountFaceUrl", "");
+            accountPath.Add("AccountId", "");
+            accountPath.Add("LastSignin", "0");
             properties = accountPath.Properties();
             foreach (JProperty key in properties)
             {
@@ -74,8 +79,7 @@ namespace NcmPlayer
 
             #endregion 账号路径
 
-            ResEntry.res.serverPort = Registry.GetValue(AppConfig.RegPath, "ServerPort", ResEntry.res.serverPort).ToString();
-            ResEntry.songInfo.Volume = int.Parse(Registry.GetValue(AppConfig.RegPath, "CurrentVolume", "100").ToString());
+            ResEntry.res.serverPort = RegGeter.RegGet("ServerPort").ToString() ?? ResEntry.res.serverPort;
             switch (RegGeter.RegGet("Theme").ToString())
             {
                 case "Light":

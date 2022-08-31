@@ -1,13 +1,23 @@
-﻿using Microsoft.Win32;
+﻿using NcmApi;
 using NcmPlayer.Resources;
+using NcmPlayer.Views.Pages.LoginPage;
+using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Markup;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
 
 namespace NcmPlayer.Views.Pages
 {
@@ -16,17 +26,28 @@ namespace NcmPlayer.Views.Pages
     /// </summary>
     public partial class Login : Page
     {
-        public string tokenMD5 = string.Empty;
+        private string tokenMD5 = string.Empty;
+        public string Name = string.Empty;
+        public Stream FaceStream = new MemoryStream();
+        public string FaceUrl = string.Empty;
+        public string Id = string.Empty;
+        public int LastSignin = 0;
+
+        public static Login acc;
         public Login()
         {
             InitializeComponent();
+            acc = this;
             DataContext = ResEntry.res;
-
             tokenMD5 = RegGeter.RegGet("Account", "TokenMD5").ToString();
             DecryptAndLogin(RegGeter.RegGet("Account", "Token").ToString());
+
+            Name = RegGeter.RegGet("Account", "AccountName").ToString();
+            FaceUrl = RegGeter.RegGet("Account", "AccountFaceUrl").ToString();
+            Id = RegGeter.RegGet("Account", "AccountId").ToString();
+            LastSignin = int.Parse(RegGeter.RegGet("Account", "LastSignin").ToString() ?? "0");
             CheckLogin();
         }
-
         #region AES加密解密
 
         private static string AESEncrypt(string Data, string Key)
@@ -109,7 +130,8 @@ namespace NcmPlayer.Views.Pages
 
         #region 加密解密 Token
         private string machineCode = string.Empty;
-        private string MachineCode {
+        private string MachineCode
+        {
             get
             {
                 if (string.IsNullOrEmpty(machineCode))
@@ -171,65 +193,17 @@ namespace NcmPlayer.Views.Pages
             }
         }
         #endregion
-        public bool CheckLogin()
+
+        public void CheckLogin()
         {
             if (ResEntry.ncm.isLoggedin)
             {
-                grid_loggedin.Visibility = Visibility.Visible;
-                grid_login.Visibility = Visibility.Hidden;
-                return true;
+                frame.Content = new Loggedin();
             }
             else
             {
-                grid_loggedin.Visibility = Visibility.Hidden;
-                grid_login.Visibility = Visibility.Visible;
-                return false;
+                frame.Content = new UnLoggedin();
             }
-        }
-
-        private void btn_login_Click(object sender, RoutedEventArgs e)
-        {
-            #region real
-            if (!CheckLogin())
-            {
-                if (!string.IsNullOrEmpty(tbox_account.Text) || string.IsNullOrEmpty(tbox_password.Text))
-                {
-                    string email = tbox_account.Text;
-                    int phone;
-                    if (int.TryParse(tbox_account.Text, out phone))
-                    {
-                        try
-                        {
-                            ResEntry.ncm.Login(phone, tbox_password.Text);
-                            Encrypt(ResEntry.ncm.Token);
-                            CheckLogin();
-                        }
-                        catch (NcmApi.LoginFailed error)
-                        {
-                            PublicMethod.ShowDialog(error.ToString(), "错误");
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            ResEntry.ncm.Login(email, tbox_password.Password);
-                            Encrypt(ResEntry.ncm.Token);
-                            CheckLogin();
-                        }
-                        catch (NcmApi.LoginFailed error)
-                        {
-                            PublicMethod.ShowDialog(error.ToString(), "错误");
-                        }
-                    }
-                }
-                else
-                {
-                    PublicMethod.ShowDialog("请输入账号密码!");
-                }
-            }
-
-            #endregion real
         }
     }
 }

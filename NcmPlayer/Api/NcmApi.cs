@@ -107,7 +107,8 @@ public class Ncm
         }
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
         var task = _httpClient.SendAsync(msg);
-        return JObject.Parse(task.Result.Content.ReadAsStringAsync().Result);
+        JObject result = JObject.Parse(task.Result.Content.ReadAsStringAsync().Result);
+        return result;
     }
 
     public string MD5(string content)
@@ -244,8 +245,21 @@ public static class Api
     {
         public static JObject Detail(string id, Ncm ncm)
         {
-            string _URL = $"https://music.163.com/weapi/v1/user/detail/{id}";
+            string _URL = $"https://music.163.com/api/v1/user/detail/{id}";
             return ncm.Request(HttpMethod.Post, _URL);
+        }
+
+        public static JObject Account(Ncm ncm)
+        {
+            string _URL = "https://music.163.com/api/nuser/account/get";
+            return ncm.Request(HttpMethod.Post, _URL);
+        }
+
+        public static JObject DailyTask(string type, Ncm ncm)
+        {
+            string _URL = "https://music.163.com/api/point/dailyTask";
+            HttpContent data = new StringContent($"type={type}");
+            return ncm.Request(HttpMethod.Post, _URL, data);
         }
     }
 }

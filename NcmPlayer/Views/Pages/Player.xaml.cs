@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -48,7 +49,11 @@ namespace NcmPlayer.Views.Pages
 
         public static System.Timers.Timer timer = new System.Timers.Timer();
         private bool isUser = false;
+        private double positionTemp;
         public List<LrcVis> lrcVis = new List<LrcVis>();
+        private bool lrcControling = false;
+        private List<bool> mouseWheeling = new List<bool>();
+        private int currentlrc = 0;
 
         public Player()
         {
@@ -68,13 +73,17 @@ namespace NcmPlayer.Views.Pages
 
             try
             {
-                // ResEntry.songInfo.Postion = TimeSpan.Parse((string)RegGeter.RegGet("Song", "SongPostion"));
+                ResEntry.songInfo.DurationTime = TimeSpan.Parse((string)RegGeter.RegGet("Song", "SongDurationTime"));
+                ResEntry.songInfo.Postion = TimeSpan.Parse((string)RegGeter.RegGet("Song", "SongPostion"));
                 ResEntry.songInfo.Name = (string)RegGeter.RegGet("Song", "SongName");
                 ResEntry.songInfo.Artists = (string)RegGeter.RegGet("Song", "SongArtists");
                 ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongCover"))));
                 ResEntry.songInfo.FilePath = (string)RegGeter.RegGet("Song", "SongPath");
                 ResEntry.songInfo.AlbumCoverUrl = (string)RegGeter.RegGet("Song", "SongAlbumUrl");
-                UpdateLrc(new Lrcs(Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongLrc")))));
+                ResEntry.songInfo.Volume = (int)RegGeter.RegGet("Song", "SongVolume");
+                string lrcString = Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongLrc")));
+                ResEntry.songInfo.LrcString = lrcString;
+                UpdateLrc(new Lrcs(lrcString));
                 // MusicPlayer.Init(ResEntry.res.CPlayPath);
                 if (listview_lrc.Items.Count == 0)
                 {
@@ -142,26 +151,19 @@ namespace NcmPlayer.Views.Pages
 
         public void UpdateLrc(Lrcs lrcs)
         {
-            if (lrcs.Count <= 3)
-            {
-                int[] _ = new int[5];
-                foreach (int item in _)
-                {
-                    StackPanel vis = getPanel("");
-                    listview_lrc.Items.Add(vis);
-                }
-            }
             foreach (Lrc item in lrcs.GetLrcs)
             {
                 StackPanel vis = getPanel(item.GetLrc);
                 LrcVis lrv = new LrcVis();
+                vis.Tag = item.GetTime;
+                vis.PreviewMouseDown += SelectedLrc;
                 lrv.LrcContent = item.GetLrc;
                 lrv.ShowTime = item.GetTime;
                 lrv.Vis = vis;
                 lrcVis.Add(lrv);
                 listview_lrc.Items.Add(vis);
             }
-            if (Views.Pages.Player.playerPage.lrcVis.Count >= 8)
+            if (playerPage.lrcVis.Count >= 8)
             {
                 for (int i = 0; i <= 8; i++)
                 {
@@ -171,38 +173,50 @@ namespace NcmPlayer.Views.Pages
             }
         }
 
+        private void SelectedLrc(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            MusicPlayer.Position(
+                ((TimeSpan)((StackPanel)sender).Tag).TotalSeconds
+                );
+        }
+
         public void ChangeVisLrc()
         {
-            if (listview_lrc.Items.Count > 1)
-            {
-                for (int index = 0; index < lrcVis.Count; index++)
+                if (listview_lrc.Items.Count > 1)
                 {
-                    if (lrcVis.Count != 0)
+                    for (int index = 0; index < lrcVis.Count; index++)
                     {
-                        if (ResEntry.songInfo.Postion >= lrcVis[index].ShowTime && index + 1 < lrcVis.Count - 1 && ResEntry.songInfo.Postion < lrcVis[index + 1].ShowTime)
-                        {
-                            Label content = ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]);
-                            if (content.Content != "")
+                    if (lrcVis.Count == 0)
+                    {
+                        break;
+                    }
+                            if (ResEntry.songInfo.Postion >= lrcVis[index].ShowTime && index + 1 < lrcVis.Count - 1 && ResEntry.songInfo.Postion < lrcVis[index + 1].ShowTime)
                             {
-                                content.FontSize = 29;
-                            }
-                            var bc = new BrushConverter();
-                            ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#ffffff");
-                            listview_lrc.ScrollIntoView(listview_lrc.Items[index + 8]);
-                            for (int i = 0; i <= lrcVis.Count; i++)
-                            {
-                                if (i != index)
+                                Label content = ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]);
+                                if (content.Content != "")
                                 {
-                                    if (listview_lrc.Items.Count - 8 >= i)
+                                    content.FontSize = 29;
+                                }
+                                var bc = new BrushConverter();
+                                ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#ffffff");
+                                if (!lrcControling)
+                                {
+                                    currentlrc = index;
+                                    listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc + 8]);
+                                }
+                                for (int i = 0; i <= lrcVis.Count; i++)
+                                {
+                                    if (i != index)
                                     {
-                                        ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).FontSize = 25;
-                                        ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#FF9C9C9C");
+                                        if (listview_lrc.Items.Count - 8 >= i)
+                                        {
+                                            ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).FontSize = 25;
+                                            ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#FF9C9C9C");
+                                        }
                                     }
                                 }
                             }
-                        }
                     }
-                }
             }
         }
 
@@ -258,23 +272,75 @@ namespace NcmPlayer.Views.Pages
         {
             if (isUser)
             {
-                MusicPlayer.Position(slider_postion.Value);
+                positionTemp = slider_postion.Value;
             }
         }
 
         private void slider_postion_PreviewMouseDown(object sender, System.Windows.Input.MouseEventArgs e)
         {
+            // isUser = true;
+            var value = (e.GetPosition(slider_postion).X / slider_postion.ActualWidth) * (slider_postion.Maximum - slider_postion.Minimum);
+            MusicPlayer.Position(value);
+        }
+
+        private void slider_postion_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
+        {
+            slider_postion.Maximum = ResEntry.songInfo.DurationTimeDouble;
+            slider_postion.DataContext = null;
             isUser = true;
         }
 
-        private void slider_postion_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void slider_postion_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            isUser = false;
+            if (!ResEntry.songInfo.IsPlaying)
+            {
+                MusicPlayer.Play();
+            }
+            MusicPlayer.Position(positionTemp);
+            slider_postion.DataContext = ResEntry.songInfo;
+            isUser=false;
         }
 
-        private void Grid_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void listview_lrc_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            MainWindow.acc.DragMove();
+            lrcControling = true;
+        }
+
+        private void listview_lrc_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            lrcControling = false;
+        }
+
+        private void listview_lrc_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            Thread wheeling = new(_ =>
+            {
+                lrcControling = true;
+                mouseWheeling.Add(true);
+                Thread.Sleep(2000);
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    mouseWheeling.RemoveAt(0);
+                    if (mouseWheeling.Count > 0)
+                    {
+                        lrcControling = true;
+                    }
+                    else
+                    {
+                        lrcControling = false;
+                        try
+                        {
+                            listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc - 4]);
+                        }
+                        catch (ArgumentOutOfRangeException)
+                        {
+                            listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc]);
+                        }
+                    }
+                }));
+            });
+            wheeling.IsBackground = true;
+            wheeling.Start();
         }
     }
 }

@@ -69,26 +69,34 @@ namespace NcmPlayer
 
         public static void Play(bool re = false)
         {
-            if (re)
+            try
             {
-                ResEntry.songInfo.IsPlaying = true;
-                player.Position = TimeSpan.Zero;
-                player.Play();
-            }
-            else
-            {
-                if (!ResEntry.songInfo.IsPlaying)
+                if (re)
                 {
-                    player.Play();
                     ResEntry.songInfo.IsPlaying = true;
-                    ResEntry.songInfo.DurationTime = player.NaturalDuration.TimeSpan;
+                    player.Position = TimeSpan.Zero;
+                    player.Play();
                 }
                 else
                 {
-                    player.Pause();
-                    ResEntry.songInfo.IsPlaying = false;
-                    ResEntry.songInfo.DurationTime = player.NaturalDuration.TimeSpan;
+                    if (!ResEntry.songInfo.IsPlaying)
+                    {
+                        player.Play();
+                        ResEntry.songInfo.IsPlaying = true;
+                        ResEntry.songInfo.DurationTime = player.NaturalDuration.TimeSpan;
+
+                    }
+                    else
+                    {
+                        player.Pause();
+                        ResEntry.songInfo.IsPlaying = false;
+                        ResEntry.songInfo.DurationTime = player.NaturalDuration.TimeSpan;
+                    }
                 }
+            }
+            catch (InvalidOperationException)
+            {
+
             }
         }
 
@@ -105,6 +113,7 @@ namespace NcmPlayer
             if (ResEntry.songInfo.IsPlaying)
             {
                 player.Position = TimeSpan.FromSeconds(position);
+                ResEntry.songInfo.Postion = player.Position;
             }
         }
     }

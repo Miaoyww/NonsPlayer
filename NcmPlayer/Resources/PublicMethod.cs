@@ -1,10 +1,14 @@
 ﻿using NcmPlayer.Views;
 using NcmPlayer.Views.Pages;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using Wpf.Ui.Appearance;
+using Wpf.Ui.Common;
+using Wpf.Ui.Controls;
 
 namespace NcmPlayer.Resources
 {
@@ -58,6 +62,19 @@ namespace NcmPlayer.Resources
             MainWindow.acc.dialog.ButtonRightVisibility = Visibility.Hidden;
             MainWindow.acc.dialog.Background = null;
             MainWindow.acc.dialog.Show();
+        }
+
+        public static void SnackLog(string content, string title, int TimeOut = 1000, SymbolRegular icon = SymbolRegular.Info24)
+        {
+            if (!MainWindow.acc.snackLog.IsShown)
+            {
+                MainWindow.acc.snackLog.Timeout = TimeOut;
+                MainWindow.acc.snackLog.Visibility = Visibility.Visible;
+                MainWindow.acc.snackLog.Title = title;
+                MainWindow.acc.snackLog.Message = content;
+                MainWindow.acc.snackLog.Icon = icon;
+                MainWindow.acc.snackLog.Show();
+            }
         }
 
         public static void HideDialog()
@@ -128,6 +145,15 @@ namespace NcmPlayer.Resources
                 story.Begin(Playlistbarframe);
                 Playlistbarframe.Visibility = Visibility.Visible;
             }
+        }
+
+        public static Brush ConvertBrush(Stream stream)
+        {
+            BitmapImage image = new();
+            image.BeginInit();
+            image.StreamSource = stream;
+            image.EndInit();
+            return new ImageBrush(image);
         }
     }
 }

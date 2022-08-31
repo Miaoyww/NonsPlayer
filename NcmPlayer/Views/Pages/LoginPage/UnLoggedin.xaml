@@ -4,7 +4,8 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:NcmPlayer.Views.Pages"
-      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" x:Class="NcmPlayer.Views.Pages.Login"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" 
+        x:Class="NcmPlayer.Views.Pages.LoginPage.UnLoggedin"
       mc:Ignorable="d" 
       MinHeight="718"
       MinWidth="1339"
@@ -27,14 +28,6 @@
             <ui:TextBox x:Name="tbox_account" Icon="PersonAccounts24" Margin="200,0,200,100" PlaceholderText="账号"/>
             <ui:PasswordBox x:Name="tbox_password" Icon="Password24" PlaceholderText="密码" Margin="200,0,200,0" />
             <ui:Button x:Name="btn_login" Content="登录" Height="70" Width="400" HorizontalAlignment="Center" FontSize="26" FontWeight="Bold" Margin="0,300,0,0" Click="btn_login_Click"/>
-        </Grid>
-        <Grid x:Name="grid_loggedin" HorizontalAlignment="Center" VerticalAlignment="Center" Width="800" Height="600" Visibility="Hidden">
-            <Border x:Name="Face" Width="150" Height="150" CornerRadius="20,20,20,20" BorderThickness="2,2,2,2" BorderBrush="White" HorizontalAlignment="Left" Margin="200,0,0,0"/>
-            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center" Margin="400,0,0,0">
-                <TextBlock FontSize="34" FontWeight="Bold" Text="欢迎回来" />
-                <Separator BorderThickness="0" Height="20"/>
-                <TextBlock x:Name="tblock_name"  FontSize="22" FontWeight="Bold" Text="Name!" />
-            </StackPanel>
         </Grid>
     </Grid>
 </Page>

@@ -132,9 +132,14 @@ namespace NcmPlayer.Resources
                             artists += artist[i];
                         }
                     }
-                    MemoryStream stream = new();
-                    song.Cover.CopyTo(stream);
-                    Regediter.Regedit("Song", "SongCover", Convert.ToBase64String(stream.ToArray()));
+                    MemoryStream ms = new();
+                    Stream songCover = song.Cover;
+                    songCover.CopyTo(ms);
+                    string b64Cover = Convert.ToBase64String(ms.ToArray());
+                    if (!string.IsNullOrEmpty(b64Cover))
+                    {
+                        Regediter.Regedit("Song", "SongCover", b64Cover);
+                    }
                     ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String(RegGeter.RegGet("Song", "SongCover").ToString())));
                     ResEntry.songInfo.FilePath = song.GetMp3();
                     MusicPlayer.RePlay(ResEntry.songInfo.FilePath, name, artists);

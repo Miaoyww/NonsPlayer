@@ -48,15 +48,9 @@ namespace NcmPlayer.Views.Pages
             }
         }
 
-        private void RegEditer(string key, object value)
-        {
-            Registry.SetValue(AppConfig.RegPath, key, value);
-        }
-
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
             tblock_Version.Text = $"v{AppConfig.AppVersion}";
-            isUser = true;
             switch (ResEntry.res.CurrentTheme)
             {
                 case ThemeType.Light:
@@ -66,11 +60,26 @@ namespace NcmPlayer.Views.Pages
                     tgs_theme.IsChecked = false;
                     break;
             }
+            tgs_dailySignin.IsChecked = bool.Parse(RegGeter.RegGet("DailySignin").ToString());
+            isUser = true;
+
+            ResEntry.res.allowDailySignin = (bool)tgs_dailySignin.IsChecked;
         }
 
         private void tgs_theme_Click(object sender, RoutedEventArgs e)
         {
             OnChangeTheme((bool)tgs_theme.IsChecked);
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            PublicMethod.SnackLog("Test", "Test");
+        }
+
+        private void tgs_dailySignin_Click(object sender, RoutedEventArgs e)
+        {
+            ResEntry.res.allowDailySignin = (bool)tgs_dailySignin.IsChecked;
+            Regediter.Regedit("DailySignin", ResEntry.res.allowDailySignin);
         }
     }
 }

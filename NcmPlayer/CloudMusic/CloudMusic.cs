@@ -71,27 +71,33 @@ namespace NcmPlayer.CloudMusic
                 {
                     Playlist newone = new();
                     PublicMethod.ChangePage(newone);
-                    PlayList playList = new(id);
-                    string name = playList.Name;
-                    string creator = playList.Creator;
-                    string description = playList.Description;
-                    string createTime = playList.CreateTime.ToString();
-                    int songsCount = playList.SongsCount;
-                    newone.Name = name;
-                    newone.Creator = creator;
-                    newone.CreateTime = createTime;
-                    newone.Description = description;
-                    newone.SongsCount = songsCount.ToString();
                     ThreadPool.QueueUserWorkItem(_ =>
                     {
-                        newone.Dispatcher.BeginInvoke(new Action(() =>
+                        MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            Stream playlistCover = playList.Cover;
-                            newone.SetCover(playlistCover);
+                            PlayList playList = new(id);
+                            string name = playList.Name;
+                            string creator = playList.Creator;
+                            string description = playList.Description;
+                            string createTime = playList.CreateTime.ToString();
+                            int songsCount = playList.SongsCount;
+                            newone.Name = name;
+                            newone.Creator = creator;
+                            newone.CreateTime = createTime;
+                            newone.Description = description;
+                            newone.SongsCount = songsCount.ToString();
+                            ThreadPool.QueueUserWorkItem(_ =>
+                            {
+                                newone.Dispatcher.BeginInvoke(new Action(() =>
+                                {
+                                    Stream playlistCover = playList.Cover;
+                                    newone.SetCover(playlistCover);
+                                }));
+                            });
+                            Song[] songs = playList.InitArtWorkList();
+                            newone.UpdateSongsList(songs);
                         }));
                     });
-                    Song[] songs = playList.InitArtWorkList();
-                    newone.UpdateSongsList(songs);
                 }));
             });
         }
@@ -133,14 +139,7 @@ namespace NcmPlayer.CloudMusic
         {
             get
             {
-                if (cover == null)
-                {
-                    cover = HttpRequest.StreamHttpGet(coverUrl + IMGSIZE);
-                }
-                if (!cover.CanRead)
-                {
-                    cover = HttpRequest.StreamHttpGet(coverUrl + IMGSIZE);
-                }
+                cover = HttpRequest.StreamHttpGet(coverUrl + IMGSIZE);
                 return cover;
             }
             set
@@ -285,7 +284,7 @@ namespace NcmPlayer.CloudMusic
             Name = playlistSongTrack["name"].ToString();
             Id = playlistSongTrack["id"].ToString();
             duartionTime = TimeSpan.FromMilliseconds(int.Parse(playlistSongTrack["dt"].ToString()));
-            duartionTimeString = duartionTime.ToString(@"mm\:ss");
+            duartionTimeString = duartionTime.ToString(@"m\:ss");
             CoverUrl = playlistSongTrack["al"]["picUrl"].ToString();
             albumName = playlistSongTrack["al"]["name"].ToString();
             albumId = playlistSongTrack["al"]["id"].ToString();
@@ -317,7 +316,7 @@ namespace NcmPlayer.CloudMusic
             }
 
             duartionTime = TimeSpan.FromMilliseconds(int.Parse(songDetail["dt"].ToString()));
-            duartionTimeString = duartionTime.ToString(@"mm\:ss");
+            duartionTimeString = duartionTime.ToString(@"m\:ss");
             albumId = songDetail["al"]["id"].ToString();
             albumName = songDetail["al"]["name"].ToString();
             CoverUrl = songDetail["al"]["picUrl"].ToString();
@@ -516,7 +515,7 @@ namespace NcmPlayer.CloudMusic
             time = TimeSpan.FromMilliseconds(minMs + secMs + ms);
             try
             {
-                if (lrcString[0] == ' ')
+                if (lrcString[0].Equals(string.Empty) || lrcString[0].Equals(" "))
                 {
                     lrcString = lrcString.Remove(0);
                 }

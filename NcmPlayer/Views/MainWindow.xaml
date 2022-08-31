@@ -64,38 +64,35 @@
                             <ui:Button x:Name="btn_next" Icon="ArrowNext24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_next_Click" Cursor="Hand" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <Label x:Name="label_currentTime" Content="{Binding PostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" />
-                            <Slider x:Name="slider_postion" Value="{Binding PostionDouble}" Maximum="{Binding DurationTimeDouble}" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" PreviewMouseUp="slider_postion_PreviewMouseUp" HorizontalAlignment="Center" Width="362" VerticalAlignment="Center"/>
-                            <Label x:Name="label_wholeTime" Content="{Binding DurationTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" />
+                            <Label x:Name="label_currentTime" Focusable="False" Content="{Binding PostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" />
+                            <Slider x:Name="slider_postion" Focusable="False" Value="{Binding PostionDouble}" Maximum="{Binding DurationTimeDouble}" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" Thumb.DragStarted="slider_postion_DragStarted" Thumb.DragCompleted="slider_postion_DragCompleted" HorizontalAlignment="Center" Width="362" VerticalAlignment="Center"/>
+                            <Label x:Name="label_wholeTime" Focusable="False" Content="{Binding DurationTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" />
                         </StackPanel>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,30,0">
-                        <ui:Button x:Name="btn_volume" Background="Transparent" Icon="Speaker248" FontSize="26" Cursor="Hand" Click="btn_volume_Click" BorderThickness="0,0,0,0" />
+                        <ui:Button x:Name="btn_volume" Focusable="False" Background="Transparent" Icon="Speaker248" FontSize="26" Cursor="Hand" Click="btn_volume_Click" BorderThickness="0,0,0,0" />
                         <Separator Opacity="0" Width="5" />
-                        <Slider x:Name="slider_volume" Value="{Binding Volume}" HorizontalAlignment="Center" VerticalAlignment="Center" IsSelectionRangeEnabled="True" Maximum="100" ValueChanged="slider_volume_ValueChanged" />
+                        <Slider x:Name="slider_volume" Value="{Binding Volume}" Focusable="False" HorizontalAlignment="Center" VerticalAlignment="Center" IsSelectionRangeEnabled="True" Maximum="100" ValueChanged="slider_volume_ValueChanged" />
                         <Separator Opacity="0" Width="20" />
-                        <ui:Button x:Name="btn_showPlaylist" Background="Transparent" Icon="List24" FontSize="26" Cursor="Hand" BorderThickness="0,0,0,0" Click="btn_showPlaylist_Click" />
+                        <ui:Button x:Name="btn_showPlaylist" Focusable="False" Background="Transparent" Icon="List24" FontSize="26" Cursor="Hand" BorderThickness="0,0,0,0" Click="btn_showPlaylist_Click" />
                     </StackPanel>
                 </Grid>
             </Grid>
         </Border>
         <Grid x:Name="TitleBar" VerticalAlignment="Top">
             <ui:TitleBar ShowMaximize="False" Height="40" VerticalAlignment="Center" />
-            <Border x:Name="b_user" ContextMenu="{StaticResource UserMenu}" HorizontalAlignment="Right" VerticalAlignment="Center" Width="25" Height="25" Margin="0,0,100,0" BorderBrush="#FF5D5D5D" BorderThickness="2,2,2,2" CornerRadius="20,20,20,20" Cursor="Hand">
+            <Border x:Name="b_user" Focusable="False" ContextMenu="{StaticResource UserMenu}" HorizontalAlignment="Right" VerticalAlignment="Center" Width="30" Height="30" Margin="0,0,100,0" BorderBrush="#FF5D5D5D" BorderThickness="2,2,2,2" CornerRadius="20,20,20,20" Cursor="Hand">
                 <ui:SymbolIcon Symbol="Person24" FontSize="18" />
-                <Border.Background>
-                    <ImageBrush>
-                    </ImageBrush>
-                </Border.Background>
             </Border>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <ui:Button x:Name="btn_Home"  Width="68" Height="40" BorderThickness="0,0,0,0" Content="首页" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Home_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
-                <Separator BorderThickness="0" Width="5"/>
-                <ui:Button x:Name="btn_Explore"  Width="68" Height="40" BorderThickness="0,0,0,0" Content="发现" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Explore_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
+                <ui:Button x:Name="btn_Home" Focusable="False"  Width="68" Height="40" BorderThickness="0,0,0,0" Content="首页" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Home_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
+                <Separator BorderThickness="0"  Focusable="False" Width="5"/>
+                <ui:Button x:Name="btn_Explore" Focusable="False" Width="68" Height="40" BorderThickness="0,0,0,0" Content="发现" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Explore_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
             </StackPanel>
         </Grid>
         <Frame x:Name="PlayListBar" HorizontalAlignment="Right" Visibility="Hidden" Margin="0,40,0,103" Width="450"/>
         <Frame x:Name="ScreenFrame" Visibility="Hidden"/>
+        <ui:Snackbar x:Name="snackLog" Visibility="Hidden"/>
         <ui:Dialog x:Name="dialog" ButtonLeftName="明白了" ButtonRightName="关闭" ButtonLeftClick="dialog_btn_click" ButtonRightClick="dialog_btn_click" Visibility="Hidden"/>
     </Grid>
 </ui:UiWindow>

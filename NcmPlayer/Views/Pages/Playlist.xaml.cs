@@ -122,14 +122,18 @@ namespace NcmPlayer.Views.Pages
                     VerticalAlignment = VerticalAlignment.Center,
                     FontWeight = FontWeights.Bold,
                     FontSize = 20,
-                    Margin = new Thickness(20,0,0,0)
+                    Margin = new Thickness(20,0,0,0),
+                    Width = 330,
+                    TextTrimming = TextTrimming.CharacterEllipsis
                 };
                 TextBlock tblock_Artists = new()
                 {
                     Text = artists,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    FontSize = 16
+                    FontSize = 16,
+                    Width = 200,
+                    TextTrimming = TextTrimming.CharacterEllipsis
                 };
                 TextBlock tblock_Time = new()
                 {

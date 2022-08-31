@@ -111,7 +111,14 @@ namespace NcmPlayer.Resources
             {
                 BitmapImage image = new();
                 image.BeginInit();
-                image.StreamSource = stream;
+                try
+                {
+                    image.StreamSource = stream;
+                }
+                catch(Exception error)
+                {
+                    PublicMethod.ShowDialog(error.Message, "错误");
+                }
                 image.EndInit();
                 ImageBrush brush = new();
                 brush.ImageSource = image;

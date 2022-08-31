@@ -25,6 +25,7 @@ namespace NcmPlayer.Views
         public static string CurrentPage = string.Empty;
         public static MainWindow acc;
         private bool isUserPostion = false;
+        private double positionTemp;
 
         public MainWindow()
         {
@@ -38,7 +39,7 @@ namespace NcmPlayer.Views
             label_wholeTime.DataContext = ResEntry.songInfo;
             slider_postion.DataContext = ResEntry.songInfo;
             PublicMethod.Init(this);
-            timer.Interval = 100;
+            timer.Interval = 50;
             timer.Elapsed += Timer_Elapsed;
             timer.Start();
             isUser = true;
@@ -230,20 +231,35 @@ namespace NcmPlayer.Views
 
         private void slider_postion_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (isUserPostion)
+            if (isUser)
             {
-                MusicPlayer.Position((int)slider_postion.Value);
+                positionTemp = slider_postion.Value;
             }
         }
 
         private void slider_postion_PreviewMouseDown(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            isUserPostion = true;
+            // isUser = true;
+            var value = (e.GetPosition(slider_postion).X / slider_postion.ActualWidth) * (slider_postion.Maximum - slider_postion.Minimum);
+            MusicPlayer.Position(value);
         }
 
-        private void slider_postion_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void slider_postion_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            isUserPostion = false;
+            slider_postion.Maximum = ResEntry.songInfo.DurationTimeDouble;
+            slider_postion.DataContext = null;
+            isUser = true;
+        }
+
+        private void slider_postion_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+        {
+            if (!ResEntry.songInfo.IsPlaying)
+            {
+                MusicPlayer.Play();
+            }
+            MusicPlayer.Position(positionTemp);
+            slider_postion.DataContext = ResEntry.songInfo;
+            isUser = false;
         }
 
         private void btn_showPlaylist_Click(object sender, RoutedEventArgs e)

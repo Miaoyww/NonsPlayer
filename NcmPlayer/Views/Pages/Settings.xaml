@@ -39,19 +39,38 @@
                     <Separator BorderThickness="0" Height="20"/>
                 </StackPanel>
                 <StackPanel>
-                    <TextBlock Text="远程" FontSize="26" Background="Transparent" FontFamily="Bahnschrift SemiBold SemiCondensed" />
+                    <TextBlock Text="账号" FontSize="26" Background="Transparent" FontFamily="Bahnschrift SemiBold SemiCondensed" />
                     <Separator VerticalAlignment="Center"/>
                     <Separator Width="1048" Height="20" BorderThickness="0,0,0,0"/>
-                    <ui:CardControl Icon="Image24" FontSize="16"  BorderThickness="0,0,0,0">
+                    <ui:CardControl Icon="Calendar3Day24" FontSize="16"  BorderThickness="0,0,0,0">
                         <ui:CardControl.Header>
                             <StackPanel>
-                                <TextBlock Text="发送封面" Width="364" HorizontalAlignment="Left" FontSize="16"/>
-                                <Label Content="发送专辑封面" Width="364" HorizontalAlignment="Left" FontSize="14"/>
+                                <TextBlock Text="启用自动签到" Width="364" HorizontalAlignment="Left" FontSize="16"/>
+                                <Label Content="当播放器启动时将会自动判断时间并签到" Width="364" HorizontalAlignment="Left" FontSize="14"/>
                             </StackPanel>
                         </ui:CardControl.Header>
                         <ui:CardControl.Content>
                             <StackPanel Orientation="Horizontal">
-                                <ui:ToggleSwitch Width="41" IsChecked="True" Height="22" />
+                                <ui:ToggleSwitch x:Name="tgs_dailySignin" Width="41" IsChecked="True" Height="22" BorderThickness="0,0,0,0" Click="tgs_dailySignin_Click"/>
+                            </StackPanel>
+                        </ui:CardControl.Content>
+                    </ui:CardControl>
+                    <Separator BorderThickness="0" Height="20"/>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="测试功能" FontSize="26" Background="Transparent" FontFamily="Bahnschrift SemiBold SemiCondensed" />
+                    <Separator VerticalAlignment="Center"/>
+                    <Separator Width="1048" Height="20" BorderThickness="0,0,0,0"/>
+                    <ui:CardControl Icon="Info24" FontSize="16"  BorderThickness="0,0,0,0">
+                        <ui:CardControl.Header>
+                            <StackPanel>
+                                <TextBlock Text="测试功能" Width="364" HorizontalAlignment="Left" FontSize="16"/>
+                                <Label Content="测试功能" Width="364" HorizontalAlignment="Left" FontSize="14"/>
+                            </StackPanel>
+                        </ui:CardControl.Header>
+                        <ui:CardControl.Content>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:Button Width="80" Height="40" Content="Test" Click="Button_Click"/>
                             </StackPanel>
                         </ui:CardControl.Content>
                     </ui:CardControl>
