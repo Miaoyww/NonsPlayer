@@ -20,6 +20,7 @@ namespace NcmPlayer.Views.Pages.LoginPage
             DataContext = ResEntry.res;
             tblock_name.Text = Login.acc.Name;
 
+            ResEntry.res.allowDailySignin = bool.Parse(RegGeter.RegGet("DailySignin").ToString());
             if (string.IsNullOrEmpty(Login.acc.Id))
             {
                 RegetAccountDetail();
