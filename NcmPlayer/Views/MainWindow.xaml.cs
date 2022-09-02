@@ -58,6 +58,21 @@ namespace NcmPlayer.Views
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Play24;
                     }
                 }
+                if (string.IsNullOrEmpty(ResEntry.songInfo.Name))
+                {
+                    if (Title != "当前未播放音乐 -NcmPlayer")
+                    {
+                        Title = "当前未播放音乐 -NcmPlayer";
+                    }
+                }
+                else
+                {
+                    if (Title != $"{ResEntry.songInfo.Name} - {ResEntry.songInfo.Artists}")
+                    {
+                        Title = $"{ResEntry.songInfo.Name} - {ResEntry.songInfo.Artists}";
+                    }
+                }
+
                 switch (slider_volume.Value)
                 {
                     case <= 1:
@@ -260,6 +275,11 @@ namespace NcmPlayer.Views
         private void btn_showPlaylist_Click(object sender, RoutedEventArgs e)
         {
             PublicMethod.PlaylistBarControl();
+        }
+
+        private void btn_Lib_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

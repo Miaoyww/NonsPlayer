@@ -142,6 +142,13 @@ public static class Api
             HttpContent data = new StringContent($"id={id}&n=100000");
             return ncm.Request(HttpMethod.Post, _URL, ncm.DefaultContent(data));
         }
+
+        public static JObject Personalized(Ncm ncm, int limit = 30)
+        {
+            string _URL = $"https://music.163.com/api/personalized/playlist";
+            HttpContent data = new StringContent($"limit={limit}&total=true&n=1000");
+            return ncm.Request(HttpMethod.Post, _URL, data);
+        }
     }
 
     public static class Song

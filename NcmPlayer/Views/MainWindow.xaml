@@ -6,7 +6,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-    Title="Main"
+    Title="NcmPlayer"
     Width="1339"
     Height="758"
     MinHeight="758"
@@ -30,11 +30,9 @@
             <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Y" Duration="0:0:0.4" DecelerationRatio="1" From="0" To="750" />
         </Storyboard>
     </ui:UiWindow.Resources>
-    <Grid>
-        <Grid>
-            <Frame x:Name="PageFrame" Margin="0,40,0,0" />
-        </Grid>
-        <Border x:Name="PlayBar" VerticalAlignment="Bottom" Height="103" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9">
+    <Grid Focusable="False">
+        <Frame x:Name="PageFrame" Focusable="False" Margin="0,65,0,103"/>
+        <Border Focusable="False" x:Name="PlayBar" VerticalAlignment="Bottom" Height="103" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9">
             <Grid Margin="5,5,5,5">
                 <Grid>
                     <StackPanel Orientation="Horizontal" Width="370" HorizontalAlignment="Left" Margin="60,0,0,0">
@@ -79,20 +77,30 @@
                 </Grid>
             </Grid>
         </Border>
-        <Grid x:Name="TitleBar" VerticalAlignment="Top">
-            <ui:TitleBar ShowMaximize="False" Height="40" VerticalAlignment="Center" />
-            <Border x:Name="b_user" Focusable="False" ContextMenu="{StaticResource UserMenu}" HorizontalAlignment="Right" VerticalAlignment="Center" Width="30" Height="30" Margin="0,0,100,0" BorderBrush="#FF5D5D5D" BorderThickness="2,2,2,2" CornerRadius="20,20,20,20" Cursor="Hand">
-                <ui:SymbolIcon Symbol="Person24" FontSize="18" />
+        <Grid Focusable="False" x:Name="TitleBar" VerticalAlignment="Top" Height="65">
+            <Border>
+                <Border.Effect>
+                    <BlurEffect Radius="80" />
+                </Border.Effect>
             </Border>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <ui:Button x:Name="btn_Home" Focusable="False"  Width="68" Height="40" BorderThickness="0,0,0,0" Content="首页" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Home_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
-                <Separator BorderThickness="0"  Focusable="False" Width="5" />
-                <ui:Button x:Name="btn_Explore" Focusable="False" Width="68" Height="40" BorderThickness="0,0,0,0" Content="发现" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Explore_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
-            </StackPanel>
+            <ui:TitleBar ShowMaximize="False" Height="32" Title="NcmPlayer" Padding="16,0,0,0" FontWeight="Bold" />
+            <Grid VerticalAlignment="Bottom">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,150,0">
+                    <ui:TextBox Icon="Search24" Width="180" Margin="0,0,20,0" BorderThickness="1,1,1,0" />
+                    <Border x:Name="b_user" Focusable="False" ContextMenu="{StaticResource UserMenu}"  Width="30" Height="30" BorderBrush="#FF5D5D5D" BorderThickness="2,2,2,2" CornerRadius="20,20,20,20" Cursor="Hand" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                        <ui:SymbolIcon Symbol="Person24" FontSize="18" />
+                    </Border>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Height="33">
+                    <ui:Button x:Name="btn_Home" Focusable="False"  Width="68" Height="25" BorderThickness="0,0,0,0" Content="首页" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Home_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
+                    <ui:Button x:Name="btn_Explore" Focusable="False" Width="68" Height="25" BorderThickness="0,0,0,0" Content="发现" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Explore_Click" Background="Transparent" FontSize="18" Padding="0,0,0,0" Cursor="Hand" FontWeight="Bold" />
+                    <ui:Button x:Name="btn_Lib" Focusable="False" Width="68" Height="25" BorderThickness="0,0,0,0" Content="我的" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Lib_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" />
+                </StackPanel>
+            </Grid>
         </Grid>
-        <Frame x:Name="PlayListBar" HorizontalAlignment="Right" Visibility="Hidden" Margin="0,40,0,103" Width="450" />
-        <Frame x:Name="ScreenFrame" Visibility="Hidden" />
-        <ui:Snackbar x:Name="snackLog" Visibility="Hidden" />
-        <ui:Dialog x:Name="dialog" ButtonLeftName="明白了" ButtonRightName="关闭" ButtonLeftClick="dialog_btn_click" ButtonRightClick="dialog_btn_click" Visibility="Hidden" />
+        <Frame x:Name="PlayListBar" Focusable="False" HorizontalAlignment="Right" Visibility="Hidden" Margin="0,40,0,103" Width="450" />
+        <Frame x:Name="ScreenFrame" Focusable="False" Visibility="Hidden" />
+        <ui:Snackbar x:Name="snackLog" Focusable="False" Visibility="Hidden" />
+        <ui:Dialog x:Name="dialog" Focusable="False" ButtonLeftName="明白了" ButtonRightName="关闭" ButtonLeftClick="dialog_btn_click" ButtonRightClick="dialog_btn_click" Visibility="Hidden" />
     </Grid>
 </ui:UiWindow>

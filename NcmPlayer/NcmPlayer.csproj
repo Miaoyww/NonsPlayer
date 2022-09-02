@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Assets\109951165024400763.jpg" />
     <None Remove="Assets\BackGround.png" />
     <None Remove="Assets\NetaseCloudMusic.png" />
   </ItemGroup>
@@ -19,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\109951165024400763.jpg" />
     <Resource Include="Assets\BackGround.png" />
     <Resource Include="Assets\NetaseCloudMusic.png" />
   </ItemGroup>

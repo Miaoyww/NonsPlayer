@@ -37,7 +37,10 @@ namespace NcmPlayer.Views.Pages
 
         public string Name
         {
-            set => PlaylistName.Text = value;
+            set {
+                PlaylistName.Text = value;
+                PlaylistName.ToolTip = value;
+            }
         }
 
         public string CreateTime

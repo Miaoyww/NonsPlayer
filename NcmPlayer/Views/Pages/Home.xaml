@@ -14,8 +14,16 @@
       Width="{Binding PageSize[0]}"
       Title="Home">
 
-    <Grid>
-        <ui:TextBox x:Name="tbox_id" HorizontalAlignment="Center" TextWrapping="Wrap" Text="6682087298" PlaceholderText="在这里输入音乐id" VerticalAlignment="Center" Width="251" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Cursor="IBeam" />
-        <Button Content="播放" Height="54" VerticalAlignment="Center" Width="275" Click="Button_Click" HorizontalAlignment="Center" Margin="0,200,0,0" />
+    <Grid Focusable="False">
+        <ScrollViewer Focusable="False" Margin="0,0,0,128">
+            <StackPanel Margin="100,0,100,0">
+                <Grid>
+                    <TextBlock Text="推荐歌单" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
+                    <WrapPanel x:Name="panel_nicePlaylists" Focusable="False" HorizontalAlignment="Left" Margin="0,70,0,0" Orientation="Horizontal">
+                        
+                    </WrapPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

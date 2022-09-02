@@ -72,6 +72,7 @@ namespace NcmPlayer.Views.Pages
 
             try
             {
+                ResEntry.songInfo.Volume = int.Parse(RegGeter.RegGet("Song", "SongVolume").ToString());
                 ResEntry.songInfo.DurationTime = TimeSpan.Parse((string)RegGeter.RegGet("Song", "SongDurationTime"));
                 ResEntry.songInfo.Postion = TimeSpan.Parse((string)RegGeter.RegGet("Song", "SongPostion"));
                 ResEntry.songInfo.Name = (string)RegGeter.RegGet("Song", "SongName");
@@ -79,7 +80,7 @@ namespace NcmPlayer.Views.Pages
                 ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongCover"))));
                 ResEntry.songInfo.FilePath = (string)RegGeter.RegGet("Song", "SongPath");
                 ResEntry.songInfo.AlbumCoverUrl = (string)RegGeter.RegGet("Song", "SongAlbumUrl");
-                ResEntry.songInfo.Volume = (int)RegGeter.RegGet("Song", "SongVolume");
+                
                 string lrcString = Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongLrc")));
                 ResEntry.songInfo.LrcString = lrcString;
                 UpdateLrc(new Lrcs(lrcString));

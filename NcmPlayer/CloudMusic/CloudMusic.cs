@@ -1,6 +1,5 @@
 ﻿using NcmApi;
 using NcmPlayer.Resources;
-using NcmPlayer.Views;
 using NcmPlayer.Views.Pages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -65,41 +64,39 @@ namespace NcmPlayer.CloudMusic
 
         public static void OpenPlayListDetail(string id)
         {
-            ThreadPool.QueueUserWorkItem(_ =>
+            Playlist newone = new();
+            PublicMethod.ChangePage(newone);
+            Thread getPlaylist = new(_ =>
             {
-                MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
+                PlayList playList = new(id);
+                string name = playList.Name;
+                string creator = playList.Creator;
+                string description = playList.Description;
+                string createTime = playList.CreateTime.ToString();
+                int songsCount = playList.SongsCount;
+                newone.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    Playlist newone = new();
-                    PublicMethod.ChangePage(newone);
-                    ThreadPool.QueueUserWorkItem(_ =>
-                    {
-                        MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            PlayList playList = new(id);
-                            string name = playList.Name;
-                            string creator = playList.Creator;
-                            string description = playList.Description;
-                            string createTime = playList.CreateTime.ToString();
-                            int songsCount = playList.SongsCount;
-                            newone.Name = name;
-                            newone.Creator = creator;
-                            newone.CreateTime = createTime;
-                            newone.Description = description;
-                            newone.SongsCount = songsCount.ToString();
-                            ThreadPool.QueueUserWorkItem(_ =>
-                            {
-                                newone.Dispatcher.BeginInvoke(new Action(() =>
-                                {
-                                    Stream playlistCover = playList.Cover;
-                                    newone.SetCover(playlistCover);
-                                }));
-                            });
-                            Song[] songs = playList.InitArtWorkList();
-                            newone.UpdateSongsList(songs);
-                        }));
-                    });
+                    newone.Name = name;
+                    newone.Creator = creator;
+                    newone.CreateTime = createTime;
+                    newone.Description = description;
+                    newone.SongsCount = songsCount.ToString();
                 }));
+                Thread getCover = new(_ =>
+                {
+                    newone.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        Stream playlistCover = playList.Cover;
+                        newone.SetCover(playlistCover);
+                        Song[] songs = playList.InitArtWorkList();
+                        newone.UpdateSongsList(songs);
+                    }));
+                });
+                getCover.IsBackground = true;
+                getCover.Start();
             });
+            getPlaylist.IsBackground = true;
+            getPlaylist.Start();
         }
     }
 
