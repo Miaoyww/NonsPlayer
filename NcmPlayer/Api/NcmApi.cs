@@ -1,6 +1,8 @@
 ﻿using NcmApi.Utils;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -91,9 +93,15 @@ public class Ncm
     public JObject Request(HttpMethod method, string url, HttpContent postData = null)
     {
         HttpRequestMessage msg = new(method, url);
+        List<string> cookie = new List<string>();
+        if (method == HttpMethod.Post)
+        {
+            cookie.Add("os=pc");
+            cookie.Add("appver=2.9.7");
+        }
         if (!_token.Equals(string.Empty))
         {
-            msg.Headers.Add("Cookie", $"MUSIC_U={_token}");
+            cookie.Add($"MUSIC_U={_token}");
         }
         if (postData != null)
         {
@@ -104,6 +112,12 @@ public class Ncm
         {
             msg.Headers.Referrer = new Uri("https://music.163.com");
         }
+        string cookies = string.Empty;
+        foreach (string item in cookie)
+        {
+            cookies += item + ";";
+        }
+        msg.Headers.Add("Cookie", cookies);
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
         var task = _httpClient.SendAsync(msg);
         JObject result = JObject.Parse(task.Result.Content.ReadAsStringAsync().Result);
@@ -264,6 +278,13 @@ public static class Api
         {
             string _URL = "https://music.163.com/api/point/dailyTask";
             HttpContent data = new StringContent($"type={type}");
+            return ncm.Request(HttpMethod.Post, _URL, data);
+        }
+
+        public static JObject Likelist(string id, Ncm ncm)
+        {
+            string _URL = "https://music.163.com/api/song/like/get";
+            HttpContent data = new StringContent($"uid={id}");
             return ncm.Request(HttpMethod.Post, _URL, data);
         }
     }

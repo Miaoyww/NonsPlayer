@@ -20,7 +20,6 @@
                 <Grid>
                     <TextBlock Text="推荐歌单" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
                     <WrapPanel x:Name="panel_nicePlaylists" Focusable="False" HorizontalAlignment="Left" Margin="0,70,0,0" Orientation="Horizontal">
-                        
                     </WrapPanel>
                 </Grid>
             </StackPanel>

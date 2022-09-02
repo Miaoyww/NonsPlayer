@@ -67,6 +67,7 @@ namespace NcmPlayer
             accountPath.Add("AccountFaceUrl", "");
             accountPath.Add("AccountId", "");
             accountPath.Add("LastSignin", "0");
+            accountPath.Add("Likelist", "");
             properties = accountPath.Properties();
             foreach (JProperty key in properties)
             {

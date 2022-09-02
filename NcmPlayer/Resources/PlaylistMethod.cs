@@ -1,8 +1,12 @@
-﻿using NcmPlayer.CloudMusic;
+﻿using NcmApi;
+using NcmPlayer.CloudMusic;
 using NcmPlayer.Views;
+using NcmPlayer.Views.Pages;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -146,10 +150,11 @@ namespace NcmPlayer.Resources
                         ResEntry.songInfo.FilePath = song.GetMp3();
                         MusicPlayer.RePlay(ResEntry.songInfo.FilePath, name, artists);
                         ResEntry.songInfo.DurationTime = song.DuartionTime;
+                        ResEntry.songInfo.Id = song.Id;
                         ResEntry.songInfo.AlbumCoverUrl = song.CoverUrl;
                         ResEntry.songInfo.AlbumId = song.AlbumId;
                         ResEntry.songInfo.LrcString = song.GetLrcString;
-
+                        ResEntry.songInfo.IsLiked = ResEntry.songInfo.LikeList.Exists(t => t == int.Parse(song.Id));
                         Views.Pages.Player.playerPage.ClearLrc();
                         Views.Pages.Player.playerPage.UpdateLrc(songLrc);
 
@@ -216,6 +221,36 @@ namespace NcmPlayer.Resources
                 else
                 {
                     Play(0);
+                }
+            }
+        }
+
+        public void Like()
+        {
+            if (Count != 0)
+            {
+                bool isliked = ResEntry.songInfo.LikeList.Exists(t => t == int.Parse(ResEntry.songInfo.Id));
+                JObject result = Api.Song.Like(
+                    ResEntry.songInfo.Id, 
+                    !isliked,
+                    ResEntry.ncm
+                    );
+                if ((int)result["code"] == 200)
+                {
+                    JArray likeListJson = (JArray)Api.User.Likelist(Login.acc.Id, ResEntry.ncm)["ids"];
+                    string ids = string.Empty;
+                    Login.acc.likelist.Clear();
+                    foreach (int id in likeListJson)
+                    {
+                        Login.acc.likelist.Add(id);
+                    }
+                    Regediter.Regedit("Account", "Likelist", Convert.ToBase64String(Encoding.UTF8.GetBytes(ids)));
+                    ResEntry.songInfo.LikeList = Login.acc.likelist;
+                    ResEntry.songInfo.IsLiked = true;
+                }
+                else
+                {
+                    PublicMethod.SnackLog($"收藏失败: {result["msg"]}", "错误");
                 }
             }
         }

@@ -201,7 +201,14 @@ namespace NcmPlayer.Views.Pages
                         if (!lrcControling)
                         {
                             currentlrc = index;
-                            listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc + 8]);
+                            try
+                            {
+                                listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc + 8]);
+                            }
+                            catch
+                            {
+
+                            }
                         }
                         for (int i = 0; i <= lrcVis.Count; i++)
                         {

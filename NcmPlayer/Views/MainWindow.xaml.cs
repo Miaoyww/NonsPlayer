@@ -1,8 +1,10 @@
-﻿using NcmPlayer.Resources;
+﻿using NcmPlayer.CloudMusic;
+using NcmPlayer.Resources;
 using System;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Wpf.Ui.Controls.Interfaces;
 using Wpf.Ui.Mvvm.Contracts;
 
@@ -44,6 +46,23 @@ namespace NcmPlayer.Views
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 // ui更新
+                if (ResEntry.songInfo.IsLiked)
+                {
+                    if (!btn_like.IconFilled)
+                    {
+                        btn_like.IconForeground = new SolidColorBrush(Color.FromArgb(200, 200, 0, 0));
+                        btn_like.IconFilled = true;
+                    }
+                }
+                else
+                {
+                    if (btn_like.IconFilled)
+                    {
+                        btn_like.IconForeground = new SolidColorBrush(Color.FromArgb(200, 10, 10, 10));
+                        btn_like.IconFilled = false;
+                    }
+                }
+
                 if (ResEntry.songInfo.IsPlaying)
                 {
                     if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Pause24)
@@ -58,6 +77,7 @@ namespace NcmPlayer.Views
                         btn_play.Icon = Wpf.Ui.Common.SymbolRegular.Play24;
                     }
                 }
+
                 if (string.IsNullOrEmpty(ResEntry.songInfo.Name))
                 {
                     if (Title != "当前未播放音乐 -NcmPlayer")
@@ -191,6 +211,7 @@ namespace NcmPlayer.Views
 
         private void btn_like_Click(object sender, System.Windows.RoutedEventArgs e)
         {
+            ResEntry.wholePlaylist.Like();
         }
 
         private void btn_screener_Click(object sender, RoutedEventArgs e)
@@ -279,7 +300,14 @@ namespace NcmPlayer.Views
 
         private void btn_Lib_Click(object sender, RoutedEventArgs e)
         {
+        }
 
+        private void tbox_search_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                Tool.OpenPlayListDetail(((TextBox)sender).Text);
+            }
         }
     }
 }

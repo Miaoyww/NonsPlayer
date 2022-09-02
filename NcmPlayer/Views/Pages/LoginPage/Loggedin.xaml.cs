@@ -4,6 +4,7 @@ using NcmPlayer.Resources;
 using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -65,6 +66,14 @@ namespace NcmPlayer.Views.Pages.LoginPage
             Login.acc.Name = accountDetail["profile"]["nickname"].ToString();
             Login.acc.FaceUrl = accountDetail["profile"]["avatarUrl"].ToString();
             Login.acc.FaceStream = HttpRequest.StreamHttpGet(Login.acc.FaceUrl);
+            JArray likeListJson = (JArray)Api.User.Likelist(Login.acc.Id, ResEntry.ncm)["ids"];
+            string ids = string.Empty;
+            foreach (int id in likeListJson)
+            {
+                Login.acc.likelist.Add(id);
+                ids += id + ",";
+            }
+            ResEntry.songInfo.LikeList = Login.acc.likelist;
             MemoryStream ms = new();
             Login.acc.FaceStream.CopyTo(ms);
             Regediter.Regedit("Account", "AccountFace", Convert.ToBase64String(ms.ToArray()));
@@ -74,7 +83,8 @@ namespace NcmPlayer.Views.Pages.LoginPage
 
             Regediter.Regedit("Account", "AccountFaceUrl", Login.acc.FaceUrl);
             Regediter.Regedit("Account", "AccountName", Login.acc.Name);
-            Regediter.Regedit("Account", "AccountId", Login.acc.Id);
+            Regediter.Regedit("Account", "Likelist", Convert.ToBase64String(Encoding.UTF8.GetBytes(ids)));
+            
         }
     }
 }

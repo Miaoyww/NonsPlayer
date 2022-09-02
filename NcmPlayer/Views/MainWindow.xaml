@@ -51,7 +51,17 @@
                             <TextBlock x:Name="tblock_title" Text="{Binding Name}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="18" FontFamily="Bahnschrift SemiBold" Cursor="Hand" />
                             <TextBlock x:Name="tblock_artists" Text="{Binding Artists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Foreground="#E4868686" Cursor="Hand" />
                         </StackPanel>
-                        <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="20" Width="35" Height="35" BorderThickness="0,0,0,0" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Top" HorizontalAlignment="Right" Padding="0,0,0,0" Margin="0,15,0,0" Cursor="Hand" />
+                        <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="20" Width="35" Height="35" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Top" HorizontalAlignment="Right" Padding="0,0,0,0" Margin="0,15,0,0" Cursor="Hand" IconForeground="Black" BorderThickness="0,0,0,0" >
+                            <ui:Button.BorderBrush>
+                                <LinearGradientBrush EndPoint="0,3" MappingMode="Absolute">
+                                    <LinearGradientBrush.RelativeTransform>
+                                        <ScaleTransform ScaleY="-1"/>
+                                    </LinearGradientBrush.RelativeTransform>
+                                    <GradientStop Color="#29000000" Offset="0.33"/>
+                                    <GradientStop Color="Black" Offset="1"/>
+                                </LinearGradientBrush>
+                            </ui:Button.BorderBrush>
+                        </ui:Button>
                     </StackPanel>
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                         <StackPanel x:Name="PlayerController" Orientation="Horizontal" Width="180" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,5">
@@ -86,7 +96,7 @@
             <ui:TitleBar ShowMaximize="False" Height="32" Title="NcmPlayer" Padding="16,0,0,0" FontWeight="Bold" />
             <Grid VerticalAlignment="Bottom">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,150,0">
-                    <ui:TextBox Icon="Search24" Width="180" Margin="0,0,20,0" BorderThickness="1,1,1,0" />
+                    <ui:TextBox x:Name="tbox_search" Icon="Search24" Width="180" Margin="0,0,20,0" BorderThickness="1,1,1,0" PreviewKeyDown="tbox_search_PreviewKeyDown" />
                     <Border x:Name="b_user" Focusable="False" ContextMenu="{StaticResource UserMenu}"  Width="30" Height="30" BorderBrush="#FF5D5D5D" BorderThickness="2,2,2,2" CornerRadius="20,20,20,20" Cursor="Hand" HorizontalAlignment="Right" VerticalAlignment="Bottom">
                         <ui:SymbolIcon Symbol="Person24" FontSize="18" />
                     </Border>

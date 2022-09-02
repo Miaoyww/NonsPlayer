@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Windows.Media;
@@ -10,9 +11,11 @@ namespace NcmPlayer.Resources
     {
         public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
+        private List<int> likeList = new List<int>();
         private string filePath = string.Empty; // 当前播放音乐的路径
         private bool isPlaying = false;
         private int volume;// 当前的音量
+        private string id = string.Empty;
         private string? name = string.Empty;
         private string? artists = string.Empty; // 当前播放音乐的音乐家们, 以后可以使用JObject
         private string albumCoverUrl;
@@ -24,6 +27,23 @@ namespace NcmPlayer.Resources
         private string postionString = string.Empty; // 当前播放音乐的进度
         private TimeSpan durationTime;
         private string durationTimeString = string.Empty;
+        private bool isLiked = false;
+
+        public string Id {
+            get => id;
+            set => id = value;
+        }
+
+        public bool IsLiked
+        { get => isLiked;
+          set => isLiked = value;
+        }
+
+        public List<int> LikeList
+        {
+            get => likeList;
+            set => likeList = value;
+        }
 
         public string LrcString
         {

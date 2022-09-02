@@ -1,6 +1,7 @@
 ﻿using NcmPlayer.Resources;
 using NcmPlayer.Views.Pages.LoginPage;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -20,7 +21,7 @@ namespace NcmPlayer.Views.Pages
         public string FaceUrl = string.Empty;
         public string Id = string.Empty;
         public int LastSignin = 0;
-
+        public List<int> likelist = new List<int>();
         public static Login acc;
 
         public Login()
@@ -35,6 +36,15 @@ namespace NcmPlayer.Views.Pages
             FaceUrl = RegGeter.RegGet("Account", "AccountFaceUrl").ToString();
             Id = RegGeter.RegGet("Account", "AccountId").ToString();
             LastSignin = int.Parse(RegGeter.RegGet("Account", "LastSignin").ToString() ?? "0");
+            string[] ids = Encoding.UTF8.GetString(Convert.FromBase64String(RegGeter.RegGet("Account", "Likelist").ToString())).Split(',');
+            foreach (string id in ids)
+            {
+                if (!string.IsNullOrEmpty(id))
+                {
+                    likelist.Add(int.Parse(id));
+                }
+            }
+            ResEntry.songInfo.LikeList = likelist;
             CheckLogin();
         }
 
