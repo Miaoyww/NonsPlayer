@@ -49,7 +49,7 @@ namespace NcmPlayer.Views.Pages.Recommend
                 Song one = new(item, true);
                 Border parent = new()
                 {
-                    Height = 60,
+                    Height = 80,
                     Tag = one.Id,
                     CornerRadius = new CornerRadius(10, 10, 10, 10),
                     HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -88,11 +88,11 @@ namespace NcmPlayer.Views.Pages.Recommend
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(20, 0, 0, 0),
-                    Width = 50,
-                    Height = 50,
+                    Width = 60,
+                    Height = 60,
                     CornerRadius = new CornerRadius(5),
                     Effect = new DropShadowEffect() { Color = Color.FromArgb(60, 227, 227, 227), Opacity = 0.1 },
-                    Background = PublicMethod.ConvertBrush(one.Cover)
+                    Background = PublicMethod.ConvertBrush(one.GetCover(50, 50))
                 };
                 TextBlock tblock_Name = new()
                 {

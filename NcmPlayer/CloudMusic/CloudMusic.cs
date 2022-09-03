@@ -151,7 +151,7 @@ namespace NcmPlayer.CloudMusic
 
         public Stream GetCover(int x, int y)
         {
-            cover = HttpRequest.StreamHttpGet(coverUrl + "?param=50y50");
+            cover = HttpRequest.StreamHttpGet(coverUrl + $"?param={x}y{y}");
             return cover;
         }
 

@@ -89,8 +89,12 @@ namespace NcmPlayer.Views.Pages
 
         private void b_dailySong_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            Recommend.RecommendSongs recommendSongs = new();
-            PublicMethod.ChangePage(recommendSongs);
+            if (ResEntry.res.recommendSongs == null)
+            {
+                ResEntry.res.recommendSongs = new();
+            }
+            PublicMethod.ChangePage(ResEntry.res.recommendSongs);
+
         }
     }
 }

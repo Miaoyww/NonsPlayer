@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using NcmPlayer.Views.Pages.Recommend;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Wpf.Ui.Appearance;
@@ -17,10 +18,7 @@ namespace NcmPlayer.Resources
         public string playlistPath = string.Empty; // 预留, 储存播放列表, 何以储存有待考虑
         public bool allowDailySignin = false;
 
-        public static void RegEditer(string key, object value)
-        {
-            Registry.SetValue(AppConfig.RegPath, key, value);
-        }
+        public RecommendSongs recommendSongs;
 
         #region 播放列表
 
@@ -53,7 +51,7 @@ namespace NcmPlayer.Resources
                 if (!EqualityComparer<ThemeType>.Default.Equals(currentTheme, value))
                 {
                     currentTheme = value;
-                    RegEditer("Theme", value);
+                    Regediter.Regedit("Theme", value);
                     PropertyChanged(this, new PropertyChangedEventArgs("ScreenSize"));
                 }
             }

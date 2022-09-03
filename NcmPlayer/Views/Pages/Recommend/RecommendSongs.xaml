@@ -23,10 +23,10 @@
     </Page.Resources>
     <Grid>
         <ScrollViewer Focusable="False">
-            <StackPanel Margin="0,100,0,0">
+            <StackPanel Margin="0,20,0,0">
                 <TextBlock HorizontalAlignment="Center" TextWrapping="Wrap" Text="每日歌曲推荐" VerticalAlignment="Top" Margin="0,50,0,30" FontSize="40" FontFamily="SimHei" FontWeight="Bold"/>
                 <TextBlock HorizontalAlignment="Center" TextWrapping="Wrap" Text="根据你的音乐口味自动生成 每天6:00更新" VerticalAlignment="Top" Margin="0,0,0,30" FontSize="25" FontWeight="Bold" FontFamily="SourceHanSansSC" Opacity="0.5"/>
-                <StackPanel x:Name="SongList" Margin="80,80,30,92">
+                <StackPanel x:Name="SongList" Margin="130,50,130,92">
                     
                 </StackPanel>
             </StackPanel>
