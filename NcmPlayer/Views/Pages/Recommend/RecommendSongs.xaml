@@ -1,0 +1,37 @@
+﻿<Page x:Class="NcmPlayer.Views.Pages.Recommend.RecommendSongs"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:NcmPlayer.Views.Pages.Recommend"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      Style="{StaticResource UiPage}"
+      MinHeight="718"
+      MinWidth="1339"
+      d:DesignHeight="718" d:DesignWidth="1339"
+      Height="{Binding PageSize[1]}"
+      Width="{Binding PageSize[0]}"
+      Title="RecommendSongs">
+    <Page.Resources>
+        <Storyboard x:Key="MouseMoveOn">
+            <DoubleAnimation Storyboard.TargetProperty="Background.Opacity" Duration="0:0:0.15" From="0" To="1" />
+        </Storyboard>
+        <Storyboard x:Key="MouseMoveOut">
+            <DoubleAnimation Storyboard.TargetProperty="Background.Opacity" Duration="0:0:0.25" From="1" To="0" />
+        </Storyboard>
+    </Page.Resources>
+    <Grid>
+        <ScrollViewer Focusable="False">
+            <StackPanel Margin="0,100,0,0">
+                <TextBlock HorizontalAlignment="Center" TextWrapping="Wrap" Text="每日歌曲推荐" VerticalAlignment="Top" Margin="0,50,0,30" FontSize="40" FontFamily="SimHei" FontWeight="Bold"/>
+                <TextBlock HorizontalAlignment="Center" TextWrapping="Wrap" Text="根据你的音乐口味自动生成 每天6:00更新" VerticalAlignment="Top" Margin="0,0,0,30" FontSize="25" FontWeight="Bold" FontFamily="SourceHanSansSC" Opacity="0.5"/>
+                <StackPanel x:Name="SongList" Margin="80,80,30,92">
+                    
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+
+    </Grid>
+</Page>

@@ -149,6 +149,12 @@ namespace NcmPlayer.CloudMusic
             }
         }
 
+        public Stream GetCover(int x, int y)
+        {
+            cover = HttpRequest.StreamHttpGet(coverUrl + "?param=50y50");
+            return cover;
+        }
+
         public string CoverUrl
         {
             get
@@ -282,17 +288,35 @@ namespace NcmPlayer.CloudMusic
         private int chuckIndex = 0;
         private Lrcs lrc;
 
-        // 哈，注意了，这里的JObject是由Playlist.Tracks获得的
-        public Song(JObject playlistSongTrack)
+        public Song(JObject playlistSongTrack, bool recommend = false)
         {
             Name = playlistSongTrack["name"].ToString();
             Id = playlistSongTrack["id"].ToString();
+            JArray artistsJson;
+
+            /*
+            if (recommend)
+            {
+                duartionTime = TimeSpan.FromMilliseconds((int)playlistSongTrack["duration"]);
+                CoverUrl = playlistSongTrack["album"]["picUrl"].ToString();
+                albumName = playlistSongTrack["album"]["name"].ToString();
+                albumId = playlistSongTrack["album"]["id"].ToString();
+                artistsJson = (JArray)playlistSongTrack["artists"];
+            }
+            else
+            {
+                duartionTime = TimeSpan.FromMilliseconds(int.Parse(playlistSongTrack["dt"].ToString()));
+                CoverUrl = playlistSongTrack["al"]["picUrl"].ToString();
+                albumName = playlistSongTrack["al"]["name"].ToString();
+                albumId = playlistSongTrack["al"]["id"].ToString();
+                artistsJson = (JArray)playlistSongTrack["ar"];
+            }*/
             duartionTime = TimeSpan.FromMilliseconds(int.Parse(playlistSongTrack["dt"].ToString()));
-            duartionTimeString = duartionTime.ToString(@"m\:ss");
             CoverUrl = playlistSongTrack["al"]["picUrl"].ToString();
             albumName = playlistSongTrack["al"]["name"].ToString();
             albumId = playlistSongTrack["al"]["id"].ToString();
-            JArray artistsJson = (JArray)playlistSongTrack["ar"];
+            artistsJson = (JArray)playlistSongTrack["ar"];
+            duartionTimeString = duartionTime.ToString(@"m\:ss");
             artists = new string[artistsJson.Count];
             for (int index = 0; index < artists.Length; index++)
             {

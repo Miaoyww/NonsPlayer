@@ -19,11 +19,11 @@
             <StackPanel Margin="100,30,100,0">
                 <Grid>
                     <TextBlock Text="For you" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
-                    <Border HorizontalAlignment="Left" CornerRadius="15" Background="White" Width="500" Height="200" Margin="0,70,0,0">
+                    <Border x:Name="b_dailySong" HorizontalAlignment="Left" CornerRadius="15" Background="White" Width="500" Height="200" Margin="0,70,0,0" Cursor="Hand" PreviewMouseLeftButtonDown="b_dailySong_PreviewMouseLeftButtonDown">
                         <Border.Effect>
                             <DropShadowEffect Opacity="0.1" Color="Gray"/>
                         </Border.Effect>
-                        <TextBlock Margin="0,30,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Text="每日单曲推荐" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="每日单曲推荐" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
                     </Border>
                 </Grid>
                 <Grid Margin="0,70,0,80">
