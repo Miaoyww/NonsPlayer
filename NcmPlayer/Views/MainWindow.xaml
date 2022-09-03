@@ -31,14 +31,17 @@
         </Storyboard>
     </ui:UiWindow.Resources>
     <Grid Focusable="False">
-        <Frame x:Name="PageFrame" Focusable="False" Margin="0,65,0,103"/>
-        <Border Focusable="False" x:Name="PlayBar" VerticalAlignment="Bottom" Height="103" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9">
-            <Grid Margin="5,5,5,5">
+        <Grid>
+            <Frame x:Name="PageFrame" Focusable="False" Margin="0,65,0,78"/>
+        </Grid>
+        <Border Focusable="False" x:Name="PlayBar" VerticalAlignment="Bottom" Height="78" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9" Margin="0,680,0,0">
+            <Grid>
                 <Grid>
                     <StackPanel Orientation="Horizontal" Width="370" HorizontalAlignment="Left" Margin="60,0,0,0">
                         <Separator Height="4" Width="10" BorderThickness="0,0,0,0" />
                         <Button
                         x:Name="btn_albumPic"
+                            Focusable="False"
                         Width="60"
                         Height="60"
                         HorizontalAlignment="Center"
@@ -63,17 +66,17 @@
                             </ui:Button.BorderBrush>
                         </ui:Button>
                     </StackPanel>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <StackPanel x:Name="PlayerController" Orientation="Horizontal" Width="180" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,5">
-                            <ui:Button x:Name="btn_last" Icon="ArrowPrevious24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#00000000" BorderThickness="0,0,0,0" Click="btn_last_Click" Cursor="Hand" />
-                            <Separator Opacity="0" Width="15" />
-                            <ui:Button x:Name="btn_play" Icon="Play24" FontSize="30" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_play_Click" Cursor="Hand" />
-                            <Separator Opacity="0" Width="15" />
-                            <ui:Button x:Name="btn_next" Icon="ArrowNext24" FontSize="26" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_next_Click" Cursor="Hand" />
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,5">
+                        <StackPanel x:Name="PlayerController" Orientation="Horizontal" Width="135" HorizontalAlignment="Center">
+                            <ui:Button x:Name="btn_last" Icon="ArrowPrevious24" FontSize="25" Width="35" Height="35" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#00000000" BorderThickness="0,0,0,0" Click="btn_last_Click" Cursor="Hand" Padding="0,0,0,0" />
+                            <Separator Opacity="0" Width="15" Height="35" />
+                            <ui:Button x:Name="btn_play" Icon="Play24" FontSize="25" Width="35" Height="35" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_play_Click" Cursor="Hand" Padding="0,0,0,0" />
+                            <Separator Opacity="0" Width="15" Height="35" />
+                            <ui:Button x:Name="btn_next" Icon="ArrowNext24" FontSize="25" Width="35" Height="35" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Click="btn_next_Click" Cursor="Hand" Padding="0,0,0,0" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Label x:Name="label_currentTime" Focusable="False" Content="{Binding PostionString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" />
-                            <Slider x:Name="slider_postion" Focusable="False" Value="{Binding PostionDouble}" Maximum="{Binding DurationTimeDouble}" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" Thumb.DragStarted="slider_postion_DragStarted" Thumb.DragCompleted="slider_postion_DragCompleted" HorizontalAlignment="Center" Width="362" VerticalAlignment="Center" />
+                            <Slider x:Name="slider_postion" Focusable="False" Value="{Binding PostionDouble}" Maximum="{Binding DurationTimeDouble}" ValueChanged="slider_postion_ValueChanged" PreviewMouseDown="slider_postion_PreviewMouseDown" Thumb.DragStarted="slider_postion_DragStarted" Thumb.DragCompleted="slider_postion_DragCompleted" Width="296" />
                             <Label x:Name="label_wholeTime" Focusable="False" Content="{Binding DurationTimeString}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" />
                         </StackPanel>
                     </StackPanel>

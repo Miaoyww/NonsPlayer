@@ -22,7 +22,7 @@
     </Page.Resources>
     <Grid>
         <Grid x:Name="MainContent">
-            <ScrollViewer Margin="70,15,70,128" Focusable="False" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" PreviewMouseDoubleClick="Songs_PreviewMouseDoubleClick">
+            <ScrollViewer Margin="70,15,70,0" Focusable="False" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" PreviewMouseDoubleClick="Songs_PreviewMouseDoubleClick">
                 <StackPanel>
                     <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Height="280"  Width="1005">
                         <Border x:Name="PlaylistCover" BorderBrush="#00000000" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#FFC8C3C3" CornerRadius="10,10,10,10" Margin="30,0,0,0">

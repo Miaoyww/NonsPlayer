@@ -64,6 +64,7 @@ namespace NcmPlayer.CloudMusic
 
         public static void OpenPlayListDetail(string id)
         {
+            Stopwatch stopwatch = new();
             Playlist newone = new();
             PublicMethod.ChangePage(newone);
             Thread getPlaylist = new(_ =>
@@ -84,13 +85,16 @@ namespace NcmPlayer.CloudMusic
                 }));
                 Thread getCover = new(_ =>
                 {
+                    stopwatch.Start();
+                    Stream playlistCover = playList.Cover;
+                    Song[] songs = playList.InitArtWorkList();
                     newone.Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        Stream playlistCover = playList.Cover;
                         newone.SetCover(playlistCover);
-                        Song[] songs = playList.InitArtWorkList();
                         newone.UpdateSongsList(songs);
                     }));
+                    stopwatch.Stop();
+                    Debug.WriteLine($"获取封面以及初始化歌单耗时ms: {stopwatch.ElapsedMilliseconds}");
                 });
                 getCover.IsBackground = true;
                 getCover.Start();
@@ -189,12 +193,15 @@ namespace NcmPlayer.CloudMusic
             }
 
             CoverUrl = playlistDetail["coverImgUrl"].ToString();
+            stopwatch.Start();
             JArray jsonSongs = (JArray)playlistDetail["trackIds"];
             songTrackIds = new string[jsonSongs.Count];
             for (int index = 0; index < songTrackIds.Length; index++)
             {
                 songTrackIds[index] = jsonSongs[index]["id"].ToString();
             }
+            stopwatch.Stop();
+            Debug.WriteLine($"获取歌曲ids耗时{stopwatch.ElapsedMilliseconds}ms");
             string timestampTemp = playlistDetail["createTime"].ToString();
             createTime = Tool.TimestampToDateTime(timestampTemp.Remove(timestampTemp.Length - 3));
             creator = playlistDetail["creator"]["nickname"].ToString();

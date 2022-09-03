@@ -15,9 +15,18 @@
       Title="Home">
 
     <Grid Focusable="False">
-        <ScrollViewer Focusable="False" Margin="0,0,0,128">
-            <StackPanel Margin="100,0,100,0">
+        <ScrollViewer Focusable="False">
+            <StackPanel Margin="100,30,100,0">
                 <Grid>
+                    <TextBlock Text="For you" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
+                    <Border HorizontalAlignment="Left" CornerRadius="15" Background="White" Width="500" Height="200" Margin="0,70,0,0">
+                        <Border.Effect>
+                            <DropShadowEffect Opacity="0.1" Color="Gray"/>
+                        </Border.Effect>
+                        <TextBlock Margin="0,30,0,0" HorizontalAlignment="Center" VerticalAlignment="Top" Text="每日单曲推荐" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
+                    </Border>
+                </Grid>
+                <Grid Margin="0,70,0,80">
                     <TextBlock Text="推荐歌单" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
                     <WrapPanel x:Name="panel_nicePlaylists" Focusable="False" HorizontalAlignment="Left" Margin="0,70,0,0" Orientation="Horizontal">
                     </WrapPanel>

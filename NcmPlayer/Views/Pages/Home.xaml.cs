@@ -35,7 +35,7 @@ namespace NcmPlayer.Views.Pages
                 Tag = id,
                 Cursor = System.Windows.Input.Cursors.Hand,
                 CornerRadius = new CornerRadius(20),
-                Effect = new DropShadowEffect() { Color = Color.FromArgb(60, 227, 227, 227), Opacity = 0.4 },
+                Effect = new DropShadowEffect() { Color = Color.FromArgb(60, 227, 227, 227), Opacity = 0.1 },
                 Background = PublicMethod.ConvertBrush(cover)
             };
             borderCover.PreviewMouseLeftButtonDown += OpenNewPlaylist;

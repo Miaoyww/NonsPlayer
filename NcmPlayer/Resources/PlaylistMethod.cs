@@ -116,53 +116,57 @@ namespace NcmPlayer.Resources
 
         private void PlaySong(int index)
         {
-            ThreadPool.QueueUserWorkItem(_ =>
+            Thread playsong = new(_ =>
             {
-                MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
+                if (list.Count != 0)
                 {
-                    if (list.Count != 0)
+                    Song song = list[index].Song;
+                    string[] artist = song.Artists;
+                    string name = song.Name;
+                    string artists = string.Empty;
+                    Lrcs songLrc = song.GetLrc;
+                    for (int i = 0; i <= artist.Length - 1; i++)
                     {
-                        Song song = list[index].Song;
-                        string[] artist = song.Artists;
-                        string name = song.Name;
-                        string artists = string.Empty;
-                        Lrcs songLrc = song.GetLrc;
-                        for (int i = 0; i <= artist.Length - 1; i++)
+                        if (i != artist.Length - 1)
                         {
-                            if (i != artist.Length - 1)
-                            {
-                                artists += artist[i] + "/";
-                            }
-                            else
-                            {
-                                artists += artist[i];
-                            }
+                            artists += artist[i] + "/";
                         }
-                        MemoryStream ms = new();
-                        Stream songCover = song.Cover;
-                        songCover.CopyTo(ms);
-                        string b64Cover = Convert.ToBase64String(ms.ToArray());
-                        if (!string.IsNullOrEmpty(b64Cover))
+                        else
                         {
-                            Regediter.Regedit("Song", "SongCover", b64Cover);
+                            artists += artist[i];
                         }
-                        ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String(RegGeter.RegGet("Song", "SongCover").ToString())));
-                        ResEntry.songInfo.FilePath = song.GetMp3();
-                        MusicPlayer.RePlay(ResEntry.songInfo.FilePath, name, artists);
+                    }
+                    MemoryStream ms = new();
+                    Stream songCover = song.Cover;
+                    songCover.CopyTo(ms);
+                    string b64Cover = Convert.ToBase64String(ms.ToArray());
+                    if (!string.IsNullOrEmpty(b64Cover))
+                    {
+                        Regediter.Regedit("Song", "SongCover", b64Cover);
+                    }
+                    MemoryStream coverStream = new MemoryStream(Convert.FromBase64String(RegGeter.RegGet("Song", "SongCover").ToString()));
+                    string filepath = song.GetMp3();
+                    MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        ResEntry.songInfo.Cover(coverStream);
+                        ResEntry.songInfo.FilePath = filepath;
                         ResEntry.songInfo.DurationTime = song.DuartionTime;
                         ResEntry.songInfo.Id = song.Id;
                         ResEntry.songInfo.AlbumCoverUrl = song.CoverUrl;
                         ResEntry.songInfo.AlbumId = song.AlbumId;
                         ResEntry.songInfo.LrcString = song.GetLrcString;
                         ResEntry.songInfo.IsLiked = ResEntry.songInfo.LikeList.Exists(t => t == int.Parse(song.Id));
-                        Views.Pages.Player.playerPage.ClearLrc();
-                        Views.Pages.Player.playerPage.UpdateLrc(songLrc);
+                        MusicPlayer.RePlay(ResEntry.songInfo.FilePath, name, artists);
+                        Player.playerPage.ClearLrc();
+                        Player.playerPage.UpdateLrc(songLrc);
 
                         Index = index;
                         UpdateIndex();
-                    }
-                }));
+                    }));
+                }
             });
+            playsong.IsBackground = true;
+            playsong.Start();
         }
 
         public void Play(int index)
