@@ -4,10 +4,10 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       mc:Ignorable="d"
-      MinHeight="718"
+      MinHeight="657"
       MinWidth="1339"
       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-      d:DesignHeight="718" d:DesignWidth="1339"
+      d:DesignHeight="657" d:DesignWidth="1339"
       Height="{Binding PageSize[1]}"
       Width="{Binding PageSize[0]}"
       Title="Login">

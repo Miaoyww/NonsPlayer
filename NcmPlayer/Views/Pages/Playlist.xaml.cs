@@ -27,6 +27,7 @@ namespace NcmPlayer.Views.Pages
         private UIElement currentMoveOn;
         private bool storyboardLoaded = false;
         private bool mouseItemsMoving = false;
+        private bool mouseIsMoving = false;
         private int clickCount = 0;
 
         #region 属性及初始化
@@ -37,7 +38,8 @@ namespace NcmPlayer.Views.Pages
 
         public string Name
         {
-            set {
+            set
+            {
                 PlaylistName.Text = value;
                 PlaylistName.ToolTip = value;
             }
@@ -187,6 +189,7 @@ namespace NcmPlayer.Views.Pages
                 {
                     Storyboard storyboardEnd = (Storyboard)Resources["MouseMoveOut"];
                     storyboardEnd.Begin((Border)lastMoveOn);
+                    currentMoveOn = (Border)sender;
                 }
                 Storyboard storyboardStart = (Storyboard)Resources["MouseMoveOn"];
                 storyboardStart.Begin((Border)sender);
@@ -213,7 +216,7 @@ namespace NcmPlayer.Views.Pages
             }*/
         }
 
-        private void PlayAll_Click(object sender, RoutedEventArgs e)
+        private void PlayAll(object sender, MouseButtonEventArgs e)
         {
             PublicMethod.PagePlaylistBar.ClearSongs();
             PublicMethod.PagePlaylistBar.UpdateSongsList(songlist);
@@ -221,6 +224,14 @@ namespace NcmPlayer.Views.Pages
         }
 
         private void Page_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!mouseIsMoving)
+            {
+                mouseIsMoving = true;
+            }
+        }
+
+        private void PlaylistCover_PreviewMouseMove(object sender, MouseEventArgs e)
         {
         }
     }
