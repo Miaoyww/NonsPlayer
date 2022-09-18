@@ -50,21 +50,14 @@
                         Cursor="Hand"
                         Click="btn_screener_Click" />
                         <Separator Height="4" Width="10" BorderThickness="0,0,0,0" />
-                        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock x:Name="tblock_title" Text="{Binding Name}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="18" FontFamily="Bahnschrift SemiBold" Cursor="Hand" />
-                            <TextBlock x:Name="tblock_artists" Text="{Binding Artists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Foreground="#E4868686" Cursor="Hand" />
+                        <StackPanel VerticalAlignment="Center" Width="290">
+                            <StackPanel Orientation="Horizontal" Height="35" Width="290" HorizontalAlignment="Left">
+                                <TextBlock x:Name="tblock_title" Text="{Binding Name}" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" Width="255" TextWrapping="Wrap" FontFamily="Bahnschrift SemiBold" Cursor="Hand" />
+                                <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="20" Width="35" Height="35" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="0,0,0,0" Cursor="Hand" IconForeground="{Binding UnfollowColor}" BorderThickness="0,0,0,0" />
+
+                            </StackPanel>
+                            <TextBlock x:Name="tblock_artists" Text="{Binding Artists}" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Width="270" TextTrimming="WordEllipsis" Foreground="#E4868686" Cursor="Hand" />
                         </StackPanel>
-                        <ui:Button x:Name="btn_like" Icon="Heart24" FontSize="20" Width="35" Height="35" Background="Transparent" Click="btn_like_Click" VerticalAlignment="Top" HorizontalAlignment="Right" Padding="0,0,0,0" Margin="0,15,0,0" Cursor="Hand" IconForeground="Black" BorderThickness="0,0,0,0" >
-                            <ui:Button.BorderBrush>
-                                <LinearGradientBrush EndPoint="0,3" MappingMode="Absolute">
-                                    <LinearGradientBrush.RelativeTransform>
-                                        <ScaleTransform ScaleY="-1"/>
-                                    </LinearGradientBrush.RelativeTransform>
-                                    <GradientStop Color="#29000000" Offset="0.33"/>
-                                    <GradientStop Color="Black" Offset="1"/>
-                                </LinearGradientBrush>
-                            </ui:Button.BorderBrush>
-                        </ui:Button>
                     </StackPanel>
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,5">
                         <StackPanel x:Name="PlayerController" Orientation="Horizontal" Width="135" HorizontalAlignment="Center">
@@ -105,9 +98,9 @@
                     </Border>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Height="33">
-                    <ui:Button x:Name="btn_Home" Focusable="False"  Width="68" Height="25" BorderThickness="0,0,0,0" Content="首页" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Home_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" Foreground="#C6000000" />
-                    <ui:Button x:Name="btn_Explore" Focusable="False" Width="68" Height="25" BorderThickness="0,0,0,0" Content="发现" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Explore_Click" Background="Transparent" FontSize="18" Padding="0,0,0,0" Cursor="Hand" FontWeight="Bold" Foreground="#C6000000" />
-                    <ui:Button x:Name="btn_Lib" Focusable="False" Width="68" Height="25" BorderThickness="0,0,0,0" Content="我的" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Lib_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" Foreground="#C6000000" />
+                    <ui:Button x:Name="btn_Home" Focusable="False"  Width="68" Height="25" BorderThickness="0,0,0,0" Content="首页" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Home_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" Opacity="0.65"/>
+                    <ui:Button x:Name="btn_Explore" Focusable="False" Width="68" Height="25" BorderThickness="0,0,0,0" Content="发现" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Explore_Click" Background="Transparent" FontSize="18" Padding="0,0,0,0" Cursor="Hand" FontWeight="Bold" Opacity="0.65"/>
+                    <ui:Button x:Name="btn_Lib" Focusable="False" Width="68" Height="25" BorderThickness="0,0,0,0" Content="我的" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="btn_Lib_Click" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Cursor="Hand" Opacity="0.65"/>
                 </StackPanel>
             </Grid>
         </Grid>

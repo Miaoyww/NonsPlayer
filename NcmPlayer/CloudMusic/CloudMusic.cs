@@ -10,9 +10,12 @@ using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Windows.Controls;
 
 namespace NcmPlayer.CloudMusic
 {
+    // 这里储存着网易云音乐的每种obj类
+    #region 不常用、不常修改
     public static class HttpRequest
     {
         public static Stream StreamHttpGet(string url, int start = 0, int end = 0)
@@ -53,7 +56,6 @@ namespace NcmPlayer.CloudMusic
             return JObjectHttpGet(StreamHttpGet(url));
         }
     }
-
     public static class Tool
     {
         public static DateTime TimestampToDateTime(string timeStamp)
@@ -62,10 +64,14 @@ namespace NcmPlayer.CloudMusic
             return sTime.AddSeconds(double.Parse(timeStamp));
         }
 
+        public static List<Page> OpenedPlaylistDetail = new List<Page>();
         public static void OpenPlayListDetail(string id)
         {
             Stopwatch stopwatch = new();
-            Playlist newone = new();
+            Playlist newone = new()
+            {
+                Title = id
+            };
             PublicMethod.ChangePage(newone);
             Thread getPlaylist = new(_ =>
             {
@@ -103,7 +109,7 @@ namespace NcmPlayer.CloudMusic
             getPlaylist.Start();
         }
     }
-
+    #endregion
     public class CloudMusic
     {
         private string id = string.Empty;

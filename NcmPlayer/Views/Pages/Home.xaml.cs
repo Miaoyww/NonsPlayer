@@ -19,6 +19,8 @@ namespace NcmPlayer.Views.Pages
             InitializeComponent();
             DataContext = ResEntry.res;
             UpdateTopPlaylist();
+
+            b_dailySong.DataContext = ResEntry.res;
         }
 
         private StackPanel getStackPanel(string title, string id, Stream cover)

@@ -2,6 +2,7 @@
 using NcmPlayer.Views.Pages.Recommend;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Windows.Media;
 using Wpf.Ui.Appearance;
 
 namespace NcmPlayer.Resources
@@ -17,7 +18,17 @@ namespace NcmPlayer.Resources
         public string log = string.Empty;  // 运行日志, 以供诊断错误
         public string playlistPath = string.Empty; // 预留, 储存播放列表, 何以储存有待考虑
         public bool allowDailySignin = false;
+        private Brush unfollowColor = Brushes.Black;
 
+        public Brush UnfollowColor
+        {
+            get => unfollowColor;
+            set
+            {
+                unfollowColor = value;
+                PropertyChanged(this, new PropertyChangedEventArgs("UnfollowColor"));
+            }
+        }
         public RecommendSongs recommendSongs;
 
         #region 播放列表

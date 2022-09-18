@@ -30,8 +30,7 @@ namespace NcmPlayer.Views.Pages
                     if (ResEntry.res.CurrentTheme == ThemeType.Light)
                         break;
 
-                    Theme.Apply(ThemeType.Light);
-                    ResEntry.res.CurrentTheme = ThemeType.Light;
+                    PublicMethod.ChangeTheme(ThemeType.Light);
 
                     break;
 
@@ -39,8 +38,7 @@ namespace NcmPlayer.Views.Pages
                     if (ResEntry.res.CurrentTheme == ThemeType.Dark)
                         break;
 
-                    Theme.Apply(ThemeType.Dark);
-                    ResEntry.res.CurrentTheme = ThemeType.Dark;
+                    PublicMethod.ChangeTheme(ThemeType.Dark);
 
                     break;
             }

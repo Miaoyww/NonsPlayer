@@ -45,18 +45,16 @@
 
                 </Border>
                 <Grid Margin="30,0,0,10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="377" Width="250">
-                    <StackPanel Margin="0,0,0,25">
-                        <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto" Height="350">
+                    <StackPanel Margin="0,0,0,47">
+                        <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto" Height="330">
                             <TextBlock x:Name="PlaylistDescription" Text="加载中" TextWrapping="WrapWithOverflow" FontSize="18" />
                         </ScrollViewer>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
-                        <TextBlock x:Name="PlaylistSongsCount" Text="加载中" HorizontalAlignment="Left" VerticalAlignment="Bottom" FontSize="16" FontFamily="Humnst777 BlkCn BT" Foreground="#7F000000" />
-                        <Separator BorderThickness="0" Width="50" Height="0" />
-                        <TextBlock x:Name="PlaylistCreator" Text="创建人" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Foreground="#7F000000" />
-                        <Separator BorderThickness="0" Width="3" Height="0" />
-                        <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Foreground="#7F000000" />
-                    </StackPanel>
+                    <Grid Margin="0,330,0,0">
+                        <TextBlock x:Name="PlaylistSongsCount" Text="加载中" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6"/>
+                        <TextBlock x:Name="PlaylistCreator" Text="创建人" HorizontalAlignment="Left" VerticalAlignment="Bottom" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6"/>
+                        <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6"/>
+                    </Grid>
                 </Grid>
             </Grid>
             <ScrollViewer Margin="315,66,10,0" Focusable="False" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" PreviewMouseDoubleClick="Songs_PreviewMouseDoubleClick">

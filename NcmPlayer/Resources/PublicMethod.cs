@@ -31,11 +31,10 @@ namespace NcmPlayer.Resources
         public static void Init(MainWindow window)
         {
             MusicPlayer.InitPlayer();
-            Theme.Apply(ResEntry.res.CurrentTheme);
             Screenframe = window.ScreenFrame;
             Pageframe = window.PageFrame;
             Playlistbarframe = window.PlayListBar;
-
+            ChangeTheme(ResEntry.res.CurrentTheme);
             window.PageFrame.Content = PageHome;
             window.ScreenFrame.Content = PagePlayer;
             window.PlayListBar.Content = PagePlaylistBar;
@@ -82,6 +81,7 @@ namespace NcmPlayer.Resources
 
         public static void ChangePage(Page page)
         {
+            CurrentPage = ((Page)Pageframe.Content).Title;
             if (!CurrentPage.Equals(page.Title.ToString()))
             {
                 if (Screenframe.Visibility == Visibility.Visible)
@@ -152,6 +152,20 @@ namespace NcmPlayer.Resources
             image.StreamSource = stream;
             image.EndInit();
             return new ImageBrush(image);
+        }
+
+        public static void ChangeTheme(ThemeType theme)
+        {
+            Theme.Apply(theme);
+            ResEntry.res.CurrentTheme = theme;
+            BrushConverter converter = new();
+            if (theme == ThemeType.Dark)
+            {
+                ResEntry.res.UnfollowColor = (Brush)converter.ConvertFromString("#FFFFFF");
+            }else if (theme == ThemeType.Light)
+            {
+                ResEntry.res.UnfollowColor = (Brush)converter.ConvertFromString("#000000");
+            }
         }
     }
 }

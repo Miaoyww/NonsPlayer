@@ -27,6 +27,8 @@ namespace NcmPlayer.Views
         {
             InitializeComponent();
             acc = this;
+            btn_like.DataContext = ResEntry.res;
+
             btn_albumPic.DataContext = ResEntry.songInfo;
             tblock_artists.DataContext = ResEntry.songInfo;
             tblock_title.DataContext = ResEntry.songInfo;
