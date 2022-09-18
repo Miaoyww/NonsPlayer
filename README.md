@@ -42,8 +42,6 @@ Distributed under the terms of the [MIT license](https://github.com/Miaoywww/Net
 
 # 灵感来源
 
-Api 代码来自 [Binaryify/NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi)
-
 - [Spotify](https://www.spotify.com/)
 - [YesPlayMusic](https://github.com/qier222/YesPlayMusic)
 - [网易云音乐](https://music.163.com/)
