@@ -30,19 +30,18 @@
                     </Border.Effect>
                     <Border x:Name="b_play" Width="55" Height="55" Opacity="0.9">
                         <Grid>
-                            <Border Background="#7FE8E8E8" CornerRadius="10,10,10,10" >
+                            <Border Background="#7FE8E8E8" CornerRadius="10,10,10,10">
                                 <Border.Effect>
-                                    <BlurEffect Radius="200" KernelType="Gaussian" RenderingBias="Performance"/>
+                                    <BlurEffect Radius="200" KernelType="Gaussian" RenderingBias="Performance" />
                                 </Border.Effect>
                             </Border>
                             <ui:SymbolIcon Symbol="Play24" FontSize="50" Filled="True"  Cursor="Hand" Foreground="#E4FFFFFF" PreviewMouseLeftButtonDown="PlayAll" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
                                 <ui:SymbolIcon.Effect>
-                                    <DropShadowEffect ShadowDepth="3" Opacity="0.6" Color="#FF868686"/>
+                                    <DropShadowEffect ShadowDepth="3" Opacity="0.6" Color="#FF868686" />
                                 </ui:SymbolIcon.Effect>
                             </ui:SymbolIcon>
                         </Grid>
                     </Border>
-
                 </Border>
                 <Grid Margin="30,0,0,10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="377" Width="250">
                     <StackPanel Margin="0,0,0,47">
@@ -51,9 +50,9 @@
                         </ScrollViewer>
                     </StackPanel>
                     <Grid Margin="0,330,0,0">
-                        <TextBlock x:Name="PlaylistSongsCount" Text="加载中" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6"/>
-                        <TextBlock x:Name="PlaylistCreator" Text="创建人" HorizontalAlignment="Left" VerticalAlignment="Bottom" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6"/>
-                        <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6"/>
+                        <TextBlock x:Name="PlaylistSongsCount" Text="加载中" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
+                        <TextBlock x:Name="PlaylistCreator" Text="创建人" HorizontalAlignment="Left" VerticalAlignment="Bottom" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
+                        <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
                     </Grid>
                 </Grid>
             </Grid>

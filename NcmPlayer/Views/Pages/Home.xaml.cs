@@ -45,13 +45,13 @@ namespace NcmPlayer.Views.Pages
             {
                 Text = title,
                 TextAlignment = TextAlignment.Left,
-                Margin = new Thickness(0,15,0,0),
-                FontWeight= FontWeights.Bold,
-                FontSize=20,
-                Width= 200,
+                Margin = new Thickness(0, 15, 0, 0),
+                FontWeight = FontWeights.Bold,
+                FontSize = 20,
+                Width = 200,
                 Height = 94,
-                TextWrapping= TextWrapping.WrapWithOverflow,
-                Padding = new Thickness(0,0,0,0)
+                TextWrapping = TextWrapping.WrapWithOverflow,
+                Padding = new Thickness(0, 0, 0, 0)
             };
             stackPanel.Children.Add(borderCover);
             stackPanel.Children.Add(tblockTitle);
@@ -73,7 +73,7 @@ namespace NcmPlayer.Views.Pages
                 {
                     Thread getPlaylist = new Thread(_ =>
                     {
-                        Stream playlistCover = HttpRequest.StreamHttpGet(item["picUrl"].ToString());
+                        Stream playlistCover = HttpRequest.StreamHttpGet(item["picUrl"].ToString() + "?param=180y180");
                         this.Dispatcher.BeginInvoke(new Action(() =>
                         {
                             StackPanel playlistView = getStackPanel(
@@ -96,7 +96,6 @@ namespace NcmPlayer.Views.Pages
                 ResEntry.res.recommendSongs = new();
             }
             PublicMethod.ChangePage(ResEntry.res.recommendSongs);
-
         }
     }
 }

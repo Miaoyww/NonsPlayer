@@ -1,5 +1,4 @@
-﻿using Microsoft.Win32;
-using NcmPlayer.Views.Pages.Recommend;
+﻿using NcmPlayer.Views.Pages.Recommend;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Media;
@@ -29,6 +28,7 @@ namespace NcmPlayer.Resources
                 PropertyChanged(this, new PropertyChangedEventArgs("UnfollowColor"));
             }
         }
+
         public RecommendSongs recommendSongs;
 
         #region 播放列表

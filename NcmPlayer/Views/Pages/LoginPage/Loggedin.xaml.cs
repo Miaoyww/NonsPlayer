@@ -84,7 +84,6 @@ namespace NcmPlayer.Views.Pages.LoginPage
             Regediter.Regedit("Account", "AccountFaceUrl", Login.acc.FaceUrl);
             Regediter.Regedit("Account", "AccountName", Login.acc.Name);
             Regediter.Regedit("Account", "Likelist", Convert.ToBase64String(Encoding.UTF8.GetBytes(ids)));
-            
         }
     }
 }

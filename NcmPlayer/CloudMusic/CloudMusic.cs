@@ -15,7 +15,9 @@ using System.Windows.Controls;
 namespace NcmPlayer.CloudMusic
 {
     // 这里储存着网易云音乐的每种obj类
+
     #region 不常用、不常修改
+
     public static class HttpRequest
     {
         public static Stream StreamHttpGet(string url, int start = 0, int end = 0)
@@ -56,6 +58,7 @@ namespace NcmPlayer.CloudMusic
             return JObjectHttpGet(StreamHttpGet(url));
         }
     }
+
     public static class Tool
     {
         public static DateTime TimestampToDateTime(string timeStamp)
@@ -65,6 +68,7 @@ namespace NcmPlayer.CloudMusic
         }
 
         public static List<Page> OpenedPlaylistDetail = new List<Page>();
+
         public static void OpenPlayListDetail(string id)
         {
             Stopwatch stopwatch = new();
@@ -109,7 +113,9 @@ namespace NcmPlayer.CloudMusic
             getPlaylist.Start();
         }
     }
-    #endregion
+
+    #endregion 不常用、不常修改
+
     public class CloudMusic
     {
         private string id = string.Empty;
@@ -155,9 +161,16 @@ namespace NcmPlayer.CloudMusic
             }
         }
 
-        public Stream GetCover(int x, int y)
+        public Stream GetCover(int x = 0, int y = 0)
         {
-            cover = HttpRequest.StreamHttpGet(coverUrl + $"?param={x}y{y}");
+            if (x == 0)
+            {
+                cover = HttpRequest.StreamHttpGet(coverUrl + IMGSIZE);
+            }
+            else
+            {
+                cover = HttpRequest.StreamHttpGet(coverUrl + $"?param={x}y{y}");
+            }
             return cover;
         }
 

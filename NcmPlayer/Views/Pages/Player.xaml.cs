@@ -80,7 +80,7 @@ namespace NcmPlayer.Views.Pages
                 ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongCover"))));
                 ResEntry.songInfo.FilePath = (string)RegGeter.RegGet("Song", "SongPath");
                 ResEntry.songInfo.AlbumCoverUrl = (string)RegGeter.RegGet("Song", "SongAlbumUrl");
-                
+
                 string lrcString = Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongLrc")));
                 ResEntry.songInfo.LrcString = lrcString;
                 UpdateLrc(new Lrcs(lrcString));
@@ -207,7 +207,6 @@ namespace NcmPlayer.Views.Pages
                             }
                             catch
                             {
-
                             }
                         }
                         for (int i = 0; i <= lrcVis.Count; i++)
@@ -343,11 +342,9 @@ namespace NcmPlayer.Views.Pages
                             try
                             {
                                 listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc]);
-
                             }
                             catch (ArgumentOutOfRangeException)
                             {
-
                             }
                         }
                     }

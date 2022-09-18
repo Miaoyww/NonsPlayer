@@ -82,6 +82,19 @@ namespace NcmPlayer.Resources
         public static void ChangePage(Page page)
         {
             CurrentPage = ((Page)Pageframe.Content).Title;
+            if (page.Title == "Home")
+            {
+                if (CurrentPage == page.Title)
+                {
+                    Home newone = new();
+                    if (Screenframe.Visibility == Visibility.Visible)
+                    {
+                        ScreenControl();
+                    }
+                    Pageframe.Content = newone;
+                    CurrentPage = newone.Title;
+                }
+            }
             if (!CurrentPage.Equals(page.Title.ToString()))
             {
                 if (Screenframe.Visibility == Visibility.Visible)
@@ -162,7 +175,8 @@ namespace NcmPlayer.Resources
             if (theme == ThemeType.Dark)
             {
                 ResEntry.res.UnfollowColor = (Brush)converter.ConvertFromString("#FFFFFF");
-            }else if (theme == ThemeType.Light)
+            }
+            else if (theme == ThemeType.Light)
             {
                 ResEntry.res.UnfollowColor = (Brush)converter.ConvertFromString("#000000");
             }

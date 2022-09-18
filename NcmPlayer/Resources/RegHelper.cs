@@ -11,7 +11,7 @@ namespace NcmPlayer.Resources
 
         public static void Regedit(string path, string key, object value)
         {
-            if(value != null)
+            if (value != null)
             {
                 Registry.SetValue(AppConfig.RegPath + path, key, value);
             }

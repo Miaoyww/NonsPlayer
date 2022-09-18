@@ -235,7 +235,7 @@ namespace NcmPlayer.Resources
             {
                 bool isliked = ResEntry.songInfo.LikeList.Exists(t => t == int.Parse(ResEntry.songInfo.Id));
                 JObject result = Api.Song.Like(
-                    ResEntry.songInfo.Id, 
+                    ResEntry.songInfo.Id,
                     !isliked,
                     ResEntry.ncm
                     );

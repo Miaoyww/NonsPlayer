@@ -29,14 +29,16 @@ namespace NcmPlayer.Resources
         private string durationTimeString = string.Empty;
         private bool isLiked = false;
 
-        public string Id {
+        public string Id
+        {
             get => id;
             set => id = value;
         }
 
         public bool IsLiked
-        { get => isLiked;
-          set => isLiked = value;
+        {
+            get => isLiked;
+            set => isLiked = value;
         }
 
         public List<int> LikeList

@@ -2,11 +2,9 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
-using System.Security.Policy;
 using System.Text;
 
 namespace NcmApi;
@@ -297,6 +295,7 @@ public static class Api
             string _URL = "https://music.163.com/weapi/v1/discovery/recommend/resource";
             return ncm.Request(HttpMethod.Post, _URL);
         }
+
         public static JObject Songs(Ncm ncm)
         {
             string _URL = "https://music.163.com/api/v3/discovery/recommend/songs";
