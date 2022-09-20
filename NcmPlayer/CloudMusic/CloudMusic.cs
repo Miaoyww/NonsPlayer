@@ -569,9 +569,21 @@ namespace NcmPlayer.CloudMusic
         {
             string timeString = Regex.Match(stringLrc, "(?<=\\[)\\S*(?=])").ToString();
             string lrcString = Regex.Match(stringLrc, "(?<=(\\])).*").ToString();
-            int minMs = int.Parse(timeString.Split(":")[0]) * 60 * 1000;
-            int secMs = int.Parse(timeString.Split(":")[1].Split(".")[0]) * 1000;
-            int ms = int.Parse(timeString.Split(":")[1].Split(".")[1]);
+            int minMs;
+            int secMs;
+            int ms;
+            try
+            {
+                minMs = int.Parse(timeString.Split(":")[0]) * 60 * 1000;
+                secMs = int.Parse(timeString.Split(":")[1].Split(".")[0]) * 1000;
+                ms = int.Parse(timeString.Split(":")[1].Split(".")[1]);
+            }
+            catch (System.FormatException)
+            {
+                minMs = 0;
+                secMs = 0;
+                ms = 0;
+            }
             time = TimeSpan.FromMilliseconds(minMs + secMs + ms);
             try
             {

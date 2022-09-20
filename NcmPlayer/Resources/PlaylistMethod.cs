@@ -145,7 +145,8 @@ namespace NcmPlayer.Resources
                         Regediter.Regedit("Song", "SongCover", b64Cover);
                     }
                     MemoryStream coverStream = new MemoryStream(Convert.FromBase64String(RegGeter.RegGet("Song", "SongCover").ToString()));
-                    string filepath = song.GetMp3();
+                    string filepath = song.SongUrl;
+                    // string filepath = song.GetMp3();
                     MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         ResEntry.songInfo.Cover(coverStream);
