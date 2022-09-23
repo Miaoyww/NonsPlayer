@@ -2,6 +2,7 @@
 using NcmPlayer.Resources;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Windows;
@@ -78,6 +79,8 @@ namespace NcmPlayer.Views.Pages
 
         public void UpdateSongsList(Song[] songs)
         {
+            Stopwatch sw = new();
+            sw.Start();
             int gridCount = songs.Length;
             songBorderList = new Border[songs.Length];
             for (int index = 0; index < gridCount; index++)
@@ -157,6 +160,8 @@ namespace NcmPlayer.Views.Pages
                 Songs.Children.Add(songBorderList[index]);
                 Songs.Children.Add(new Separator() { BorderThickness = new Thickness(0), Height = 5 });
             }
+            sw.Stop();
+            Debug.WriteLine($"Playlist: UpdateSongsList耗时{sw.ElapsedMilliseconds}");
         }
 
         private void Parent_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

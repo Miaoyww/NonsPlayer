@@ -65,28 +65,33 @@ namespace NcmPlayer.Views.Pages
 
         public void UpdateTopPlaylist()
         {
-            JObject response = Api.Playlist.Personalized(ResEntry.ncm, 10);
-            if ((int)response["code"] == 200)
+            Thread mainThread = new(() =>
             {
-                JArray playlists = (JArray)response["result"];
-                foreach (JObject item in playlists)
+                JObject response = Api.Playlist.Personalized(ResEntry.ncm, 10);
+                if ((int)response["code"] == 200)
                 {
-                    Thread getPlaylist = new Thread(_ =>
+                    JArray playlists = (JArray)response["result"];
+                    foreach (JObject item in playlists)
                     {
-                        Stream playlistCover = HttpRequest.StreamHttpGet(item["picUrl"].ToString() + "?param=180y180");
-                        this.Dispatcher.BeginInvoke(new Action(() =>
+                        Thread getPlaylist = new Thread(_ =>
                         {
-                            StackPanel playlistView = getStackPanel(
-                            (string)item["name"], item["id"].ToString(), playlistCover);
-                            panel_nicePlaylists.Children.Add(playlistView);
-                        }));
-                    })
-                    {
-                        IsBackground = true
-                    };
-                    getPlaylist.Start();
+                            Stream playlistCover = HttpRequest.StreamHttpGet(item["picUrl"].ToString() + "?param=180y180");
+                            this.Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                StackPanel playlistView = getStackPanel(
+                                (string)item["name"], item["id"].ToString(), playlistCover);
+                                panel_nicePlaylists.Children.Add(playlistView);
+                            }));
+                        })
+                        {
+                            IsBackground = true
+                        };
+                        getPlaylist.Start();
+                    }
                 }
-            }
+            });
+            mainThread.IsBackground = true;
+            mainThread.Start();
         }
 
         private void b_dailySong_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)

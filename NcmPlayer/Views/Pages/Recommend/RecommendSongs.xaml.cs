@@ -3,7 +3,10 @@ using NcmPlayer.CloudMusic;
 using NcmPlayer.Resources;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -34,95 +37,121 @@ namespace NcmPlayer.Views.Pages.Recommend
 
         public void GetRecommend()
         {
-            JObject temp = Api.Recommend.Songs(ResEntry.ncm);
-            JArray result = (JArray)temp["data"]["dailySongs"];
-            foreach (JObject item in result)
+            Thread thread = new(() =>
             {
-                Song one = new(item, true);
-                Border parent = new()
+                Stopwatch sw = new();
+                sw.Start();
+                JObject temp = Api.Recommend.Songs(ResEntry.ncm);
+                sw.Stop();
+                Debug.WriteLine($"获取每日单曲耗时{sw.ElapsedMilliseconds}");
+                JArray result = (JArray)temp["data"]["dailySongs"];
+
+                sw.Restart();
+                foreach (JObject item in result)
                 {
-                    Height = 80,
-                    Tag = one.Id,
-                    CornerRadius = new CornerRadius(10, 10, 10, 10),
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    Background = new SolidColorBrush(Color.FromArgb(100, 212, 212, 212))
-                };
-                parent.Background.Opacity = 0;
-                parent.PreviewMouseMove += Parent_PreviewMouseMove;
-                parent.PreviewMouseLeftButtonDown += Parent_PreviewMouseLeftButtonDown;
-                Border corner = new()
-                {
-                    CornerRadius = new CornerRadius(10, 10, 10, 10),
-                    Margin = new Thickness(0, 5, 0, 5)
-                };
-                Grid content = new();
-                string artists = string.Empty;
-                if (one.Artists[0] == string.Empty && one.Artists.Length == 1)
-                {
-                    artists = "未知艺人";
-                }
-                else
-                {
-                    for (int i = 0; i <= one.Artists.Length - 1; i++)
+                    Song one = new(item, true);
+                    Debug.WriteLine($"当前加载歌曲: {one.Name}");
+                    Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        if (i != one.Artists.Length - 1)
+                        Border parent = new()
                         {
-                            artists += one.Artists[i] + " / ";
+                            Height = 80,
+                            Tag = one.Id,
+                            CornerRadius = new CornerRadius(10, 10, 10, 10),
+                            HorizontalAlignment = HorizontalAlignment.Stretch,
+                            Background = new SolidColorBrush(Color.FromArgb(100, 212, 212, 212))
+                        };
+                        parent.Background.Opacity = 0;
+                        parent.PreviewMouseMove += Parent_PreviewMouseMove;
+                        parent.PreviewMouseLeftButtonDown += Parent_PreviewMouseLeftButtonDown;
+                        Border corner = new()
+                        {
+                            CornerRadius = new CornerRadius(10, 10, 10, 10),
+                            Margin = new Thickness(0, 5, 0, 5)
+                        };
+                        Grid content = new();
+                        string artists = string.Empty;
+                        if (one.Artists[0] == string.Empty && one.Artists.Length == 1)
+                        {
+                            artists = "未知艺人";
                         }
                         else
                         {
-                            artists += one.Artists[i];
+                            for (int i = 0; i <= one.Artists.Length - 1; i++)
+                            {
+                                if (i != one.Artists.Length - 1)
+                                {
+                                    artists += one.Artists[i] + " / ";
+                                }
+                                else
+                                {
+                                    artists += one.Artists[i];
+                                }
+                            }
                         }
-                    }
+
+                        Border b_cover = new()
+                        {
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Margin = new Thickness(20, 0, 0, 0),
+                            Width = 60,
+                            Height = 60,
+                            CornerRadius = new CornerRadius(5),
+                            Effect = new DropShadowEffect() { Color = Color.FromArgb(60, 227, 227, 227), Opacity = 0.1 },
+                        };
+                        Task getCover = new Task(() =>
+                        {
+                            Stream coverStream = one.GetCover(50, 50);
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                b_cover.Background = PublicMethod.ConvertBrush(coverStream);
+                            }));
+                        });
+                        getCover.Start();
+                        TextBlock tblock_Name = new()
+                        {
+                            Text = one.Name,
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            FontWeight = FontWeights.Bold,
+                            FontSize = 20,
+                            Margin = new Thickness(95, 0, 0, 0),
+                            Width = 290,
+                            TextTrimming = TextTrimming.CharacterEllipsis
+                        };
+                        TextBlock tblock_Artists = new()
+                        {
+                            Text = artists,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            FontSize = 16,
+                            Width = 200,
+                            TextTrimming = TextTrimming.CharacterEllipsis
+                        };
+                        TextBlock tblock_Time = new()
+                        {
+                            Text = one.DuartionTimeString,
+                            HorizontalAlignment = HorizontalAlignment.Right,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            FontSize = 14,
+                            Margin = new Thickness(0, 0, 20, 0)
+                        };
+                        content.Children.Add(b_cover);
+                        content.Children.Add(tblock_Name);
+                        content.Children.Add(tblock_Artists);
+                        content.Children.Add(tblock_Time);
+                        corner.Child = content;
+                        parent.Child = corner;
+                        SongList.Children.Add(parent);
+                        SongList.Children.Add(new Separator() { BorderThickness = new Thickness(0), Height = 5 });
+                    }));
                 }
-                Border b_cover = new()
-                {
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(20, 0, 0, 0),
-                    Width = 60,
-                    Height = 60,
-                    CornerRadius = new CornerRadius(5),
-                    Effect = new DropShadowEffect() { Color = Color.FromArgb(60, 227, 227, 227), Opacity = 0.1 },
-                    Background = PublicMethod.ConvertBrush(one.GetCover(50, 50))
-                };
-                TextBlock tblock_Name = new()
-                {
-                    Text = one.Name,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    FontWeight = FontWeights.Bold,
-                    FontSize = 20,
-                    Margin = new Thickness(95, 0, 0, 0),
-                    Width = 290,
-                    TextTrimming = TextTrimming.CharacterEllipsis
-                };
-                TextBlock tblock_Artists = new()
-                {
-                    Text = artists,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    FontSize = 16,
-                    Width = 200,
-                    TextTrimming = TextTrimming.CharacterEllipsis
-                };
-                TextBlock tblock_Time = new()
-                {
-                    Text = one.DuartionTimeString,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    FontSize = 14,
-                    Margin = new Thickness(0, 0, 20, 0)
-                };
-                content.Children.Add(b_cover);
-                content.Children.Add(tblock_Name);
-                content.Children.Add(tblock_Artists);
-                content.Children.Add(tblock_Time);
-                corner.Child = content;
-                parent.Child = corner;
-                SongList.Children.Add(parent);
-                SongList.Children.Add(new Separator() { BorderThickness = new Thickness(0), Height = 5 });
-            }
+                sw.Stop();
+                Debug.WriteLine($"更新歌曲耗时{sw.ElapsedMilliseconds}");
+            });
+            thread.IsBackground = true;
+            thread.Start();
         }
 
         private void Parent_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

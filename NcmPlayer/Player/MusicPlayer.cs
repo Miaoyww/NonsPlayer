@@ -3,10 +3,7 @@ using NAudio.Wave;
 using NcmPlayer.Resources;
 using NcmPlayer.Views;
 using System;
-using System.IO;
-using System.Security.Policy;
 using System.Timers;
-using System.Windows.Controls;
 
 namespace NcmPlayer
 {
@@ -54,18 +51,14 @@ namespace NcmPlayer
         {
             MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
             {
-                try
+                if (outputDevice != null)
                 {
-                    if (outputDevice != null)
+                    if (outputDevice.PlaybackState == PlaybackState.Playing)
                     {
-                        ResEntry.songInfo.Postion = outputDevice.GetPositionTimeSpan();
+                        TimeSpan convered = TimeSpan.FromSeconds(mfr.Position / outputDevice.OutputWaveFormat.BitsPerSample / outputDevice.OutputWaveFormat.Channels * 8.0 / outputDevice.OutputWaveFormat.SampleRate);
+                        ResEntry.songInfo.Postion = convered;
                     }
                 }
-                catch (NAudio.MmException)
-                {
-
-                }
-
             }));
         }
 
@@ -98,7 +91,6 @@ namespace NcmPlayer
 
         public static void Play(bool re = false, string url = null)
         {
-            
             try
             {
                 if (re)
@@ -140,8 +132,10 @@ namespace NcmPlayer
         {
             if (ResEntry.songInfo.IsPlaying)
             {
-                mfr.Position = TimeSpan.FromSeconds(position).Ticks;
-                ResEntry.songInfo.Postion = outputDevice.GetPositionTimeSpan();
+                long pos = (long)(position * 10) * outputDevice.OutputWaveFormat.BitsPerSample * outputDevice.OutputWaveFormat.Channels * outputDevice.OutputWaveFormat.SampleRate / 8 / 10;
+                mfr.Position = pos;
+                TimeSpan convered = TimeSpan.FromSeconds(mfr.Position / outputDevice.OutputWaveFormat.BitsPerSample / outputDevice.OutputWaveFormat.Channels * 8.0 / outputDevice.OutputWaveFormat.SampleRate);
+                ResEntry.songInfo.Postion = convered;
             }
         }
     }

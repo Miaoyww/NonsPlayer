@@ -4,7 +4,7 @@ namespace NcmPlayer
 {
     public static class AppConfig
     {
-        public static string AppVersion = "0.5.8918";
+        public static string AppVersion = "0.6.15";
 
         public static string RegPath = @"HKEY_CURRENT_USER\SOFTWARE\Miaoywww\NcmPlayer\";
 

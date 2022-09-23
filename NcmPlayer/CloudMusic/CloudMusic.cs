@@ -95,19 +95,30 @@ namespace NcmPlayer.CloudMusic
                 }));
                 Thread getCover = new(_ =>
                 {
-                    stopwatch.Start();
+                    stopwatch.Restart();
                     Stream playlistCover = playList.Cover;
-                    Song[] songs = playList.InitArtWorkList();
                     newone.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         newone.SetCover(playlistCover);
-                        newone.UpdateSongsList(songs);
                     }));
                     stopwatch.Stop();
-                    Debug.WriteLine($"获取封面以及初始化歌单耗时ms: {stopwatch.ElapsedMilliseconds}");
+                    Debug.WriteLine($"OpenPlayListDetail 获取封面耗时{stopwatch.ElapsedMilliseconds}");
                 });
                 getCover.IsBackground = true;
                 getCover.Start();
+                Thread updatePlaylist = new(_ =>
+                {
+                    stopwatch.Restart();
+                    Song[] songs = playList.InitArtWorkList();
+                    newone.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        newone.UpdateSongsList(songs);
+                    }));
+                    stopwatch.Stop();
+                    Debug.WriteLine($"OpenPlayListDetail 更新歌曲耗时{stopwatch.ElapsedMilliseconds}");
+                });
+                updatePlaylist.IsBackground = true;
+                updatePlaylist.Start();
             });
             getPlaylist.IsBackground = true;
             getPlaylist.Start();
@@ -122,7 +133,7 @@ namespace NcmPlayer.CloudMusic
         private string name = string.Empty;
         private Stream? cover;
         private string coverUrl;
-        private readonly string IMGSIZE = "?param=400y400";
+        private readonly string IMGSIZE = "?param=300y300";
 
         public string Id
         {
@@ -203,10 +214,10 @@ namespace NcmPlayer.CloudMusic
         {
             Id = in_id;
             Stopwatch stopwatch = new();
-            stopwatch.Start();
+            stopwatch.Restart();
             JObject playlistDetail = (JObject)Api.Playlist.Detail(Id, ResEntry.ncm)["playlist"];
             stopwatch.Stop();
-            Debug.WriteLine($"获取歌单详情耗时{stopwatch.ElapsedMilliseconds}ms");
+            Debug.WriteLine($"Playlist 获取歌单详情耗时{stopwatch.ElapsedMilliseconds}ms");
             Name = playlistDetail["name"].ToString();
             description = playlistDetail["description"].ToString();
 
@@ -218,7 +229,7 @@ namespace NcmPlayer.CloudMusic
             }
 
             CoverUrl = playlistDetail["coverImgUrl"].ToString();
-            stopwatch.Start();
+            stopwatch.Restart();
             JArray jsonSongs = (JArray)playlistDetail["trackIds"];
             songTrackIds = new string[jsonSongs.Count];
             for (int index = 0; index < songTrackIds.Length; index++)
@@ -226,7 +237,7 @@ namespace NcmPlayer.CloudMusic
                 songTrackIds[index] = jsonSongs[index]["id"].ToString();
             }
             stopwatch.Stop();
-            Debug.WriteLine($"获取歌曲ids耗时{stopwatch.ElapsedMilliseconds}ms");
+            Debug.WriteLine($"Playlist 获取歌曲ids耗时{stopwatch.ElapsedMilliseconds}ms");
             string timestampTemp = playlistDetail["createTime"].ToString();
             createTime = Tool.TimestampToDateTime(timestampTemp.Remove(timestampTemp.Length - 3));
             creator = playlistDetail["creator"]["nickname"].ToString();
@@ -304,7 +315,8 @@ namespace NcmPlayer.CloudMusic
         private string lrcString = string.Empty;
         private int songSize = 0;
         private List<int[]> sizeRange = new List<int[]>();
-        private int chuckIndex = 0;
+        private int 
+            chuckIndex = 0;
         private Lrcs lrc;
 
         public Song(JObject playlistSongTrack, bool recommend = false)
