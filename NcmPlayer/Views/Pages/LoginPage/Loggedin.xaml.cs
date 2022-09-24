@@ -65,7 +65,7 @@ namespace NcmPlayer.Views.Pages.LoginPage
             Login.acc.Id = accountDetail["account"]["id"].ToString();
             Login.acc.Name = accountDetail["profile"]["nickname"].ToString();
             Login.acc.FaceUrl = accountDetail["profile"]["avatarUrl"].ToString();
-            Login.acc.FaceStream = HttpRequest.StreamHttpGet(Login.acc.FaceUrl);
+            Login.acc.FaceStream = HttpRequest.StreamHttpGet(Login.acc.FaceUrl).Result;
             JArray likeListJson = (JArray)Api.User.Likelist(Login.acc.Id, ResEntry.ncm)["ids"];
             string ids = string.Empty;
             foreach (int id in likeListJson)

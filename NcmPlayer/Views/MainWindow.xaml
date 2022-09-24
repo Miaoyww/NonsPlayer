@@ -32,7 +32,7 @@
     </ui:UiWindow.Resources>
     <Grid Focusable="False">
         <Grid>
-            <Frame x:Name="PageFrame" Focusable="False" Margin="0,65,0,78" />
+            <Frame x:Name="PageFrame" Focusable="False" Margin="0,65,0,78"/>
         </Grid>
         <Border Focusable="False" x:Name="PlayBar" VerticalAlignment="Bottom" Height="78" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9" Margin="0,680,0,0">
             <Grid>

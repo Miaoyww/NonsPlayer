@@ -67,20 +67,22 @@ namespace NcmPlayer.Views.Pages
         {
             Thread mainThread = new(() =>
             {
-                JObject response = Api.Playlist.Personalized(ResEntry.ncm, 10);
+                JObject response = Api.Playlist.Personalized(ResEntry.ncm, 20);
                 if ((int)response["code"] == 200)
                 {
                     JArray playlists = (JArray)response["result"];
+                    int count = 0;
                     foreach (JObject item in playlists)
                     {
                         Thread getPlaylist = new Thread(_ =>
                         {
-                            Stream playlistCover = HttpRequest.StreamHttpGet(item["picUrl"].ToString() + "?param=180y180");
+                            Stream playlistCover = HttpRequest.StreamHttpGet(item["picUrl"].ToString() + "?param=180y180").Result;
                             this.Dispatcher.BeginInvoke(new Action(() =>
                             {
                                 StackPanel playlistView = getStackPanel(
                                 (string)item["name"], item["id"].ToString(), playlistCover);
                                 panel_nicePlaylists.Children.Add(playlistView);
+                                count++;
                             }));
                         })
                         {

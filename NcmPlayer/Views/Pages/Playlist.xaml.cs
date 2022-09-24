@@ -4,13 +4,18 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
+using Button = Wpf.Ui.Controls.Button;
+using PlayList = NcmPlayer.CloudMusic.PlayList;
 
 namespace NcmPlayer.Views.Pages
 {
@@ -30,10 +35,12 @@ namespace NcmPlayer.Views.Pages
         private bool mouseItemsMoving = false;
         private bool mouseIsMoving = false;
         private int clickCount = 0;
+        private int loadedViewCount = 0;
+
+        private PlayList playList;
+        private List<Song> InSongs;
 
         #region 属性及初始化
-
-        public Border[] songBorderList;
 
         public List<Song> songlist = new List<Song>();
 
@@ -77,19 +84,33 @@ namespace NcmPlayer.Views.Pages
             PlaylistCover.Background = brush;
         }
 
-        public void UpdateSongsList(Song[] songs)
+        private async Task createAndUpdate(Song one, int index)
         {
-            Stopwatch sw = new();
-            sw.Start();
-            int gridCount = songs.Length;
-            songBorderList = new Border[songs.Length];
-            for (int index = 0; index < gridCount; index++)
-            {
-                Song one = songs[index];
                 songlist.Add(one);
+                Border b_cover = new()
+                {
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(20, 0, 0, 0),
+                    Width = 40,
+                    Height = 40,
+                    CornerRadius = new CornerRadius(5),
+                    Effect = new DropShadowEffect() { Color = Color.FromArgb(60, 227, 227, 227), Opacity = 0.1 },
+                };
+                Thread getCover = new Thread(_ =>
+                {
+                    Stream coverStream = one.GetCover(30, 30);
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        b_cover.Background = PublicMethod.ConvertBrush(coverStream);
+                    }));
+                })
+                { Name = "GetCover" };
+                getCover.IsBackground = true;
+                getCover.Start();
                 Border parent = new()
                 {
-                    Height = 40,
+                    Height = 50,
                     Tag = one.Id,
                     CornerRadius = new CornerRadius(10, 10, 10, 10),
                     HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -123,26 +144,34 @@ namespace NcmPlayer.Views.Pages
                         }
                     }
                 }
+                StackPanel songInfo = new()
+                {
+                    Margin = new Thickness(75, 0, 0, 0),
+                    Width = 400,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
                 TextBlock tblock_Name = new()
                 {
                     Text = one.Name,
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
                     FontWeight = FontWeights.Bold,
-                    FontSize = 20,
-                    Margin = new Thickness(20, 0, 0, 0),
-                    Width = 330,
+                    FontSize = 17,
+                    Width = 390,
                     TextTrimming = TextTrimming.CharacterEllipsis
                 };
                 TextBlock tblock_Artists = new()
                 {
                     Text = artists,
-                    HorizontalAlignment = HorizontalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Center,
                     FontSize = 16,
-                    Width = 200,
+                    Width = 390,
                     TextTrimming = TextTrimming.CharacterEllipsis
                 };
+                songInfo.Children.Add(tblock_Name);
+                songInfo.Children.Add(tblock_Artists);
                 TextBlock tblock_Time = new()
                 {
                     Text = one.DuartionTimeString,
@@ -151,17 +180,87 @@ namespace NcmPlayer.Views.Pages
                     FontSize = 14,
                     Margin = new Thickness(0, 0, 20, 0)
                 };
-                content.Children.Add(tblock_Name);
-                content.Children.Add(tblock_Artists);
+
+                content.Children.Add(b_cover);
+                content.Children.Add(songInfo);
                 content.Children.Add(tblock_Time);
                 corner.Child = content;
                 parent.Child = corner;
-                songBorderList[index] = parent;
-                Songs.Children.Add(songBorderList[index]);
+                Songs.Children.Add(parent);
                 Songs.Children.Add(new Separator() { BorderThickness = new Thickness(0), Height = 5 });
+        }
+
+        private async Task updateList(int start, int end)
+        {
+            Stopwatch sw = new();
+            sw.Start();
+            if (start != 0)
+            {
+                Songs.Children.RemoveAt(Songs.Children.Count - 1);
             }
-            sw.Stop();
-            Debug.WriteLine($"Playlist: UpdateSongsList耗时{sw.ElapsedMilliseconds}");
+            end = end - 1;
+            for (int index = start; index <= end; index++)
+            {
+                createAndUpdate(InSongs[index], index);
+                if (index == end)
+                {
+                    if (end < playList.SongsCount - 1)
+                    {
+                        Button loadmore = new()
+                        {
+                            Margin = new Thickness(0, 10, 0, 10),
+                            BorderThickness = new Thickness(1),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Padding = new Thickness(0),
+                            FontSize = 18,
+                            Width = 100,
+                            Height = 40,
+                            Opacity = 0.95,
+                            Content = "加载更多"
+                        };
+                        loadmore.Click += Loadmore_Click;
+                        Songs.Children.Add(loadmore);
+                        sw.Stop();
+                        Debug.WriteLine($"Playlist: UpdateSongsList耗时{sw.ElapsedMilliseconds}");
+                    }
+                }
+            }
+        }
+
+        private async void Loadmore_Click(object sender, RoutedEventArgs e)
+        {
+            int loadCount = 200;
+
+            int goload = loadedViewCount + loadCount;
+            if (goload > InSongs.Count)
+            {
+                if (goload < playList.SongsCount)
+                {
+                    InSongs = InSongs.Concat(playList.InitArtWorkList(loadedViewCount, goload).ToList()).ToList();
+                }
+                else
+                {
+                    goload = InSongs.Count;
+                }
+            }
+            await updateList(loadedViewCount + 1, goload);
+            loadedViewCount = goload;
+        }
+
+        public async Task UpdateSongsList(Song[] songs, PlayList list)
+        {
+            playList = list;
+            InSongs = songs.ToList();
+            if (playList.SongsCount >= 100)
+            {
+                loadedViewCount = 100;
+            }
+            else
+            {
+                loadedViewCount = playList.SongsCount;
+            }
+            updateList(0, loadedViewCount);
         }
 
         private void Parent_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

@@ -10,6 +10,7 @@ using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 
 namespace NcmPlayer.CloudMusic
@@ -20,7 +21,7 @@ namespace NcmPlayer.CloudMusic
 
     public static class HttpRequest
     {
-        public static Stream StreamHttpGet(string url, int start = 0, int end = 0)
+        public static async Task<Stream> StreamHttpGet(string url, int start = 0, int end = 0)
         {
             WebRequest wrGETURL;
             wrGETURL = WebRequest.Create(url);
@@ -35,7 +36,7 @@ namespace NcmPlayer.CloudMusic
                 {
                     objStream = wrGETURL.GetResponse().GetResponseStream();
                     StreamReader objReader = new StreamReader(objStream);
-                    return objStream;
+                    break;
                 }
                 catch (WebException)
                 {
@@ -43,8 +44,11 @@ namespace NcmPlayer.CloudMusic
                 }
                 catch (InvalidOperationException)
                 {
+                    return null;
                 }
             }
+
+            return objStream;
         }
 
         public static JObject JObjectHttpGet(Stream stream)
@@ -55,7 +59,7 @@ namespace NcmPlayer.CloudMusic
 
         public static JObject GetJson(string url)
         {
-            return JObjectHttpGet(StreamHttpGet(url));
+            return JObjectHttpGet(StreamHttpGet(url).Result);
         }
     }
 
@@ -69,7 +73,7 @@ namespace NcmPlayer.CloudMusic
 
         public static List<Page> OpenedPlaylistDetail = new List<Page>();
 
-        public static void OpenPlayListDetail(string id)
+        public static async void OpenPlayListDetail(string id)
         {
             Stopwatch stopwatch = new();
             Playlist newone = new()
@@ -77,27 +81,27 @@ namespace NcmPlayer.CloudMusic
                 Title = id
             };
             PublicMethod.ChangePage(newone);
-            Thread getPlaylist = new(_ =>
+            Task get = new Task(async () =>
             {
                 PlayList playList = new(id);
-                string name = playList.Name;
-                string creator = playList.Creator;
-                string description = playList.Description;
-                string createTime = playList.CreateTime.ToString();
-                int songsCount = playList.SongsCount;
-                newone.Dispatcher.BeginInvoke(new Action(() =>
+                await newone.Dispatcher.BeginInvoke(new Action(() =>
                 {
+                    string name = playList.Name;
+                    string creator = playList.Creator;
+                    string description = playList.Description;
+                    string createTime = playList.CreateTime.ToString();
+                    int songsCount = playList.SongsCount;
                     newone.Name = name;
                     newone.Creator = creator;
                     newone.CreateTime = createTime;
                     newone.Description = description;
                     newone.SongsCount = songsCount.ToString();
                 }));
-                Thread getCover = new(_ =>
+                Thread getCover = new(async _ =>
                 {
                     stopwatch.Restart();
                     Stream playlistCover = playList.Cover;
-                    newone.Dispatcher.BeginInvoke(new Action(() =>
+                    await newone.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         newone.SetCover(playlistCover);
                     }));
@@ -106,22 +110,18 @@ namespace NcmPlayer.CloudMusic
                 });
                 getCover.IsBackground = true;
                 getCover.Start();
-                Thread updatePlaylist = new(_ =>
+                stopwatch.Restart();
+                Song[] songs = playList.InitArtWorkList();
+
+
+                await newone.Dispatcher.BeginInvoke(new Action(async() =>
                 {
-                    stopwatch.Restart();
-                    Song[] songs = playList.InitArtWorkList();
-                    newone.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        newone.UpdateSongsList(songs);
-                    }));
-                    stopwatch.Stop();
-                    Debug.WriteLine($"OpenPlayListDetail 更新歌曲耗时{stopwatch.ElapsedMilliseconds}");
-                });
-                updatePlaylist.IsBackground = true;
-                updatePlaylist.Start();
+                    await newone.UpdateSongsList(songs, playList);
+                })); 
+                stopwatch.Stop();
+                Debug.WriteLine($"OpenPlayListDetail 更新歌曲耗时{stopwatch.ElapsedMilliseconds}");
             });
-            getPlaylist.IsBackground = true;
-            getPlaylist.Start();
+            get.Start();
         }
     }
 
@@ -163,7 +163,7 @@ namespace NcmPlayer.CloudMusic
         {
             get
             {
-                cover = HttpRequest.StreamHttpGet(coverUrl + IMGSIZE);
+                cover = HttpRequest.StreamHttpGet(coverUrl + IMGSIZE).Result;
                 return cover;
             }
             set
@@ -176,11 +176,11 @@ namespace NcmPlayer.CloudMusic
         {
             if (x == 0)
             {
-                cover = HttpRequest.StreamHttpGet(coverUrl + IMGSIZE);
+                cover = HttpRequest.StreamHttpGet(coverUrl + IMGSIZE).Result;
             }
             else
             {
-                cover = HttpRequest.StreamHttpGet(coverUrl + $"?param={x}y{y}");
+                cover = HttpRequest.StreamHttpGet(coverUrl + $"?param={x}y{y}").Result;
             }
             return cover;
         }
@@ -206,7 +206,6 @@ namespace NcmPlayer.CloudMusic
         private string[] songTrackIds;
         private DateTime createTime;
         private string creator = String.Empty;
-        private Song[] songs;
         private bool[] threadDone;
         private List<JArray> songPages = new List<JArray>();
 
@@ -243,35 +242,32 @@ namespace NcmPlayer.CloudMusic
             creator = playlistDetail["creator"]["nickname"].ToString();
         }
 
-        public Song[] InitArtWorkList()
+        public Song[] InitArtWorkList(int start = 0, int end = 0)
         {
             JArray songDetail;
-            if (songTrackIds.Length >= 500)
+            if (end != 0)
             {
-                songDetail = (JArray)Api.Song.Detail(songTrackIds[0..500], ResEntry.ncm)["songs"];
+                songDetail = (JArray)Api.Song.Detail(songTrackIds[start..end], ResEntry.ncm)["songs"];
             }
             else
             {
-                songDetail = (JArray)Api.Song.Detail(songTrackIds, ResEntry.ncm)["songs"];
+                if (songTrackIds.Length >= 500)
+                {
+                    // 防止buffer超
+                    songDetail = (JArray)Api.Song.Detail(songTrackIds[0..500], ResEntry.ncm)["songs"];
+                }
+                else
+                {
+                    songDetail = (JArray)Api.Song.Detail(songTrackIds, ResEntry.ncm)["songs"];
+                }
             }
-            songs = new Song[songDetail.Count];
+
+            Song[] songs = new Song[songDetail.Count];
             for (int index = 0; index < songs.Length; index++)
             {
                 songs[index] = new Song((JObject)songDetail[index]);
             }
             return songs;
-        }
-
-        private void GetSongDetail(object parm)
-        {
-            object[] data = parm as object[];
-            Stopwatch stopwatch = new();
-            stopwatch.Start();
-            Song song = new(data[0].ToString());
-            songs[(int)data[1]] = song;
-            stopwatch.Stop();
-            Debug.WriteLine($"创建id为{data[0]}的歌曲花费了{stopwatch.ElapsedMilliseconds}ms");
-            threadDone[(int)data[1]] = true;
         }
 
         public string[] SongsId
@@ -315,8 +311,10 @@ namespace NcmPlayer.CloudMusic
         private string lrcString = string.Empty;
         private int songSize = 0;
         private List<int[]> sizeRange = new List<int[]>();
-        private int 
+
+        private int
             chuckIndex = 0;
+
         private Lrcs lrc;
 
         public Song(JObject playlistSongTrack, bool recommend = false)
@@ -387,7 +385,7 @@ namespace NcmPlayer.CloudMusic
             string _songUrl = SongUrl;
             // int[] range = sizeRange[chuckIndex];
             // Stream songStream = HttpRequest.StreamHttpGet(_songUrl, range[0], range[1]);
-            Stream songStream = HttpRequest.StreamHttpGet(_songUrl);
+            Stream songStream = HttpRequest.StreamHttpGet(_songUrl).Result;
             // chuckIndex++;
             return songStream;
         }
@@ -403,7 +401,7 @@ namespace NcmPlayer.CloudMusic
                     Directory.CreateDirectory(AppConfig.SongsDirectory);
                 }
                 FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                Stream songStream = HttpRequest.StreamHttpGet(_songUrl);
+                Stream songStream = HttpRequest.StreamHttpGet(_songUrl).Result;
                 byte[] bArr = new byte[1024];
                 int size = songStream.Read(bArr, 0, bArr.Length);
                 while (size > 0)

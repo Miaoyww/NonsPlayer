@@ -12,9 +12,9 @@
       Width="{Binding PageSize[0]}"
       Title="Home">
 
-    <Grid Focusable="False" Margin="0, 5, 0, 0">
+    <Grid Focusable="False" Margin="10,10,10,0">
         <ScrollViewer Focusable="False">
-            <StackPanel Margin="100,30,100,0">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Grid>
                     <TextBlock Text="For you" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
                     <Border x:Name="b_dailySong" HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500" Height="200" Margin="0,70,0,0" Cursor="Hand" PreviewMouseLeftButtonDown="b_dailySong_PreviewMouseLeftButtonDown">
@@ -26,8 +26,7 @@
                 </Grid>
                 <Grid Margin="0,70,0,80">
                     <TextBlock Text="推荐歌单" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
-                    <WrapPanel x:Name="panel_nicePlaylists" Focusable="False" HorizontalAlignment="Left" Margin="0,70,0,0" Orientation="Horizontal">
-                    </WrapPanel>
+                    <WrapPanel x:Name="panel_nicePlaylists" Focusable="False" HorizontalAlignment="Left" Margin="0,70,0,0" Orientation="Horizontal" />
                 </Grid>
             </StackPanel>
         </ScrollViewer>

@@ -1,5 +1,6 @@
 ﻿using NcmPlayer.Views;
 using NcmPlayer.Views.Pages;
+using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -160,11 +161,18 @@ namespace NcmPlayer.Resources
 
         public static Brush ConvertBrush(Stream stream)
         {
-            BitmapImage image = new();
-            image.BeginInit();
-            image.StreamSource = stream;
-            image.EndInit();
-            return new ImageBrush(image);
+            if (stream != null)
+            {
+                BitmapImage image = new();
+                image.BeginInit();
+                image.StreamSource = stream;
+                image.EndInit();
+                return new ImageBrush(image);
+            }
+            else
+            {
+                return new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/Assets/BackGround.png")));
+            }
         }
 
         public static void ChangeTheme(ThemeType theme)
