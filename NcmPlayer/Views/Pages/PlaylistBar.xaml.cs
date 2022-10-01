@@ -1,4 +1,4 @@
-﻿using NcmPlayer.CloudMusic;
+﻿using NcmPlayer.Framework.Model;
 using NcmPlayer.Resources;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,35 +16,35 @@ namespace NcmPlayer.Views.Pages
         {
             InitializeComponent();
             DataContext = ResEntry.res;
-            label_songsCount.DataContext = ResEntry.res;
+            label_musicsCount.DataContext = ResEntry.res;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public void UpdateSongsList(List<Song> songs)
+        public void UpdateMusicsList(List<Music> musics)
         {
-            int gridCount = songs.Count;
+            int gridCount = musics.Count;
             for (int index = 0; index < gridCount; index++)
             {
-                Song one = songs[index];
-                ResEntry.wholePlaylist.Add(ResEntry.wholePlaylist.Song2Vis(one));
+                Music one = musics[index];
+                ResEntry.wholePlaylist.Add(ResEntry.wholePlaylist.Music2Vis(one));
                 UpdateInfo();
             }
         }
 
-        public void Play(Song song)
+        public void Play(Music music)
         {
-            UpdateSongsList(new List<Song>() { song });
-            ResEntry.wholePlaylist.Play(ResEntry.wholePlaylist.Song2Vis(song));
+            UpdateMusicsList(new List<Music>() { music });
+            ResEntry.wholePlaylist.Play(ResEntry.wholePlaylist.Music2Vis(music));
         }
 
-        public void Play(string id)
+        public void Play(long id)
         {
             ResEntry.wholePlaylist.Play(id);
             UpdateInfo();
         }
 
-        public void ClearSongs()
+        public void ClearMusics()
         {
             Playlist.Items.Clear();
             ResEntry.wholePlaylist.Clear();
@@ -55,7 +55,7 @@ namespace NcmPlayer.Views.Pages
             Playlist.Items.Clear();
             for (int index = 0; index < ResEntry.wholePlaylist.Count; index++)
             {
-                Playlist.Items.Add(ResEntry.wholePlaylist.GetSongVis(index).View);
+                Playlist.Items.Add(ResEntry.wholePlaylist.GetMusicVis(index).View);
             }
         }
 

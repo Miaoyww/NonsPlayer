@@ -1,5 +1,5 @@
 ﻿using NcmApi;
-using NcmPlayer.CloudMusic;
+using NcmPlayer.Framework.Model;
 using NcmPlayer.Resources;
 using Newtonsoft.Json.Linq;
 using System;
@@ -30,7 +30,7 @@ namespace NcmPlayer.Views.Pages.LoginPage
             {
                 if (int.Parse(DateTime.Now.ToString("yyyyMMdd")) - Login.acc.LastSignin >= 1)
                 {
-                    JObject result = Api.User.DailyTask("1", ResEntry.ncm);
+                    JObject result = Api.User.DailyTask("1", ResEntry.ncm).Result;
                     if (result["code"].ToString() == "-2")
                     {
                         PublicMethod.SnackLog("今天已经完成签到啦", "注意", 2000);
@@ -61,19 +61,19 @@ namespace NcmPlayer.Views.Pages.LoginPage
 
         public void RegetAccountDetail()
         {
-            JObject accountDetail = Api.User.Account(ResEntry.ncm);
+            JObject accountDetail = Api.User.Account(ResEntry.ncm).Result;
             Login.acc.Id = accountDetail["account"]["id"].ToString();
             Login.acc.Name = accountDetail["profile"]["nickname"].ToString();
             Login.acc.FaceUrl = accountDetail["profile"]["avatarUrl"].ToString();
             Login.acc.FaceStream = HttpRequest.StreamHttpGet(Login.acc.FaceUrl).Result;
-            JArray likeListJson = (JArray)Api.User.Likelist(Login.acc.Id, ResEntry.ncm)["ids"];
+            JArray likeListJson = (JArray)Api.User.Likelist(Login.acc.Id, ResEntry.ncm).Result["ids"];
             string ids = string.Empty;
             foreach (int id in likeListJson)
             {
                 Login.acc.likelist.Add(id);
                 ids += id + ",";
             }
-            ResEntry.songInfo.LikeList = Login.acc.likelist;
+            ResEntry.musicInfo.LikeList = Login.acc.likelist;
             MemoryStream ms = new();
             Login.acc.FaceStream.CopyTo(ms);
             Regediter.Regedit("Account", "AccountFace", Convert.ToBase64String(ms.ToArray()));

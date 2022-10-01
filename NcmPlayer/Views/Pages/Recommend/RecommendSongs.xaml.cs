@@ -1,5 +1,5 @@
 ﻿using NcmApi;
-using NcmPlayer.CloudMusic;
+using NcmPlayer.Framework.Model;
 using NcmPlayer.Resources;
 using Newtonsoft.Json.Linq;
 using System;
@@ -17,11 +17,11 @@ using System.Windows.Media.Effects;
 namespace NcmPlayer.Views.Pages.Recommend
 {
     /// <summary>
-    /// RecommendSongs.xaml 的交互逻辑
+    /// RecommendMusics.xaml 的交互逻辑
     /// </summary>
-    public partial class RecommendSongs : Page
+    public partial class RecommendMusics : Page
     {
-        public RecommendSongs()
+        public RecommendMusics()
         {
             InitializeComponent();
             DataContext = ResEntry.res;
@@ -41,7 +41,7 @@ namespace NcmPlayer.Views.Pages.Recommend
             {
                 Stopwatch sw = new();
                 sw.Start();
-                JObject temp = Api.Recommend.Songs(ResEntry.ncm);
+                JObject temp = Api.Recommend.Musics(ResEntry.ncm).Result;
                 sw.Stop();
                 Debug.WriteLine($"获取每日单曲耗时{sw.ElapsedMilliseconds}");
                 JArray result = (JArray)temp["data"]["dailySongs"];
@@ -49,7 +49,7 @@ namespace NcmPlayer.Views.Pages.Recommend
                 sw.Restart();
                 foreach (JObject item in result)
                 {
-                    Song one = new(item, true);
+                    Music one = new(item, true);
                     Debug.WriteLine($"当前加载歌曲: {one.Name}");
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
@@ -70,26 +70,7 @@ namespace NcmPlayer.Views.Pages.Recommend
                             Margin = new Thickness(0, 5, 0, 5)
                         };
                         Grid content = new();
-                        string artists = string.Empty;
-                        if (one.Artists[0] == string.Empty && one.Artists.Length == 1)
-                        {
-                            artists = "未知艺人";
-                        }
-                        else
-                        {
-                            for (int i = 0; i <= one.Artists.Length - 1; i++)
-                            {
-                                if (i != one.Artists.Length - 1)
-                                {
-                                    artists += one.Artists[i] + " / ";
-                                }
-                                else
-                                {
-                                    artists += one.Artists[i];
-                                }
-                            }
-                        }
-
+                        string artists = one.ArtistsName;
                         Border b_cover = new()
                         {
                             HorizontalAlignment = HorizontalAlignment.Left,
@@ -102,7 +83,7 @@ namespace NcmPlayer.Views.Pages.Recommend
                         };
                         Task getCover = new Task(() =>
                         {
-                            Stream coverStream = one.GetCover(50, 50);
+                            Stream coverStream = one.GetPic(50, 50).Result;
                             Dispatcher.BeginInvoke(new Action(() =>
                             {
                                 b_cover.Background = PublicMethod.ConvertBrush(coverStream);
@@ -143,8 +124,8 @@ namespace NcmPlayer.Views.Pages.Recommend
                         content.Children.Add(tblock_Time);
                         corner.Child = content;
                         parent.Child = corner;
-                        SongList.Children.Add(parent);
-                        SongList.Children.Add(new Separator() { BorderThickness = new Thickness(0), Height = 5 });
+                        MusicList.Children.Add(parent);
+                        MusicList.Children.Add(new Separator() { BorderThickness = new Thickness(0), Height = 5 });
                     }));
                 }
                 sw.Stop();
@@ -195,7 +176,7 @@ namespace NcmPlayer.Views.Pages.Recommend
 
         private void Play(object pramparameter)
         {
-            PublicMethod.PagePlaylistBar.Play(pramparameter.ToString());
+            PublicMethod.PagePlaylistBar.Play(int.Parse(pramparameter.ToString()));
         }
     }
 }

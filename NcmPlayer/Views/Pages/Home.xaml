@@ -17,7 +17,7 @@
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Grid>
                     <TextBlock Text="For you" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
-                    <Border x:Name="b_dailySong" HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500" Height="200" Margin="0,70,0,0" Cursor="Hand" PreviewMouseLeftButtonDown="b_dailySong_PreviewMouseLeftButtonDown">
+                    <Border x:Name="b_dailyMusic" HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500" Height="200" Margin="0,70,0,0" Cursor="Hand" PreviewMouseLeftButtonDown="b_dailyMusic_PreviewMouseLeftButtonDown">
                         <Border.Effect>
                             <DropShadowEffect Opacity="0.1" Color="Gray" />
                         </Border.Effect>

@@ -1,5 +1,5 @@
 ﻿using Microsoft.Win32;
-using NcmPlayer.CloudMusic;
+using NcmPlayer.Framework.Model;
 using NcmPlayer.Resources;
 using System;
 using System.Collections.Generic;
@@ -63,26 +63,26 @@ namespace NcmPlayer.Views.Pages
             timer.Elapsed += Timer_Elapsed;
             timer.Start();
 
-            b_image.DataContext = ResEntry.songInfo;
-            tblock_title.DataContext = ResEntry.songInfo;
-            tblock_artists.DataContext = ResEntry.songInfo;
-            slider_postion.DataContext = ResEntry.songInfo;
-            label_currentTime.DataContext = ResEntry.songInfo;
-            label_wholeTime.DataContext = ResEntry.songInfo;
+            b_image.DataContext = ResEntry.musicInfo;
+            tblock_title.DataContext = ResEntry.musicInfo;
+            tblock_artists.DataContext = ResEntry.musicInfo;
+            slider_postion.DataContext = ResEntry.musicInfo;
+            label_currentTime.DataContext = ResEntry.musicInfo;
+            label_wholeTime.DataContext = ResEntry.musicInfo;
 
             try
             {
-                ResEntry.songInfo.Volume = int.Parse(RegGeter.RegGet("Song", "SongVolume").ToString());
-                ResEntry.songInfo.DurationTime = TimeSpan.Parse((string)RegGeter.RegGet("Song", "SongDurationTime"));
-                ResEntry.songInfo.Postion = TimeSpan.Parse((string)RegGeter.RegGet("Song", "SongPostion"));
-                ResEntry.songInfo.Name = (string)RegGeter.RegGet("Song", "SongName");
-                ResEntry.songInfo.Artists = (string)RegGeter.RegGet("Song", "SongArtists");
-                ResEntry.songInfo.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongCover"))));
-                ResEntry.songInfo.FilePath = (string)RegGeter.RegGet("Song", "SongPath");
-                ResEntry.songInfo.AlbumCoverUrl = (string)RegGeter.RegGet("Song", "SongAlbumUrl");
+                ResEntry.musicInfo.Volume = int.Parse(RegGeter.RegGet("Music", "MusicVolume").ToString());
+                ResEntry.musicInfo.DurationTime = TimeSpan.Parse((string)RegGeter.RegGet("Music", "MusicDurationTime"));
+                ResEntry.musicInfo.Postion = TimeSpan.Parse((string)RegGeter.RegGet("Music", "MusicPostion"));
+                ResEntry.musicInfo.Name = (string)RegGeter.RegGet("Music", "MusicName");
+                ResEntry.musicInfo.Artists = (string)RegGeter.RegGet("Music", "MusicArtists");
+                ResEntry.musicInfo.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Music", "MusicCover"))));
+                ResEntry.musicInfo.FilePath = (string)RegGeter.RegGet("Music", "MusicPath");
+                ResEntry.musicInfo.AlbumCoverUrl = (string)RegGeter.RegGet("Music", "MusicAlbumUrl");
 
-                string lrcString = Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Song", "SongLrc")));
-                ResEntry.songInfo.LrcString = lrcString;
+                string lrcString = Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Music", "MusicLrc")));
+                ResEntry.musicInfo.LrcString = lrcString;
                 UpdateLrc(new Lrcs(lrcString));
                 // MusicPlayer.Init(ResEntry.res.CPlayPath);
                 if (listview_lrc.Items.Count == 0)
@@ -101,7 +101,7 @@ namespace NcmPlayer.Views.Pages
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 playerPage.ChangeVisLrc();
-                if (ResEntry.songInfo.IsPlaying)
+                if (ResEntry.musicInfo.IsPlaying)
                 {
                     if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Pause24)
                     {
@@ -189,7 +189,7 @@ namespace NcmPlayer.Views.Pages
                     {
                         break;
                     }
-                    if (ResEntry.songInfo.Postion >= lrcVis[index].ShowTime && index + 1 < lrcVis.Count - 1 && ResEntry.songInfo.Postion < lrcVis[index + 1].ShowTime)
+                    if (ResEntry.musicInfo.Postion >= lrcVis[index].ShowTime && index + 1 < lrcVis.Count - 1 && ResEntry.musicInfo.Postion < lrcVis[index + 1].ShowTime)
                     {
                         Label content = ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]);
                         if (content.Content != "")
@@ -251,7 +251,7 @@ namespace NcmPlayer.Views.Pages
 
         private void SaveImageTo_Click(object sender, RoutedEventArgs e)
         {
-            if (ResEntry.songInfo.AlbumCoverUrl != null)
+            if (ResEntry.musicInfo.AlbumCoverUrl != null)
             {
                 SaveFileDialog sfd = new SaveFileDialog();
                 sfd.Title = "选择保存至的位置";
@@ -262,7 +262,7 @@ namespace NcmPlayer.Views.Pages
                     string path = sfd.FileName;
                     using (WebClient client = new WebClient())
                     {
-                        client.DownloadFileAsync(new Uri(ResEntry.songInfo.AlbumCoverUrl), path);
+                        client.DownloadFileAsync(new Uri(ResEntry.musicInfo.AlbumCoverUrl), path);
                     }
                 }
             }
@@ -290,19 +290,19 @@ namespace NcmPlayer.Views.Pages
 
         private void slider_postion_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            slider_postion.Maximum = ResEntry.songInfo.DurationTimeDouble;
+            slider_postion.Maximum = ResEntry.musicInfo.DurationTimeDouble;
             slider_postion.DataContext = null;
             isUser = true;
         }
 
         private void slider_postion_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            if (!ResEntry.songInfo.IsPlaying)
+            if (!ResEntry.musicInfo.IsPlaying)
             {
                 MusicPlayer.Play();
             }
             MusicPlayer.Position(positionTemp);
-            slider_postion.DataContext = ResEntry.songInfo;
+            slider_postion.DataContext = ResEntry.musicInfo;
             isUser = false;
         }
 

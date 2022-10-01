@@ -8,14 +8,14 @@ namespace NcmPlayer
     {
         public static void Close()
         {
-            Regediter.Regedit("Song", "SongPostion", ResEntry.songInfo.Postion);
-            Regediter.Regedit("Song", "SongPath", ResEntry.songInfo.FilePath);
-            Regediter.Regedit("Song", "SongAlbumUrl", ResEntry.songInfo.AlbumCoverUrl);
-            Regediter.Regedit("Song", "SongDurationTime", ResEntry.songInfo.DurationTime);
-            Regediter.Regedit("Song", "SongVolume", ResEntry.songInfo.Volume);
-            Regediter.Regedit("Song", "SongLrc", Convert.ToBase64String(Encoding.UTF8.GetBytes(ResEntry.songInfo.LrcString)));
-            Regediter.Regedit("Song", "SongName", ResEntry.songInfo.Name);
-            Regediter.Regedit("Song", "SongArtists", ResEntry.songInfo.Artists);
+            Regediter.Regedit("Music", "MusicPostion", ResEntry.musicInfo.Postion);
+            Regediter.Regedit("Music", "MusicPath", ResEntry.musicInfo.FilePath);
+            Regediter.Regedit("Music", "MusicAlbumUrl", ResEntry.musicInfo.AlbumCoverUrl);
+            Regediter.Regedit("Music", "MusicDurationTime", ResEntry.musicInfo.DurationTime);
+            Regediter.Regedit("Music", "MusicVolume", ResEntry.musicInfo.Volume);
+            Regediter.Regedit("Music", "MusicLrc", Convert.ToBase64String(Encoding.UTF8.GetBytes(ResEntry.musicInfo.LrcString)));
+            Regediter.Regedit("Music", "MusicName", ResEntry.musicInfo.Name);
+            Regediter.Regedit("Music", "MusicArtists", ResEntry.musicInfo.Artists);
         }
     }
 }

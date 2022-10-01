@@ -1,5 +1,5 @@
 ﻿using NcmApi;
-using NcmPlayer.CloudMusic;
+using NcmPlayer.Framework.Model;
 using NcmPlayer.Views;
 using NcmPlayer.Views.Pages;
 using Newtonsoft.Json.Linq;
@@ -13,7 +13,7 @@ using System.Windows.Controls;
 
 namespace NcmPlayer.Resources
 {
-    public class SongVis
+    public class MusicVis
     {
         private int selfIndex;
 
@@ -30,11 +30,11 @@ namespace NcmPlayer.Resources
         }
 
         public string Id { get; set; }
-        public Song Song;
+        public Music Music;
         public ListBoxItem View { get; set; }
     }
 
-    public class PlayList
+    public class MusicList
     {
         private int index;
 
@@ -52,29 +52,18 @@ namespace NcmPlayer.Resources
 
         public int Count { get => list.Count; }
 
-        private List<SongVis> list = new List<SongVis>();
+        private List<MusicVis> list = new List<MusicVis>();
 
-        public SongVis Song2Vis(Song song)
+        public MusicVis Music2Vis(Music music)
         {
-            SongVis songvis = new();
-            songvis.Song = song;
+            MusicVis musicvis = new();
+            musicvis.Music = music;
             ListBoxItem listBoxItem = new();
             Grid grid = new Grid();
-            string artists = string.Empty;
-            for (int i = 0; i <= song.Artists.Length - 1; i++)
-            {
-                if (i != song.Artists.Length - 1)
-                {
-                    artists += song.Artists[i] + "/";
-                }
-                else
-                {
-                    artists += song.Artists[i];
-                }
-            }
+            string artists = music.ArtistsName;
             TextBlock tblock_Name = new()
             {
-                Text = song.Name,
+                Text = music.Name,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Center,
                 FontSize = 14,
@@ -89,7 +78,7 @@ namespace NcmPlayer.Resources
             };
             TextBlock tblock_Time = new()
             {
-                Text = song.DuartionTimeString,
+                Text = music.DuartionTimeString,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
                 FontSize = 14
@@ -98,103 +87,91 @@ namespace NcmPlayer.Resources
             grid.Children.Add(tblock_Artists);
             grid.Children.Add(tblock_Time);
             listBoxItem.Content = grid;
-            songvis.Id = song.Id;
-            songvis.View = listBoxItem;
-            return songvis;
+            musicvis.Id = music.Id.ToString();
+            musicvis.View = listBoxItem;
+            return musicvis;
         }
 
-        public void PostSong(SongVis song)
+        public void PostMusic(MusicVis music)
         {
-            song.Index = list.Count - 1;
-            if (IndexOf(song) == -1)
+            music.Index = list.Count - 1;
+            if (IndexOf(music) == -1)
             {
-                list.Add(song);
+                list.Add(music);
                 ResEntry.res.CPlayCount = Count.ToString();
                 UpdateIndex();
             }
         }
 
-        private void PlaySong(int index)
+        private void PlayMusic(int index)
         {
-            Thread playsong = new(_ =>
+            Thread playmusic = new(_ =>
             {
                 if (list.Count != 0)
                 {
-                    Song song = list[index].Song;
-                    string[] artist = song.Artists;
-                    string name = song.Name;
-                    string artists = string.Empty;
-                    Lrcs songLrc = song.GetLrc;
-                    for (int i = 0; i <= artist.Length - 1; i++)
-                    {
-                        if (i != artist.Length - 1)
-                        {
-                            artists += artist[i] + "/";
-                        }
-                        else
-                        {
-                            artists += artist[i];
-                        }
-                    }
+                    Music music = list[index].Music;
+                    string name = music.Name;
+                    string artists = music.ArtistsName;
+                    // Lrcs musicLrc = music.GetLrc;
                     MemoryStream ms = new();
-                    Stream songCover = song.Cover;
-                    songCover.CopyTo(ms);
+                    Stream musicCover = music.GetPic().Result;
+                    musicCover.CopyTo(ms);
                     string b64Cover = Convert.ToBase64String(ms.ToArray());
                     if (!string.IsNullOrEmpty(b64Cover))
                     {
-                        Regediter.Regedit("Song", "SongCover", b64Cover);
+                        Regediter.Regedit("Music", "MusicCover", b64Cover);
                     }
-                    MemoryStream coverStream = new MemoryStream(Convert.FromBase64String(RegGeter.RegGet("Song", "SongCover").ToString()));
-                    string filepath = song.SongUrl;
-                    // string filepath = song.GetMp3();
+                    MemoryStream coverStream = new MemoryStream(Convert.FromBase64String(RegGeter.RegGet("Music", "MusicCover").ToString()));
+                    string filepath = music.Url;
+                    // string filepath = music.GetMp3();
                     MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        ResEntry.songInfo.Cover(coverStream);
-                        ResEntry.songInfo.FilePath = filepath;
-                        ResEntry.songInfo.DurationTime = song.DuartionTime;
-                        ResEntry.songInfo.Id = song.Id;
-                        ResEntry.songInfo.AlbumCoverUrl = song.CoverUrl;
-                        ResEntry.songInfo.AlbumId = song.AlbumId;
-                        ResEntry.songInfo.LrcString = song.GetLrcString;
-                        ResEntry.songInfo.IsLiked = ResEntry.songInfo.LikeList.Exists(t => t == int.Parse(song.Id));
-                        MusicPlayer.RePlay(ResEntry.songInfo.FilePath, name, artists);
+                        ResEntry.musicInfo.Cover(coverStream);
+                        ResEntry.musicInfo.FilePath = filepath;
+                        ResEntry.musicInfo.DurationTime = music.DuartionTime;
+                        ResEntry.musicInfo.Id = music.Id.ToString();
+                        ResEntry.musicInfo.AlbumCoverUrl = music.PicUrl;
+                        ResEntry.musicInfo.AlbumId = music.Album.Id.ToString();
+                        // ResEntry.musicInfo.LrcString = music.GetLrcString;
+                        ResEntry.musicInfo.IsLiked = ResEntry.musicInfo.LikeList.Exists(t => t == music.Id);
+                        MusicPlayer.RePlay(ResEntry.musicInfo.FilePath, name, artists);
                         Player.playerPage.ClearLrc();
-                        Player.playerPage.UpdateLrc(songLrc);
+                        // Player.playerPage.UpdateLrc(musicLrc);
 
                         Index = index;
                         UpdateIndex();
                     }));
                 }
             });
-            playsong.IsBackground = true;
-            playsong.Start();
+            playmusic.IsBackground = true;
+            playmusic.Start();
         }
 
-        public void Play(int index)
+        public void PlayByIndex(int index)
         {
-            PlaySong(index);
+            PlayMusic(index);
         }
 
-        public void Play(SongVis song)
+        public void Play(MusicVis music)
         {
-            int tempIndex = IndexOf(song);
+            int tempIndex = IndexOf(music);
             if (tempIndex != -1)
             {
-                PlaySong(tempIndex);
+                PlayMusic(tempIndex);
             }
         }
 
-        public void Play(string id)
+        public void Play(long id)
         {
             int tempIndex = IndexOf(id);
             if (tempIndex != -1)
             {
-                PlaySong(tempIndex);
+                PlayMusic(tempIndex);
             }
             else
             {
-                PostSong(Song2Vis(new Song(id)));
-                PlaySong(Count - 1);
+                PostMusic(Music2Vis(new Music(id)));
+                PlayMusic(Count - 1);
             }
         }
 
@@ -205,11 +182,11 @@ namespace NcmPlayer.Resources
                 int preCount = Index - 1;
                 if (preCount >= 0)
                 {
-                    Play(preCount);
+                    PlayByIndex(preCount);
                 }
                 else
                 {
-                    Play(Count - 1);
+                    PlayByIndex(Count - 1);
                 }
             }
         }
@@ -221,11 +198,11 @@ namespace NcmPlayer.Resources
                 int preCount = Index + 1;
                 if (preCount <= Count - 1)
                 {
-                    Play(preCount);
+                    PlayByIndex(preCount);
                 }
                 else
                 {
-                    Play(0);
+                    PlayByIndex(0);
                 }
             }
         }
@@ -234,15 +211,15 @@ namespace NcmPlayer.Resources
         {
             if (Count != 0)
             {
-                bool isliked = ResEntry.songInfo.LikeList.Exists(t => t == int.Parse(ResEntry.songInfo.Id));
-                JObject result = Api.Song.Like(
-                    ResEntry.songInfo.Id,
+                bool isliked = ResEntry.musicInfo.LikeList.Exists(t => t == int.Parse(ResEntry.musicInfo.Id));
+                JObject result = Api.Music.Like(
+                    ResEntry.musicInfo.Id,
                     !isliked,
                     ResEntry.ncm
-                    );
+                    ).Result;
                 if ((int)result["code"] == 200)
                 {
-                    JArray likeListJson = (JArray)Api.User.Likelist(Login.acc.Id, ResEntry.ncm)["ids"];
+                    JArray likeListJson = (JArray)Api.User.Likelist(Login.acc.Id, ResEntry.ncm).Result["ids"];
                     string ids = string.Empty;
                     Login.acc.likelist.Clear();
                     foreach (int id in likeListJson)
@@ -250,8 +227,8 @@ namespace NcmPlayer.Resources
                         Login.acc.likelist.Add(id);
                     }
                     Regediter.Regedit("Account", "Likelist", Convert.ToBase64String(Encoding.UTF8.GetBytes(ids)));
-                    ResEntry.songInfo.LikeList = Login.acc.likelist;
-                    ResEntry.songInfo.IsLiked = true;
+                    ResEntry.musicInfo.LikeList = Login.acc.likelist;
+                    ResEntry.musicInfo.IsLiked = true;
                 }
                 else
                 {
@@ -265,12 +242,12 @@ namespace NcmPlayer.Resources
             list.Clear();
         }
 
-        public void Add(SongVis newone)
+        public void Add(MusicVis newone)
         {
-            PostSong(newone);
+            PostMusic(newone);
         }
 
-        public void Remove(SongVis removing)
+        public void Remove(MusicVis removing)
         {
             list.Remove(removing);
             UpdateIndex();
@@ -282,12 +259,12 @@ namespace NcmPlayer.Resources
             UpdateIndex();
         }
 
-        public int IndexOf(SongVis song)
+        public int IndexOf(MusicVis music)
         {
             for (int index = 0; index < list.Count; index++)
             {
-                SongVis item = list[index];
-                if (item.Id == song.Id)
+                MusicVis item = list[index];
+                if (item.Id == music.Id)
                 {
                     return index;
                 }
@@ -295,12 +272,12 @@ namespace NcmPlayer.Resources
             return -1;
         }
 
-        public int IndexOf(string id)
+        public int IndexOf(long id)
         {
             for (int index = 0; index < list.Count; index++)
             {
-                SongVis item = list[index];
-                if (item.Id == id)
+                MusicVis item = list[index];
+                if (item.Id == id.ToString())
                 {
                     return index;
                 }
@@ -308,7 +285,7 @@ namespace NcmPlayer.Resources
             return -1;
         }
 
-        public SongVis GetSongVis(int index)
+        public MusicVis GetMusicVis(int index)
         {
             return list[index];
         }

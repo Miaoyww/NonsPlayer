@@ -44,7 +44,7 @@ namespace NcmPlayer.Views.Pages
                     likelist.Add(int.Parse(id));
                 }
             }
-            ResEntry.songInfo.LikeList = likelist;
+            ResEntry.musicInfo.LikeList = likelist;
             CheckLogin();
         }
 

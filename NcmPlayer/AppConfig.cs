@@ -10,32 +10,32 @@ namespace NcmPlayer
 
         public static string ApiUrl = "http://localhost:3000";
 
-        // public static string SongsDirectory = $"{AppDomain.CurrentDomain.SetupInformation.ApplicationBase}songs\\";
+        // public static string MusicsDirectory = $"{AppDomain.CurrentDomain.SetupInformation.ApplicationBase}musics\\";
 
-        public static string songsDirectory;
+        public static string musicsDirectory;
 
-        public static string SongsDirectory
+        public static string MusicsDirectory
         {
             get
             {
-                if (string.IsNullOrEmpty(songsDirectory))
+                if (string.IsNullOrEmpty(musicsDirectory))
                 {
                     if (Directory.Exists("D:\\"))
                     {
-                        songsDirectory = "D:\\NcmSongs\\";
+                        musicsDirectory = "D:\\NcmMusics\\";
                     }
                     else
                     {
-                        songsDirectory = "C:\\NcmSongs\\";
+                        musicsDirectory = "C:\\NcmMusics\\";
                     }
                 }
-                return songsDirectory;
+                return musicsDirectory;
             }
         }
 
-        public static string SongsPath(string id, string type)
+        public static string MusicsPath(string id, string type)
         {
-            return $"{SongsDirectory}{id}.{type}";
+            return $"{MusicsDirectory}{id}.{type}";
         }
     }
 }

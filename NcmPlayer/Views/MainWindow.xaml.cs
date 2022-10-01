@@ -1,4 +1,4 @@
-﻿using NcmPlayer.CloudMusic;
+﻿using NcmPlayer.Framework.Model;
 using NcmPlayer.Resources;
 using System;
 using System.Timers;
@@ -29,13 +29,13 @@ namespace NcmPlayer.Views
             acc = this;
             btn_like.DataContext = ResEntry.res;
 
-            btn_albumPic.DataContext = ResEntry.songInfo;
-            tblock_artists.DataContext = ResEntry.songInfo;
-            tblock_title.DataContext = ResEntry.songInfo;
-            slider_volume.DataContext = ResEntry.songInfo;
-            label_currentTime.DataContext = ResEntry.songInfo;
-            label_wholeTime.DataContext = ResEntry.songInfo;
-            slider_postion.DataContext = ResEntry.songInfo;
+            btn_albumPic.DataContext = ResEntry.musicInfo;
+            tblock_artists.DataContext = ResEntry.musicInfo;
+            tblock_title.DataContext = ResEntry.musicInfo;
+            slider_volume.DataContext = ResEntry.musicInfo;
+            label_currentTime.DataContext = ResEntry.musicInfo;
+            label_wholeTime.DataContext = ResEntry.musicInfo;
+            slider_postion.DataContext = ResEntry.musicInfo;
             PublicMethod.Init(this);
             timer.Interval = 50;
             timer.Elapsed += Timer_Elapsed;
@@ -48,7 +48,7 @@ namespace NcmPlayer.Views
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 // ui更新
-                if (ResEntry.songInfo.IsLiked)
+                if (ResEntry.musicInfo.IsLiked)
                 {
                     if (!btn_like.IconFilled)
                     {
@@ -65,7 +65,7 @@ namespace NcmPlayer.Views
                     }
                 }
 
-                if (ResEntry.songInfo.IsPlaying)
+                if (ResEntry.musicInfo.IsPlaying)
                 {
                     if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Pause24)
                     {
@@ -80,7 +80,7 @@ namespace NcmPlayer.Views
                     }
                 }
 
-                if (string.IsNullOrEmpty(ResEntry.songInfo.Name))
+                if (string.IsNullOrEmpty(ResEntry.musicInfo.Name))
                 {
                     if (Title != "当前未播放音乐 -NcmPlayer")
                     {
@@ -89,9 +89,9 @@ namespace NcmPlayer.Views
                 }
                 else
                 {
-                    if (Title != $"{ResEntry.songInfo.Name} - {ResEntry.songInfo.Artists}")
+                    if (Title != $"{ResEntry.musicInfo.Name} - {ResEntry.musicInfo.Artists}")
                     {
-                        Title = $"{ResEntry.songInfo.Name} - {ResEntry.songInfo.Artists}";
+                        Title = $"{ResEntry.musicInfo.Name} - {ResEntry.musicInfo.Artists}";
                     }
                 }
 
@@ -239,13 +239,13 @@ namespace NcmPlayer.Views
         {
             if (isUser)
             {
-                ResEntry.songInfo.Volume = (int)slider_volume.Value;
+                ResEntry.musicInfo.Volume = (int)slider_volume.Value;
             }
         }
 
         private void btn_volume_Click(object sender, RoutedEventArgs e)
         {
-            if (ResEntry.songInfo.Volume != 0)
+            if (ResEntry.musicInfo.Volume != 0)
             {
                 lastVolume = slider_volume.Value;
                 slider_volume.Value = 0;
@@ -279,19 +279,19 @@ namespace NcmPlayer.Views
 
         private void slider_postion_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            slider_postion.Maximum = ResEntry.songInfo.DurationTimeDouble;
+            slider_postion.Maximum = ResEntry.musicInfo.DurationTimeDouble;
             slider_postion.DataContext = null;
             isUser = true;
         }
 
         private void slider_postion_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            if (!ResEntry.songInfo.IsPlaying)
+            if (!ResEntry.musicInfo.IsPlaying)
             {
                 MusicPlayer.Play();
             }
             MusicPlayer.Position(positionTemp);
-            slider_postion.DataContext = ResEntry.songInfo;
+            slider_postion.DataContext = ResEntry.musicInfo;
             isUser = false;
         }
 
@@ -308,7 +308,7 @@ namespace NcmPlayer.Views
         {
             if (e.Key == System.Windows.Input.Key.Enter)
             {
-                Tool.OpenPlayListDetail(((TextBox)sender).Text);
+                Tool.OpenPlayListDetail(int.Parse(((TextBox)sender).Text));
             }
         }
     }

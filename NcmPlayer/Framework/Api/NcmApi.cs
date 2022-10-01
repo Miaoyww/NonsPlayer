@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace NcmApi;
 
@@ -50,7 +51,7 @@ public class Ncm
 
     public void Login(string email, string password)
     {
-        JObject result = Api.Login.Email(email, password, this);
+        JObject result = Api.Login.Email(email, password, this).Result;
         if ((int)result["code"] == 502)
         {
             throw new LoginFailed("账号或密码错误");
@@ -63,7 +64,7 @@ public class Ncm
 
     public void Login(int phone, string password)
     {
-        JObject result = Api.Login.PhonePsw(phone, password, this);
+        JObject result = Api.Login.PhonePsw(phone, password, this).Result;
         if ((int)result["code"] == 502)
         {
             throw new LoginFailed("账号或密码错误");
@@ -76,7 +77,7 @@ public class Ncm
 
     public void Login(int phone, int captcha)
     {
-        JObject result = Api.Login.PhoneVer(phone, captcha, this);
+        JObject result = Api.Login.PhoneVer(phone, captcha, this).Result;
         if ((int)result["code"] == 502)
         {
             throw new LoginFailed("账号或密码错误");
@@ -149,14 +150,14 @@ public static class Api
 {
     public static class Playlist
     {
-        public static JObject Detail(string id, Ncm ncm)
+        public static async Task<JObject> Detail(long id, Ncm ncm)
         {
             string _URL = $"https://music.163.com/api/v6/playlist/detail";
             HttpContent data = new StringContent($"id={id}&n=100000");
             return ncm.Request(HttpMethod.Post, _URL, ncm.DefaultContent(data));
         }
 
-        public static JObject Personalized(Ncm ncm, int limit = 30)
+        public static async Task<JObject> Personalized(Ncm ncm, int limit = 30)
         {
             string _URL = $"https://music.163.com/api/personalized/playlist";
             HttpContent data = new StringContent($"limit={limit}&total=true&n=1000");
@@ -164,9 +165,9 @@ public static class Api
         }
     }
 
-    public static class Song
+    public static class Music
     {
-        public static JObject Detail(string[] ids, Ncm ncm)
+        public static async Task<JObject> Detail(long[] ids, Ncm ncm)
         {
             string dataString = "[";
             for (int index = 0; index <= ids.Length - 1; index++)
@@ -185,7 +186,7 @@ public static class Api
             return ncm.Request(HttpMethod.Post, _URL, ncm.DefaultContent(data));
         }
 
-        public static JObject Url(string[] ids, Ncm ncm)
+        public static async Task<JObject> Url(long[] ids, Ncm ncm)
         {
             string _URL = "http://music.163.com/api/song/enhance/player/url";
             string idsBody = "ids=[";
@@ -211,7 +212,7 @@ public static class Api
             return ncm.Request(HttpMethod.Post, _URL, data);
         }
 
-        public static JObject Like(string id, bool like, Ncm ncm)
+        public static async Task<JObject> Like(string id, bool like, Ncm ncm)
         {
             string _URL = "https://music.163.com/api/radio/like";
             HttpContent data = new StringContent($"alg=itembased&trackId={id}&like={like}&time=3");
@@ -221,7 +222,7 @@ public static class Api
 
     public static class Lyric
     {
-        public static JObject Lrc(string id, Ncm ncm)
+        public static async Task<JObject> Lrc(string id, Ncm ncm)
         {
             string _URL = "https://music.163.com/api/song/lyric?_nmclfl=1";
             string resBody = $"id={id}&tv=-1&lv=-1&rv=-1&kv=-1";
@@ -232,7 +233,7 @@ public static class Api
 
     public static class Login
     {
-        public static JObject Email(string email, string password, Ncm ncm)
+        public static async Task<JObject> Email(string email, string password, Ncm ncm)
         {
             string _URL = "https://music.163.com/api/login";
             string pswMD5 = ncm.MD5(password);
@@ -241,7 +242,7 @@ public static class Api
             return ncm.Request(HttpMethod.Post, _URL, ncm.DefaultContent(data));
         }
 
-        public static JObject PhonePsw(int phone, string password, Ncm ncm, int countryCode = 86)
+        public static async Task<JObject> PhonePsw(int phone, string password, Ncm ncm, int countryCode = 86)
         {
             string _URL = "https://music.163.com/api/login/cellphone";
             string pswMD5 = ncm.MD5(password);
@@ -250,7 +251,7 @@ public static class Api
             return ncm.Request(HttpMethod.Post, _URL, ncm.DefaultContent(data));
         }
 
-        public static JObject PhoneVer(int phone, int captcha, Ncm ncm, int countryCode = 86)
+        public static async Task<JObject> PhoneVer(int phone, int captcha, Ncm ncm, int countryCode = 86)
         {
             string _URL = "https://music.163.com/api/login/cellphone";
             string resBody = $"phone={phone}&countryCode={countryCode}&captcha={captcha}&rememberLogin=true";
@@ -261,26 +262,26 @@ public static class Api
 
     public static class User
     {
-        public static JObject Detail(string id, Ncm ncm)
+        public static async Task<JObject> Detail(string id, Ncm ncm)
         {
             string _URL = $"https://music.163.com/api/v1/user/detail/{id}";
             return ncm.Request(HttpMethod.Post, _URL);
         }
 
-        public static JObject Account(Ncm ncm)
+        public static async Task<JObject> Account(Ncm ncm)
         {
             string _URL = "https://music.163.com/api/nuser/account/get";
             return ncm.Request(HttpMethod.Post, _URL);
         }
 
-        public static JObject DailyTask(string type, Ncm ncm)
+        public static async Task<JObject> DailyTask(string type, Ncm ncm)
         {
             string _URL = "https://music.163.com/api/point/dailyTask";
             HttpContent data = new StringContent($"type={type}");
             return ncm.Request(HttpMethod.Post, _URL, data);
         }
 
-        public static JObject Likelist(string id, Ncm ncm)
+        public static async Task<JObject> Likelist(string id, Ncm ncm)
         {
             string _URL = "https://music.163.com/api/song/like/get";
             HttpContent data = new StringContent($"uid={id}");
@@ -290,13 +291,13 @@ public static class Api
 
     public static class Recommend
     {
-        public static JObject Resource(Ncm ncm)
+        public static async Task<JObject> Resource(Ncm ncm)
         {
             string _URL = "https://music.163.com/weapi/v1/discovery/recommend/resource";
             return ncm.Request(HttpMethod.Post, _URL);
         }
 
-        public static JObject Songs(Ncm ncm)
+        public static async Task<JObject> Musics(Ncm ncm)
         {
             string _URL = "https://music.163.com/api/v3/discovery/recommend/songs";
             return ncm.Request(HttpMethod.Post, _URL);

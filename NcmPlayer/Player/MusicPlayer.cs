@@ -26,9 +26,9 @@ namespace NcmPlayer
         {
             try
             {
-                mfr = new MediaFoundationReader(ResEntry.songInfo.FilePath);
-                outputDevice.Volume = ResEntry.songInfo.Volume;
-                mfr.Position = ResEntry.songInfo.Postion.Ticks;
+                mfr = new MediaFoundationReader(ResEntry.musicInfo.FilePath);
+                outputDevice.Volume = ResEntry.musicInfo.Volume;
+                mfr.Position = ResEntry.musicInfo.Postion.Ticks;
             }
             catch
             {
@@ -37,13 +37,13 @@ namespace NcmPlayer
 
         private static void Player_MediaEnded(object sender, System.Windows.RoutedEventArgs e)
         {
-            ResEntry.songInfo.IsPlaying = false;
+            ResEntry.musicInfo.IsPlaying = false;
             ResEntry.wholePlaylist.Next();
         }
 
         private static void Player_MediaOpened(object sender, System.Windows.RoutedEventArgs e)
         {
-            ResEntry.songInfo.IsPlaying = true;
+            ResEntry.musicInfo.IsPlaying = true;
         }
 
         // 信息更新
@@ -56,7 +56,7 @@ namespace NcmPlayer
                     if (outputDevice.PlaybackState == PlaybackState.Playing)
                     {
                         TimeSpan convered = TimeSpan.FromSeconds(mfr.Position / outputDevice.OutputWaveFormat.BitsPerSample / outputDevice.OutputWaveFormat.Channels * 8.0 / outputDevice.OutputWaveFormat.SampleRate);
-                        ResEntry.songInfo.Postion = convered;
+                        ResEntry.musicInfo.Postion = convered;
                     }
                 }
             }));
@@ -64,8 +64,8 @@ namespace NcmPlayer
 
         public static void RePlay(string path, string name, string artists)
         {
-            ResEntry.songInfo.Name = name;
-            ResEntry.songInfo.Artists = artists;
+            ResEntry.musicInfo.Name = name;
+            ResEntry.musicInfo.Artists = artists;
             if (outputDevice == null)
             {
                 outputDevice = new WaveOutEvent();
@@ -74,7 +74,7 @@ namespace NcmPlayer
             {
                 mfr = new MediaFoundationReader(path);
                 outputDevice.Init(mfr);
-                outputDevice.Volume = (float)ResEntry.songInfo.Volume / 100;
+                outputDevice.Volume = (float)ResEntry.musicInfo.Volume / 100;
             }
             else
             {
@@ -83,7 +83,7 @@ namespace NcmPlayer
                     outputDevice.Stop();
                     mfr = new MediaFoundationReader(path);
                     outputDevice.Init(mfr);
-                    outputDevice.Volume = (float)ResEntry.songInfo.Volume / 100;
+                    outputDevice.Volume = (float)ResEntry.musicInfo.Volume / 100;
                 }
             }
             Play(true, path);
@@ -95,23 +95,23 @@ namespace NcmPlayer
             {
                 if (re)
                 {
-                    ResEntry.songInfo.IsPlaying = true;
+                    ResEntry.musicInfo.IsPlaying = true;
                     mfr.Position = TimeSpan.Zero.Ticks;
                     outputDevice.Play();
                 }
                 else
                 {
-                    if (!ResEntry.songInfo.IsPlaying)
+                    if (!ResEntry.musicInfo.IsPlaying)
                     {
                         outputDevice.Play();
-                        ResEntry.songInfo.IsPlaying = true;
-                        // ResEntry.songInfo.DurationTime = outputDevice.GetPositionTimeSpan
+                        ResEntry.musicInfo.IsPlaying = true;
+                        // ResEntry.musicInfo.DurationTime = outputDevice.GetPositionTimeSpan
                     }
                     else
                     {
                         outputDevice.Pause();
-                        ResEntry.songInfo.IsPlaying = false;
-                        // ResEntry.songInfo.DurationTime = player.NaturalDuration.TimeSpan;
+                        ResEntry.musicInfo.IsPlaying = false;
+                        // ResEntry.musicInfo.DurationTime = player.NaturalDuration.TimeSpan;
                     }
                 }
             }
@@ -130,12 +130,12 @@ namespace NcmPlayer
 
         public static void Position(double position)
         {
-            if (ResEntry.songInfo.IsPlaying)
+            if (ResEntry.musicInfo.IsPlaying)
             {
                 long pos = (long)(position * 10) * outputDevice.OutputWaveFormat.BitsPerSample * outputDevice.OutputWaveFormat.Channels * outputDevice.OutputWaveFormat.SampleRate / 8 / 10;
                 mfr.Position = pos;
                 TimeSpan convered = TimeSpan.FromSeconds(mfr.Position / outputDevice.OutputWaveFormat.BitsPerSample / outputDevice.OutputWaveFormat.Channels * 8.0 / outputDevice.OutputWaveFormat.SampleRate);
-                ResEntry.songInfo.Postion = convered;
+                ResEntry.musicInfo.Postion = convered;
             }
         }
     }

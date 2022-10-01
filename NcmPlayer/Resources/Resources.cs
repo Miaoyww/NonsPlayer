@@ -29,7 +29,7 @@ namespace NcmPlayer.Resources
             }
         }
 
-        public RecommendSongs recommendSongs;
+        public RecommendMusics recommendMusics;
 
         #region 播放列表
 

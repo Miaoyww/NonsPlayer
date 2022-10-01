@@ -1,5 +1,5 @@
 ﻿using NcmApi;
-using NcmPlayer.CloudMusic;
+using NcmPlayer.Framework.Model;
 using NcmPlayer.Resources;
 using Newtonsoft.Json.Linq;
 using System;
@@ -20,7 +20,7 @@ namespace NcmPlayer.Views.Pages
             DataContext = ResEntry.res;
             UpdateTopPlaylist();
 
-            b_dailySong.DataContext = ResEntry.res;
+            b_dailyMusic.DataContext = ResEntry.res;
         }
 
         private StackPanel getStackPanel(string title, string id, Stream cover)
@@ -60,14 +60,14 @@ namespace NcmPlayer.Views.Pages
 
         private void OpenNewPlaylist(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            Tool.OpenPlayListDetail(((Border)sender).Tag.ToString());
+            Tool.OpenPlayListDetail(long.Parse(((Border)sender).Tag.ToString()));
         }
 
         public void UpdateTopPlaylist()
         {
             Thread mainThread = new(() =>
             {
-                JObject response = Api.Playlist.Personalized(ResEntry.ncm, 20);
+                JObject response = Api.Playlist.Personalized(ResEntry.ncm, 20).Result;
                 if ((int)response["code"] == 200)
                 {
                     JArray playlists = (JArray)response["result"];
@@ -96,13 +96,13 @@ namespace NcmPlayer.Views.Pages
             mainThread.Start();
         }
 
-        private void b_dailySong_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void b_dailyMusic_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (ResEntry.res.recommendSongs == null)
+            if (ResEntry.res.recommendMusics == null)
             {
-                ResEntry.res.recommendSongs = new();
+                ResEntry.res.recommendMusics = new();
             }
-            PublicMethod.ChangePage(ResEntry.res.recommendSongs);
+            PublicMethod.ChangePage(ResEntry.res.recommendMusics);
         }
     }
 }

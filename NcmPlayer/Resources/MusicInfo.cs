@@ -7,7 +7,7 @@ using System.Windows.Media.Imaging;
 
 namespace NcmPlayer.Resources
 {
-    public class SongInfo : INotifyPropertyChanged
+    public class MusicInfo : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 

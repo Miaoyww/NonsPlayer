@@ -34,28 +34,28 @@ namespace NcmPlayer
 
             #endregion 基础路径
 
-            #region Song路径
+            #region Music路径
 
-            JObject songPath = new();
-            songPath.Add("SongPostion", "");
-            songPath.Add("SongDurationTime", "");
-            songPath.Add("SongName", "");
-            songPath.Add("SongArtists", "");
-            songPath.Add("SongVolume", 50);
-            songPath.Add("SongCover", "");
-            songPath.Add("SongPath", "");
-            songPath.Add("SongAlbumUrl", "");
-            songPath.Add("SongLrc", "");
-            properties = songPath.Properties();
+            JObject musicPath = new();
+            musicPath.Add("MusicPostion", "");
+            musicPath.Add("MusicDurationTime", "");
+            musicPath.Add("MusicName", "");
+            musicPath.Add("MusicArtists", "");
+            musicPath.Add("MusicVolume", 50);
+            musicPath.Add("MusicCover", "");
+            musicPath.Add("MusicPath", "");
+            musicPath.Add("MusicAlbumUrl", "");
+            musicPath.Add("MusicLrc", "");
+            properties = musicPath.Properties();
             foreach (JProperty key in properties)
             {
-                if (RegGeter.RegGet("Song", key.Name) == null)
+                if (RegGeter.RegGet("Music", key.Name) == null)
                 {
-                    Regediter.Regedit("Song", key.Name, key.Value);
+                    Regediter.Regedit("Music", key.Name, key.Value);
                 }
             }
 
-            #endregion Song路径
+            #endregion Music路径
 
             #region 账号路径
 

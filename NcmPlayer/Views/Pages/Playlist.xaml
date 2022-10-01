@@ -50,14 +50,14 @@
                         </ScrollViewer>
                     </StackPanel>
                     <Grid Margin="0,330,0,0">
-                        <TextBlock x:Name="PlaylistSongsCount" Text="加载中" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
+                        <TextBlock x:Name="PlaylistMusicsCount" Text="加载中" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
                         <TextBlock x:Name="PlaylistCreator" Text="创建人" HorizontalAlignment="Left" VerticalAlignment="Bottom" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
                         <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
                     </Grid>
                 </Grid>
             </Grid>
-            <ScrollViewer Margin="315,66,10,0" Focusable="False" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" PreviewMouseDoubleClick="Songs_PreviewMouseDoubleClick">
-                <StackPanel x:Name="Songs" VerticalAlignment="Center" />
+            <ScrollViewer Margin="315,66,10,0" Focusable="False" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" PreviewMouseDoubleClick="Musics_PreviewMouseDoubleClick">
+                <StackPanel x:Name="Musics" VerticalAlignment="Center" />
             </ScrollViewer>
             <TextBlock x:Name="PlaylistName" Text="加载中" TextTrimming="WordEllipsis" ToolTip="" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="40" Margin="315,10,0,0" />
         </Grid>
