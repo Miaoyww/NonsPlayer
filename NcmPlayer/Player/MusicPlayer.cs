@@ -12,7 +12,6 @@ namespace NcmPlayer
         private static WaveOutEvent outputDevice;
         private static MediaFoundationReader mfr;
         public static Timer updateInfo = new();
-        private static bool isInited = false;
 
         public static void InitPlayer()
         {
@@ -33,17 +32,6 @@ namespace NcmPlayer
             catch
             {
             }
-        }
-
-        private static void Player_MediaEnded(object sender, System.Windows.RoutedEventArgs e)
-        {
-            ResEntry.musicInfo.IsPlaying = false;
-            ResEntry.wholePlaylist.Next();
-        }
-
-        private static void Player_MediaOpened(object sender, System.Windows.RoutedEventArgs e)
-        {
-            ResEntry.musicInfo.IsPlaying = true;
         }
 
         // 信息更新
