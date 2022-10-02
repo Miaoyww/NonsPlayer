@@ -2,17 +2,26 @@
 using NcmPlayer.Resources;
 using NcmPlayer.Views;
 using System;
+using System.ComponentModel;
 using System.Timers;
 
 namespace NcmPlayer.Framework.Player
 {
-    public static class MusicPlayer
+    public class MusicPlayer: INotifyPropertyChanged
     {
-        private static WaveOutEvent outputDevice;
-        private static MediaFoundationReader mfr;
-        public static Timer updateInfo = new();
+        public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
-        public static void InitPlayer()
+        private WaveOutEvent outputDevice;
+        private MediaFoundationReader mfr;
+        private Timer updateInfo = new();
+
+        private bool isPlaying;
+
+        public bool IsPlaying
+        {
+        }
+
+        public void InitPlayer()
         {
             outputDevice = new();
             updateInfo.Elapsed += Timer_Elapsed;
@@ -20,13 +29,13 @@ namespace NcmPlayer.Framework.Player
             updateInfo.Start();
         }
 
-        public static void Reload()
+        public void Reload()
         {
 
         }
 
         // 信息更新
-        public static void Timer_Elapsed(object? sender, ElapsedEventArgs e)
+        public void Timer_Elapsed(object? sender, ElapsedEventArgs e)
         {
             MainWindow.acc.Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -41,7 +50,7 @@ namespace NcmPlayer.Framework.Player
             }));
         }
 
-        public static void RePlay(string path, string name, string artists)
+        public void RePlay(string path, string name, string artists)
         {
             ResEntry.musicInfo.Name = name;
             ResEntry.musicInfo.Artists = artists;
@@ -68,7 +77,7 @@ namespace NcmPlayer.Framework.Player
             Play(true, path);
         }
 
-        public static void Play(bool re = false, string url = null)
+        public void Play(bool re = false, string url = null)
         {
             try
             {
@@ -99,7 +108,7 @@ namespace NcmPlayer.Framework.Player
             }
         }
 
-        public static void Volume(double volume)
+        public void Volume(double volume)
         {
             if (outputDevice != null)
             {
@@ -107,7 +116,7 @@ namespace NcmPlayer.Framework.Player
             }
         }
 
-        public static void Position(double position)
+        public void Position(double position)
         {
             if (ResEntry.musicInfo.IsPlaying)
             {

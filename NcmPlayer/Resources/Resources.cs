@@ -6,7 +6,7 @@ using Wpf.Ui.Appearance;
 
 namespace NcmPlayer.Resources
 {
-    public class Resources : INotifyPropertyChanged
+    public class Resources: INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
