@@ -1,11 +1,10 @@
-﻿using NAudio.Utils;
-using NAudio.Wave;
+﻿using NAudio.Wave;
 using NcmPlayer.Resources;
 using NcmPlayer.Views;
 using System;
 using System.Timers;
 
-namespace NcmPlayer
+namespace NcmPlayer.Framework.Player
 {
     public static class MusicPlayer
     {

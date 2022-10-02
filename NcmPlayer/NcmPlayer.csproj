@@ -24,8 +24,4 @@
     <Resource Include="Assets\NetaseCloudMusic.png" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Framework\Enums\" />
-  </ItemGroup>
-
 </Project>
