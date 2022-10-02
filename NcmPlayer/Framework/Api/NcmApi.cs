@@ -90,7 +90,7 @@ public class Ncm
 
     #endregion 登录
 
-    public JObject Request(HttpMethod method, string url, HttpContent postData = null)
+    public JObject Request(HttpMethod method, string url, HttpContent? postData = null)
     {
         HttpRequestMessage msg = new(method, url);
         List<string> cookie = new List<string>();

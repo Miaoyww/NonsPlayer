@@ -1,4 +1,5 @@
-﻿using NcmPlayer.Framework.Model;
+﻿using NcmApi;
+using NcmPlayer.Framework.Model;
 using NcmPlayer.Resources;
 using System;
 using System.Timers;
@@ -29,13 +30,13 @@ namespace NcmPlayer.Views
             acc = this;
             btn_like.DataContext = ResEntry.res;
 
-            btn_albumPic.DataContext = ResEntry.musicInfo;
-            tblock_artists.DataContext = ResEntry.musicInfo;
-            tblock_title.DataContext = ResEntry.musicInfo;
-            slider_volume.DataContext = ResEntry.musicInfo;
-            label_currentTime.DataContext = ResEntry.musicInfo;
-            label_wholeTime.DataContext = ResEntry.musicInfo;
-            slider_postion.DataContext = ResEntry.musicInfo;
+            btn_albumPic.DataContext = ResEntry.musicPlayer;
+            tblock_artists.DataContext = ResEntry.musicPlayer;
+            tblock_title.DataContext = ResEntry.musicPlayer;
+            slider_volume.DataContext = ResEntry.musicPlayer;
+            label_currentTime.DataContext = ResEntry.musicPlayer;
+            label_wholeTime.DataContext = ResEntry.musicPlayer;
+            slider_postion.DataContext = ResEntry.musicPlayer;
             PublicMethod.Init(this);
             timer.Interval = 50;
             timer.Elapsed += Timer_Elapsed;
@@ -65,7 +66,7 @@ namespace NcmPlayer.Views
                     }
                 }
 
-                if (ResEntry.musicInfo.IsPlaying)
+                if (ResEntry.musicPlayer.IsPlaying)
                 {
                     if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Pause24)
                     {
@@ -274,24 +275,24 @@ namespace NcmPlayer.Views
         {
             // isUser = true;
             var value = (e.GetPosition(slider_postion).X / slider_postion.ActualWidth) * (slider_postion.Maximum - slider_postion.Minimum);
-            MusicPlayer.Position(value);
+            ResEntry.musicPlayer.SetPosition(value);
         }
 
         private void slider_postion_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            slider_postion.Maximum = ResEntry.musicInfo.DurationTimeDouble;
+            slider_postion.Maximum = ResEntry.musicPlayer.DurationTimeDouble;
             slider_postion.DataContext = null;
             isUser = true;
         }
 
         private void slider_postion_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            if (!ResEntry.musicInfo.IsPlaying)
+            if (!ResEntry.musicPlayer.IsPlaying)
             {
-                MusicPlayer.Play();
+                ResEntry.musicPlayer.Play();
             }
-            MusicPlayer.Position(positionTemp);
-            slider_postion.DataContext = ResEntry.musicInfo;
+            ResEntry.musicPlayer.SetPosition(positionTemp);
+            slider_postion.DataContext = ResEntry.musicPlayer;
             isUser = false;
         }
 
@@ -308,7 +309,7 @@ namespace NcmPlayer.Views
         {
             if (e.Key == System.Windows.Input.Key.Enter)
             {
-                Tool.OpenPlayListDetail(int.Parse(((TextBox)sender).Text));
+                Tool.OpenMusicListDetail(int.Parse(((TextBox)sender).Text));
             }
         }
     }

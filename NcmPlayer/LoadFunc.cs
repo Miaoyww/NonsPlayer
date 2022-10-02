@@ -20,7 +20,6 @@ namespace NcmPlayer
             #region 基础路径
 
             JObject basePath = new();
-            basePath.Add("ServerPort", ResEntry.res.serverPort);
             basePath.Add("DailySignin", ResEntry.res.allowDailySignin);
             basePath.Add("Theme", "Light");
             properties = basePath.Properties();
@@ -79,7 +78,6 @@ namespace NcmPlayer
 
             #endregion 账号路径
 
-            ResEntry.res.serverPort = RegGeter.RegGet("ServerPort").ToString() ?? ResEntry.res.serverPort;
             switch (RegGeter.RegGet("Theme").ToString())
             {
                 case "Light":

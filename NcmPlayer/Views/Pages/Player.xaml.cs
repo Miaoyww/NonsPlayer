@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using NcmPlayer.Framework.Model;
+using NcmPlayer.Framework.Player;
 using NcmPlayer.Resources;
 using System;
 using System.Collections.Generic;
@@ -63,45 +64,19 @@ namespace NcmPlayer.Views.Pages
             timer.Elapsed += Timer_Elapsed;
             timer.Start();
 
-            b_image.DataContext = ResEntry.musicInfo;
-            tblock_title.DataContext = ResEntry.musicInfo;
-            tblock_artists.DataContext = ResEntry.musicInfo;
-            slider_postion.DataContext = ResEntry.musicInfo;
-            label_currentTime.DataContext = ResEntry.musicInfo;
-            label_wholeTime.DataContext = ResEntry.musicInfo;
-
-            try
-            {
-                ResEntry.musicInfo.Volume = int.Parse(RegGeter.RegGet("Music", "MusicVolume").ToString());
-                ResEntry.musicInfo.DurationTime = TimeSpan.Parse((string)RegGeter.RegGet("Music", "MusicDurationTime"));
-                ResEntry.musicInfo.Postion = TimeSpan.Parse((string)RegGeter.RegGet("Music", "MusicPostion"));
-                ResEntry.musicInfo.Name = (string)RegGeter.RegGet("Music", "MusicName");
-                ResEntry.musicInfo.Artists = (string)RegGeter.RegGet("Music", "MusicArtists");
-                ResEntry.musicInfo.Cover(new MemoryStream(Convert.FromBase64String((string)RegGeter.RegGet("Music", "MusicCover"))));
-                ResEntry.musicInfo.FilePath = (string)RegGeter.RegGet("Music", "MusicPath");
-                ResEntry.musicInfo.AlbumCoverUrl = (string)RegGeter.RegGet("Music", "MusicAlbumUrl");
-
-                string lrcString = Encoding.UTF8.GetString(Convert.FromBase64String((string)RegGeter.RegGet("Music", "MusicLrc")));
-                ResEntry.musicInfo.LrcString = lrcString;
-                UpdateLrc(new Lrcs(lrcString));
-                // MusicPlayer.Init(ResEntry.res.CPlayPath);
-                if (listview_lrc.Items.Count == 0)
-                {
-                    listview_lrc.Items.Add(getPanel("当前未播放音乐"));
-                }
-            }
-            catch
-            {
-            }
-            MusicPlayer.Reload();
+            b_image.DataContext = ResEntry.musicPlayer;
+            tblock_title.DataContext = ResEntry.musicPlayer;
+            tblock_artists.DataContext = ResEntry.musicPlayer;
+            slider_postion.DataContext = ResEntry.musicPlayer;
+            label_currentTime.DataContext = ResEntry.musicPlayer;
+            label_wholeTime.DataContext = ResEntry.musicPlayer;
         }
 
         private void Timer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                playerPage.ChangeVisLrc();
-                if (ResEntry.musicInfo.IsPlaying)
+                if (ResEntry.musicPlayer.IsPlaying)
                 {
                     if (btn_play.Icon != Wpf.Ui.Common.SymbolRegular.Pause24)
                     {
@@ -142,89 +117,6 @@ namespace NcmPlayer.Views.Pages
             return panel;
         }
 
-        public void ClearLrc()
-        {
-            listview_lrc.Items.Clear();
-            lrcVis.Clear();
-        }
-
-        public void UpdateLrc(Lrcs lrcs)
-        {
-            foreach (Lrc item in lrcs.GetLrcs)
-            {
-                StackPanel vis = getPanel(item.GetLrc);
-                LrcVis lrv = new LrcVis();
-                vis.Tag = item.GetTime;
-                vis.PreviewMouseDown += SelectedLrc;
-                lrv.LrcContent = item.GetLrc;
-                lrv.ShowTime = item.GetTime;
-                lrv.Vis = vis;
-                lrcVis.Add(lrv);
-                listview_lrc.Items.Add(vis);
-            }
-            if (playerPage.lrcVis.Count >= 8)
-            {
-                for (int i = 0; i <= 8; i++)
-                {
-                    StackPanel vis = getPanel("");
-                    listview_lrc.Items.Add(vis);
-                }
-            }
-        }
-
-        private void SelectedLrc(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            MusicPlayer.Position(
-                ((TimeSpan)((StackPanel)sender).Tag).TotalSeconds
-                );
-        }
-
-        public void ChangeVisLrc()
-        {
-            if (listview_lrc.Items.Count > 1)
-            {
-                for (int index = 0; index < lrcVis.Count; index++)
-                {
-                    if (lrcVis.Count == 0)
-                    {
-                        break;
-                    }
-                    if (ResEntry.musicInfo.Postion >= lrcVis[index].ShowTime && index + 1 < lrcVis.Count - 1 && ResEntry.musicInfo.Postion < lrcVis[index + 1].ShowTime)
-                    {
-                        Label content = ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]);
-                        if (content.Content != "")
-                        {
-                            content.FontSize = 29;
-                        }
-                        var bc = new BrushConverter();
-                        ((Label)((StackPanel)listview_lrc.Items[index]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#ffffff");
-                        if (!lrcControling)
-                        {
-                            currentlrc = index;
-                            try
-                            {
-                                listview_lrc.ScrollIntoView(listview_lrc.Items[currentlrc + 8]);
-                            }
-                            catch
-                            {
-                            }
-                        }
-                        for (int i = 0; i <= lrcVis.Count; i++)
-                        {
-                            if (i != index)
-                            {
-                                if (listview_lrc.Items.Count - 8 >= i)
-                                {
-                                    ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).FontSize = 25;
-                                    ((Label)((StackPanel)listview_lrc.Items[i]).Children[0]).Foreground = (Brush)bc.ConvertFromString("#FF9C9C9C");
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         private void btn_last_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             ResEntry.wholePlaylist.Last();
@@ -232,7 +124,7 @@ namespace NcmPlayer.Views.Pages
 
         private void btn_play_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            MusicPlayer.Play();
+            ResEntry.musicPlayer.Play();
         }
 
         private void btn_next_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -247,25 +139,6 @@ namespace NcmPlayer.Views.Pages
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-        }
-
-        private void SaveImageTo_Click(object sender, RoutedEventArgs e)
-        {
-            if (ResEntry.musicInfo.AlbumCoverUrl != null)
-            {
-                SaveFileDialog sfd = new SaveFileDialog();
-                sfd.Title = "选择保存至的位置";
-                sfd.Filter = "图片| *.jpg;*.png";
-                sfd.FileName = tblock_title.Text;
-                if ((bool)sfd.ShowDialog())
-                {
-                    string path = sfd.FileName;
-                    using (WebClient client = new WebClient())
-                    {
-                        client.DownloadFileAsync(new Uri(ResEntry.musicInfo.AlbumCoverUrl), path);
-                    }
-                }
-            }
         }
 
         private void btn_playerHide_Click(object sender, RoutedEventArgs e)
@@ -283,26 +156,25 @@ namespace NcmPlayer.Views.Pages
 
         private void slider_postion_PreviewMouseDown(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            // isUser = true;
             var value = (e.GetPosition(slider_postion).X / slider_postion.ActualWidth) * (slider_postion.Maximum - slider_postion.Minimum);
-            MusicPlayer.Position(value);
+            ResEntry.musicPlayer.SetPosition(value);
         }
 
         private void slider_postion_DragStarted(object sender, System.Windows.Controls.Primitives.DragStartedEventArgs e)
         {
-            slider_postion.Maximum = ResEntry.musicInfo.DurationTimeDouble;
+            slider_postion.Maximum = ResEntry.musicPlayer.DurationTimeDouble;
             slider_postion.DataContext = null;
             isUser = true;
         }
 
         private void slider_postion_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
         {
-            if (!ResEntry.musicInfo.IsPlaying)
+            if (!ResEntry.musicPlayer.IsPlaying)
             {
-                MusicPlayer.Play();
+                ResEntry.musicPlayer.Play();
             }
-            MusicPlayer.Position(positionTemp);
-            slider_postion.DataContext = ResEntry.musicInfo;
+            ResEntry.musicPlayer.SetPosition(positionTemp);
+            slider_postion.DataContext = ResEntry.musicPlayer;
             isUser = false;
         }
 

@@ -40,7 +40,7 @@ namespace NcmPlayer.Resources
         // 由于大部分的ui都在MainWindow中，在此传递以便初始化
         public static void Init(MainWindow window)
         {
-            MusicPlayer.InitPlayer();
+            ResEntry.musicPlayer.InitPlayer();
             Screenframe = window.ScreenFrame;
             Pageframe = window.PageFrame;
             Playlistbarframe = window.PlayListBar;
