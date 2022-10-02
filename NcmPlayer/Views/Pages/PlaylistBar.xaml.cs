@@ -10,9 +10,9 @@ namespace NcmPlayer.Views.Pages
     /// <summary>
     /// PlayListBar.xaml 的交互逻辑
     /// </summary>
-    public partial class PlaylistBar : Page, INotifyPropertyChanged
+    public partial class PlayListBar : Page, INotifyPropertyChanged
     {
-        public PlaylistBar()
+        public PlayListBar()
         {
             InitializeComponent();
             DataContext = ResEntry.res;

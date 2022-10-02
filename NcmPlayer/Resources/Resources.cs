@@ -10,12 +10,7 @@ namespace NcmPlayer.Resources
     {
         public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
-        // c current
         public bool isShowingPlayer = false;
-
-        public string serverPort = "21111"; // 开放端口 第二位 11月11日
-        public string log = string.Empty;  // 运行日志, 以供诊断错误
-        public string playlistPath = string.Empty; // 预留, 储存播放列表, 何以储存有待考虑
         public bool allowDailySignin = false;
         private Brush unfollowColor = Brushes.Black;
 
@@ -28,27 +23,6 @@ namespace NcmPlayer.Resources
                 PropertyChanged(this, new PropertyChangedEventArgs("UnfollowColor"));
             }
         }
-
-        public RecommendMusics recommendMusics;
-
-        #region 播放列表
-
-        private string cPlayCount = "0";
-
-        public string CPlayCount
-        {
-            get
-            {
-                return $"共有 {cPlayCount} 首歌曲";
-            }
-            set
-            {
-                cPlayCount = value;
-                PropertyChanged(this, new PropertyChangedEventArgs("CPlayCount"));
-            }
-        }
-
-        #endregion 播放列表
 
         #region 主题切换事件
 

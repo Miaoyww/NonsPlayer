@@ -15,16 +15,15 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using Button = Wpf.Ui.Controls.Button;
-using PlayList = NcmPlayer.Framework.Model.PlayList;
 
 namespace NcmPlayer.Views.Pages
 {
     /// <summary>music
     /// Album.xaml 的交互逻辑
     /// </summary>
-    public partial class Playlist : Page
+    public partial class MusicListDetail : Page
     {
-        public Playlist()
+        public MusicListDetail()
         {
             InitializeComponent();
         }

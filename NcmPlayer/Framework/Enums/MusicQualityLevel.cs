@@ -3,7 +3,7 @@
     /// <summary>
     /// 表示音乐的质量等级
     /// </summary>
-    public enum  MusicQualityLevel
+    public enum MusicQualityLevel
     {
         /// <summary>
         /// 低级 128k以下

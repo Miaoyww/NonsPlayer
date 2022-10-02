@@ -1,19 +1,18 @@
-﻿using NcmApi;
-using NcmPlayer.Resources;
-using NcmPlayer.Views.Pages;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using NcmPlayer.Framework.Model;
 using System.Windows.Controls;
+using NcmPlayer.Resources;
+using NcmPlayer.Views.Pages;
 
-namespace NcmPlayer.Framework.Model
+namespace NcmApi
 {
     public static class HttpRequest
     {
@@ -47,13 +46,13 @@ namespace NcmPlayer.Framework.Model
             return objStream;
         }
 
-        public static async Task<JObject> JObjectHttpGet(Stream stream)
+        public static JObject JObjectHttpGet(Stream stream)
         {
             StreamReader objReader = new StreamReader(stream);
             return (JObject)JsonConvert.DeserializeObject(objReader.ReadLine());
         }
 
-        public static Task<JObject> GetJson(string url)
+        public static JObject GetJson(string url)
         {
             return JObjectHttpGet(StreamHttpGet(url).Result);
         }
@@ -67,12 +66,10 @@ namespace NcmPlayer.Framework.Model
             return sTime.AddSeconds(double.Parse(timeStamp));
         }
 
-        public static List<Page> OpenedPlaylistDetail = new List<Page>();
-
-        public static async void OpenPlayListDetail(long id)
+        public static async void OpenMusicListDetail(long id)
         {
             Stopwatch stopwatch = new();
-            Playlist newone = new()
+            MusicListDetail newone = new()
             {
                 Title = id.ToString()
             };
@@ -96,26 +93,25 @@ namespace NcmPlayer.Framework.Model
                 Thread getCover = new(async _ =>
                 {
                     stopwatch.Restart();
-                    Stream playlistCover = HttpRequest.StreamHttpGet(playList.PicUrl).Result;
+                    Stream playlistCover = playList.GetPic(100, 100).Result;
                     await newone.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         newone.SetCover(playlistCover);
                     }));
                     stopwatch.Stop();
-                    Debug.WriteLine($"OpenPlayListDetail 获取封面耗时{stopwatch.ElapsedMilliseconds}");
+                    Debug.WriteLine($"OpenMusicListDetail 获取封面耗时{stopwatch.ElapsedMilliseconds}");
                 });
                 getCover.IsBackground = true;
                 getCover.Start();
                 stopwatch.Restart();
-                Music[] musics = await playList.InitArtWorkList();
-
+                Music[] musics = playList.InitArtWorkList().Result;
 
                 await newone.Dispatcher.BeginInvoke(new Action(async () =>
                 {
-                    newone.UpdateMusicsList(musics, playList);
+                    await newone.UpdateMusicsList(musics, playList);
                 }));
                 stopwatch.Stop();
-                Debug.WriteLine($"OpenPlayListDetail 更新歌曲耗时{stopwatch.ElapsedMilliseconds}");
+                Debug.WriteLine($"OpenMusicListDetail 更新歌曲耗时{stopwatch.ElapsedMilliseconds}");
             });
             get.Start();
         }

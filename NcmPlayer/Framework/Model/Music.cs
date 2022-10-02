@@ -1,4 +1,4 @@
-﻿using NcmApi;
+﻿using NcmPlayer.Framework.Enums;
 using NcmPlayer.Resources;
 using Newtonsoft.Json.Linq;
 using System;
@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using NcmApi;
 
 namespace NcmPlayer.Framework.Model
 {
@@ -70,6 +71,11 @@ namespace NcmPlayer.Framework.Model
         /// 歌曲专辑
         /// </summary>
         public string AlbumName => this.Album?.Name;
+
+        /// <summary>
+        /// 支持的歌曲质量
+        /// </summary>
+        public MusicQualityLevel[] QualityLevels { get; set; }
 
         public Music(JObject playlistMusicTrack, bool recommend = false)
         {

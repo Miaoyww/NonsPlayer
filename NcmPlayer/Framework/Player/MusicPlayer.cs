@@ -22,15 +22,7 @@ namespace NcmPlayer.Framework.Player
 
         public static void Reload()
         {
-            try
-            {
-                mfr = new MediaFoundationReader(ResEntry.musicInfo.FilePath);
-                outputDevice.Volume = ResEntry.musicInfo.Volume;
-                mfr.Position = ResEntry.musicInfo.Postion.Ticks;
-            }
-            catch
-            {
-            }
+
         }
 
         // 信息更新

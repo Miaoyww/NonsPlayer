@@ -60,7 +60,7 @@ namespace NcmPlayer.Views.Pages
 
         private void OpenNewPlaylist(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            Tool.OpenPlayListDetail(long.Parse(((Border)sender).Tag.ToString()));
+            Tool.OpenMusicListDetail(long.Parse(((Border)sender).Tag.ToString()));
         }
 
         public void UpdateTopPlaylist()
@@ -98,11 +98,7 @@ namespace NcmPlayer.Views.Pages
 
         private void b_dailyMusic_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (ResEntry.res.recommendMusics == null)
-            {
-                ResEntry.res.recommendMusics = new();
-            }
-            PublicMethod.ChangePage(ResEntry.res.recommendMusics);
+
         }
     }
 }
