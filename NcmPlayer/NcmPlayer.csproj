@@ -14,7 +14,14 @@
 	<UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <DefaultLanguage>zh-cn</DefaultLanguage>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Strings\新文件夹\**" />
+    <EmbeddedResource Remove="Strings\新文件夹\**" />
+    <None Remove="Strings\新文件夹\**" />
+    <Page Remove="Strings\新文件夹\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
@@ -50,4 +57,8 @@
       <FrameworkSdkReference Remove="@(FrameworkSdkReference)" Condition="$([System.String]::Copy('%(FrameworkSdkReference.SDKName)').StartsWith('Microsoft.WindowsAppRuntime.'))" />
     </ItemGroup>
   </Target>
+
+  <ItemGroup>
+    <PRIResource Remove="Strings\新文件夹\**" />
+  </ItemGroup>
 </Project>

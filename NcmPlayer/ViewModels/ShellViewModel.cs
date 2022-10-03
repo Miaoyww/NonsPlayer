@@ -14,17 +14,17 @@ public class ShellViewModel : ObservableRecipient
 {
     private bool _isBackEnabled;
 
-    public ICommand MenuFileExitCommand
+    public ICommand MenuHomeOpenCommand
+    {
+        get;
+    }
+
+    public ICommand MenuExploreOpenCommand
     {
         get;
     }
 
     public ICommand MenuSettingsCommand
-    {
-        get;
-    }
-
-    public ICommand MenuViewsMainCommand
     {
         get;
     }
@@ -45,16 +45,17 @@ public class ShellViewModel : ObservableRecipient
         NavigationService = navigationService;
         NavigationService.Navigated += OnNavigated;
 
-        MenuFileExitCommand = new RelayCommand(OnMenuFileExit);
+        MenuHomeOpenCommand = new RelayCommand(OnMenuHomeOpen);
+        MenuExploreOpenCommand = new RelayCommand(OnMenuExploreOpen);
         MenuSettingsCommand = new RelayCommand(OnMenuSettings);
-        MenuViewsMainCommand = new RelayCommand(OnMenuViewsMain);
     }
 
     private void OnNavigated(object sender, NavigationEventArgs e) => IsBackEnabled = NavigationService.CanGoBack;
 
-    private void OnMenuFileExit() => Application.Current.Exit();
+    private void OnMenuHomeOpen() => NavigationService.NavigateTo(typeof(HomeViewModel).FullName!);
+
+    private void OnMenuExploreOpen() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
 
     private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
 
-    private void OnMenuViewsMain() => NavigationService.NavigateTo(typeof(MainViewModel).FullName!);
 }

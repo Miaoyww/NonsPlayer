@@ -4,16 +4,16 @@ using NcmPlayer.ViewModels;
 
 namespace NcmPlayer.Views;
 
-public sealed partial class MainPage : Page
+public sealed partial class HomePage : Page
 {
-    public MainViewModel ViewModel
+    public HomeViewModel ViewModel
     {
         get;
     }
 
-    public MainPage()
+    public HomePage()
     {
-        ViewModel = App.GetService<MainViewModel>();
+        ViewModel = App.GetService<HomeViewModel>();
         InitializeComponent();
     }
 }
