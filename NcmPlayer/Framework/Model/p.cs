@@ -1,6 +1,4 @@
 ﻿using NcmApi;
-using NcmPlayer.Resources;
-using NcmPlayer.Views.Pages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -11,7 +9,6 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Controls;
 
 namespace NcmPlayer.Framework.Model
 {

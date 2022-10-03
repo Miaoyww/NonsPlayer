@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "NcmPlayer (Package)": {
+      "commandName": "MsixPackage",
+      "alwaysReinstallApp": false
+    },
+    "NcmPlayer (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

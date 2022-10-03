@@ -9,17 +9,9 @@ namespace NcmPlayer.Framework.Model
 {
     public class Lrcs
     {
-        private List<Lrc> lrcs = new List<Lrc>();
+        public List<Lrc>? Lyrics;
 
-        public int Count
-        {
-            get => lrcs.Count;
-        }
-
-        public List<Lrc> GetLrcs
-        {
-            get => lrcs;
-        }
+        public int? Count => Lyrics.Count;
 
         public Lrcs(string lrc)
         {
@@ -31,32 +23,22 @@ namespace NcmPlayer.Framework.Model
                     if (!item.Equals(""))
                     {
                         Lrc one = new(item);
-                        lrcs.Add(one);
+                        Lyrics.Add(one);
                     }
                 }
             }
             else
             {
                 Lrc one = new(lrc);
-                lrcs.Add(one);
+                Lyrics.Add(one);
             }
         }
     }
 
     public class Lrc
     {
-        private TimeSpan time;
-        private string lrc;
-
-        public TimeSpan GetTime
-        {
-            get => time;
-        }
-
-        public string GetLrc
-        {
-            get => lrc;
-        }
+        public TimeSpan Showtime;
+        public string LrcContent;
 
         public Lrc(string stringLrc)
         {
@@ -77,7 +59,7 @@ namespace NcmPlayer.Framework.Model
                 secMs = 0;
                 ms = 0;
             }
-            time = TimeSpan.FromMilliseconds(minMs + secMs + ms);
+            Showtime = TimeSpan.FromMilliseconds(minMs + secMs + ms);
             try
             {
                 if (lrcString[0].Equals(string.Empty) || lrcString[0].Equals(" "))
@@ -88,7 +70,7 @@ namespace NcmPlayer.Framework.Model
             catch (IndexOutOfRangeException)
             {
             }
-            lrc = lrcString;
+            LrcContent = lrcString;
         }
     }
 }

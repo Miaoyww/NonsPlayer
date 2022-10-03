@@ -9,7 +9,6 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Controls;
 
 namespace NcmPlayer.Framework.Model
 {
