@@ -1,0 +1,10 @@
+﻿{
+    "profiles": {
+      "NcmPlayer (Package)": {
+        "commandName": "MsixPackage"
+      },
+      "NcmPlayer (Unpackaged)": {
+        "commandName": "Project"
+      }
+    }
+}
