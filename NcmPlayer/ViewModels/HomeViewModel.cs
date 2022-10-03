@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NcmApi;
+using NcmPlayer.Contracts.Services;
 using NcmPlayer.Resources;
 using NcmPlayer.Views;
 using Newtonsoft.Json.Linq;
@@ -15,8 +16,14 @@ namespace NcmPlayer.ViewModels;
 
 public class HomeViewModel : ObservableRecipient
 {
-    public HomeViewModel()
+    public INavigationService NavigationService
     {
+        get;
+    }
+
+    public HomeViewModel(INavigationService navigationService)
+    {
+        NavigationService = navigationService;
     }
 
     private StackPanel getStackPanel(string title, string id, string picUrl)
@@ -58,7 +65,7 @@ public class HomeViewModel : ObservableRecipient
 
     public async void HomeLoad(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
-        JObject response = Api.Playlist.Personalized(ResEntry.ncm, 20).Result;
+        JObject response = await Api.Playlist.Personalized(ResEntry.ncm, 20);
         if ((int)response["code"] == 200)
         {
             JArray playlists = (JArray)response["result"];
@@ -80,6 +87,6 @@ public class HomeViewModel : ObservableRecipient
 
     private void OpenMusicListDetail(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
-        // Tool.OpenMusicListDetail(long.Parse(((Border)sender).Tag.ToString()));
+        Tool.OpenMusicListDetail(long.Parse(((Border)sender).Tag.ToString()), NavigationService);
     }
 }

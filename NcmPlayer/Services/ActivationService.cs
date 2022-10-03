@@ -30,6 +30,7 @@ public class ActivationService : IActivationService
         if (App.MainWindow.Content == null)
         {
             _shell = App.GetService<ShellPage>();
+            App.GetService<HomePage>();
             App.MainWindow.Content = _shell ?? new Frame();
         }
 

@@ -12,10 +12,7 @@
     <Grid>
         <Grid>
             <Grid>
-                <Frame x:Name="NavigationFrame"/>
-                <Rectangle Height="68" VerticalAlignment="Bottom" Fill="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" />
-                <Rectangle Height="78" VerticalAlignment="Top" Fill="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}" />
-
+                <Frame x:Name="NavigationFrame" Margin="0,80,0,68"/>
             </Grid>
             <Grid VerticalAlignment="Top" Margin="0,10,0,0" x:Name="AppTitleBar">
                 <TextBlock x:Name="AppTitleBarText" VerticalAlignment="Center" TextWrapping="NoWrap" Style="{StaticResource CaptionTextBlockStyle}" Margin="20, 5, 0, 0" FontSize="14" FontWeight="Bold" />
@@ -25,15 +22,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Grid Grid.Column="0">
-                    <!--
-                    TODO: Update item titles by updating <x:Uid>.Text entries in Strings/en-us/Resources.resw.
-                    https://docs.microsoft.com/windows/uwp/app-resources/localize-strings-ui-manifest#refer-to-a-string-resource-identifier-from-xaml
-                    -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,50,0">
-                        <TextBox x:Name="tbox_search" Width="180" Height="28" Margin="0,0,10,0" BorderThickness="1,1,1,1"/>
-                        <Border x:Name="b_user" Width="30" Height="30" BorderBrush="#FF5D5D5D" BorderThickness="2,2,2,2" CornerRadius="20,20,20,20"/>
-                    </StackPanel>
+                <Grid HorizontalAlignment="Center">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Height="33">
                         <Button x:Uid="ShellMenu_Home" BorderThickness="0" Width="68" Height="25" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
                                 Command="{x:Bind ViewModel.MenuHomeOpenCommand}" />
@@ -43,6 +32,10 @@
                                 Command="{x:Bind ViewModel.MenuOwnOpenCommand}" />
                     </StackPanel>
                 </Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,50,0">
+                    <TextBox x:Name="tbox_search" Width="180" Height="28" Margin="0,0,10,0" BorderThickness="1,1,1,1"/>
+                    <Border x:Name="b_user" Width="30" Height="30" BorderBrush="#FF5D5D5D" BorderThickness="2,2,2,2" CornerRadius="20,20,20,20"/>
+                </StackPanel>
                 <AppBarButton Width="40" Height="50" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,5,0" x:Name="ShellMenuBarSettingsButton" x:Uid="ShellMenuBarSettingsButton"
                               AnimatedIcon.State="Normal"
                               PointerEntered="ShellMenuBarSettingsButton_PointerEntered"
