@@ -4,11 +4,12 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Loaded="{x:Bind ViewModel.HomeLoad}">
 
     <Grid>
         <ScrollViewer>
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,80,0,0">
                 <Grid>
                     <TextBlock Text="For you" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
                     <Border x:Name="b_dailyMusic" HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500" Height="200" Margin="0,70,0,0">
@@ -17,7 +18,7 @@
                 </Grid>
                 <Grid Margin="0,70,0,80">
                     <TextBlock Text="推荐歌单" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
-                    <StackPanel x:Name="panel_nicePlaylists" HorizontalAlignment="Left" Margin="0,70,0,0" Orientation="Horizontal" />
+                    <VariableSizedWrapGrid x:Name="panel_nicePlaylists" HorizontalAlignment="Left" Margin="0,70,0,0" Orientation="Horizontal"/>
                 </Grid>
             </StackPanel>
         </ScrollViewer>

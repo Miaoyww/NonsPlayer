@@ -68,6 +68,8 @@ public partial class App : Application
             services.AddSingleton<IFileService, FileService>();
 
             // Views and ViewModels
+            services.AddTransient<MusicListDetailViewModel>();
+            services.AddTransient<MusicListDetailPage>();
             services.AddTransient<ExploreViewModel>();
             services.AddTransient<ExplorePage>();
             services.AddTransient<HomeViewModel>();

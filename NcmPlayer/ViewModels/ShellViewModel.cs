@@ -23,11 +23,17 @@ public class ShellViewModel : ObservableRecipient
     {
         get;
     }
+    public ICommand MenuOwnOpenCommand
+    {
+        get;
+    }
 
     public ICommand MenuSettingsCommand
     {
         get;
     }
+
+
 
     public INavigationService NavigationService
     {
@@ -47,6 +53,7 @@ public class ShellViewModel : ObservableRecipient
 
         MenuHomeOpenCommand = new RelayCommand(OnMenuHomeOpen);
         MenuExploreOpenCommand = new RelayCommand(OnMenuExploreOpen);
+        MenuOwnOpenCommand = new RelayCommand(OnMenuOwnOpen);
         MenuSettingsCommand = new RelayCommand(OnMenuSettings);
     }
 
@@ -55,6 +62,9 @@ public class ShellViewModel : ObservableRecipient
     private void OnMenuHomeOpen() => NavigationService.NavigateTo(typeof(HomeViewModel).FullName!);
 
     private void OnMenuExploreOpen() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
+
+    private void OnMenuOwnOpen() => NavigationService.NavigateTo(typeof(MusicListDetailViewModel).FullName!);
+
 
     private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
 
