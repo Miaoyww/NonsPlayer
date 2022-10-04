@@ -18,17 +18,17 @@
                         </Grid>
                     </Border>
                 </Border>
-                <Grid Margin="30,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="377" Width="250">
+                <Grid Margin="34,250,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="250">
                     <StackPanel Margin="0,0,0,50">
-                        <ScrollViewer  VerticalScrollBarVisibility="Auto" Height="330">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Height="300">
                             <TextBlock x:Name="PlaylistDescription" Text="描述" TextWrapping="WrapWholeWords" FontSize="18" />
                         </ScrollViewer>
                     </StackPanel>
-                    <Grid Margin="0,320,0,0">
-                        <TextBlock x:Name="PlaylistMusicsCount" Text="加载中" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
-                        <TextBlock x:Name="PlaylistCreator" Text="创建人" Margin="0,34,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
-                        <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" Margin="0,34,0,0" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
-                    </Grid>
+                </Grid>
+                <Grid Margin="34,250,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="250">
+                    <TextBlock x:Name="PlaylistMusicsCount" Text="加载中" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
+                    <TextBlock x:Name="PlaylistCreator" Text="创建人" Margin="0,34,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
+                    <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" Margin="0,34,0,0" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
                 </Grid>
             </Grid>
             <ScrollViewer Margin="315,66,10,0" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" >

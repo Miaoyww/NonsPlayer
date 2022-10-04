@@ -76,7 +76,7 @@ namespace NcmPlayer.Framework.Model
         /// 支持的歌曲质量
         /// </summary>
         public MusicQualityLevel[] QualityLevels { get; set; }
-
+        
         public Music(JObject playlistMusicTrack, bool recommend = false)
         {
             Name = (string)playlistMusicTrack["name"];
@@ -99,7 +99,7 @@ namespace NcmPlayer.Framework.Model
                 one.Id = (int)artist["id"];
                 Artists.Add(one);
             }
-            Task.Run(GetFileInfo);
+            // Task.Run(GetFileInfo);
         }
 
         public Music(long in_id)

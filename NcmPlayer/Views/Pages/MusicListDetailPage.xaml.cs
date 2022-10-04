@@ -83,7 +83,7 @@ public sealed partial class MusicListDetailPage : Page
     private async Task createAndUpdate(Music one, int index)
     {
         musiclist.Add(one);
-        BitmapImage bitmap = new BitmapImage(new Uri(one.PicUrl));
+        BitmapImage bitmap = new BitmapImage(new Uri(one.PicUrl + "?param=40y40"));
         ImageBrush imageBrush = new();
         imageBrush.ImageSource = bitmap;
         Border b_cover = new()

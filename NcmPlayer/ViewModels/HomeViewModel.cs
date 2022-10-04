@@ -65,7 +65,7 @@ public class HomeViewModel : ObservableRecipient
 
     public async void HomeLoad(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
-        JObject response = await Api.Playlist.Personalized(ResEntry.ncm, 20);
+        JObject response = Api.Playlist.Personalized(ResEntry.ncm, 20).Result;
         if ((int)response["code"] == 200)
         {
             JArray playlists = (JArray)response["result"];
@@ -79,7 +79,7 @@ public class HomeViewModel : ObservableRecipient
     public async void applyPanel(JObject item, HomePage p)
     {
         // Stream playlistCover = HttpRequest.StreamHttpGet(item["picUrl"].ToString() + "?param=180y180").Result;
-        string picUrl = item["picUrl"].ToString() + "?param=180y180";
+        string picUrl = item["picUrl"].ToString() + "?param=140y140";
         StackPanel playlistView = getStackPanel(
         (string)item["name"], item["id"].ToString(), picUrl);
         p.Panel_MusicList.Children.Add(playlistView);

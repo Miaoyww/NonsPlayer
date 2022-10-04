@@ -1,6 +1,4 @@
-﻿using System.Reflection.Metadata;
-using System.Xml.Linq;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using NcmPlayer.Contracts.ViewModels;
 using NcmPlayer.Framework.Model;
@@ -12,16 +10,14 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware
 {
     private MusicListDetailPage musicdetailPage;
     private long currentId;
+
     public MusicListDetailViewModel()
     {
-        
     }
 
     public void OnNavigatedFrom()
     {
-
     }
-
 
     public async void MusicDetailPageLoaded(object sender, RoutedEventArgs e)
     {
@@ -31,14 +27,7 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware
 
     public async void OnNavigatedTo(object parameter)
     {
-        if (musicdetailPage == null)
-        {
-            currentId = (long)parameter;
-        }
-        else
-        {
-            UpdateInfo((long)parameter);
-        }
+        currentId = (long)parameter;
     }
 
     private async void UpdateInfo(long id)

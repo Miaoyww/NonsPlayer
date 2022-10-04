@@ -63,7 +63,7 @@ public class ShellViewModel : ObservableRecipient
 
     private void OnMenuExploreOpen() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
 
-    private void OnMenuOwnOpen() => NavigationService.NavigateTo(typeof(MusicListDetailViewModel).FullName!);
+    private void OnMenuOwnOpen() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
 
 
     private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
