@@ -1,7 +1,9 @@
 ﻿using System.Net;
+using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using RestSharp;
 
 namespace NcmApi;
 
@@ -32,9 +34,6 @@ public class Ncm
         }
     }
 
-    public Ncm()
-    {
-    }
 
     #region 登录
 
@@ -42,6 +41,7 @@ public class Ncm
     {
         _token = token;
     }
+
     public void Login(string email, string password)
     {
         JObject result = Api.Login.Email(email, password, this).Result;
@@ -83,61 +83,29 @@ public class Ncm
 
     #endregion 登录
 
-    public async Task<JObject> Request(string url, IDictionary<string, string>? parameters = null, Encoding? charset = null)
+
+    public async Task<JObject> Request(string url, IDictionary<string, string>? parameters = null)
     {
-        HttpWebRequest httpReq = (HttpWebRequest)WebRequest.Create(url);
-        List<string> cookie = new List<string>();
-        cookie.Add("os=pc");
-        cookie.Add("appver=2.9.7");
+        var client = new RestClient("https://music.163.com");
+        var request = new RestRequest(url, Method.POST);
+        if(parameters != null){
+            foreach (var keyValuePair in parameters)
+            {
+                request.AddParameter(keyValuePair.Key, keyValuePair.Value);
+            }
+        }
+        request.AddCookie("os", "pc");
+        request.AddCookie("appver", "2.9.7");
+        request.AddHeader("ContentType", "application/x-www-form-urlencoded");
+        request.AddHeader("UserAgent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+        request.AddHeader("Referrer", "https://music.163.com");
+
         if (!_token.Equals(string.Empty))
         {
-            cookie.Add($"MUSIC_U={_token}");
+            request.AddCookie("MUSIC_U", _token);
         }
-        if (url.Contains("music.163.com"))
-        {
-            httpReq.Headers.Add("Referrer", "https://music.163.com");
-        }
-        string cookies = string.Empty;
-        foreach (string item in cookie)
-        {
-            cookies += item + ";";
-        }
-        httpReq.Headers.Add("Cookie", cookies);
-        httpReq.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-        httpReq.ContentType = "application/x-www-form-urlencoded";
-        httpReq.Method = "POST";
-        httpReq.Proxy = null;
-        httpReq.KeepAlive = false;
-        httpReq.AllowWriteStreamBuffering = false;
-        httpReq.ServicePoint.Expect100Continue = false;
-        httpReq.ServicePoint.UseNagleAlgorithm = false;
-
-        if (!(parameters == null || parameters.Count == 0))
-        {
-            StringBuilder buffer = new StringBuilder();
-            int i = 0;
-            foreach (string key in parameters.Keys)
-            {
-                if (i > 0)
-                {
-                    buffer.AppendFormat("&{0}={1}", key, parameters[key]);
-                }
-                else
-                {
-                    buffer.AppendFormat("{0}={1}", key, parameters[key]);
-                }
-                i++;
-            }
-            byte[] data = charset.GetBytes(buffer.ToString());
-            using (Stream stream = httpReq.GetRequestStream())
-            {
-                stream.Write(data, 0, data.Length);
-            }
-        }
-
-        StreamReader sr = new StreamReader(httpReq.GetResponse().GetResponseStream()); //创建一个stream读取流
-        JObject result = JObject.Parse(sr.ReadToEnd());
-        httpReq.Abort();
+        var respResult = (await client.ExecuteAsync(request)).Content.ToString();
+        JObject result = JObject.Parse(respResult);
         return result;
     }
 
@@ -173,7 +141,7 @@ public static class Api
             IDictionary<string, string> pairs = new Dictionary<string, string>();
             pairs.Add("id", id.ToString());
             pairs.Add("n", "100000");
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
 
         public static async Task<JObject> Personalized(Ncm ncm, int limit = 30)
@@ -183,7 +151,7 @@ public static class Api
             pairs.Add("limit", limit.ToString());
             pairs.Add("total", "true");
             pairs.Add("n", "1000");
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
     }
 
@@ -206,7 +174,7 @@ public static class Api
             string _URL = $"https://music.163.com/api/v3/song/detail";
             IDictionary<string, string> pairs = new Dictionary<string, string>();
             pairs.Add("c", dataString);
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
 
         public static async Task<JObject> Url(long[] ids, Ncm ncm)
@@ -236,7 +204,7 @@ public static class Api
             IDictionary<string, string> pairs = new Dictionary<string, string>();
             pairs.Add("ids", idsBody);
             pairs.Add("br", "999000");
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
 
         public static async Task<JObject> Like(string id, bool like, Ncm ncm)
@@ -248,7 +216,7 @@ public static class Api
             pairs.Add("trackId", id);
             pairs.Add("like", like.ToString());
             pairs.Add("time", "3");
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
     }
 
@@ -263,7 +231,7 @@ public static class Api
             pairs.Add("tv", "-1");
             pairs.Add("lv", "-1");
             pairs.Add("kv", "-1");
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
     }
 
@@ -277,7 +245,7 @@ public static class Api
             pairs.Add("username", email);
             pairs.Add("password", pswMD5);
             pairs.Add("rememberLogin", "true");
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
 
         public static async Task<JObject> PhonePsw(int phone, string password, Ncm ncm, int countryCode = 86)
@@ -289,7 +257,7 @@ public static class Api
             pairs.Add("countryCode", countryCode.ToString());
             pairs.Add("captcha", pswMD5);
             pairs.Add("rememberLogin", "true");
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
 
         public static async Task<JObject> PhoneVer(int phone, int captcha, Ncm ncm, int countryCode = 86)
@@ -299,7 +267,7 @@ public static class Api
             pairs.Add("phone", phone.ToString());
             pairs.Add("countryCode", countryCode.ToString());
             pairs.Add("rememberLogin", "true");
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
     }
 
@@ -322,7 +290,7 @@ public static class Api
             string _URL = "https://music.163.com/api/point/dailyTask";
             IDictionary<string, string> pairs = new Dictionary<string, string>();
             pairs.Add("type", type);
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
 
         public static async Task<JObject> Likelist(string id, Ncm ncm)
@@ -330,7 +298,7 @@ public static class Api
             string _URL = "https://music.163.com/api/song/like/get";
             IDictionary<string, string> pairs = new Dictionary<string, string>();
             pairs.Add("uid", id);
-            return await ncm.Request(_URL, pairs, Encoding.UTF8);
+            return await ncm.Request(_URL, pairs);
         }
     }
 

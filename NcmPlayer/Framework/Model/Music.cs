@@ -1,12 +1,7 @@
-﻿using NcmPlayer.Framework.Enums;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using NcmApi;
+﻿using NcmApi;
+using NcmPlayer.Framework.Enums;
 using NcmPlayer.Resources;
+using Newtonsoft.Json.Linq;
 
 namespace NcmPlayer.Framework.Model
 {
@@ -15,47 +10,74 @@ namespace NcmPlayer.Framework.Model
         /// <summary>
         /// 歌曲名称
         /// </summary>
-        public string Name { get; set; }
+        public string Name
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 歌曲Id
         /// </summary>
-        public long Id { get; set; }
+        public long Id
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 歌曲封面Url
         /// </summary>
-        public string PicUrl { get; set; }
+        public string PicUrl
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 歌曲Url
         /// </summary>
-        public string Url { get; set; }
+        public string Url
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 下载文件的扩展名
         /// </summary>
-        public string FileType { get; set; }
+        public string FileType
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 是否收藏歌曲
         /// </summary>
-        public bool IsLiked { get; set; }
+        public bool IsLiked
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 歌曲总时长
         /// </summary>
-        public TimeSpan DuartionTime { get; set; }
+        public TimeSpan DuartionTime
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 歌曲总时长的String版 mm:ss
         /// </summary>
-        public string DuartionTimeString { get; set; }
+        public string DuartionTimeString
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 歌曲作者
         /// </summary>
-        public List<Artist> Artists { get; set; }
+        public List<Artist> Artists
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 歌曲作者名称
@@ -65,7 +87,10 @@ namespace NcmPlayer.Framework.Model
         /// <summary>
         /// 歌曲专辑
         /// </summary>
-        public Album Album { get; set; }
+        public Album Album
+        {
+            get; set;
+        }
 
         /// <summary>
         /// 歌曲专辑
@@ -75,8 +100,11 @@ namespace NcmPlayer.Framework.Model
         /// <summary>
         /// 支持的歌曲质量
         /// </summary>
-        public MusicQualityLevel[] QualityLevels { get; set; }
-        
+        public MusicQualityLevel[] QualityLevels
+        {
+            get; set;
+        }
+
         public Music(JObject playlistMusicTrack, bool recommend = false)
         {
             Name = (string)playlistMusicTrack["name"];
@@ -92,17 +120,20 @@ namespace NcmPlayer.Framework.Model
 
             Artists = new();
             JArray artists = (JArray)playlistMusicTrack["ar"];
-            foreach(JObject artist in artists)
+            foreach (JObject artist in artists)
             {
                 Artist one = new();
                 one.Name = (string)artist["name"];
                 one.Id = (int)artist["id"];
                 Artists.Add(one);
             }
-            // Task.Run(GetFileInfo);
         }
 
-        public Music(long in_id)
+        public Music()
+        {
+        }
+
+        public async Task LoadIdAsync(long in_id)
         {
             Id = in_id;
             JObject musicDetail;
@@ -134,28 +165,28 @@ namespace NcmPlayer.Framework.Model
                 one.Id = (int)artist["id"];
                 Artists.Add(one);
             }
-            Task.Run(GetFileInfo);
+            await GetFileInfo();
         }
 
         public async Task GetFileInfo()
         {
-            JObject musicFile = (JObject)Api.Music.Url(new long[] { Id }, ResEntry.ncm).Result["data"][0];
+            JObject musicFile = (JObject)(await Api.Music.Url(new long[] { Id }, ResEntry.ncm))["data"][0];
             Url = musicFile["url"].ToString();
             FileType = musicFile["type"].ToString();
         }
+
         public async Task<Stream> GetPic(int x = 0, int y = 0)
         {
-            string IMGSIZE = $"?param=300y300";
+            var IMGSIZE = $"?param=300y300";
             if (x == 0)
             {
-                return HttpRequest.StreamHttpGet(PicUrl + IMGSIZE).Result;
+                return await HttpRequest.StreamHttpGet(PicUrl + IMGSIZE);
             }
             else
             {
-                return HttpRequest.StreamHttpGet(PicUrl + $"?param={x}y{y}").Result;
+                return await HttpRequest.StreamHttpGet(PicUrl + $"?param={x}y{y}");
             }
         }
-
 
         /*
         public string GetMp3()

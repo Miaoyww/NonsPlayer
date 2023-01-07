@@ -14,8 +14,9 @@
             <Grid>
                 <Frame x:Name="NavigationFrame" Margin="0,80,0,68"/>
             </Grid>
-            <Grid VerticalAlignment="Top" Margin="0,10,0,0" x:Name="AppTitleBar">
+            <Grid VerticalAlignment="Top" Margin="0,0,0,0" x:Name="AppTitleBar">
                 <TextBlock x:Name="AppTitleBarText" VerticalAlignment="Center" TextWrapping="NoWrap" Style="{StaticResource CaptionTextBlockStyle}" Margin="20, 5, 0, 0" FontSize="14" FontWeight="Bold" />
+                <Border x:Name="b_user" Width="34" Height="34" BorderBrush="#FF5D5D5D" BorderThickness="2,2,2,2" HorizontalAlignment="Right" Margin="0,10,120,0" CornerRadius="20,20,20,20"/>
             </Grid>
             <Grid VerticalAlignment="Top" Margin="0,30,0,0">
                 <Grid.ColumnDefinitions>
@@ -32,10 +33,6 @@
                                 Command="{x:Bind ViewModel.MenuOwnOpenCommand}" />
                     </StackPanel>
                 </Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,50,0">
-                    <TextBox x:Name="tbox_search" Width="180" Height="28" Margin="0,0,10,0" BorderThickness="1,1,1,1"/>
-                    <Border x:Name="b_user" Width="30" Height="30" BorderBrush="#FF5D5D5D" BorderThickness="2,2,2,2" CornerRadius="20,20,20,20"/>
-                </StackPanel>
                 <AppBarButton Width="40" Height="50" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,5,0" x:Name="ShellMenuBarSettingsButton" x:Uid="ShellMenuBarSettingsButton"
                               AnimatedIcon.State="Normal"
                               PointerEntered="ShellMenuBarSettingsButton_PointerEntered"
@@ -51,7 +48,6 @@
                     </AnimatedIcon>
                 </AppBarButton>
             </Grid>
-
         </Grid>
         <Border x:Name="PlayBar" VerticalAlignment="Bottom" Height="68" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9" Margin="0,680,0,0">
             <Grid>

@@ -30,10 +30,7 @@ public sealed partial class MusicListDetailPage : Page
 
     public string Name
     {
-        set
-        {
-            PlaylistName.Text = value;
-        }
+        set => PlaylistName.Text = value;
     }
 
     public string CreateTime

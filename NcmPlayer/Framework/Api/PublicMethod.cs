@@ -6,39 +6,25 @@ using NcmPlayer.ViewModels;
 using NcmPlayer.Views;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RestSharp;
 
 namespace NcmApi
 {
     public static class HttpRequest
     {
-        public static async Task<Stream> StreamHttpGet(string url, int start = 0, int end = 0)
+        public static async Task<Stream> StreamHttpGet(string url)
         {
-            WebRequest wrGETURL;
-            wrGETURL = WebRequest.Create(url);
-            if (end != 0)
+            var client = new RestClient();
+            var request = new RestRequest(url, Method.GET);
+            MemoryStream stream = new MemoryStream();
+            request.ResponseWriter = async responseStream =>
             {
-                wrGETURL.Headers.Add("Range", $"bytes={start}-{end}");
-            }
-            Stream objStream;
-            while (true)
-            {
-                try
+                using (responseStream)
                 {
-                    objStream = wrGETURL.GetResponse().GetResponseStream();
-                    StreamReader objReader = new StreamReader(objStream);
-                    break;
+                    await responseStream.CopyToAsync(stream);
                 }
-                catch (WebException)
-                {
-                    Thread.Sleep(3);
-                }
-                catch (InvalidOperationException)
-                {
-                    return null;
-                }
-            }
-
-            return objStream;
+            };
+            return stream;
         }
 
         public static JObject JObjectHttpGet(Stream stream)

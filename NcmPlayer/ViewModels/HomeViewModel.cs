@@ -1,6 +1,4 @@
-﻿using System.Drawing;
-using System.IO;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -31,7 +29,6 @@ public class HomeViewModel : ObservableRecipient
         BitmapImage bitmap = new BitmapImage(new Uri(picUrl));
         ImageBrush imageBrush = new();
         imageBrush.ImageSource = bitmap;
-
 
         var stackPanel = new StackPanel()
         {
@@ -65,20 +62,19 @@ public class HomeViewModel : ObservableRecipient
 
     public async void HomeLoad(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
-        JObject response = Api.Playlist.Personalized(ResEntry.ncm, 20).Result;
+        JObject response = (await Api.Playlist.Personalized(ResEntry.ncm, 20));
         if ((int)response["code"] == 200)
         {
             JArray playlists = (JArray)response["result"];
             foreach (JObject item in playlists)
             {
-                applyPanel(item, (HomePage)sender);
+                await applyPanel(item, (HomePage)sender);
             }
         }
     }
 
-    public async void applyPanel(JObject item, HomePage p)
-    {
-        // Stream playlistCover = HttpRequest.StreamHttpGet(item["picUrl"].ToString() + "?param=180y180").Result;
+    public async Task applyPanel(JObject item, HomePage p)
+    {;
         string picUrl = item["picUrl"].ToString() + "?param=140y140";
         StackPanel playlistView = getStackPanel(
         (string)item["name"], item["id"].ToString(), picUrl);
