@@ -1,8 +1,8 @@
 ﻿<Page
     x:Class="NcmPlayer.Views.MusicListDetailPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Loaded="{x:Bind ViewModel.MusicDetailPageLoaded}">
@@ -13,7 +13,7 @@
                 <Border x:Name="PlaylistCover" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#FFC8C3C3" CornerRadius="10,10,10,10" Margin="30,0,0,0">
                     <Border x:Name="b_play" Width="55" Height="55" Opacity="0.9">
                         <Grid>
-                            <Border Background="#7FE8E8E8" CornerRadius="10,10,10,10"/>
+                            <Border Background="#7FE8E8E8" CornerRadius="10,10,10,10" />
                         </Grid>
                     </Border>
                 </Border>
@@ -32,8 +32,8 @@
             </Grid>
             <ScrollViewer Margin="315,0,0,0">
                 <StackPanel Margin="0,0,0,0">
-                    <TextBlock x:Name="PlaylistName" Text="加载中" TextTrimming="WordEllipsis" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="40" Margin="0,0,0,20"/>
-                    <StackPanel x:Name="PanelMusics"/>
+                    <TextBlock x:Name="PlaylistName" Text="加载中" TextTrimming="WordEllipsis" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="40" Margin="0,0,0,20" />
+                    <StackPanel x:Name="PanelMusics" />
                 </StackPanel>
             </ScrollViewer>
         </Grid>

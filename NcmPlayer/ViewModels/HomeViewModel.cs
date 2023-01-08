@@ -1,24 +1,19 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.ComponentModel;
+using System.Numerics;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Input;
-using System;
-using System.Numerics;
-using Windows.Foundation.Metadata;
 using NcmApi;
 using NcmPlayer.Contracts.Services;
 using NcmPlayer.Resources;
 using NcmPlayer.Views;
 using Newtonsoft.Json.Linq;
 using Windows.UI;
-using System.ComponentModel;
-using System.Collections.ObjectModel;
 
 namespace NcmPlayer.ViewModels;
 
@@ -28,10 +23,12 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
     {
         get;
     }
+
     public HomeViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
     }
+
     private Compositor _compositor = CompositionTarget.GetCompositorForCurrentThread();
     private SpringVector3NaturalMotionAnimation _springAnimation;
 
@@ -50,7 +47,7 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
         var grid = new Grid()
         {
             VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment= HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center
         };
         var borderCover = new Border()
         {
@@ -82,6 +79,7 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
         borderParent.Child = grid;
         return borderParent;
     }
+
     private void UpdateSpringAnimation(float finalValue)
     {
         if (_springAnimation == null)
@@ -94,6 +92,7 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
         _springAnimation.DampingRatio = 1f;
         _springAnimation.Period = new TimeSpan(350000);
     }
+
     private void StartAnimationIfAPIPresent(UIElement sender, Microsoft.UI.Composition.CompositionAnimation animation)
     {
         (sender as UIElement).StartAnimation(animation);
@@ -109,7 +108,6 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
     public void CardShow(object sender, PointerRoutedEventArgs e)
     {
         UpdateSpringAnimation(1.038f);
-        
 
         StartAnimationIfAPIPresent((sender as UIElement), _springAnimation);
     }
@@ -128,7 +126,8 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
     }
 
     public async Task applyPanel(JObject item, HomePage p)
-    {;
+    {
+        ;
         string picUrl = item["picUrl"].ToString() + "?param=200y200";
         Border playlistView = getCard(
         (string)item["name"], item["id"].ToString(), picUrl);

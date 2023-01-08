@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using NcmPlayer.Contracts.ViewModels;
@@ -41,5 +40,4 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     {
         currentId = (long)parameter;
     }
-
 }

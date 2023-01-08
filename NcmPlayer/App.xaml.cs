@@ -6,7 +6,6 @@ using NcmPlayer.Activation;
 using NcmPlayer.Contracts.Services;
 using NcmPlayer.Core.Contracts.Services;
 using NcmPlayer.Core.Services;
-using NcmPlayer.Helpers;
 using NcmPlayer.Models;
 using NcmPlayer.Notifications;
 using NcmPlayer.Services;
@@ -95,7 +94,7 @@ public partial class App : Application
         // https://docs.microsoft.com/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.application.unhandledexception.
     }
 
-    protected async override void OnLaunched(LaunchActivatedEventArgs args)
+    protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         base.OnLaunched(args);
 
