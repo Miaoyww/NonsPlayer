@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Reflection.Metadata;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using RestSharp;
@@ -33,7 +31,6 @@ public class Ncm
             return _token;
         }
     }
-
 
     #region 登录
 
@@ -83,12 +80,12 @@ public class Ncm
 
     #endregion 登录
 
-
     public async Task<JObject> Request(string url, IDictionary<string, string>? parameters = null)
     {
         var client = new RestClient("https://music.163.com");
         var request = new RestRequest(url, Method.POST);
-        if(parameters != null){
+        if (parameters != null)
+        {
             foreach (var keyValuePair in parameters)
             {
                 request.AddParameter(keyValuePair.Key, keyValuePair.Value);

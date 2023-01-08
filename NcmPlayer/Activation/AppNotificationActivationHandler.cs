@@ -1,10 +1,8 @@
 ﻿using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
-using Microsoft.Windows.AppNotifications;
 
 using NcmPlayer.Contracts.Services;
-using NcmPlayer.ViewModels;
 
 namespace NcmPlayer.Activation;
 
@@ -24,7 +22,7 @@ public class AppNotificationActivationHandler : ActivationHandler<LaunchActivate
         return AppInstance.GetCurrent().GetActivatedEventArgs()?.Kind == ExtendedActivationKind.AppNotification;
     }
 
-    protected async override Task HandleInternalAsync(LaunchActivatedEventArgs args)
+    protected override async Task HandleInternalAsync(LaunchActivatedEventArgs args)
     {
         // TODO: Handle notification activations.
 

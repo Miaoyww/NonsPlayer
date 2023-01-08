@@ -12,18 +12,6 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
 {
     private MusicListDetailPage musicdetailPage;
     private long currentId;
-    public event PropertyChangedEventHandler PropertyChanged;
-
-    private ObservableCollection<SongViewModel> _songs = new();
-    public ObservableCollection<SongViewModel> Songs
-    {
-        get => _songs;
-        set
-        {
-            _songs = value;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Songs)));
-        }
-    }
 
     public async Task LoadPlaylistAsync(long id)
     {

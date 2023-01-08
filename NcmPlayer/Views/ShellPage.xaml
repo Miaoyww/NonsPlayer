@@ -13,12 +13,13 @@
     <Grid>
         <Grid>
             <Grid>
-                <Frame x:Name="NavigationFrame"/>
+                <Frame x:Name="NavigationFrame" Margin="0,90,0,0"/>
             </Grid>
-            <Grid Height="80" VerticalAlignment="Top">
+            <Grid Height="60" VerticalAlignment="Top">
+                <!--
                 <Grid.Background>
                     <AcrylicBrush Opacity="1" TintColor="White" TintOpacity="0.9"/>
-                </Grid.Background>
+                </Grid.Background>-->
                 <Grid VerticalAlignment="Top" Margin="0,30,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -54,12 +55,12 @@
                     <TextBlock x:Name="AppTitleBarText" VerticalAlignment="Center" TextWrapping="NoWrap" Style="{StaticResource CaptionTextBlockStyle}" Margin="20, 10, 0, 0" FontSize="14" FontWeight="Bold" />
                 </Grid>
             </Grid>
-
         </Grid>
-        <Border x:Name="PlayBar" VerticalAlignment="Bottom" Height="75" BorderThickness="0,1,0,0" BorderBrush="#7FB9B9B9" Margin="0,680,0,0">
+        <Border x:Name="PlayBar" VerticalAlignment="Bottom" Height="90" BorderThickness="0,1,0,0" Padding="0" BorderBrush="#7FB9B9B9" Margin="0,680,0,0">
+            <!--
             <Border.Background>
                 <AcrylicBrush Opacity="1" TintColor="White" TintOpacity="0.9"/>
-            </Border.Background>
+            </Border.Background>-->
             <Grid>
                 <StackPanel Orientation="Horizontal" Width="370" HorizontalAlignment="Left" Margin="60,0,0,0">
                     <Button
@@ -77,22 +78,32 @@
                         <TextBlock x:Name="tblock_artists" Text="暂无播放" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Width="270" TextTrimming="WordEllipsis" Foreground="#E4868686" />
                     </StackPanel>
                 </StackPanel>
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,5">
-                    <StackPanel x:Name="PlayerController" Orientation="Horizontal" Width="135" HorizontalAlignment="Center">
-                        <Button x:Name="btn_last" FontSize="25" Width="35" Height="35" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#00000000" BorderThickness="0,0,0,0" Padding="0,0,0,0" />
-                        <Button x:Name="btn_play" FontSize="25" Width="35" Height="35" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Padding="0,0,0,0" />
-                        <Button x:Name="btn_next" FontSize="25" Width="35" Height="35" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Padding="0,0,0,0" />
+                <Grid>
+                    <StackPanel Margin="0,15,0,0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top">
+                        <Button x:Name="btn_last" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Padding="0,0,0,0">
+                            <FontIcon  FontFamily="Segoe Fluent Icons" Glyph="&#xf8ac;" FontSize="20"/>
+                        </Button>
+                        <Button x:Name="btn_play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Padding="0,0,0,0" >
+                            <FontIcon  FontFamily="Segoe Fluent Icons" Glyph="&#xf5b0;" FontSize="20"/>
+                        </Button>
+                        <Button x:Name="btn_next" Width="35" Height="35" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Padding="0,0,0,0" >
+                            <FontIcon  FontFamily="Segoe Fluent Icons" Glyph="&#xf8ad;" FontSize="20"/>
+                        </Button>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock x:Name="label_currentTime" Text="0:00"  VerticalAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Left" FontSize="15" />
-                        <Slider x:Name="slider_postion" Value="0" Maximum="100" Width="296" />
-                        <TextBlock x:Name="label_wholeTime" Text="0:00" VerticalAlignment="Center" Height="20" Padding="0,0,0,0" HorizontalAlignment="Right" FontSize="15" FlowDirection="RightToLeft" />
+                    <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+                        <TextBlock x:Name="label_currentTime" Text="0:00" FontWeight="Black" FontFamily="JetBrains Mono" Margin="10,0"  VerticalAlignment="Center" Height="20" Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
+                        <Slider x:Name="slider_postion" IsThumbToolTipEnabled="False"  Value="0"  Maximum="100" Width="340" />
+                        <TextBlock x:Name="label_wholeTime" Text="0:00" FontWeight="Black" FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0" HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
                     </StackPanel>
-                </StackPanel>
+                </Grid>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,30,0">
-                    <Button x:Name="btn_volume" Background="Transparent" FontSize="26" BorderThickness="0,0,0,0" />
-                    <Slider x:Name="slider_volume" Value="0" HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100"/>
-                    <Button x:Name="btn_showPlaylist" Background="Transparent" FontSize="26" BorderThickness="0,0,0,0"/>
+                    <Button x:Name="btn_volume" Width="40" Height="40" Background="Transparent" BorderThickness="0,0,0,0" >
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xe992;" FontSize="24"/>
+                    </Button>
+                    <Slider x:Name="slider_volume" IsThumbToolTipEnabled="False" Value="0" Width="100" HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100"/>
+                    <Button x:Name="btn_showPlaylist" Width="40" Height="40" Background="Transparent" FontSize="26" BorderThickness="0,0,0,0">
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf168;" FontSize="18"/>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

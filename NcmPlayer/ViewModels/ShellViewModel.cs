@@ -2,17 +2,18 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Navigation;
 
 using NcmPlayer.Contracts.Services;
+using NcmPlayer.Framework.Model;
 
 namespace NcmPlayer.ViewModels;
 
 public class ShellViewModel : ObservableRecipient
 {
     private bool _isBackEnabled;
+
+    #region 接口实现
 
     public ICommand MenuHomeOpenCommand
     {
@@ -23,6 +24,7 @@ public class ShellViewModel : ObservableRecipient
     {
         get;
     }
+
     public ICommand MenuOwnOpenCommand
     {
         get;
@@ -32,8 +34,6 @@ public class ShellViewModel : ObservableRecipient
     {
         get;
     }
-
-
 
     public INavigationService NavigationService
     {
@@ -45,6 +45,10 @@ public class ShellViewModel : ObservableRecipient
         get => _isBackEnabled;
         set => SetProperty(ref _isBackEnabled, value);
     }
+
+    #endregion 接口实现
+
+    #region 页面注册
 
     public ShellViewModel(INavigationService navigationService)
     {
@@ -65,7 +69,9 @@ public class ShellViewModel : ObservableRecipient
 
     private void OnMenuOwnOpen() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
 
-
     private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
 
+    #endregion 页面注册
+
+    public Music? CurrentMusic;
 }

@@ -11,6 +11,7 @@ public sealed partial class HomePage : Page
     }
 
     public VariableSizedWrapGrid Panel_MusicList;
+
     public HomePage()
     {
         ViewModel = App.GetService<HomeViewModel>();

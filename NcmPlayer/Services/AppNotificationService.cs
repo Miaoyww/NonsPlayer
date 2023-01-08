@@ -4,7 +4,6 @@ using System.Web;
 using Microsoft.Windows.AppNotifications;
 
 using NcmPlayer.Contracts.Services;
-using NcmPlayer.ViewModels;
 
 namespace NcmPlayer.Notifications;
 

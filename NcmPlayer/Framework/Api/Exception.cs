@@ -1,11 +1,10 @@
-﻿using System;
-
-namespace NcmApi
+﻿namespace NcmApi
 {
     public class LoginFailed : Exception
     {
         public LoginFailed()
-        { }
+        {
+        }
 
         public LoginFailed(string message) : base(message)
         {

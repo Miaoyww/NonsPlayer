@@ -20,7 +20,7 @@ public class DefaultActivationHandler : ActivationHandler<LaunchActivatedEventAr
         return _navigationService.Frame?.Content == null;
     }
 
-    protected async override Task HandleInternalAsync(LaunchActivatedEventArgs args)
+    protected override async Task HandleInternalAsync(LaunchActivatedEventArgs args)
     {
         _navigationService.NavigateTo(typeof(HomeViewModel).FullName!, args.Arguments);
 

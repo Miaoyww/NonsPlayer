@@ -125,16 +125,16 @@ namespace NcmPlayer.Framework.Model
             return musics;
         }
 
-        public async Task<Stream> GetPic(int x = 0, int y = 0)
+        public Stream GetPic(int x = 0, int y = 0)
         {
             string IMGSIZE = $"?param=300y300";
             if (x == 0)
             {
-                return await HttpRequest.StreamHttpGet(PicUrl + IMGSIZE);
+                return HttpRequest.StreamHttpGet(PicUrl + IMGSIZE);
             }
             else
             {
-                return await HttpRequest.StreamHttpGet(PicUrl + $"?param={x}y{y}");
+                return HttpRequest.StreamHttpGet(PicUrl + $"?param={x}y{y}");
             }
         }
     }

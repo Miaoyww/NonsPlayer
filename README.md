@@ -15,7 +15,10 @@
 
 </div>
 
-[当前Track](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/BugTracks.md)
+# 特别说明
+由于wpf的性能实在是一言难尽, 所以项目正在使用winui3`重写`, 加上作者临近中考, 写代码的时间会越来越少, 所以最近一段时间`可能`不会有release
+
+**十分需要懂winui3的大佬的帮助!!**
 
 # 📦️下载
 
@@ -26,11 +29,23 @@
 
 # ⭐亮点
 
-- 可以被远程控制, 让您在家里随时随地听音乐
+- 可以远程控制, 让您在家里随时随地听音乐
 - 可以播放网易云音乐内的歌曲
 - 界面简洁, 操作简单
 - 内存占用小
 - 保持稳定更新
+
+# 🧭开发指南
+
+## 环境
++ Windows 10 1809 及以上版本
++ 安装 [Visual Studio 2022](https://visualstudio.microsoft.com/zh-hans/vs/preview/)
++ 安装 [Windows App SDK](https://docs.microsoft.com/zh-cn/windows/apps/windows-app-sdk/set-up-your-development-environment)
+
+欢迎提交 Issus 和 Pull Request!
+
+
+
 
 # 📜开源许可
 

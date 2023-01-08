@@ -127,32 +127,13 @@
     <value>Main</value>
     <comment>Page title for MainPage</comment>
   </data>
-  <data name="Settings_Personalization.Text" xml:space="preserve">
-    <value>Personalization</value>
+  <data name="SettingsPage_GithubLink.Content" xml:space="preserve">
+    <value>Github</value>
+    <comment>设置页面 超链接文本 Github</comment>
   </data>
-  <data name="Settings_Theme.Text" xml:space="preserve">
-    <value>Theme</value>
-  </data>
-  <data name="Settings_Theme_Light.Content" xml:space="preserve">
-    <value>Light</value>
-  </data>
-  <data name="Settings_Theme_Dark.Content" xml:space="preserve">
-    <value>Dark</value>
-  </data>
-  <data name="Settings_Theme_Default.Content" xml:space="preserve">
-    <value>Default</value>
-  </data>
-  <data name="Settings_About.Text" xml:space="preserve">
-    <value>About this application</value>
-  </data>
-  <data name="Settings_AboutDescription.Text" xml:space="preserve">
-    <value>TODO: Replace with your app description.</value>
-  </data>
-  <data name="SettingsPage_PrivacyTermsLink.Content" xml:space="preserve">
-    <value>Privacy Statement</value>
-  </data>
-  <data name="SettingsPage_PrivacyTermsLink.NavigateUri" xml:space="preserve">
-    <value>https://YourPrivacyUrlGoesHere/</value>
+  <data name="SettingsPage_GithubLink.NavigateUri" xml:space="preserve">
+    <value>https://github.com/Miaoyww/NcmPlayer</value>
+    <comment>设置页面 超链接文本 Github链接</comment>
   </data>
   <data name="ShellMenuBarSettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Settings</value>
@@ -194,5 +175,13 @@
   <data name="ShellMenu_Own.Content" xml:space="preserve">
     <value>我的</value>
     <comment>我的按钮的文本</comment>
+  </data>
+  <data name="SettingsPage_BilibiliLink.Content" xml:space="preserve">
+    <value>Bilibili</value>
+    <comment>设置页面 超链接文本 Bilibili</comment>
+  </data>
+  <data name="SettingsPage_BilibiliLink.NavigateUri" xml:space="preserve">
+    <value>https://space.bilibili.com/435970102</value>
+    <comment>设置页面 超链接文本 Bilibili链接</comment>
   </data>
 </root>

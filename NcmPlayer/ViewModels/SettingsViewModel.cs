@@ -38,19 +38,7 @@ public class SettingsViewModel : ObservableRecipient
 
     public SettingsViewModel(IThemeSelectorService themeSelectorService)
     {
-        _themeSelectorService = themeSelectorService;
-        _elementTheme = _themeSelectorService.Theme;
         _versionDescription = GetVersionDescription();
-
-        SwitchThemeCommand = new RelayCommand<ElementTheme>(
-            async (param) =>
-            {
-                if (ElementTheme != param)
-                {
-                    ElementTheme = param;
-                    await _themeSelectorService.SetThemeAsync(param);
-                }
-            });
     }
 
     private static string GetVersionDescription()
@@ -68,6 +56,6 @@ public class SettingsViewModel : ObservableRecipient
             version = Assembly.GetExecutingAssembly().GetName().Version!;
         }
 
-        return $"{"AppDisplayName".GetLocalized()} - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
+        return $"v{version.Major}.{version.Minor}.{version.Build}";
     }
 }

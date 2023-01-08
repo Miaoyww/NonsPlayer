@@ -8,16 +8,16 @@
     Loaded="{x:Bind ViewModel.HomeLoad}">
 
     <Grid>
-        <ScrollViewer>
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,80,0,0">
+        <ScrollViewer Margin="0,0,0,90">
+            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">
                 <Grid>
-                    <TextBlock Text="For you" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
-                    <Border x:Name="b_dailyMusic" HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500" Height="200" Margin="0,70,0,0">
+                    <TextBlock Text="For you" FontWeight="Black" FontSize="30" FontFamily="JetBrains Mono" />
+                    <Border x:Name="b_dailyMusic" PointerEntered="{x:Bind ViewModel.CardShow}" PointerExited="{x:Bind ViewModel.CardHide}" HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500" Height="200" Margin="0,70,0,0">
                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="每日单曲推荐" Foreground="Black" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
                     </Border>
                 </Grid>
-                <Grid Margin="0,70,0,80">
-                    <TextBlock Text="推荐歌单" FontWeight="Bold" FontSize="25" FontFamily="JetBrains Mono" Margin="10,0,0,0" />
+                <Grid Margin="0,60,0,80">
+                    <TextBlock Text="推荐歌单" FontWeight="Black" FontSize="25" FontFamily="JetBrains Mono"/>
                     <VariableSizedWrapGrid x:Name="panel_nicePlaylists" HorizontalAlignment="Left" Margin="0,40,0,0" Orientation="Horizontal"/>
                 </Grid>
             </StackPanel>

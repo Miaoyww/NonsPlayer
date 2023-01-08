@@ -17,15 +17,17 @@ using NcmPlayer.Resources;
 using NcmPlayer.Views;
 using Newtonsoft.Json.Linq;
 using Windows.UI;
+using System.ComponentModel;
+using System.Collections.ObjectModel;
 
 namespace NcmPlayer.ViewModels;
 
-public class HomeViewModel : ObservableRecipient
+public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
 {
     public INavigationService NavigationService
     {
         get;
-    }   
+    }
     public HomeViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
@@ -97,14 +99,14 @@ public class HomeViewModel : ObservableRecipient
         (sender as UIElement).StartAnimation(animation);
     }
 
-    private void CardHide(object sender, PointerRoutedEventArgs e)
+    public void CardHide(object sender, PointerRoutedEventArgs e)
     {
         UpdateSpringAnimation(1f);
 
         StartAnimationIfAPIPresent((sender as UIElement), _springAnimation);
     }
 
-    private void CardShow(object sender, PointerRoutedEventArgs e)
+    public void CardShow(object sender, PointerRoutedEventArgs e)
     {
         UpdateSpringAnimation(1.038f);
         

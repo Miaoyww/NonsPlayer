@@ -5,8 +5,6 @@ using NcmPlayer.Core.Contracts.Services;
 using NcmPlayer.Core.Helpers;
 using NcmPlayer.Helpers;
 using NcmPlayer.Models;
-
-using Windows.ApplicationModel;
 using Windows.Storage;
 
 namespace NcmPlayer.Services;

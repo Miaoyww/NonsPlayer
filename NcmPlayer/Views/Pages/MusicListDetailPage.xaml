@@ -5,12 +5,11 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Loaded="{x:Bind ViewModel.MusicDetailPageLoaded}"
-    >
+    Loaded="{x:Bind ViewModel.MusicDetailPageLoaded}">
 
     <Grid>
-        <Grid x:Name="MainContent" Margin="20,0,20,0">
-            <Grid Width="330" HorizontalAlignment="Left">
+        <Grid x:Name="MainContent" Margin="0,0,20,90">
+            <Grid Width="330" Margin="0,0,0,0" HorizontalAlignment="Left">
                 <Border x:Name="PlaylistCover" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#FFC8C3C3" CornerRadius="10,10,10,10" Margin="30,0,0,0">
                     <Border x:Name="b_play" Width="55" Height="55" Opacity="0.9">
                         <Grid>
@@ -31,10 +30,12 @@
                     <TextBlock x:Name="PlaylistCreateTime" Text="创建时间" Margin="0,34,0,0" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="16" FontFamily="Humnst777 BlkCn BT" Opacity="0.6" />
                 </Grid>
             </Grid>
-            <ScrollViewer Margin="315,66,10,0" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" >
-                <StackPanel x:Name="Musics" VerticalAlignment="Center" />
+            <ScrollViewer Margin="315,0,0,0">
+                <StackPanel Margin="0,0,0,0">
+                    <TextBlock x:Name="PlaylistName" Text="加载中" TextTrimming="WordEllipsis" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="40" Margin="0,0,0,20"/>
+                    <StackPanel x:Name="PanelMusics"/>
+                </StackPanel>
             </ScrollViewer>
-            <TextBlock x:Name="PlaylistName" Text="加载中" TextTrimming="WordEllipsis" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="40" Margin="315,10,0,0" />
         </Grid>
     </Grid>
 </Page>
