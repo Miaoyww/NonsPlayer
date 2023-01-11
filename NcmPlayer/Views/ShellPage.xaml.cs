@@ -8,6 +8,7 @@ using NcmPlayer.Helpers;
 using NcmPlayer.ViewModels;
 
 using Windows.System;
+using NcmPlayer.Framework.Player;
 
 namespace NcmPlayer.Views;
 
@@ -17,6 +18,8 @@ public sealed partial class ShellPage : Page
     {
         get;
     }
+
+    public MusicPlayer MusicPlayer => MusicPlayerHelper.Player;
 
     public ShellPage(ShellViewModel viewModel)
     {

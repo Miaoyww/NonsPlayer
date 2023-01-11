@@ -14,6 +14,7 @@ using NcmPlayer.Resources;
 using NcmPlayer.Views;
 using Newtonsoft.Json.Linq;
 using Windows.UI;
+using NcmPlayer.Helpers;
 
 namespace NcmPlayer.ViewModels;
 
@@ -23,15 +24,14 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
     {
         get;
     }
-
     public HomeViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
     }
 
-    private Compositor _compositor = CompositionTarget.GetCompositorForCurrentThread();
-    private SpringVector3NaturalMotionAnimation _springAnimation;
+    public void CardHide(object sender, PointerRoutedEventArgs e) => AnimationsHelper.CardHide(sender, e);
 
+    public void CardShow(object sender, PointerRoutedEventArgs e) => AnimationsHelper.CardShow(sender, e);
     private Border getCard(string title, string id, string picUrl)
     {
         BitmapImage bitmap = new BitmapImage(new Uri(picUrl));
@@ -74,44 +74,11 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
         grid.Children.Add(borderCover);
         grid.Children.Add(tblockTitle);
         borderParent.PointerPressed += OpenMusicListDetail;
-        borderParent.PointerEntered += CardShow;
-        borderParent.PointerExited += CardHide;
+        borderParent.PointerEntered += AnimationsHelper.CardShow;
+        borderParent.PointerExited += AnimationsHelper.CardHide;
         borderParent.Child = grid;
         return borderParent;
     }
-
-    private void UpdateSpringAnimation(float finalValue)
-    {
-        if (_springAnimation == null)
-        {
-            _springAnimation = _compositor.CreateSpringVector3Animation();
-            _springAnimation.Target = "Scale";
-        }
-
-        _springAnimation.FinalValue = new Vector3(finalValue);
-        _springAnimation.DampingRatio = 1f;
-        _springAnimation.Period = new TimeSpan(350000);
-    }
-
-    private void StartAnimationIfAPIPresent(UIElement sender, Microsoft.UI.Composition.CompositionAnimation animation)
-    {
-        (sender as UIElement).StartAnimation(animation);
-    }
-
-    public void CardHide(object sender, PointerRoutedEventArgs e)
-    {
-        UpdateSpringAnimation(1f);
-
-        StartAnimationIfAPIPresent((sender as UIElement), _springAnimation);
-    }
-
-    public void CardShow(object sender, PointerRoutedEventArgs e)
-    {
-        UpdateSpringAnimation(1.038f);
-
-        StartAnimationIfAPIPresent((sender as UIElement), _springAnimation);
-    }
-
     public async void HomeLoad(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         JObject response = (await Api.Playlist.Personalized(ResEntry.ncm, 20));
@@ -136,6 +103,6 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
 
     private void OpenMusicListDetail(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
-        Tool.OpenMusicListDetail(long.Parse(((Border)sender).Tag.ToString()), NavigationService);
+        Tools.OpenMusicListDetail(long.Parse(((Border)sender).Tag.ToString()!), NavigationService);
     }
 }

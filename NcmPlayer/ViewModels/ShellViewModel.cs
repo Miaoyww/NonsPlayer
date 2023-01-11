@@ -1,17 +1,28 @@
-﻿using System.Windows.Input;
-
+﻿using System.ComponentModel;
+using System.Windows.Input;
+using Windows.UI;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
-
 using NcmPlayer.Contracts.Services;
 using NcmPlayer.Framework.Model;
+using NcmPlayer.Helpers;
 
 namespace NcmPlayer.ViewModels;
 
-public class ShellViewModel : ObservableRecipient
+public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
 {
+
     private bool _isBackEnabled;
+
+
+    public new event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged(string propertyName) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     #region 接口实现
 
@@ -72,6 +83,4 @@ public class ShellViewModel : ObservableRecipient
     private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
 
     #endregion 页面注册
-
-    public Music? CurrentMusic;
 }

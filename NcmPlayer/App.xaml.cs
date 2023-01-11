@@ -1,16 +1,19 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 
 using NcmPlayer.Activation;
 using NcmPlayer.Contracts.Services;
 using NcmPlayer.Core.Contracts.Services;
 using NcmPlayer.Core.Services;
+using NcmPlayer.Helpers;
 using NcmPlayer.Models;
 using NcmPlayer.Notifications;
 using NcmPlayer.Services;
 using NcmPlayer.ViewModels;
 using NcmPlayer.Views;
+using NcmPlayer.Views.Pages;
 
 namespace NcmPlayer;
 
@@ -43,7 +46,7 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
-
+        MusicPlayerHelper.InitPlayer(DispatcherQueue.GetForCurrentThread());
         Host = Microsoft.Extensions.Hosting.Host.
         CreateDefaultBuilder().
         UseContentRoot(AppContext.BaseDirectory).

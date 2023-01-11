@@ -5,9 +5,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:animatedvisuals="using:Microsoft.UI.Xaml.Controls.AnimatedVisuals"
-    Loaded="OnLoaded"
-    Unloaded="OnUnloaded"
+    xmlns:helpers="using:NcmPlayer.Helpers"
     mc:Ignorable="d">
+    <Page.Resources>
+        <helpers:PlayerIconConverter x:Key="PlayerIconConverter" />
+        <helpers:VolumeIconConverter x:Key="VolumeIconConverter" />
+    </Page.Resources>
+
     <Grid>
         <Grid>
             <Grid>
@@ -17,7 +21,8 @@
                 <!--
                 <Grid.Background>
                     <AcrylicBrush Opacity="1" TintColor="White" TintOpacity="0.9" />
-                </Grid.Background>-->
+                </Grid.Background>
+                -->
                 <Grid VerticalAlignment="Top" Margin="0,30,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -25,20 +30,32 @@
                     </Grid.ColumnDefinitions>
 
                     <Grid HorizontalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Height="33">
-                            <Button x:Uid="ShellMenu_Home" BorderThickness="0" Width="68" Height="25" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
-                                Command="{x:Bind ViewModel.MenuHomeOpenCommand}" />
-                            <Button x:Uid="ShellMenu_Explore" BorderThickness="0" Width="68" Height="25" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
-                                Command="{x:Bind ViewModel.MenuExploreOpenCommand}" />
-                            <Button x:Uid="ShellMenu_Own" BorderThickness="0" Width="68" Height="25" FontFamily="JetBrains Mono" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="Transparent" FontSize="18" FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
-                                Command="{x:Bind ViewModel.MenuOwnOpenCommand}" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top"
+                                    Height="33">
+                            <Button x:Uid="ShellMenu_Home" BorderThickness="0" Width="68" Height="25"
+                                    FontFamily="JetBrains Mono" HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                    FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
+                                    Command="{x:Bind ViewModel.MenuHomeOpenCommand}" />
+                            <Button x:Uid="ShellMenu_Explore" BorderThickness="0" Width="68" Height="25"
+                                    FontFamily="JetBrains Mono" HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                    FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
+                                    Command="{x:Bind ViewModel.MenuExploreOpenCommand}" />
+                            <Button x:Uid="ShellMenu_Own" BorderThickness="0" Width="68" Height="25"
+                                    FontFamily="JetBrains Mono" HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                    FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
+                                    Command="{x:Bind ViewModel.MenuOwnOpenCommand}" />
                         </StackPanel>
                     </Grid>
-                    <AppBarButton Width="40" Height="50" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,5,0" x:Name="ShellMenuBarSettingsButton" x:Uid="ShellMenuBarSettingsButton"
-                              AnimatedIcon.State="Normal"
-                              PointerEntered="ShellMenuBarSettingsButton_PointerEntered"
-                              PointerExited="ShellMenuBarSettingsButton_PointerExited"
-                              Command="{x:Bind ViewModel.MenuSettingsCommand}">
+                    <AppBarButton Width="40" Height="50" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                  Margin="0,0,5,0" x:Name="ShellMenuBarSettingsButton"
+                                  x:Uid="ShellMenuBarSettingsButton"
+                                  AnimatedIcon.State="Normal"
+                                  PointerEntered="ShellMenuBarSettingsButton_PointerEntered"
+                                  PointerExited="ShellMenuBarSettingsButton_PointerExited"
+                                  Command="{x:Bind ViewModel.MenuSettingsCommand}">
                         <AnimatedIcon x:Name="ShellMenuBarSettingsButtonIcon">
                             <AnimatedIcon.Source>
                                 <animatedvisuals:AnimatedSettingsVisualSource />
@@ -50,11 +67,14 @@
                     </AppBarButton>
                 </Grid>
                 <Grid VerticalAlignment="Top" Margin="0,0,0,0" x:Name="AppTitleBar">
-                    <TextBlock x:Name="AppTitleBarText" VerticalAlignment="Center" TextWrapping="NoWrap" Style="{StaticResource CaptionTextBlockStyle}" Margin="20, 10, 0, 0" FontSize="14" FontWeight="Bold" />
+                    <TextBlock x:Name="AppTitleBarText" VerticalAlignment="Center" TextWrapping="NoWrap"
+                               Style="{StaticResource CaptionTextBlockStyle}" Margin="20, 10, 0, 0" FontSize="14"
+                               FontWeight="Bold" />
                 </Grid>
             </Grid>
         </Grid>
-        <Border x:Name="PlayBar" VerticalAlignment="Bottom" Height="90" BorderThickness="0,1,0,0" Padding="0" BorderBrush="#7FB9B9B9" Margin="0,680,0,0">
+        <Border x:Name="PlayBar" VerticalAlignment="Bottom" Height="90" BorderThickness="0,1,0,0" Padding="0"
+                BorderBrush="#7FB9B9B9" Margin="0,680,0,0">
             <!--
             <Border.Background>
                 <AcrylicBrush Opacity="1" TintColor="White" TintOpacity="0.9" />
@@ -66,40 +86,74 @@
                         Width="60"
                         Height="60"
                         HorizontalAlignment="Center"
-                        Background="{Binding CoverBrush, Mode=OneWay}"
-                        BorderThickness="0,0,0,0" />
-                    <StackPanel VerticalAlignment="Center" Width="290">
+                        Background="{x:Bind MusicPlayer.Cover, Mode=OneWay}"
+                        BorderThickness="0,0,0,0"
+                        Margin="0,0,10,0" />
+                    <StackPanel VerticalAlignment="Center" Width="290" Margin="0,0,0,5">
                         <StackPanel Orientation="Horizontal" Height="35" Width="290" HorizontalAlignment="Left">
-                            <TextBlock x:Name="tblock_title" Text="暂无播放" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" Width="255" TextWrapping="Wrap" FontFamily="Bahnschrift SemiBold" />
-                            <Button x:Name="btn_like" FontSize="20" Width="35" Height="35" Background="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="0,0,0,0" BorderThickness="0,0,0,0" />
+                            <TextBlock x:Name="tblockName" Text="{x:Bind MusicPlayer.Name, Mode=OneWay}"
+                                       HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="18" Width="255"
+                                       TextWrapping="Wrap" FontFamily="Bahnschrift SemiBold" />
+                            <Button x:Name="btn_like" FontSize="20" Width="35" Height="35" Background="Transparent"
+                                    VerticalAlignment="Center" HorizontalAlignment="Center" Padding="0,0,0,0"
+                                    BorderThickness="0,0,0,0" />
                         </StackPanel>
-                        <TextBlock x:Name="tblock_artists" Text="暂无播放" HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Width="270" TextTrimming="WordEllipsis" Foreground="#E4868686" />
+                        <TextBlock x:Name="tblockArtists" Text="{x:Bind MusicPlayer.Artists,Mode=OneWay}"
+                                   HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15" Width="270"
+                                   TextTrimming="WordEllipsis" Foreground="#E4868686" />
                     </StackPanel>
                 </StackPanel>
                 <Grid>
-                    <StackPanel Margin="0,15,0,0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top">
-                        <Button x:Name="btn_last" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Padding="0,0,0,0">
-                            <FontIcon  FontFamily="Segoe Fluent Icons" Glyph="&#xf8ac;" FontSize="20" />
+                    <StackPanel Margin="0,15,0,0" Orientation="Horizontal" HorizontalAlignment="Center"
+                                VerticalAlignment="Top">
+                        <Button x:Name="btn_last" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
+                                HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
+                                Padding="0,0,0,0">
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf8ac;" FontSize="20" />
                         </Button>
-                        <Button x:Name="btn_play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Padding="0,0,0,0">
-                            <FontIcon  FontFamily="Segoe Fluent Icons" Glyph="&#xf5b0;" FontSize="20" />
+                        <Button x:Name="btn_play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
+                                HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
+                                Padding="0,0,0,0"
+                                Command="{x:Bind MusicPlayer.MusicPlayCommand}">
+                            <FontIcon FontFamily="Segoe Fluent Icons"
+                                      Glyph="{x:Bind MusicPlayer.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
+                                      FontSize="20" />
                         </Button>
-                        <Button x:Name="btn_next" Width="35" Height="35" VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0" Padding="0,0,0,0">
-                            <FontIcon  FontFamily="Segoe Fluent Icons" Glyph="&#xf8ad;" FontSize="20" />
+                        <Button x:Name="btn_next" Width="35" Height="35" VerticalAlignment="Center"
+                                HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
+                                Padding="0,0,0,0">
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf8ad;" FontSize="20" />
                         </Button>
                     </StackPanel>
-                    <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
-                        <TextBlock x:Name="label_currentTime" Text="0:00" FontWeight="Black" FontFamily="JetBrains Mono" Margin="10,0"  VerticalAlignment="Center" Height="20" Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
-                        <Slider x:Name="slider_postion" IsThumbToolTipEnabled="False"  Value="0"  Maximum="100" Width="340" />
-                        <TextBlock x:Name="label_wholeTime" Text="0:00" FontWeight="Black" FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0" HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
+                    <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom">
+                        <TextBlock x:Name="label_currentTime" Text="{x:Bind MusicPlayer.PositionString ,Mode=OneWay}"
+                                   FontWeight="Black"
+                                   FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
+                                   Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
+                        <Slider x:Name="slider_postion" IsThumbToolTipEnabled="False" Width="340"
+                                Value="{x:Bind MusicPlayer.PositionDouble, Mode=TwoWay}"
+                                Maximum="{x:Bind MusicPlayer.DurationTimeDouble, Mode=OneWay}" />
+                        <TextBlock x:Name="label_wholeTime" Text="{x:Bind MusicPlayer.DurationTimeString, Mode=OneWay}"
+                                   FontWeight="Black" FontFamily="JetBrains Mono"
+                                   Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0"
+                                   HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
                     </StackPanel>
                 </Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,30,0">
-                    <Button x:Name="btn_volume" Width="40" Height="40" Background="Transparent" BorderThickness="0,0,0,0">
-                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xe992;" FontSize="24" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Margin="0,0,30,0">
+                    <Button x:Name="btn_volume" Width="45" Height="45" Margin="5" Background="Transparent"
+                            BorderThickness="0,0,0,0"
+                            Command="{x:Bind MusicPlayer.VolumeMuteCommand}">
+                        <FontIcon FontFamily="Segoe Fluent Icons" FontSize="22"
+                                  Glyph="{x:Bind MusicPlayer.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
                     </Button>
-                    <Slider x:Name="slider_volume" IsThumbToolTipEnabled="False" Value="0" Width="100" HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
-                    <Button x:Name="btn_showPlaylist" Width="40" Height="40" Background="Transparent" FontSize="26" BorderThickness="0,0,0,0">
+                    <Slider x:Name="slider_volume" IsThumbToolTipEnabled="False"
+                            Value="{x:Bind MusicPlayer.Volume, Mode=TwoWay}" Width="100"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
+                    <Button x:Name="btn_showPlaylist" Width="45" Height="45" Margin="5" Background="Transparent"
+                            FontSize="26"
+                            BorderThickness="0,0,0,0">
                         <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf168;" FontSize="18" />
                     </Button>
                 </StackPanel>

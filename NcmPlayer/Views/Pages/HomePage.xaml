@@ -5,8 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Loaded="{x:Bind ViewModel.HomeLoad}">
-
+    Loaded="{x:Bind ViewModel.HomeLoad}"
+    xmlns:helpers="using:NcmPlayer.Helpers">
     <Grid>
         <ScrollViewer Margin="0,0,0,90">
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">

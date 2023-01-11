@@ -1,11 +1,15 @@
-﻿using NcmPlayer.Contracts.Services;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using NcmPlayer.Contracts.Services;
 using NcmPlayer.ViewModels;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using RestSharp;
 
-namespace NcmApi;
-
+namespace NcmPlayer.Helpers;
 public static class HttpRequest
 {
     public static Stream StreamHttpGet(string url)
@@ -32,19 +36,5 @@ public static class HttpRequest
     public static JObject? GetJson(string url)
     {
         return JObjectHttpGet(StreamHttpGet(url));
-    }
-}
-
-public static class Tool
-{
-    public static DateTime TimestampToDateTime(string timeStamp)
-    {
-        DateTime sTime = new DateTime(1970, 1, 1, 0, 0, 0).ToLocalTime();
-        return sTime.AddSeconds(double.Parse(timeStamp));
-    }
-
-    public static void OpenMusicListDetail(long id, INavigationService navigationService)
-    {
-        navigationService.NavigateTo(typeof(MusicListDetailViewModel).FullName!, id);
     }
 }

@@ -11,4 +11,5 @@ public class LocalSettingsOptions
     {
         get; set;
     }
+
 }

@@ -71,4 +71,18 @@
   <ItemGroup>
     <PRIResource Remove="Strings\新文件夹\**" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Assets\UnknowResource.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\UnknowResource.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\UnknowResource.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
 </Project>

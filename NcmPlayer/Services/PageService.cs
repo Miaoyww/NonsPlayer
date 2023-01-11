@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using NcmPlayer.Contracts.Services;
 using NcmPlayer.ViewModels;
 using NcmPlayer.Views;
+using NcmPlayer.Views.Pages;
 
 namespace NcmPlayer.Services;
 
