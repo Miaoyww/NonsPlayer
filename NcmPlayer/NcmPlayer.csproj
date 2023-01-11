@@ -4,8 +4,6 @@
     <TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>NcmPlayer</RootNamespace>
-    <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;arm64</Platforms>
     <RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
     <PublishProfile>Properties\PublishProfiles\win10-$(Platform).pubxml</PublishProfile>
@@ -22,6 +20,8 @@
     <Product>Miaoyww</Product>
     <PackageCertificateThumbprint>90B23112B9452F6A7D258D4D87E2EF96B1431B7C</PackageCertificateThumbprint>
     <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Strings\新文件夹\**" />
@@ -77,12 +77,24 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Assets\NcmPlayer.altform-lightunplated_targetsize-24.png" />
+    <None Remove="Assets\NcmPlayer.altform-unplated_targetsize-24.png" />
+    <None Remove="Assets\NcmPlayer.png" />
+    <None Remove="Assets\NcmPlayer.scale-125.png" />
+    <None Remove="Assets\NcmPlayer.targetsize-24.png" />
     <None Remove="Assets\UnknowResource.png" />
+    <None Remove="Assets\WindowIcon.ico" />
   </ItemGroup>
 
   <ItemGroup>
     <Resource Include="Assets\UnknowResource.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="Assets\WindowIcon.ico">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>
