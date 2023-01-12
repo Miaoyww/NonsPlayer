@@ -36,7 +36,7 @@ public class ThemeSelectorService : IThemeSelectorService
     {
         if (App.MainWindow.Content is FrameworkElement rootElement)
         {
-            rootElement.RequestedTheme = Theme;
+           //  rootElement.RequestedTheme = Theme;
 
             TitleBarHelper.UpdateTitleBar(Theme);
         }

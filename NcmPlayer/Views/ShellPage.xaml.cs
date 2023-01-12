@@ -33,7 +33,7 @@ public sealed partial class ShellPage : Page
         // https://docs.microsoft.com/windows/apps/develop/title-bar?tabs=winui3#full-customization
         App.MainWindow.ExtendsContentIntoTitleBar = true;
         App.MainWindow.SetTitleBar(AppTitleBar);
-        App.MainWindow.Activated += MainWindow_Activated;
+        // App.MainWindow.Activated += MainWindow_Activated;
         AppTitleBarText.Text = "AppDisplayName".GetLocalized();
     }
 
@@ -50,9 +50,9 @@ public sealed partial class ShellPage : Page
 
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
     {
-        var resource = args.WindowActivationState == WindowActivationState.Deactivated ? "WindowCaptionForegroundDisabled" : "WindowCaptionForeground";
+        // var resource = args.WindowActivationState == WindowActivationState.Deactivated ? "WindowCaptionForegroundDisabled" : "WindowCaptionForeground";
 
-        AppTitleBarText.Foreground = (SolidColorBrush)App.Current.Resources[resource];
+        // AppTitleBarText.Foreground = (SolidColorBrush)App.Current.Resources[resource];
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)

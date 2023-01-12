@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Windows.Input;
 using Windows.UI;
+using ABI.Windows.System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
@@ -15,14 +16,28 @@ namespace NcmPlayer.ViewModels;
 
 public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
 {
-
-    private bool _isBackEnabled;
-
-
     public new event PropertyChangedEventHandler? PropertyChanged;
-
     private void OnPropertyChanged(string propertyName) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private bool _isBackEnabled;
+    public bool IsBackEnabled
+    {
+        get => _isBackEnabled;
+        set => SetProperty(ref _isBackEnabled, value);
+    }
+    private Brush _userFace;
+
+    public Brush UserFace
+    {
+        set
+        {
+            _userFace = value;
+            OnPropertyChanged(nameof(UserFace));
+        }
+        get => _userFace;
+    }
+
 
     #region 接口实现
 
@@ -51,11 +66,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         get;
     }
 
-    public bool IsBackEnabled
-    {
-        get => _isBackEnabled;
-        set => SetProperty(ref _isBackEnabled, value);
-    }
+
 
     #endregion 接口实现
 
@@ -70,6 +81,12 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         MenuExploreOpenCommand = new RelayCommand(OnMenuExploreOpen);
         MenuOwnOpenCommand = new RelayCommand(OnMenuOwnOpen);
         MenuSettingsCommand = new RelayCommand(OnMenuSettings);
+
+        UserFace = new ImageBrush()
+        {
+            ImageSource = 
+                new BitmapImage(new Uri("ms-appdata:///Assets/UnKnowResource.png"))
+        };
     }
 
     private void OnNavigated(object sender, NavigationEventArgs e) => IsBackEnabled = NavigationService.CanGoBack;

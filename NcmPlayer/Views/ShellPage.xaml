@@ -15,80 +15,136 @@
     <Grid>
         <Grid>
             <Grid>
-                <Frame x:Name="NavigationFrame" Margin="0,90,0,0" />
+                <Frame x:Name="NavigationFrame" Margin="230,70,0,0" />
             </Grid>
-            <Grid Height="60" VerticalAlignment="Top">
-                <!--
-                <Grid.Background>
-                    <AcrylicBrush Opacity="1" TintColor="White" TintOpacity="0.9" />
-                </Grid.Background>
-                -->
-                <Grid VerticalAlignment="Top" Margin="0,30,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <Grid HorizontalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top"
-                                    Height="33">
-                            <Button x:Uid="ShellMenu_Home" BorderThickness="0" Width="68" Height="25"
-                                    FontFamily="JetBrains Mono" HorizontalContentAlignment="Center"
-                                    VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
-                                    FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
-                                    Command="{x:Bind ViewModel.MenuHomeOpenCommand}" />
-                            <Button x:Uid="ShellMenu_Explore" BorderThickness="0" Width="68" Height="25"
-                                    FontFamily="JetBrains Mono" HorizontalContentAlignment="Center"
-                                    VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
-                                    FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
-                                    Command="{x:Bind ViewModel.MenuExploreOpenCommand}" />
-                            <Button x:Uid="ShellMenu_Own" BorderThickness="0" Width="68" Height="25"
-                                    FontFamily="JetBrains Mono" HorizontalContentAlignment="Center"
-                                    VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
-                                    FontWeight="Bold" Padding="0,0,0,0" Opacity="0.65"
-                                    Command="{x:Bind ViewModel.MenuOwnOpenCommand}" />
-                        </StackPanel>
+            <Grid Name="FuncBar" Background="#F6F7F8" Width="230" HorizontalAlignment="Left">
+                <Border
+                    Name="Cover"
+                    Height="230"
+                    VerticalAlignment="Bottom"
+                    Background="{x:Bind MusicPlayer.Cover, Mode=OneWay}"
+                    BorderThickness="0"
+                    Margin="0,0,0,90" />
+            </Grid>
+            <Border Name="TitleBar"
+                    VerticalAlignment="Top"
+                    BorderThickness="0,0,0,1"
+                    BorderBrush="#F0F1F2"
+                    Height="70"
+                    Margin="230,0,0,0">
+                <Grid>
+                    <Grid  VerticalAlignment="Center" x:Name="AppTitleBar">
+                        <Grid VerticalAlignment="Center">
+                            <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       FontSize="18"
+                                       FontFamily="HarmonyOS Sans"
+                                       Margin="20,0,0,0"
+                                       FontWeight="Black"
+                                       Foreground="#2d2d2d"
+                                       Opacity="0.9" />
+                        </Grid>
                     </Grid>
-                    <AppBarButton Width="40" Height="50" VerticalAlignment="Center" HorizontalAlignment="Right"
-                                  Margin="0,0,5,0" x:Name="ShellMenuBarSettingsButton"
-                                  x:Uid="ShellMenuBarSettingsButton"
-                                  AnimatedIcon.State="Normal"
-                                  PointerEntered="ShellMenuBarSettingsButton_PointerEntered"
-                                  PointerExited="ShellMenuBarSettingsButton_PointerExited"
-                                  Command="{x:Bind ViewModel.MenuSettingsCommand}">
-                        <AnimatedIcon x:Name="ShellMenuBarSettingsButtonIcon">
-                            <AnimatedIcon.Source>
-                                <animatedvisuals:AnimatedSettingsVisualSource />
-                            </AnimatedIcon.Source>
-                            <AnimatedIcon.FallbackIconSource>
-                                <FontIconSource FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xE713;" />
-                            </AnimatedIcon.FallbackIconSource>
-                        </AnimatedIcon>
-                    </AppBarButton>
+                    <Grid Name="PageButtons" VerticalAlignment="Center">
+                        <Grid Width="150" HorizontalAlignment="Left" Margin="150,0,0,0">
+                            <Button Height="35" Width="35" Margin="0,0,50,0" Padding="0" BorderThickness="0">
+                                <ImageIcon Source="../Assets/Icons/arrow-back.svg" Width="15" Foreground="#2d2d2d"
+                                           Margin="0,8,-2,0" />
+                            </Button>
+                            <Button Height="35" Width="35" Margin="50,0,0,0" BorderThickness="0">
+                                <ImageIcon Source="../Assets/Icons/arrow-next.svg" Width="15" Foreground="#2d2d2d"
+                                           Margin="-1,4,0,0" />
+                            </Button>
+                        </Grid>
+                        <Grid HorizontalAlignment="Center" Margin="0,2,50,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                        VerticalAlignment="Top"
+                                        Height="30">
+                                <Button x:Uid="ShellMenu_Home" BorderThickness="0" Width="60" Height="25"
+                                        FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                        FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                                        Foreground="#2d2d2d"
+                                        Command="{x:Bind ViewModel.MenuHomeOpenCommand}" />
+                                <Button x:Uid="ShellMenu_Explore" BorderThickness="0" Width="60" Height="25"
+                                        FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                        FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                                        Foreground="#2d2d2d"
+                                        Command="{x:Bind ViewModel.MenuExploreOpenCommand}" />
+                                <Button x:Uid="ShellMenu_Own" BorderThickness="0" Width="60" Height="25"
+                                        FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                        FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                                        Foreground="#2d2d2d"
+                                        Command="{x:Bind ViewModel.MenuOwnOpenCommand}" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                    <Grid Name="UserController" Margin="0,0,0,0" VerticalAlignment="Center"
+                         HorizontalAlignment="Right" Height="45">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Name="SearchBox" Height="28" Width="200" Background="#F1F2F2" CornerRadius="3" >
+                                <Grid>
+                                    <TextBox BorderThickness="0" CornerRadius="4"
+                                         Background="Transparent"
+                                         Foreground="Transparent" 
+                                         BorderBrush="Transparent"/>
+                                    <Button
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Right"
+                                    BorderThickness="0"
+                                    Height="28" Width="28"
+                                    Padding="0"
+                                    Background="Transparent">
+                                        <ImageIcon Source="../Assets/Icons/search.svg" Margin="3,0,8,0" />
+                                    </Button>
+                                </Grid>
+                            </Border>
+                            <Grid Name="UserInfo"
+                              VerticalAlignment="Center"
+                              HorizontalAlignment="Right"
+                              Width="150"
+                              Height="30"
+                              Margin="10,0,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Name="UserFace" Height="30" Width="30" Background="Black" Margin="0,0,5,0"
+                                        CornerRadius="100" />
+                                    <TextBlock Name="UserName" Text="Miaoyww" FontFamily="HarmonyOS Sans SC"
+                                           FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                    <AppBarButton Width="30" Height="45" VerticalAlignment="Center"
+                                              HorizontalAlignment="Right"
+                                              Margin="5,0,0,0" x:Name="ShellMenuBarSettingsButton"
+                                              PointerEntered="ShellMenuBarSettingsButton_PointerEntered"
+                                              PointerExited="ShellMenuBarSettingsButton_PointerExited"
+                                              Command="{x:Bind ViewModel.MenuSettingsCommand}">
+                                        <AnimatedIcon Margin="0,0,0,3" x:Name="ShellMenuBarSettingsButtonIcon">
+                                            <AnimatedIcon.Source>
+                                                <animatedvisuals:AnimatedSettingsVisualSource />
+                                            </AnimatedIcon.Source>
+                                            <AnimatedIcon.FallbackIconSource>
+                                                <FontIconSource FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                                            Glyph="&#xE713;" />
+                                            </AnimatedIcon.FallbackIconSource>
+                                        </AnimatedIcon>
+                                    </AppBarButton>
+
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+
+                    </Grid>
                 </Grid>
-                <Grid VerticalAlignment="Top" Margin="0,0,0,0" x:Name="AppTitleBar">
-                    <TextBlock x:Name="AppTitleBarText" VerticalAlignment="Center" TextWrapping="NoWrap"
-                               Style="{StaticResource CaptionTextBlockStyle}" Margin="20, 10, 0, 0" FontSize="14"
-                               FontWeight="Bold" />
-                </Grid>
-            </Grid>
+            </Border>
         </Grid>
-        <Border x:Name="PlayBar" VerticalAlignment="Bottom" Height="90" BorderThickness="0,1,0,0" Padding="0"
-                BorderBrush="#7FB9B9B9" Margin="0,680,0,0">
-            <!--
-            <Border.Background>
-                <AcrylicBrush Opacity="1" TintColor="White" TintOpacity="0.9" />
-            </Border.Background>-->
+        <Border x:Name="PlayBar" VerticalAlignment="Bottom" BorderThickness="0,1,0,0" Padding="0"
+                BorderBrush="#7FB9B9B9"
+                Background="#FFFFFF"
+                Margin="0,680,0,0"
+                Height="90">
             <Grid>
                 <StackPanel Orientation="Horizontal" Width="370" HorizontalAlignment="Left" Margin="60,0,0,0">
-                    <Button
-                        x:Name="btn_albumPic"
-                        Width="60"
-                        Height="60"
-                        HorizontalAlignment="Center"
-                        Background="{x:Bind MusicPlayer.Cover, Mode=OneWay}"
-                        BorderThickness="0,0,0,0"
-                        Margin="0,0,10,0" />
+
                     <StackPanel VerticalAlignment="Center" Width="290" Margin="0,0,0,5">
                         <StackPanel Orientation="Horizontal" Height="35" Width="290" HorizontalAlignment="Left">
                             <TextBlock x:Name="tblockName" Text="{x:Bind MusicPlayer.Name, Mode=OneWay}"

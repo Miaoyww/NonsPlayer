@@ -135,9 +135,6 @@
     <value>https://github.com/Miaoyww/NcmPlayer</value>
     <comment>设置页面 超链接文本 Github链接</comment>
   </data>
-  <data name="ShellMenuBarSettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>Settings</value>
-  </data>
   <data name="Settings_Title.Text" xml:space="preserve">
     <value>Settings</value>
     <comment>Page title for SettingsPage</comment>

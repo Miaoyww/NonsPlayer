@@ -52,6 +52,9 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Page Update="Controls\SearchBox.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
@@ -73,26 +76,29 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Remove="Assets\UnknowResource.png" />
+    <Content Remove="Assets\SplashScreen.scale-100.png" />
+    <Content Remove="Assets\SplashScreen.scale-400.png" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Assets\Icons\arrow-back.svg" />
+    <None Remove="Assets\Icons\arrow-next.svg" />
+    <None Remove="Assets\Icons\search.svg" />
     <None Remove="Assets\NcmPlayer.altform-lightunplated_targetsize-24.png" />
     <None Remove="Assets\NcmPlayer.altform-unplated_targetsize-24.png" />
     <None Remove="Assets\NcmPlayer.png" />
     <None Remove="Assets\NcmPlayer.scale-125.png" />
     <None Remove="Assets\NcmPlayer.targetsize-24.png" />
+    <None Remove="Assets\SplashScreen.png" />
     <None Remove="Assets\UnknowResource.png" />
     <None Remove="Assets\WindowIcon.ico" />
+    <None Remove="Controls\SearchBox.xaml" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\UnknowResource.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-  </ItemGroup>
-
-  <ItemGroup>
+    <Content Update="Assets\UnknowResource.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
     <Content Update="Assets\WindowIcon.ico">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Content>
