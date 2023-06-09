@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "NonsPlayer (Package)": {
+      "commandName": "MsixPackage",
+      "alwaysReinstallApp": false
+    },
+    "NonsPlayer (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

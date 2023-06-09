@@ -1,9 +1,9 @@
 <div align="center">
 <!--![Alt](exp.png "exp")-->
 
-<img src="NcmPlayer-Icon.png" alt="图标" Height="128" Width="128">
+<img src="NonsPlayer-Icon.png" alt="图标" Height="128" Width="128">
 
-# NcmPlayer
+# NonsPlayer
 
 ![.net](https://img.shields.io/badge/C%23-.net6.0-orange)
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
@@ -16,6 +16,10 @@
 ***
 
 </div>
+
+# UI开发进度
+
+<img src="log_prscr.png" alt="进度">
 
 # ❗特别说明
 由于wpf的性能实在是一言难尽, 所以项目正在使用winui3`重写`, 加上作者临近中考, 写代码的时间会越来越少, 所以最近一段时间`可能`不会有release
@@ -59,12 +63,13 @@ Distributed under the terms of the [MIT license](https://github.com/Miaoywww/Net
 # 特别鸣谢
 
 - [Zhuym](https://github.com/Zhuym07) 为图标设计提供帮助
-- [GooGuJiang](https://github.com/GooGuJiang) 为图标设计提供帮助
+- [GooGuJiang](https://github.com/GooGuJiang) 为图标设计、UI设计提供帮助
 
 
 # 灵感来源
 
 - [Spotify](https://www.spotify.com/)
+- [Apple Music](https://music.apple.com)
 - [YesPlayMusic](https://github.com/qier222/YesPlayMusic)
 - [网易云音乐](https://music.163.com/)
 - [QQ音乐](https://y.qq.com/)
