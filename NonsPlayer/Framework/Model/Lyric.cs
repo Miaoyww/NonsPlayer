@@ -1,71 +1,85 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace NonsPlayer.Framework.Model
 {
-    public class Lrcs
+    public class Lyrics
     {
-        public List<Lrc>? Lyrics;
+        public List<Lyric>? Lrc;
+        public int? Count => Lrc.Count;
 
-        public int? Count => Lyrics.Count;
-
-        public Lrcs(string lrc)
+        public Lyrics(JObject lrc)
         {
-            var sp = Regex.Split(lrc, @"\n");
-            if (sp.Length != 0)
+            Lrc = new();
+            var oArray = ParseLrc(lrc["lrc"]["lyric"].ToString());
+            JArray tArray = new();
+            if (lrc.Property("tlyric") != null)
             {
-                foreach (var item in sp)
+                tArray = ParseLrc(lrc["tlyric"]["lyric"].ToString());
+            }
+            // if (oArray == "")
+            // {
+            //     Lrc.Add(new Lyric("纯音乐 请欣赏", "", TimeSpan.Zero));
+            //     return;
+            // }
+            foreach (var originalLrc in oArray)
+            {
+                if (tArray.Count > 0)
                 {
-                    if (!item.Equals(""))
+                    foreach (var tranLrc in tArray)
                     {
-                        Lrc one = new(item);
-                        Lyrics.Add(one);
+                        if (!((TimeSpan)originalLrc["time"]).Equals((TimeSpan)tranLrc["time"]))
+                        {
+                            continue;
+                        }
+
+                        Lrc.Add(new Lyric(
+                            originalLrc["word"].ToString(),
+                            tranLrc["word"].ToString(),
+                            (TimeSpan)originalLrc["time"]));
                     }
                 }
+                else
+                {
+                    Lrc.Add(new Lyric(
+                        originalLrc["word"].ToString(),
+                        "",
+                        (TimeSpan)originalLrc["time"]));
+                }
+                
             }
-            else
+        }
+
+
+        private JArray ParseLrc(string content)
+        {
+            JArray value = new();
+            var match = Regex.Matches(content, "\\[([0-9.:]*)\\]+(.*)", RegexOptions.Compiled);
+            foreach (Match item in match)
             {
-                Lrc one = new(lrc);
-                Lyrics.Add(one);
+                value.Add(new JObject
+                {
+                    {"time", item.Groups[1].Value == "99:00.00" ? TimeSpan.MaxValue : TimeSpan.Parse("00:" + item.Groups[1].Value)},
+                    {"word", item.Groups[2].Value}
+                });
             }
+            return value;
         }
     }
 
-    public class Lrc
+    public class Lyric
     {
-        public TimeSpan Showtime;
-        public string LrcContent;
+        public TimeSpan Time;
+        public string OriginalLyric;
+        public string TranLyric;
 
-        public Lrc(string stringLrc)
+        public Lyric(string oLrc, string tLyric, TimeSpan time)
         {
-            var timeString = Regex.Match(stringLrc, "(?<=\\[)\\S*(?=])").ToString();
-            var lrcString = Regex.Match(stringLrc, "(?<=(\\])).*").ToString();
-            int minMs;
-            int secMs;
-            int ms;
-            try
-            {
-                minMs = int.Parse(timeString.Split(":")[0]) * 60 * 1000;
-                secMs = int.Parse(timeString.Split(":")[1].Split(".")[0]) * 1000;
-                ms = int.Parse(timeString.Split(":")[1].Split(".")[1]);
-            }
-            catch (FormatException)
-            {
-                minMs = 0;
-                secMs = 0;
-                ms = 0;
-            }
-            Showtime = TimeSpan.FromMilliseconds(minMs + secMs + ms);
-            try
-            {
-                if (lrcString[0].Equals(string.Empty) || lrcString[0].Equals(" "))
-                {
-                    lrcString = lrcString.Remove(0);
-                }
-            }
-            catch (IndexOutOfRangeException)
-            {
-            }
-            LrcContent = lrcString;
+            OriginalLyric = oLrc;
+            TranLyric = tLyric;
+            Time = time;
         }
     }
 }

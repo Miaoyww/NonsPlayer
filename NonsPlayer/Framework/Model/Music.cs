@@ -1,7 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Diagnostics;
+using Newtonsoft.Json.Linq;
 using NonsPlayer.Framework.Api;
 using NonsPlayer.Framework.Enums;
 using NonsPlayer.Framework.Resources;
+using NonsPlayer.Framework.Model;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Framework.Model;
@@ -58,7 +60,11 @@ public class Music
     /// </summary>
     public string Url;
 
-    public Music(JObject playlistMusicTrack, bool recommend = false)
+    /// <summary>
+    ///     歌曲歌词
+    /// </summary>
+    public Lyrics Lyrics;
+    public Music(JObject playlistMusicTrack)
     {
         Name = (string)playlistMusicTrack["name"];
         Id = (int)playlistMusicTrack["id"];
@@ -74,22 +80,15 @@ public class Music
         };
 
         Artists = new List<Artist>();
-        var artists = (JArray)playlistMusicTrack["ar"];
-        foreach (var t in artists)
+        foreach (var t in (JArray)playlistMusicTrack["ar"])
         {
             var artist = (JObject)t;
-            Artist one = new()
+            Artists.Add(new Artist()
             {
                 Name = (string)artist["name"],
                 Id = (int)artist["id"]
-            };
-            Artists.Add(one);
+            });
         }
-
-        Task.Run(() =>
-        {
-            GetFileInfo();
-        });
     }
 
     public Music()
@@ -164,6 +163,12 @@ public class Music
         FileType = musicFile["type"].ToString();
     }
 
+    public async Task GetLric()
+    {
+        var a = await NonsApi.Api.Lyric.GetLyric(Id.ToString(), ResEntry.nons);
+        Lyrics = new Lyrics(a);
+    }
+
     public Stream GetCover(int x = 0, int y = 0)
     {
         var IMGSIZE = "?param=300y300";
@@ -200,28 +205,5 @@ public class Music
             musicStream.Close();
         }
         return path;
-    }*/
-
-    /*
-    public Lrcs GetLrc
-    {
-        get
-        {
-            if (lrc == null)
-            {
-                object? content = Api.Lyric.Lrc(Id, ResEntry.nons).Property("lrc");
-                if (content != null)
-                {
-                    lrcString = ((JProperty)content).Value["lyric"].ToString();
-                    lrc = new(lrcString);
-                }
-                else
-                {
-                    lrcString = "[99:99.000] 暂无歌词";
-                    lrc = new(lrcString);
-                }
-            }
-            return lrc;
-        }
     }*/
 }

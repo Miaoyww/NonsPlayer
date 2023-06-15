@@ -136,19 +136,23 @@ public static class Api
         public static async Task<JObject> Detail(long id, Nons nons)
         {
             string _URL = $"https://music.163.com/api/v6/playlist/detail";
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("id", id.ToString());
-            pairs.Add("n", "100000");
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "id", id.ToString() },
+                { "n", "100000" }
+            };
             return await nons.Request(_URL, pairs);
         }
 
         public static async Task<JObject> Personalized(Nons nons, int limit = 30)
         {
             string _URL = $"https://music.163.com/api/personalized/playlist";
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("limit", limit.ToString());
-            pairs.Add("total", "true");
-            pairs.Add("n", "1000");
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "limit", limit.ToString() },
+                { "total", "true" },
+                { "n", "1000" }
+            };
             return await nons.Request(_URL, pairs);
         }
     }
@@ -170,8 +174,10 @@ public static class Api
                 }
             }
             string _URL = $"https://music.163.com/api/v3/song/detail";
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("c", dataString);
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "c", dataString }
+            };
             return await nons.Request(_URL, pairs);
         }
 
@@ -199,9 +205,11 @@ public static class Api
                 ntesNuid = new Random().RandomBytes(16).ToHexStringLower();
                 data.Headers.Add("Cookie", $"_ntes_nuid={ntesNuid}");
             }*/
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("ids", idsBody);
-            pairs.Add("br", "999000");
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "ids", idsBody },
+                { "br", "999000" }
+            };
             return await nons.Request(_URL, pairs);
         }
 
@@ -209,26 +217,30 @@ public static class Api
         {
             string _URL = "https://music.163.com/api/radio/like";
             HttpContent data = new StringContent($"alg=itembased&trackId={id}&like={like}&time=3");
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("alg", "itembased");
-            pairs.Add("trackId", id);
-            pairs.Add("like", like.ToString());
-            pairs.Add("time", "3");
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "alg", "itembased" },
+                { "trackId", id },
+                { "like", like.ToString() },
+                { "time", "3" }
+            };
             return await nons.Request(_URL, pairs);
         }
     }
 
     public static class Lyric
     {
-        public static async Task<JObject> Lrc(string id, Nons nons)
+        public static async Task<JObject> GetLyric(string id, Nons nons)
         {
             string _URL = "https://music.163.com/api/song/lyric?_nmclfl=1";
             string resBody = $"id={id}&tv=-1&lv=-1&rv=-1&kv=-1";
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("id", id);
-            pairs.Add("tv", "-1");
-            pairs.Add("lv", "-1");
-            pairs.Add("kv", "-1");
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                {"id", id},
+                {"tv", "-1"},
+                {"lv", "-1"},
+                {"kv", "-1"}
+            };
             return await nons.Request(_URL, pairs);
         }
     }
@@ -239,10 +251,12 @@ public static class Api
         {
             string _URL = "https://music.163.com/api/login";
             string pswMD5 = nons?.Md5(password);
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("username", email);
-            pairs.Add("password", pswMD5);
-            pairs.Add("rememberLogin", "true");
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "username", email },
+                { "password", pswMD5 },
+                { "rememberLogin", "true" }
+            };
             return await nons.Request(_URL, pairs);
         }
 
@@ -250,21 +264,25 @@ public static class Api
         {
             string _URL = "https://music.163.com/api/login/cellphone";
             string pswMD5 = nons.Md5(password);
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("phone", phone.ToString());
-            pairs.Add("countryCode", countryCode.ToString());
-            pairs.Add("captcha", pswMD5);
-            pairs.Add("rememberLogin", "true");
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "phone", phone.ToString() },
+                { "countryCode", countryCode.ToString() },
+                { "captcha", pswMD5 },
+                { "rememberLogin", "true" }
+            };
             return await nons.Request(_URL, pairs);
         }
 
         public static async Task<JObject> PhoneVer(int phone, int captcha, Nons nons, int countryCode = 86)
         {
             string _URL = "https://music.163.com/api/login/cellphone";
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("phone", phone.ToString());
-            pairs.Add("countryCode", countryCode.ToString());
-            pairs.Add("rememberLogin", "true");
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "phone", phone.ToString() },
+                { "countryCode", countryCode.ToString() },
+                { "rememberLogin", "true" }
+            };
             return await nons.Request(_URL, pairs);
         }
     }
@@ -286,16 +304,20 @@ public static class Api
         public static async Task<JObject> DailyTask(string type, Nons nons)
         {
             string _URL = "https://music.163.com/api/point/dailyTask";
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("type", type);
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "type", type }
+            };
             return await nons.Request(_URL, pairs);
         }
 
         public static async Task<JObject> Likelist(string id, Nons nons)
         {
             string _URL = "https://music.163.com/api/song/like/get";
-            IDictionary<string, string> pairs = new Dictionary<string, string>();
-            pairs.Add("uid", id);
+            IDictionary<string, string> pairs = new Dictionary<string, string>
+            {
+                { "uid", id }
+            };
             return await nons.Request(_URL, pairs);
         }
     }

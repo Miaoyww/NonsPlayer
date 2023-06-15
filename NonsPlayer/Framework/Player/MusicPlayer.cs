@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using NAudio.Wave;
 using Timer = System.Timers.Timer;
 using NonsPlayer.Framework.Model;
+using System.Runtime.CompilerServices;
 
 namespace NonsPlayer.Framework.Player;
 
@@ -20,6 +21,7 @@ public class MusicPlayer : INotifyPropertyChanged
         set;
     }
 
+    public static PositionChanger PositionChangerHandle;
     /// <summary>
     /// 初始化播放器
     /// </summary>
@@ -28,6 +30,11 @@ public class MusicPlayer : INotifyPropertyChanged
     {
         outputDevice = new WaveOutEvent();
         Dispatcher = dispatcher;
+        PositionChangerHandle = new((n) =>
+        {
+            return TimeSpan.Zero;
+
+        });
         Name = "当前未播放";
         Artists = "无";
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
@@ -37,7 +44,7 @@ public class MusicPlayer : INotifyPropertyChanged
         });
         VolumeMuteCommand = new RelayCommand(Mute);
         var timer = new Timer();
-        timer.Interval = 50;
+        timer.Interval = 20;
         timer.Elapsed += GetCurrentInfo;
         timer.Start();
     }
@@ -57,6 +64,7 @@ public class MusicPlayer : INotifyPropertyChanged
                     var postion = TimeSpan.FromSeconds(mfr.Position / outputDevice.OutputWaveFormat.BitsPerSample /
                         outputDevice.OutputWaveFormat.Channels * 8.0 / outputDevice.OutputWaveFormat.SampleRate);
                     Position = postion;
+                    PositionChangerHandle(postion);
                 });
             }
         }
@@ -66,13 +74,16 @@ public class MusicPlayer : INotifyPropertyChanged
     /// 播放一个新的音乐
     /// </summary>
     /// <param name="music2play">即将播放的音乐</param>
-    public void NewPlay(Music music2play)
+    public async void NewPlay(Music music2play)
     {
         if (outputDevice == null)
         {
             outputDevice = new WaveOutEvent();
         }
 
+        MusicNow = music2play;
+        await MusicNow.GetLric();
+        await MusicNow.GetFileInfo();
         if (mfr == null)
         {
             mfr = new MediaFoundationReader(music2play.Url);
@@ -89,9 +100,6 @@ public class MusicPlayer : INotifyPropertyChanged
                 outputDevice.Volume = (float)Volume / 100;
             }
         }
-
-        MusicNow = music2play;
-
         Play(true);
     }
 
@@ -269,7 +277,7 @@ public class MusicPlayer : INotifyPropertyChanged
                 outputDevice.Volume = (float)value / 100;
             }
 
-            RaisePropertyChanged(nameof(Volume));
+            OnPropertyChanged(nameof(Volume));
         }
         get => volume;
     }
@@ -279,8 +287,8 @@ public class MusicPlayer : INotifyPropertyChanged
         {
             position = value;
             OnPropertyChanged(nameof(Position));
-            OnPropertyChanged(nameof(PositionString));
             OnPropertyChanged(nameof(PositionDouble));
+            OnPropertyChanged(nameof(PositionString));
         }
         get => MusicNow == null ? TimeSpan.Zero : position;
     }
@@ -303,7 +311,6 @@ public class MusicPlayer : INotifyPropertyChanged
         set
         {
             Position = TimeSpan.FromSeconds(value);
-            RaisePropertyChanged(nameof(Position));
         }
         get
         {
@@ -323,24 +330,19 @@ public class MusicPlayer : INotifyPropertyChanged
     public ICommand MusicPlayCommand;
     public ICommand VolumeMuteCommand;
 
+
     #endregion
 
     #region PropertyChanged接口实现
+    public delegate TimeSpan PositionChanger(TimeSpan time);
+    public event PropertyChangedEventHandler? PropertyChanged;
 
-    public event PropertyChangedEventHandler? PropertyChanged = delegate
+    private void OnPropertyChanged([CallerMemberName] string propertyName = "")
     {
-    };
-
-    public void RaisePropertyChanged(string propertyName)
-    {
-        if (propertyName != null)
+        if (PropertyChanged != null)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
         }
     }
-
-    private void OnPropertyChanged(string propertyName) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
     #endregion
 }

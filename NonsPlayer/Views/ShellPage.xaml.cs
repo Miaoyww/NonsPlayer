@@ -110,23 +110,4 @@ public sealed partial class ShellPage : Page
         AnimatedIcon.SetState((UIElement)sender, "Normal");
     }
 
-
-    private void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
-    {
-        if (e.Key != VirtualKey.Enter)
-        {
-            return;
-        }
-
-        if (((AutoSuggestBox)sender).Text == string.Empty)
-        {
-            return;
-        }
-
-        long playlistId;
-        if (long.TryParse(((AutoSuggestBox)sender).Text, out playlistId))
-        {
-            Tools.OpenMusicListDetail(playlistId, App.GetService<INavigationService>());
-        }
-    }
 }

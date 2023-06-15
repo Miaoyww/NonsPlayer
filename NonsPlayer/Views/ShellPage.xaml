@@ -89,12 +89,13 @@
                             </StackPanel>
                         </Grid>
                     </Grid>
-                    <Grid Row="0" Column="1" Name="Lyric" Margin="10,8,30,5">
+                    <Grid Row="0" Column="1" Name="LyricBox" Margin="10,8,30,5">
                         <Border BorderThickness="0,0,0,1" BorderBrush="#ababab" Background="Transparent">
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                <TextBlock Name="MainLyric" Text="誰か心のノイズをとって" FontFamily="HarmonyOS Sans SC"
+                                <TextBlock Name="OriginalLyric" Text="{x:Bind ViewModel.OriginalLyric,Mode=OneWay}" FontFamily="HarmonyOS Sans SC"
                                            HorizontalAlignment="Center" FontWeight="Bold" FontSize="15" />
-                                <TextBlock Name="Trans" Text="有谁能来消除我心中的噪音" FontFamily="HarmonyOS Sans SC"
+                                <TextBlock Name="TranLyric" Text="{x:Bind ViewModel.TranLyric, Mode=OneWay}" FontFamily="HarmonyOS Sans SC"
+                                           Visibility="{x:Bind ViewModel.TransVisibility, Mode=OneWay}"
                                            HorizontalAlignment="Center" FontWeight="Bold" FontSize="13" Opacity="0.8" />
                             </StackPanel>
                         </Border>
@@ -102,8 +103,8 @@
                     <Grid Row="0" Column="2" Name="UserController" Margin="0,0,0,0" VerticalAlignment="Center"
                           HorizontalAlignment="Right" Height="40">
                         <StackPanel Orientation="Horizontal">
-                            <AutoSuggestBox BorderThickness="1" CornerRadius="3"
-                                            PreviewKeyDown="SearchBox_KeyDown"
+                            <AutoSuggestBox Name="SearchBox"  BorderThickness="1" CornerRadius="3"
+                                            PreviewKeyDown="{x:Bind ViewModel.SearchBox_KeyDown}"
                                             QueryIcon="Find" Width="200" Height="34"/>
 
                             <StackPanel Name="UserInfo" Orientation="Horizontal"
