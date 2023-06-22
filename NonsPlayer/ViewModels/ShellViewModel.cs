@@ -1,22 +1,27 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows.Input;
-using Windows.System;
-using Windows.UI;
+
 using ABI.Windows.System;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
-using NonsPlayer.Framework.Model;
-using NonsPlayer.Helpers;
-using Microsoft.UI.Xaml.Input;
+
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Framework.Model;
 using NonsPlayer.Framework.Player;
 using NonsPlayer.Framework.Resources;
+using NonsPlayer.Helpers;
+
+using Windows.System;
+using Windows.UI;
 
 namespace NonsPlayer.ViewModels;
 
@@ -40,7 +45,8 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
     private string _tranLyric = string.Empty;
     private string _obOLrc = string.Empty;
     private string _obTLrc = string.Empty;
-
+    private Lyric? currentLyric = null;
+    private Lyric? nextLyric = null;
     public string TranLyric
     {
         get => _tranLyric;
@@ -71,6 +77,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
             return TranLyric == "" ? Visibility.Collapsed : Visibility.Visible;
         }
     }
+
     private TimeSpan LyricChanger(TimeSpan time)
     {
         try
@@ -79,35 +86,38 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
             {
                 return time;
             }
+
+            if (currentLyric != null && nextLyric != null && time >= currentLyric.Time && time < nextLyric.Time)
+            {
+                return time;
+            }
+
             for (int i = 0; i < MusicPlayerHelper.Player.MusicNow.Lyrics.Count; i++)
             {
-                var item = MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[i];
-                if (time.TotalMilliseconds >= item.Time.TotalMilliseconds)
+                var currentItem = MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[i];
+                var nextItem = MusicPlayerHelper.Player.MusicNow.Lyrics.Count > i
+                    ? MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[i + 1]
+                    : currentItem;
+                if (time >= currentItem.Time && time < nextItem.Time)
                 {
-                    if (i + 1 < MusicPlayerHelper.Player.MusicNow.Lyrics.Count &&
-                        time.TotalMilliseconds <
-                        MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[i + 1].Time.TotalMilliseconds)
-                    {
-                        if (!_obOLrc.Equals(item.OriginalLyric))
-                        {
-                            OriginalLyric = item.OriginalLyric;
-                        }
-
-                        if (!_obTLrc.Equals(item.TranLyric))
-                        {
-                            TranLyric = item.TranLyric;
-                        }
-                    }
+                    currentLyric = currentItem;
+                    nextLyric = nextItem;
+                    OriginalLyric = currentItem.OriginalLyric;
+                    TranLyric = currentItem.TranLyric;
                 }
             }
         }
         catch (Exception e)
         {
-
         }
-        
+
 
         return time;
+    }
+
+    private Music MusicChanged(Music currentMusic)
+    {
+        return currentMusic;
     }
 
     public Brush UserFace
@@ -135,7 +145,9 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
             ImageSource =
                 new BitmapImage(new Uri("ms-appdata:///Assets/UnKnowResource.png"))
         };
-        MusicPlayer.PositionChangerHandle += LyricChanger;
+        MusicPlayerHelper.Player.PositionChangedHandle += LyricChanger;
+        MusicPlayerHelper.Player.MusicChangedHandle += MusicChanged;
+
         OriginalLyric = "暂未播放";
     }
 

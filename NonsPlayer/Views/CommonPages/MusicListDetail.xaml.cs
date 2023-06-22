@@ -2,7 +2,7 @@
 using NonsPlayer;
 using NonsPlayer.ViewModels;
 
-namespace NonsPlayer.Views.Pages;
+namespace NonsPlayer.Views.CommonPages;
 
 public sealed partial class MusicListDetailPage : Page
 {

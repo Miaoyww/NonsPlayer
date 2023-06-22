@@ -2,15 +2,19 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+
+using NonsPlayer.Activation;
+using NonsPlayer.Components.ViewModels;
+using NonsPlayer.Components.Views;
+using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Services;
 using NonsPlayer.Core.Services;
-using NonsPlayer.Activation;
-using NonsPlayer.Contracts.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
+using NonsPlayer.Views.CommonPages;
 using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer;
@@ -68,6 +72,7 @@ public partial class App : Application
             services.AddSingleton<IFileService, FileService>();
 
             // Views and ViewModels
+            services.AddTransient<PlaylistCardViewModel>();
             services.AddTransient<MusicListDetailViewModel>();
             services.AddTransient<MusicListDetailPage>();
             services.AddTransient<ExploreViewModel>();

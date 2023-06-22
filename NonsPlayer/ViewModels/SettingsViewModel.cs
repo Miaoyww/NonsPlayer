@@ -53,8 +53,6 @@ public class SettingsViewModel : ObservableRecipient
         var b = (JObject)(await NonsApi.Api.Music.Detail(new long[] {2026787176}, ResEntry.nons))["songs"][0];
         var a = new Music(b);
         await a.GetLric();
-        // await a.GetLric();
-        // Debug.Print(a.Lyrics.Lrc[0].OriginalLyric);
     }
     private static string GetVersionDescription()
     {

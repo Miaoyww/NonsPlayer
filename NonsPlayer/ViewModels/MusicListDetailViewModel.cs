@@ -11,7 +11,7 @@ using NonsPlayer.Views;
 using NonsPlayer.Helpers;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Framework.Model;
-using NonsPlayer.Views.Pages;
+using NonsPlayer.Views.CommonPages;
 
 namespace NonsPlayer.ViewModels;
 

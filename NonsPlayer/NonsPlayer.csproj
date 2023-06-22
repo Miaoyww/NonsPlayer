@@ -52,9 +52,6 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Page Update="Controls\SearchBox.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
 
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
@@ -118,7 +115,6 @@
     <None Remove="Assets\SplashScreen.png" />
     <None Remove="Assets\UnknowResource.png" />
     <None Remove="Assets\WindowIcon.ico" />
-    <None Remove="Controls\SearchBox.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -128,5 +124,16 @@
     <Content Update="Assets\WindowIcon.ico">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Views\CommonPages\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Components\MusicListDetail.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 </Project>

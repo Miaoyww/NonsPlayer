@@ -6,13 +6,14 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Loaded="{x:Bind ViewModel.HomeLoad}"
-    xmlns:helpers="using:NonsPlayer.Helpers">
+    xmlns:helpers="using:NonsPlayer.Helpers"
+    xmlns:pages="using:NonsPlayer.Views.Pages">
     <Grid>
         <ScrollViewer Margin="0,0,0,90">
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">
                 <Grid>
                     <TextBlock Text="For you" FontWeight="Black" FontSize="30" FontFamily="JetBrains Mono" />
-                    <Border x:Name="b_dailyMusic" PointerEntered="{x:Bind ViewModel.CardShow}" PointerExited="{x:Bind ViewModel.CardHide}" HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500" Height="200" Margin="0,70,0,0">
+                    <Border x:Name="b_dailyMusic" PointerEntered="{x:Bind CardShow}" PointerExited="{x:Bind CardHide}" HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500" Height="200" Margin="0,70,0,0">
                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="每日单曲推荐" Foreground="Black" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
                     </Border>
                 </Grid>

@@ -21,7 +21,7 @@ public class MusicPlayer : INotifyPropertyChanged
         set;
     }
 
-    public static PositionChanger PositionChangerHandle;
+
     /// <summary>
     /// 初始化播放器
     /// </summary>
@@ -30,7 +30,7 @@ public class MusicPlayer : INotifyPropertyChanged
     {
         outputDevice = new WaveOutEvent();
         Dispatcher = dispatcher;
-        PositionChangerHandle = new((n) =>
+        PositionChangedHandle = new((n) =>
         {
             return TimeSpan.Zero;
 
@@ -64,7 +64,7 @@ public class MusicPlayer : INotifyPropertyChanged
                     var postion = TimeSpan.FromSeconds(mfr.Position / outputDevice.OutputWaveFormat.BitsPerSample /
                         outputDevice.OutputWaveFormat.Channels * 8.0 / outputDevice.OutputWaveFormat.SampleRate);
                     Position = postion;
-                    PositionChangerHandle(postion);
+                    PositionChangedHandle(postion);
                 });
             }
         }
@@ -167,6 +167,7 @@ public class MusicPlayer : INotifyPropertyChanged
         set
         {
             _musicNow = value;
+            MusicChangedHandle(value);
             Name = _musicNow.Name;
             Artists = _musicNow.ArtistsName;
             ImageBrush brush = new()
@@ -333,10 +334,12 @@ public class MusicPlayer : INotifyPropertyChanged
 
     #endregion
 
-    #region PropertyChanged接口实现
-    public delegate TimeSpan PositionChanger(TimeSpan time);
+    #region 事件
+    public delegate TimeSpan PositionChanged(TimeSpan time);
+    public delegate Music MusicChanged(Music currentMusic);
     public event PropertyChangedEventHandler? PropertyChanged;
-
+    public PositionChanged PositionChangedHandle;
+    public MusicChanged MusicChangedHandle;
     private void OnPropertyChanged([CallerMemberName] string propertyName = "")
     {
         if (PropertyChanged != null)
@@ -345,4 +348,6 @@ public class MusicPlayer : INotifyPropertyChanged
         }
     }
     #endregion
+
+
 }

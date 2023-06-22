@@ -1,8 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 using Microsoft.UI.Xaml.Controls;
+
+using NonsPlayer.Components.ViewModels;
+using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.ViewModels;
+using NonsPlayer.Views;
+using NonsPlayer.Views.CommonPages;
 using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.Services;
@@ -17,6 +22,7 @@ public class PageService : IPageService
         Configure<HomeViewModel, HomePage>();
         Configure<ExploreViewModel, ExplorePage>();
         Configure<MusicListDetailViewModel, MusicListDetailPage>();
+        Configure<PlaylistCardViewModel, PlaylistCard>();
     }
 
     public Type GetPageType(string key)
