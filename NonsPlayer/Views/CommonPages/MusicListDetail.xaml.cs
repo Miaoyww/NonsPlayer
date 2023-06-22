@@ -1,5 +1,4 @@
 ﻿using Microsoft.UI.Xaml.Controls;
-using NonsPlayer;
 using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Views.CommonPages;

@@ -1,6 +1,5 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using NonsPlayer;
 using NonsPlayer.Activation;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Views;

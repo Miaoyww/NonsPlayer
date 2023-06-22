@@ -1,8 +1,5 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows.Input;
-
-using ABI.Windows.System;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -16,12 +13,9 @@ using Microsoft.UI.Xaml.Navigation;
 
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Framework.Model;
-using NonsPlayer.Framework.Player;
-using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 
 using Windows.System;
-using Windows.UI;
 
 namespace NonsPlayer.ViewModels;
 

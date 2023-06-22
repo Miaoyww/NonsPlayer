@@ -1,15 +1,15 @@
 ﻿using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Timers;
 using System.Windows.Input;
-using Windows.UI;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NAudio.Wave;
-using Timer = System.Timers.Timer;
 using NonsPlayer.Framework.Model;
-using System.Runtime.CompilerServices;
+using Windows.UI;
+using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Framework.Player;
 

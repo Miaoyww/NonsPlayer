@@ -1,9 +1,6 @@
-﻿using System.Diagnostics;
-using Newtonsoft.Json.Linq;
-using NonsPlayer.Framework.Api;
+﻿using Newtonsoft.Json.Linq;
 using NonsPlayer.Framework.Enums;
 using NonsPlayer.Framework.Resources;
-using NonsPlayer.Framework.Model;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Framework.Model;
@@ -144,7 +141,7 @@ public class Music
         var artists = (JArray)musicDetail["ar"];
         foreach (var jToken in artists)
         {
-            var artist = (JObject) jToken;
+            var artist = (JObject)jToken;
             Artist one = new()
             {
                 Name = (string)artist["name"],

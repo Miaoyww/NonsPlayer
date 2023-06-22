@@ -1,5 +1,4 @@
 ﻿using Microsoft.UI.Xaml;
-using NonsPlayer;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Helpers;
 

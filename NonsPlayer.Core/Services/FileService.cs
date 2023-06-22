@@ -1,8 +1,6 @@
 ﻿using System.Text;
-
-using NonsPlayer.Core.Contracts.Services;
-
 using Newtonsoft.Json;
+using NonsPlayer.Core.Contracts.Services;
 
 namespace NonsPlayer.Core.Services;
 

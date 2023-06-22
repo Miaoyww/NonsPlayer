@@ -1,22 +1,12 @@
 ﻿using System.ComponentModel;
-using System.Numerics;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.UI.Composition;
-using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
-using Windows.UI;
 using NonsApi;
 using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Helpers;
-using NonsPlayer.Views.Pages;
-using NonsPlayer.Framework.Api;
 using NonsPlayer.Framework.Resources;
+using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.ViewModels;
 

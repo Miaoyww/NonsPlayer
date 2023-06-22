@@ -1,7 +1,5 @@
-﻿using System.Diagnostics;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace NonsPlayer.Framework.Model
 {
@@ -48,7 +46,7 @@ namespace NonsPlayer.Framework.Model
                         "",
                         (TimeSpan)originalLrc["time"]));
                 }
-                
+
             }
         }
 

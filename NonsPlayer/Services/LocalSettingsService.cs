@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
+using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Services;
 using NonsPlayer.Core.Helpers;
-using NonsPlayer.Contracts.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 using Windows.Storage;

@@ -1,5 +1,4 @@
 ﻿using NonsApi;
-using NonsPlayer.Framework.Api;
 using NonsPlayer.Framework.Player;
 
 namespace NonsPlayer.Framework.Resources

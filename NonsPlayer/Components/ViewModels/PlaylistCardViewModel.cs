@@ -1,20 +1,11 @@
-﻿using System.Security.Cryptography.X509Certificates;
+﻿using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using System.ComponentModel;
-using System.Numerics;
-using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.UI.Composition;
-using Microsoft.UI.Text;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Helpers;
-using CommunityToolkit.Mvvm.Input;
-using System.Windows.Input;
 
 namespace NonsPlayer.Components.ViewModels;
 

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using NonsPlayer.Contracts.Services;
+﻿using NonsPlayer.Contracts.Services;
 using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Helpers;

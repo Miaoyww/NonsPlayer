@@ -72,6 +72,8 @@ public partial class App : Application
             services.AddSingleton<IFileService, FileService>();
 
             // Views and ViewModels
+            services.AddTransient<MusicItemCardViewModel>();
+            services.AddTransient<MusicItemCard>();
             services.AddTransient<PlaylistCardViewModel>();
             services.AddTransient<MusicListDetailViewModel>();
             services.AddTransient<MusicListDetailPage>();

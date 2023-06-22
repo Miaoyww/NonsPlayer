@@ -1,14 +1,12 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Windows.System;
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Framework.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
-using NonsPlayer.Framework.Player;
-using NonsPlayer;
 using NonsPlayer.ViewModels;
+using Windows.System;
 
 namespace NonsPlayer.Views;
 

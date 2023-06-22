@@ -97,7 +97,7 @@
 
                 await newone.Dispatcher.BeginInvoke(new Action(async () =>
                 {
-                    await newone.UpdateMusicsList(musics, playList);
+                    await newone.CreatMusicList(musics, playList);
                 }));
                 stopwatch.Stop();
                 Debug.WriteLine($"OpenPlayListDetail 更新歌曲耗时{stopwatch.ElapsedMilliseconds}");

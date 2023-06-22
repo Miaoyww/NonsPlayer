@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using NonsPlayer.Contracts.Services;
-using NonsPlayer.ViewModels;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
 using RestSharp;
 
 namespace NonsPlayer.Helpers;

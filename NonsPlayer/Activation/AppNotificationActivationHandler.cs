@@ -1,7 +1,6 @@
 ﻿using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
-using NonsPlayer;
 using NonsPlayer.Contracts.Services;
 
 namespace NonsPlayer.Activation;

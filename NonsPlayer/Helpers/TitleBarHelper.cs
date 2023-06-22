@@ -3,7 +3,6 @@
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
-using NonsPlayer;
 
 using Windows.UI;
 

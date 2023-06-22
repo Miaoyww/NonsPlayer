@@ -30,11 +30,11 @@
                     VerticalAlignment="Top"
                     BorderThickness="0,0,0,1"
                     BorderBrush="#F0F1F2"
-                    Height="70"
+                    Height="54"
                     Margin="230,0,0,0">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="70" />
+                        <RowDefinition Height="50" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -89,11 +89,11 @@
                             </StackPanel>
                         </Grid>
                     </Grid>
-                    <Grid Row="0" Column="1" Name="LyricBox" Margin="10,8,30,5">
+                    <Grid Row="0" Column="1" Name="LyricBox" Margin="10,0,30,0">
                         <Border BorderThickness="0,0,0,1" BorderBrush="#ababab" Background="Transparent">
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                 <TextBlock Name="OriginalLyric" Text="{x:Bind ViewModel.OriginalLyric,Mode=OneWay}" FontFamily="HarmonyOS Sans SC"
-                                           HorizontalAlignment="Center" FontWeight="Bold" FontSize="15" />
+                                           HorizontalAlignment="Center" FontWeight="Bold" FontSize="13" />
                                 <TextBlock Name="TranLyric" Text="{x:Bind ViewModel.TranLyric, Mode=OneWay}" FontFamily="HarmonyOS Sans SC"
                                            Visibility="{x:Bind ViewModel.TransVisibility, Mode=OneWay}"
                                            HorizontalAlignment="Center" FontWeight="Bold" FontSize="13" Opacity="0.8" />

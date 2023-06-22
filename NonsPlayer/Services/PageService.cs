@@ -6,7 +6,6 @@ using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.ViewModels;
-using NonsPlayer.Views;
 using NonsPlayer.Views.CommonPages;
 using NonsPlayer.Views.Pages;
 
@@ -23,6 +22,7 @@ public class PageService : IPageService
         Configure<ExploreViewModel, ExplorePage>();
         Configure<MusicListDetailViewModel, MusicListDetailPage>();
         Configure<PlaylistCardViewModel, PlaylistCard>();
+        Configure<MusicItemCardViewModel, MusicItemCard>();
     }
 
     public Type GetPageType(string key)

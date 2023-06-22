@@ -1,5 +1,4 @@
-﻿using NonsApi;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 
