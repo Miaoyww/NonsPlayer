@@ -10,19 +10,33 @@
     Loaded="{x:Bind ViewModel.PageLoaded}">
 
     <Grid>
-        <ScrollViewer Margin="45,30,20,90">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+        <ScrollViewer Margin="45,30,10,90">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Top" Height="300">
                     <Border Name="Cover" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left"
                             VerticalAlignment="Top" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
                             CornerRadius="10,10,10,10">
                     </Border>
-                    <StackPanel Margin="30,-10,0,0">
-                        <TextBlock x:Name="PlaylistName" Text="{x:Bind ViewModel.Name, Mode=OneWay}"
+                    <Grid Margin="30,-10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" x:Name="Name" Text="{x:Bind ViewModel.Name, Mode=OneWay}"
                                    TextTrimming="WordEllipsis"
                                    HorizontalAlignment="Left" VerticalAlignment="Top"
                                    FontSize="35" FontFamily="HarmonyOS Sans SC" />
-                        <Grid HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                        <Grid Grid.Row="1">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -39,13 +53,15 @@
                                        HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="14"
                                        FontFamily="HarmonyOS Sans SC" Opacity="0.6" />
                         </Grid>
-                        <TextBlock x:Name="PlaylistDescription" Text="{x:Bind ViewModel.Description, Mode=OneWay}"
-                                   Height="60" Margin="0,20,0,0"
-                                   TextWrapping="WrapWholeWords" FontSize="15" FontFamily="HarmonyOS Sans SC" />
-
-                    </StackPanel>
+                        <Grid Grid.Row="2" Grid.Column="0" Height="80" Margin="0,10,0,0" Width="3*">
+                            <TextBlock Name="Description" Text="{x:Bind ViewModel.Description, Mode=OneWay}"
+                                       VerticalAlignment="Top"
+                                       TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                       FontSize="15" FontFamily="HarmonyOS Sans SC" />
+                        </Grid>
+                    </Grid>
                 </StackPanel>
-                <Grid Margin="20,20,40,10">
+                <Grid Grid.Row="1" Margin="20,20,40,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -57,7 +73,7 @@
                     <TextBlock Grid.Column="2" Text="专辑" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
                     <TextBlock Grid.Column="3" Text="时长" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
                 </Grid>
-                <ListView ItemsSource="{x:Bind ViewModel.MusicItems, Mode=OneWay}">
+                <ListView Grid.Row="2" ItemsSource="{x:Bind ViewModel.MusicItems, Mode=OneWay}">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:MusicItem">
                             <views:MusicItemCard
@@ -66,7 +82,7 @@
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
-            </StackPanel>
+            </Grid>
         </ScrollViewer>
     </Grid>
 </Page>
