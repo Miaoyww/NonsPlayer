@@ -1,9 +1,11 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using NonsPlayer.Components.Models;
 using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Framework.Model;
@@ -20,8 +22,13 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     private string _description;
     private string _musicsCount;
     private string _name;
-    private UIElementCollection _songViews;
     private MusicListDetailPage _musicListDetailPage;
+
+    public ObservableCollection<MusicItem> MusicItems
+    {
+        get;
+        set;
+    }
 
     public string Name
     {
@@ -47,7 +54,7 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     {
         set
         {
-            _musicsCount = $"{value} 首歌曲";
+            _musicsCount = $"{value} Tracks";
             OnPropertyChanged(nameof(MusicsCount));
         }
         get => _musicsCount;
@@ -67,7 +74,7 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     {
         set
         {
-            _creator = $"By {value}";
+            _creator = $"made by {value}";
             OnPropertyChanged(nameof(Creator));
         }
         get => _creator;
@@ -124,91 +131,4 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
             _musicListDetailPage.MusicsViewPanel.Children.Add(new MusicItemCard(music));
         }
     }
-
-    // private async Task createAndUpdate(Music one)
-    // {
-    //     var bitmap = new BitmapImage(new Uri(one.CoverUrl + "?param=40y40"));
-    //     ImageBrush imageBrush = new()
-    //     {
-    //         ImageSource = bitmap
-    //     };
-    //     Border parent = new()
-    //     {
-    //         Tag = one.Id,
-    //         BorderThickness = new Thickness(0),
-    //         Margin = new Thickness(0, 0, 30, 0),
-    //         CornerRadius = new CornerRadius(10, 10, 10, 10),
-    //         HorizontalAlignment = HorizontalAlignment.Stretch,
-    //         Background = new SolidColorBrush(Color.FromArgb(1, 255, 255, 255))
-    //     };
-    //     Border bCover = new()
-    //     {
-    //         HorizontalAlignment = HorizontalAlignment.Left,
-    //         VerticalAlignment = VerticalAlignment.Center,
-    //         Margin = new Thickness(2),
-    //         Width = 48,
-    //         Height = 48,
-    //         BorderThickness = new Thickness(0),
-    //         CornerRadius = new CornerRadius(5),
-    //         Background = imageBrush
-    //     };
-    //     Border corner = new()
-    //     {
-    //         CornerRadius = new CornerRadius(10, 10, 10, 10),
-    //         Margin = new Thickness(5)
-    //     };
-    //     Grid content = new();
-    //     var artists = one.ArtistsName;
-    //     if (string.IsNullOrEmpty(one.ArtistsName))
-    //     {
-    //         artists = "未知艺人";
-    //     }
-    //
-    //     TextBlock textBlockName = new()
-    //     {
-    //         Text = one.Name,
-    //         HorizontalAlignment = HorizontalAlignment.Left,
-    //         VerticalAlignment = VerticalAlignment.Top,
-    //         FontWeight = FontWeights.Black,
-    //         Margin = new Thickness(60, 2, 0, 0),
-    //         FontSize = 17,
-    //         Width = 200,
-    //
-    //         TextTrimming = TextTrimming.CharacterEllipsis
-    //     };
-    //     TextBlock textBlockArtists = new()
-    //     {
-    //         Text = artists,
-    //         HorizontalAlignment = HorizontalAlignment.Left,
-    //         VerticalAlignment = VerticalAlignment.Bottom,
-    //         Margin = new Thickness(60, 2, 0, 0),
-    //         FontSize = 16,
-    //         Width = 200,
-    //         TextTrimming = TextTrimming.CharacterEllipsis
-    //     };
-    //
-    //     TextBlock textBlockTime = new()
-    //     {
-    //         Text = one.DuartionTimeString,
-    //         HorizontalAlignment = HorizontalAlignment.Right,
-    //         VerticalAlignment = VerticalAlignment.Center,
-    //         FontSize = 14,
-    //         Margin = new Thickness(0, 0, 20, 0)
-    //     };
-    //
-    //     content.Children.Add(bCover);
-    //     content.Children.Add(textBlockName);
-    //     content.Children.Add(textBlockArtists);
-    //     content.Children.Add(textBlockTime);
-    //     corner.Child = content;
-    //     parent.Child = corner;
-    //     parent.PointerEntered += AnimationsHelper.CardShow;
-    //     parent.PointerExited += AnimationsHelper.CardHide;
-    //     // 我认为这里应该是可以使用数据绑定的
-    //     // qaq
-    //     // TODO: 使用数据绑定歌单列表 SongViews.Add(parent);
-    //     
-    // }
-
-
 }

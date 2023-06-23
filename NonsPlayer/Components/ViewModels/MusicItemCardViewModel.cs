@@ -24,6 +24,17 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
     private string _artists;
     private string _time;
     private ImageBrush _cover;
+    private string _album;
+
+    public string Album
+    {
+        get => _album;
+        set
+        {
+            _album = value;
+            OnPropertyChanged(nameof(Album));
+        }
+    }
 
     public string Name
     {
@@ -74,6 +85,7 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
         };
         Name = one.Name;
         Time = one.DuartionTimeString;
+        Album = one.AlbumName;
         Artists = string.IsNullOrEmpty(one.ArtistsName) ? "未知艺人" : one.ArtistsName;
     }
 
