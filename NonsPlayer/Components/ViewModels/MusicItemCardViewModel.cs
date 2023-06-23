@@ -25,6 +25,17 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
     private string _time;
     private ImageBrush _cover;
     private string _album;
+    private string _index;
+
+    public string Index
+    {
+        get => _index;
+        set
+        {
+            _index = value;
+            OnPropertyChanged(nameof(Index));
+        }
+    }
 
     public string Album
     {

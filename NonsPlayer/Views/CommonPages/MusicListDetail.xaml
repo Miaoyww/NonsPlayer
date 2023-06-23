@@ -22,16 +22,20 @@
                                    TextTrimming="WordEllipsis"
                                    HorizontalAlignment="Left" VerticalAlignment="Top"
                                    FontSize="35" FontFamily="HarmonyOS Sans SC" />
-                        <Grid HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="250">
-                            <TextBlock Name="MusicsCount" Text="{x:Bind ViewModel.MusicsCount, Mode=OneWay}"
+                        <Grid HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Name="MusicsCount" Text="{x:Bind ViewModel.MusicsCount, Mode=OneWay}"
                                        HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="14"
                                        FontFamily="HarmonyOS Sans SC" Opacity="0.6" />
-                            <TextBlock Name="Creator" Text="{x:Bind ViewModel.Creator, Mode=OneWay}"
-                                       Margin="-15,0,0,0"
+                            <TextBlock Grid.Column="1" Name="Creator" Text="{x:Bind ViewModel.Creator, Mode=OneWay}"
                                        HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="14"
-                                       FontFamily="HarmonyOS Sans SC" Opacity="0.6" />
-                            <TextBlock Name="CreateTime" Text="{x:Bind ViewModel.CreateTime, Mode=OneWay}"
-                                       Margin="0,0,0,0"
+                                       FontFamily="HarmonyOS Sans SC" Opacity="0.6" 
+                                       Margin="5,0,0,0"/>
+                            <TextBlock Grid.Column="2" Name="CreateTime" Text="{x:Bind ViewModel.CreateTime, Mode=OneWay}"
                                        HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="14"
                                        FontFamily="HarmonyOS Sans SC" Opacity="0.6" />
                         </Grid>
@@ -41,7 +45,27 @@
 
                     </StackPanel>
                 </StackPanel>
-                <StackPanel x:Name="MusicsPanel"/>
+                <Grid Margin="20,20,40,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="#" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
+                    <TextBlock Grid.Column="1" Margin="30,0,0,0" Text="标题" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
+                    <TextBlock Grid.Column="2" Text="专辑" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
+                    <TextBlock Grid.Column="3" Text="时长" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
+                </Grid>
+                <ListView ItemsSource="{x:Bind ViewModel.MusicItems, Mode=OneWay}">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:MusicItem">
+                            <views:MusicItemCard
+                                Music="{x:Bind Music}"
+                                Index="{x:Bind Index}" />
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
             </StackPanel>
         </ScrollViewer>
     </Grid>

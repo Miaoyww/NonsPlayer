@@ -2,14 +2,11 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Components.Models;
-using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Framework.Model;
-using NonsPlayer.Views.CommonPages;
 
 namespace NonsPlayer.ViewModels;
 
@@ -22,13 +19,13 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     private string _description;
     private string _musicsCount;
     private string _name;
-    private MusicListDetailPage _musicListDetailPage;
 
     public ObservableCollection<MusicItem> MusicItems
     {
         get;
         set;
     }
+
 
     public string Name
     {
@@ -120,15 +117,20 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
 
     public void PageLoaded(object sender, RoutedEventArgs e)
     {
-        _musicListDetailPage = (MusicListDetailPage)sender;
         LoadPlaylistAsync(_currentId);
     }
 
     public async Task UpdateMusicsList(Music[] musics, PlayList list)
     {
-        foreach (var music in musics)
+        MusicItems = new();
+        for (int i = 0; i < musics.Length; i++)
         {
-            _musicListDetailPage.MusicsViewPanel.Children.Add(new MusicItemCard(music));
+            MusicItems.Add(new MusicItem
+            {
+                Music = musics[i],
+                Index = (i + 1).ToString("D2")
+            });
+            OnPropertyChanged(nameof(MusicItems));
         }
     }
 }

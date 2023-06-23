@@ -120,7 +120,7 @@ public class Music
         JObject musicDetail;
         try
         {
-            musicDetail = (JObject)((JArray)NonsApi.Api.Music.Detail(new[] {Id}, ResEntry.nons).Result["songs"])[0];
+            musicDetail = (JObject)((JArray)NonsApi.Api.Music.Detail(new[] { Id }, ResEntry.nons).Result["songs"])[0];
         }
         catch (InvalidCastException)
         {
@@ -158,7 +158,7 @@ public class Music
 
     public async Task GetFileInfo()
     {
-        var musicFile = (JObject)(await NonsApi.Api.Music.Url(new[] {Id}, ResEntry.nons))["data"][0];
+        var musicFile = (JObject)(await NonsApi.Api.Music.Url(new[] { Id }, ResEntry.nons))["data"][0];
         Url = musicFile["url"].ToString();
         FileType = musicFile["type"].ToString();
     }

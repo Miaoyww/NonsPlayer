@@ -17,13 +17,13 @@ public sealed partial class MusicListDetailPage : Page
         {
         }
     }
-    
+
     public StackPanel MusicsViewPanel;
     public MusicListDetailPage()
     {
         ViewModel = App.GetService<MusicListDetailViewModel>();
         InitializeComponent();
-        MusicsViewPanel = MusicsPanel;
+        // MusicsViewPanel = MusicsPanel;
     }
 
 }

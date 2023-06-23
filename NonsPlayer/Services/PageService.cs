@@ -22,7 +22,6 @@ public class PageService : IPageService
         Configure<ExploreViewModel, ExplorePage>();
         Configure<MusicListDetailViewModel, MusicListDetailPage>();
         Configure<PlaylistCardViewModel, PlaylistCard>();
-        Configure<MusicItemCardViewModel, MusicItemCard>();
     }
 
     public Type GetPageType(string key)
