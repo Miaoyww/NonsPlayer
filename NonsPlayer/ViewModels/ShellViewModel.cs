@@ -1,20 +1,16 @@
 ﻿using System.ComponentModel;
 using System.Windows.Input;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
-
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Framework.Model;
 using NonsPlayer.Helpers;
-
 using Windows.System;
 
 namespace NonsPlayer.ViewModels;
@@ -41,6 +37,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
     private string _obTLrc = string.Empty;
     private Lyric? currentLyric = null;
     private Lyric? nextLyric = null;
+
     public string TranLyric
     {
         get => _tranLyric;
@@ -81,6 +78,15 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
                 return time;
             }
 
+            if (currentLyric == null && MusicPlayerHelper.Player.MusicNow.Lyrics != null)
+            {
+                currentLyric = new Lyric(MusicPlayerHelper.Player.MusicNow.Name,
+                    MusicPlayerHelper.Player.MusicNow.ArtistsName, TimeSpan.Zero);
+                OriginalLyric = currentLyric.OriginalLyric;
+                TranLyric = currentLyric.TranLyric;
+            }
+
+
             if (currentLyric != null && nextLyric != null && time >= currentLyric.Time && time < nextLyric.Time)
             {
                 return time;
@@ -89,6 +95,11 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
             for (int i = 0; i < MusicPlayerHelper.Player.MusicNow.Lyrics.Count; i++)
             {
                 var currentItem = MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[i];
+                if (i + 1 == MusicPlayerHelper.Player.MusicNow.Lyrics.Count)
+                {
+                    return time;
+                }
+
                 var nextItem = MusicPlayerHelper.Player.MusicNow.Lyrics.Count > i
                     ? MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[i + 1]
                     : currentItem;
@@ -98,6 +109,12 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
                     nextLyric = nextItem;
                     OriginalLyric = currentItem.OriginalLyric;
                     TranLyric = currentItem.TranLyric;
+                    return time;
+                }
+
+                if (time <= MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[0].Time)
+                {
+                    return time;
                 }
             }
         }

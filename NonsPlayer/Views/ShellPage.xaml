@@ -18,13 +18,177 @@
                 <Frame x:Name="NavigationFrame" Margin="230,55,0,0" />
             </Grid>
             <Grid Name="FuncBar" Background="#F6F7F8" Width="230" HorizontalAlignment="Left">
-                <Border
-                    Name="Cover"
-                    Height="230"
-                    VerticalAlignment="Bottom"
-                    Background="{x:Bind MusicPlayer.Cover, Mode=OneWay}"
-                    BorderThickness="0"
-                    Margin="0,0,0,90" />
+                <Grid.Resources>
+                    <ThemeShadow x:Name="DropShadow" />
+                </Grid.Resources>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ScrollViewer Grid.Row="0">
+                    <StackPanel Margin="20,0,20,0">
+                        <Grid BorderThickness="0,1,0,0" BorderBrush="#DDDDDD" Margin="0,20,0,0"
+                              HorizontalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="创建的歌单"
+                                       FontFamily="HarmonyOS Sans SC" FontSize="17" FontWeight="Medium" />
+                            <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                            </ListView>
+                        </Grid>
+                        <Grid BorderThickness="0,1,0,0" BorderBrush="#DDDDDD" Margin="0,20,0,0"
+                              HorizontalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="创建的歌单"
+                                       FontFamily="HarmonyOS Sans SC" FontSize="17" FontWeight="Medium" />
+                            <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
+                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
+                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
+                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
+                                </StackPanel>
+                            </ListView>
+                        </Grid>
+                    </StackPanel>
+
+                </ScrollViewer>
+                <Border Grid.Row="1" x:Name="LyricBox" Shadow="{StaticResource DropShadow}" Translation="0,0,32"
+                        Margin="0,0,0,10"
+                        Background="#F4F3F3" Height="100" Width="200" CornerRadius="20">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Padding="8">
+                        <TextBlock Name="OriginalLyric" Text="{x:Bind ViewModel.OriginalLyric,Mode=OneWay}"
+                                   HorizontalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" TextWrapping="WrapWholeWords"
+                                   TextAlignment="Center"
+                                   FontFamily="HarmonyOS Sans SC" FontWeight="Bold" FontSize="14" />
+
+                        <TextBlock Name="TranLyric" Text="{x:Bind ViewModel.TranLyric, Mode=OneWay}"
+                                   Visibility="{x:Bind ViewModel.TransVisibility, Mode=OneWay}"
+                                   HorizontalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" TextWrapping="WrapWholeWords"
+                                   TextAlignment="Center"
+                                   FontFamily="HarmonyOS Sans SC" FontWeight="Bold" FontSize="14" Opacity="0.8" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="2"
+                        Name="Cover"
+                        Height="230"
+                        VerticalAlignment="Bottom"
+                        Background="{x:Bind MusicPlayer.Cover, Mode=OneWay}"
+                        BorderThickness="0"
+                        Margin="0,0,0,90" />
             </Grid>
             <Border Name="TitleBar"
                     VerticalAlignment="Top"
@@ -33,79 +197,61 @@
                     Height="54"
                     Margin="230,0,0,0">
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="50" />
-                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Grid Row="0" Column="0" VerticalAlignment="Center" x:Name="AppTitleBar">
+                    <Grid Column="0" VerticalAlignment="Center" x:Name="AppTitleBar" Margin="20,0,0,0">
                         <Grid VerticalAlignment="Center">
                             <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
                                        Style="{StaticResource CaptionTextBlockStyle}"
                                        FontSize="18"
                                        FontFamily="HarmonyOS Sans"
-                                       Margin="20,0,0,0"
                                        FontWeight="Black"
                                        Foreground="#2d2d2d"
                                        Opacity="0.9" />
                         </Grid>
                     </Grid>
-                    <Grid Row="0" Column="0" Name="PageButtons" VerticalAlignment="Center">
-                        <Grid Width="150" HorizontalAlignment="Left" Margin="130,0,0,0">
-                            <Button Height="35" Width="35" Margin="0,0,50,0" Padding="0" BorderThickness="0">
-                                <ImageIcon Source="../Assets/Icons/arrow-back.svg" Width="15" Foreground="#2d2d2d"
-                                           Margin="0,8,-2,0" />
+                    <Grid Column="1" Name="PageButtons" VerticalAlignment="Center" Margin="10,0,0,0">
+                        <StackPanel Orientation="Horizontal" Width="150" HorizontalAlignment="Left">
+                            <Button Height="35" Width="35" Margin="10,0,5,0" Padding="0" BorderThickness="0">
+                                <FontIcon Glyph="&#xE973;" FontSize="24" />
                             </Button>
-                            <Button Height="35" Width="35" Margin="50,0,0,0" BorderThickness="0">
-                                <ImageIcon Source="../Assets/Icons/arrow-next.svg" Width="15" Foreground="#2d2d2d"
-                                           Margin="-1,4,0,0" />
+                            <Button Height="35" Width="35" BorderThickness="0" Padding="0">
+                                <FontIcon Glyph="&#xE974;" FontSize="24" />
                             </Button>
-                        </Grid>
-                        <Grid HorizontalAlignment="Left" Margin="220,2,0,0">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                        VerticalAlignment="Top"
-                                        Height="30">
-                                <Button x:Uid="ShellMenu_Home" BorderThickness="0" Width="50" Height="25"
-                                        FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
-                                        VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
-                                        FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
-                                        Foreground="#2d2d2d"
-                                        Command="{x:Bind ViewModel.MenuHomeOpenCommand}" />
-                                <Button x:Uid="ShellMenu_Explore" BorderThickness="0" Width="50" Height="25"
-                                        FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
-                                        VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
-                                        FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
-                                        Foreground="#2d2d2d"
-                                        Command="{x:Bind ViewModel.MenuExploreOpenCommand}" />
-                                <Button x:Uid="ShellMenu_Own" BorderThickness="0" Width="50" Height="25"
-                                        FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
-                                        VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
-                                        FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
-                                        Foreground="#2d2d2d"
-                                        Command="{x:Bind ViewModel.MenuOwnOpenCommand}" />
-                            </StackPanel>
-                        </Grid>
+                        </StackPanel>
                     </Grid>
-                    <Grid Row="0" Column="1" Name="LyricBox" Margin="10,0,30,0">
-                        <Border BorderThickness="0,0,0,1" BorderBrush="#ababab" Background="Transparent">
-                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                <TextBlock Name="OriginalLyric" Text="{x:Bind ViewModel.OriginalLyric,Mode=OneWay}" FontFamily="HarmonyOS Sans SC"
-                                           HorizontalAlignment="Center" FontWeight="Bold" FontSize="13" />
-                                <TextBlock Name="TranLyric" Text="{x:Bind ViewModel.TranLyric, Mode=OneWay}" FontFamily="HarmonyOS Sans SC"
-                                           Visibility="{x:Bind ViewModel.TransVisibility, Mode=OneWay}"
-                                           HorizontalAlignment="Center" FontWeight="Bold" FontSize="13" Opacity="0.8" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                    <Grid Row="0" Column="2" Name="UserController" Margin="0,0,0,0" VerticalAlignment="Center"
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Height="30" Margin="-60,0,0,0">
+                        <Button x:Uid="ShellMenu_Home" BorderThickness="0" Width="50" Height="25"
+                                FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                                Foreground="#2d2d2d"
+                                Command="{x:Bind ViewModel.MenuHomeOpenCommand}" />
+                        <Button x:Uid="ShellMenu_Explore" BorderThickness="0" Width="50" Height="25"
+                                FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                                Foreground="#2d2d2d"
+                                Command="{x:Bind ViewModel.MenuExploreOpenCommand}" />
+                        <Button x:Uid="ShellMenu_Own" BorderThickness="0" Width="50" Height="25"
+                                FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                                Foreground="#2d2d2d"
+                                Command="{x:Bind ViewModel.MenuOwnOpenCommand}" />
+                    </StackPanel>
+                    <Grid Column="3" Name="UserController" VerticalAlignment="Center"
                           HorizontalAlignment="Right" Height="40">
                         <StackPanel Orientation="Horizontal">
-                            <AutoSuggestBox Name="SearchBox"  BorderThickness="1" CornerRadius="3"
+                            <AutoSuggestBox Name="SearchBox" BorderThickness="1" CornerRadius="3"
                                             PreviewKeyDown="{x:Bind ViewModel.SearchBox_KeyDown}"
-                                            QueryIcon="Find" Width="200" Height="34"/>
+                                            QueryIcon="Find" Width="140" Height="34" />
 
                             <StackPanel Name="UserInfo" Orientation="Horizontal"
                                         VerticalAlignment="Center"
@@ -149,34 +295,34 @@
                 Margin="0,680,0,0"
                 Height="90">
             <Grid>
-                <StackPanel Orientation="Horizontal" Width="300" HorizontalAlignment="Left" Margin="30,0,0,0">
+                <StackPanel Orientation="Horizontal" Width="300" HorizontalAlignment="Left" Margin="20,0,0,0">
                     <StackPanel VerticalAlignment="Center" MaxWidth="190" Margin="0,0,0,5">
-                        <TextBlock x:Name="tblockName" Text="{x:Bind MusicPlayer.Name, Mode=OneWay}"
+                        <TextBlock x:Name="Name" Text="{x:Bind MusicPlayer.Name, Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20"
                                    Margin="0,0,0,10" FontWeight="Medium"
                                    TextTrimming="CharacterEllipsis" FontFamily="HarmonyOS Sans SC" />
 
-                        <TextBlock x:Name="tblockArtists" Text="{x:Bind MusicPlayer.Artists,Mode=OneWay}"
+                        <TextBlock x:Name="Artists" Text="{x:Bind MusicPlayer.Artists,Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15"
                                    FontFamily="HarmonyOS Sans SC" FontWeight="Medium"
                                    TextTrimming="CharacterEllipsis" Foreground="Black" Opacity="0.75" />
                     </StackPanel>
-                    <Button x:Name="btnLike" Width="35" Height="35"
+                    <Button x:Name="Like" Width="35" Height="35"
                             VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Margin="8,0,0,0"
                             Padding="0" Background="Transparent" BorderThickness="0">
-                        <ImageIcon Source="../Assets/Icons/liked.svg" Margin="15,8,0,0" Height="35" Width="35" />
-
+                        <FontIcon Glyph="&#xEB51;" FontSize="20" />
                     </Button>
                 </StackPanel>
                 <Grid>
                     <StackPanel Margin="0,15,0,0" Orientation="Horizontal" HorizontalAlignment="Center"
                                 VerticalAlignment="Top">
-                        <Button x:Name="btn_last" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
+                        <Button x:Name="LastMusic" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0">
                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf8ac;" FontSize="20" />
                         </Button>
-                        <Button x:Name="btn_play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
+                        <Button x:Name="Play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0"
                                 Command="{x:Bind MusicPlayer.MusicPlayCommand}">
@@ -184,7 +330,7 @@
                                       Glyph="{x:Bind MusicPlayer.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
                                       FontSize="20" />
                         </Button>
-                        <Button x:Name="btn_next" Width="35" Height="35" VerticalAlignment="Center"
+                        <Button x:Name="NextMusic" Width="35" Height="35" VerticalAlignment="Center"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0">
                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf8ad;" FontSize="20" />
@@ -192,14 +338,15 @@
                     </StackPanel>
                     <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center"
                                 VerticalAlignment="Bottom">
-                        <TextBlock x:Name="label_currentTime" Text="{x:Bind MusicPlayer.PositionString ,Mode=OneWay}"
+                        <TextBlock x:Name="CurrentTimeTextBlock"
+                                   Text="{x:Bind MusicPlayer.PositionString ,Mode=OneWay}"
                                    FontWeight="Black"
                                    FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
                                    Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
-                        <Slider x:Name="slider_postion" IsThumbToolTipEnabled="False" Width="340"
+                        <Slider x:Name="CurrentTimeSlider" IsThumbToolTipEnabled="False" Width="340"
                                 Value="{x:Bind MusicPlayer.PositionDouble, Mode=TwoWay}"
                                 Maximum="{x:Bind MusicPlayer.DurationTimeDouble, Mode=OneWay}" />
-                        <TextBlock x:Name="label_wholeTime" Text="{x:Bind MusicPlayer.DurationTimeString, Mode=OneWay}"
+                        <TextBlock x:Name="DurationTime" Text="{x:Bind MusicPlayer.DurationTimeString, Mode=OneWay}"
                                    FontWeight="Black" FontFamily="JetBrains Mono"
                                    Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0"
                                    HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
@@ -207,16 +354,16 @@
                 </Grid>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Margin="0,0,30,0">
-                    <Button x:Name="btn_volume" Width="45" Height="45" Margin="5" Background="Transparent"
+                    <Button x:Name="VolumeButton" Width="45" Height="45" Margin="5" Background="Transparent"
                             BorderThickness="0,0,0,0"
                             Command="{x:Bind MusicPlayer.VolumeMuteCommand}">
                         <FontIcon FontFamily="Segoe Fluent Icons" FontSize="22"
                                   Glyph="{x:Bind MusicPlayer.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
                     </Button>
-                    <Slider x:Name="slider_volume" IsThumbToolTipEnabled="False"
+                    <Slider x:Name="VolumeSlider" IsThumbToolTipEnabled="False"
                             Value="{x:Bind MusicPlayer.Volume, Mode=TwoWay}" Width="100"
                             HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
-                    <Button x:Name="btn_showPlaylist" Width="45" Height="45" Margin="5" Background="Transparent"
+                    <Button x:Name="PlayList" Width="45" Height="45" Margin="5" Background="Transparent"
                             FontSize="26"
                             BorderThickness="0,0,0,0">
                         <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf168;" FontSize="18" />

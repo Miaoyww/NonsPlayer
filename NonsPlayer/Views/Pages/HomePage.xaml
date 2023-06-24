@@ -7,19 +7,37 @@
     mc:Ignorable="d"
     Loaded="{x:Bind ViewModel.HomeLoad}"
     xmlns:helpers="using:NonsPlayer.Helpers"
-    xmlns:pages="using:NonsPlayer.Views.Pages">
+    xmlns:pages="using:NonsPlayer.Views.Pages"
+    xmlns:models="using:NonsPlayer.Components.Models"
+    xmlns:views="using:NonsPlayer.Components.Views">
     <Grid>
         <ScrollViewer Margin="0,0,0,90">
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">
                 <Grid>
                     <TextBlock Text="For you" FontWeight="Black" FontSize="30" FontFamily="JetBrains Mono" />
-                    <Border x:Name="b_dailyMusic" PointerEntered="{x:Bind CardShow}" PointerExited="{x:Bind CardHide}" HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500" Height="200" Margin="0,70,0,0">
-                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="每日单曲推荐" Foreground="Black" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
+                    <Border x:Name="b_dailyMusic" PointerEntered="{x:Bind CardShow}" PointerExited="{x:Bind CardHide}"
+                            HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500"
+                            Height="200" Margin="0,70,0,0">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="每日单曲推荐"
+                                   Foreground="Black" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
                     </Border>
                 </Grid>
                 <Grid Margin="0,60,0,80">
                     <TextBlock Text="推荐歌单" FontWeight="Black" FontSize="25" FontFamily="JetBrains Mono" />
-                    <VariableSizedWrapGrid x:Name="panel_nicePlaylists" HorizontalAlignment="Left" Margin="0,40,0,0" Orientation="Horizontal" />
+                    <!-- <ListView Name="RecommendPlaylistView" HorizontalAlignment="Left" Margin="0,40,0,0"> -->
+                    <!--     <ItemsPanelTemplate> -->
+                    <!-- -->
+                    <!--     </ItemsPanelTemplate> -->
+                    <!-- </ListView> -->
+                    <GridView Name="RecommendPlaylistView" ItemsSource="{x:Bind ViewModel.Playlists, Mode=OneWay}"
+                              SelectionMode="None"
+                              HorizontalAlignment="Left" Margin="0,40,0,0">
+                        <GridView.ItemTemplate>
+                            <DataTemplate x:DataType="models:PlaylistItem">
+                                <views:PlaylistCard PlaylistItem="{x:Bind PlayList}" />
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                    </GridView>
                 </Grid>
             </StackPanel>
         </ScrollViewer>

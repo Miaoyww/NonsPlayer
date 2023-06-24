@@ -7,25 +7,22 @@ using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.Views;
 
-public sealed partial class PlaylistCard : Page
+public sealed partial class PlaylistCard : UserControl
 {
     public PlaylistCardViewModel ViewModel
     {
         get;
     }
 
-    private readonly JObject playlistItem;
-
-    public PlaylistCard(JObject item)
+    public PlaylistCard()
     {
         ViewModel = App.GetService<PlaylistCardViewModel>();
         InitializeComponent();
-        playlistItem = item;
     }
 
-    private void PlaylistCard_OnLoaded(object sender, RoutedEventArgs e)
+    public JObject PlaylistItem
     {
-        ViewModel.Init(playlistItem);
+        set => ViewModel.Init(value);
     }
 
     private void CardShow(object sender, PointerRoutedEventArgs e) => AnimationsHelper.CardShow(sender, e);

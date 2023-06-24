@@ -20,12 +20,7 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     private string _musicsCount;
     private string _name;
 
-    public ObservableCollection<MusicItem> MusicItems
-    {
-        get;
-        set;
-    }
-
+    public ObservableCollection<MusicItem> MusicItems = new();
 
     public string Name
     {
@@ -122,7 +117,6 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
 
     public async Task UpdateMusicsList(Music[] musics, PlayList list)
     {
-        MusicItems = new();
         for (int i = 0; i < musics.Length; i++)
         {
             MusicItems.Add(new MusicItem

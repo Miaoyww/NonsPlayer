@@ -1,8 +1,10 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Newtonsoft.Json.Linq;
 using NonsApi;
+using NonsPlayer.Components.Models;
 using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Framework.Resources;
@@ -17,6 +19,8 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
         get;
     }
 
+    public ObservableCollection<PlaylistItem> Playlists = new();
+
     public HomeViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
@@ -30,13 +34,8 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
             var playlists = (JArray)response["result"];
             foreach (JObject item in playlists)
             {
-                ApplyPanelAsync(item, (HomePage)sender);
+                Playlists.Add(new PlaylistItem {PlayList = item});
             }
         }
-    }
-
-    private static void ApplyPanelAsync(JObject item, HomePage p)
-    {
-        p.Panel_MusicList.Children.Add(new PlaylistCard(item));
     }
 }
