@@ -15,7 +15,7 @@
     <Grid>
         <Grid>
             <Grid>
-                <Frame x:Name="NavigationFrame" Margin="230,70,0,0" />
+                <Frame x:Name="NavigationFrame" Margin="230,55,0,0" />
             </Grid>
             <Grid Name="FuncBar" Background="#F6F7F8" Width="230" HorizontalAlignment="Left">
                 <Border

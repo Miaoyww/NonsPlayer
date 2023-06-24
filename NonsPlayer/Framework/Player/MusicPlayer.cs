@@ -109,6 +109,10 @@ public class MusicPlayer : INotifyPropertyChanged
     /// <param name="re">是否从头播放</param>
     public void Play(bool re = false)
     {
+        if (MusicNow == null)
+        {
+            return;
+        }
         try
         {
             if (re)
