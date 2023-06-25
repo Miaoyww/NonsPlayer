@@ -1,12 +1,15 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Framework.Model;
+using NonsPlayer.Framework.Player;
 
 namespace NonsPlayer.ViewModels;
 
@@ -20,7 +23,13 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     private string _musicsCount;
     private string _name;
 
+    public MusicListDetailViewModel()
+    {
+        PlayAllCommand = new RelayCommand(PlayAll);
+    }
+
     public ObservableCollection<MusicItem> MusicItems = new();
+    public List<Music> Musics = new();
 
     public string Name
     {
@@ -119,6 +128,7 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     {
         for (int i = 0; i < musics.Length; i++)
         {
+            Musics.Add(musics[i]);
             MusicItems.Add(new MusicItem
             {
                 Music = musics[i],
@@ -126,5 +136,15 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
             });
             OnPropertyChanged(nameof(MusicItems));
         }
+    }
+
+    public ICommand PlayAllCommand
+    {
+        get;
+    }
+
+    public void PlayAll()
+    {
+        Playlist.Instance.AddMusicList(Musics);
     }
 }

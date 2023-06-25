@@ -8,7 +8,16 @@ namespace NonsApi;
 
 public class Nons
 {
+    public static Nons Instance
+    {
+        get;
+    } = new Nons();
+
     private string _token = string.Empty;
+
+    public Nons()
+    {
+    }
 
     public bool isLoggedin
     {
@@ -92,6 +101,7 @@ public class Nons
                 request.AddParameter(keyValuePair.Key, keyValuePair.Value);
             }
         }
+
         request.AddCookie("os", "pc");
         request.AddCookie("appver", "2.9.7");
         request.AddHeader("ContentType", "application/x-www-form-urlencoded");
@@ -102,6 +112,7 @@ public class Nons
         {
             request.AddCookie("MUSIC_U", _token);
         }
+
         var respResult = (await client.ExecuteAsync(request)).Content.ToString();
         JObject result = JObject.Parse(respResult);
         return result;
@@ -118,6 +129,7 @@ public class Nons
         {
             byte2String = byte2String + targetData[i].ToString("x2");
         }
+
         return byte2String;
     }
 
@@ -138,8 +150,8 @@ public static class Api
             string _URL = $"https://music.163.com/api/v6/playlist/detail";
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "id", id.ToString() },
-                { "n", "100000" }
+                {"id", id.ToString()},
+                {"n", "100000"}
             };
             return await nons.Request(_URL, pairs);
         }
@@ -149,9 +161,9 @@ public static class Api
             string _URL = $"https://music.163.com/api/personalized/playlist";
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "limit", limit.ToString() },
-                { "total", "true" },
-                { "n", "1000" }
+                {"limit", limit.ToString()},
+                {"total", "true"},
+                {"n", "1000"}
             };
             return await nons.Request(_URL, pairs);
         }
@@ -173,10 +185,11 @@ public static class Api
                     dataString += "{id:" + ids[index].ToString() + "}]";
                 }
             }
+
             string _URL = $"https://music.163.com/api/v3/song/detail";
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "c", dataString }
+                {"c", dataString}
             };
             return await nons.Request(_URL, pairs);
         }
@@ -196,6 +209,7 @@ public static class Api
                     idsBody += ids[index].ToString() + "]";
                 }
             }
+
             string resBody = $"{idsBody}&br=999000";
             HttpContent data = new StringContent(resBody);
             /*
@@ -207,8 +221,8 @@ public static class Api
             }*/
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "ids", idsBody },
-                { "br", "999000" }
+                {"ids", idsBody},
+                {"br", "999000"}
             };
             return await nons.Request(_URL, pairs);
         }
@@ -219,10 +233,10 @@ public static class Api
             HttpContent data = new StringContent($"alg=itembased&trackId={id}&like={like}&time=3");
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "alg", "itembased" },
-                { "trackId", id },
-                { "like", like.ToString() },
-                { "time", "3" }
+                {"alg", "itembased"},
+                {"trackId", id},
+                {"like", like.ToString()},
+                {"time", "3"}
             };
             return await nons.Request(_URL, pairs);
         }
@@ -253,9 +267,9 @@ public static class Api
             string pswMD5 = nons?.Md5(password);
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "username", email },
-                { "password", pswMD5 },
-                { "rememberLogin", "true" }
+                {"username", email},
+                {"password", pswMD5},
+                {"rememberLogin", "true"}
             };
             return await nons.Request(_URL, pairs);
         }
@@ -266,10 +280,10 @@ public static class Api
             string pswMD5 = nons.Md5(password);
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "phone", phone.ToString() },
-                { "countryCode", countryCode.ToString() },
-                { "captcha", pswMD5 },
-                { "rememberLogin", "true" }
+                {"phone", phone.ToString()},
+                {"countryCode", countryCode.ToString()},
+                {"captcha", pswMD5},
+                {"rememberLogin", "true"}
             };
             return await nons.Request(_URL, pairs);
         }
@@ -279,9 +293,9 @@ public static class Api
             string _URL = "https://music.163.com/api/login/cellphone";
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "phone", phone.ToString() },
-                { "countryCode", countryCode.ToString() },
-                { "rememberLogin", "true" }
+                {"phone", phone.ToString()},
+                {"countryCode", countryCode.ToString()},
+                {"rememberLogin", "true"}
             };
             return await nons.Request(_URL, pairs);
         }
@@ -306,7 +320,7 @@ public static class Api
             string _URL = "https://music.163.com/api/point/dailyTask";
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "type", type }
+                {"type", type}
             };
             return await nons.Request(_URL, pairs);
         }
@@ -316,7 +330,7 @@ public static class Api
             string _URL = "https://music.163.com/api/song/like/get";
             IDictionary<string, string> pairs = new Dictionary<string, string>
             {
-                { "uid", id }
+                {"uid", id}
             };
             return await nons.Request(_URL, pairs);
         }

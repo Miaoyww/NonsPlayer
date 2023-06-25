@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using NonsApi;
 using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 
@@ -77,7 +78,7 @@ public class PlayList
     public async Task LoadAsync(long in_id)
     {
         Id = in_id;
-        var playlistDetail = (JObject)(await NonsApi.Api.Playlist.Detail(Id, ResEntry.nons))["playlist"];
+        var playlistDetail = (JObject)(await NonsApi.Api.Playlist.Detail(Id, Nons.Instance))["playlist"];
         Name = playlistDetail["name"].ToString();
         Description = playlistDetail["description"].ToString();
 
@@ -106,18 +107,18 @@ public class PlayList
         JArray musicDetail;
         if (end != 0)
         {
-            musicDetail = (JArray)(await NonsApi.Api.Music.Detail(MusicTrackIds[start..end], ResEntry.nons))["musics"];
+            musicDetail = (JArray)(await NonsApi.Api.Music.Detail(MusicTrackIds[start..end], Nons.Instance))["musics"];
         }
         else
         {
             if (MusicTrackIds.Length >= 500)
             {
-                var temp = await NonsApi.Api.Music.Detail(MusicTrackIds[..500], ResEntry.nons);
+                var temp = await NonsApi.Api.Music.Detail(MusicTrackIds[..500], Nons.Instance);
                 musicDetail = (JArray)temp["songs"];
             }
             else
             {
-                var temp = await NonsApi.Api.Music.Detail(MusicTrackIds, ResEntry.nons);
+                var temp = await NonsApi.Api.Music.Detail(MusicTrackIds, Nons.Instance);
                 musicDetail = (JArray)temp["songs"];
             }
         }

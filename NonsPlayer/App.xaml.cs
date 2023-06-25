@@ -2,13 +2,13 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-
 using NonsPlayer.Activation;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Services;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 using NonsPlayer.Services;
@@ -43,53 +43,54 @@ public partial class App : Application
         return service;
     }
 
-    public static WindowEx MainWindow { get; } = new MainWindow();
+    public static WindowEx MainWindow
+    {
+        get;
+    } = new MainWindow();
 
     public App()
     {
         InitializeComponent();
-        MusicPlayerHelper.InitPlayer(DispatcherQueue.GetForCurrentThread());
-        Host = Microsoft.Extensions.Hosting.Host.
-        CreateDefaultBuilder().
-        UseContentRoot(AppContext.BaseDirectory).
-        ConfigureServices((context, services) =>
-        {
-            // Default Activation Handler
-            services.AddTransient<ActivationHandler<LaunchActivatedEventArgs>, DefaultActivationHandler>();
+        GlobalMusicState.Instance.DispatcherQueue = DispatcherQueue.GetForCurrentThread();
+        Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().UseContentRoot(AppContext.BaseDirectory)
+            .ConfigureServices((context, services) =>
+            {
+                // Default Activation Handler
+                services.AddTransient<ActivationHandler<LaunchActivatedEventArgs>, DefaultActivationHandler>();
 
-            // Other Activation Handlers
-            services.AddTransient<IActivationHandler, AppNotificationActivationHandler>();
+                // Other Activation Handlers
+                services.AddTransient<IActivationHandler, AppNotificationActivationHandler>();
 
-            // Services
-            services.AddSingleton<IAppNotificationService, AppNotificationService>();
-            services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
-            services.AddSingleton<IThemeSelectorService, ThemeSelectorService>();
-            services.AddSingleton<IActivationService, ActivationService>();
-            services.AddSingleton<IPageService, PageService>();
-            services.AddSingleton<INavigationService, NavigationService>();
+                // Services
+                services.AddSingleton<IAppNotificationService, AppNotificationService>();
+                services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
+                services.AddSingleton<IThemeSelectorService, ThemeSelectorService>();
+                services.AddSingleton<IActivationService, ActivationService>();
+                services.AddSingleton<IPageService, PageService>();
+                services.AddSingleton<INavigationService, NavigationService>();
 
-            // Core Services
-            services.AddSingleton<IFileService, FileService>();
+                // Core Services
+                services.AddSingleton<IFileService, FileService>();
 
-            // Views and ViewModels
-            services.AddTransient<MusicItemCardViewModel>();
-            services.AddTransient<MusicItemCard>();
-            services.AddTransient<PlaylistCardViewModel>();
-            services.AddTransient<MusicListDetailViewModel>();
-            services.AddTransient<MusicListDetailPage>();
-            services.AddTransient<ExploreViewModel>();
-            services.AddTransient<ExplorePage>();
-            services.AddTransient<HomeViewModel>();
-            services.AddTransient<HomePage>();
-            services.AddTransient<SettingsViewModel>();
-            services.AddTransient<SettingsPage>();
-            services.AddTransient<ShellPage>();
-            services.AddTransient<ShellViewModel>();
+                // Views and ViewModels
+                services.AddTransient<MusicItemCardViewModel>();
+                services.AddTransient<MusicItemCard>();
+                services.AddTransient<PlaylistCardViewModel>();
+                services.AddTransient<MusicListDetailViewModel>();
+                services.AddTransient<MusicListDetailPage>();
+                services.AddTransient<ExploreViewModel>();
+                services.AddTransient<ExplorePage>();
+                services.AddTransient<HomeViewModel>();
+                services.AddTransient<HomePage>();
+                services.AddTransient<SettingsViewModel>();
+                services.AddTransient<SettingsPage>();
+                services.AddTransient<ShellPage>();
+                services.AddTransient<ShellViewModel>();
 
-            // Configuration
-            services.Configure<LocalSettingsOptions>(context.Configuration.GetSection(nameof(LocalSettingsOptions)));
-        }).
-        Build();
+                // Configuration
+                services.Configure<LocalSettingsOptions>(
+                    context.Configuration.GetSection(nameof(LocalSettingsOptions)));
+            }).Build();
 
         GetService<IAppNotificationService>().Initialize();
 

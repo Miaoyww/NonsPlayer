@@ -18,7 +18,6 @@ public sealed partial class ShellPage : Page
     }
 
     private NavigationService navigationService;
-    public MusicPlayer MusicPlayer => MusicPlayerHelper.Player;
 
     public ShellPage(ShellViewModel viewModel)
     {

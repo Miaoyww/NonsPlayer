@@ -12,6 +12,8 @@ using NonsPlayer.Contracts.Services;
 using NonsPlayer.Framework.Model;
 using NonsPlayer.Helpers;
 using Windows.System;
+using NonsPlayer.Framework.Player;
+using NonsPlayer.Framework.Resources;
 
 namespace NonsPlayer.ViewModels;
 
@@ -30,13 +32,13 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         set => SetProperty(ref _isBackEnabled, value);
     }
 
+    public GlobalMusicState GlobalMusicState => GlobalMusicState.Instance;
     private Brush _userFace;
     private string _originalLyric = string.Empty;
     private string _tranLyric = string.Empty;
-    private string _obOLrc = string.Empty;
-    private string _obTLrc = string.Empty;
-    private Lyric? currentLyric = null;
-    private Lyric? nextLyric = null;
+
+    private Lyric? _currentLyric = null;
+    private Lyric? _nextLyric = null;
 
     public string TranLyric
     {
@@ -44,7 +46,6 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         set
         {
             _tranLyric = value;
-            _obTLrc = value;
             OnPropertyChanged(nameof(TranLyric));
             OnPropertyChanged(nameof(TransVisibility));
         }
@@ -56,7 +57,6 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         set
         {
             _originalLyric = value;
-            _obOLrc = value;
             OnPropertyChanged(nameof(OriginalLyric));
         }
     }
@@ -73,46 +73,46 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
     {
         try
         {
-            if (MusicPlayerHelper.Player.MusicNow.Lyrics == null)
+            if (GlobalMusicState.Instance.CurrentMusic.Lyrics == null)
             {
                 return time;
             }
 
-            if (currentLyric == null && MusicPlayerHelper.Player.MusicNow.Lyrics != null)
+            if (_currentLyric == null && GlobalMusicState.Instance.CurrentMusic.Lyrics != null)
             {
-                currentLyric = new Lyric(MusicPlayerHelper.Player.MusicNow.Name,
-                    MusicPlayerHelper.Player.MusicNow.ArtistsName, TimeSpan.Zero);
-                OriginalLyric = currentLyric.OriginalLyric;
-                TranLyric = currentLyric.TranLyric;
+                _currentLyric = new Lyric(GlobalMusicState.Instance.CurrentMusic.Name,
+                    GlobalMusicState.Instance.CurrentMusic.ArtistsName, TimeSpan.Zero);
+                OriginalLyric = _currentLyric.OriginalLyric;
+                TranLyric = _currentLyric.TranLyric;
             }
 
 
-            if (currentLyric != null && nextLyric != null && time >= currentLyric.Time && time < nextLyric.Time)
+            if (_currentLyric != null && _nextLyric != null && time >= _currentLyric.Time && time < _nextLyric.Time)
             {
                 return time;
             }
 
-            for (int i = 0; i < MusicPlayerHelper.Player.MusicNow.Lyrics.Count; i++)
+            for (int i = 0; i < GlobalMusicState.Instance.CurrentMusic.Lyrics.Count; i++)
             {
-                var currentItem = MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[i];
-                if (i + 1 == MusicPlayerHelper.Player.MusicNow.Lyrics.Count)
+                var currentItem = GlobalMusicState.Instance.CurrentMusic.Lyrics.Lrc[i];
+                if (i + 1 == GlobalMusicState.Instance.CurrentMusic.Lyrics.Count)
                 {
                     return time;
                 }
 
-                var nextItem = MusicPlayerHelper.Player.MusicNow.Lyrics.Count > i
-                    ? MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[i + 1]
+                var nextItem = GlobalMusicState.Instance.CurrentMusic.Lyrics.Count > i
+                    ? GlobalMusicState.Instance.CurrentMusic.Lyrics.Lrc[i + 1]
                     : currentItem;
                 if (time >= currentItem.Time && time < nextItem.Time)
                 {
-                    currentLyric = currentItem;
-                    nextLyric = nextItem;
+                    _currentLyric = currentItem;
+                    _nextLyric = nextItem;
                     OriginalLyric = currentItem.OriginalLyric;
                     TranLyric = currentItem.TranLyric;
                     return time;
                 }
 
-                if (time <= MusicPlayerHelper.Player.MusicNow.Lyrics.Lrc[0].Time)
+                if (time <= GlobalMusicState.Instance.CurrentMusic.Lyrics.Lrc[0].Time)
                 {
                     return time;
                 }
@@ -128,6 +128,8 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
 
     private Music MusicChanged(Music currentMusic)
     {
+        _currentLyric = null;
+        _nextLyric = null;
         return currentMusic;
     }
 
@@ -156,11 +158,12 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
             ImageSource =
                 new BitmapImage(new Uri("ms-appdata:///Assets/UnKnowResource.png"))
         };
-        MusicPlayerHelper.Player.PositionChangedHandle += LyricChanger;
-        MusicPlayerHelper.Player.MusicChangedHandle += MusicChanged;
+        GlobalMusicState.Instance.PositionChangedHandle += LyricChanger;
+        GlobalMusicState.Instance.MusicChangedHandle += MusicChanged;
 
         OriginalLyric = "暂未播放";
     }
+
 
     public void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
     {
@@ -202,6 +205,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
     {
         get;
     }
+
 
     public INavigationService NavigationService
     {

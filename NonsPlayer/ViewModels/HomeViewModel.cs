@@ -28,7 +28,7 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
 
     public async void HomeLoad(object sender, RoutedEventArgs e)
     {
-        var response = await Api.Playlist.Personalized(ResEntry.nons, 20);
+        var response = await Api.Playlist.Personalized(Nons.Instance, 20);
         if ((int)response["code"] == 200)
         {
             var playlists = (JArray)response["result"];

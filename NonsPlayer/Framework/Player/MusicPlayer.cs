@@ -9,40 +9,27 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using NAudio.Wave;
 using NonsPlayer.Framework.Model;
 using Windows.UI;
+using NonsPlayer.Framework.Resources;
 using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Framework.Player;
 
-public class MusicPlayer : INotifyPropertyChanged
+public class MusicPlayer
 {
-    public DispatcherQueue Dispatcher
+    public static MusicPlayer Instance
     {
         get;
-        set;
-    }
+    } = new MusicPlayer();
 
+    private MediaFoundationReader _mfr;
+    public WaveOutEvent OutputDevice;
 
     /// <summary>
     /// 初始化播放器
     /// </summary>
-    /// <param name="dispatcher">UI线程的dispatcher</param>
-    public void InitPlayer(DispatcherQueue dispatcher)
+    public MusicPlayer()
     {
-        outputDevice = new WaveOutEvent();
-        Dispatcher = dispatcher;
-        PositionChangedHandle = new((n) =>
-        {
-            return TimeSpan.Zero;
-
-        });
-        Name = "当前未播放";
-        Artists = "无";
-        Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
-        MusicPlayCommand = new RelayCommand(() =>
-        {
-            Play();
-        });
-        VolumeMuteCommand = new RelayCommand(Mute);
+        OutputDevice = new WaveOutEvent();
         var timer = new Timer();
         timer.Interval = 20;
         timer.Elapsed += GetCurrentInfo;
@@ -55,19 +42,24 @@ public class MusicPlayer : INotifyPropertyChanged
     /// </summary>
     private void GetCurrentInfo(object? sender, ElapsedEventArgs e)
     {
-        if (outputDevice != null)
+        GlobalMusicState.Instance.DispatcherQueue.TryEnqueue(() =>
         {
-            if (outputDevice.PlaybackState == PlaybackState.Playing)
+            if (OutputDevice != null)
             {
-                Dispatcher.TryEnqueue(() =>
+                if (OutputDevice.PlaybackState == PlaybackState.Playing)
                 {
-                    var postion = TimeSpan.FromSeconds(mfr.Position / outputDevice.OutputWaveFormat.BitsPerSample /
-                        outputDevice.OutputWaveFormat.Channels * 8.0 / outputDevice.OutputWaveFormat.SampleRate);
-                    Position = postion;
-                    PositionChangedHandle(postion);
-                });
+                    GlobalMusicState.Instance.Position = TimeSpan.FromSeconds(_mfr.Position /
+                        OutputDevice.OutputWaveFormat.BitsPerSample /
+                        OutputDevice.OutputWaveFormat.Channels * 8.0 / OutputDevice.OutputWaveFormat.SampleRate);
+                    GlobalMusicState.Instance.PositionChangedHandle(GlobalMusicState.Instance.Position);
+                }
+
+                if (GlobalMusicState.Instance.Position == GlobalMusicState.Instance.CurrentMusic.DuartionTime)
+                {
+                    GlobalMusicState.Instance.OnNextMusic();
+                }
             }
-        }
+        });
     }
 
     /// <summary>
@@ -76,30 +68,31 @@ public class MusicPlayer : INotifyPropertyChanged
     /// <param name="music2play">即将播放的音乐</param>
     public async void NewPlay(Music music2play)
     {
-        if (outputDevice == null)
+        if (OutputDevice == null)
         {
-            outputDevice = new WaveOutEvent();
+            OutputDevice = new WaveOutEvent();
         }
 
-        MusicNow = music2play;
-        await MusicNow.GetLric();
-        await MusicNow.GetFileInfo();
-        if (mfr == null)
+        GlobalMusicState.Instance.CurrentMusic = music2play;
+        await GlobalMusicState.Instance.CurrentMusic.GetLric();
+        await GlobalMusicState.Instance.CurrentMusic.GetFileInfo();
+        if (_mfr == null)
         {
-            mfr = new MediaFoundationReader(music2play.Url);
-            outputDevice.Init(mfr);
-            outputDevice.Volume = (float)Volume / 100;
+            _mfr = new MediaFoundationReader(music2play.Url);
+            OutputDevice.Init(_mfr);
+            OutputDevice.Volume = (float)GlobalMusicState.Instance.Volume / 100;
         }
         else
         {
             if (music2play.Url != null)
             {
-                outputDevice.Stop();
-                mfr = new MediaFoundationReader(music2play.Url);
-                outputDevice.Init(mfr);
-                outputDevice.Volume = (float)Volume / 100;
+                OutputDevice.Stop();
+                _mfr = new MediaFoundationReader(music2play.Url);
+                OutputDevice.Init(_mfr);
+                OutputDevice.Volume = (float)GlobalMusicState.Instance.Volume / 100;
             }
         }
+
         Play(true);
     }
 
@@ -109,31 +102,30 @@ public class MusicPlayer : INotifyPropertyChanged
     /// <param name="re">是否从头播放</param>
     public void Play(bool re = false)
     {
-        if (MusicNow == null)
+        if (GlobalMusicState.Instance.CurrentMusic == null)
         {
             return;
         }
+
         try
         {
             if (re)
             {
-                IsPlaying = true;
-                mfr.Position = TimeSpan.Zero.Ticks;
-                outputDevice.Play();
+                GlobalMusicState.Instance.IsPlaying = true;
+                _mfr.Position = TimeSpan.Zero.Ticks;
+                OutputDevice.Play();
             }
             else
             {
-                if (!IsPlaying)
+                if (!GlobalMusicState.Instance.IsPlaying)
                 {
-                    outputDevice.Play();
-                    IsPlaying = true;
-                    // ResEntry.musicInfo.DurationTime = outputDevice.GetPositionTimeSpan
+                    OutputDevice.Play();
+                    GlobalMusicState.Instance.IsPlaying = true;
                 }
                 else
                 {
-                    outputDevice.Pause();
-                    IsPlaying = false;
-                    // ResEntry.musicInfo.DurationTime = player.NaturalDuration.TimeSpan;
+                    OutputDevice.Pause();
+                    GlobalMusicState.Instance.IsPlaying = false;
                 }
             }
         }
@@ -141,217 +133,4 @@ public class MusicPlayer : INotifyPropertyChanged
         {
         }
     }
-
-    /// <summary>
-    /// 禁音
-    /// </summary>
-    public void Mute()
-    {
-        if (Volume > 0)
-        {
-            _lastVolume = Volume;
-            Volume = 0;
-        }
-        else
-        {
-            Volume = _lastVolume;
-        }
-    }
-
-    #region 歌曲信息变量储存区
-
-    private Music _musicNow;
-    private string _artists;
-    private Brush _cover;
-    private string _name;
-    private TimeSpan _durationTime = TimeSpan.Zero;
-
-    public Music MusicNow
-    {
-        set
-        {
-            _musicNow = value;
-            MusicChangedHandle(value);
-            Name = _musicNow.Name;
-            Artists = _musicNow.ArtistsName;
-            ImageBrush brush = new()
-            {
-                ImageSource = new BitmapImage(new Uri(_musicNow.CoverUrl))
-            };
-            Cover = brush;
-            DurationTime = _musicNow.DuartionTime;
-        }
-        get => _musicNow;
-    }
-
-    public string Name
-    {
-        set
-        {
-            _name = value;
-            OnPropertyChanged(nameof(Name));
-        }
-        get => _name;
-    }
-
-    public string Artists
-    {
-        set
-        {
-            _artists = value;
-            OnPropertyChanged(nameof(Artists));
-        }
-        get => _artists;
-    }
-
-    public Brush Cover
-    {
-        set
-        {
-            _cover = value;
-            OnPropertyChanged(nameof(Cover));
-        }
-        get => _cover;
-    }
-
-    public TimeSpan DurationTime
-    {
-        set
-        {
-            _durationTime = value;
-            OnPropertyChanged(nameof(DurationTime));
-            OnPropertyChanged(nameof(DurationTimeDouble));
-            OnPropertyChanged(nameof(DurationTimeString));
-        }
-        get => MusicNow == null ? TimeSpan.Zero : position;
-    }
-
-
-    public string DurationTimeString
-    {
-        get
-        {
-            if (position.Equals(null))
-            {
-                return "00:00";
-            }
-
-            return _durationTime.ToString(@"mm\:ss");
-        }
-    }
-
-    public double DurationTimeDouble
-    {
-        get
-        {
-            if (_durationTime.Equals(null))
-            {
-                return 0.0;
-            }
-
-            return _durationTime.TotalSeconds;
-        }
-    }
-
-    #endregion
-
-    #region 播放器信息储存区
-
-    private double _lastVolume; // 用于储存mute之前的音量，以便恢复
-    private MediaFoundationReader mfr;
-    private WaveOutEvent outputDevice;
-    private TimeSpan position = TimeSpan.Zero;
-    private double volume; // 当前的音量
-    private bool isPlaying;
-    public bool IsPlaying
-    {
-        set
-        {
-            isPlaying = value;
-            OnPropertyChanged(nameof(IsPlaying));
-        }
-        get => isPlaying;
-    }
-    public double Volume
-    {
-        set
-        {
-            volume = value;
-            if (outputDevice != null)
-            {
-                outputDevice.Volume = (float)value / 100;
-            }
-
-            OnPropertyChanged(nameof(Volume));
-        }
-        get => volume;
-    }
-    public TimeSpan Position
-    {
-        set
-        {
-            position = value;
-            OnPropertyChanged(nameof(Position));
-            OnPropertyChanged(nameof(PositionDouble));
-            OnPropertyChanged(nameof(PositionString));
-        }
-        get => MusicNow == null ? TimeSpan.Zero : position;
-    }
-
-    public string PositionString
-    {
-        get
-        {
-            if (position.Equals(null))
-            {
-                return "00:00";
-            }
-
-            return position.ToString(@"mm\:ss");
-        }
-    }
-
-    public double PositionDouble
-    {
-        set
-        {
-            Position = TimeSpan.FromSeconds(value);
-        }
-        get
-        {
-            if (position.Equals(null))
-            {
-                return 0.0;
-            }
-
-            return position.TotalSeconds;
-        }
-    }
-
-    #endregion
-
-    #region Commands接口
-
-    public ICommand MusicPlayCommand;
-    public ICommand VolumeMuteCommand;
-
-
-    #endregion
-
-    #region 事件
-    public delegate TimeSpan PositionChanged(TimeSpan time);
-    public delegate Music MusicChanged(Music currentMusic);
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public PositionChanged PositionChangedHandle;
-    public MusicChanged MusicChangedHandle;
-    private void OnPropertyChanged([CallerMemberName] string propertyName = "")
-    {
-        if (PropertyChanged != null)
-        {
-            PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-        }
-    }
-    #endregion
-
-
 }

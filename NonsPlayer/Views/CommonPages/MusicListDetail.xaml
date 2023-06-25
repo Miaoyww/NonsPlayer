@@ -61,7 +61,7 @@
                         </Grid>
                         <Grid Grid.Row="4" VerticalAlignment="Bottom">
                             <StackPanel Orientation="Horizontal">
-                                <Button Name="PlayAll"
+                                <Button Name="PlayAllButton" Command="{x:Bind ViewModel.PlayAllCommand}"
                                         Width="120" Height="50" CornerRadius="10" Padding="0"
                                         Margin="0,0,10,0">
                                     <StackPanel Orientation="Horizontal">

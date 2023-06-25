@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Framework.Model;
+using NonsPlayer.Framework.Player;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels;
@@ -19,7 +20,7 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
     private void OnPropertyChanged(string propertyName) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-    private Music _music;
+    public Music Music;
     private string _name;
     private string _artists;
     private string _time;
@@ -89,7 +90,7 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
 
     public void Init(Music one)
     {
-        _music = one;
+        Music = one;
         Cover = new ImageBrush
         {
             ImageSource = new BitmapImage(new Uri(one.CoverUrl + "?param=40y40"))
@@ -102,6 +103,6 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
 
     public void Play(object sender, PointerRoutedEventArgs e)
     {
-        MusicPlayerHelper.Player.NewPlay(_music);
+        MusicPlayer.Instance.NewPlay(Music);
     }
 }
