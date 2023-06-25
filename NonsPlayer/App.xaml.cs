@@ -51,7 +51,7 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
-        GlobalMusicState.Instance.DispatcherQueue = DispatcherQueue.GetForCurrentThread();
+        ServiceEntry.DispatcherQueue = DispatcherQueue.GetForCurrentThread();
         Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().UseContentRoot(AppContext.BaseDirectory)
             .ConfigureServices((context, services) =>
             {
@@ -86,6 +86,10 @@ public partial class App : Application
                 services.AddTransient<SettingsPage>();
                 services.AddTransient<ShellPage>();
                 services.AddTransient<ShellViewModel>();
+                services.AddTransient<PersonalCenterPage>();
+                services.AddTransient<PersonalCenterViewModel>();
+                services.AddTransient<LoginViewModel>();
+                services.AddTransient<LoginPage>();
 
                 // Configuration
                 services.Configure<LocalSettingsOptions>(

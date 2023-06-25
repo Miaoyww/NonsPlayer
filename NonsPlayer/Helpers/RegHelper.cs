@@ -1,4 +1,13 @@
 ﻿namespace NonsPlayer.Helpers;
-internal class RegHelper
+
+public class RegHelper
 {
+    public RegHelper Instance
+    {
+        get;
+    } = new RegHelper();
+
+    public RegHelper()
+    {
+    }
 }

@@ -42,7 +42,7 @@ public class MusicPlayer
     /// </summary>
     private void GetCurrentInfo(object? sender, ElapsedEventArgs e)
     {
-        GlobalMusicState.Instance.DispatcherQueue.TryEnqueue(() =>
+        ServiceEntry.DispatcherQueue.TryEnqueue(() =>
         {
             if (OutputDevice != null)
             {

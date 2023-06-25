@@ -37,12 +37,6 @@ public class GlobalMusicState : INotifyPropertyChanged
         PreviousMusicCommand = new RelayCommand(OnPreviousMusic);
     }
 
-    public DispatcherQueue DispatcherQueue
-    {
-        get;
-        set;
-    }
-
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public delegate TimeSpan PositionChanged(TimeSpan time);

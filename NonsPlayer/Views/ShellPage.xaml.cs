@@ -17,8 +17,6 @@ public sealed partial class ShellPage : Page
         get;
     }
 
-    private NavigationService navigationService;
-
     public ShellPage(ShellViewModel viewModel)
     {
         ViewModel = viewModel;

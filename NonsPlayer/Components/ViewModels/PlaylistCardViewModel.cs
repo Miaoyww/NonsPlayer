@@ -5,17 +5,16 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels;
 
 public partial class PlaylistCardViewModel : ObservableRecipient, INotifyPropertyChanged
 {
-    private readonly INavigationService _navigationService;
-
-    public PlaylistCardViewModel(INavigationService navigationService)
+    public PlaylistCardViewModel()
     {
-        _navigationService = navigationService;
+
     }
 
     public new event PropertyChangedEventHandler? PropertyChanged;
@@ -60,5 +59,5 @@ public partial class PlaylistCardViewModel : ObservableRecipient, INotifyPropert
     }
 
     public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e) =>
-        Tools.OpenMusicListDetail(long.Parse(_id), _navigationService);
+        Tools.OpenMusicListDetail(long.Parse(_id), ServiceEntry.NavigationService);
 }

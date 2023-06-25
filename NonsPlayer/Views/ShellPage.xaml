@@ -244,7 +244,7 @@
                                 VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
                                 FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
                                 Foreground="#2d2d2d"
-                                Command="{x:Bind ViewModel.MenuOwnOpenCommand}" />
+                                Command="{x:Bind ViewModel.MenuPersonalCenterMenuOwnOpenCommand}" />
                     </StackPanel>
                     <Grid Column="3" Name="UserController" VerticalAlignment="Center"
                           HorizontalAlignment="Right" Height="40">

@@ -10,10 +10,10 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Framework.Model;
-using NonsPlayer.Helpers;
-using Windows.System;
 using NonsPlayer.Framework.Player;
 using NonsPlayer.Framework.Resources;
+using NonsPlayer.Helpers;
+using Windows.System;
 
 namespace NonsPlayer.ViewModels;
 
@@ -147,11 +147,12 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
     public ShellViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
+        ServiceEntry.NavigationService = navigationService;
         NavigationService.Navigated += OnNavigated;
 
         MenuHomeOpenCommand = new RelayCommand(OnMenuHomeOpen);
         MenuExploreOpenCommand = new RelayCommand(OnMenuExploreOpen);
-        MenuOwnOpenCommand = new RelayCommand(OnMenuOwnOpen);
+        MenuPersonalCenterMenuOwnOpenCommand = new RelayCommand(OnMenuPersonalCenterOpen);
         MenuSettingsCommand = new RelayCommand(OnMenuSettings);
         UserFace = new ImageBrush()
         {
@@ -196,7 +197,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         get;
     }
 
-    public ICommand MenuOwnOpenCommand
+    public ICommand MenuPersonalCenterMenuOwnOpenCommand
     {
         get;
     }
@@ -222,7 +223,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
 
     private void OnMenuExploreOpen() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
 
-    private void OnMenuOwnOpen() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
+    private void OnMenuPersonalCenterOpen() => NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName!);
 
     private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
 
