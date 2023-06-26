@@ -12,6 +12,7 @@ using Newtonsoft.Json.Linq;
 using NonsApi;
 using QRCoder;
 using NonsPlayer.Framework.Resources;
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
@@ -121,7 +122,7 @@ public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChange
                     {
                         if (cookieItem.Name == "MUSIC_U")
                         {
-                            Nons.Instance.Login(cookieItem.Value);
+                            AccountHelper.Instance.LoginByToken(cookieItem.Value);
                         }
                     }
 

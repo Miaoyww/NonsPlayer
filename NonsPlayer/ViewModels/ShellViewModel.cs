@@ -19,10 +19,7 @@ namespace NonsPlayer.ViewModels;
 
 public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
 {
-    public new event PropertyChangedEventHandler? PropertyChanged;
-
-    private void OnPropertyChanged(string propertyName) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    public AccountHelper Account => AccountHelper.Instance;
 
     private bool _isBackEnabled;
 
@@ -33,7 +30,6 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
     }
 
     public GlobalMusicState GlobalMusicState => GlobalMusicState.Instance;
-    private Brush _userFace;
     private string _originalLyric = string.Empty;
     private string _tranLyric = string.Empty;
 
@@ -133,16 +129,6 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         return currentMusic;
     }
 
-    public Brush UserFace
-    {
-        set
-        {
-            _userFace = value;
-            OnPropertyChanged(nameof(UserFace));
-        }
-        get => _userFace;
-    }
-
 
     public ShellViewModel(INavigationService navigationService)
     {
@@ -154,14 +140,11 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         MenuExploreOpenCommand = new RelayCommand(OnMenuExploreOpen);
         MenuPersonalCenterMenuOwnOpenCommand = new RelayCommand(OnMenuPersonalCenterOpen);
         MenuSettingsCommand = new RelayCommand(OnMenuSettings);
-        UserFace = new ImageBrush()
-        {
-            ImageSource =
-                new BitmapImage(new Uri("ms-appdata:///Assets/UnKnowResource.png"))
-        };
         GlobalMusicState.Instance.PositionChangedHandle += LyricChanger;
         GlobalMusicState.Instance.MusicChangedHandle += MusicChanged;
-
+        GlobalMusicState.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 0.0).ToString());
+        // AccountHelper.Instance.LoginByToken("d0a630b7e5694faa83d91260101166a45352f0f46ade80105051acc0275239d38a08bd5bf851808f453ecb69461ab30aa014dde6240855471b2289af3ae396dc583f4c91f638f7dca89fe7c55eac81f3");
+        AccountHelper.Instance.LoginByReg();
         OriginalLyric = "暂未播放";
     }
 
@@ -228,4 +211,9 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
     private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
 
     #endregion 页面注册
+
+    public new event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged(string propertyName) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

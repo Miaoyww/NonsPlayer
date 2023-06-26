@@ -199,9 +199,12 @@ namespace NonsPlayer.Framework.Player
             // 如果是列表循环，那么到了最后一首歌就播放第一首歌
             if (PlayMode is PlayModeEnum.ListLoop)
             {
+                if (list.Count == 0)
+                {
+                    return;
+                }
                 index = index >= list.Count ? 0 : index;
                 Play(list[index]);
-                return;
             }
         }
 

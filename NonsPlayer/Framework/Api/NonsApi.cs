@@ -138,12 +138,6 @@ public class Nons
         return byte2String;
     }
 
-    public HttpContent DefaultContent(HttpContent content)
-    {
-        HttpContent result = content;
-        result.Headers.Add("Cookie", "os=pc;appver=2.9.7");
-        return result;
-    }
 }
 
 public static class Api

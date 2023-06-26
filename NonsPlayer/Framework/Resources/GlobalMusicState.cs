@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Framework.Model;
 using NonsPlayer.Framework.Player;
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Framework.Resources;
 
@@ -155,6 +156,7 @@ public class GlobalMusicState : INotifyPropertyChanged
         set
         {
             _currentVolume = value;
+            RegHelper.Instance.Set(RegHelper.Regs.Volume, value.ToString());
             if (MusicPlayer.Instance.OutputDevice != null)
             {
                 MusicPlayer.Instance.OutputDevice.Volume = (float)value / 100;
