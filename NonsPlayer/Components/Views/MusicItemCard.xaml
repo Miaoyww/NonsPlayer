@@ -4,8 +4,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:helpers="using:NonsPlayer.Helpers"
     mc:Ignorable="d">
-
+    <UserControl.Resources>
+        <helpers:LikeIconConverter x:Key="LikeIconConverter" />
+    </UserControl.Resources>
     <Grid>
         <Border BorderThickness="0" CornerRadius="10"
                 PointerPressed="{x:Bind ViewModel.Play}"
@@ -39,15 +42,22 @@
                                HorizontalAlignment="Left" VerticalAlignment="Bottom"
                                FontSize="14" FontFamily="HarmonyOS Sans SC" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
-
                 <TextBlock Grid.Column="3" Name="AlbumTextBlock" Text="{x:Bind ViewModel.Album, Mode=OneWay}"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
                            Width="200" Margin="0,0,0,0" />
+                <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                    <Button Margin="0,0,30,0" Height="30" Width="30" Padding="0" Background="Transparent"
+                            BorderThickness="0">
+                        <FontIcon
+                            Glyph="{x:Bind ViewModel.Liked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
+                            FontSize="16" />
+                    </Button>
+                    <TextBlock Name="TimeTextBlock" Text="{x:Bind ViewModel.Time, Mode=OneWay}"
+                               Margin="0,0,0,0"
+                               FontSize="14" />
+                </StackPanel>
 
-                <TextBlock Grid.Column="4" Name="TimeTextBlock" Text="{x:Bind ViewModel.Time, Mode=OneWay}"
-                           HorizontalAlignment="Right" VerticalAlignment="Center"
-                           Margin="0,0,0,0"
-                           FontSize="14" />
             </Grid>
         </Border>
     </Grid>

@@ -2,9 +2,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Framework.Player;
 using NonsPlayer.Helpers;
-using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using Windows.System;
 
@@ -44,7 +42,6 @@ public sealed partial class ShellPage : Page
             new PointerEventHandler(ShellMenuBarSettingsButton_PointerPressed), true);
         ShellMenuBarSettingsButton.AddHandler(PointerReleasedEvent,
             new PointerEventHandler(ShellMenuBarSettingsButton_PointerReleased), true);
-        DropShadow.Receivers.Add(LyricBox);
     }
 
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)

@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
 using NonsApi;
-using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Framework.Model;

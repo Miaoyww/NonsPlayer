@@ -1,7 +1,4 @@
-﻿using System.Linq;
-using NonsPlayer.Components.ViewModels;
-using NonsPlayer.Framework.Model;
-using NonsPlayer.Helpers;
+﻿using NonsPlayer.Framework.Model;
 
 namespace NonsPlayer.Framework.Player
 {

@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Framework.Model;
 using NonsPlayer.Framework.Player;
-using NonsPlayer.Helpers;
+using NonsPlayer.Heplers;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -26,8 +26,18 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
     private string _time;
     private ImageBrush _cover;
     private string _album;
+    private bool _liked;
     private string _index;
 
+    public bool Liked
+    {
+        get => _liked;
+        set
+        {
+            _liked = value;
+            OnPropertyChanged(nameof(Liked));
+        }
+    }
     public string Index
     {
         get => _index;
@@ -99,6 +109,7 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
         Time = one.DuartionTimeString;
         Album = one.AlbumName;
         Artists = string.IsNullOrEmpty(one.ArtistsName) ? "未知艺人" : one.ArtistsName;
+        Liked = UserPlaylistHelper.Instance.IsLiked(one.Id);
     }
 
     public void Play(object sender, PointerRoutedEventArgs e)

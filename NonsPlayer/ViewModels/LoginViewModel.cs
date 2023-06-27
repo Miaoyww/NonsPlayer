@@ -1,19 +1,14 @@
 ﻿using System.ComponentModel;
-using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Windows.Forms;
-using Windows.Storage.Streams;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using NonsApi;
-using QRCoder;
 using NonsPlayer.Framework.Resources;
-using NonsPlayer.Helpers;
 using NonsPlayer.Services;
+using QRCoder;
 
 namespace NonsPlayer.ViewModels;
 

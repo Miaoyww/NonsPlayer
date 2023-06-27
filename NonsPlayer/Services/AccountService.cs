@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsApi;
 using NonsPlayer.Helpers;
-using NonsPlayer.Models;
+using NonsPlayer.Heplers;
 
 namespace NonsPlayer.Services;
 
@@ -102,7 +98,7 @@ public class AccountService : INotifyPropertyChanged
         {
             ImageSource = new BitmapImage(new Uri(result["profile"]["avatarUrl"].ToString()))
         };
-        UserPlaylistMethods.Instance.Init();
+        UserPlaylistHelper.Instance.Init();
     }
 
     #region AES加密解密
@@ -235,7 +231,7 @@ public class AccountService : INotifyPropertyChanged
         var codeMD5 = Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(data)));
         var dataB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
         var result = AESEncrypt(dataB64, GetKey(dataB64));
-        return new string[2] {result, codeMD5};
+        return new string[2] { result, codeMD5 };
     }
 
     #endregion 加密解密 Token

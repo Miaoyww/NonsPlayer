@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Contracts.Services;
 using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 

@@ -5,10 +5,7 @@ using Microsoft.UI.Xaml;
 using Newtonsoft.Json.Linq;
 using NonsApi;
 using NonsPlayer.Components.Models;
-using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Framework.Resources;
-using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.ViewModels;
 
@@ -34,7 +31,7 @@ public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
             var playlists = (JArray)response["result"];
             foreach (JObject item in playlists)
             {
-                Playlists.Add(new PlaylistItem {PlayList = item});
+                Playlists.Add(new PlaylistItem { PlayList = item });
             }
         }
     }

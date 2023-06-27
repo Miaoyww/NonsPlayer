@@ -1,9 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 using Microsoft.UI.Xaml.Controls;
-
-using NonsPlayer.Components.ViewModels;
-using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views.CommonPages;

@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using NonsApi;
 using NonsPlayer.Framework.Enums;
-using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Framework.Model;
@@ -136,7 +135,7 @@ public class Music
         JObject musicDetail;
         try
         {
-            musicDetail = (JObject)((JArray)NonsApi.Api.Music.Detail(new[] {Id}, Nons.Instance).Result["songs"])[0];
+            musicDetail = (JObject)((JArray)NonsApi.Api.Music.Detail(new[] { Id }, Nons.Instance).Result["songs"])[0];
         }
         catch (InvalidCastException)
         {
@@ -174,7 +173,7 @@ public class Music
 
     public async Task GetFileInfo()
     {
-        var musicFile = (JObject)(await NonsApi.Api.Music.Url(new[] {Id}, Nons.Instance))["data"][0];
+        var musicFile = (JObject)(await NonsApi.Api.Music.Url(new[] { Id }, Nons.Instance))["data"][0];
         Url = musicFile["url"].ToString();
         FileType = musicFile["type"].ToString();
     }

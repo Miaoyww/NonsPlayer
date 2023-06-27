@@ -17,11 +17,7 @@ namespace NonsPlayer.Framework.Model
             {
                 tArray = ParseLrc(lrc["tlyric"]["lyric"].ToString());
             }
-            // if (oArray == "")
-            // {
-            //     Lrc.Add(new Lyric("纯音乐 请欣赏", "", TimeSpan.Zero));
-            //     return;
-            // }
+            // TODO: 翻译与原句个数不符的歌曲不显示歌词 Every Second - Mina Okabe
             foreach (var originalLrc in oArray)
             {
                 if (tArray.Count > 0)

@@ -53,6 +53,15 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Page Update="Components\Views\FunctionBar.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Components\Views\PlayerBar.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Components\Views\LyricBox.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="Components\Views\UserPlaylistCard.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -111,14 +120,12 @@
     <None Remove="Assets\Icons\liked.svg" />
     <None Remove="Assets\Icons\search.svg" />
     <None Remove="Assets\Icons\unliked.svg" />
-    <None Remove="Assets\NonsPlayer.altform-lightunplated_targetsize-24.png" />
-    <None Remove="Assets\NonsPlayer.altform-unplated_targetsize-24.png" />
-    <None Remove="Assets\NonsPlayer.png" />
-    <None Remove="Assets\NonsPlayer.scale-125.png" />
-    <None Remove="Assets\NonsPlayer.targetsize-24.png" />
     <None Remove="Assets\SplashScreen.png" />
     <None Remove="Assets\UnknowResource.png" />
     <None Remove="Assets\WindowIcon.ico" />
+    <None Remove="Components\Views\FunctionBar.xaml" />
+    <None Remove="Components\Views\LyricBox.xaml" />
+    <None Remove="Components\Views\PlayerBar.xaml" />
     <None Remove="Components\Views\UserPlaylistCard.xaml" />
   </ItemGroup>
 

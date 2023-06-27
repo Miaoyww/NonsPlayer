@@ -4,12 +4,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Newtonsoft.Json.Linq;
+using NonsApi;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Framework.Model;
-using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 using Windows.ApplicationModel;
-using NonsApi;
 
 namespace NonsPlayer.ViewModels;
 

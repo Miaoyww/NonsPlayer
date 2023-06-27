@@ -4,13 +4,11 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Activation;
 using NonsPlayer.Components.ViewModels;
-using NonsPlayer.Components.Views;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Services;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Framework.Resources;
-using NonsPlayer.Helpers;
-using NonsPlayer.Models;
+using NonsPlayer.Heplers;
 using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
@@ -73,10 +71,6 @@ public partial class App : Application
                 services.AddSingleton<IFileService, FileService>();
 
                 // Views and ViewModels
-                services.AddTransient<MusicItemCardViewModel>();
-                services.AddTransient<MusicItemCard>();
-                services.AddTransient<PlaylistCardViewModel>();
-                services.AddTransient<UserPlaylistCardViewModel>();
                 services.AddTransient<MusicListDetailViewModel>();
                 services.AddTransient<MusicListDetailPage>();
                 services.AddTransient<ExploreViewModel>();
@@ -92,6 +86,13 @@ public partial class App : Application
                 services.AddTransient<LoginViewModel>();
                 services.AddTransient<LoginPage>();
 
+                // Components Views and ViewModels
+                services.AddTransient<MusicItemCardViewModel>();
+                services.AddTransient<PlaylistCardViewModel>();
+                services.AddTransient<UserPlaylistCardViewModel>();
+                services.AddTransient<LyricBoxViewModel>();
+                services.AddTransient<PlayerBarViewModel>();
+                services.AddTransient<FunctionBarViewModel>();
                 // Configuration
                 services.Configure<LocalSettingsOptions>(
                     context.Configuration.GetSection(nameof(LocalSettingsOptions)));

@@ -2,7 +2,6 @@
 using Microsoft.UI.Xaml;
 using NonsApi;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;

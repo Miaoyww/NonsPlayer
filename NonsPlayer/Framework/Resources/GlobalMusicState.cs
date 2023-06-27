@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
-using Windows.UI;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Framework.Model;
 using NonsPlayer.Framework.Player;
 using NonsPlayer.Helpers;
+using Windows.UI;
 
 namespace NonsPlayer.Framework.Resources;
 
