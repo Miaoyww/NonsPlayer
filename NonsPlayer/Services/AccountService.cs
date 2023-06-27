@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsApi;
+using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
 
@@ -84,6 +85,12 @@ public class AccountService : INotifyPropertyChanged
         }
     }
 
+    public void LogOut()
+    {
+        RegHelper.Instance.Set(RegHelper.Regs.AccountToken, "");
+        RegHelper.Instance.Set(RegHelper.Regs.AccountTokenMd5, "");
+    }
+
     public async void InitAccount()
     {
         var result = await Api.User.Account(Nons.Instance);
@@ -92,13 +99,16 @@ public class AccountService : INotifyPropertyChanged
             return;
         }
 
-        Uid = result["profile"]["userId"].ToString();
-        Name = result["profile"]["nickname"].ToString();
-        Face = new ImageBrush
+        ServiceEntry.DispatcherQueue.TryEnqueue(() =>
         {
-            ImageSource = new BitmapImage(new Uri(result["profile"]["avatarUrl"].ToString()))
-        };
-        UserPlaylistHelper.Instance.Init();
+            Uid = result["profile"]["userId"].ToString();
+            Name = result["profile"]["nickname"].ToString();
+            Face = new ImageBrush
+            {
+                ImageSource = new BitmapImage(new Uri(result["profile"]["avatarUrl"].ToString()))
+            };
+            UserPlaylistHelper.Instance.Init();
+        });
     }
 
     #region AES加密解密
@@ -231,7 +241,7 @@ public class AccountService : INotifyPropertyChanged
         var codeMD5 = Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(data)));
         var dataB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
         var result = AESEncrypt(dataB64, GetKey(dataB64));
-        return new string[2] { result, codeMD5 };
+        return new string[2] {result, codeMD5};
     }
 
     #endregion 加密解密 Token

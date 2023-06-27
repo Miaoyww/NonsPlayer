@@ -12,6 +12,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <Border Grid.Row="0" Name="Face" Height="200" Width="200" CornerRadius="180"
                     Background="{x:Bind ViewModel.Account.Face, Mode=OneWay}" Margin="0,0,0,20" />

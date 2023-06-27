@@ -41,54 +41,15 @@ public class Nons
             return _token;
         }
     }
-
-    #region 登录
-
     public void Login(string token)
     {
         _token = token;
     }
 
-    public void Login(string email, string password)
+    public void LogOut()
     {
-        JObject result = Api.Login.Email(email, password, this).Result;
-        if ((int)result["code"] == 502)
-        {
-            throw new LoginFailed("账号或密码错误");
-        }
-        else
-        {
-            _token = result["token"].ToString();
-        }
+        return;
     }
-
-    public void Login(int phone, string password)
-    {
-        JObject result = Api.Login.PhonePsw(phone, password, this).Result;
-        if ((int)result["code"] == 502)
-        {
-            throw new LoginFailed("账号或密码错误");
-        }
-        else
-        {
-            _token = result["token"].ToString();
-        }
-    }
-
-    public void Login(int phone, int captcha)
-    {
-        JObject result = Api.Login.PhoneVer(phone, captcha, this).Result;
-        if ((int)result["code"] == 502)
-        {
-            throw new LoginFailed("账号或密码错误");
-        }
-        else
-        {
-            _token = result["token"].ToString();
-        }
-    }
-
-    #endregion 登录
 
     public async Task<IRestResponse> RequestRestResponse(string url, IDictionary<string, object>? parameters = null)
     {

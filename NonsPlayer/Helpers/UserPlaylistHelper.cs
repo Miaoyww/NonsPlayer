@@ -70,6 +70,7 @@ namespace NonsPlayer.Heplers
 
         public async void Init()
         {
+            var a = await Api.User.Playlist(AccountService.Instance.Uid, Nons.Instance);
             var result = (JArray)(await Api.User.Playlist(AccountService.Instance.Uid, Nons.Instance))["playlist"];
             foreach (var playlistItem in result)
             {

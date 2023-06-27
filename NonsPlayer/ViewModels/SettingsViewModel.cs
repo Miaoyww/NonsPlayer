@@ -9,6 +9,7 @@ using NonsPlayer.Contracts.Services;
 using NonsPlayer.Framework.Model;
 using NonsPlayer.Helpers;
 using Windows.ApplicationModel;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
@@ -49,9 +50,8 @@ public class SettingsViewModel : ObservableRecipient
 
     private async void Test()
     {
-        var b = (JObject)(await NonsApi.Api.Music.Detail(new long[] { 2026787176 }, Nons.Instance))["songs"][0];
-        var a = new Music(b);
-        await a.GetLric();
+        AccountService.Instance.LogOut();
+        App.Current.Exit();
     }
     private static string GetVersionDescription()
     {
