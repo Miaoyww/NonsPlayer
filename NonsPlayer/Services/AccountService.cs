@@ -9,10 +9,12 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsApi;
+using NonsPlayer.Helpers;
+using NonsPlayer.Models;
 
-namespace NonsPlayer.Helpers;
+namespace NonsPlayer.Services;
 
-public class AccountHelper : INotifyPropertyChanged
+public class AccountService : INotifyPropertyChanged
 {
     private string _tokenMd5 = string.Empty;
     private string _machineCode = string.Empty;
@@ -24,7 +26,7 @@ public class AccountHelper : INotifyPropertyChanged
             new BitmapImage(new Uri("ms-appdata:///Assets/UnKnowResource.png"))
     };
 
-    public string Id
+    public string Uid
     {
         get;
         set;
@@ -50,7 +52,7 @@ public class AccountHelper : INotifyPropertyChanged
         }
     }
 
-    public static AccountHelper Instance
+    public static AccountService Instance
     {
         get;
     } = new();
@@ -94,12 +96,13 @@ public class AccountHelper : INotifyPropertyChanged
             return;
         }
 
-        Id = result["profile"]["userId"].ToString();
+        Uid = result["profile"]["userId"].ToString();
         Name = result["profile"]["nickname"].ToString();
         Face = new ImageBrush
         {
             ImageSource = new BitmapImage(new Uri(result["profile"]["avatarUrl"].ToString()))
         };
+        UserPlaylistMethods.Instance.Init();
     }
 
     #region AES加密解密

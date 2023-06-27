@@ -13,6 +13,7 @@ using NonsApi;
 using QRCoder;
 using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
@@ -122,7 +123,7 @@ public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChange
                     {
                         if (cookieItem.Name == "MUSIC_U")
                         {
-                            AccountHelper.Instance.LoginByToken(cookieItem.Value);
+                            AccountService.Instance.LoginByToken(cookieItem.Value);
                         }
                     }
 

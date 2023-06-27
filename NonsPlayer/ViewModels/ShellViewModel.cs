@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,12 +15,17 @@ using NonsPlayer.Framework.Player;
 using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 using Windows.System;
+using NonsPlayer.Components.Models;
+using NonsPlayer.Models;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
 public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
 {
-    public AccountHelper Account => AccountHelper.Instance;
+    public AccountService Account => AccountService.Instance;
+    public ObservableCollection<UserPlaylistItem> UserPlaylists => UserPlaylistMethods.Instance.UserPlaylists;
+    public ObservableCollection<UserPlaylistItem> FavoritePlaylists => UserPlaylistMethods.Instance.FavoritePlaylists;
 
     private bool _isBackEnabled;
 
@@ -143,8 +149,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         GlobalMusicState.Instance.PositionChangedHandle += LyricChanger;
         GlobalMusicState.Instance.MusicChangedHandle += MusicChanged;
         GlobalMusicState.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 0.0).ToString());
-        // AccountHelper.Instance.LoginByToken("d0a630b7e5694faa83d91260101166a45352f0f46ade80105051acc0275239d38a08bd5bf851808f453ecb69461ab30aa014dde6240855471b2289af3ae396dc583f4c91f638f7dca89fe7c55eac81f3");
-        AccountHelper.Instance.LoginByReg();
+        AccountService.Instance.LoginByReg();
         OriginalLyric = "暂未播放";
     }
 

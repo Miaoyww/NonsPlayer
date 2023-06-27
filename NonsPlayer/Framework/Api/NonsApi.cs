@@ -137,7 +137,6 @@ public class Nons
 
         return byte2String;
     }
-
 }
 
 public static class Api
@@ -360,6 +359,20 @@ public static class Api
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"uid", id}
+            };
+            return await nons.Request(_URL, pairs);
+        }
+
+        public static async Task<JObject> Playlist(string uid, Nons nons, int limit = 30, int offset = 0,
+            bool includeVideo = false)
+        {
+            string _URL = "https://music.163.com/api/user/playlist";
+            IDictionary<string, object> pairs = new Dictionary<string, object>
+            {
+                {"uid", uid},
+                {"limit", limit},
+                {"offset", offset},
+                {"includeVideo", includeVideo}
             };
             return await nons.Request(_URL, pairs);
         }

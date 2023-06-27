@@ -6,6 +6,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:animatedvisuals="using:Microsoft.UI.Xaml.Controls.AnimatedVisuals"
     xmlns:helpers="using:NonsPlayer.Helpers"
+    xmlns:views="using:NonsPlayer.Components.Views"
+    xmlns:models="using:NonsPlayer.Components.Models"
     mc:Ignorable="d">
     <Page.Resources>
         <helpers:PlayerIconConverter x:Key="PlayerIconConverter" />
@@ -37,62 +39,12 @@
                             </Grid.RowDefinitions>
                             <TextBlock Grid.Row="0" Text="创建的歌单"
                                        FontFamily="HarmonyOS Sans SC" FontSize="17" FontWeight="Medium" />
-                            <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
+                            <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None" ItemsSource="{x:Bind ViewModel.UserPlaylists}">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:UserPlaylistItem">
+                                        <views:UserPlaylistCard PlaylistItem="{x:Bind PlayList}"/>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
                             </ListView>
                         </Grid>
                         <Grid BorderThickness="0,1,0,0" BorderBrush="#DDDDDD" Margin="0,20,0,0"
@@ -101,64 +53,10 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="创建的歌单"
+                            <TextBlock Grid.Row="0" Text="收藏的歌单"
                                        FontFamily="HarmonyOS Sans SC" FontSize="17" FontWeight="Medium" />
                             <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,20,0,0">
-                                    <Border Width="40" Height="40" Background="Black" CornerRadius="5" />
-                                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="我喜欢的音乐"
-                                               FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium" />
-                                </StackPanel>
+                                
                             </ListView>
                         </Grid>
                     </StackPanel>

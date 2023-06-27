@@ -9,7 +9,7 @@ namespace NonsPlayer.ViewModels;
 
 public partial class PersonalCenterViewModel : ObservableRecipient
 {
-    public AccountHelper Account => AccountHelper.Instance;
+    public AccountService Account => AccountService.Instance;
     public INavigationService NavigationService
     {
         get;

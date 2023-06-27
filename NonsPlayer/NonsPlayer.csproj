@@ -53,6 +53,9 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Page Update="Components\Views\UserPlaylistCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
@@ -116,6 +119,7 @@
     <None Remove="Assets\SplashScreen.png" />
     <None Remove="Assets\UnknowResource.png" />
     <None Remove="Assets\WindowIcon.ico" />
+    <None Remove="Components\Views\UserPlaylistCard.xaml" />
   </ItemGroup>
 
   <ItemGroup>
