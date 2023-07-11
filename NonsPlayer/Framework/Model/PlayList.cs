@@ -1,5 +1,6 @@
-﻿using Newtonsoft.Json.Linq;
-using NonsApi;
+﻿using ABI.System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+using NonsPlayer.Framework.Api;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Framework.Model;
@@ -71,21 +72,32 @@ public class PlayList
     /// </summary>
     public int MusicsCount => MusicTrackIds.Length;
 
+
+    public Music[] Musics
+    {
+        get;
+        set;
+    }
+
     /// <summary>
     ///     通过Id打开歌单
     /// </summary>
     public async Task LoadAsync(long in_id)
     {
         Id = in_id;
-        var playlistDetail = (JObject)(await NonsApi.Api.Playlist.Detail(Id, Nons.Instance))["playlist"];
+        var playlistDetail = (JObject)(await Apis.Playlist.Detail(Id, Nons.Instance))["playlist"];
+
         Name = playlistDetail["name"].ToString();
         Description = playlistDetail["description"].ToString();
 
         var jsonTags = (JArray)playlistDetail["tags"];
         Tags = new string[jsonTags.Count];
-        for (var index = 0; index < Tags.Length; index++)
+        if (jsonTags.Count > 0)
         {
-            Tags[index] = jsonTags[index].ToString();
+            for (var index = 0; index < Tags.Length; index++)
+            {
+                Tags[index] = jsonTags[index].ToString();
+            }
         }
 
         PicUrl = playlistDetail["coverImgUrl"].ToString();
@@ -95,40 +107,18 @@ public class PlayList
         {
             MusicTrackIds[index] = (int)jsonMusics[index]["id"];
         }
+        var musicDetail = (JArray)(await Apis.Music.Detail(MusicTrackIds, Nons.Instance))["songs"];
+
+        Musics = new Music[musicDetail.Count];
+        for (var index = 0; index < Musics.Length; index++)
+        {
+            Musics[index] = new Music((JObject)musicDetail[index]);
+        }
+
 
         var timestampTemp = playlistDetail["createTime"].ToString();
         CreateTime = Tools.TimestampToDateTime(timestampTemp.Remove(timestampTemp.Length - 3));
         Creator = playlistDetail["creator"]["nickname"].ToString();
-    }
-
-    public async Task<Music[]> InitArtWorkList(int start = 0, int end = 0)
-    {
-        JArray musicDetail;
-        if (end != 0)
-        {
-            musicDetail = (JArray)(await NonsApi.Api.Music.Detail(MusicTrackIds[start..end], Nons.Instance))["musics"];
-        }
-        else
-        {
-            if (MusicTrackIds.Length >= 500)
-            {
-                var temp = await NonsApi.Api.Music.Detail(MusicTrackIds[..500], Nons.Instance);
-                musicDetail = (JArray)temp["songs"];
-            }
-            else
-            {
-                var temp = await NonsApi.Api.Music.Detail(MusicTrackIds, Nons.Instance);
-                musicDetail = (JArray)temp["songs"];
-            }
-        }
-
-        var musics = new Music[musicDetail.Count];
-        for (var index = 0; index < musics.Length; index++)
-        {
-            musics[index] = new Music((JObject)musicDetail[index]);
-        }
-
-        return musics;
     }
 
     public Stream GetPic(int x = 0, int y = 0)

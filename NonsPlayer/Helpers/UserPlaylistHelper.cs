@@ -2,8 +2,9 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json.Linq;
-using NonsApi;
 using NonsPlayer.Components.Models;
+using NonsPlayer.Framework;
+using NonsPlayer.Framework.Api;
 using NonsPlayer.Framework.Model;
 using NonsPlayer.Framework.Resources;
 using NonsPlayer.Services;
@@ -70,14 +71,14 @@ namespace NonsPlayer.Heplers
 
         public async void Init()
         {
-            var a = await Api.User.Playlist(AccountService.Instance.Uid, Nons.Instance);
-            var result = (JArray)(await Api.User.Playlist(AccountService.Instance.Uid, Nons.Instance))["playlist"];
+            var a = await Apis.User.Playlist(AccountService.Instance.Uid, Nons.Instance);
+            var result = (JArray)(await Apis.User.Playlist(AccountService.Instance.Uid, Nons.Instance))["playlist"];
             foreach (var playlistItem in result)
             {
                 if (playlistItem["name"].ToString() == AccountService.Instance.Name + "喜欢的音乐")
                 {
                     var likedSongs =
-                        (JArray)(await Api.Playlist.Detail(
+                        (JArray)(await Apis.Playlist.Detail(
                             long.Parse(playlistItem["id"].ToString()), Nons.Instance)
                         )["playlist"]["trackIds"];
                     LikedSongs = likedSongs.Select(likedSong => likedSong["id"].ToString()).ToArray();

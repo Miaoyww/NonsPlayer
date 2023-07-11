@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -104,39 +105,48 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
 
     public async Task LoadPlaylistAsync(long id)
     {
-        PlayList playList = new();
-        await playList.LoadAsync(id);
-        Name = playList.Name;
-        Creator = playList.Creator;
-        CreateTime = playList.CreateTime.ToString();
-        Description = playList.Description;
-        MusicsCount = playList.MusicsCount.ToString();
-        Cover = new ImageBrush
+        try
         {
-            ImageSource = new BitmapImage(new Uri(playList.PicUrl))
-        };
-        var musics = await playList.InitArtWorkList();
-        await UpdateMusicsList(musics, playList);
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            PlayList playList = new();
+            await playList.LoadAsync(id);
+            Debug.WriteLine($"Load playlist {id} async cost {stopwatch.ElapsedMilliseconds}ms");
+            Name = playList.Name;
+            Creator = playList.Creator;
+            CreateTime = playList.CreateTime.ToString();
+            Description = playList.Description;
+            MusicsCount = playList.MusicsCount.ToString();
+            Cover = new ImageBrush
+            {
+                ImageSource = new BitmapImage(new Uri(playList.PicUrl))
+            };
+            Debug.WriteLine($"Load playlist {id} cost {stopwatch.ElapsedMilliseconds}ms");
+            for (int i = 0; i < playList.MusicsCount; i++)
+            {
+                Musics.Add(playList.Musics[i]);
+                MusicItems.Add(new MusicItem
+                {
+                    Music = playList.Musics[i],
+                    Index = (i + 1).ToString("D2")
+                });
+                OnPropertyChanged(nameof(MusicItems));
+            }
+
+            stopwatch.Stop();
+            Debug.WriteLine($"Load playlist {id} detail cost {stopwatch.ElapsedMilliseconds}ms");
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine(e);
+        }
     }
 
     public void PageLoaded(object sender, RoutedEventArgs e)
     {
-        LoadPlaylistAsync(_currentId);
+        _ = LoadPlaylistAsync(_currentId);
     }
 
-    public async Task UpdateMusicsList(Music[] musics, PlayList list)
-    {
-        for (int i = 0; i < musics.Length; i++)
-        {
-            Musics.Add(musics[i]);
-            MusicItems.Add(new MusicItem
-            {
-                Music = musics[i],
-                Index = (i + 1).ToString("D2")
-            });
-            OnPropertyChanged(nameof(MusicItems));
-        }
-    }
 
     public ICommand PlayAllCommand
     {

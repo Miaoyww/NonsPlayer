@@ -4,7 +4,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using NonsApi;
+using NonsPlayer.Framework;
+using NonsPlayer.Framework.Api;
 using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
@@ -93,7 +94,7 @@ public class AccountService : INotifyPropertyChanged
 
     public async void InitAccount()
     {
-        var result = await Api.User.Account(Nons.Instance);
+        var result = await Apis.User.Account(Nons.Instance);
         if (result is null)
         {
             return;

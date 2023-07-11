@@ -4,12 +4,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Newtonsoft.Json.Linq;
-using NonsApi;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Framework.Model;
 using NonsPlayer.Helpers;
 using Windows.ApplicationModel;
 using NonsPlayer.Services;
+using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Core;
+using Microsoft.UI.Xaml.Controls;
 
 namespace NonsPlayer.ViewModels;
 
@@ -26,7 +28,6 @@ public class SettingsViewModel : ObservableRecipient
     }
 
 
-
     public string VersionDescription
     {
         get => _versionDescription;
@@ -37,6 +38,7 @@ public class SettingsViewModel : ObservableRecipient
     {
         get;
     }
+
     public ICommand TestButtonClickCommand
     {
         get;
@@ -50,9 +52,18 @@ public class SettingsViewModel : ObservableRecipient
 
     private async void Test()
     {
-        AccountService.Instance.LogOut();
-        App.Current.Exit();
+        // AccountService.Instance.LogOut();
+        // App.Current.Exit();
+        new TeachingTip()
+        {
+            Title = "Test",
+            Subtitle = "Test",
+            PreferredPlacement = TeachingTipPlacementMode.Auto,
+            PlacementMargin = new Thickness(20),
+            IsLightDismissEnabled = true
+        }.IsOpen = true;
     }
+
     private static string GetVersionDescription()
     {
         Version version;
