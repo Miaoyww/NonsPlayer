@@ -19,6 +19,7 @@ namespace NonsPlayer.ViewModels;
 public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
     private ImageBrush _cover;
+    private PlayList _this;
     private string _createTime;
     private string _creator;
     private long _currentId;
@@ -105,43 +106,49 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     private void OnPropertyChanged(string propertyName) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-    public async Task LoadPlaylistAsync(long id)
+    private async Task LoadPlaylistDetailAsync()
     {
-        try
+        await Task.Run(() =>
         {
-            PlayList playList = new();
-            var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(playList.LoadAsync(id));
-            Name = playList.Name;
-            Creator = playList.Creator;
-            CreateTime = playList.CreateTime.ToString();
-            Description = playList.Description;
-            MusicsCount = playList.MusicsCount.ToString();
-            Cover = new ImageBrush
+            ServiceEntry.DispatcherQueue.TryEnqueue(() =>
             {
-                ImageSource = new BitmapImage(new Uri(playList.PicUrl))
-            };
-            Debug.WriteLine($"加载歌单({id})所用时间: {playlistLoadedTime.Milliseconds}ms");
-
-            for (var i = 0; i < playList.MusicsCount; i++)
-            {
-                Musics.Add(playList.Musics[i]);
-                MusicItems.Add(new MusicItem
+                Name = _this.Name;
+                Creator = _this.Creator;
+                CreateTime = _this.CreateTime.ToString();
+                Description = _this.Description;
+                MusicsCount = _this.MusicsCount.ToString();
+                Cover = new ImageBrush
                 {
-                    Music = playList.Musics[i],
-                    Index = (i + 1).ToString("D2")
-                });
-                OnPropertyChanged(nameof(MusicItems));
-            }
-        }
-        catch (Exception e)
+                    ImageSource = new BitmapImage(new Uri(_this.PicUrl))
+                };
+            });
+        });
+    }
+
+    private async Task LoadMusicsAsync()
+    {
+        await _this.InitMusicsAsync();
+
+        for (var i = 0; i < _this.MusicsCount; i++)
         {
-            Debug.WriteLine(e);
+            Musics.Add(_this.Musics[i]);
+            MusicItems.Add(new MusicItem
+            {
+                Music = _this.Musics[i],
+                Index = (i + 1).ToString("D2")
+            });
+
+            OnPropertyChanged(nameof(MusicItems));
         }
     }
 
-    public void PageLoaded(object sender, RoutedEventArgs e)
+    public async void PageLoaded(object sender, RoutedEventArgs e)
     {
-        _ = LoadPlaylistAsync(_currentId);
+        PlayList playList = new();
+        _this = playList;
+        var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(playList.LoadAsync(_currentId));
+        Debug.WriteLine($"加载歌单({_this.Id})所用时间: {playlistLoadedTime.Milliseconds}ms");
+        await Task.WhenAll(LoadPlaylistDetailAsync(), LoadMusicsAsync());
     }
 
 

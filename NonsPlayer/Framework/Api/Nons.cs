@@ -14,6 +14,7 @@ public class Nons
     } = new Nons();
 
     private string _token = string.Empty;
+    private RestClient _client = new ("https://music.163.com");
 
     public Nons()
     {
@@ -53,7 +54,6 @@ public class Nons
 
     public async Task<IRestResponse> RequestRestResponse(string url, IDictionary<string, object>? parameters = null)
     {
-        var client = new RestClient("https://music.163.com");
         var request = new RestRequest(url, Method.POST);
         if (parameters != null)
         {
@@ -74,7 +74,7 @@ public class Nons
             request.AddCookie("MUSIC_U", _token);
         }
 
-        return await client.ExecuteAsync(request);
+        return await _client.ExecuteAsync(request);
     }
 
     public async Task<JObject> Request(string url, IDictionary<string, object>? parameters = null)

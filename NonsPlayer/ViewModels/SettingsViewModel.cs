@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -17,6 +18,13 @@ namespace NonsPlayer.ViewModels;
 
 public class SettingsViewModel : ObservableRecipient
 {
+    private void Test()
+    {
+
+    }
+
+    #region 66
+
     private readonly IThemeSelectorService _themeSelectorService;
     private ElementTheme _elementTheme;
     private string _versionDescription;
@@ -50,20 +58,6 @@ public class SettingsViewModel : ObservableRecipient
         TestButtonClickCommand = new RelayCommand(Test);
     }
 
-    private async void Test()
-    {
-        // AccountService.Instance.LogOut();
-        // App.Current.Exit();
-        new TeachingTip()
-        {
-            Title = "Test",
-            Subtitle = "Test",
-            PreferredPlacement = TeachingTipPlacementMode.Auto,
-            PlacementMargin = new Thickness(20),
-            IsLightDismissEnabled = true
-        }.IsOpen = true;
-    }
-
     private static string GetVersionDescription()
     {
         Version version;
@@ -81,4 +75,6 @@ public class SettingsViewModel : ObservableRecipient
 
         return $"v{version.Major}.{version.Minor}.{version.Build}";
     }
+
+    #endregion
 }

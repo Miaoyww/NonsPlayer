@@ -97,6 +97,10 @@ public class PlayList
         CreateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)playlistDetail["createTime"]).DateTime;
         Creator = playlistDetail["creator"]["nickname"].ToString();
         MusicTrackIds = ((JArray)playlistDetail["trackIds"]).Select(track => long.Parse(track["id"].ToString())).ToArray();
+    }
+
+    public async Task InitMusicsAsync()
+    {
         var tracks = (JArray)(await Apis.Music.Detail(MusicTrackIds, Nons.Instance))["songs"];
         Musics = new Music[tracks.Count];
         var (results, elapsed) = await Tools.MeasureExecutionTimeAsync(Task.WhenAll(
@@ -104,7 +108,6 @@ public class PlayList
         Array.Copy(results, Musics, results.Length);
         Debug.WriteLine($"实例化歌单({Id})每首歌曲所用时间: {elapsed.Milliseconds}ms");
     }
-
     public Stream GetPic(int x = 0, int y = 0)
     {
         var IMGSIZE = "?param=300y300";

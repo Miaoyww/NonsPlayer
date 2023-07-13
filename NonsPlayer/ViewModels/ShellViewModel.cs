@@ -35,7 +35,6 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         MenuExploreOpenCommand = new RelayCommand(OnMenuExploreOpen);
         MenuPersonalCenterMenuOwnOpenCommand = new RelayCommand(OnMenuPersonalCenterOpen);
         MenuSettingsCommand = new RelayCommand(OnMenuSettings);
-
         AccountService.Instance.LoginByReg();
     }
 
