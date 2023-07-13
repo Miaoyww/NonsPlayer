@@ -82,17 +82,11 @@ public class Music
             PicUrl = (string)playlistMusicTrack["al"]["picUrl"]
         };
 
-        Artists = new List<Artist>();
-        foreach (var t in (JArray)playlistMusicTrack["ar"])
+        Artists = ((JArray)playlistMusicTrack["ar"]).Select(t => new Artist
         {
-            var artist = (JObject)t;
-            Artists.Add(new Artist()
-            {
-                Name = (string)artist["name"],
-                Id = (int)artist["id"]
-            });
-        }
-
+            Name = (string)t["name"],
+            Id = (int)t["id"]
+        }).ToList();
         IsEmpty = false;
 
     }

@@ -1,4 +1,5 @@
-﻿using ABI.System.Collections.Generic;
+﻿using System.Diagnostics;
+using ABI.System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Framework.Api;
 using NonsPlayer.Helpers;
@@ -85,40 +86,23 @@ public class PlayList
     public async Task LoadAsync(long in_id)
     {
         Id = in_id;
-        var playlistDetail = (JObject)(await Apis.Playlist.Detail(Id, Nons.Instance))["playlist"];
-
+        var (playlistDetail, apiRequestElapsed) =
+            await Tools.MeasureExecutionTimeAsync(Apis.Playlist.Detail(Id, Nons.Instance));
+        Debug.WriteLine($"歌单Api请求({Id})所用时间: {apiRequestElapsed.Milliseconds}ms");
+        playlistDetail = (JObject)playlistDetail["playlist"];
         Name = playlistDetail["name"].ToString();
         Description = playlistDetail["description"].ToString();
-
-        var jsonTags = (JArray)playlistDetail["tags"];
-        Tags = new string[jsonTags.Count];
-        if (jsonTags.Count > 0)
-        {
-            for (var index = 0; index < Tags.Length; index++)
-            {
-                Tags[index] = jsonTags[index].ToString();
-            }
-        }
-
+        Tags = ((JArray)playlistDetail["tags"]).Select(tag => tag.ToString()).ToArray();
         PicUrl = playlistDetail["coverImgUrl"].ToString();
-        var jsonMusics = (JArray)playlistDetail["trackIds"];
-        MusicTrackIds = new long[jsonMusics.Count];
-        for (var index = 0; index < MusicTrackIds.Length; index++)
-        {
-            MusicTrackIds[index] = (int)jsonMusics[index]["id"];
-        }
-        var musicDetail = (JArray)(await Apis.Music.Detail(MusicTrackIds, Nons.Instance))["songs"];
-
-        Musics = new Music[musicDetail.Count];
-        for (var index = 0; index < Musics.Length; index++)
-        {
-            Musics[index] = new Music((JObject)musicDetail[index]);
-        }
-
-
-        var timestampTemp = playlistDetail["createTime"].ToString();
-        CreateTime = Tools.TimestampToDateTime(timestampTemp.Remove(timestampTemp.Length - 3));
+        CreateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)playlistDetail["createTime"]).DateTime;
         Creator = playlistDetail["creator"]["nickname"].ToString();
+        MusicTrackIds = ((JArray)playlistDetail["trackIds"]).Select(track => long.Parse(track["id"].ToString())).ToArray();
+        var tracks = (JArray)(await Apis.Music.Detail(MusicTrackIds, Nons.Instance))["songs"];
+        Musics = new Music[tracks.Count];
+        var (results, elapsed) = await Tools.MeasureExecutionTimeAsync(Task.WhenAll(
+            tracks.Select(track => Task.Run(() => new Music((JObject)track))).ToList()));
+        Array.Copy(results, Musics, results.Length);
+        Debug.WriteLine($"实例化歌单({Id})每首歌曲所用时间: {elapsed.Milliseconds}ms");
     }
 
     public Stream GetPic(int x = 0, int y = 0)

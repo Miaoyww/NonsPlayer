@@ -11,6 +11,8 @@ using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Framework.Model;
 using NonsPlayer.Framework.Player;
+using NonsPlayer.Framework.Resources;
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
@@ -107,11 +109,8 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     {
         try
         {
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
             PlayList playList = new();
-            await playList.LoadAsync(id);
-            Debug.WriteLine($"Load playlist {id} async cost {stopwatch.ElapsedMilliseconds}ms");
+            var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(playList.LoadAsync(id));
             Name = playList.Name;
             Creator = playList.Creator;
             CreateTime = playList.CreateTime.ToString();
@@ -121,8 +120,9 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
             {
                 ImageSource = new BitmapImage(new Uri(playList.PicUrl))
             };
-            Debug.WriteLine($"Load playlist {id} cost {stopwatch.ElapsedMilliseconds}ms");
-            for (int i = 0; i < playList.MusicsCount; i++)
+            Debug.WriteLine($"加载歌单({id})所用时间: {playlistLoadedTime.Milliseconds}ms");
+
+            for (var i = 0; i < playList.MusicsCount; i++)
             {
                 Musics.Add(playList.Musics[i]);
                 MusicItems.Add(new MusicItem
@@ -132,9 +132,6 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
                 });
                 OnPropertyChanged(nameof(MusicItems));
             }
-
-            stopwatch.Stop();
-            Debug.WriteLine($"Load playlist {id} detail cost {stopwatch.ElapsedMilliseconds}ms");
         }
         catch (Exception e)
         {
