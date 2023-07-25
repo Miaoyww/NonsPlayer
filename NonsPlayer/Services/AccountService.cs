@@ -4,13 +4,12 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using NonsPlayer.Framework;
-using NonsPlayer.Framework.Api;
-using NonsPlayer.Framework.Resources;
+using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Helpers;
 using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
 
-namespace NonsPlayer.Services;
+namespace NonsPlayer.Core.Services;
 
 public class AccountService : INotifyPropertyChanged
 {
@@ -100,7 +99,7 @@ public class AccountService : INotifyPropertyChanged
             return;
         }
 
-        ServiceEntry.DispatcherQueue.TryEnqueue(() =>
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
             Uid = result["profile"]["userId"].ToString();
             Name = result["profile"]["nickname"].ToString();
@@ -205,7 +204,7 @@ public class AccountService : INotifyPropertyChanged
         {
             if (string.IsNullOrEmpty(_machineCode))
             {
-                _machineCode = Framework.Api.FingerPrint.Value().Replace("-", "");
+                _machineCode = FingerPrint.Value().Replace("-", "");
             }
 
             return _machineCode;
@@ -242,7 +241,7 @@ public class AccountService : INotifyPropertyChanged
         var codeMD5 = Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(data)));
         var dataB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
         var result = AESEncrypt(dataB64, GetKey(dataB64));
-        return new string[2] {result, codeMD5};
+        return new string[2] { result, codeMD5 };
     }
 
     #endregion 加密解密 Token

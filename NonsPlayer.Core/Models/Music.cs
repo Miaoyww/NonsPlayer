@@ -1,11 +1,9 @@
-﻿using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Newtonsoft.Json.Linq;
-using NonsPlayer.Framework.Api;
-using NonsPlayer.Framework.Enums;
-using NonsPlayer.Helpers;
+﻿using Newtonsoft.Json.Linq;
+using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Enums;
+using NonsPlayer.Core.Helpers;
 
-namespace NonsPlayer.Framework.Model;
+namespace NonsPlayer.Core.Models;
 
 public class Music
 {
@@ -172,7 +170,7 @@ public class Music
         FileType = musicFile["type"].ToString();
     }
 
-    public async Task GetLric()
+    public async Task GetLyric()
     {
         var a = await Apis.Lyric.GetLyric(Id.ToString(), Nons.Instance);
         Lyrics = new Lyrics(a);
@@ -189,50 +187,14 @@ public class Music
         return HttpRequest.StreamHttpGet(CoverUrl + $"?param={x}y{y}");
     }
 
-    public ImageBrush Cover
-    {
-        get
-        {
-            return new ImageBrush
-            {
-                ImageSource = new BitmapImage(new Uri(CoverUrl + "?param=300y300"))
-            };
-        }
-    }
-    public ImageBrush SmallCover
-    {
-        get
-        {
-            return new ImageBrush
-            {
-                ImageSource = new BitmapImage(new Uri(CoverUrl + "?param=40y40"))
-            };
-        }
-    }
-    /*
-    public string GetMp3()
-    {
-        string _musicUrl = MusicUrl;
-        string path = AppConfig.MusicsPath(Id, MusicType);
-        if (!File.Exists(path))
-        {
-            if (!Directory.Exists(AppConfig.MusicsDirectory))
-            {
-                Directory.CreateDirectory(AppConfig.MusicsDirectory);
-            }
-            FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-            Stream musicStream = HttpRequest.StreamHttpGet(_musicUrl).Result;
-            byte[] bArr = new byte[1024];
-            int size = musicStream.Read(bArr, 0, bArr.Length);
-            while (size > 0)
-            {
-                //stream.Write(bArr, 0, size);
-                fs.Write(bArr, 0, size);
-                size = musicStream.Read(bArr, 0, bArr.Length);
-            }
-            fs.Close();
-            musicStream.Close();
-        }
-        return path;
-    }*/
+    // public ImageBrush SmallCover
+    // {
+    //     get
+    //     {
+    //         return new ImageBrush
+    //         {
+    //             ImageSource = new BitmapImage(new Uri(CoverUrl + "?param=40y40"))
+    //         };
+    //     }
+    // }
 }

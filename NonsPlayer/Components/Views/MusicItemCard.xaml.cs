@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.ViewModels;
-using NonsPlayer.Framework.Model;
+using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Components.Views;
 

@@ -1,14 +1,12 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using NonsPlayer.Framework.Model;
-using NonsPlayer.Framework.Player;
-using NonsPlayer.Framework.Resources;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
+using NonsPlayer.Player;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -107,7 +105,7 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
         Music = one;
         await Task.Run(() =>
         {
-            ServiceEntry.DispatcherQueue.TryEnqueue(() =>
+            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
             {
                 Cover = new ImageBrush
                 {

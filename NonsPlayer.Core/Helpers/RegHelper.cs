@@ -1,6 +1,6 @@
 ﻿using Microsoft.Win32;
 
-namespace NonsPlayer.Helpers;
+namespace NonsPlayer.Core.Helpers;
 
 public class RegHelper
 {

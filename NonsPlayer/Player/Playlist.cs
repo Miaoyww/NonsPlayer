@@ -1,6 +1,6 @@
-﻿using NonsPlayer.Framework.Model;
+﻿using NonsPlayer.Core.Models;
 
-namespace NonsPlayer.Framework.Player
+namespace NonsPlayer.Player
 {
     // 一个播放列表, 全局只会有一个Playlist
     // 首先可以储存歌曲, 可以顺序播放，包括随机播放、单曲循环、列表循环、单次顺序播放, 要求可以在播放列表中添加歌曲，可以删除歌曲，可以清空播放列表,MusicListDetailPage中的全部播放按钮，可以将所有歌曲添加到播放列表中，并且清空原来的播放列表

@@ -1,10 +1,9 @@
 ﻿using System.Diagnostics;
-using ABI.System.Collections.Generic;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Framework.Api;
-using NonsPlayer.Helpers;
+using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Helpers;
 
-namespace NonsPlayer.Framework.Model;
+namespace NonsPlayer.Core.Models;
 
 public class PlayList
 {

@@ -5,10 +5,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Framework;
-using NonsPlayer.Framework.Api;
-using NonsPlayer.Framework.Resources;
-using NonsPlayer.Services;
+using NonsPlayer.Core;
+using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Services;
+using NonsPlayer.Helpers;
 using QRCoder;
 
 namespace NonsPlayer.ViewModels;
@@ -103,7 +103,7 @@ public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChange
                 else if (code == 802)
                 {
                     // 二维码已确认
-                    ServiceEntry.DispatcherQueue.TryEnqueue(() =>
+                    ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                     {
                         Text = "请在手机上确认登录";
                     });
@@ -111,7 +111,7 @@ public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChange
                 else if (code == 803)
                 {
                     // 二维码登录成功
-                    ServiceEntry.DispatcherQueue.TryEnqueue(() =>
+                    ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                     {
                         Text = "登录成功";
                     });
@@ -123,9 +123,9 @@ public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChange
                         }
                     }
 
-                    ServiceEntry.DispatcherQueue.TryEnqueue(() =>
+                    ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                     {
-                        ServiceEntry.NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName!);
+                        ServiceHelper.NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName!);
                     });
                     break;
                 }

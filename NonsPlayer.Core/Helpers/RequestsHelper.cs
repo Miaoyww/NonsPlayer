@@ -2,7 +2,7 @@
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
-namespace NonsPlayer.Helpers;
+namespace NonsPlayer.Core.Helpers;
 public static class HttpRequest
 {
     public static Stream StreamHttpGet(string url)

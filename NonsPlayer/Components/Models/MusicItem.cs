@@ -1,4 +1,4 @@
-﻿using NonsPlayer.Framework.Model;
+﻿using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Components.Models;
 public class MusicItem

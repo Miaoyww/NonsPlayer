@@ -1,18 +1,12 @@
-﻿using System.Diagnostics;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
-using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Framework.Model;
 using NonsPlayer.Helpers;
 using Windows.ApplicationModel;
-using NonsPlayer.Services;
-using CommunityToolkit.Maui.Alerts;
-using CommunityToolkit.Maui.Core;
-using Microsoft.UI.Xaml.Controls;
+
 
 namespace NonsPlayer.ViewModels;
 

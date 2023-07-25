@@ -1,4 +1,4 @@
-﻿namespace NonsPlayer.Framework.Enums
+﻿namespace NonsPlayer.Core.Enums
 {
     /// <summary>
     /// 表示音乐的质量等级

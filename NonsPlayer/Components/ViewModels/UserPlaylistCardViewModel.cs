@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Framework.Resources;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels
@@ -50,7 +49,7 @@ namespace NonsPlayer.Components.ViewModels
             Uid = playlistItem["id"].ToString();
         }
         public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e) =>
-            Tools.OpenMusicListDetail(long.Parse(Uid), ServiceEntry.NavigationService);
+            PlaylistHelper.OpenMusicListDetail(long.Parse(Uid), ServiceHelper.NavigationService);
         public event PropertyChangedEventHandler? PropertyChanged;
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)

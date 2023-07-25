@@ -5,8 +5,8 @@ using Microsoft.UI.Xaml;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Framework;
-using NonsPlayer.Framework.Api;
+using NonsPlayer.Core;
+using NonsPlayer.Core.Api;
 
 namespace NonsPlayer.ViewModels;
 

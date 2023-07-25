@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Framework;
-using NonsPlayer.Services;
+using NonsPlayer.Core;
+using NonsPlayer.Core.Services;
 
 namespace NonsPlayer.ViewModels;
 

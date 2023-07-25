@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 
-namespace NonsPlayer.Framework.Model
+namespace NonsPlayer.Core.Models
 {
     public class Lyrics
     {

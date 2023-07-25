@@ -1,4 +1,4 @@
-﻿namespace NonsPlayer.Framework.Api
+﻿namespace NonsPlayer.Core.Api
 {
     public class LoginFailed : Exception
     {

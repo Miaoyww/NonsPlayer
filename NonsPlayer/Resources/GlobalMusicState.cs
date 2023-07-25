@@ -4,12 +4,12 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using NonsPlayer.Framework.Model;
-using NonsPlayer.Framework.Player;
-using NonsPlayer.Helpers;
+using NonsPlayer.Core.Helpers;
+using NonsPlayer.Core.Models;
+using NonsPlayer.Player;
 using Windows.UI;
 
-namespace NonsPlayer.Framework.Resources;
+namespace NonsPlayer.Resources;
 
 public class GlobalMusicState : INotifyPropertyChanged
 {
@@ -92,7 +92,11 @@ public class GlobalMusicState : INotifyPropertyChanged
             }
             else
             {
-                return CurrentMusic.Cover;
+                return new ImageBrush
+                {
+                    ImageSource = new BitmapImage(new Uri(CurrentMusic.CoverUrl + "?param=300y300"))
+
+                };
             }
         }
     }

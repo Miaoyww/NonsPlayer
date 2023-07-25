@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace NonsPlayer.Framework.Api
+namespace NonsPlayer.Core.Api
 {
     // Copy from https://www.codeproject.com/Articles/28678/Generating-Unique-Key-Finger-Print-for-a-Computer
     public class FingerPrint

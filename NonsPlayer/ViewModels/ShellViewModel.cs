@@ -6,9 +6,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Framework.Resources;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using NonsPlayer.Services;
 using Windows.System;
 
 namespace NonsPlayer.ViewModels;
@@ -28,7 +27,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
     public ShellViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
-        ServiceEntry.NavigationService = navigationService;
+        ServiceHelper.NavigationService = navigationService;
         NavigationService.Navigated += OnNavigated;
 
         MenuHomeOpenCommand = new RelayCommand(OnMenuHomeOpen);
@@ -54,7 +53,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         long playlistId;
         if (long.TryParse(((AutoSuggestBox)sender).Text, out playlistId))
         {
-            Tools.OpenMusicListDetail(playlistId, App.GetService<INavigationService>());
+            PlaylistHelper.OpenMusicListDetail(playlistId, App.GetService<INavigationService>());
         }
     }
 

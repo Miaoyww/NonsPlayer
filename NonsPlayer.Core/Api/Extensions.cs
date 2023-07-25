@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 // ю╢вт
-namespace NonsPlayer.Framework.Api
+namespace NonsPlayer.Core.Api
 {
     internal static class Extensions
     {

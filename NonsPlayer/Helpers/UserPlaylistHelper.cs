@@ -3,11 +3,11 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Components.Models;
-using NonsPlayer.Framework;
-using NonsPlayer.Framework.Api;
-using NonsPlayer.Framework.Model;
-using NonsPlayer.Framework.Resources;
-using NonsPlayer.Services;
+using NonsPlayer.Core;
+using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Services;
+using NonsPlayer.Resources;
 
 namespace NonsPlayer.Heplers
 {

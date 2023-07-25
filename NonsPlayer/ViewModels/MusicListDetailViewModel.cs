@@ -9,10 +9,10 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.ViewModels;
-using NonsPlayer.Framework.Model;
-using NonsPlayer.Framework.Player;
-using NonsPlayer.Framework.Resources;
+using NonsPlayer.Core.Helpers;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
+using NonsPlayer.Player;
 
 namespace NonsPlayer.ViewModels;
 
@@ -110,7 +110,7 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
     {
         await Task.Run(() =>
         {
-            ServiceEntry.DispatcherQueue.TryEnqueue(() =>
+            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
             {
                 Name = _this.Name;
                 Creator = _this.Creator;

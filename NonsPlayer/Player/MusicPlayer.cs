@@ -1,10 +1,12 @@
 ﻿using System.Timers;
 using NAudio.Wave;
-using NonsPlayer.Framework.Model;
-using NonsPlayer.Framework.Resources;
+using NonsPlayer.Core.Models;
+using NonsPlayer.Helpers;
+using NonsPlayer.Resources;
 using Timer = System.Timers.Timer;
 
-namespace NonsPlayer.Framework.Player;
+
+namespace NonsPlayer.Player;
 
 public class MusicPlayer
 {
@@ -34,7 +36,7 @@ public class MusicPlayer
     /// </summary>
     private void GetCurrentInfo(object? sender, ElapsedEventArgs e)
     {
-        ServiceEntry.DispatcherQueue.TryEnqueue(() =>
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
             if (OutputDevice != null)
             {
@@ -66,7 +68,7 @@ public class MusicPlayer
         }
 
         GlobalMusicState.Instance.CurrentMusic = music2play;
-        await GlobalMusicState.Instance.CurrentMusic.GetLric();
+        await GlobalMusicState.Instance.CurrentMusic.GetLyric();
         await GlobalMusicState.Instance.CurrentMusic.GetFileInfo();
         if (_mfr == null)
         {

@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using NonsPlayer.Framework.Resources;
-using NonsPlayer.Helpers;
+using NonsPlayer.Core.Helpers;
 using NonsPlayer.Heplers;
+using NonsPlayer.Resources;
 
 namespace NonsPlayer.Components.ViewModels
 {

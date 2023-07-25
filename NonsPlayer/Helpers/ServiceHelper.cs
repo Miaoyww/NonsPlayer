@@ -1,9 +1,9 @@
 ﻿using Microsoft.UI.Dispatching;
 using NonsPlayer.Contracts.Services;
 
-namespace NonsPlayer.Framework.Resources
+namespace NonsPlayer.Helpers
 {
-    public static class ServiceEntry
+    public static class ServiceHelper
     {
         public static DispatcherQueue DispatcherQueue
         {

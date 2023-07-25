@@ -7,7 +7,7 @@ using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Services;
 using NonsPlayer.Core.Services;
-using NonsPlayer.Framework.Resources;
+using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
 using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
@@ -49,7 +49,7 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
-        ServiceEntry.DispatcherQueue = DispatcherQueue.GetForCurrentThread();
+        ServiceHelper.DispatcherQueue = DispatcherQueue.GetForCurrentThread();
         Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().UseContentRoot(AppContext.BaseDirectory)
             .ConfigureServices((context, services) =>
             {

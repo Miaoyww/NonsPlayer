@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
-using NonsPlayer.Framework.Model;
-using NonsPlayer.Framework.Resources;
+using NonsPlayer.Core.Models;
+using NonsPlayer.Resources;
 
 namespace NonsPlayer.Components.ViewModels
 {

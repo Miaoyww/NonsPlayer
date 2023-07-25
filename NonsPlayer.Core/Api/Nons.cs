@@ -1,10 +1,9 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Framework.Api;
 using RestSharp;
 
-namespace NonsPlayer.Framework;
+namespace NonsPlayer.Core;
 
 public class Nons
 {
@@ -14,7 +13,7 @@ public class Nons
     } = new Nons();
 
     private string _token = string.Empty;
-    private RestClient _client = new ("https://music.163.com");
+    private RestClient _client = new("https://music.163.com");
 
     public Nons()
     {

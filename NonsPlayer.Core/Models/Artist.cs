@@ -1,4 +1,4 @@
-﻿namespace NonsPlayer.Framework.Model
+﻿namespace NonsPlayer.Core.Models
 {
     public class Artist
     {
