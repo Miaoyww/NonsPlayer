@@ -6,8 +6,8 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Player;
 using Windows.UI;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.Resources;
 
@@ -25,7 +25,7 @@ public class GlobalMusicState : INotifyPropertyChanged
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
         MusicPlayCommand = new RelayCommand(() =>
         {
-            MusicPlayer.Instance.Play();
+            PlayerService.Instance.Play();
         });
         VolumeMuteCommand = new RelayCommand(Mute);
         NextMusicCommand = new RelayCommand(OnNextMusic);
@@ -155,9 +155,9 @@ public class GlobalMusicState : INotifyPropertyChanged
         {
             _currentVolume = value;
             RegHelper.Instance.Set(RegHelper.Regs.Volume, value.ToString());
-            if (MusicPlayer.Instance.OutputDevice != null)
+            if (PlayerService.Instance.OutputDevice != null)
             {
-                MusicPlayer.Instance.OutputDevice.Volume = (float)value / 100;
+                PlayerService.Instance.OutputDevice.Volume = (float)value / 100;
             }
 
             OnPropertyChanged(nameof(Volume));
@@ -244,7 +244,7 @@ public class GlobalMusicState : INotifyPropertyChanged
         }
     }
 
-    public void OnPreviousMusic() => Playlist.Instance.PlayPrevious();
+    public void OnPreviousMusic() => PlaylistService.Instance.PlayPrevious();
 
-    public void OnNextMusic() => Playlist.Instance.PlayNext();
+    public void OnNextMusic() => PlaylistService.Instance.PlayNext();
 }

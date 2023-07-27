@@ -6,7 +6,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
-using NonsPlayer.Player;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -123,6 +123,6 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
 
     public void Play(object sender, PointerRoutedEventArgs e)
     {
-        MusicPlayer.Instance.NewPlay(Music);
+        PlayerService.Instance.NewPlay(Music);
     }
 }

@@ -12,7 +12,7 @@ using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
-using NonsPlayer.Player;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
@@ -159,6 +159,6 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
 
     public void PlayAll()
     {
-        Playlist.Instance.AddMusicList(Musics);
+        PlaylistService.Instance.AddMusicList(Musics);
     }
 }
