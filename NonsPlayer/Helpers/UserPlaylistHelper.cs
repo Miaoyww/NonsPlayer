@@ -6,6 +6,7 @@ using NonsPlayer.Components.Models;
 using NonsPlayer.Core;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Data;
 
@@ -53,15 +54,14 @@ namespace NonsPlayer.Heplers
                 return false;
             }
         }
-        private Music OnMusicChanged(Music music)
+        private void OnMusicChanged(Music music)
         {
             CurrentSongLiked = IsLiked(music.Id);
-            return music;
         }
 
         public UserPlaylistHelper()
         {
-            MusicState.Instance.MusicChangedHandle += OnMusicChanged;
+            Player.Instance.MusicChangedHandle += OnMusicChanged;
         }
 
         public ObservableCollection<UserPlaylistItem> SavedPlaylists

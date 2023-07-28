@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Player;
 using NonsPlayer.Data;
 
 namespace NonsPlayer.Components.ViewModels
@@ -44,20 +45,19 @@ namespace NonsPlayer.Components.ViewModels
         }
 
 
-        private Music MusicChanged(Music currentMusic)
+        private void MusicChanged(Music currentMusic)
         {
             _currentLyric = null;
             _nextLyric = null;
-            return currentMusic;
         }
 
-        private TimeSpan LyricChanger(TimeSpan time)
+        private void LyricChanger(TimeSpan time)
         {
             try
             {
                 if (MusicState.Instance.CurrentMusic.Lyrics == null)
                 {
-                    return time;
+                    return;
                 }
 
                 if (_currentLyric == null && MusicState.Instance.CurrentMusic.Lyrics != null)
@@ -71,7 +71,7 @@ namespace NonsPlayer.Components.ViewModels
 
                 if (_currentLyric != null && _nextLyric != null && time >= _currentLyric.Time && time < _nextLyric.Time)
                 {
-                    return time;
+                    return;
                 }
 
                 for (int i = 0; i < MusicState.Instance.CurrentMusic.Lyrics.Count; i++)
@@ -79,7 +79,7 @@ namespace NonsPlayer.Components.ViewModels
                     var currentItem = MusicState.Instance.CurrentMusic.Lyrics.Lrc[i];
                     if (i + 1 == MusicState.Instance.CurrentMusic.Lyrics.Count)
                     {
-                        return time;
+                        return;
                     }
 
                     var nextItem = MusicState.Instance.CurrentMusic.Lyrics.Count > i
@@ -91,12 +91,12 @@ namespace NonsPlayer.Components.ViewModels
                         _nextLyric = nextItem;
                         OriginalLyric = currentItem.OriginalLyric;
                         TranLyric = currentItem.TranLyric;
-                        return time;
+                        return;
                     }
 
                     if (time <= MusicState.Instance.CurrentMusic.Lyrics.Lrc[0].Time)
                     {
-                        return time;
+                        return;
                     }
                 }
             }
@@ -105,13 +105,13 @@ namespace NonsPlayer.Components.ViewModels
             }
 
 
-            return time;
+            return;
         }
 
         public void Init()
         {
-            MusicState.Instance.PositionChangedHandle += LyricChanger;
-            MusicState.Instance.MusicChangedHandle += MusicChanged;
+            Player.Instance.PositionChangedHandle += LyricChanger;
+            Player.Instance.MusicChangedHandle += MusicChanged;
             OriginalLyric = "暂未播放";
         }
 

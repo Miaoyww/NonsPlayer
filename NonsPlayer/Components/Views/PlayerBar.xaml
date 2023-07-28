@@ -46,7 +46,7 @@
                                 VerticalAlignment="Top">
                         <Button x:Name="PreviousMusic" Width="35" Height="35" Margin="0,0,10,0"
                                 VerticalAlignment="Center"
-                                Command="{x:Bind ViewModel.MusicState.PreviousMusicCommand}"
+                                Command="{x:Bind ViewModel.PlayerService.PreviousMusicCommand}"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0">
                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf8ac;" FontSize="20" />
@@ -54,13 +54,13 @@
                         <Button x:Name="Play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0"
-                                Command="{x:Bind ViewModel.MusicState.MusicPlayCommand}">
+                                Command="{x:Bind ViewModel.PlayerService.MusicPlayCommand}">
                             <FontIcon FontFamily="Segoe Fluent Icons"
                                       Glyph="{x:Bind ViewModel.MusicState.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
                                       FontSize="20" />
                         </Button>
                         <Button x:Name="NextMusic" Width="35" Height="35" VerticalAlignment="Center"
-                                Command="{x:Bind ViewModel.MusicState.NextMusicCommand}"
+                                Command="{x:Bind ViewModel.PlayerService.NextMusicCommand}"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0">
                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf8ad;" FontSize="20" />
@@ -75,9 +75,9 @@
                                    Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
                         <Slider x:Name="CurrentTimeSlider" IsThumbToolTipEnabled="False" Width="340"
                                 Value="{x:Bind ViewModel.MusicState.PositionDouble, Mode=TwoWay}"
-                                Maximum="{x:Bind ViewModel.MusicState.DurationTimeDouble, Mode=OneWay}" />
+                                Maximum="{x:Bind ViewModel.MusicState.DurationDouble, Mode=OneWay}" />
                         <TextBlock x:Name="DurationTime"
-                                   Text="{x:Bind ViewModel.MusicState.DurationTimeString, Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.MusicState.DurationString, Mode=OneWay}"
                                    FontWeight="Black" FontFamily="JetBrains Mono"
                                    Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0"
                                    HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
@@ -87,7 +87,7 @@
                             Margin="0,0,30,0">
                     <Button x:Name="VolumeButton" Width="45" Height="45" Margin="5" Background="Transparent"
                             BorderThickness="0,0,0,0"
-                            Command="{x:Bind ViewModel.MusicState.VolumeMuteCommand}">
+                            Command="{x:Bind ViewModel.PlayerService.VolumeMuteCommand}">
                         <FontIcon FontFamily="Segoe Fluent Icons" FontSize="22"
                                   Glyph="{x:Bind ViewModel.MusicState.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
                     </Button>
