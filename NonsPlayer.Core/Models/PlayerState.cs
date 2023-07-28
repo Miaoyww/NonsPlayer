@@ -1,4 +1,4 @@
-﻿namespace NonsPlayer.Core.Player;
+﻿namespace NonsPlayer.Core.Models;
 
 public class PlayerState
 {

@@ -45,7 +45,7 @@ namespace NonsPlayer.Components.ViewModels
         }
 
 
-        private void MusicChanged(Music currentMusic)
+        private void OnMusicChanged(Music currentMusic)
         {
             _currentLyric = null;
             _nextLyric = null;
@@ -111,7 +111,7 @@ namespace NonsPlayer.Components.ViewModels
         public void Init()
         {
             Player.Instance.PositionChangedHandle += LyricChanger;
-            Player.Instance.MusicChangedHandle += MusicChanged;
+            Player.Instance.MusicChangedHandle += OnMusicChanged;
             OriginalLyric = "暂未播放";
         }
 

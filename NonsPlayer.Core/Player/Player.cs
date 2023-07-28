@@ -18,10 +18,15 @@ public class Player
     private MediaFoundationReader _mfr;
     public WaveOutEvent OutputDevice;
 
+    public delegate void MusicStopped();
+
     public delegate void PlayStateChanged(bool isPlaying);
+
     public delegate void PositionChanged(TimeSpan time);
+
     public delegate void MusicChanged(Music currentMusic);
 
+    public MusicStopped MusicStoppedHandle;
     public PlayStateChanged PlayStateChangedHandle;
     public PositionChanged PositionChangedHandle;
     public MusicChanged MusicChangedHandle;
@@ -49,7 +54,7 @@ public class Player
             _volume = value;
         }
     }
-    
+
     public Player()
     {
         OutputDevice = new WaveOutEvent();
@@ -64,7 +69,7 @@ public class Player
     /// </summary>
     private void GetCurrentInfo(object? sender, ElapsedEventArgs e)
     {
-        if (OutputDevice != null)
+        if (OutputDevice != null && PlayStateChangedHandle != null)
         {
             if (OutputDevice.PlaybackState == PlaybackState.Playing)
             {
@@ -73,6 +78,13 @@ public class Player
                     Position = Position
                 };
                 PositionChangedHandle(playerState.Position);
+                PlayStateChangedHandle(true);
+            }
+
+            if (OutputDevice.PlaybackState == PlaybackState.Paused ||
+                OutputDevice.PlaybackState == PlaybackState.Stopped)
+            {
+                PlayStateChangedHandle(false);
             }
         }
     }

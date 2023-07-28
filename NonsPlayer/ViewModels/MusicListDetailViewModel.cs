@@ -11,6 +11,7 @@ using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 
@@ -159,6 +160,6 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
 
     public void PlayAll()
     {
-        PlayQueueService.Instance.AddMusicList(Musics);
+        PlayQueue.Instance.AddMusicList(Musics);
     }
 }
