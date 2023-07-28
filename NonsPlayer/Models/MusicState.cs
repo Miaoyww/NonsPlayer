@@ -11,14 +11,14 @@ using NonsPlayer.Services;
 
 namespace NonsPlayer.Data;
 
-public class MetaData : INotifyPropertyChanged
+public class MusicState : INotifyPropertyChanged
 {
-    public static MetaData Instance
+    public static MusicState Instance
     {
         get;
     } = new();
 
-    public MetaData()
+    public MusicState()
     {
         PositionChangedHandle = (t) => TimeSpan.Zero;
         CurrentMusic = new Music();

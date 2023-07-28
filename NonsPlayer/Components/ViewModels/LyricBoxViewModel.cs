@@ -55,15 +55,15 @@ namespace NonsPlayer.Components.ViewModels
         {
             try
             {
-                if (MetaData.Instance.CurrentMusic.Lyrics == null)
+                if (MusicState.Instance.CurrentMusic.Lyrics == null)
                 {
                     return time;
                 }
 
-                if (_currentLyric == null && MetaData.Instance.CurrentMusic.Lyrics != null)
+                if (_currentLyric == null && MusicState.Instance.CurrentMusic.Lyrics != null)
                 {
-                    _currentLyric = new Lyric(MetaData.Instance.CurrentMusic.Name,
-                        MetaData.Instance.CurrentMusic.ArtistsName, TimeSpan.Zero);
+                    _currentLyric = new Lyric(MusicState.Instance.CurrentMusic.Name,
+                        MusicState.Instance.CurrentMusic.ArtistsName, TimeSpan.Zero);
                     OriginalLyric = _currentLyric.OriginalLyric;
                     TranLyric = _currentLyric.TranLyric;
                 }
@@ -74,16 +74,16 @@ namespace NonsPlayer.Components.ViewModels
                     return time;
                 }
 
-                for (int i = 0; i < MetaData.Instance.CurrentMusic.Lyrics.Count; i++)
+                for (int i = 0; i < MusicState.Instance.CurrentMusic.Lyrics.Count; i++)
                 {
-                    var currentItem = MetaData.Instance.CurrentMusic.Lyrics.Lrc[i];
-                    if (i + 1 == MetaData.Instance.CurrentMusic.Lyrics.Count)
+                    var currentItem = MusicState.Instance.CurrentMusic.Lyrics.Lrc[i];
+                    if (i + 1 == MusicState.Instance.CurrentMusic.Lyrics.Count)
                     {
                         return time;
                     }
 
-                    var nextItem = MetaData.Instance.CurrentMusic.Lyrics.Count > i
-                        ? MetaData.Instance.CurrentMusic.Lyrics.Lrc[i + 1]
+                    var nextItem = MusicState.Instance.CurrentMusic.Lyrics.Count > i
+                        ? MusicState.Instance.CurrentMusic.Lyrics.Lrc[i + 1]
                         : currentItem;
                     if (time >= currentItem.Time && time < nextItem.Time)
                     {
@@ -94,7 +94,7 @@ namespace NonsPlayer.Components.ViewModels
                         return time;
                     }
 
-                    if (time <= MetaData.Instance.CurrentMusic.Lyrics.Lrc[0].Time)
+                    if (time <= MusicState.Instance.CurrentMusic.Lyrics.Lrc[0].Time)
                     {
                         return time;
                     }
@@ -110,8 +110,8 @@ namespace NonsPlayer.Components.ViewModels
 
         public void Init()
         {
-            MetaData.Instance.PositionChangedHandle += LyricChanger;
-            MetaData.Instance.MusicChangedHandle += MusicChanged;
+            MusicState.Instance.PositionChangedHandle += LyricChanger;
+            MusicState.Instance.MusicChangedHandle += MusicChanged;
             OriginalLyric = "暂未播放";
         }
 

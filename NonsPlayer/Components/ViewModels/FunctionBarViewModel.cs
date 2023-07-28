@@ -10,7 +10,7 @@ namespace NonsPlayer.Components.ViewModels
     public class FunctionBarViewModel : INotifyPropertyChanged
     {
 
-        public MetaData MetaData => MetaData.Instance;
+        public MusicState MusicState => MusicState.Instance;
         public UserPlaylistHelper UserPlaylistHelper => UserPlaylistHelper.Instance;
         public ObservableCollection<UserPlaylistItem> UserPlaylists => UserPlaylistHelper.Instance.UserPlaylists;
         public ObservableCollection<UserPlaylistItem> FavoritePlaylists => UserPlaylistHelper.Instance.SavedPlaylists;

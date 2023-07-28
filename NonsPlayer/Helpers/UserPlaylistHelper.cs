@@ -61,7 +61,7 @@ namespace NonsPlayer.Heplers
 
         public UserPlaylistHelper()
         {
-            MetaData.Instance.MusicChangedHandle += OnMusicChanged;
+            MusicState.Instance.MusicChangedHandle += OnMusicChanged;
         }
 
         public ObservableCollection<UserPlaylistItem> SavedPlaylists

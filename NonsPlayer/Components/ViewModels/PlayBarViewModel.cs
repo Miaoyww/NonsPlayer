@@ -9,12 +9,12 @@ namespace NonsPlayer.Components.ViewModels
     public class PlayerBarViewModel : INotifyPropertyChanged
     {
 
-        public MetaData MetaData => MetaData.Instance;
+        public MusicState MusicState => MusicState.Instance;
         public UserPlaylistHelper UserPlaylistHelper => UserPlaylistHelper.Instance;
 
         public PlayerBarViewModel()
         {
-            MetaData.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 0.0).ToString());
+            MusicState.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 0.0).ToString());
         }
         public void Init()
         {
