@@ -60,7 +60,8 @@ public class PlayQueue
 
     public void OnMusicStopped(object sender, StoppedEventArgs e)
     {
-        if (PlayMode == PlayModeEnum.ListLoop)
+
+        if (PlayMode == PlayModeEnum.ListLoop && Player.Instance.IsInitializingNewMusic == false)
         {
             PlayNext();
         }

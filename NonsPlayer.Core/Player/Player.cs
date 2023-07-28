@@ -1,6 +1,7 @@
 ﻿using System.Timers;
 using NAudio.Utils;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 using NonsPlayer.Core.Models;
 using Timer = System.Timers.Timer;
 
@@ -55,6 +56,12 @@ public class Player
         }
     }
 
+    public bool IsInitializingNewMusic
+    {
+        get;
+        set;
+    }
+
     public Player()
     {
         OutputDevice = new WaveOutEvent();
@@ -86,6 +93,10 @@ public class Player
             {
                 PlayStateChangedHandle(false);
             }
+
+            if (IsInitializingNewMusic)
+            {
+            }
         }
     }
 
@@ -106,26 +117,31 @@ public class Player
         if (_mfr == null)
         {
             _mfr = new MediaFoundationReader(music2play.Url);
-            OutputDevice.Init(_mfr);
-        }
-        else
-        {
-            if (music2play.Url != null)
-            {
-                OutputDevice.Stop();
-                _mfr = new MediaFoundationReader(music2play.Url);
-                OutputDevice.Init(_mfr);
-            }
         }
 
-        Play(true);
+        if (music2play.Url != null)
+        {
+            IsInitializingNewMusic = true;
+            OutputDevice.Stop();
+            OutputDevice.Dispose();
+            _mfr = new MediaFoundationReader(music2play.Url);
+            OutputDevice.Init(_mfr);
+        }
+
+        OutputDevice.Play();
+        //TODO: 这里依旧会有问题，当快速切换歌曲时，它就会播放下一首歌而不是当前所选的歌曲
+        await Task.Run(async () =>
+        {
+            await Task.Delay(1000);
+            IsInitializingNewMusic = false;
+        });
     }
 
     /// <summary>
     /// 播放音乐
     /// </summary>
     /// <param name="rePlay">是否从头播放</param>
-    public void Play(bool rePlay = false)
+    public void Play()
     {
         if (_currentMusic == null)
         {
@@ -134,24 +150,15 @@ public class Player
 
         try
         {
-            if (rePlay)
+            if (OutputDevice.PlaybackState == PlaybackState.Paused)
             {
-                PlayStateChangedHandle(true);
-                _mfr.Position = TimeSpan.Zero.Ticks;
                 OutputDevice.Play();
+                PlayStateChangedHandle(true);
             }
             else
             {
-                if (OutputDevice.PlaybackState == PlaybackState.Paused)
-                {
-                    OutputDevice.Play();
-                    PlayStateChangedHandle(true);
-                }
-                else
-                {
-                    OutputDevice.Pause();
-                    PlayStateChangedHandle(false);
-                }
+                OutputDevice.Pause();
+                PlayStateChangedHandle(false);
             }
         }
         catch (InvalidOperationException)
