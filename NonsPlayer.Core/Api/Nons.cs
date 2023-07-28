@@ -41,6 +41,7 @@ public class Nons
             return _token;
         }
     }
+
     public void Login(string token)
     {
         _token = token;
@@ -103,4 +104,3 @@ public class Nons
         return byte2String;
     }
 }
-

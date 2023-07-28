@@ -19,7 +19,7 @@ namespace NonsPlayer.ViewModels;
 public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
     private ImageBrush _cover;
-    private PlayList _this;
+    private Playlist _this;
     private string _createTime;
     private string _creator;
     private long _currentId;
@@ -144,9 +144,9 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
 
     public async void PageLoaded(object sender, RoutedEventArgs e)
     {
-        PlayList playList = new();
-        _this = playList;
-        var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(playList.LoadAsync(_currentId));
+        Playlist playlist = new();
+        _this = playlist;
+        var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(playlist.LoadAsync(_currentId));
         Debug.WriteLine($"加载歌单({_this.Id})所用时间: {playlistLoadedTime.Milliseconds}ms");
         await Task.WhenAll(LoadPlaylistDetailAsync(), LoadMusicsAsync());
     }
@@ -159,6 +159,6 @@ public class MusicListDetailViewModel : ObservableRecipient, INavigationAware, I
 
     public void PlayAll()
     {
-        PlaylistService.Instance.AddMusicList(Musics);
+        PlayQueueService.Instance.AddMusicList(Musics);
     }
 }

@@ -244,7 +244,7 @@ public class MusicState : INotifyPropertyChanged
         }
     }
 
-    public void OnPreviousMusic() => PlaylistService.Instance.PlayPrevious();
+    public void OnPreviousMusic() => PlayQueueService.Instance.PlayPrevious();
 
-    public void OnNextMusic() => PlaylistService.Instance.PlayNext();
+    public void OnNextMusic() => PlayQueueService.Instance.PlayNext();
 }

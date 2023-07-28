@@ -128,12 +128,12 @@ public class PlayerService
     }
 }
 
-public class PlaylistService
+public class PlayQueueService
     {
-        public static PlaylistService Instance
+        public static PlayQueueService Instance
         {
             get;
-        } = new PlaylistService();
+        } = new();
 
         private Music _currentMusic;
         private List<Music> _randomMusicList = new();
@@ -176,7 +176,7 @@ public class PlaylistService
             set;
         }
 
-        public PlaylistService()
+        public PlayQueueService()
         {
             MusicList = new();
             PlayMode = PlayModeEnum.ListLoop;

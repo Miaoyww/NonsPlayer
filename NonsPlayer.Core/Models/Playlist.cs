@@ -5,7 +5,7 @@ using NonsPlayer.Core.Helpers;
 
 namespace NonsPlayer.Core.Models;
 
-public class PlayList
+public class Playlist
 {
     /// <summary>
     ///     歌单创建时间
