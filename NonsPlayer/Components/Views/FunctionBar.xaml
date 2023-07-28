@@ -53,7 +53,7 @@
                 Name="Cover"
                 Height="200"
                 VerticalAlignment="Bottom"
-                Background="{x:Bind ViewModel.GlobalMusicState.Cover, Mode=OneWay}"
+                Background="{x:Bind ViewModel.MetaData.Cover, Mode=OneWay}"
                 BorderThickness="0"
                 Margin="0,0,0,90" />
     </Grid>

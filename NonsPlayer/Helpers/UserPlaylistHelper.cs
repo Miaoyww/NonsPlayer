@@ -7,7 +7,7 @@ using NonsPlayer.Core;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
-using NonsPlayer.Resources;
+using NonsPlayer.Data;
 
 namespace NonsPlayer.Heplers
 {
@@ -61,7 +61,7 @@ namespace NonsPlayer.Heplers
 
         public UserPlaylistHelper()
         {
-            GlobalMusicState.Instance.MusicChangedHandle += OnMusicChanged;
+            MetaData.Instance.MusicChangedHandle += OnMusicChanged;
         }
 
         public ObservableCollection<UserPlaylistItem> SavedPlaylists

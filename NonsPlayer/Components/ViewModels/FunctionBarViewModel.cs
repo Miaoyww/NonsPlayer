@@ -3,14 +3,14 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Heplers;
-using NonsPlayer.Resources;
+using NonsPlayer.Data;
 
 namespace NonsPlayer.Components.ViewModels
 {
     public class FunctionBarViewModel : INotifyPropertyChanged
     {
 
-        public GlobalMusicState GlobalMusicState => GlobalMusicState.Instance;
+        public MetaData MetaData => MetaData.Instance;
         public UserPlaylistHelper UserPlaylistHelper => UserPlaylistHelper.Instance;
         public ObservableCollection<UserPlaylistItem> UserPlaylists => UserPlaylistHelper.Instance.UserPlaylists;
         public ObservableCollection<UserPlaylistItem> FavoritePlaylists => UserPlaylistHelper.Instance.SavedPlaylists;

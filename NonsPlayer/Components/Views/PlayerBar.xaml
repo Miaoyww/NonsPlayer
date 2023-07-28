@@ -21,13 +21,13 @@
                 <StackPanel Orientation="Horizontal" Width="300" HorizontalAlignment="Left" Margin="20,0,0,0">
                     <StackPanel VerticalAlignment="Center" MaxWidth="190" Margin="0,0,0,5">
                         <TextBlock x:Name="Name"
-                                   Text="{x:Bind ViewModel.GlobalMusicState.CurrentMusic.Name, Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.MetaData.CurrentMusic.Name, Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20"
                                    Margin="0,0,0,10" FontWeight="Medium"
                                    TextTrimming="CharacterEllipsis" FontFamily="HarmonyOS Sans SC" />
 
                         <TextBlock x:Name="Artists"
-                                   Text="{x:Bind ViewModel.GlobalMusicState.CurrentMusic.ArtistsName,Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.MetaData.CurrentMusic.ArtistsName,Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15"
                                    FontFamily="HarmonyOS Sans SC" FontWeight="Medium"
                                    TextTrimming="CharacterEllipsis" Foreground="Black" Opacity="0.75" />
@@ -46,7 +46,7 @@
                                 VerticalAlignment="Top">
                         <Button x:Name="PreviousMusic" Width="35" Height="35" Margin="0,0,10,0"
                                 VerticalAlignment="Center"
-                                Command="{x:Bind ViewModel.GlobalMusicState.PreviousMusicCommand}"
+                                Command="{x:Bind ViewModel.MetaData.PreviousMusicCommand}"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0">
                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf8ac;" FontSize="20" />
@@ -54,13 +54,13 @@
                         <Button x:Name="Play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0"
-                                Command="{x:Bind ViewModel.GlobalMusicState.MusicPlayCommand}">
+                                Command="{x:Bind ViewModel.MetaData.MusicPlayCommand}">
                             <FontIcon FontFamily="Segoe Fluent Icons"
-                                      Glyph="{x:Bind ViewModel.GlobalMusicState.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
+                                      Glyph="{x:Bind ViewModel.MetaData.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
                                       FontSize="20" />
                         </Button>
                         <Button x:Name="NextMusic" Width="35" Height="35" VerticalAlignment="Center"
-                                Command="{x:Bind ViewModel.GlobalMusicState.NextMusicCommand}"
+                                Command="{x:Bind ViewModel.MetaData.NextMusicCommand}"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0">
                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf8ad;" FontSize="20" />
@@ -69,15 +69,15 @@
                     <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center"
                                 VerticalAlignment="Bottom">
                         <TextBlock x:Name="CurrentTimeTextBlock"
-                                   Text="{x:Bind ViewModel.GlobalMusicState.PositionString ,Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.MetaData.PositionString ,Mode=OneWay}"
                                    FontWeight="Black"
                                    FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
                                    Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
                         <Slider x:Name="CurrentTimeSlider" IsThumbToolTipEnabled="False" Width="340"
-                                Value="{x:Bind ViewModel.GlobalMusicState.PositionDouble, Mode=TwoWay}"
-                                Maximum="{x:Bind ViewModel.GlobalMusicState.DurationTimeDouble, Mode=OneWay}" />
+                                Value="{x:Bind ViewModel.MetaData.PositionDouble, Mode=TwoWay}"
+                                Maximum="{x:Bind ViewModel.MetaData.DurationTimeDouble, Mode=OneWay}" />
                         <TextBlock x:Name="DurationTime"
-                                   Text="{x:Bind ViewModel.GlobalMusicState.DurationTimeString, Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.MetaData.DurationTimeString, Mode=OneWay}"
                                    FontWeight="Black" FontFamily="JetBrains Mono"
                                    Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0"
                                    HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
@@ -87,12 +87,12 @@
                             Margin="0,0,30,0">
                     <Button x:Name="VolumeButton" Width="45" Height="45" Margin="5" Background="Transparent"
                             BorderThickness="0,0,0,0"
-                            Command="{x:Bind ViewModel.GlobalMusicState.VolumeMuteCommand}">
+                            Command="{x:Bind ViewModel.MetaData.VolumeMuteCommand}">
                         <FontIcon FontFamily="Segoe Fluent Icons" FontSize="22"
-                                  Glyph="{x:Bind ViewModel.GlobalMusicState.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
+                                  Glyph="{x:Bind ViewModel.MetaData.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
                     </Button>
                     <Slider x:Name="VolumeSlider" IsThumbToolTipEnabled="False"
-                            Value="{x:Bind ViewModel.GlobalMusicState.Volume, Mode=TwoWay}" Width="100"
+                            Value="{x:Bind ViewModel.MetaData.Volume, Mode=TwoWay}" Width="100"
                             HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
                     <Button x:Name="PlayList" Width="45" Height="45" Margin="5" Background="Transparent"
                             FontSize="26"

@@ -2,7 +2,7 @@
 using NAudio.Wave;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
-using NonsPlayer.Resources;
+using NonsPlayer.Data;
 using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Services;
@@ -41,15 +41,15 @@ public class PlayerService
             {
                 if (OutputDevice.PlaybackState == PlaybackState.Playing)
                 {
-                    GlobalMusicState.Instance.Position = TimeSpan.FromSeconds(_mfr.Position /
+                    MetaData.Instance.Position = TimeSpan.FromSeconds(_mfr.Position /
                         OutputDevice.OutputWaveFormat.BitsPerSample /
                         OutputDevice.OutputWaveFormat.Channels * 8.0 / OutputDevice.OutputWaveFormat.SampleRate);
-                    GlobalMusicState.Instance.PositionChangedHandle(GlobalMusicState.Instance.Position);
+                    MetaData.Instance.PositionChangedHandle(MetaData.Instance.Position);
                 }
 
-                if (GlobalMusicState.Instance.Position == GlobalMusicState.Instance.CurrentMusic.DuartionTime)
+                if (MetaData.Instance.Position == MetaData.Instance.CurrentMusic.DuartionTime)
                 {
-                    GlobalMusicState.Instance.OnNextMusic();
+                    MetaData.Instance.OnNextMusic();
                 }
             }
         });
@@ -66,14 +66,14 @@ public class PlayerService
             OutputDevice = new WaveOutEvent();
         }
 
-        GlobalMusicState.Instance.CurrentMusic = music2play;
-        await GlobalMusicState.Instance.CurrentMusic.GetLyric();
-        await GlobalMusicState.Instance.CurrentMusic.GetFileInfo();
+        MetaData.Instance.CurrentMusic = music2play;
+        await MetaData.Instance.CurrentMusic.GetLyric();
+        await MetaData.Instance.CurrentMusic.GetFileInfo();
         if (_mfr == null)
         {
             _mfr = new MediaFoundationReader(music2play.Url);
             OutputDevice.Init(_mfr);
-            OutputDevice.Volume = (float)GlobalMusicState.Instance.Volume / 100;
+            OutputDevice.Volume = (float)MetaData.Instance.Volume / 100;
         }
         else
         {
@@ -82,7 +82,7 @@ public class PlayerService
                 OutputDevice.Stop();
                 _mfr = new MediaFoundationReader(music2play.Url);
                 OutputDevice.Init(_mfr);
-                OutputDevice.Volume = (float)GlobalMusicState.Instance.Volume / 100;
+                OutputDevice.Volume = (float)MetaData.Instance.Volume / 100;
             }
         }
 
@@ -95,7 +95,7 @@ public class PlayerService
     /// <param name="re">是否从头播放</param>
     public void Play(bool re = false)
     {
-        if (GlobalMusicState.Instance.CurrentMusic == null)
+        if (MetaData.Instance.CurrentMusic == null)
         {
             return;
         }
@@ -104,21 +104,21 @@ public class PlayerService
         {
             if (re)
             {
-                GlobalMusicState.Instance.IsPlaying = true;
+                MetaData.Instance.IsPlaying = true;
                 _mfr.Position = TimeSpan.Zero.Ticks;
                 OutputDevice.Play();
             }
             else
             {
-                if (!GlobalMusicState.Instance.IsPlaying)
+                if (!MetaData.Instance.IsPlaying)
                 {
                     OutputDevice.Play();
-                    GlobalMusicState.Instance.IsPlaying = true;
+                    MetaData.Instance.IsPlaying = true;
                 }
                 else
                 {
                     OutputDevice.Pause();
-                    GlobalMusicState.Instance.IsPlaying = false;
+                    MetaData.Instance.IsPlaying = false;
                 }
             }
         }

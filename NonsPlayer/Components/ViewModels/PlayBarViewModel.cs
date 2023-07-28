@@ -2,19 +2,19 @@
 using System.Runtime.CompilerServices;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Heplers;
-using NonsPlayer.Resources;
+using NonsPlayer.Data;
 
 namespace NonsPlayer.Components.ViewModels
 {
     public class PlayerBarViewModel : INotifyPropertyChanged
     {
 
-        public GlobalMusicState GlobalMusicState => GlobalMusicState.Instance;
+        public MetaData MetaData => MetaData.Instance;
         public UserPlaylistHelper UserPlaylistHelper => UserPlaylistHelper.Instance;
 
         public PlayerBarViewModel()
         {
-            GlobalMusicState.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 0.0).ToString());
+            MetaData.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 0.0).ToString());
         }
         public void Init()
         {

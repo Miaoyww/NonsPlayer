@@ -9,16 +9,16 @@ using NonsPlayer.Core.Models;
 using Windows.UI;
 using NonsPlayer.Services;
 
-namespace NonsPlayer.Resources;
+namespace NonsPlayer.Data;
 
-public class GlobalMusicState : INotifyPropertyChanged
+public class MetaData : INotifyPropertyChanged
 {
-    public static GlobalMusicState Instance
+    public static MetaData Instance
     {
         get;
-    } = new GlobalMusicState();
+    } = new();
 
-    public GlobalMusicState()
+    public MetaData()
     {
         PositionChangedHandle = (t) => TimeSpan.Zero;
         CurrentMusic = new Music();
