@@ -1,9 +1,11 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Timers;
 using NAudio.Utils;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Services;
 using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Core.Player;
@@ -19,9 +21,8 @@ public class Player
     private MediaFoundationReader _mfr;
     public WaveOutEvent OutputDevice;
     public Music PreviousMusic;
-    
-    [JsonPropertyName("currentMusic")]
-    public Music CurrentMusic;
+
+    [JsonPropertyName("currentMusic")] public Music CurrentMusic;
 
     public delegate void MusicStopped();
 
@@ -50,7 +51,7 @@ public class Player
             _mfr.Position = value.Ticks;
         }
     }
-    
+
     [JsonPropertyName("volume")]
     public float Volume
     {
@@ -61,7 +62,7 @@ public class Player
             _volume = value;
         }
     }
-    
+
     public bool IsInitializingNewMusic
     {
         get;
@@ -75,6 +76,9 @@ public class Player
         timer.Interval = 20;
         timer.Elapsed += GetCurrentInfo;
         timer.Start();
+        var dataWriter = new Timer();
+        dataWriter.Interval = 1000;
+        timer.Elapsed += WriteCurrentInfo;
     }
 
     /// <summary>
@@ -98,6 +102,18 @@ public class Player
                 OutputDevice.PlaybackState == PlaybackState.Stopped)
             {
                 PlayStateChangedHandle(false);
+            }
+        }
+    }
+
+    //TODO: 为播放器添加一个缓冲区，用于存储播放器的信息，当播放器停止时，将缓冲区的信息写入文件
+    private void WriteCurrentInfo(object? sender, ElapsedEventArgs e)
+    {
+        if (OutputDevice != null && PlayStateChangedHandle != null)
+        {
+            if (OutputDevice.PlaybackState == PlaybackState.Playing)
+            {
+                
             }
         }
     }

@@ -13,9 +13,9 @@ public class AccountState : INotifyPropertyChanged
         get;
     } = new();
 
-    private string _uid;
-    private string _name;
-    private string _faceUrl;
+    private string _uid = Account.Instance.Uid;
+    private string _name = Account.Instance.Name;
+    private string _faceUrl = Account.Instance.FaceUrl;
     private ImageBrush _face;
 
     public string Uid

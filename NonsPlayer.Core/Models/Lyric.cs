@@ -1,11 +1,15 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 
 namespace NonsPlayer.Core.Models
 {
     public class Lyrics
     {
+        [JsonPropertyName("lyrics")]
         public List<Lyric>? Lrc;
+        
+        [JsonPropertyName("lyric_count")]
         public int? Count => Lrc.Count;
 
         public Lyrics(JObject lrc)
@@ -65,8 +69,13 @@ namespace NonsPlayer.Core.Models
 
     public class Lyric
     {
+        [JsonPropertyName("time")]
         public TimeSpan Time;
+        
+        [JsonPropertyName("original_lyric")]
         public string OriginalLyric;
+        
+        [JsonPropertyName("tran_lyric")]
         public string TranLyric;
 
         public Lyric(string oLrc, string tLyric, TimeSpan time)

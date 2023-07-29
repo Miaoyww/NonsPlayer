@@ -1,42 +1,34 @@
-﻿namespace NonsPlayer.Core.Models
+﻿using System.Text.Json.Serialization;
+
+namespace NonsPlayer.Core.Models
 {
     public class Album
     {
-        /// <summary>
-        /// 专辑Id
-        /// </summary>
+        [JsonPropertyName("id")]
         public int Id
         {
             get; set;
         }
 
-        /// <summary>
-        /// 专辑名称
-        /// </summary>
+        [JsonPropertyName("name")]
         public string Name
         {
             get; set;
         }
 
-        /// <summary>
-        /// 专辑封面
-        /// </summary>
+        [JsonPropertyName("pic_url")]
         public string PicUrl
         {
             get; set;
         }
 
-        /// <summary>
-        /// 发行时间
-        /// </summary>
+        [JsonPropertyName("create_date")]
         public DateTime CreateDate
         {
             get; set;
         }
 
-        /// <summary>
-        /// 描述
-        /// </summary>
+        [JsonPropertyName("description")]
         public string Description
         {
             get; set;
@@ -58,9 +50,7 @@
             get; set;
         }
 
-        /// <summary>
-        /// 专辑作者
-        /// </summary>
+        [JsonPropertyName("artists_name")]
         public string ArtistsName
         {
             get

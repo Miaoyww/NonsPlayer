@@ -12,6 +12,7 @@ public class PlayQueue
 
     private Music _currentMusic;
     private List<Music> _randomMusicList = new();
+    private bool _isUserPressed = false;
 
     public List<Music> MusicList
     {
@@ -60,10 +61,17 @@ public class PlayQueue
 
     public void OnMusicStopped(object sender, StoppedEventArgs e)
     {
-
         if (PlayMode == PlayModeEnum.ListLoop && Player.Instance.IsInitializingNewMusic == false)
         {
-            PlayNext();
+            if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic && PlayMode != PlayModeEnum.SingleLoop)
+            {
+                if (_isUserPressed)
+                {
+                    return;
+                }
+
+                PlayNext();
+            }
         }
     }
 
@@ -171,14 +179,15 @@ public class PlayQueue
         }
 
         CurrentMusic = music;
+        _isUserPressed = false;
     }
 
     /// <summary>
     /// 播放下一首歌曲
     /// </summary>
-    public void PlayNext()
+    public void PlayNext(bool isUserPressed = false)
     {
-        // 若当前播放模式为随机播放，则获取随机播放列表
+        _isUserPressed = isUserPressed;
         var list = PlayMode is PlayModeEnum.Random ? _randomMusicList : MusicList;
 
         // 如果是单曲循环，那么就播放当前歌曲
@@ -217,8 +226,9 @@ public class PlayQueue
     /// <summary>
     /// 播放上一首歌曲
     /// </summary>
-    public void PlayPrevious()
+    public void PlayPrevious(bool isUserPressed = false)
     {
+        _isUserPressed = isUserPressed;
         // 若当前播放模式为随机播放，则获取随机播放列表
         var list = PlayMode is PlayModeEnum.Random ? _randomMusicList : MusicList;
         // 获取上一首歌曲

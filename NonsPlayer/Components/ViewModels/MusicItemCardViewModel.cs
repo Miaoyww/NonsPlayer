@@ -113,7 +113,7 @@ public partial class MusicItemCardViewModel : ObservableRecipient, INotifyProper
                     ImageSource = new BitmapImage(new Uri(Music.CoverUrl + "?param=40y40"))
                 };
                 Name = Music.Name;
-                Time = Music.DuartionTimeString;
+                Time = Music.TotalTimeString;
                 Album = Music.AlbumName;
                 Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
                 Liked = UserPlaylistHelper.Instance.IsLiked(Music.Id);

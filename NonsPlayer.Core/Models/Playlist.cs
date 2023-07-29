@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.Json.Serialization;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Helpers;
@@ -7,72 +8,54 @@ namespace NonsPlayer.Core.Models;
 
 public class Playlist
 {
-    /// <summary>
-    ///     歌单创建时间
-    /// </summary>
+    [JsonPropertyName("create_time")]
     public DateTime CreateTime;
 
-    /// <summary>
-    ///     歌单歌曲全部Id
-    /// </summary>
+    [JsonPropertyName("music_track_ids")]
     public long[] MusicTrackIds;
 
-    /// <summary>
-    ///     歌单标签
-    /// </summary>
+    [JsonPropertyName("tags")]
     public string[] Tags;
 
-    /// <summary>
-    ///     歌单名称
-    /// </summary>
+    [JsonPropertyName("name")]
     public string Name
     {
         get;
         set;
     }
 
-    /// <summary>
-    ///     歌单Id
-    /// </summary>
+    [JsonPropertyName("id")]
     public long Id
     {
         get;
         set;
     }
 
-    /// <summary>
-    ///     歌单封面Url
-    /// </summary>
+    [JsonPropertyName("pic_url")]
     public string PicUrl
     {
         get;
         set;
     }
 
-    /// <summary>
-    ///     歌单描述
-    /// </summary>
+    [JsonPropertyName("description")]
     public string Description
     {
         get;
         set;
     }
 
-    /// <summary>
-    ///     歌单创建者
-    /// </summary>
+    [JsonPropertyName("creator")]
     public string Creator
     {
         get;
         set;
     }
 
-    /// <summary>
-    ///     歌单歌曲数量
-    /// </summary>
+    [JsonPropertyName("musics_count")]
     public int MusicsCount => MusicTrackIds.Length;
 
-
+    [JsonPropertyName("musics")]
     public Music[] Musics
     {
         get;

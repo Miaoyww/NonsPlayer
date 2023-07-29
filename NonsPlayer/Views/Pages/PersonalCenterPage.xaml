@@ -15,11 +15,11 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <Border Grid.Row="0" Name="Face" Height="200" Width="200" CornerRadius="180"
-                    Background="{x:Bind ViewModel.Account.Face, Mode=OneWay}" Margin="0,0,0,20" />
+                    Background="{x:Bind ViewModel.AccountState.Face, Mode=OneWay}" Margin="0,0,0,20" />
             <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
                 <TextBlock Text="早上好!"
                            FontWeight="Black" FontSize="15" FontFamily="HarmonyOS Sans SC" />
-                <TextBlock Text="{x:Bind ViewModel.Account.Name, Mode=OneWay}"
+                <TextBlock Text="{x:Bind ViewModel.AccountState.Name, Mode=OneWay}"
                            FontWeight="Black" FontSize="15" FontFamily="HarmonyOS Sans SC" />
             </StackPanel>
         </Grid>

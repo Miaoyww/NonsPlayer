@@ -1,11 +1,38 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
+using NonsPlayer.Core.Contracts.DataReader;
 using NonsPlayer.Core.Contracts.Services;
-
+using JsonSerializer = System.Text.Json.JsonSerializer;
 namespace NonsPlayer.Core.Services;
 
 public class FileService : IFileService
 {
+    public static FileService Instance
+    {
+        get;
+    } = new();
+
+    public void WriteData(string filename, string content)
+    {
+        var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, filename);
+        using (StreamWriter writer = new StreamWriter(path))
+        {
+            writer.Write(content);
+        }
+    }
+    
+    public T ReadData<T>(string filename)
+    {
+        var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, filename);
+        string json;
+        using (StreamReader reader = new StreamReader(path))
+        {
+            json = reader.ReadToEnd();
+        }
+
+        var result = JsonSerializer.Deserialize<T>(json);
+        return result;
+    }
     public T Read<T>(string folderPath, string fileName)
     {
         var path = Path.Combine(folderPath, fileName);

@@ -2,10 +2,13 @@
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Helpers;
+using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Services;
 
 namespace NonsPlayer.Core.Account;
 
@@ -17,13 +20,14 @@ public class Account
     private string _uid = string.Empty;
     private string _name = "未登录";
     private string _faceUrl = "ms-appdata:///Assets/UnKnowResource.png";
-    
-    public string Uid => _uid;
-    
-    public string Name => _name;
-    
-    public string FaceUrl => _faceUrl;
-    
+
+    [JsonPropertyName("uid")] public string Uid => _uid;
+
+    [JsonPropertyName("name")] public string Name => _name;
+
+    [JsonPropertyName("face_url")] public string FaceUrl => _faceUrl;
+
+    [JsonPropertyName("is_logged_in")]
     public bool IsLoggedIn
     {
         get
@@ -38,11 +42,13 @@ public class Account
             }
         }
     }
-    
+
     public string Token => _token;
 
     public delegate void AccountInitialized();
+
     public AccountInitialized AccountInitializedHandle;
+
     public static Account Instance
     {
         get;
@@ -91,12 +97,21 @@ public class Account
         {
             throw new LoginFailureException("登陆token错误");
         }
-        
+
         _uid = result["profile"]["userId"].ToString();
         _name = result["profile"]["nickname"].ToString();
         _faceUrl = result["profile"]["avatarUrl"].ToString();
         AccountInitializedHandle();
+        var json = JsonSerializer.Serialize(new AccountState
+        {
+            Uid = Uid,
+            Name= Name,
+            FaceUrl = FaceUrl
+        });
+        FileService.Instance.WriteData("account.json", json);
     }
+
+    #region 无关紧要
 
     #region AES加密解密
 
@@ -239,4 +254,6 @@ public class Account
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
+    #endregion
 }

@@ -1,66 +1,48 @@
-﻿namespace NonsPlayer.Core.Models
+﻿using System.Text.Json.Serialization;
+
+namespace NonsPlayer.Core.Models
 {
     public class Artist
     {
-        /// <summary>
-        /// 歌手Id
-        /// </summary>
+       [JsonPropertyName("id")]
         public long Id
         {
             get; set;
         }
 
-        /// <summary>
-        /// 歌手名
-        /// </summary>
+        [JsonPropertyName("name")]
         public string Name
         {
             get; set;
         }
 
-        /// <summary>
-        /// 歌手图片
-        /// </summary>
+        [JsonPropertyName("pic_url")]
         public string PicUrl
         {
             get; set;
         }
-
-        /// <summary>
-        /// mv数量
-        /// </summary>
+        
         public int MvCount
         {
             get; set;
         }
-
-        /// <summary>
-        /// 音乐数量
-        /// </summary>
+        
         public int MusicCount
         {
             get; set;
         }
-
-        /// <summary>
-        /// 专辑数量
-        /// </summary>
+        
         public int AlbumCount
         {
             get; set;
         }
-
-        /// <summary>
-        /// 如果歌手有账户，对应账户id
-        /// </summary>
+        
+        [JsonPropertyName("account_id")]
         public long AccountId
         {
             get; set;
         }
-
-        /// <summary>
-        /// 歌手的热门歌曲
-        /// </summary>
+        
         public List<Music> HotMusics
         {
             get; set;

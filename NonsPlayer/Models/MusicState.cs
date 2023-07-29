@@ -55,7 +55,7 @@ public class MusicState : INotifyPropertyChanged
                 ImageSource = new BitmapImage(new Uri(_currentMusic.CoverUrl))
             };
             Cover = brush;
-            Duration = _currentMusic.DuartionTime;
+            Duration = _currentMusic.TotalTime;
             OnPropertyChanged();
             OnPropertyChanged(nameof(Cover));
         }

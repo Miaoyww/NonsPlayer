@@ -20,7 +20,7 @@ namespace NonsPlayer.Heplers
         {
             get;
         } = new();
-
+        
         public ObservableCollection<UserPlaylistItem> UserPlaylists
         {
             get;

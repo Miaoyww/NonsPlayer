@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Text.Json.Serialization;
+using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Helpers;
@@ -7,71 +8,45 @@ namespace NonsPlayer.Core.Models;
 
 public class Music
 {
-    /// <summary>
-    ///     歌曲专辑
-    /// </summary>
+    [JsonPropertyName("album")]
     public Album Album;
-
-    /// <summary>
-    ///     歌曲作者
-    /// </summary>
+    
+    [JsonPropertyName("artists")]
     public List<Artist> Artists;
-
-    /// <summary>
-    ///     歌曲封面Url
-    /// </summary>
+    
+    [JsonPropertyName("cover")]
     public string CoverUrl;
-
-    /// <summary>
-    ///     歌曲总时长
-    /// </summary>
-    public TimeSpan DuartionTime;
-
-    /// <summary>
-    ///     歌曲总时长的String版 mm:ss
-    /// </summary>
-    public string DuartionTimeString;
-
-    /// <summary>
-    ///     下载文件的扩展名
-    /// </summary>
+    
+    [JsonPropertyName("total_time")]
+    public TimeSpan TotalTime;
+    
+    public string TotalTimeString => TotalTime.ToString(@"m\:ss");
+    
     public string FileType;
-
-    /// <summary>
-    ///     歌曲Id
-    /// </summary>
+    
+    [JsonPropertyName("id")]
     public long Id;
-
-    /// <summary>
-    ///     是否收藏歌曲
-    /// </summary>
+    
     public bool IsLiked;
-
-    /// <summary>
-    ///     歌曲名称
-    /// </summary>
+    
+    [JsonPropertyName("name")]
     public string Name;
-
-    /// <summary>
-    ///     歌曲Url
-    /// </summary>
+    
+    [JsonPropertyName("url")]
     public string Url;
-
-
+    
+    [JsonPropertyName("is_empty")]
     public bool IsEmpty;
-
-    /// <summary>
-    ///     歌曲歌词
-    /// </summary>
+    
+    [JsonPropertyName("lyrics")]
     public Lyrics Lyrics;
-
+    
     public Music(JObject playlistMusicTrack)
     {
         Name = (string)playlistMusicTrack["name"];
         Id = (int)playlistMusicTrack["id"];
         CoverUrl = (string)playlistMusicTrack["al"]["picUrl"];
-        DuartionTime = TimeSpan.FromMilliseconds(int.Parse(playlistMusicTrack["dt"].ToString()));
-        DuartionTimeString = DuartionTime.ToString(@"m\:ss");
+        TotalTime = TimeSpan.FromMilliseconds(int.Parse(playlistMusicTrack["dt"].ToString()));
 
         Album = new Album
         {
@@ -101,20 +76,12 @@ public class Music
         };
         IsEmpty = true;
     }
-
-    /// <summary>
-    ///     歌曲作者名称
-    /// </summary>
+    
     public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
 
-    /// <summary>
-    ///     歌曲专辑
-    /// </summary>
-    public string AlbumName => Album?.Name;
 
-    /// <summary>
-    ///     支持的歌曲质量
-    /// </summary>
+    public string AlbumName => Album?.Name;
+    
     public MusicQualityLevel[] QualityLevels
     {
         get;
@@ -137,9 +104,7 @@ public class Music
         Name = (string)musicDetail["name"];
         Id = (int)musicDetail["id"];
         CoverUrl = (string)musicDetail["al"]["picUrl"];
-        DuartionTime = TimeSpan.FromMilliseconds(int.Parse(musicDetail["dt"].ToString()));
-        DuartionTimeString = DuartionTime.ToString(@"m\:ss");
-
+        TotalTime = TimeSpan.FromMilliseconds(int.Parse(musicDetail["dt"].ToString()));
         Album = new Album
         {
             Name = (string)musicDetail["al"]["name"],
@@ -186,15 +151,4 @@ public class Music
 
         return HttpRequest.StreamHttpGet(CoverUrl + $"?param={x}y{y}");
     }
-
-    // public ImageBrush SmallCover
-    // {
-    //     get
-    //     {
-    //         return new ImageBrush
-    //         {
-    //             ImageSource = new BitmapImage(new Uri(CoverUrl + "?param=40y40"))
-    //         };
-    //     }
-    // }
 }

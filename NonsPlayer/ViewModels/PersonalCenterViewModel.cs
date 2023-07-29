@@ -2,13 +2,16 @@
 using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core;
+using NonsPlayer.Core.Account;
+using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Models;
 
 namespace NonsPlayer.ViewModels;
 
-public partial class PersonalCenterViewModel : ObservableRecipient
+public class PersonalCenterViewModel : ObservableRecipient
 {
-    public AccountService Account => AccountService.Instance;
+    public AccountState AccountState => AccountState.Instance;
     public INavigationService NavigationService
     {
         get;
@@ -21,7 +24,7 @@ public partial class PersonalCenterViewModel : ObservableRecipient
 
     public void PersonalCenterPage_OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (!Nons.Instance.isLoggedin)
+        if (!Account.Instance.IsLoggedIn)
         {
             NavigationService.NavigateTo(typeof(LoginViewModel).FullName!);
         }
