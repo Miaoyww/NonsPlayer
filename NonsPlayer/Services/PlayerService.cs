@@ -65,9 +65,9 @@ public class PlayerService
         }
     }
 
-    private void OnPreviousMusic() => PlayQueue.Instance.PlayPrevious();
+    private void OnPreviousMusic() => PlayQueue.Instance.PlayPrevious(isUserPressed: true);
 
-    private void OnNextMusic() => PlayQueue.Instance.PlayNext();
+    private void OnNextMusic() => PlayQueue.Instance.PlayNext(isUserPressed: true);
 
     public ICommand MusicPlayCommand
     {

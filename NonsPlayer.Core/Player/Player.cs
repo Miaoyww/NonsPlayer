@@ -15,9 +15,10 @@ public class Player
     } = new();
 
     private float _volume;
-    private Music _currentMusic;
     private MediaFoundationReader _mfr;
     public WaveOutEvent OutputDevice;
+    public Music PreviousMusic;
+    public Music CurrentMusic;
 
     public delegate void MusicStopped();
 
@@ -82,7 +83,9 @@ public class Player
             {
                 var playerState = new PlayerState
                 {
-                    Position = Position
+                    Position = Position,
+                    CurrentMusic = CurrentMusic,
+                    Volume = Volume
                 };
                 PositionChangedHandle(playerState.Position);
                 PlayStateChangedHandle(true);
@@ -92,10 +95,6 @@ public class Player
                 OutputDevice.PlaybackState == PlaybackState.Stopped)
             {
                 PlayStateChangedHandle(false);
-            }
-
-            if (IsInitializingNewMusic)
-            {
             }
         }
     }
@@ -113,7 +112,7 @@ public class Player
 
         await Task.WhenAll(music2play.GetLyric(), music2play.GetFileInfo());
         MusicChangedHandle(music2play);
-        _currentMusic = music2play;
+        CurrentMusic = music2play;
         if (_mfr == null)
         {
             _mfr = new MediaFoundationReader(music2play.Url);
@@ -143,7 +142,7 @@ public class Player
     /// <param name="rePlay">是否从头播放</param>
     public void Play()
     {
-        if (_currentMusic == null)
+        if (CurrentMusic == null)
         {
             return;
         }
