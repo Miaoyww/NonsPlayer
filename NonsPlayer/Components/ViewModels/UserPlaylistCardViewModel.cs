@@ -39,7 +39,7 @@ namespace NonsPlayer.Components.ViewModels
             set;
         }
 
-        public async void Init(JObject playlistItem)
+        public void Init(JObject playlistItem)
         {
             Name = playlistItem["name"].ToString();
             Cover = new ImageBrush

@@ -5,7 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Core;
+using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
@@ -119,7 +119,7 @@ public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChange
                     {
                         if (cookieItem.Name == "MUSIC_U")
                         {
-                            AccountService.Instance.LoginByToken(cookieItem.Value);
+                            Account.Instance.LoginByToken(cookieItem.Value);
                         }
                     }
 

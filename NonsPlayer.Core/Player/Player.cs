@@ -1,4 +1,5 @@
-﻿using System.Timers;
+﻿using System.Text.Json.Serialization;
+using System.Timers;
 using NAudio.Utils;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
@@ -18,6 +19,8 @@ public class Player
     private MediaFoundationReader _mfr;
     public WaveOutEvent OutputDevice;
     public Music PreviousMusic;
+    
+    [JsonPropertyName("currentMusic")]
     public Music CurrentMusic;
 
     public delegate void MusicStopped();
@@ -33,6 +36,7 @@ public class Player
     public PositionChanged PositionChangedHandle;
     public MusicChanged MusicChangedHandle;
 
+    [JsonPropertyName("position")]
     public TimeSpan Position
     {
         get => OutputDevice.GetPositionTimeSpan();
@@ -46,7 +50,8 @@ public class Player
             _mfr.Position = value.Ticks;
         }
     }
-
+    
+    [JsonPropertyName("volume")]
     public float Volume
     {
         get => _volume;
@@ -56,7 +61,7 @@ public class Player
             _volume = value;
         }
     }
-
+    
     public bool IsInitializingNewMusic
     {
         get;
@@ -83,9 +88,7 @@ public class Player
             {
                 var playerState = new PlayerState
                 {
-                    Position = Position,
-                    CurrentMusic = CurrentMusic,
-                    Volume = Volume
+                    Position = Position
                 };
                 PositionChangedHandle(playerState.Position);
                 PlayStateChangedHandle(true);

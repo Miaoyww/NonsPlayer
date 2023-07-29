@@ -2,56 +2,20 @@
 using System.Text;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using NonsPlayer.Core.Account;
 
-namespace NonsPlayer.Core;
+namespace NonsPlayer.Core.Api;
 
 public class Nons
 {
     public static Nons Instance
     {
         get;
-    } = new Nons();
+    } = new();
 
-    private string _token = string.Empty;
+    
     private RestClient _client = new("https://music.163.com");
-
-    public Nons()
-    {
-    }
-
-    public bool isLoggedin
-    {
-        get
-        {
-            if (!_token.Equals(string.Empty))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-
-    public string Token
-    {
-        get
-        {
-            return _token;
-        }
-    }
-
-    public void Login(string token)
-    {
-        _token = token;
-    }
-
-    public void LogOut()
-    {
-        return;
-    }
-
+    
     public async Task<IRestResponse> RequestRestResponse(string url, IDictionary<string, object>? parameters = null)
     {
         var request = new RestRequest(url, Method.POST);
@@ -69,9 +33,9 @@ public class Nons
         request.AddHeader("UserAgent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
         request.AddHeader("Referrer", "https://music.163.com");
 
-        if (!_token.Equals(string.Empty))
+        if (!Account.Account.Instance.Token.Equals(string.Empty))
         {
-            request.AddCookie("MUSIC_U", _token);
+            request.AddCookie("MUSIC_U", Account.Account.Instance.Token);
         }
 
         return await _client.ExecuteAsync(request);

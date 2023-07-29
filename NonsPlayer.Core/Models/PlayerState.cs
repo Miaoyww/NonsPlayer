@@ -1,6 +1,12 @@
-﻿namespace NonsPlayer.Core.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace NonsPlayer.Core.Models;
 
 public class PlayerState
 {
-    public TimeSpan Position { get; set; }
+    public TimeSpan Position
+    {
+        get;
+        set;
+    }
 }

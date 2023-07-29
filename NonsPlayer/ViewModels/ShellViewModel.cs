@@ -9,12 +9,15 @@ using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using Windows.System;
+using NonsPlayer.Core.Account;
+using NonsPlayer.Models;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
 public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
 {
-    public AccountService Account => AccountService.Instance;
+    public AccountState AccountState => AccountState.Instance;
     private bool _isBackEnabled;
 
     public bool IsBackEnabled
@@ -34,7 +37,8 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         MenuExploreOpenCommand = new RelayCommand(OnMenuExploreOpen);
         MenuPersonalCenterMenuOwnOpenCommand = new RelayCommand(OnMenuPersonalCenterOpen);
         MenuSettingsCommand = new RelayCommand(OnMenuSettings);
-        AccountService.Instance.LoginByReg();
+        AccountService.Instance.Create();
+        Account.Instance.LoginByReg();
     }
 
 
