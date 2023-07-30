@@ -19,7 +19,7 @@ public class Music
     public string FileType;
 
     [JsonPropertyName("id")] public long Id;
-
+    public string CacheId => Id.ToString() + "_music";
     public bool IsLiked;
 
     [JsonPropertyName("name")] public string Name;

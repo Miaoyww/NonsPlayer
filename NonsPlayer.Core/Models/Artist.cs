@@ -4,48 +4,21 @@ namespace NonsPlayer.Core.Models
 {
     public class Artist
     {
-       [JsonPropertyName("id")]
-        public long Id
-        {
-            get; set;
-        }
+        [JsonPropertyName("id")] public long Id;
+        public string CacheId => Id.ToString() + "_artist";
 
-        [JsonPropertyName("name")]
-        public string Name
-        {
-            get; set;
-        }
+        [JsonPropertyName("name")] public string Name;
 
-        [JsonPropertyName("pic_url")]
-        public string PicUrl
-        {
-            get; set;
-        }
-        
-        public int MvCount
-        {
-            get; set;
-        }
-        
-        public int MusicCount
-        {
-            get; set;
-        }
-        
-        public int AlbumCount
-        {
-            get; set;
-        }
-        
-        [JsonPropertyName("account_id")]
-        public long AccountId
-        {
-            get; set;
-        }
-        
-        public List<Music> HotMusics
-        {
-            get; set;
-        }
+        [JsonPropertyName("pic_url")] public string PicUrl;
+
+        public int MvCount;
+
+        public int MusicCount;
+
+        public int AlbumCount;
+
+        [JsonPropertyName("account_id")] public long AccountId;
+
+        public List<Music> HotMusics;
     }
 }

@@ -21,7 +21,7 @@ namespace NonsPlayer.Heplers
             get;
         } = new();
         
-        public ObservableCollection<UserPlaylistItem> UserPlaylists
+        public ObservableCollection<Playlist> UserPlaylists
         {
             get;
         } = new();
@@ -64,7 +64,7 @@ namespace NonsPlayer.Heplers
             Player.Instance.MusicChangedHandle += OnMusicChanged;
         }
 
-        public ObservableCollection<UserPlaylistItem> SavedPlaylists
+        public ObservableCollection<Playlist> SavedPlaylists
         {
             get;
         } = new();
@@ -86,16 +86,16 @@ namespace NonsPlayer.Heplers
 
                 if ((bool)playlistItem["subscribed"])
                 {
-                    SavedPlaylists.Add(new UserPlaylistItem
+                    SavedPlaylists.Add(new Playlist
                     {
-                        PlayList = (JObject)playlistItem
+                        Id = long.Parse(playlistItem["id"].ToString())
                     });
                 }
                 else
                 {
-                    UserPlaylists.Add(new UserPlaylistItem
+                    UserPlaylists.Add(new Playlist
                     {
-                        PlayList = (JObject)playlistItem
+                        Id = long.Parse(playlistItem["id"].ToString())
                     });
                 }
             }

@@ -7,6 +7,7 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
 using Windows.UI;
 using CommunityToolkit.Mvvm.ComponentModel;
+using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 
 namespace NonsPlayer.Models;
@@ -35,39 +36,40 @@ public partial class MusicState
     [ObservableProperty] private TimeSpan duration = TimeSpan.Zero;
     [ObservableProperty] private TimeSpan position = TimeSpan.Zero;
     [ObservableProperty] private Music currentMusic;
+
     partial void OnCurrentMusicChanged(Music value)
     {
         if (value.IsEmpty)
         {
             return;
         }
-
-        ImageBrush brush = new()
-        {
-            ImageSource = new BitmapImage(new Uri(value.Album.CoverUrl))
-        };
-        cover = brush;
+        cover = CacheHelper.GetImageBrush(value.Album.CacheCoverId, value.Album.CoverUrl);
         duration = value.TotalTime;
         OnPropertyChanged(nameof(Cover));
         OnPropertyChanged(nameof(Duration));
         OnPropertyChanged(nameof(DurationString));
     }
+
     partial void OnPositionChanging(TimeSpan value)
     {
         if (value.Equals(null))
         {
             return;
         }
+
         OnPropertyChanged(nameof(PositionString));
     }
+
     partial void OnDurationChanged(TimeSpan value)
     {
         if (value.Equals(null))
         {
             return;
         }
+
         OnPropertyChanged(nameof(DurationString));
     }
+
     partial void OnVolumeChanging(double value)
     {
         currentVolume = value;
@@ -77,7 +79,7 @@ public partial class MusicState
             Player.Instance.Volume = (float)value / 100;
         }
     }
-    
+
     public string DurationString
     {
         get
@@ -86,9 +88,11 @@ public partial class MusicState
             {
                 return "00:00";
             }
+
             return duration.ToString(@"mm\:ss");
         }
     }
+
     public string PositionString
     {
         get

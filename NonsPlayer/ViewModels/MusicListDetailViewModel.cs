@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using NonsPlayer.Cache;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Helpers;
@@ -36,7 +37,7 @@ public partial class MusicListDetailViewModel : ObservableRecipient, INavigation
 
     public ObservableCollection<MusicItem> MusicItems = new();
     public List<Music> Musics = new();
-    
+
     public void OnNavigatedFrom()
     {
     }
@@ -54,10 +55,7 @@ public partial class MusicListDetailViewModel : ObservableRecipient, INavigation
                 CreateTime = $"· {playListObject.CreateTime.ToString().Split(" ")[0]}";
                 Description = playListObject.Description;
                 MusicsCount = playListObject.MusicsCount + "Tracks";
-                Cover = new ImageBrush
-                {
-                    ImageSource = new BitmapImage(new Uri(playListObject.PicUrl))
-                };
+                Cover = CacheHelper.GetImageBrush(playListObject.CacheCoverId, playListObject.CoverUrl);
             });
         });
     }
@@ -74,16 +72,13 @@ public partial class MusicListDetailViewModel : ObservableRecipient, INavigation
                 Music = playListObject.Musics[i],
                 Index = (i + 1).ToString("D2")
             });
-            //
-            // OnPropertyChanged(nameof(MusicItems));
         }
     }
 
     public async void PageLoaded(object sender, RoutedEventArgs e)
     {
-        Playlist playlist = new();
-        playListObject = playlist;
-        var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(playlist.LoadAsync(currentId));
+        playListObject = CacheHelper.GetPlaylist(currentId + "_playlist".ToString(), currentId.ToString());
+        var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(playListObject.LoadAsync(currentId));
         Debug.WriteLine($"加载歌单({playListObject.Id})所用时间: {playlistLoadedTime.Milliseconds}ms");
         await Task.WhenAll(LoadPlaylistDetailAsync(), LoadMusicsAsync());
     }

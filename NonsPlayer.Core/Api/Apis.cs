@@ -7,7 +7,7 @@ public static class Apis
 {
     public static class Playlist
     {
-        public static async Task<JObject> Detail(long id, Nons nons)
+        public static async Task<JObject> Detail(long? id, Nons nons)
         {
             string _URL = $"https://music.163.com/api/v6/playlist/detail";
             IDictionary<string, object> pairs = new Dictionary<string, object>

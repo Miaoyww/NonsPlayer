@@ -6,6 +6,8 @@ using Newtonsoft.Json.Linq;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Models;
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
@@ -16,7 +18,7 @@ public class HomeViewModel : ObservableRecipient
         get;
     }
 
-    public ObservableCollection<PlaylistItem> Playlists = new();
+    public ObservableCollection<Playlist> Playlists = new();
 
     public HomeViewModel(INavigationService navigationService)
     {
@@ -31,7 +33,7 @@ public class HomeViewModel : ObservableRecipient
             var playlists = (JArray)response["result"];
             foreach (JObject item in playlists)
             {
-                Playlists.Add(new PlaylistItem { PlayList = item });
+                Playlists.Add(CacheHelper.GetPlaylist(item["id"].ToString() + "_playlist", item["id"].ToString()));
             }
         }
     }

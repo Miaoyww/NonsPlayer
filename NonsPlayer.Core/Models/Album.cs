@@ -4,46 +4,18 @@ namespace NonsPlayer.Core.Models
 {
     public class Album
     {
-        [JsonPropertyName("id")]
-        public int Id
-        {
-            get;
-            set;
-        }
+        [JsonPropertyName("id")] public int Id;
+        public string CacheCoverId => Id.ToString() + "_album_cover";
+        public string CacheSmallCoverId => Id.ToString() + "_album_small_cover";
 
-        [JsonPropertyName("name")]
-        public string Name
-        {
-            get;
-            set;
-        }
+        [JsonPropertyName("name")] public string Name;
 
-        [JsonPropertyName("pic_url")]
-        public string CoverUrl
-        {
-            get;
-            set;
-        }
+        [JsonPropertyName("pic_url")] public string CoverUrl;
 
-        public string SmallCoverUrl
-        {
-            get;
-            set;
-        }
+        public string SmallCoverUrl;
 
-        [JsonPropertyName("create_date")]
-        public DateTime CreateDate
-        {
-            get;
-            set;
-        }
-
-        [JsonPropertyName("description")]
-        public string Description
-        {
-            get;
-            set;
-        }
+        [JsonPropertyName("create_date")] public DateTime CreateDate;
+        [JsonPropertyName("description")] public string Description;
 
         /// <summary>
         /// 专辑歌曲

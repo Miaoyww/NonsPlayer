@@ -1,7 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using NonsPlayer.Cache;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -20,9 +22,6 @@ public partial class PlayQueueItemCardViewModel
         Name = music.Name;
         Artists = music.ArtistsName;
         Time = music.TotalTimeString;
-        Cover = new ImageBrush
-        {
-            ImageSource = new BitmapImage(new Uri(music.Album.SmallCoverUrl))
-        };
+        Cover = CacheHelper.GetImageBrush(music.Album.CacheSmallCoverId, music.Album.SmallCoverUrl);
     }
 }

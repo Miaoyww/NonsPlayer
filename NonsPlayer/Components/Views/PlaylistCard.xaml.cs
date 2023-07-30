@@ -2,6 +2,7 @@
 using Microsoft.UI.Xaml.Input;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Components.ViewModels;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.Views;
@@ -19,7 +20,7 @@ public sealed partial class PlaylistCard : UserControl
         InitializeComponent();
     }
 
-    public JObject PlaylistItem
+    public Playlist PlaylistItem
     {
         set => ViewModel.Init(value);
     }

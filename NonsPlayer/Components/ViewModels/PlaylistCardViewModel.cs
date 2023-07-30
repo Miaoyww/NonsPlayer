@@ -4,6 +4,8 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
+using NonsPlayer.Cache;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels;
@@ -15,16 +17,13 @@ public partial class PlaylistCardViewModel
     [ObservableProperty] private string title;
     [ObservableProperty] private string id;
 
-    public void Init(JObject item)
-    {
-        var picUrl = item["picUrl"] + "?param=200y200";
-        var title = (string)item["name"];
-        Id = (string)item["id"];
-        Title = title;
-        Cover = new ImageBrush
-        {
-            ImageSource = new BitmapImage(new Uri(picUrl))
-        };
+    public async void Init(Playlist item)
+    {   
+        CacheManager.Instance.Set(item.CacheId, new CacheItem<Playlist> {Data = item});
+        await item.LoadAsync();
+        Id = item.Id.ToString();
+        Title = item.Name;
+        Cover = CacheHelper.GetImageBrush(item.CacheMiddleCoverId, item.MiddleCoverUrl);
     }
 
     public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e) =>

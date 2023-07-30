@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using NonsPlayer.Cache;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
 using NonsPlayer.Helpers;
@@ -29,10 +30,7 @@ public partial class MusicItemCardViewModel : ObservableObject
         {
             ServiceHelper.DispatcherQueue.TryEnqueue(() =>
             {
-                Cover = new ImageBrush
-                {
-                    ImageSource = new BitmapImage(new Uri(Music.Album.SmallCoverUrl))
-                };
+                Cover = CacheHelper.GetImageBrush(music.Album.CacheSmallCoverId, music.Album.SmallCoverUrl);
                 Name = Music.Name;
                 Time = Music.TotalTimeString;
                 Album = Music.AlbumName;

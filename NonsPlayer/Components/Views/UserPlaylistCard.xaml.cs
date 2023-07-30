@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml.Input;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Components.ViewModels;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
 using UserControl = Microsoft.UI.Xaml.Controls.UserControl;
 
@@ -16,7 +17,7 @@ namespace NonsPlayer.Components.Views
             get;
         }
 
-        public JObject PlaylistItem
+        public Playlist PlaylistItem
         {
             set => ViewModel.Init(value);
         }

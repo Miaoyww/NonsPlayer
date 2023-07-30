@@ -8,8 +8,8 @@
     Loaded="{x:Bind ViewModel.HomeLoad}"
     xmlns:helpers="using:NonsPlayer.Helpers"
     xmlns:pages="using:NonsPlayer.Views.Pages"
-    xmlns:models="using:NonsPlayer.Components.Models"
-    xmlns:views="using:NonsPlayer.Components.Views">
+    xmlns:views="using:NonsPlayer.Components.Views"
+    xmlns:models="using:NonsPlayer.Core.Models">
     <Grid>
         <ScrollViewer Margin="0,0,0,90">
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">
@@ -33,8 +33,8 @@
                               SelectionMode="None"
                               HorizontalAlignment="Left" Margin="0,40,0,0">
                         <GridView.ItemTemplate>
-                            <DataTemplate x:DataType="models:PlaylistItem">
-                                <views:PlaylistCard PlaylistItem="{x:Bind PlayList}" />
+                            <DataTemplate x:DataType="models:Playlist">
+                                <views:PlaylistCard PlaylistItem="{x:Bind This}" />
                             </DataTemplate>
                         </GridView.ItemTemplate>
                     </GridView>

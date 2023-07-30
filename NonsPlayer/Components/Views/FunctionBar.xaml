@@ -5,7 +5,7 @@
     xmlns:local="using:NonsPlayer.Components.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:models="using:NonsPlayer.Components.Models"
+    xmlns:models="using:NonsPlayer.Core.Models"
     mc:Ignorable="d">
     <Grid Name="FuncBar" Background="#F6F7F8" Width="200">
         <Grid.RowDefinitions>
@@ -27,8 +27,8 @@
                     <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None"
                               ItemsSource="{x:Bind ViewModel.UserPlaylists}">
                         <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="models:UserPlaylistItem">
-                                <local:UserPlaylistCard PlaylistItem="{x:Bind PlayList}" />
+                            <DataTemplate x:DataType="models:Playlist">
+                                <local:UserPlaylistCard PlaylistItem="{x:Bind This}" />
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>
