@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -8,31 +9,15 @@ using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels
 {
-    public class UserPlaylistCardViewModel : INotifyPropertyChanged
+    [INotifyPropertyChanged]
+    public partial class UserPlaylistCardViewModel
     {
-        private string _name = string.Empty;
-        private ImageBrush? _cover;
-
-        public string Name
-        {
-            get => _name;
-            set
-            {
-                _name = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public ImageBrush? Cover
-        {
-            get => _cover;
-            set
-            {
-                _cover = value;
-                OnPropertyChanged();
-            }
-        }
-
+        [ObservableProperty]
+        private string? name = string.Empty;
+        
+        [ObservableProperty]
+        private ImageBrush? cover;
+        
         public string Uid
         {
             get;
@@ -50,12 +35,6 @@ namespace NonsPlayer.Components.ViewModels
         }
         public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e) =>
             PlaylistHelper.OpenMusicListDetail(long.Parse(Uid), ServiceHelper.NavigationService);
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
 
     }
 }

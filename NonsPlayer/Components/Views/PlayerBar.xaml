@@ -74,8 +74,8 @@
                                    FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
                                    Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
                         <Slider x:Name="CurrentTimeSlider" IsThumbToolTipEnabled="False" Width="340"
-                                Value="{x:Bind ViewModel.MusicState.PositionDouble, Mode=TwoWay}"
-                                Maximum="{x:Bind ViewModel.MusicState.DurationDouble, Mode=OneWay}" />
+                                Value="{x:Bind ViewModel.MusicState.Position.TotalSeconds, Mode=OneWay}"
+                                Maximum="{x:Bind ViewModel.MusicState.Duration.TotalSeconds, Mode=OneWay}" />
                         <TextBlock x:Name="DurationTime"
                                    Text="{x:Bind ViewModel.MusicState.DurationString, Mode=OneWay}"
                                    FontWeight="Black" FontFamily="JetBrains Mono"
