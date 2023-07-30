@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Heplers;
 using NonsPlayer.Models;

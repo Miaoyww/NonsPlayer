@@ -20,6 +20,7 @@
                 <TextBlock Name="Title"
                            Text="{x:Bind ViewModel.Title,Mode=OneWay}"
                            TextAlignment="Left" TextWrapping="WrapWholeWords"
+                           TextTrimming="CharacterEllipsis"
                            Margin="0, 240,0,0"
                            FontWeight="Black" FontSize="18"
                            Width="224" Height="58" />

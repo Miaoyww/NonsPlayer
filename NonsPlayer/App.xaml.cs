@@ -93,6 +93,8 @@ public partial class App : Application
                 services.AddTransient<LyricBoxViewModel>();
                 services.AddTransient<PlayerBarViewModel>();
                 services.AddTransient<FunctionBarViewModel>();
+                services.AddTransient<PlayQueueBarViewModel>();
+                services.AddTransient<PlayQueueItemCardViewModel>();
                 // Configuration
                 services.Configure<LocalSettingsOptions>(
                     context.Configuration.GetSection(nameof(LocalSettingsOptions)));

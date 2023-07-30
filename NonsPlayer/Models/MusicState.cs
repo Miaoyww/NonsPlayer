@@ -44,7 +44,7 @@ public partial class MusicState
 
         ImageBrush brush = new()
         {
-            ImageSource = new BitmapImage(new Uri(value.CoverUrl))
+            ImageSource = new BitmapImage(new Uri(value.Album.CoverUrl))
         };
         cover = brush;
         duration = value.TotalTime;

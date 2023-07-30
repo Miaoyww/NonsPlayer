@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,9 +10,15 @@ using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using Windows.System;
+using Windows.UI.Xaml.Interop;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using NonsPlayer.Components.Models;
 using NonsPlayer.Core.Account;
-using NonsPlayer.Models;
+using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Player;
 using NonsPlayer.Services;
+using AccountState = NonsPlayer.Models.AccountState;
 
 namespace NonsPlayer.ViewModels;
 
@@ -104,4 +111,41 @@ public class ShellViewModel : ObservableRecipient
     private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
 
     #endregion 页面注册
+}
+
+[INotifyPropertyChanged]
+public partial class PlayQueueBarViewModel
+{
+    public ObservableCollection<MusicItem> MusicItems = new();
+    [ObservableProperty] private int count;
+
+    public PlayQueueBarViewModel()
+    {
+        PlayQueue.Instance.MusicAddedEventHandler += OnMusicAdded;
+        PlayQueue.Instance.PlaylistAddedEventHandler += OnPlaylistAdded;
+        MusicItems.CollectionChanged += OnCollectionChanged;
+    }
+    public void OnCollectionChanged(object? sender, EventArgs e)
+    {
+        Count = MusicItems.Count;
+    }
+    public void OnPlaylistAdded(object? sender, EventArgs e)
+    {
+        MusicItems.Clear();
+        PlayQueue.Instance.MusicList.ForEach(item =>
+        {
+            MusicItems.Add(new MusicItem
+            {
+                Music = item
+            });
+        });
+    }
+
+    public void OnMusicAdded(object? sender, EventArgs e)
+    {
+        MusicItems.Insert(((MusicAddedEventArgs)e).Index, new MusicItem
+        {
+            Music = ((MusicAddedEventArgs)e).Music,
+        });
+    }
 }

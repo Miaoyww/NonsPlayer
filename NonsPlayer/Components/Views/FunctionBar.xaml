@@ -15,7 +15,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <ScrollViewer Grid.Row="0">
-            <StackPanel Margin="20,0,20,0">
+            <StackPanel Margin="14,0,14,0">
                 <Grid BorderThickness="0,1,0,0" BorderBrush="#DDDDDD" Margin="0,20,0,0"
                       HorizontalAlignment="Center">
                     <Grid.RowDefinitions>

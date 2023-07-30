@@ -8,51 +8,40 @@ namespace NonsPlayer.Core.Models;
 
 public class Music
 {
-    [JsonPropertyName("album")]
-    public Album Album;
-    
-    [JsonPropertyName("artists")]
-    public List<Artist> Artists;
-    
-    [JsonPropertyName("cover")]
-    public string CoverUrl;
-    
-    [JsonPropertyName("total_time")]
-    public TimeSpan TotalTime;
-    
+    [JsonPropertyName("album")] public Album Album;
+
+    [JsonPropertyName("artists")] public List<Artist> Artists;
+
+    [JsonPropertyName("total_time")] public TimeSpan TotalTime;
+
     public string TotalTimeString => TotalTime.ToString(@"m\:ss");
-    
+
     public string FileType;
-    
-    [JsonPropertyName("id")]
-    public long Id;
-    
+
+    [JsonPropertyName("id")] public long Id;
+
     public bool IsLiked;
-    
-    [JsonPropertyName("name")]
-    public string Name;
-    
-    [JsonPropertyName("url")]
-    public string Url;
-    
-    [JsonPropertyName("is_empty")]
-    public bool IsEmpty;
-    
-    [JsonPropertyName("lyrics")]
-    public Lyrics Lyrics;
-    
+
+    [JsonPropertyName("name")] public string Name;
+
+    [JsonPropertyName("url")] public string Url;
+
+    [JsonPropertyName("is_empty")] public bool IsEmpty;
+
+    [JsonPropertyName("lyrics")] public Lyrics Lyrics;
+
     public Music(JObject playlistMusicTrack)
     {
         Name = (string)playlistMusicTrack["name"];
         Id = (int)playlistMusicTrack["id"];
-        CoverUrl = (string)playlistMusicTrack["al"]["picUrl"];
         TotalTime = TimeSpan.FromMilliseconds(int.Parse(playlistMusicTrack["dt"].ToString()));
 
         Album = new Album
         {
             Name = (string)playlistMusicTrack["al"]["name"],
             Id = (int)playlistMusicTrack["al"]["id"],
-            PicUrl = (string)playlistMusicTrack["al"]["picUrl"]
+            CoverUrl = (string)playlistMusicTrack["al"]["picUrl"],
+            SmallCoverUrl = (string)playlistMusicTrack["al"]["picUrl"] + "?param=40y40",
         };
 
         Artists = ((JArray)playlistMusicTrack["ar"]).Select(t => new Artist
@@ -61,7 +50,6 @@ public class Music
             Id = (int)t["id"]
         }).ToList();
         IsEmpty = false;
-
     }
 
     /// <summary>
@@ -76,12 +64,12 @@ public class Music
         };
         IsEmpty = true;
     }
-    
+
     public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
 
 
     public string AlbumName => Album?.Name;
-    
+
     public MusicQualityLevel[] QualityLevels
     {
         get;
@@ -94,7 +82,7 @@ public class Music
         JObject musicDetail;
         try
         {
-            musicDetail = (JObject)((JArray)Apis.Music.Detail(new[] { Id }, Nons.Instance).Result["songs"])[0];
+            musicDetail = (JObject)((JArray)Apis.Music.Detail(new[] {Id}, Nons.Instance).Result["songs"])[0];
         }
         catch (InvalidCastException)
         {
@@ -103,13 +91,13 @@ public class Music
 
         Name = (string)musicDetail["name"];
         Id = (int)musicDetail["id"];
-        CoverUrl = (string)musicDetail["al"]["picUrl"];
         TotalTime = TimeSpan.FromMilliseconds(int.Parse(musicDetail["dt"].ToString()));
         Album = new Album
         {
             Name = (string)musicDetail["al"]["name"],
             Id = (int)musicDetail["al"]["id"],
-            PicUrl = (string)musicDetail["al"]["picUrl"]
+            CoverUrl = (string)musicDetail["al"]["picUrl"],
+            SmallCoverUrl = (string)musicDetail["al"]["picUrl"] + "?param=40y40",
         };
 
         Artists = new List<Artist>();
@@ -130,7 +118,7 @@ public class Music
 
     public async Task GetFileInfo()
     {
-        var musicFile = (JObject)(await Apis.Music.Url(new[] { Id }, Nons.Instance))["data"][0];
+        var musicFile = (JObject)(await Apis.Music.Url(new[] {Id}, Nons.Instance))["data"][0];
         Url = musicFile["url"].ToString();
         FileType = musicFile["type"].ToString();
     }
@@ -139,16 +127,5 @@ public class Music
     {
         var a = await Apis.Lyric.GetLyric(Id.ToString(), Nons.Instance);
         Lyrics = new Lyrics(a);
-    }
-
-    public Stream GetCover(int x = 0, int y = 0)
-    {
-        var IMGSIZE = "?param=300y300";
-        if (x == 0)
-        {
-            return HttpRequest.StreamHttpGet(CoverUrl + IMGSIZE);
-        }
-
-        return HttpRequest.StreamHttpGet(CoverUrl + $"?param={x}y{y}");
     }
 }

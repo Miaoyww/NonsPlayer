@@ -1,10 +1,13 @@
-﻿using Microsoft.UI.Xaml;
+﻿using System.Collections.ObjectModel;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 using Windows.System;
+using NonsPlayer.Components.Models;
+using NonsPlayer.Core.Player;
 
 namespace NonsPlayer.Views;
 
@@ -14,12 +17,16 @@ public sealed partial class ShellPage : Page
     {
         get;
     }
-
+    
+    public PlayQueueBarViewModel PlayQueueBarViewModel
+    {
+        get;
+    }
     public ShellPage(ShellViewModel viewModel)
     {
         ViewModel = viewModel;
         InitializeComponent();
-
+        PlayQueueBarViewModel = App.GetService<PlayQueueBarViewModel>();
         ViewModel.NavigationService.Frame = NavigationFrame;
 
         // TODO: Set the title bar icon by updating /Assets/WindowIcon.ico.
@@ -29,8 +36,14 @@ public sealed partial class ShellPage : Page
         App.MainWindow.SetTitleBar(AppTitleBar);
         App.MainWindow.Activated += MainWindow_Activated;
         AppTitleBarText.Text = "AppDisplayName".GetLocalized();
+        PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
     }
 
+    public void OnOpenPlayQueueButton_Click(object? sender, EventArgs e)
+    {
+        PlayQueueBar.IsPaneOpen = !PlayQueueBar.IsPaneOpen;
+    }
+    
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         TitleBarHelper.UpdateTitleBar(RequestedTheme);
@@ -61,7 +74,7 @@ public sealed partial class ShellPage : Page
 
     private static KeyboardAccelerator BuildKeyboardAccelerator(VirtualKey key, VirtualKeyModifiers? modifiers = null)
     {
-        var keyboardAccelerator = new KeyboardAccelerator() { Key = key };
+        var keyboardAccelerator = new KeyboardAccelerator() {Key = key};
 
         if (modifiers.HasValue)
         {
@@ -102,5 +115,5 @@ public sealed partial class ShellPage : Page
     {
         AnimatedIcon.SetState((UIElement)sender, "Normal");
     }
-
 }
+

@@ -7,31 +7,42 @@ namespace NonsPlayer.Core.Models
         [JsonPropertyName("id")]
         public int Id
         {
-            get; set;
+            get;
+            set;
         }
 
         [JsonPropertyName("name")]
         public string Name
         {
-            get; set;
+            get;
+            set;
         }
 
         [JsonPropertyName("pic_url")]
-        public string PicUrl
+        public string CoverUrl
         {
-            get; set;
+            get;
+            set;
+        }
+
+        public string SmallCoverUrl
+        {
+            get;
+            set;
         }
 
         [JsonPropertyName("create_date")]
         public DateTime CreateDate
         {
-            get; set;
+            get;
+            set;
         }
 
         [JsonPropertyName("description")]
         public string Description
         {
-            get; set;
+            get;
+            set;
         }
 
         /// <summary>
@@ -39,7 +50,8 @@ namespace NonsPlayer.Core.Models
         /// </summary>
         public List<Music> Musics
         {
-            get; set;
+            get;
+            set;
         }
 
         /// <summary>
@@ -47,7 +59,8 @@ namespace NonsPlayer.Core.Models
         /// </summary>
         public List<Artist> Artists
         {
-            get; set;
+            get;
+            set;
         }
 
         [JsonPropertyName("artists_name")]
@@ -65,7 +78,8 @@ namespace NonsPlayer.Core.Models
         /// </summary>
         public int CollectionCount
         {
-            set; get;
+            set;
+            get;
         }
 
         /// <summary>
@@ -73,7 +87,8 @@ namespace NonsPlayer.Core.Models
         /// </summary>
         public int TrackCount
         {
-            get; set;
+            get;
+            set;
         }
     }
 }

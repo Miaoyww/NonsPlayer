@@ -31,7 +31,7 @@ public partial class MusicItemCardViewModel : ObservableObject
             {
                 Cover = new ImageBrush
                 {
-                    ImageSource = new BitmapImage(new Uri(Music.CoverUrl + "?param=40y40"))
+                    ImageSource = new BitmapImage(new Uri(Music.Album.SmallCoverUrl))
                 };
                 Name = Music.Name;
                 Time = Music.TotalTimeString;
@@ -45,6 +45,6 @@ public partial class MusicItemCardViewModel : ObservableObject
 
     public void Play(object sender, PointerRoutedEventArgs e)
     {
-        Player.Instance.NewPlay(Music);
+        PlayQueue.Instance.Play(Music);
     }
 }

@@ -14,6 +14,9 @@ public class PlayQueue
     private List<Music> _randomMusicList = new();
     private bool _isUserPressed = false;
 
+    public event EventHandler MusicAddedEventHandler;
+    public event EventHandler PlaylistAddedEventHandler;
+
     public List<Music> MusicList
     {
         get;
@@ -110,6 +113,7 @@ public class PlayQueue
         Clear();
         MusicList.AddRange(musicList);
         Play(musicList[0]);
+        PlaylistAddedEventHandler?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -123,6 +127,7 @@ public class PlayQueue
         {
             MusicList.Add(music);
             CurrentMusic = music;
+            MusicAddedEventHandler?.Invoke(this, new MusicAddedEventArgs(music, 0));
             return;
         }
 
@@ -135,6 +140,7 @@ public class PlayQueue
 
         // 如果播放列表不为空，那么就在当前播放歌曲的后面插入
         MusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
+        MusicAddedEventHandler?.Invoke(this, new MusicAddedEventArgs(music, MusicList.IndexOf(CurrentMusic) + 1));
         if (PlayMode is PlayModeEnum.Random)
         {
             // 直接在随机播放列表的当前播放音乐后插入
@@ -253,5 +259,24 @@ public class PlayQueue
         list = list.OrderBy(x => random.Next()).ToList();
         list.Insert(0, music);
         return list;
+    }
+}
+
+public class MusicAddedEventArgs : EventArgs
+{
+    public Music Music
+    {
+        get;
+    }
+
+    public int Index
+    {
+        get;
+    }
+
+    public MusicAddedEventArgs(Music music, int index)
+    {
+        Music = music;
+        Index = index;
     }
 }

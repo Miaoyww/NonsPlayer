@@ -86,7 +86,8 @@
                                         Margin="10,0,0,0">
                                 <StackPanel Orientation="Horizontal" Margin="0,0,50,0">
                                     <Border Name="UserFace" Height="30" Width="30"
-                                            Background="{x:Bind ViewModel.AccountState.Face,Mode=OneWay}" Margin="0,0,5,0"
+                                            Background="{x:Bind ViewModel.AccountState.Face,Mode=OneWay}"
+                                            Margin="0,0,5,0"
                                             CornerRadius="100" />
                                     <TextBlock Name="UserName" Text="{x:Bind ViewModel.AccountState.Name, Mode=OneWay}"
                                                FontFamily="HarmonyOS Sans SC"
@@ -116,6 +117,40 @@
                 </Grid>
             </Border>
         </Grid>
-        <views:PlayerBar VerticalAlignment="Bottom" />
+        <SplitView Name="PlayQueueBar"
+                   BorderThickness="0" CornerRadius="12,0,0,12"
+                   Margin="0,100,0,0" Width="400" HorizontalAlignment="Right"
+                   DisplayMode="Overlay" OpenPaneLength="400" PanePlacement="Right"
+                   PaneBackground="{ThemeResource CustomAcrylicBrush}">
+            <SplitView.Pane>
+                <Grid>
+                    <ListView
+                        Margin="0,0,0,30" Padding="0,5,0,0"
+                        BorderThickness="0,1,0,0" BorderBrush="#F0F1F2"
+                        ItemsSource="{x:Bind PlayQueueBarViewModel.MusicItems, Mode=OneWay}">
+                        <ListView.Header>
+                            <Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock
+                                        Text="播放列表" FontSize="18" FontFamily="HarmonyOS Sans SC" FontWeight="Black"
+                                        HorizontalAlignment="Left" Margin="20,10,0,0"/>
+                                    <TextBlock 
+                                        Text="{x:Bind PlayQueueBarViewModel.Count, Mode=OneWay}"
+                                        FontSize="16" FontFamily="HarmonyOS Sans SC" FontWeight="Normal"
+                                        HorizontalAlignment="Left" Margin="2,10,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </ListView.Header>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:MusicItem">
+                                <views:PlayQueueItemCard
+                                    Music="{x:Bind Music}" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </SplitView.Pane>
+        </SplitView>
+        <views:PlayerBar x:Name="PlayerBar" VerticalAlignment="Bottom" />
     </Grid>
 </Page>
