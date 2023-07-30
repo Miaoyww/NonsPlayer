@@ -15,7 +15,7 @@ using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
-public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
+public class ShellViewModel : ObservableRecipient
 {
     public AccountState AccountState => AccountState.Instance;
     private bool _isBackEnabled;
@@ -37,7 +37,7 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
         MenuExploreOpenCommand = new RelayCommand(OnMenuExploreOpen);
         MenuPersonalCenterMenuOwnOpenCommand = new RelayCommand(OnMenuPersonalCenterOpen);
         MenuSettingsCommand = new RelayCommand(OnMenuSettings);
-        AccountService.Instance.Create();
+        AccountService.Instance.UpdateInfo();
         Account.Instance.LoginByReg();
     }
 
@@ -104,9 +104,4 @@ public class ShellViewModel : ObservableRecipient, INotifyPropertyChanged
     private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
 
     #endregion 页面注册
-
-    public new event PropertyChangedEventHandler? PropertyChanged;
-
-    private void OnPropertyChanged(string propertyName) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

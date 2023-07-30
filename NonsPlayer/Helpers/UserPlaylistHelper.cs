@@ -8,7 +8,7 @@ using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
 using NonsPlayer.Core.Services;
-using NonsPlayer.Data;
+using NonsPlayer.Models;
 
 namespace NonsPlayer.Heplers
 {

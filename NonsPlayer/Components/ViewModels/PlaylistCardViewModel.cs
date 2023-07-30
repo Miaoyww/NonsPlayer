@@ -8,47 +8,18 @@ using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels;
 
-public partial class PlaylistCardViewModel : ObservableRecipient, INotifyPropertyChanged
+[INotifyPropertyChanged]
+public partial class PlaylistCardViewModel
 {
-    public PlaylistCardViewModel()
-    {
-
-    }
-
-    public new event PropertyChangedEventHandler? PropertyChanged;
-
-    private void OnPropertyChanged(string propertyName) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-    private ImageBrush _cover;
-    private string _title;
-    private string _id;
-
-    public ImageBrush Cover
-    {
-        get => _cover;
-        set
-        {
-            _cover = value;
-            OnPropertyChanged(nameof(Cover));
-        }
-    }
-
-    public string Title
-    {
-        get => _title;
-        set
-        {
-            _title = value;
-            OnPropertyChanged(nameof(Title));
-        }
-    }
+    [ObservableProperty] private ImageBrush cover;
+    [ObservableProperty] private string title;
+    [ObservableProperty] private string id;
 
     public void Init(JObject item)
     {
         var picUrl = item["picUrl"] + "?param=200y200";
         var title = (string)item["name"];
-        _id = (string)item["id"];
+        Id = (string)item["id"];
         Title = title;
         Cover = new ImageBrush
         {
@@ -57,5 +28,5 @@ public partial class PlaylistCardViewModel : ObservableRecipient, INotifyPropert
     }
 
     public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e) =>
-        PlaylistHelper.OpenMusicListDetail(long.Parse(_id), ServiceHelper.NavigationService);
+        PlaylistHelper.OpenMusicListDetail(long.Parse(id), ServiceHelper.NavigationService);
 }

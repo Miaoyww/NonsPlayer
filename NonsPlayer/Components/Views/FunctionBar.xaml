@@ -48,7 +48,6 @@
             </StackPanel>
 
         </ScrollViewer>
-        <local:LyricBox Grid.Row="1" />
         <Border Grid.Row="2"
                 Name="Cover"
                 Height="200"

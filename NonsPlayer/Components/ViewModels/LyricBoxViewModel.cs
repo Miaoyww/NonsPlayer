@@ -3,10 +3,11 @@ using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
-using NonsPlayer.Data;
+using NonsPlayer.Models;
 
 namespace NonsPlayer.Components.ViewModels
-{
+{   
+    //TODO: LyricBox废弃, 功能保留
     public class LyricBoxViewModel : INotifyPropertyChanged
     {
         private string _originalLyric = string.Empty;

@@ -9,7 +9,7 @@ using Windows.UI;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NonsPlayer.Services;
 
-namespace NonsPlayer.Data;
+namespace NonsPlayer.Models;
 
 [INotifyPropertyChanged]
 public partial class MusicState

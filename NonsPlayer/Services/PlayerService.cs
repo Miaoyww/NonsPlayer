@@ -2,7 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
-using NonsPlayer.Data;
+using NonsPlayer.Models;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Services;

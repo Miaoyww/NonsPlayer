@@ -13,50 +13,12 @@ using QRCoder;
 
 namespace NonsPlayer.ViewModels;
 
-public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChanged
+public partial class LoginViewModel : ObservableObject
 {
-    public LoginViewModel()
-    {
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    private ImageBrush _qrCode;
-    private string _key;
-    private string _text;
-
-    public ImageBrush QrCode
-    {
-        get => _qrCode;
-        set
-        {
-            if (_qrCode != value)
-            {
-                _qrCode = value;
-                OnPropertyChanged(nameof(QrCode));
-            }
-        }
-    }
-
-    public string Text
-    {
-        get => _text;
-        set
-        {
-            if (_text != value)
-            {
-                _text = value;
-                OnPropertyChanged(nameof(Text));
-            }
-        }
-    }
-
-
+    [ObservableProperty] private ImageBrush qrCode;
+    [ObservableProperty] private string key;
+    [ObservableProperty] private string text;
+    
     public async void Init()
     {
         Text = "扫描二维码登录";
@@ -66,14 +28,14 @@ public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChange
 
     public async Task GetQrCode()
     {
-        if (_key == null)
+        if (key == null)
         {
-            _key = (await Apis.Login.QRCode.Key(timestamp(), Nons.Instance))["unikey"].ToString();
+            key = (await Apis.Login.QRCode.Key(getCurrentTimestamp(), Nons.Instance))["unikey"].ToString();
         }
 
         var qrCodeImage =
             new QRCode(new QRCodeGenerator().CreateQrCode(
-                new PayloadGenerator.Url($"http://music.163.com/login?codekey={_key}").ToString(),
+                new PayloadGenerator.Url($"http://music.163.com/login?codekey={key}").ToString(),
                 QRCodeGenerator.ECCLevel.M)).GetGraphic(10);
         var ms = new MemoryStream();
         qrCodeImage.Save(ms, ImageFormat.Png);
@@ -93,7 +55,7 @@ public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChange
         {
             while (true)
             {
-                var result = await Apis.Login.QRCode.Check(_key, Nons.Instance);
+                var result = await Apis.Login.QRCode.Check(key, Nons.Instance);
                 var code = int.Parse(JObject.Parse(result.Content)["code"].ToString());
                 if (code == 800)
                 {
@@ -135,7 +97,7 @@ public partial class LoginViewModel : ObservableRecipient, INotifyPropertyChange
         });
     }
 
-    private string timestamp()
+    private string getCurrentTimestamp()
     {
         return ((DateTimeOffset)DateTime.Now).ToUnixTimeMilliseconds().ToString();
     }

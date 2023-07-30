@@ -9,7 +9,7 @@ using NonsPlayer.Core.Api;
 
 namespace NonsPlayer.ViewModels;
 
-public class HomeViewModel : ObservableRecipient, INotifyPropertyChanged
+public class HomeViewModel : ObservableRecipient
 {
     public INavigationService NavigationService
     {

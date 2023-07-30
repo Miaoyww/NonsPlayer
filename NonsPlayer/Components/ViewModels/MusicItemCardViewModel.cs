@@ -11,99 +11,20 @@ using NonsPlayer.Services;
 
 namespace NonsPlayer.Components.ViewModels;
 
-public partial class MusicItemCardViewModel : ObservableRecipient, INotifyPropertyChanged
+public partial class MusicItemCardViewModel : ObservableObject
 {
-    public MusicItemCardViewModel()
-    {
-    }
-
-    public new event PropertyChangedEventHandler? PropertyChanged;
-
-    private void OnPropertyChanged(string propertyName) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
+    [ObservableProperty] private string name;
+    [ObservableProperty] private string artists;
+    [ObservableProperty] private string time;
+    [ObservableProperty] private ImageBrush cover;
+    [ObservableProperty] private string album;
+    [ObservableProperty] private bool liked;
+    [ObservableProperty] private string index;
     public Music Music;
-    private string _name;
-    private string _artists;
-    private string _time;
-    private ImageBrush _cover;
-    private string _album;
-    private bool _liked;
-    private string _index;
 
-    public bool Liked
+    public async void Init(Music music)
     {
-        get => _liked;
-        set
-        {
-            _liked = value;
-            OnPropertyChanged(nameof(Liked));
-        }
-    }
-
-    public string Index
-    {
-        get => _index;
-        set
-        {
-            _index = value;
-            OnPropertyChanged(nameof(Index));
-        }
-    }
-
-    public string Album
-    {
-        get => _album;
-        set
-        {
-            _album = value;
-            OnPropertyChanged(nameof(Album));
-        }
-    }
-
-    public string Name
-    {
-        get => _name;
-        set
-        {
-            _name = value;
-            OnPropertyChanged(nameof(Name));
-        }
-    }
-
-    public string Artists
-    {
-        get => _artists;
-        set
-        {
-            _artists = value;
-            OnPropertyChanged(nameof(Artists));
-        }
-    }
-
-    public string Time
-    {
-        get => _time;
-        set
-        {
-            _time = value;
-            OnPropertyChanged(nameof(Time));
-        }
-    }
-
-    public ImageBrush Cover
-    {
-        get => _cover;
-        set
-        {
-            _cover = value;
-            OnPropertyChanged(nameof(Cover));
-        }
-    }
-
-    public async void Init(Music one)
-    {
-        Music = one;
+        Music = music;
         await Task.Run(() =>
         {
             ServiceHelper.DispatcherQueue.TryEnqueue(() =>

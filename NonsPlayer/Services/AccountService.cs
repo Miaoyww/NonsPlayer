@@ -22,18 +22,15 @@ public class AccountService
         Account.Instance.AccountInitializedHandle += OnAccountInitialized;
     }
 
-    public void Create()
+    public void UpdateInfo()
     {
-        return;
+        AccountState.Instance.Uid = Account.Instance.Uid;
+        AccountState.Instance.Name = Account.Instance.Name;
+        AccountState.Instance.FaceUrl = Account.Instance.FaceUrl;
     }
     public void OnAccountInitialized()
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        {
-            AccountState.Instance.Uid = Account.Instance.Uid;
-            AccountState.Instance.Name = Account.Instance.Name;
-            AccountState.Instance.FaceUrl = Account.Instance.FaceUrl;
-        });
+        UpdateInfo();
         UserPlaylistHelper.Instance.Init();
     }
 
