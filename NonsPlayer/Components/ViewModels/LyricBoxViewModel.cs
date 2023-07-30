@@ -36,14 +36,8 @@ namespace NonsPlayer.Components.ViewModels
                 OnPropertyChanged(nameof(OriginalLyric));
             }
         }
-
-        public Visibility TransVisibility
-        {
-            get
-            {
-                return TranLyric == "" ? Visibility.Collapsed : Visibility.Visible;
-            }
-        }
+        
+        public Visibility TransVisibility => TranLyric == "" ? Visibility.Collapsed : Visibility.Visible;
 
 
         private void OnMusicChanged(Music currentMusic)
@@ -61,52 +55,42 @@ namespace NonsPlayer.Components.ViewModels
                     return;
                 }
 
-                if (_currentLyric == null && MusicState.Instance.CurrentMusic.Lyrics != null)
-                {
-                    _currentLyric = new Lyric(MusicState.Instance.CurrentMusic.Name,
-                        MusicState.Instance.CurrentMusic.ArtistsName, TimeSpan.Zero);
-                    OriginalLyric = _currentLyric.OriginalLyric;
-                    TranLyric = _currentLyric.TranLyric;
-                }
+                var lyrics = MusicState.Instance.CurrentMusic.Lyrics.Lrc;
+                var left = 0;
+                var right = lyrics.Count - 1;
+                int middle;
 
-
-                if (_currentLyric != null && _nextLyric != null && time >= _currentLyric.Time && time < _nextLyric.Time)
+                while (left <= right)
                 {
-                    return;
-                }
+                    middle = (left + right) / 2;
 
-                for (int i = 0; i < MusicState.Instance.CurrentMusic.Lyrics.Count; i++)
-                {
-                    var currentItem = MusicState.Instance.CurrentMusic.Lyrics.Lrc[i];
-                    if (i + 1 == MusicState.Instance.CurrentMusic.Lyrics.Count)
+                    if (time >= lyrics[middle].Time && time < lyrics[middle + 1].Time)
                     {
+                        // 匹配成功，更新歌词显示
+                        _currentLyric = lyrics[middle];
+                        _nextLyric = lyrics[middle + 1];
+                        OriginalLyric = lyrics[middle].OriginalLyric;
+                        TranLyric = lyrics[middle].TranLyric;
                         return;
                     }
-
-                    var nextItem = MusicState.Instance.CurrentMusic.Lyrics.Count > i
-                        ? MusicState.Instance.CurrentMusic.Lyrics.Lrc[i + 1]
-                        : currentItem;
-                    if (time >= currentItem.Time && time < nextItem.Time)
+                    else if (time < lyrics[middle].Time)
                     {
-                        _currentLyric = currentItem;
-                        _nextLyric = nextItem;
-                        OriginalLyric = currentItem.OriginalLyric;
-                        TranLyric = currentItem.TranLyric;
-                        return;
+                        right = middle - 1;
                     }
-
-                    if (time <= MusicState.Instance.CurrentMusic.Lyrics.Lrc[0].Time)
+                    else
                     {
-                        return;
+                        left = middle + 1;
                     }
                 }
+
+                // 未匹配到，可以显示 "暂未播放" 或其他提示信息
+                OriginalLyric = "暂未播放";
+                TranLyric = "";
+
             }
             catch (Exception e)
             {
             }
-
-
-            return;
         }
 
         public void Init()
