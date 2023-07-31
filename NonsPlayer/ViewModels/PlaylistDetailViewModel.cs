@@ -6,6 +6,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Cache;
@@ -29,7 +30,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     [ObservableProperty] private string description;
     [ObservableProperty] private string musicsCount;
     [ObservableProperty] private string name;
-
+    private bool isLoadingImages = false;
     public ObservableCollection<MusicItem> MusicItems = new();
     public List<Music> Musics = new();
 
@@ -46,33 +47,96 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
         CurrentId = (long)parameter;
         PlayListObject = await CacheHelper.GetPlaylistAsync(CurrentId + "_playlist".ToString(), CurrentId.ToString());
-        await Task.WhenAll(LoadPlaylistDetailAsync(), LoadMusicsAsync());
+        if (PlayListObject.IsCardMode)
+        {
+            await PlayListObject.LoadAsync(PlayListObject.Id).ConfigureAwait(false);
+        }
+
+        LoadPlaylistDetail();
+
+        await LoadMusicsAsync();
     }
 
-    private async Task LoadPlaylistDetailAsync()
+    private void LoadPlaylistDetail()
     {
-        Name = PlayListObject.Name;
-        Creator = "made by " + PlayListObject.Creator;
-        CreateTime = $"· {PlayListObject.CreateTime.ToString().Split(" ")[0]}";
-        Description = PlayListObject.Description;
-        MusicsCount = PlayListObject.MusicsCount + "Tracks";
-        Cover = CacheHelper.GetImageBrush(PlayListObject.CacheCoverId, PlayListObject.CoverUrl);
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            Name = PlayListObject.Name;
+            Creator = "made by " + PlayListObject.Creator;
+            CreateTime = $"· {PlayListObject.CreateTime.ToString().Split(" ")[0]}";
+            Description = PlayListObject.Description;
+            MusicsCount = PlayListObject.MusicsCount + "Tracks";
+            Cover = CacheHelper.GetImageBrush(PlayListObject.CacheCoverId, PlayListObject.CoverUrl);
+        });
     }
 
     private async Task LoadMusicsAsync()
     {
-        await playListObject.InitMusicsAsync();
-
-        for (var i = 0; i < playListObject.MusicsCount; i++)
+        if (PlayListObject.Musics == null)
         {
-            Musics.Add(playListObject.Musics[i]);
-            MusicItems.Add(new MusicItem
+            await PlayListObject.InitMusicsAsync();
+        }
+
+        for (var i = 0; i < PlayListObject.MusicsCount; i++)
+        {
+            Musics.Add(PlayListObject.Musics[i]);
+            var index = i;
+            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
             {
-                Music = playListObject.Musics[i],
-                Index = (i + 1).ToString("D2")
+                MusicItems.Add(new MusicItem
+                {
+                    Music = PlayListObject.Musics[index],
+                    Index = (index + 1).ToString("D2"),
+                    IsInitCover = false
+                });
             });
         }
     }
+
+    public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (sender is ScrollViewer scrollViewer)
+        {
+            // 获取可见的第一个和最后一个项的索引
+            var firstVisibleIndex = (int)scrollViewer.VerticalOffset;
+            var lastVisibleIndex = (int)(scrollViewer.VerticalOffset + scrollViewer.ViewportHeight);
+
+            // 加载可见项的图片
+            await LoadVisibleItemsImages(firstVisibleIndex, lastVisibleIndex);
+        }
+    }
+
+    private async Task LoadVisibleItemsImages(int firstIndex, int lastIndex)
+    {
+        if (isLoadingImages)
+        {
+            // 如果正在加载图片，则不重复处理
+            return;
+        }
+
+        isLoadingImages = true;
+
+        // 确保索引不超出项的范围
+        var itemCount = Musics.Count;
+        firstIndex = Math.Max(0, firstIndex);
+        lastIndex = Math.Min(itemCount - 1, lastIndex);
+
+        // 加载可见项的图片
+        for (int i = firstIndex; i <= lastIndex; i++)
+        {
+            var item = MusicItems[i];
+
+            // 检查图片是否已加载
+            if (item.Music.Album.SmallCoverUrl != null)
+            {
+                // TODO: 完善图片加载逻辑
+                item.IsInitCover = true;
+            }
+        }
+
+        isLoadingImages = false;
+    }
+
 
     [RelayCommand]
     private void PlayAll() => PlayQueue.Instance.AddMusicList(Musics);

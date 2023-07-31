@@ -9,7 +9,7 @@
     mc:Ignorable="d">
 
     <Grid>
-        <ScrollViewer>
+        <ScrollViewer ViewChanged="{x:Bind ViewModel.OnScrollViewerViewChanged}">
             <Grid Margin="{StaticResource PlaylistDetailMargin}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -117,7 +117,8 @@
                         <DataTemplate x:DataType="models:MusicItem">
                             <views:MusicItemCard
                                 Music="{x:Bind Music}"
-                                Index="{x:Bind Index}" />
+                                Index="{x:Bind Index}"
+                                IsCoverInit="{x:Bind IsInitCover}" />
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>

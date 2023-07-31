@@ -21,25 +21,29 @@ public partial class MusicItemCardViewModel : ObservableObject
     [ObservableProperty] private string album;
     [ObservableProperty] private bool liked;
     [ObservableProperty] private string index;
+    [ObservableProperty] private bool isInitCover;
     public Music Music;
 
-    public async void Init(Music music)
+    public void Init(Music music)
     {
         Music = music;
-        await Task.Run(() =>
-        {
-            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-            {
-                Cover = CacheHelper.GetImageBrush(music.Album.CacheSmallCoverId, music.Album.SmallCoverUrl);
-                Name = Music.Name;
-                Time = Music.TotalTimeString;
-                Album = Music.AlbumName;
-                Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
-                Liked = UserPlaylistHelper.Instance.IsLiked(Music.Id);
-            });
-        });
+        Name = Music.Name;
+        Time = Music.TotalTimeString;
+        Album = Music.AlbumName;
+        Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
+        Liked = UserPlaylistHelper.Instance.IsLiked(Music.Id);
+        InitCover();
     }
 
+    partial void OnIsInitCoverChanged(bool isInitCover)
+    {
+        InitCover();
+    }
+
+    public void InitCover()
+    {
+        Cover = CacheHelper.GetImageBrush(Music.Album.CacheSmallCoverId, Music.Album.SmallCoverUrl);
+    }
 
     public void Play(object sender, PointerRoutedEventArgs e)
     {

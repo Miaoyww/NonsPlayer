@@ -29,14 +29,32 @@ public class Playlist
     [JsonPropertyName("description")] public string Description;
 
     [JsonPropertyName("creator")] public string Creator;
-
     [JsonPropertyName("musics_count")] public int MusicsCount => MusicTrackIds.Length;
 
     [JsonPropertyName("musics")] public Music[] Musics;
+
+    public bool IsCardMode = false;
     public Playlist This => this;
 
     private Playlist()
     {
+    }
+
+    public static async Task<Playlist> CreateCardModeAsync(JObject? item)
+    {
+        if (item == null)
+        {
+            throw new PlaylistIdNullException("歌单JObject为空");
+        }
+
+        var playlist = new Playlist
+        {
+            Id = (long)item["id"],
+            Name = item["name"].ToString(),
+            CoverUrl = item["picUrl"].ToString(),
+            IsCardMode = true
+        };
+        return playlist;
     }
 
     public static async Task<Playlist> CreateAsync(long? id)
@@ -47,16 +65,14 @@ public class Playlist
         }
 
         var playlist = new Playlist();
-        await playlist.LoadAsync(id);
+        await playlist.LoadAsync(id).ConfigureAwait(false);
         return playlist;
     }
 
-    private async Task LoadAsync(long? id)
+    public async Task LoadAsync(long? id)
     {
         Id = id;
-        var (playlistDetail, apiRequestElapsed) =
-            await Tools.MeasureExecutionTimeAsync(Apis.Playlist.Detail(Id, Nons.Instance));
-        Debug.WriteLine($"歌单Api请求({Id})所用时间: {apiRequestElapsed.Milliseconds}ms");
+        var playlistDetail = await Apis.Playlist.Detail(Id, Nons.Instance);
         playlistDetail = (JObject)playlistDetail["playlist"];
         Name = playlistDetail["name"].ToString();
         Description = playlistDetail["description"].ToString();

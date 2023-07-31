@@ -44,7 +44,7 @@ public class Nons
     public async Task<JObject> Request(string url, IDictionary<string, object>? parameters = null)
     {
         var respResult = (await RequestRestResponse(url, parameters)).Content;
-        JObject result = JObject.Parse(respResult);
+        var result = JObject.Parse(respResult);
         return result;
     }
 

@@ -6,9 +6,10 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     xmlns:views="using:NonsPlayer.Components.Views"
-    xmlns:models="using:NonsPlayer.Core.Models">
+    xmlns:models="using:NonsPlayer.Core.Models"
+    Loaded="{x:Bind ViewModel.HomePage_OnLoaded}">
     <Grid>
-        <ScrollViewer >
+        <ScrollViewer>
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">
                 <Grid Margin="{StaticResource PageCommonMargin}">
                     <TextBlock Text="For you" FontWeight="Black" FontSize="30" FontFamily="JetBrains Mono" />
@@ -21,7 +22,8 @@
                 </Grid>
                 <Grid Margin="0,60,0,80">
                     <TextBlock Text="推荐歌单" FontWeight="Black" FontSize="25" FontFamily="JetBrains Mono" />
-                    <GridView Name="RecommendPlaylistView" ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
+                    <GridView Name="RecommendPlaylistView"
+                              ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
                               SelectionMode="None"
                               HorizontalAlignment="Left" Margin="0,40,0,0">
                         <GridView.ItemTemplate>

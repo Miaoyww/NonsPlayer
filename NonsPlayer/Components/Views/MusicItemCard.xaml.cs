@@ -1,21 +1,19 @@
 ﻿using System.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Components.Views;
 
-public sealed partial class MusicItemCard : UserControl, INotifyPropertyChanged
+[INotifyPropertyChanged]
+public sealed partial class MusicItemCard : UserControl
 {
     public MusicItemCardViewModel ViewModel
     {
         get;
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void OnPropertyChanged(string propertyName) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     public MusicItemCard()
     {
@@ -23,13 +21,24 @@ public sealed partial class MusicItemCard : UserControl, INotifyPropertyChanged
         InitializeComponent();
     }
 
-    public Music Music
+    [ObservableProperty] private Music music;
+
+    partial void OnMusicChanged(Music music)
     {
-        set => ViewModel.Init(value);
+        ViewModel.Init(music);
     }
 
-    public string Index
+    [ObservableProperty] private bool isCoverInit;
+
+    partial void OnIsCoverInitChanged(bool isCoverInit)
     {
-        set => ViewModel.Index = value;
+        ViewModel.IsInitCover = isCoverInit;
+    }
+
+    [ObservableProperty] private string index;
+
+    partial void OnIndexChanged(string index)
+    {
+        ViewModel.Index = index;
     }
 }

@@ -57,15 +57,15 @@ public class CacheManager
         _refCount.Add(key, 0);
     }
 
-    public void Set<T>(string key, T value)
+    public void Set<T>(string key, CacheItem<T> value)
     {
         if (_cache.ContainsKey(key))
         {
-            _cache[key] = new CacheItem<T> {Data = value};
+            _cache[key] = value;
             return;
         }
 
-        _cache.Add(key, new CacheItem<T> {Data = value});
+        _cache.Add(key, value);
         _refCount.Add(key, 0);
     }
 

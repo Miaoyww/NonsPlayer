@@ -1,10 +1,12 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
 using NonsPlayer.Core.Services;
@@ -74,34 +76,43 @@ namespace NonsPlayer.Heplers
         public async void Init()
         {
             var result = (JArray)(await Apis.User.Playlist(Account.Instance.Uid, Nons.Instance))["playlist"];
-            List<Task<Playlist>> savedPlaylistTasks = new();
-            List<Task<Playlist>> userPlaylistTasks = new();
+            // var savedPlaylistTasks = new List<Task<Playlist>>();
+            var userPlaylistTasks = new List<Task<Playlist>>();
             foreach (var playlistItem in result)
             {
                 if (playlistItem["name"].ToString() == Account.Instance.Name + "喜欢的音乐")
                 {
                     var likedSongs =
                         (JArray)(await Apis.Playlist.Detail(
-                            long.Parse(playlistItem["id"].ToString()), Nons.Instance)
+                                long.Parse(playlistItem["id"].ToString()), Nons.Instance).ConfigureAwait(false)
                         )["playlist"]["trackIds"];
                     LikedSongs = likedSongs.Select(likedSong => likedSong["id"].ToString()).ToArray();
                 }
 
+                var playlistTask = CacheHelper.GetPlaylistCardAsync(
+                    playlistItem["id"] + "_playlist", new JObject
+                    {
+                        new JProperty("id", playlistItem["id"]),
+                        new JProperty("name", playlistItem["name"]),
+                        new JProperty("picUrl", playlistItem["coverImgUrl"]),
+                    });
                 if ((bool)playlistItem["subscribed"])
                 {
-                    savedPlaylistTasks.Add(Playlist.CreateAsync(long.Parse(playlistItem["id"].ToString())));
+                    // savedPlaylistTasks.Add(playlistTask);
                 }
                 else
                 {
-                    userPlaylistTasks.Add(Playlist.CreateAsync(long.Parse(playlistItem["id"].ToString())));
+                    userPlaylistTasks.Add(playlistTask);
                 }
             }
 
-            var whenAllResult = await Task.WhenAll(Task.WhenAll(savedPlaylistTasks), Task.WhenAll(userPlaylistTasks));
+            var whenAllResult = await Task
+                .WhenAll(userPlaylistTasks)
+                .ConfigureAwait(false);
             ServiceHelper.DispatcherQueue.TryEnqueue(() =>
             {
-                whenAllResult[0].ToList().ForEach(item => SavedPlaylists.Add(item));
-                whenAllResult[1].ToList().ForEach(item => UserPlaylists.Add(item));
+                // whenAllResult.ToList().ForEach(item => SavedPlaylists.Add(item));
+                whenAllResult.ToList().ForEach(item => UserPlaylists.Add(item));
             });
         }
 

@@ -10,7 +10,7 @@
             <TextBlock Text="设置页面还在开发当中!" FontSize="24" FontWeight="Black" Margin="0,0,0,80" />
             <Button Margin="0,30,0,0" Width="200" Height="50" Background="White" Content="测试按钮" Command="{x:Bind ViewModel.TestButtonClickCommand}"/>
         </Grid>
-        <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom">
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,20">
             <StackPanel>
                 <Grid VerticalAlignment="Center" Height="72" Width="1052" HorizontalAlignment="Center">
                     <StackPanel>

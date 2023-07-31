@@ -1,17 +1,13 @@
-﻿using NonsPlayer.Core.Models;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Components.Models;
+
 public class MusicItem
 {
-    public Music Music
-    {
-        get;
-        set;
-    }
+    public Music Music;
 
-    public string Index
-    {
-        get;
-        set;
-    }
+    public bool IsInitCover;
+
+    public string Index;
 }
