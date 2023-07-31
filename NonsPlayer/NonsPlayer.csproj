@@ -14,14 +14,15 @@
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <DefaultLanguage>zh-cn</DefaultLanguage>
     <PackageId>$(AssemblyName)</PackageId>
-    <Version>0.1.0</Version>
-    <AssemblyVersion>0.1.0</AssemblyVersion>
-    <FileVersion>0.1.0</FileVersion>
+    <Version>0.2.3</Version>
+    <AssemblyVersion>0.2.3</AssemblyVersion>
+    <FileVersion>0.2.3</FileVersion>
     <Product>Miaoyww</Product>
     <PackageCertificateThumbprint>90B23112B9452F6A7D258D4D87E2EF96B1431B7C</PackageCertificateThumbprint>
     <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
     <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <NeutralLanguage>zh</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>
