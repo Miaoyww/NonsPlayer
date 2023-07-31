@@ -41,11 +41,9 @@
                     </Grid>
                     <Grid Column="1" Name="PageButtons" VerticalAlignment="Center" Margin="10,0,0,0">
                         <StackPanel Orientation="Horizontal" Width="150" HorizontalAlignment="Left">
-                            <Button Height="35" Width="35" Margin="10,0,5,0" Padding="0" BorderThickness="0">
+                            <Button Name="Back" Height="35" Width="35" Margin="10,0,5,0" Padding="0" BorderThickness="0"
+                                    Command="{x:Bind ViewModel.GoBackCommand}">
                                 <FontIcon Glyph="&#xE973;" FontSize="24" />
-                            </Button>
-                            <Button Height="35" Width="35" BorderThickness="0" Padding="0">
-                                <FontIcon Glyph="&#xE974;" FontSize="24" />
                             </Button>
                         </StackPanel>
                     </Grid>
@@ -57,19 +55,19 @@
                                 VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
                                 FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
                                 Foreground="#2d2d2d"
-                                Command="{x:Bind ViewModel.MenuHomeOpenCommand}" />
+                                Command="{x:Bind ViewModel.OpenMenuHomeCommand}" />
                         <Button x:Uid="ShellMenu_Explore" BorderThickness="0" Width="50" Height="25"
                                 FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
                                 FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
                                 Foreground="#2d2d2d"
-                                Command="{x:Bind ViewModel.MenuExploreOpenCommand}" />
+                                Command="{x:Bind ViewModel.OpenMenuExploreCommand}" />
                         <Button x:Uid="ShellMenu_Own" BorderThickness="0" Width="50" Height="25"
                                 FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
                                 FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
                                 Foreground="#2d2d2d"
-                                Command="{x:Bind ViewModel.MenuPersonalCenterMenuOwnOpenCommand}" />
+                                Command="{x:Bind ViewModel.OpenMenuPersonalCenterCommand}" />
                     </StackPanel>
                     <Grid Column="3" Name="UserController" VerticalAlignment="Center"
                           HorizontalAlignment="Right" Height="40">
@@ -99,7 +97,7 @@
                                               Margin="10,0,0,0" x:Name="ShellMenuBarSettingsButton"
                                               PointerEntered="ShellMenuBarSettingsButton_PointerEntered"
                                               PointerExited="ShellMenuBarSettingsButton_PointerExited"
-                                              Command="{x:Bind ViewModel.MenuSettingsCommand}">
+                                              Command="{x:Bind ViewModel.OpenMenuSettingsCommand}">
                                     <AnimatedIcon Margin="0,0,0,3" x:Name="ShellMenuBarSettingsButtonIcon">
                                         <AnimatedIcon.Source>
                                             <animatedvisuals:AnimatedSettingsVisualSource />

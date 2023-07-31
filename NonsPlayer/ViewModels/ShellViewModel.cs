@@ -22,7 +22,7 @@ using AccountState = NonsPlayer.Models.AccountState;
 
 namespace NonsPlayer.ViewModels;
 
-public class ShellViewModel : ObservableRecipient
+public partial class ShellViewModel : ObservableRecipient
 {
     public AccountState AccountState => AccountState.Instance;
     private bool _isBackEnabled;
@@ -39,11 +39,6 @@ public class ShellViewModel : ObservableRecipient
         NavigationService = navigationService;
         ServiceHelper.NavigationService = navigationService;
         NavigationService.Navigated += OnNavigated;
-
-        MenuHomeOpenCommand = new RelayCommand(OnMenuHomeOpen);
-        MenuExploreOpenCommand = new RelayCommand(OnMenuExploreOpen);
-        MenuPersonalCenterMenuOwnOpenCommand = new RelayCommand(OnMenuPersonalCenterOpen);
-        MenuSettingsCommand = new RelayCommand(OnMenuSettings);
         AccountService.Instance.UpdateInfo();
         Account.Instance.LoginByReg();
     }
@@ -70,27 +65,6 @@ public class ShellViewModel : ObservableRecipient
 
     #region 接口实现
 
-    public ICommand MenuHomeOpenCommand
-    {
-        get;
-    }
-
-    public ICommand MenuExploreOpenCommand
-    {
-        get;
-    }
-
-    public ICommand MenuPersonalCenterMenuOwnOpenCommand
-    {
-        get;
-    }
-
-    public ICommand MenuSettingsCommand
-    {
-        get;
-    }
-
-
     public INavigationService NavigationService
     {
         get;
@@ -102,13 +76,20 @@ public class ShellViewModel : ObservableRecipient
 
     private void OnNavigated(object sender, NavigationEventArgs e) => IsBackEnabled = NavigationService.CanGoBack;
 
-    private void OnMenuHomeOpen() => NavigationService.NavigateTo(typeof(HomeViewModel).FullName!);
+    [RelayCommand]
+    private void OpenMenuHome() => NavigationService.NavigateTo(typeof(HomeViewModel).FullName!);
 
-    private void OnMenuExploreOpen() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
+    [RelayCommand]
+    private void OpenMenuExplore() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
 
-    private void OnMenuPersonalCenterOpen() => NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName!);
+    [RelayCommand]
+    private void OpenMenuPersonalCenter() => NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName!);
 
-    private void OnMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
+    [RelayCommand]
+    private void OpenMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
+
+    [RelayCommand]
+    private void GoBack() => NavigationService.GoBack();
 
     #endregion 页面注册
 }
@@ -125,10 +106,12 @@ public partial class PlayQueueBarViewModel
         PlayQueue.Instance.PlaylistAddedEventHandler += OnPlaylistAdded;
         MusicItems.CollectionChanged += OnCollectionChanged;
     }
+
     public void OnCollectionChanged(object? sender, EventArgs e)
     {
         Count = MusicItems.Count;
     }
+
     public void OnPlaylistAdded(object? sender, EventArgs e)
     {
         MusicItems.Clear();
