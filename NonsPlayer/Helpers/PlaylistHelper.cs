@@ -7,7 +7,7 @@ namespace NonsPlayer.Helpers
     {
         public static void OpenMusicListDetail(long id, INavigationService navigationService)
         {
-            navigationService.NavigateTo(typeof(MusicListDetailViewModel).FullName!, id);
+            navigationService.NavigateTo(typeof(PlayListDetailViewModel).FullName!, id);
         }
     }
 }

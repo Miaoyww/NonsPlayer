@@ -56,7 +56,7 @@ public static class Apis
             return await nons.Request(_URL, pairs);
         }
 
-        public static async Task<JObject> Url(long[] ids, Nons nons)
+        public static async Task<JObject> Url(long?[] ids, Nons nons)
         {
             string _URL = "http://music.163.com/api/song/enhance/player/url";
             string idsBody = "[";

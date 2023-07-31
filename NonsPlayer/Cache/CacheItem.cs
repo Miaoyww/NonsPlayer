@@ -2,17 +2,9 @@
 
 public class CacheItem<T>
 {
-    public T Data
-    {
-        get;
-        set;
-    }
+    public T Data;
 
-    public DateTime ExpirationTime
-    {
-        get;
-        set;
-    }
+    public DateTime ExpirationTime;
 
     public CacheItem(DateTime? ExpirationTime = null)
     {

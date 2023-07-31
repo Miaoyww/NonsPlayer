@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using NonsPlayer.Contracts.Services;
@@ -15,7 +14,6 @@ public class NavigationService : INavigationService
     private readonly IPageService _pageService;
     private object? _lastParameterUsed;
     private Frame? _frame;
-
     public event NavigatedEventHandler? Navigated;
 
     public Frame? Frame
@@ -84,8 +82,9 @@ public class NavigationService : INavigationService
     {
         var pageType = _pageService.GetPageType(pageKey);
 
-        if (_frame != null && (_frame.Content?.GetType() != pageType || parameter != null && !parameter.Equals(_lastParameterUsed)))
-        {
+        if (_frame != null && (_frame.Content?.GetType() != pageType ||
+                               parameter != null && !parameter.Equals(_lastParameterUsed)))
+        {   
             _frame.Tag = clearNavigation;
             var vmBeforeNavigation = _frame.GetPageViewModel();
             var navigated = _frame.Navigate(pageType, parameter);

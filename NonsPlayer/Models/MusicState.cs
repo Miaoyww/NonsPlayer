@@ -23,7 +23,7 @@ public partial class MusicState
     private MusicState()
     {
         Player.Instance.Position = TimeSpan.Zero;
-        CurrentMusic = new Music();
+        CurrentMusic = Music.CreateEmpty();
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
     }
 

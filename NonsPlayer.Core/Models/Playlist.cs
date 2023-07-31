@@ -64,12 +64,18 @@ public class Playlist
 
     public async Task InitMusicsAsync()
     {
-        var tracks = (JArray)(await Apis.Music.Detail(MusicTrackIds, Nons.Instance))["songs"];
-        Musics = new Music[tracks.Count];
-        var (results, elapsed) = await Tools.MeasureExecutionTimeAsync(Task.WhenAll(
-            tracks.Select(track => Task.Run(() => new Music((JObject)track))).ToList()));
-        Array.Copy(results, Musics, results.Length);
-        Debug.WriteLine($"实例化歌单({Id})每首歌曲所用时间: {elapsed.Milliseconds}ms");
+        // 将MusicTrackIds分组，每组200个
+        var musicTrackIdsGroup = MusicTrackIds.Select((id, index) => new {id, index})
+            .GroupBy(x => x.index / 200)
+            .Select(x => x.Select(v => v.id).ToArray())
+            .ToArray();
+        // 将每组的歌曲详情请求并异步解析
+        var musicTasks = musicTrackIdsGroup.Select(musicTrackIds =>
+            Apis.Music.Detail(musicTrackIds, Nons.Instance));
+        var (result, elapsed) = await Task.WhenAll(musicTasks).MeasureExecutionTimeAsync();
+        Debug.WriteLine($"歌曲Api请求所用时间: {elapsed.Milliseconds}ms");
+        // 将每组的歌曲详情解析为Music对象
+        Musics = result.SelectMany(x => x["songs"]).Select(x => Music.CreateAsync((JObject)x).Result).ToArray();
     }
 
     public Stream GetPic(int x = 0, int y = 0)

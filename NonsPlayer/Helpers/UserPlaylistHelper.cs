@@ -43,7 +43,7 @@ namespace NonsPlayer.Heplers
         }
 
         // 用于判断当前音乐是否已收藏
-        public bool IsLiked(long id)
+        public bool IsLiked(long? id)
         {
             if (LikedSongs.Contains(id.ToString()))
             {

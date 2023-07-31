@@ -1,40 +1,48 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.UI.Xaml;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
-public class HomeViewModel : ObservableRecipient
+public class HomeViewModel : ObservableRecipient, INavigationAware
 {
     public INavigationService NavigationService
     {
         get;
     }
 
-    public ObservableCollection<Playlist> Playlists = new();
+    public ObservableCollection<Playlist>? RecommendedPlaylist;
 
     public HomeViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
     }
 
-    public async void HomeLoad(object sender, RoutedEventArgs e)
+    public async void OnNavigatedTo(object e)
     {
-        var response = await Apis.Playlist.Personalized(Nons.Instance, 20);
-        if ((int)response["code"] == 200)
+        if (RecommendedPlaylist == null)
         {
-            var playlists = (JArray)response["result"];
-            foreach (JObject item in playlists)
+            RecommendedPlaylist = new();
+            var response = await Apis.Playlist.Personalized(Nons.Instance, 20);
+            if ((int)response["code"] == 200)
             {
-                Playlists.Add(CacheHelper.GetPlaylist(item["id"].ToString() + "_playlist", item["id"].ToString()));
+                var playlists = (JArray)response["result"];
+                foreach (JObject item in playlists)
+                {
+                        RecommendedPlaylist.Add(
+                        CacheHelper.GetPlaylist(item["id"] + "_playlist", item["id"].ToString()));
+                }
             }
         }
+    }
+
+    public void OnNavigatedFrom()
+    {
+        return;
     }
 }

@@ -21,11 +21,6 @@
                 </Grid>
                 <Grid Margin="0,60,0,80">
                     <TextBlock Text="推荐歌单" FontWeight="Black" FontSize="25" FontFamily="JetBrains Mono" />
-                    <!-- <ListView Name="RecommendPlaylistView" HorizontalAlignment="Left" Margin="0,40,0,0"> -->
-                    <!--     <ItemsPanelTemplate> -->
-                    <!-- -->
-                    <!--     </ItemsPanelTemplate> -->
-                    <!-- </ListView> -->
                     <GridView Name="RecommendPlaylistView" ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
                               SelectionMode="None"
                               HorizontalAlignment="Left" Margin="0,40,0,0">
