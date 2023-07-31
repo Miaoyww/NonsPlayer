@@ -24,14 +24,17 @@ public class AccountService
 
     public void UpdateInfo()
     {
-        AccountState.Instance.Uid = Account.Instance.Uid;
-        AccountState.Instance.Name = Account.Instance.Name;
-        AccountState.Instance.FaceUrl = Account.Instance.FaceUrl;
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            AccountState.Instance.Uid = Account.Instance.Uid;
+            AccountState.Instance.Name = Account.Instance.Name;
+            AccountState.Instance.FaceUrl = Account.Instance.FaceUrl;
+        });
     }
+
     public void OnAccountInitialized()
     {
         UpdateInfo();
         UserPlaylistHelper.Instance.Init();
     }
-
 }

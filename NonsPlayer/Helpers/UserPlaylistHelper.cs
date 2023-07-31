@@ -8,6 +8,7 @@ using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 
 namespace NonsPlayer.Heplers
@@ -97,8 +98,11 @@ namespace NonsPlayer.Heplers
             }
 
             var whenAllResult = await Task.WhenAll(Task.WhenAll(savedPlaylistTasks), Task.WhenAll(userPlaylistTasks));
-            whenAllResult[0].ToList().ForEach(item => SavedPlaylists.Add(item));
-            whenAllResult[1].ToList().ForEach(item => UserPlaylists.Add(item));
+            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+            {
+                whenAllResult[0].ToList().ForEach(item => SavedPlaylists.Add(item));
+                whenAllResult[1].ToList().ForEach(item => UserPlaylists.Add(item));
+            });
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

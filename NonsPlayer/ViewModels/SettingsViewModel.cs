@@ -6,6 +6,8 @@ using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Helpers;
 using Windows.ApplicationModel;
+using NonsPlayer.Core.Account;
+using NonsPlayer.Services;
 
 
 namespace NonsPlayer.ViewModels;
@@ -14,7 +16,8 @@ public class SettingsViewModel : ObservableRecipient
 {
     private void Test()
     {
-
+        Account.Instance.LogOut();
+        App.MainWindow.Close();
     }
 
     #region 66
