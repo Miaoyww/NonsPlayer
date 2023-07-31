@@ -17,7 +17,7 @@ public class PageService : IPageService
         Configure<SettingsViewModel, SettingsPage>();
         Configure<HomeViewModel, HomePage>();
         Configure<ExploreViewModel, ExplorePage>();
-        Configure<PlayListDetailViewModel, PlaylistDetailPage>();
+        Configure<PlaylistDetailViewModel, PlaylistDetailPage>();
         Configure<PersonalCenterViewModel, PersonalCenterPage>();
         Configure<LoginViewModel, LoginPage>();
     }

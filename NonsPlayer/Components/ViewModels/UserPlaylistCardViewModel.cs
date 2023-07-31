@@ -20,10 +20,9 @@ namespace NonsPlayer.Components.ViewModels
 
         public string Uid;
 
-        public async void Init(Playlist playlistItem)
+        public void Init(Playlist playlistItem)
         {
             CacheManager.Instance.Set(playlistItem.CacheId, new CacheItem<Playlist> {Data = playlistItem});
-            await playlistItem.LoadAsync();
             Name = playlistItem.Name;
             Uid = playlistItem.Id.ToString();
             Cover = CacheHelper.GetImageBrush(playlistItem.CacheSmallCoverId, playlistItem.SmallCoverUrl);

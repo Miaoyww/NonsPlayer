@@ -20,7 +20,7 @@ namespace NonsPlayer.Heplers
         {
             get;
         } = new();
-        
+
         public ObservableCollection<Playlist> UserPlaylists
         {
             get;
@@ -54,6 +54,7 @@ namespace NonsPlayer.Heplers
                 return false;
             }
         }
+
         private void OnMusicChanged(Music music)
         {
             CurrentSongLiked = IsLiked(music.Id);
@@ -71,8 +72,9 @@ namespace NonsPlayer.Heplers
 
         public async void Init()
         {
-            var a = await Apis.User.Playlist(Account.Instance.Uid, Nons.Instance);
             var result = (JArray)(await Apis.User.Playlist(Account.Instance.Uid, Nons.Instance))["playlist"];
+            List<Task<Playlist>> savedPlaylistTasks = new();
+            List<Task<Playlist>> userPlaylistTasks = new();
             foreach (var playlistItem in result)
             {
                 if (playlistItem["name"].ToString() == Account.Instance.Name + "喜欢的音乐")
@@ -86,19 +88,17 @@ namespace NonsPlayer.Heplers
 
                 if ((bool)playlistItem["subscribed"])
                 {
-                    SavedPlaylists.Add(new Playlist
-                    {
-                        Id = long.Parse(playlistItem["id"].ToString())
-                    });
+                    savedPlaylistTasks.Add(Playlist.CreateAsync(long.Parse(playlistItem["id"].ToString())));
                 }
                 else
                 {
-                    UserPlaylists.Add(new Playlist
-                    {
-                        Id = long.Parse(playlistItem["id"].ToString())
-                    });
+                    userPlaylistTasks.Add(Playlist.CreateAsync(long.Parse(playlistItem["id"].ToString())));
                 }
             }
+
+            var whenAllResult = await Task.WhenAll(Task.WhenAll(savedPlaylistTasks), Task.WhenAll(userPlaylistTasks));
+            whenAllResult[0].ToList().ForEach(item => SavedPlaylists.Add(item));
+            whenAllResult[1].ToList().ForEach(item => UserPlaylists.Add(item));
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

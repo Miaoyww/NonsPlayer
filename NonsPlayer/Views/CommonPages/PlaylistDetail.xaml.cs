@@ -5,14 +5,14 @@ namespace NonsPlayer.Views.CommonPages;
 
 public sealed partial class PlaylistDetailPage : Page
 {
-    public PlayListDetailViewModel ViewModel
+    public PlaylistDetailViewModel ViewModel
     {
         get;
     }
 
     public PlaylistDetailPage()
     {
-        ViewModel = App.GetService<PlayListDetailViewModel>();
+        ViewModel = App.GetService<PlaylistDetailViewModel>();
         InitializeComponent();
 
     }

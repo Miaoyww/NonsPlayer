@@ -19,7 +19,7 @@ using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
-public partial class PlayListDetailViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
+public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
     [ObservableProperty] private ImageBrush cover;
     [ObservableProperty] private Playlist playListObject;
@@ -45,9 +45,7 @@ public partial class PlayListDetailViewModel : ObservableRecipient, INavigationA
         }
 
         CurrentId = (long)parameter;
-        PlayListObject = CacheHelper.GetPlaylist(CurrentId + "_playlist".ToString(), CurrentId.ToString());
-        var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(PlayListObject.LoadAsync(CurrentId));
-        Debug.WriteLine($"加载歌单({PlayListObject.Id})所用时间: {playlistLoadedTime.Milliseconds}ms");
+        PlayListObject = await CacheHelper.GetPlaylistAsync(CurrentId + "_playlist".ToString(), CurrentId.ToString());
         await Task.WhenAll(LoadPlaylistDetailAsync(), LoadMusicsAsync());
     }
 

@@ -17,9 +17,8 @@ public partial class PlaylistCardViewModel
     [ObservableProperty] private string title;
     [ObservableProperty] private string id;
 
-    public async void Init(Playlist item)
+    public void Init(Playlist item)
     {
-        await item.LoadAsync();
         Id = item.Id.ToString();
         Title = item.Name;
         Cover = CacheHelper.GetImageBrush(item.CacheMiddleCoverId, item.MiddleCoverUrl);

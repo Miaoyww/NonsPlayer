@@ -35,19 +35,25 @@ public class Playlist
     [JsonPropertyName("musics")] public Music[] Musics;
     public Playlist This => this;
 
-    public async Task LoadAsync()
+    private Playlist()
     {
-        if (Id == null)
-        {
-            throw new PlaylistIdNullException("歌单Id为空, 请在调用此函数前先设置Id");
-        }
-
-        await LoadAsync(Id);
     }
 
-    public async Task LoadAsync(long? in_id)
+    public static async Task<Playlist> CreateAsync(long? id)
     {
-        Id = in_id;
+        if (id == null)
+        {
+            throw new PlaylistIdNullException("歌单Id为空");
+        }
+
+        var playlist = new Playlist();
+        await playlist.LoadAsync(id);
+        return playlist;
+    }
+
+    private async Task LoadAsync(long? id)
+    {
+        Id = id;
         var (playlistDetail, apiRequestElapsed) =
             await Tools.MeasureExecutionTimeAsync(Apis.Playlist.Detail(Id, Nons.Instance));
         Debug.WriteLine($"歌单Api请求({Id})所用时间: {apiRequestElapsed.Milliseconds}ms");
@@ -76,16 +82,5 @@ public class Playlist
         Debug.WriteLine($"歌曲Api请求所用时间: {elapsed.Milliseconds}ms");
         // 将每组的歌曲详情解析为Music对象
         Musics = result.SelectMany(x => x["songs"]).Select(x => Music.CreateAsync((JObject)x).Result).ToArray();
-    }
-
-    public Stream GetPic(int x = 0, int y = 0)
-    {
-        var IMGSIZE = "?param=300y300";
-        if (x == 0)
-        {
-            return HttpRequest.StreamHttpGet(CoverUrl + IMGSIZE);
-        }
-
-        return HttpRequest.StreamHttpGet(CoverUrl + $"?param={x}y{y}");
     }
 }

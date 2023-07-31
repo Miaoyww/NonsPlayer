@@ -25,6 +25,19 @@ public static class CacheHelper
         return cacheItem.Data;
     }
 
+    public static async Task<Playlist> GetPlaylistAsync(string cacheId, string id)
+    {
+        var playlistTemp = CacheManager.Instance.TryGet<Playlist>(cacheId);
+        if (playlistTemp == null)
+        {
+            playlistTemp = new CacheItem<Playlist>
+            {
+                Data = await Playlist.CreateAsync(long.Parse(id))
+            };
+        }
+
+        return playlistTemp.Data;
+    }
     public static Playlist GetPlaylist(string cacheId, string id)
     {
         var playlistTemp = CacheManager.Instance.TryGet<Playlist>(cacheId);
@@ -32,10 +45,7 @@ public static class CacheHelper
         {
             playlistTemp = new CacheItem<Playlist>
             {
-                Data = new Playlist
-                {
-                    Id = long.Parse(id)
-                }
+                Data = Playlist.CreateAsync(long.Parse(id)).Result
             };
         }
 

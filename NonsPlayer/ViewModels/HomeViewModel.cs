@@ -29,15 +29,17 @@ public class HomeViewModel : ObservableRecipient, INavigationAware
         {
             RecommendedPlaylist = new();
             var response = await Apis.Playlist.Personalized(Nons.Instance, 20);
-            if ((int)response["code"] == 200)
+            if ((int)response["code"] != 200)
             {
-                var playlists = (JArray)response["result"];
-                foreach (JObject item in playlists)
-                {
-                        RecommendedPlaylist.Add(
-                        CacheHelper.GetPlaylist(item["id"] + "_playlist", item["id"].ToString()));
-                }
+                //TODO: 处理此错误
+                return;
             }
+            
+            var playlists = (JArray)response["result"];
+            var tasks = playlists.Select(item =>
+                CacheHelper.GetPlaylistAsync(item["id"] + "_playlist", item["id"].ToString()));
+            var results = await Task.WhenAll(tasks);
+            results.ToList().ForEach(item => RecommendedPlaylist.Add(item));
         }
     }
 
