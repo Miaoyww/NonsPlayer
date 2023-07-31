@@ -5,15 +5,12 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Loaded="{x:Bind ViewModel.HomeLoad}"
-    xmlns:helpers="using:NonsPlayer.Helpers"
-    xmlns:pages="using:NonsPlayer.Views.Pages"
     xmlns:views="using:NonsPlayer.Components.Views"
     xmlns:models="using:NonsPlayer.Core.Models">
     <Grid>
-        <ScrollViewer Margin="0,0,0,90">
+        <ScrollViewer >
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">
-                <Grid>
+                <Grid Margin="{StaticResource PageCommonMargin}">
                     <TextBlock Text="For you" FontWeight="Black" FontSize="30" FontFamily="JetBrains Mono" />
                     <Border x:Name="b_dailyMusic" PointerEntered="{x:Bind CardShow}" PointerExited="{x:Bind CardHide}"
                             HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500"
@@ -29,7 +26,7 @@
                     <!-- -->
                     <!--     </ItemsPanelTemplate> -->
                     <!-- </ListView> -->
-                    <GridView Name="RecommendPlaylistView" ItemsSource="{x:Bind ViewModel.Playlists, Mode=OneWay}"
+                    <GridView Name="RecommendPlaylistView" ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
                               SelectionMode="None"
                               HorizontalAlignment="Left" Margin="0,40,0,0">
                         <GridView.ItemTemplate>

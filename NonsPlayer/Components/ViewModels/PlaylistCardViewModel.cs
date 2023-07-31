@@ -18,8 +18,7 @@ public partial class PlaylistCardViewModel
     [ObservableProperty] private string id;
 
     public async void Init(Playlist item)
-    {   
-        CacheManager.Instance.Set(item.CacheId, new CacheItem<Playlist> {Data = item});
+    {
         await item.LoadAsync();
         Id = item.Id.ToString();
         Title = item.Name;

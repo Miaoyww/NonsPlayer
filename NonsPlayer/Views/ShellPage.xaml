@@ -12,13 +12,15 @@
     <Grid>
         <Grid>
             <Grid>
-                <Frame x:Name="NavigationFrame" Margin="200,55,0,0" />
+                <Frame x:Name="NavigationFrame" Margin="200,0,0,0" />
             </Grid>
+            
             <views:FunctionBar HorizontalAlignment="Left" />
             <Border Name="TitleBar"
                     VerticalAlignment="Top"
                     BorderThickness="0,0,0,1"
                     BorderBrush="#F0F1F2"
+                    Background="{StaticResource CustomAcrylicBrush}"
                     Height="54"
                     Margin="200,0,0,0">
                 <Grid>
@@ -41,7 +43,8 @@
                     </Grid>
                     <Grid Column="1" Name="PageButtons" VerticalAlignment="Center" Margin="10,0,0,0">
                         <StackPanel Orientation="Horizontal" Width="150" HorizontalAlignment="Left">
-                            <Button Name="Back" Height="35" Width="35" Margin="10,0,5,0" Padding="0" BorderThickness="0"
+                            <Button Name="Back" Height="35" Width="35" Margin="10,0,5,0" Padding="0"
+                                    BorderThickness="0"
                                     Command="{x:Bind ViewModel.GoBackCommand}">
                                 <FontIcon Glyph="&#xE973;" FontSize="24" />
                             </Button>
@@ -131,11 +134,11 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock
                                         Text="播放列表" FontSize="18" FontFamily="HarmonyOS Sans SC" FontWeight="Black"
-                                        HorizontalAlignment="Left" Margin="20,10,0,0"/>
-                                    <TextBlock 
+                                        HorizontalAlignment="Left" Margin="20,10,0,0" />
+                                    <TextBlock
                                         Text="{x:Bind PlayQueueBarViewModel.Count, Mode=OneWay}"
                                         FontSize="16" FontFamily="HarmonyOS Sans SC" FontWeight="Normal"
-                                        HorizontalAlignment="Left" Margin="2,10,0,0"/>
+                                        HorizontalAlignment="Left" Margin="2,10,0,0" />
                                 </StackPanel>
                             </Grid>
                         </ListView.Header>

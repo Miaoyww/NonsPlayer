@@ -14,7 +14,7 @@
     <Grid>
         <Border Name="PlayBar" BorderThickness="0,1,0,0" Padding="0"
                 BorderBrush="#7FB9B9B9"
-                Background="#FFFFFF"
+                Background="{StaticResource CustomAcrylicBrush}"
                 Margin="0,680,0,0"
                 Height="90">
             <Grid>

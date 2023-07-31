@@ -19,7 +19,7 @@ using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
-public partial class MusicListDetailViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
+public partial class PlayListDetailViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
     [ObservableProperty] private ImageBrush cover;
     [ObservableProperty] private Playlist playListObject;
@@ -30,11 +30,6 @@ public partial class MusicListDetailViewModel : ObservableRecipient, INavigation
     [ObservableProperty] private string musicsCount;
     [ObservableProperty] private string name;
 
-    public MusicListDetailViewModel()
-    {
-        PlayAllCommand = new RelayCommand(PlayAll);
-    }
-
     public ObservableCollection<MusicItem> MusicItems = new();
     public List<Music> Musics = new();
 
@@ -42,22 +37,28 @@ public partial class MusicListDetailViewModel : ObservableRecipient, INavigation
     {
     }
 
-    public void OnNavigatedTo(object parameter) => currentId = (long)parameter;
+    public async void OnNavigatedTo(object parameter)
+    {
+        if ((long)parameter == CurrentId)
+        {
+            return;
+        }
+
+        CurrentId = (long)parameter;
+        PlayListObject = CacheHelper.GetPlaylist(CurrentId + "_playlist".ToString(), CurrentId.ToString());
+        var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(PlayListObject.LoadAsync(CurrentId));
+        Debug.WriteLine($"加载歌单({PlayListObject.Id})所用时间: {playlistLoadedTime.Milliseconds}ms");
+        await Task.WhenAll(LoadPlaylistDetailAsync(), LoadMusicsAsync());
+    }
 
     private async Task LoadPlaylistDetailAsync()
     {
-        await Task.Run(() =>
-        {
-            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-            {
-                Name = playListObject.Name;
-                Creator = "made by " + playListObject.Creator;
-                CreateTime = $"· {playListObject.CreateTime.ToString().Split(" ")[0]}";
-                Description = playListObject.Description;
-                MusicsCount = playListObject.MusicsCount + "Tracks";
-                Cover = CacheHelper.GetImageBrush(playListObject.CacheCoverId, playListObject.CoverUrl);
-            });
-        });
+        Name = PlayListObject.Name;
+        Creator = "made by " + PlayListObject.Creator;
+        CreateTime = $"· {PlayListObject.CreateTime.ToString().Split(" ")[0]}";
+        Description = PlayListObject.Description;
+        MusicsCount = PlayListObject.MusicsCount + "Tracks";
+        Cover = CacheHelper.GetImageBrush(PlayListObject.CacheCoverId, PlayListObject.CoverUrl);
     }
 
     private async Task LoadMusicsAsync()
@@ -75,22 +76,6 @@ public partial class MusicListDetailViewModel : ObservableRecipient, INavigation
         }
     }
 
-    public async void PageLoaded(object sender, RoutedEventArgs e)
-    {
-        playListObject = CacheHelper.GetPlaylist(currentId + "_playlist".ToString(), currentId.ToString());
-        var playlistLoadedTime = await Tools.MeasureExecutionTimeAsync(playListObject.LoadAsync(currentId));
-        Debug.WriteLine($"加载歌单({playListObject.Id})所用时间: {playlistLoadedTime.Milliseconds}ms");
-        await Task.WhenAll(LoadPlaylistDetailAsync(), LoadMusicsAsync());
-    }
-
-
-    public ICommand PlayAllCommand
-    {
-        get;
-    }
-
-    public void PlayAll()
-    {
-        PlayQueue.Instance.AddMusicList(Musics);
-    }
+    [RelayCommand]
+    private void PlayAll() => PlayQueue.Instance.AddMusicList(Musics);
 }

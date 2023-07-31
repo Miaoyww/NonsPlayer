@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
-    <Grid Margin="0,0,0,90">
+    <Grid Margin="{StaticResource PageCommonMargin}">
         <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
             <TextBlock Text="设置页面还在开发当中!" FontSize="24" FontWeight="Black" Margin="0,0,0,80" />
             <Button Margin="0,30,0,0" Width="200" Height="50" Background="White" Content="测试按钮" Command="{x:Bind ViewModel.TestButtonClickCommand}"/>

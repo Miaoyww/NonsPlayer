@@ -7,7 +7,7 @@
     mc:Ignorable="d"
     Loaded="{x:Bind ViewModel.PersonalCenterPage_OnLoaded}">
 
-    <Grid>
+    <Grid Margin="{StaticResource PageCommonMargin}">
         <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
