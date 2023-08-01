@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml.Media;
+﻿using Windows.Storage.Streams;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Cache;
@@ -33,6 +34,14 @@ public static class CacheHelper
         }).Result.Data;
     }
 
+    public static async Task<ImageBrush> GetImageBrushAsync(string cacheId, string url)
+    {
+        return (await GetCacheItem<ImageBrush>(cacheId, async () => new ImageBrush
+        {
+            ImageSource = await GetImageStreamFromServer(url)
+        })).Data;
+    }
+
     public static async Task<Playlist> GetPlaylistAsync(string cacheId, string id)
     {
         return (await GetCacheItem<Playlist>(cacheId, async () =>
@@ -61,5 +70,41 @@ public static class CacheHelper
     {
         return GetCacheItem<Music>(cacheId, async () =>
             await Music.CreateAsync(long.Parse(id))).Result.Data;
+    }
+
+    public static async Task<BitmapImage> GetImageStreamFromServer(string imageUrl)
+    {
+        using (var httpClient = new HttpClient())
+        {
+            try
+            {
+                // 发起 HTTP 请求并获取响应数据
+                var response = await httpClient.GetAsync(imageUrl);
+                response.EnsureSuccessStatusCode();
+
+                // 从响应数据中获取图像的字节流
+                byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
+
+                // 创建 InMemoryRandomAccessStream 并将图像数据写入其中
+                using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
+                {
+                    using (DataWriter writer = new DataWriter(stream.GetOutputStreamAt(0)))
+                    {
+                        writer.WriteBytes(imageBytes);
+                        await writer.StoreAsync();
+                    }
+
+                    var bitmap = new BitmapImage();
+                    await bitmap.SetSourceAsync(stream);
+                    return bitmap;
+                }
+            }
+            catch (Exception ex)
+            {
+                // 处理异常
+                Console.WriteLine($"Error: {ex.Message}");
+                return null;
+            }
+        }
     }
 }

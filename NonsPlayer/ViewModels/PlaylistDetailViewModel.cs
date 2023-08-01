@@ -49,12 +49,15 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         PlayListObject = await CacheHelper.GetPlaylistAsync(CurrentId + "_playlist".ToString(), CurrentId.ToString());
         if (PlayListObject.IsCardMode)
         {
-            await PlayListObject.LoadAsync(PlayListObject.Id).ConfigureAwait(false);
+            var elapsed = await Tools.MeasureExecutionTimeAsync(PlayListObject.LoadAsync(PlayListObject.Id))
+                .ConfigureAwait(false);
+            Debug.WriteLine($"获取歌单Api耗时{elapsed.TotalMilliseconds}ms");
+            PlayListObject.IsCardMode = false;
         }
 
         LoadPlaylistDetail();
 
-        await LoadMusicsAsync();
+        await LoadMusicsAsync().ConfigureAwait(false);
     }
 
     private void LoadPlaylistDetail()
@@ -74,7 +77,8 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     {
         if (PlayListObject.Musics == null)
         {
-            await PlayListObject.InitMusicsAsync();
+            var elapsed = await Tools.MeasureExecutionTimeAsync(PlayListObject.InitMusicsAsync());
+            Debug.WriteLine($"初始化歌单音乐耗时: {elapsed.TotalMilliseconds}ms");
         }
 
         for (var i = 0; i < PlayListObject.MusicsCount; i++)

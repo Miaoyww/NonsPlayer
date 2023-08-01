@@ -32,17 +32,16 @@ public partial class MusicItemCardViewModel : ObservableObject
         Album = Music.AlbumName;
         Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
         Liked = UserPlaylistHelper.Instance.IsLiked(Music.Id);
-        InitCover();
+        InitCover().ConfigureAwait(false);
     }
-
-    partial void OnIsInitCoverChanged(bool isInitCover)
+    
+    public async Task InitCover()
     {
-        InitCover();
-    }
-
-    public void InitCover()
-    {
-        Cover = CacheHelper.GetImageBrush(Music.Album.CacheSmallCoverId, Music.Album.SmallCoverUrl);
+        var temp = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallCoverId, Music.Album.SmallCoverUrl);
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            Cover = temp;
+        });
     }
 
     public void Play(object sender, PointerRoutedEventArgs e)

@@ -32,7 +32,7 @@ public class Playlist
     [JsonPropertyName("musics_count")] public int MusicsCount => MusicTrackIds.Length;
 
     [JsonPropertyName("musics")] public Music[] Musics;
-
+    private JObject? PlaylistDetail;
     public bool IsCardMode = false;
     public Playlist This => this;
 
@@ -74,6 +74,7 @@ public class Playlist
         Id = id;
         var playlistDetail = await Apis.Playlist.Detail(Id, Nons.Instance);
         playlistDetail = (JObject)playlistDetail["playlist"];
+        PlaylistDetail = playlistDetail;
         Name = playlistDetail["name"].ToString();
         Description = playlistDetail["description"].ToString();
         Tags = ((JArray)playlistDetail["tags"]).Select(tag => tag.ToString()).ToArray();
@@ -86,17 +87,30 @@ public class Playlist
 
     public async Task InitMusicsAsync()
     {
-        // 将MusicTrackIds分组，每组200个
-        var musicTrackIdsGroup = MusicTrackIds.Select((id, index) => new {id, index})
-            .GroupBy(x => x.index / 200)
-            .Select(x => x.Select(v => v.id).ToArray())
+        // 直接从PlaylistDetail中获取歌曲信息, 因为它会传递小于等于1000的歌曲信息
+        var musicTasks = ((JArray)PlaylistDetail["tracks"]).Select(track => Music.CreateAsync((JObject)track))
             .ToArray();
-        // 将每组的歌曲详情请求并异步解析
-        var musicTasks = musicTrackIdsGroup.Select(musicTrackIds =>
-            Apis.Music.Detail(musicTrackIds, Nons.Instance));
-        var (result, elapsed) = await Task.WhenAll(musicTasks).MeasureExecutionTimeAsync();
-        Debug.WriteLine($"歌曲Api请求所用时间: {elapsed.Milliseconds}ms");
-        // 将每组的歌曲详情解析为Music对象
-        Musics = result.SelectMany(x => x["songs"]).Select(x => Music.CreateAsync((JObject)x).Result).ToArray();
+        if (MusicsCount >= 1000)
+        {
+            Debug.WriteLine("当前歌单歌曲数量大于等于1000, 正在获取剩余歌曲信息");
+            // 删除前1000个歌曲, 因为它们已经被获取过了
+            MusicTrackIds = MusicTrackIds.Skip(1000).ToArray();
+            var musicTrackIdsGroup = MusicTrackIds.Select((id, index) => new {id, index})
+                .GroupBy(x => x.index / 200)
+                .Select(x => x.Select(v => v.id).ToArray())
+                .ToArray();
+            // musicTasks向后添加
+            var musicJObjectTasks = musicTrackIdsGroup.Select(x => Apis.Music.Detail(x, Nons.Instance));
+            var (joBjectResult, elapsed) = await Task.WhenAll(musicJObjectTasks).MeasureExecutionTimeAsync();
+            Debug.WriteLine($"剩余歌曲信息获取完毕({elapsed.TotalMilliseconds}ms)");
+            // 解析JObject并合并到musicTasks中
+            var musicTasks2 = joBjectResult
+                .SelectMany(x => ((JArray)x["songs"]).Select(track => Music.CreateAsync((JObject)track)))
+                .ToArray();
+            musicTasks = musicTasks.Concat(musicTasks2).ToArray();
+        }
+
+        var (result, elapsed2) = await Task.WhenAll(musicTasks).MeasureExecutionTimeAsync();
+        Musics = result;
     }
 }
