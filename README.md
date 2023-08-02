@@ -9,7 +9,7 @@
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
 ![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl)
 
-一个可以远程控制的音乐播放器
+A music player that allows you to remote control it.
 
 ![Alt](https://repobeats.axiom.co/api/embed/f1a32f5de680e028fc13fd13f986a538742f5f17.svg "Repobeats analytics image")
 
@@ -17,54 +17,76 @@
 
 </div>
 
-# UI开发进度
+# UI Development Progress
 
-<img src="log_prscr.png" alt="进度">
+For details: [Latest Release](https://github.com/Miaoyww/NonsPlayer/releases/latest)
 
-## 简述
+# ⭐Highlights
 
-累死我了！
+- Allows you to play music **On Multiple Platforms** (Windows play, Android control)
+- Allows you to play music **From Multiple Platforms** and local music
+- **Beautiful | Simple** lyrics display
+- **Beautiful UI**, easy to use
+- **Small Memory Footprint**, almost **No Impact** on performance
+- **Stable Updates**
 
-
-# ⭐亮点
-
-- 可以**多平台同步播放**(Windows播放, Android控制), 类似于Spotify
-- 可播放**多个平台内的音乐以及本地音乐**
-- **漂亮|简洁**的歌词显示
-- 界面美观, 操作简单
-- 内存占用小, 对性能几乎没有影响
-- 保持稳定更新
-  
 # 📦️下载
 
-打开本项目的[Relases](https://github.com/Miaoywww/NeteaseCloudMusicControl/releases)页面, 下载最新版本, 解压后打开即可使用。
+Open the [Latest Release](https://github.com/Miaoywww/NeteaseCloudMusicControl/releases) Page, download the latest
+version, unzip it.
 
-**需要[.net6.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/6.0)**
-# 🧭开发指南
+You can see a `NonsPlayer_x.x.x.x_xxx.msix` file and a `NonsPlayer_x.x.x.x_xxx.cer` file.
+Double Click the cer, select `Install Certificate` and press Next Button.Select `Local Machine` and next
+select `Automatically select the certificate store based...` and press Next Button.Then Finish installing the
+certificate.
 
-## 环境
-+ Windows 10 1809 及以上版本
-+ 安装 [Visual Studio 2022](https://visualstudio.microsoft.com/zh-hans/vs/preview/)
-+ 安装 [Windows App SDK](https://docs.microsoft.com/zh-cn/windows/apps/windows-app-sdk/set-up-your-development-environment)
+After installed the cer, double click the `msix` file and press Install Button and then You can use it!
 
-欢迎提交 Issus 和 Pull Request!
+**Require[.net6.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/6.0)**
 
+# 🧭Development
 
-# 📜开源许可
+## Environment
 
-本项目仅供个人学习研究参考, 禁止用于商业及非法用途
++ Windows 10 1809 or later
++ 8GB RAM or more
+
+## Step
+
++ Install a IDE like [Jetbrains Rider](https://www.jetbrains.com/rider/)
+  or [Visual Studio](https://visualstudio.microsoft.com/)
++ Install [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/)
++ Clone this repo
+
+## Structure
+
+I will introduce the local structure of this project.Others like Mvvm
+and so on will not be introduced here.
+
++ `NonsPlayer` - The main project
+    - `Components` - The components of the main project, like playerBar, playQueueCard are here
+    - `Cache` - The whole cache system, please get and access data here.Basic usage see
+      `Components`-> `ViewModels` -> `PlaylistCardViewModel.cs`
++ `NonsPlayer.Core` - The core project
+    - `Apis` - The apis of the core project, you can create other platforms apis here
+    - `Account` - Account system here
+    - `Player` - Player system here
+
+Welcome **Issues** and **Pull Request**!
+
+# 📜Open Source License
 
 Copyright Miaomiaoywww 2022.
 
-Distributed under the terms of the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
+Distributed under the terms of
+the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
 
-# 特别鸣谢
+# Thanks for
 
-- [Zhuym](https://github.com/Zhuym07) 为图标设计提供帮助
-- [GooGuJiang](https://github.com/GooGuJiang) 为图标设计、UI设计提供帮助
+- [Zhuym](https://github.com/Zhuym07) provide the idea of Icon
+- [GooGuJiang](https://github.com/GooGuJiang) provide help with Ui and Icon
 
-
-# 灵感来源
+# 💡Source of inspiration
 
 - [Spotify](https://www.spotify.com/)
 - [Apple Music](https://music.apple.com)
