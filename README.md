@@ -17,6 +17,8 @@ A music player that allows you to remote control it.
 
 </div>
 
+**English** | [中文](https://github.com/Miaoyww/NonsPlayer/blob/master/README-CN.md)
+
 # UI Development Progress
 
 For details: [Latest Release](https://github.com/Miaoyww/NonsPlayer/releases/latest)
@@ -30,7 +32,7 @@ For details: [Latest Release](https://github.com/Miaoyww/NonsPlayer/releases/lat
 - **Small Memory Footprint**, almost **No Impact** on performance
 - **Stable Updates**
 
-# 📦️下载
+# 📦️Download
 
 Open the [Latest Release](https://github.com/Miaoywww/NeteaseCloudMusicControl/releases) Page, download the latest
 version, unzip it.
