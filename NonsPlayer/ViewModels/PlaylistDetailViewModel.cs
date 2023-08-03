@@ -30,9 +30,11 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     [ObservableProperty] private string description;
     [ObservableProperty] private string musicsCount;
     [ObservableProperty] private string name;
-    private bool isLoadingImages = false;
     public ObservableCollection<MusicItem> MusicItems = new();
     public List<Music> Musics = new();
+    private readonly int musicItemGroupCount = 30; // 一次加载的MusicItem数量
+    private readonly double loadOffset = 500; // 到达底部多少距离时加载
+    private int currentItemGroupIndex = 0;
 
     public void OnNavigatedFrom()
     {
@@ -57,7 +59,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
         LoadPlaylistDetail();
 
-        await LoadMusicsAsync().ConfigureAwait(false);
+        await InitMusicsAsync().ConfigureAwait(false);
     }
 
     private void LoadPlaylistDetail()
@@ -73,7 +75,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         });
     }
 
-    private async Task LoadMusicsAsync()
+    private async Task InitMusicsAsync()
     {
         if (PlayListObject.Musics == null)
         {
@@ -81,64 +83,61 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             Debug.WriteLine($"初始化歌单音乐耗时: {elapsed.TotalMilliseconds}ms");
         }
 
-        for (var i = 0; i < PlayListObject.MusicsCount; i++)
+        for (int i = 0; i < PlayListObject.Musics.Length; i++)
         {
-            Musics.Add(PlayListObject.Musics[i]);
             var index = i;
-            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+            Musics.Add(PlayListObject.Musics[index]);
+            if (index < musicItemGroupCount)
             {
-                MusicItems.Add(new MusicItem
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
-                    Music = PlayListObject.Musics[index],
-                    Index = (index + 1).ToString("D2"),
-                    IsInitCover = false
+                    MusicItems.Add(new MusicItem
+                    {
+                        Music = PlayListObject.Musics[index],
+                        Index = (index + 1).ToString("D2"),
+                    });
                 });
-            });
+            }
         }
+
+        currentItemGroupIndex = musicItemGroupCount;
     }
 
     public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
     {
         if (sender is ScrollViewer scrollViewer)
         {
-            // 获取可见的第一个和最后一个项的索引
-            var firstVisibleIndex = (int)scrollViewer.VerticalOffset;
-            var lastVisibleIndex = (int)(scrollViewer.VerticalOffset + scrollViewer.ViewportHeight);
+            var offset = scrollViewer.VerticalOffset;
 
-            // 加载可见项的图片
-            await LoadVisibleItemsImages(firstVisibleIndex, lastVisibleIndex);
+            var height = scrollViewer.ScrollableHeight;
+            if (height - offset < loadOffset && currentItemGroupIndex < Musics.Count - 1)
+            {
+                await LoadMusicItemsByGroup();
+            }
         }
     }
 
-    private async Task LoadVisibleItemsImages(int firstIndex, int lastIndex)
+    /// <summary>
+    /// 用于分组加载MusicItem
+    /// </summary>
+    private async Task LoadMusicItemsByGroup()
     {
-        if (isLoadingImages)
+        for (int i = 0; i < musicItemGroupCount; i++)
         {
-            // 如果正在加载图片，则不重复处理
-            return;
-        }
-
-        isLoadingImages = true;
-
-        // 确保索引不超出项的范围
-        var itemCount = Musics.Count;
-        firstIndex = Math.Max(0, firstIndex);
-        lastIndex = Math.Min(itemCount - 1, lastIndex);
-
-        // 加载可见项的图片
-        for (int i = firstIndex; i <= lastIndex; i++)
-        {
-            var item = MusicItems[i];
-
-            // 检查图片是否已加载
-            if (item.Music.Album.SmallCoverUrl != null)
+            var index = currentItemGroupIndex + i + 1;
+            if (index < Musics.Count)
             {
-                // TODO: 完善图片加载逻辑
-                item.IsInitCover = true;
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                {
+                    MusicItems.Add(new MusicItem
+                    {
+                        Music = PlayListObject.Musics[index],
+                        Index = (index + 1).ToString("D2"),
+                    });
+                });
             }
         }
-
-        isLoadingImages = false;
+        currentItemGroupIndex += musicItemGroupCount;
     }
 
 
