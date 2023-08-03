@@ -55,10 +55,11 @@ After installed the cer, double click the `msix` file and press Install Button a
 
 ## Step
 
-+ Install a IDE like [Jetbrains Rider](https://www.jetbrains.com/rider/)
++ Install an IDE like [Jetbrains Rider](https://www.jetbrains.com/rider/)
   or [Visual Studio](https://visualstudio.microsoft.com/)
 + Install [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/)
 + Clone this repo
++ Open `NonsPlayer.sln`
 
 ## Structure
 

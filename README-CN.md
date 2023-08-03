@@ -54,6 +54,7 @@
   or [Visual Studio](https://visualstudio.microsoft.com/)
 + 安装 [Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/)
 + Clone本项目
++ 打开`NonsPlayer.sln`文件
 
 ## 结构
 
