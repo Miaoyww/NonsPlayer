@@ -7,7 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:NonsPlayer.Core.Models"
     mc:Ignorable="d">
-    <Grid Name="FuncBar" Background="#F6F7F8" Width="200">
+    <Grid Name="FuncBar" Background="{StaticResource CustomAcrylicBrush}" Width="200">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
