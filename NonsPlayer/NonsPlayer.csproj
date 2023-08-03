@@ -14,9 +14,9 @@
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <DefaultLanguage>zh-cn</DefaultLanguage>
     <PackageId>$(AssemblyName)</PackageId>
-    <Version>0.2.5</Version>
-    <AssemblyVersion>0.2.5</AssemblyVersion>
-    <FileVersion>0.2.5</FileVersion>
+    <Version>0.2.6</Version>
+    <AssemblyVersion>0.2.6</AssemblyVersion>
+    <FileVersion>0.2.6</FileVersion>
     <Product>Miaoyww</Product>
     <PackageCertificateThumbprint>90B23112B9452F6A7D258D4D87E2EF96B1431B7C</PackageCertificateThumbprint>
     <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
