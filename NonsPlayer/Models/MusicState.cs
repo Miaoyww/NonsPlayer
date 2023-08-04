@@ -34,7 +34,7 @@ public partial class MusicState
     [ObservableProperty] private TimeSpan duration = TimeSpan.Zero;
     [ObservableProperty] private TimeSpan position = TimeSpan.Zero;
     [ObservableProperty] private Music currentMusic;
-    [ObservableProperty] public bool currentSongLiked;
+    [ObservableProperty] private bool currentSongLiked;
 
     partial void OnCurrentMusicChanged(Music value)
     {

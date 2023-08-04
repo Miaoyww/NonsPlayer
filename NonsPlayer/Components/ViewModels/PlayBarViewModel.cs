@@ -31,19 +31,16 @@ namespace NonsPlayer.Components.ViewModels
                 return;
             }
 
-            var result = await FavoritePlaylistService.Instance.Like(MusicState.Instance.CurrentMusic.Id);
-            if (result)
-            {
-                MusicState.Instance.CurrentSongLiked = !MusicState.Instance.CurrentSongLiked;
-            }
+            await FavoritePlaylistService.Instance.Like(MusicState.Instance.CurrentMusic.Id);
         }
 
         public void UpdateLike()
         {
-            if (FavoritePlaylistService.Instance.IsLiked(MusicState.Instance.CurrentMusic.Id))
+            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
             {
-                ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicState.Instance.CurrentSongLiked = true; });
-            }
+                MusicState.Instance.CurrentSongLiked =
+                    FavoritePlaylistService.Instance.IsLiked(MusicState.Instance.CurrentMusic.Id);
+            });
         }
     }
 }
