@@ -2,7 +2,11 @@
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Core.Helpers;
+using NonsPlayer.Core.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
@@ -16,6 +20,8 @@ namespace NonsPlayer.Components.ViewModels
         public PlayerService PlayerService => PlayerService.Instance;
         public MusicState MusicState => MusicState.Instance;
         public UserPlaylistHelper UserPlaylistHelper => UserPlaylistHelper.Instance;
+        private bool onDrag;
+        private TimeSpan newPostion;
 
         public PlayerBarViewModel()
         {
@@ -41,6 +47,22 @@ namespace NonsPlayer.Components.ViewModels
                 MusicState.Instance.CurrentSongLiked =
                     FavoritePlaylistService.Instance.IsLiked(MusicState.Instance.CurrentMusic.Id);
             });
+        }
+
+        public void CurrentTimeSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            //TODO: wait for fix
+            // Player.Instance.Position = TimeSpan.FromSeconds(e.NewValue);
+        }
+
+        public void CurrentTimeSlider_GetFocus(object sender, RoutedEventArgs e)
+        {
+            MusicState.Instance.OnDrag = true;
+        }
+
+        public void CurrentTimeSlider_LostFocus(object sender, RoutedEventArgs e)
+        {
+            MusicState.Instance.OnDrag = false;
         }
     }
 }

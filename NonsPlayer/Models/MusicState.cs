@@ -32,10 +32,11 @@ public partial class MusicState
     [ObservableProperty] private Brush cover;
     [ObservableProperty] private double volume;
     [ObservableProperty] private TimeSpan duration = TimeSpan.Zero;
-    [ObservableProperty] private TimeSpan position = TimeSpan.Zero;
     [ObservableProperty] private Music currentMusic;
     [ObservableProperty] private bool currentSongLiked;
-
+    [ObservableProperty] private bool onDrag;
+    private double position;
+    
     partial void OnCurrentMusicChanged(Music value)
     {
         if (value.IsEmpty)
@@ -51,14 +52,15 @@ public partial class MusicState
         OnPropertyChanged(nameof(DurationString));
     }
 
-    partial void OnPositionChanging(TimeSpan value)
+    public double Position
     {
-        if (value.Equals(null))
+        get => position;
+        set
         {
-            return;
+            position = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(PositionString));
         }
-
-        OnPropertyChanged(nameof(PositionString));
     }
 
     partial void OnDurationChanged(TimeSpan value)
@@ -103,7 +105,7 @@ public partial class MusicState
                 return "00:00";
             }
 
-            return position.ToString(@"mm\:ss");
+            return TimeSpan.FromSeconds(position).ToString(@"mm\:ss");
         }
     }
 }

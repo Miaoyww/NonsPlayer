@@ -48,7 +48,7 @@ public class Player
                 return;
             }
 
-            _mfr.Position = value.Ticks;
+            _mfr.CurrentTime = value;
         }
     }
 

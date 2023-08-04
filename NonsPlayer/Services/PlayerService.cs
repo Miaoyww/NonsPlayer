@@ -40,7 +40,11 @@ public class PlayerService
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
-            MusicState.Instance.Position = position;
+            if(MusicState.Instance.OnDrag)
+            {
+                return;
+            }
+            MusicState.Instance.Position = position.TotalSeconds;
         });
     }
 

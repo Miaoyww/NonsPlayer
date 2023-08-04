@@ -1,6 +1,9 @@
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Components.ViewModels;
 
 namespace NonsPlayer.Components.Views;
@@ -25,4 +28,5 @@ public sealed partial class PlayerBar : UserControl
     {
         OnPlayQueueBarOpenHandler?.Invoke(this, EventArgs.Empty);
     }
+    
 }
