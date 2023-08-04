@@ -26,6 +26,18 @@ public static class CacheHelper
         return cacheItem;
     }
 
+    public static async Task<CacheItem<T>> UpdateCacheItem<T>(string cacheId, Func<Task<T>> createItemAsync)
+        where T : class
+
+    {
+        var cacheItem = new CacheItem<T>
+        {
+            Data = await createItemAsync()
+        };
+        CacheManager.Instance.Set(cacheId, cacheItem);
+        return cacheItem;
+    }
+
     public static ImageBrush GetImageBrush(string cacheId, string url)
     {
         return GetCacheItem<ImageBrush>(cacheId, async () => new ImageBrush
@@ -42,6 +54,14 @@ public static class CacheHelper
         })).Data;
     }
 
+    public static async Task<ImageBrush> UpdateImageBrushAsync(string cacheId, string url)
+    {
+        return (await UpdateCacheItem<ImageBrush>(cacheId, async () => new ImageBrush
+        {
+            ImageSource = await GetImageStreamFromServer(url)
+        })).Data;
+    }
+
     public static async Task<Playlist> GetPlaylistAsync(string cacheId, string id)
     {
         return (await GetCacheItem<Playlist>(cacheId, async () =>
@@ -52,6 +72,14 @@ public static class CacheHelper
     {
         return (await GetCacheItem<Playlist>(cacheId, async () =>
             await Playlist.CreateCardModeAsync(item))).Data;
+    }
+
+    public static async Task<Playlist> UpdatePlaylistAsync(string cacheId, string id)
+    {
+        var playlist = (await UpdateCacheItem<Playlist>(cacheId, async () =>
+            await Playlist.CreateAsync(long.Parse(id)))).Data;
+        await UpdateImageBrushAsync(playlist.CacheCoverId, playlist.CoverUrl);
+        return playlist;
     }
 
     public static Playlist GetPlaylist(string cacheId, string id)
