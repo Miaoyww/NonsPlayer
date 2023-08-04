@@ -6,8 +6,11 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:NonsPlayer.Components.Views"
     xmlns:models="using:NonsPlayer.Components.Models"
+    xmlns:helpers="using:NonsPlayer.Helpers"
     mc:Ignorable="d">
-
+    <Page.Resources>
+        <helpers:LikeIconConverter x:Key="LikeIconConverter" />
+    </Page.Resources>
     <Grid>
         <ScrollViewer ViewChanged="{x:Bind ViewModel.OnScrollViewerViewChanged}">
             <Grid Margin="{StaticResource PlaylistDetailMargin}">
@@ -80,7 +83,7 @@
                                         Margin="0,0,10,0">
                                     <FontIcon FontFamily="Segoe Fluent Icons"
                                               VerticalAlignment="Center" HorizontalAlignment="Left"
-                                              Glyph="&#xEB51;"
+                                              Glyph="{x:Bind ViewModel.IsLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
                                               FontSize="18" />
                                 </Button>
                                 <Button Name="More"

@@ -15,6 +15,7 @@ using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 
@@ -30,6 +31,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     [ObservableProperty] private string description;
     [ObservableProperty] private string musicsCount;
     [ObservableProperty] private string name;
+    [ObservableProperty] private bool isLiked;
     public ObservableCollection<MusicItem> MusicItems = new();
     public List<Music> Musics = new();
     private readonly int musicItemGroupCount = 30; // 一次加载的MusicItem数量
@@ -42,12 +44,16 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     public async void OnNavigatedTo(object parameter)
     {
-        if ((long)parameter == CurrentId)
+        CurrentId = (long) parameter;
+        if (CurrentId.ToString() == FavoritePlaylistService.Instance.FavoritePlaylistId)
         {
-            return;
+            if (FavoritePlaylistService.Instance.IsLikeSongsChanged)
+            {
+                await CacheHelper.UpdatePlaylistAsync(CurrentId + "_playlist", CurrentId.ToString());
+                FavoritePlaylistService.Instance.IsLikeSongsChanged = false;
+            }
         }
 
-        CurrentId = (long)parameter;
         PlayListObject = await CacheHelper.GetPlaylistAsync(CurrentId + "_playlist".ToString(), CurrentId.ToString());
         if (PlayListObject.IsCardMode)
         {
@@ -72,6 +78,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             Description = PlayListObject.Description;
             MusicsCount = PlayListObject.MusicsCount + "Tracks";
             Cover = CacheHelper.GetImageBrush(PlayListObject.CacheCoverId, PlayListObject.CoverUrl);
+            IsLiked = SavedPlaylistService.Instance.IsLiked(CurrentId);
         });
     }
 
@@ -137,6 +144,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
                 });
             }
         }
+
         currentItemGroupIndex += musicItemGroupCount;
     }
 
