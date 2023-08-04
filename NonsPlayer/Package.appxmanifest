@@ -12,7 +12,7 @@
   <Identity
     Name="EB15650D-CE4F-4DEA-8F56-EF591D71C664"
     Publisher="CN=Miaoyww"
-    Version="0.2.6.0" />
+    Version="0.3.1.0" />
 
   <Properties>
     <DisplayName>NonsPlayer</DisplayName>
