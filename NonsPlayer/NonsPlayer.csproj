@@ -19,7 +19,7 @@
     <FileVersion>0.2.6</FileVersion>
     <Product>Miaoyww</Product>
     <PackageCertificateThumbprint>90B23112B9452F6A7D258D4D87E2EF96B1431B7C</PackageCertificateThumbprint>
-    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <AppxPackageSigningEnabled>False</AppxPackageSigningEnabled>
     <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <NeutralLanguage>zh</NeutralLanguage>

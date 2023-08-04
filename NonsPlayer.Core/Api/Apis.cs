@@ -85,13 +85,22 @@ public static class Apis
         public static async Task<JObject> Like(string id, bool like, Nons nons)
         {
             string _URL = "https://music.163.com/api/radio/like";
-            HttpContent data = new StringContent($"alg=itembased&trackId={id}&like={like}&time=3");
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"alg", "itembased"},
                 {"trackId", id},
-                {"like", like.ToString()},
+                {"like", like},
                 {"time", "3"}
+            };
+            return await nons.Request(_URL, pairs);
+        }
+
+        public static async Task<JObject> LikeList(string uid, Nons nons)
+        {
+            var _URL = "https://music.163.com/api/song/like/get";
+            var pairs = new Dictionary<string, object>
+            {
+                {"uid", uid}
             };
             return await nons.Request(_URL, pairs);
         }

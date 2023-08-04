@@ -32,12 +32,12 @@
                                    FontFamily="HarmonyOS Sans SC" FontWeight="Medium"
                                    TextTrimming="CharacterEllipsis" Foreground="Black" Opacity="0.75" />
                     </StackPanel>
-                    <Button Name="Like" Width="35" Height="35"
+                    <Button Name="Like" Width="35" Height="35" Command="{x:Bind ViewModel.LikeCommand}"
                             VerticalAlignment="Center" HorizontalAlignment="Center"
                             Margin="8,0,0,0"
                             Padding="0" Background="Transparent" BorderThickness="0">
                         <FontIcon
-                            Glyph="{x:Bind ViewModel.UserPlaylistHelper.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
+                            Glyph="{x:Bind ViewModel.MusicState.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
                             FontSize="20" />
                     </Button>
                 </StackPanel>

@@ -7,6 +7,7 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
 using Windows.UI;
 using CommunityToolkit.Mvvm.ComponentModel;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 
@@ -15,10 +16,7 @@ namespace NonsPlayer.Models;
 [INotifyPropertyChanged]
 public partial class MusicState
 {
-    public static MusicState Instance
-    {
-        get;
-    } = new();
+    public static MusicState Instance { get; } = new();
 
     private MusicState()
     {
@@ -36,6 +34,7 @@ public partial class MusicState
     [ObservableProperty] private TimeSpan duration = TimeSpan.Zero;
     [ObservableProperty] private TimeSpan position = TimeSpan.Zero;
     [ObservableProperty] private Music currentMusic;
+    [ObservableProperty] public bool currentSongLiked;
 
     partial void OnCurrentMusicChanged(Music value)
     {
@@ -43,8 +42,10 @@ public partial class MusicState
         {
             return;
         }
+
         cover = CacheHelper.GetImageBrush(value.Album.CacheCoverId, value.Album.CoverUrl);
         duration = value.TotalTime;
+        CurrentSongLiked = FavoritePlaylistService.Instance.IsLiked(value.Id);
         OnPropertyChanged(nameof(Cover));
         OnPropertyChanged(nameof(Duration));
         OnPropertyChanged(nameof(DurationString));
@@ -76,7 +77,7 @@ public partial class MusicState
         RegHelper.Instance.Set(RegHelper.Regs.Volume, value.ToString());
         if (Player.Instance.OutputDevice != null)
         {
-            Player.Instance.Volume = (float)value / 100;
+            Player.Instance.Volume = (float) value / 100;
         }
     }
 

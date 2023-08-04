@@ -1,11 +1,13 @@
 ﻿using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Cache;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
 using NonsPlayer.Services;
@@ -31,21 +33,28 @@ public partial class MusicItemCardViewModel : ObservableObject
         Time = Music.TotalTimeString;
         Album = Music.AlbumName;
         Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
-        Liked = UserPlaylistHelper.Instance.IsLiked(Music.Id);
+        Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
         InitCover().ConfigureAwait(false);
     }
-    
+
     public async Task InitCover()
     {
         var temp = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallCoverId, Music.Album.SmallCoverUrl);
-        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        {
-            Cover = temp;
-        });
+        ServiceHelper.DispatcherQueue.TryEnqueue(() => { Cover = temp; });
     }
 
     public void Play(object sender, PointerRoutedEventArgs e)
     {
         PlayQueue.Instance.Play(Music);
     }
+
+    [RelayCommand]
+    public async void Like()
+    {
+        var result = await FavoritePlaylistService.Instance.Like(Music.Id);
+        if (result)
+        {
+            Liked = !Liked;
+        }
+    } 
 }
