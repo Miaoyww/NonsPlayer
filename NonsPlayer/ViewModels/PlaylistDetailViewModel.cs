@@ -33,7 +33,6 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     [ObservableProperty] private string name;
     [ObservableProperty] private bool isLiked;
     public ObservableCollection<MusicItem> MusicItems = new();
-    public List<Music> Musics = new();
     private readonly int musicItemGroupCount = 30; // 一次加载的MusicItem数量
     private readonly double loadOffset = 500; // 到达底部多少距离时加载
     private int currentItemGroupIndex = 0;
@@ -89,11 +88,9 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             var elapsed = await Tools.MeasureExecutionTimeAsync(PlayListObject.InitMusicsAsync());
             Debug.WriteLine($"初始化歌单音乐耗时: {elapsed.TotalMilliseconds}ms");
         }
-
         for (int i = 0; i < PlayListObject.Musics.Length; i++)
         {
             var index = i;
-            Musics.Add(PlayListObject.Musics[index]);
             if (index < musicItemGroupCount)
             {
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
@@ -117,7 +114,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             var offset = scrollViewer.VerticalOffset;
 
             var height = scrollViewer.ScrollableHeight;
-            if (height - offset < loadOffset && currentItemGroupIndex < Musics.Count - 1)
+            if (height - offset < loadOffset && currentItemGroupIndex < playListObject.MusicsCount - 1)
             {
                 await LoadMusicItemsByGroup();
             }
@@ -132,7 +129,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         for (int i = 0; i < musicItemGroupCount; i++)
         {
             var index = currentItemGroupIndex + i + 1;
-            if (index < Musics.Count)
+            if (index < PlayListObject.MusicsCount)
             {
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
@@ -150,5 +147,5 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
 
     [RelayCommand]
-    private void PlayAll() => PlayQueue.Instance.AddMusicList(Musics);
+    private void PlayAll() => PlayQueue.Instance.AddMusicList(playListObject.Musics);
 }

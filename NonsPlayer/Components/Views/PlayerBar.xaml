@@ -68,6 +68,8 @@
                     </StackPanel>
                     <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center"
                                 VerticalAlignment="Bottom">
+                        <TextBlock Text="{x:Bind ViewModel.MusicState.OnDrag, Mode=OneWay}"/>
+                        <TextBlock Text="{x:Bind ViewModel.NewPosition, Mode=OneWay}"/>
                         <TextBlock Name="CurrentTimeTextBlock"
                                    Text="{x:Bind ViewModel.MusicState.PositionString ,Mode=OneWay}"
                                    FontWeight="Black"
@@ -76,8 +78,8 @@
                         <Slider Name="CurrentTimeSlider" IsThumbToolTipEnabled="False" Width="340"
                                 Value="{x:Bind ViewModel.MusicState.Position, Mode=TwoWay}"
                                 ValueChanged="{x:Bind ViewModel.CurrentTimeSlider_OnValueChanged}"
-                                PointerPressed="{x:Bind ViewModel.CurrentTimeSlider_GetFocus}"
-                                PointerReleased="{x:Bind ViewModel.CurrentTimeSlider_LostFocus}"
+                                PointerEntered="{x:Bind ViewModel.CurrentTimeSlider_PointerEntered}"
+                                PointerExited="{x:Bind ViewModel.CurrentTimeSlider_PointerExited}"
                                 Maximum="{x:Bind ViewModel.MusicState.Duration.TotalSeconds, Mode=OneWay}" />
                         <TextBlock Name="DurationTime"
                                    Text="{x:Bind ViewModel.MusicState.DurationString, Mode=OneWay}"
@@ -106,6 +108,5 @@
                 </StackPanel>
             </Grid>
         </Border>
-
     </Grid>
 </UserControl>

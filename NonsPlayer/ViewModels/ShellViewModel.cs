@@ -102,8 +102,8 @@ public partial class PlayQueueBarViewModel
 
     public PlayQueueBarViewModel()
     {
-        PlayQueue.Instance.MusicAddedEventHandler += OnMusicAdded;
-        PlayQueue.Instance.PlaylistAddedEventHandler += OnPlaylistAdded;
+        PlayQueue.Instance.MusicAdded += OnMusicAdded;
+        PlayQueue.Instance.PlaylistAdded += OnPlaylistAdded;
         MusicItems.CollectionChanged += OnCollectionChanged;
     }
 
@@ -112,7 +112,7 @@ public partial class PlayQueueBarViewModel
         Count = MusicItems.Count;
     }
 
-    public void OnPlaylistAdded(object? sender, EventArgs e)
+    public void OnPlaylistAdded()
     {
         MusicItems.Clear();
         PlayQueue.Instance.MusicList.ForEach(item =>
@@ -124,11 +124,11 @@ public partial class PlayQueueBarViewModel
         });
     }
 
-    public void OnMusicAdded(object? sender, EventArgs e)
+    public void OnMusicAdded(Music value)
     {
-        MusicItems.Insert(((MusicAddedEventArgs)e).Index, new MusicItem
+        MusicItems.Insert(PlayQueue.Instance.GetIndex(value), new MusicItem
         {
-            Music = ((MusicAddedEventArgs)e).Music,
+            Music = value,
         });
     }
 }

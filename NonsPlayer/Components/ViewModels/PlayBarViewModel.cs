@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -15,13 +16,16 @@ using NonsPlayer.Services;
 
 namespace NonsPlayer.Components.ViewModels
 {
-    public partial class PlayerBarViewModel
+    public partial class PlayerBarViewModel : ObservableObject
     {
         public PlayerService PlayerService => PlayerService.Instance;
         public MusicState MusicState => MusicState.Instance;
         public UserPlaylistHelper UserPlaylistHelper => UserPlaylistHelper.Instance;
-        private bool onDrag;
         private TimeSpan newPostion;
+
+        [ObservableProperty] private bool isDragging;
+        [ObservableProperty] private TimeSpan lastPosition;
+        [ObservableProperty] private TimeSpan newPosition;
 
         public PlayerBarViewModel()
         {
@@ -51,18 +55,30 @@ namespace NonsPlayer.Components.ViewModels
 
         public void CurrentTimeSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
-            //TODO: wait for fix
-            // Player.Instance.Position = TimeSpan.FromSeconds(e.NewValue);
+            if (MusicState.Instance.OnDrag)
+            {
+                // Player.Instance.Position = TimeSpan.FromSeconds(e.NewValue);
+            }
         }
 
-        public void CurrentTimeSlider_GetFocus(object sender, RoutedEventArgs e)
+        public void CurrentTimeSlider_PointerEntered(object sender, RoutedEventArgs e)
         {
             MusicState.Instance.OnDrag = true;
+            IsDragging = true;
         }
 
-        public void CurrentTimeSlider_LostFocus(object sender, RoutedEventArgs e)
+        public void CurrentTimeSlider_PointerExited(object sender, RoutedEventArgs e)
         {
             MusicState.Instance.OnDrag = false;
+            IsDragging = false;
+        }
+
+        partial void OnIsDraggingChanged(bool value)
+        {
+            if (value == false)
+            {
+                // Player.Instance.Position = NewPosition;
+            }
         }
     }
 }
