@@ -124,4 +124,13 @@ public partial class PlayQueueBarViewModel
             Music = value,
         });
     }
+    
+    public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        var listView = sender as ListView;
+        if (listView.SelectedItem is MusicItem item)
+        {
+            PlayQueue.Instance.Play(item.Music);
+        }
+    }
 }

@@ -115,7 +115,8 @@
                 <ListView Grid.Row="2"
                           Padding="0,5,0,0"
                           BorderThickness="0,1,0,0" BorderBrush="#F0F1F2"
-                          ItemsSource="{x:Bind ViewModel.MusicItems, Mode=OneWay}">
+                          ItemsSource="{x:Bind ViewModel.MusicItems, Mode=OneWay}"
+                          DoubleTapped="{x:Bind ViewModel.DoubleClick}">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:MusicItem">
                             <views:MusicItemCard

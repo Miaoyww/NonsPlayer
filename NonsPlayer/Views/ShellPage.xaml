@@ -14,7 +14,7 @@
             <Grid>
                 <Frame x:Name="NavigationFrame" Margin="200,0,0,0" />
             </Grid>
-            
+
             <views:FunctionBar HorizontalAlignment="Left" />
             <Border Name="TitleBar"
                     VerticalAlignment="Top"
@@ -128,7 +128,8 @@
                     <ListView
                         Margin="0,0,0,30" Padding="0,5,0,0"
                         BorderThickness="0,1,0,0" BorderBrush="#F0F1F2"
-                        ItemsSource="{x:Bind PlayQueueBarViewModel.MusicItems, Mode=OneWay}">
+                        ItemsSource="{x:Bind PlayQueueBarViewModel.MusicItems, Mode=OneWay}"
+                        DoubleTapped="{x:Bind PlayQueueBarViewModel.DoubleClick}">
                         <ListView.Header>
                             <Grid>
                                 <StackPanel Orientation="Horizontal">

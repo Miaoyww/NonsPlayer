@@ -19,6 +19,7 @@ public class PlayQueue
     public event PlaylistAddedEventHandler PlaylistAdded;
 
     public List<Music> MusicList { get; set; }
+    public int Count => MusicList.Count;
 
     public Music CurrentMusic
     {
@@ -91,7 +92,7 @@ public class PlayQueue
             _randomMusicList = GetRandomList(CurrentMusic);
         }
     }
-    
+
     public void AddMusicList(Music[] musicList)
     {
         Clear();
@@ -99,7 +100,7 @@ public class PlayQueue
         Play(musicList[0]);
         PlaylistAdded();
     }
-    
+
     public void AddMusic(Music music)
     {
         // 若播放列表为空，那么直接添加到播放列表中
@@ -128,7 +129,7 @@ public class PlayQueue
 
         CurrentMusic = music;
     }
-    
+
     public void RemoveMusic(Music music)
     {
         MusicList.Remove(music);
@@ -137,13 +138,13 @@ public class PlayQueue
             _randomMusicList.Remove(music);
         }
     }
-    
+
     public void Clear()
     {
         MusicList.Clear();
         _randomMusicList.Clear();
     }
-    
+
     public void Play(Music music)
     {
         if (music == CurrentMusic)
@@ -155,7 +156,7 @@ public class PlayQueue
         CurrentMusic = music;
         _isUserPressed = false;
     }
-    
+
     public void PlayNext(bool isUserPressed = false)
     {
         _isUserPressed = isUserPressed;
@@ -165,6 +166,7 @@ public class PlayQueue
             Play(CurrentMusic);
             return;
         }
+
         var index = list.IndexOf(CurrentMusic) + 1;
         if (PlayMode is PlayModeEnum.Sequential)
         {
@@ -176,7 +178,7 @@ public class PlayQueue
             Play(list[index]);
             return;
         }
-        
+
         if (PlayMode is PlayModeEnum.ListLoop)
         {
             if (list.Count == 0)
@@ -188,6 +190,7 @@ public class PlayQueue
             Play(list[index]);
         }
     }
+
     public void PlayPrevious(bool isUserPressed = false)
     {
         _isUserPressed = isUserPressed;

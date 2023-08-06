@@ -53,12 +53,7 @@ public partial class MusicItemCardViewModel : ObservableObject
         var temp = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallCoverId, Music.Album.SmallCoverUrl);
         ServiceHelper.DispatcherQueue.TryEnqueue(() => { Cover = temp; });
     }
-
-    public void Play(object sender, PointerRoutedEventArgs e)
-    {
-        PlayQueue.Instance.Play(Music);
-    }
-
+    
     [RelayCommand]
     public async void Like()
     {

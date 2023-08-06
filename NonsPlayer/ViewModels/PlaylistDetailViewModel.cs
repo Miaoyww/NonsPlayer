@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Cache;
@@ -88,6 +89,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             var elapsed = await Tools.MeasureExecutionTimeAsync(PlayListObject.InitMusicsAsync());
             Debug.WriteLine($"初始化歌单音乐耗时: {elapsed.TotalMilliseconds}ms");
         }
+
         for (int i = 0; i < PlayListObject.Musics.Length; i++)
         {
             var index = i;
@@ -148,4 +150,19 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     [RelayCommand]
     private void PlayAll() => PlayQueue.Instance.AddMusicList(playListObject.Musics);
+
+
+    public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        var listView = sender as ListView;
+        if (listView.SelectedItem is MusicItem item)
+        {
+            PlayQueue.Instance.Play(item.Music);
+            //TODO: 设置是否将歌曲添加到播放队列
+            if (PlayQueue.Instance.Count == 0)
+            {
+                PlayQueue.Instance.AddMusicList(playListObject.Musics);
+            }
+        }
+    }
 }
