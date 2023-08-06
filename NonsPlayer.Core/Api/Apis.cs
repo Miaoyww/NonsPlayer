@@ -258,4 +258,41 @@ public static class Apis
             return await nons.Request(_URL);
         }
     }
+
+    public static class Search
+    {
+        /// <param name="type">1: 单曲, 10: 专辑, 100: 歌手, 1000: 歌单, 1002: 用户, 1004: MV, 1006: 歌词, 1009: 电台, 1014: 视频</param>
+        public static async Task<JObject> Default(string keyword, int limit, int type, Nons nons)
+        {
+            string _URL = "https://music.163.com/api/search/get";
+            IDictionary<string, object> pairs = new Dictionary<string, object>
+            {
+                {"s", keyword},
+                {"type", type},
+                {"limit", limit},
+                {"offset", 0}
+            };
+            return await nons.Request(_URL, pairs);
+        }
+        
+        public static async Task<JObject> Suggest(string keyword, string type, Nons nons)
+        {
+            string _URL = $"https://music.163.com/api/search/suggest/{type}";
+            IDictionary<string, object> pairs = new Dictionary<string, object>
+            {
+                {"s", keyword}
+            };
+            return await nons.Request(_URL, pairs);
+        }
+
+        public static async Task<JObject> MultiMatch(string keyword, Nons nons)
+        {
+            string _URL = $"https://music.163.com/api/search/suggest/multimatch";
+            IDictionary<string, object> pairs = new Dictionary<string, object>
+            {
+                {"s", keyword}
+            };
+            return await nons.Request(_URL, pairs);
+        }
+    }
 }

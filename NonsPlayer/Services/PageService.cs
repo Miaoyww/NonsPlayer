@@ -20,6 +20,7 @@ public class PageService : IPageService
         Configure<PlaylistDetailViewModel, PlaylistDetailPage>();
         Configure<PersonalCenterViewModel, PersonalCenterPage>();
         Configure<LoginViewModel, LoginPage>();
+        Configure<SearchViewModel, SearchPage>();
     }
 
     public Type GetPageType(string key)

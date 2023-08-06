@@ -1,24 +1,30 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
+
+using AccountState = NonsPlayer.Models.AccountState;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Navigation;
-using NonsPlayer.Contracts.Services;
-using NonsPlayer.Core.Services;
-using NonsPlayer.Helpers;
-using Windows.System;
-using Windows.UI.Xaml.Interop;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Xaml.Navigation;
+
 using NonsPlayer.Components.Models;
+using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Services;
+using NonsPlayer.Helpers;
 using NonsPlayer.Services;
-using AccountState = NonsPlayer.Models.AccountState;
+
+using Windows.System;
+using Windows.UI.Xaml.Interop;
+using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.ViewModels;
 
@@ -46,21 +52,8 @@ public partial class ShellViewModel : ObservableRecipient
 
     public void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key != VirtualKey.Enter)
-        {
-            return;
-        }
 
-        if (((AutoSuggestBox)sender).Text == string.Empty)
-        {
-            return;
-        }
-
-        long playlistId;
-        if (long.TryParse(((AutoSuggestBox)sender).Text, out playlistId))
-        {
-            PlaylistHelper.OpenMusicListDetail(playlistId, App.GetService<INavigationService>());
-        }
+        NavigationService.NavigateTo(typeof(SearchViewModel).FullName!);
     }
 
     #region 接口实现

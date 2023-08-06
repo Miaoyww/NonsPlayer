@@ -85,6 +85,8 @@ public partial class App : Application
                 services.AddTransient<PersonalCenterViewModel>();
                 services.AddTransient<LoginViewModel>();
                 services.AddTransient<LoginPage>();
+                services.AddTransient<SearchViewModel>();
+                services.AddTransient<SearchPage>();
 
                 // Components Views and ViewModels
                 services.AddTransient<MusicItemCardViewModel>();
