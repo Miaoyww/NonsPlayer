@@ -38,9 +38,9 @@ public class Artist : INonsModel
     {
         return new Artist
         {
-            Name = (string) item["al"]["name"],
-            Id = (int) item["al"]["id"],
-            AvatarUrl = (string) item["al"]["picUrl"],
+            Name = (string) item["name"],
+            Id = (int) item["id"],
+            AvatarUrl = (string) item["picUrl"],
         };
     }
 }

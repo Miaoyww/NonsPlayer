@@ -1,5 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+
 using Microsoft.UI.Xaml.Controls;
+
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views.CommonPages;
@@ -20,6 +22,7 @@ public class PageService : IPageService
         Configure<PersonalCenterViewModel, PersonalCenterPage>();
         Configure<LoginViewModel, LoginPage>();
         Configure<SearchViewModel, SearchPage>();
+        Configure<ArtistViewModel, ArtistPage>();
     }
 
     public Type GetPageType(string key)

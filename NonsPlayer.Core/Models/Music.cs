@@ -10,7 +10,7 @@ namespace NonsPlayer.Core.Models;
 public class Music : INonsModel
 {
     public Album Album;
-    public List<Artist> Artists;
+    public Artist[] Artists;
     public string FileType;
     public bool IsEmpty;
     public bool IsLiked;
@@ -56,7 +56,7 @@ public class Music : INonsModel
     {
         var music = new Music();
         music.Name = "暂无歌曲";
-        music.Artists = new List<Artist>
+        music.Artists = new[]
         {
             Artist.CreatEmpty()
         };
@@ -77,7 +77,7 @@ public class Music : INonsModel
             AvatarUrl = (string) item["al"]["picUrl"],
         };
 
-        Artists = ((JArray) item["ar"]).Select(item =>  Artist.CreatAsync((JObject)item)).ToList();
+        Artists = await Task.WhenAll(((JArray) item["ar"]).Select(x =>  Artist.CreatAsync(x["id"].ToObject<long>()))).ConfigureAwait(false);
         IsEmpty = false;
     }
 

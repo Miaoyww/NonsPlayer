@@ -36,7 +36,7 @@ public static class CacheHelper
         CacheManager.Instance.Set(cacheId, cacheItem);
         return cacheItem;
     }
-
+    
     public static ImageBrush GetImageBrush(string cacheId, string url)
     {
         return GetCacheItem(cacheId, async () => new ImageBrush
@@ -77,7 +77,7 @@ public static class CacheHelper
     {
         var playlist = (await UpdateCacheItem<Playlist>(cacheId, async () =>
             await Playlist.CreateAsync(long.Parse(id)))).Data;
-        await UpdateImageBrushAsync(playlist.CacheCoverId, playlist.CoverUrl);
+        await UpdateImageBrushAsync(playlist.CacheAvatarId, playlist.AvatarUrl);
         return playlist;
     }
 

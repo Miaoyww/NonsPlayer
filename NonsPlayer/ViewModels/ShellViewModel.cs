@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using AccountState = NonsPlayer.Models.AccountState;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Controls;
@@ -11,7 +12,6 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
-using AccountState = NonsPlayer.Models.AccountState;
 
 namespace NonsPlayer.ViewModels;
 
@@ -43,10 +43,23 @@ public partial class ShellViewModel : ObservableRecipient
 
     #endregion 接口实现
 
-
-    public void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    public void SearchBox_Entered(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs text)
     {
-        NavigationService.NavigateTo(typeof(SearchViewModel).FullName!);
+        if (text.Equals(string.Empty))
+        {
+            return;
+        }
+
+        NavigationService.NavigateTo(typeof(SearchViewModel).FullName!, text);
+    }
+
+    public void SearchBox_Query(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {        
+        if (args.QueryText.Equals(string.Empty))
+        {
+            return;
+        }
+        NavigationService.NavigateTo(typeof(SearchViewModel).FullName!, args.QueryText);
     }
 
     #region 页面注册

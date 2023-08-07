@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+
 using NonsPlayer.Activation;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Contracts.Services;
@@ -14,6 +15,7 @@ using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.CommonPages;
 using NonsPlayer.Views.Pages;
+
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
 
 namespace NonsPlayer;
@@ -72,6 +74,8 @@ public partial class App : Application
                 services.AddTransient<FunctionBarViewModel>();
                 services.AddTransient<PlayQueueBarViewModel>();
                 services.AddTransient<PlayQueueItemCardViewModel>();
+                services.AddTransient<BestMusicCardViewModel>();
+                services.AddTransient<BestArtistCardViewModel>();
                 // Configuration
                 services.Configure<LocalSettingsOptions>(
                     context.Configuration.GetSection(nameof(LocalSettingsOptions)));

@@ -20,7 +20,7 @@ public partial class UserPlaylistCardViewModel
         CacheManager.Instance.Set(playlistItem.CacheId, new CacheItem<Playlist> {Data = playlistItem});
         Name = playlistItem.Name;
         Uid = playlistItem.Id.ToString();
-        Cover = CacheHelper.GetImageBrush(playlistItem.CacheSmallCoverId, playlistItem.SmallCoverUrl);
+        Cover = CacheHelper.GetImageBrush(playlistItem.CacheSmallAvatarId, playlistItem.SmallAvatarUrl);
     }
 
     public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e)

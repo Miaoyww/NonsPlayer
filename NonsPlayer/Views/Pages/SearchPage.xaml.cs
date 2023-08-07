@@ -14,14 +14,4 @@ public sealed partial class SearchPage : Page
     }
 
     public SearchViewModel ViewModel { get; }
-
-    public ImageSource ArtistBrush =>
-        new BitmapImage(new Uri("https://p2.music.126.net/wSi1HwucwrhlayiluXDKEQ==/109951166444443423.jpg"));
-
-    public ImageBrush BestResultBrush =>
-        new()
-        {
-            ImageSource =
-                new BitmapImage(new Uri("https://p3.music.126.net/BdwgC6JBYeBXqzkHRNwDZg==/109951168769184685.jpg"))
-        };
 }

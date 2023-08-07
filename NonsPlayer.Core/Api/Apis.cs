@@ -283,4 +283,17 @@ public static class Apis
             return await nons.Request(_URL, pairs);
         }
     }
+
+    public static class Artist
+    {
+        public static async Task<JObject> Detail(long id, Nons nons)
+        {
+            var _URL = "https://music.163.com/api/artist/head/info/get";
+            IDictionary<string, object> pairs = new Dictionary<string, object>
+            {
+                {"id", id}
+            };
+            return await nons.Request(_URL, pairs);
+        }
+    }
 }

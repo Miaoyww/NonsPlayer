@@ -20,4 +20,5 @@ public static class Tools
         stopwatch.Stop();
         return stopwatch.Elapsed;
     }
+
 }

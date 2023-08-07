@@ -20,6 +20,6 @@ public partial class PlayQueueItemCardViewModel
         Name = music.Name;
         Artists = music.ArtistsName;
         Time = music.TotalTimeString;
-        Cover = CacheHelper.GetImageBrush(music.Album.CacheSmallCoverId, music.Album.SmallCoverUrl);
+        Cover = CacheHelper.GetImageBrush(music.Album.CacheSmallAvatarId, music.Album.SmallAvatarUrl);
     }
 }

@@ -2,27 +2,23 @@
 using System.Text.Json.Serialization;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Helpers;
 
 namespace NonsPlayer.Core.Models;
 
-public class Playlist
+public class Playlist : INonsModel
 {
-    [JsonPropertyName("pic_url")] public string CoverUrl;
     [JsonPropertyName("create_time")] public DateTime CreateTime;
-
     [JsonPropertyName("creator")] public string Creator;
     [JsonPropertyName("description")] public string Description;
-
-    [JsonPropertyName("id")] public long? Id;
     public bool IsCardMode;
-
+    public string CacheId => Id + "_playlist";
     [JsonPropertyName("musics")] public Music[] Musics;
 
     [JsonPropertyName("music_track_ids")] public long[] MusicTrackIds;
 
-    [JsonPropertyName("name")] public string Name;
     private JObject? PlaylistDetail;
 
     [JsonPropertyName("tags")] public string[] Tags;
@@ -31,12 +27,6 @@ public class Playlist
     {
     }
 
-    public string CacheId => Id + "_playlist";
-    public string CacheCoverId => Id + "_playlist_cover";
-    public string CacheMiddleCoverId => Id + "_playlist_middle_cover";
-    public string CacheSmallCoverId => Id + "_playlist_small_cover";
-    public string SmallCoverUrl => CoverUrl + "?param=40y40";
-    public string MiddleCoverUrl => CoverUrl + "?param=200y200";
     [JsonPropertyName("musics_count")] public int MusicsCount => MusicTrackIds.Length;
     public Playlist This => this;
 
@@ -48,7 +38,7 @@ public class Playlist
         {
             Id = (long) item["id"],
             Name = item["name"].ToString(),
-            CoverUrl = item["picUrl"].ToString(),
+            AvatarUrl = item["picUrl"].ToString(),
             IsCardMode = true
         };
         return playlist;
@@ -63,6 +53,18 @@ public class Playlist
         return playlist;
     }
 
+    public static async Task<Playlist> CreateAsync(JObject item)
+    {
+        var playlist = new Playlist
+        {
+            Id = (long) item["id"],
+            Name = item["name"].ToString(),
+            AvatarUrl = item["picUrl"].ToString(),
+        };
+        await playlist.LoadAsync(playlist.Id).ConfigureAwait(false);
+        return playlist;
+    }
+
     public async Task LoadAsync(long? id)
     {
         Id = id;
@@ -72,7 +74,7 @@ public class Playlist
         Name = playlistDetail["name"].ToString();
         Description = playlistDetail["description"].ToString();
         Tags = ((JArray) playlistDetail["tags"]).Select(tag => tag.ToString()).ToArray();
-        CoverUrl = playlistDetail["coverImgUrl"].ToString();
+        AvatarUrl = playlistDetail["coverImgUrl"].ToString();
         CreateTime = DateTimeOffset.FromUnixTimeMilliseconds((long) playlistDetail["createTime"]).DateTime;
         Creator = playlistDetail["creator"]["nickname"].ToString();
         MusicTrackIds = ((JArray) playlistDetail["trackIds"]).Select(track => long.Parse(track["id"].ToString()))

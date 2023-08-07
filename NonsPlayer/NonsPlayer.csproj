@@ -34,29 +34,37 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Manifest Include="$(ApplicationManifest)"/>
+        <Manifest Include="$(ApplicationManifest)" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1"/>
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002"/>
-        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9"/>
-        <PackageReference Include="NAudio" Version="2.1.0"/>
-        <PackageReference Include="QRCoder" Version="1.4.3"/>
-        <PackageReference Include="RestSharp" Version="106.15.0"/>
-        <PackageReference Include="WinUIEx" Version="2.2.0"/>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+        <PackageReference Include="F23.StringSimilarity" Version="5.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002" />
+        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
+        <PackageReference Include="NAudio" Version="2.1.0" />
+        <PackageReference Include="QRCoder" Version="1.4.3" />
+        <PackageReference Include="RestSharp" Version="106.15.0" />
+        <PackageReference Include="WinUIEx" Version="2.2.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj"/>
+        <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj" />
     </ItemGroup>
     <ItemGroup>
         <None Update="appsettings.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <Page Update="Components\Views\BestArtistCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+          <SubType>Designer</SubType>
+        </Page>
         <Page Update="Components\Views\FunctionBar.xaml">
             <Generator>MSBuild:Compile</Generator>
+        </Page>
+        <Page Update="Components\Views\BestMusicCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         </Page>
         <Page Update="Components\Views\PlayerBar.xaml">
             <Generator>MSBuild:Compile</Generator>
@@ -70,7 +78,7 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-        <ProjectCapability Include="Msix"/>
+        <ProjectCapability Include="Msix" />
     </ItemGroup>
 
     <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
@@ -103,32 +111,34 @@
 
     <Target Name="_RemoveFrameworkReferences" BeforeTargets="_ConvertItems;_CalculateInputsForGenerateCurrentProjectAppxManifest">
         <ItemGroup>
-            <FrameworkSdkReference Remove="@(FrameworkSdkReference)" Condition="$([System.String]::Copy('%(FrameworkSdkReference.SDKName)').StartsWith('Microsoft.WindowsAppRuntime.'))"/>
+            <FrameworkSdkReference Remove="@(FrameworkSdkReference)" Condition="$([System.String]::Copy('%(FrameworkSdkReference.SDKName)').StartsWith('Microsoft.WindowsAppRuntime.'))" />
         </ItemGroup>
     </Target>
 
     <ItemGroup>
-        <PRIResource Remove="Strings\新文件夹\**"/>
+        <PRIResource Remove="Strings\新文件夹\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <Content Remove="Assets\SplashScreen.scale-100.png"/>
-        <Content Remove="Assets\SplashScreen.scale-400.png"/>
+        <Content Remove="Assets\SplashScreen.scale-100.png" />
+        <Content Remove="Assets\SplashScreen.scale-400.png" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Assets\Icons\arrow-back.svg"/>
-        <None Remove="Assets\Icons\arrow-next.svg"/>
-        <None Remove="Assets\Icons\liked.svg"/>
-        <None Remove="Assets\Icons\search.svg"/>
-        <None Remove="Assets\Icons\unliked.svg"/>
-        <None Remove="Assets\SplashScreen.png"/>
-        <None Remove="Assets\UnknowResource.png"/>
-        <None Remove="Assets\WindowIcon.ico"/>
-        <None Remove="Components\Views\FunctionBar.xaml"/>
-        <None Remove="Components\Views\LyricBox.xaml"/>
-        <None Remove="Components\Views\PlayerBar.xaml"/>
-        <None Remove="Components\Views\UserPlaylistCard.xaml"/>
+        <None Remove="Assets\Icons\arrow-back.svg" />
+        <None Remove="Assets\Icons\arrow-next.svg" />
+        <None Remove="Assets\Icons\liked.svg" />
+        <None Remove="Assets\Icons\search.svg" />
+        <None Remove="Assets\Icons\unliked.svg" />
+        <None Remove="Assets\SplashScreen.png" />
+        <None Remove="Assets\UnknowResource.png" />
+        <None Remove="Assets\WindowIcon.ico" />
+        <None Remove="Components\Views\BestArtistCard.xaml" />
+        <None Remove="Components\Views\BestResultCard.xaml" />
+        <None Remove="Components\Views\FunctionBar.xaml" />
+        <None Remove="Components\Views\LyricBox.xaml" />
+        <None Remove="Components\Views\PlayerBar.xaml" />
+        <None Remove="Components\Views\UserPlaylistCard.xaml" />
     </ItemGroup>
 
     <ItemGroup>
@@ -141,7 +151,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Views\CommonPages\"/>
+        <Folder Include="Views\CommonPages\" />
     </ItemGroup>
 
     <ItemGroup>

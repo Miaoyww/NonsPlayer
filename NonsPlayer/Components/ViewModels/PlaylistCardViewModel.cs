@@ -17,7 +17,7 @@ public partial class PlaylistCardViewModel
     {
         Id = item.Id.ToString();
         Title = item.Name;
-        Cover = CacheHelper.GetImageBrush(item.CacheMiddleCoverId, item.MiddleCoverUrl);
+        Cover = CacheHelper.GetImageBrush(item.CacheMiddleAvatarId, item.MiddleAvatarUrl);
     }
 
     public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e)

@@ -4,68 +4,17 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="using:NonsPlayer.Components.Views"
     mc:Ignorable="d">
 
     <Grid>
         <ScrollViewer>
             <Grid Margin="{StaticResource PlaylistDetailMargin}">
                 <Grid VerticalAlignment="Top">
-                    <Border Name="BestResult" HorizontalAlignment="Left" Background="#323232" CornerRadius="20"
-                            Width="500" Height="200">
-                        <StackPanel Margin="20,10,0,0">
-                            <TextBlock Text="最佳结果" Margin="-10,0,0,0"
-                                       FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="16"
-                                       FontWeight="Bold" />
-                            <Line Stroke="#A4A4A4" Margin="-10,0,0,0" StrokeThickness="1" X1="0" X2="66" />
-                            <Grid HorizontalAlignment="Left" Margin="0,10,0,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <Border Width="140" Height="140" Background="{x:Bind BestResultBrush, Mode=OneWay}"
-                                            CornerRadius="20" />
-                                    <StackPanel Margin="20,0,0,0">
-                                        <Grid HorizontalAlignment="Left" Margin="0,0,0,10">
-                                            <Border Background="#C4C4C4" Opacity="0.4" Width="50" Height="24"
-                                                    CornerRadius="10" />
-                                            <TextBlock Text="单曲"
-                                                       VerticalAlignment="Center" HorizontalAlignment="Center"
-                                                       FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9"
-                                                       FontSize="16"
-                                                       FontWeight="Bold" />
-                                        </Grid>
-                                        <TextBlock Text="Vortex -《时光代理人..." Margin="0,0,0,10"
-                                                   FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="26"
-                                                   FontWeight="Bold" />
-                                        <TextBlock Text="白鲨JAWS"
-                                                   FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="22"
-                                                   FontWeight="Bold" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-                    <Border Name="Artist" HorizontalAlignment="Right" CornerRadius="20"
-                            Width="500" Height="200">
-                        <Grid>
-                            <Viewbox Stretch="UniformToFill">
-                                <Image Source="{x:Bind ArtistBrush}"
-                                       Margin="0,-900,0,0">
-                                    <Image.RenderTransform>
-                                        <ScaleTransform ScaleX="1" ScaleY="1" />
-                                    </Image.RenderTransform>
-                                </Image>
-                            </Viewbox>
-
-                            <TextBlock Text="艺术家" Margin="20,10,0,0"
-                                       FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="24"
-                                       FontWeight="Bold" CharacterSpacing="300"
-                                       VerticalAlignment="Top" HorizontalAlignment="Center" />
-                            <TextBlock Text="白鲨JAWS"
-                                       FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="36"
-                                       FontWeight="Bold" CharacterSpacing="300"
-                                       VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Border>
-
+                    <views:BestMusicCard HorizontalAlignment="Left"/>
+                    <views:BestArtistCard HorizontalAlignment="Right"/>
                 </Grid>
+
             </Grid>
         </ScrollViewer>
     </Grid>

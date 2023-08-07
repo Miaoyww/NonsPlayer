@@ -75,7 +75,8 @@
                           HorizontalAlignment="Right" Height="40">
                         <StackPanel Orientation="Horizontal">
                             <AutoSuggestBox Name="SearchBox" BorderThickness="1" CornerRadius="3"
-                                            PreviewKeyDown="{x:Bind ViewModel.SearchBox_KeyDown}"
+                                            SuggestionChosen="{x:Bind ViewModel.SearchBox_Entered}"
+                                            QuerySubmitted="{x:Bind ViewModel.SearchBox_Query}"
                                             QueryIcon="Find" Width="140" Height="34" />
 
                             <StackPanel Name="UserInfo" Orientation="Horizontal"

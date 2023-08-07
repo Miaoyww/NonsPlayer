@@ -1,5 +1,7 @@
-﻿namespace NonsPlayer.Core.Models;
+﻿using NonsPlayer.Core.Contracts.Models;
 
-public class User
+namespace NonsPlayer.Core.Models;
+
+public class User : INonsModel
 {
 }

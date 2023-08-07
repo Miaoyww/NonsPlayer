@@ -69,7 +69,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             CreateTime = $"· {PlayListObject.CreateTime.ToString().Split(" ")[0]}";
             Description = PlayListObject.Description;
             MusicsCount = PlayListObject.MusicsCount + "Tracks";
-            Cover = CacheHelper.GetImageBrush(PlayListObject.CacheCoverId, PlayListObject.CoverUrl);
+            Cover = CacheHelper.GetImageBrush(PlayListObject.CacheAvatarId, PlayListObject.AvatarUrl);
             IsLiked = SavedPlaylistService.Instance.IsLiked(CurrentId);
         });
     }
