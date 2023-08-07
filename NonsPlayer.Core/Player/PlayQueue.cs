@@ -96,19 +96,14 @@ public class PlayQueue
         if (MusicList.Count == 0)
         {
             MusicList.Add(music);
-            CurrentMusic = music;
             MusicAdded(music);
             return;
         }
-
-        // 如果播放列表中已存在该歌曲，那么直接播放该歌曲
+        
         if (MusicList.Contains(music))
         {
-            CurrentMusic = music;
             return;
         }
-
-        // 如果播放列表不为空，那么就在当前播放歌曲的后面插入
         MusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
         MusicAdded(music);
         if (PlayMode is PlayModeEnum.Random) _randomMusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
