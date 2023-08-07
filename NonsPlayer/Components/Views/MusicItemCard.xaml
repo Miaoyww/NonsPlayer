@@ -47,7 +47,7 @@
                 <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Orientation="Horizontal">
                     <Button Margin="0,0,30,0" Height="30" Width="30" Padding="0" Background="Transparent"
-                            BorderThickness="0" Command="{x:Bind ViewModel.LikeCommand}">
+                            BorderThickness="0" Command="{x:Bind LikeCommand}">
                         <FontIcon
                             Glyph="{x:Bind ViewModel.Liked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
                             FontSize="16" />

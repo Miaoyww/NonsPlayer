@@ -35,24 +35,27 @@ public class FavoritePlaylistService
 
     public async Task UpdatePlaylistInfo()
     {
-        var likedSongs =
-            (JArray) (await Apis.Music.LikeList(FavoritePlaylistId, Nons.Instance))["ids"];
-        LikedSongs = likedSongs.Select(likedSong => likedSong.ToString()).ToList();
+        if (Account.Account.Instance.IsLoggedIn)
+        {
+            var likedSongs =
+                (JArray) (await Apis.Music.LikeList(FavoritePlaylistId, Nons.Instance))["ids"];
+            LikedSongs = likedSongs.Select(likedSong => likedSong.ToString()).ToList();
+        }
     }
 
-    public async Task<bool> Like(long? id)
+    public async Task<int> Like(long? id)
     {
         var result = await Apis.Music.Like(id.ToString(), !IsLiked(id), Nons.Instance);
         Debug.WriteLine($"喜欢歌曲({id}): {result["code"]}");
-        LikedSongs.Add(id.ToString());
-        await UpdatePlaylistInfo().ConfigureAwait(false);
         if ((int) result["code"] == 200)
         {
+            LikedSongs.Add(id.ToString());
+            await UpdatePlaylistInfo().ConfigureAwait(false);
             IsLikeSongsChanged = true;
             LikeSongsChanged();
-            return true;
+            return 200;
         }
-
-        return false;
+        
+        return (int)result["code"];
     }
 }

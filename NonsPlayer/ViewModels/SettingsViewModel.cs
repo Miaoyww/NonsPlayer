@@ -4,6 +4,7 @@ using Windows.ApplicationModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Account;
 using NonsPlayer.Helpers;
@@ -14,9 +15,13 @@ public class SettingsViewModel : ObservableRecipient
 {
     private void Test()
     {
-        Account.Instance.LogOut();
-        App.MainWindow.Close();
+
     }
+    // private void Test()
+    // {
+    //     Account.Instance.LogOut();
+    //     App.MainWindow.Close();
+    // }
 
     #region 66
 
