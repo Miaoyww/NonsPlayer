@@ -20,7 +20,7 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public PlayerBarViewModel()
     {
-        MusicState.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 0.0).ToString());
+        MusicState.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 100.0).ToString());
         FavoritePlaylistService.Instance.LikeSongsChanged += UpdateLike;
     }
 
