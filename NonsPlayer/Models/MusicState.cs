@@ -69,7 +69,7 @@ public partial class MusicState
     {
         if (value.IsEmpty) return;
 
-        cover = CacheHelper.GetImageBrush(value.Album.CacheCoverId, value.Album.CoverUrl);
+        cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.Album.AvatarUrl);
         duration = value.TotalTime;
         CurrentSongLiked = FavoritePlaylistService.Instance.IsLiked(value.Id);
         OnPropertyChanged(nameof(Cover));

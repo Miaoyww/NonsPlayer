@@ -1,21 +1,14 @@
 ﻿using System.Text.Json.Serialization;
+using NonsPlayer.Core.Contracts.Models;
 
 namespace NonsPlayer.Core.Models;
 
-public class Album
+public class Album: INonsModel
 {
-    [JsonPropertyName("pic_url")] public string CoverUrl;
 
     [JsonPropertyName("create_date")] public DateTime CreateDate;
     [JsonPropertyName("description")] public string Description;
-    [JsonPropertyName("id")] public int Id;
-
-    [JsonPropertyName("name")] public string Name;
-
-    public string SmallCoverUrl;
-    public string CacheCoverId => Id + "_album_cover";
-    public string CacheSmallCoverId => Id + "_album_small_cover";
-
+    
     /// <summary>
     ///     专辑歌曲
     /// </summary>

@@ -1,22 +1,46 @@
 ﻿using System.Text.Json.Serialization;
+using Newtonsoft.Json.Linq;
+using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Contracts.Models;
 
 namespace NonsPlayer.Core.Models;
 
-public class Artist
+public class Artist : INonsModel
 {
-    [JsonPropertyName("account_id")] public long AccountId;
-
-    public int AlbumCount;
-
     public List<Music> HotMusics;
-    [JsonPropertyName("id")] public long Id;
-
     public int MusicCount;
-
     public int MvCount;
 
-    [JsonPropertyName("name")] public string Name;
+    private Artist()
+    {
+    }
 
-    [JsonPropertyName("pic_url")] public string PicUrl;
-    public string CacheId => Id + "_artist";
+    public static Artist CreatEmpty()
+    {
+        return new Artist
+        {
+            Name = "未知艺术家"
+        };
+    }
+
+    public static async Task<Artist> CreatAsync(long id)
+    {
+        var result = await Apis.Artist.Detail(id, Nons.Instance);
+        return new Artist
+        {
+            Name = result["data"]["artist"]["name"].ToString(),
+            Id = result["data"]["artist"]["id"].ToObject<long>(),
+            AvatarUrl = result["data"]["artist"]["avatar"].ToString()
+        };
+    }
+
+    public static Artist CreatAsync(JObject item)
+    {
+        return new Artist
+        {
+            Name = (string) item["al"]["name"],
+            Id = (int) item["al"]["id"],
+            AvatarUrl = (string) item["al"]["picUrl"],
+        };
+    }
 }

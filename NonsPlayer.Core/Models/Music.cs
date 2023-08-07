@@ -1,33 +1,23 @@
 ﻿using System.Text.Json.Serialization;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Exceptions;
 
 namespace NonsPlayer.Core.Models;
 
-public class Music
+public class Music : INonsModel
 {
-    [JsonPropertyName("album")] public Album Album;
-
-    [JsonPropertyName("artists")] public List<Artist> Artists;
-
+    public Album Album;
+    public List<Artist> Artists;
     public string FileType;
-
-    [JsonPropertyName("id")] public long? Id;
-
-    [JsonPropertyName("is_empty")] public bool IsEmpty;
+    public bool IsEmpty;
     public bool IsLiked;
-
-    [JsonPropertyName("lyrics")] public Lyrics Lyrics;
-
-    [JsonPropertyName("name")] public string Name;
-
+    public Lyrics Lyrics;
     public MusicQualityLevel[] QualityLevels;
-
-    [JsonPropertyName("total_time")] public TimeSpan TotalTime;
-
-    [JsonPropertyName("url")] public string Url;
+    public TimeSpan TotalTime;
+    public string Url;
 
     private Music()
     {
@@ -68,10 +58,7 @@ public class Music
         music.Name = "暂无歌曲";
         music.Artists = new List<Artist>
         {
-            new()
-            {
-                Name = "未知艺术家"
-            }
+            Artist.CreatEmpty()
         };
         music.IsEmpty = true;
         return music;
@@ -87,15 +74,10 @@ public class Music
         {
             Name = (string) item["al"]["name"],
             Id = (int) item["al"]["id"],
-            CoverUrl = (string) item["al"]["picUrl"],
-            SmallCoverUrl = (string) item["al"]["picUrl"] + "?param=40y40"
+            AvatarUrl = (string) item["al"]["picUrl"],
         };
 
-        Artists = ((JArray) item["ar"]).Select(t => new Artist
-        {
-            Name = (string) t["name"],
-            Id = (int) t["id"]
-        }).ToList();
+        Artists = ((JArray) item["ar"]).Select(item =>  Artist.CreatAsync((JObject)item)).ToList();
         IsEmpty = false;
     }
 
