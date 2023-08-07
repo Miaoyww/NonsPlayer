@@ -1,27 +1,15 @@
-﻿using System.Collections.ObjectModel;
+﻿using Windows.System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
-using Windows.System;
-using NonsPlayer.Components.Models;
-using NonsPlayer.Core.Player;
 
 namespace NonsPlayer.Views;
 
 public sealed partial class ShellPage : Page
 {
-    public ShellViewModel ViewModel
-    {
-        get;
-    }
-    
-    public PlayQueueBarViewModel PlayQueueBarViewModel
-    {
-        get;
-    }
     public ShellPage(ShellViewModel viewModel)
     {
         ViewModel = viewModel;
@@ -39,11 +27,15 @@ public sealed partial class ShellPage : Page
         PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
     }
 
+    public ShellViewModel ViewModel { get; }
+
+    public PlayQueueBarViewModel PlayQueueBarViewModel { get; }
+
     public void OnOpenPlayQueueButton_Click(object? sender, EventArgs e)
     {
         PlayQueueBar.IsPaneOpen = !PlayQueueBar.IsPaneOpen;
     }
-    
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         TitleBarHelper.UpdateTitleBar(RequestedTheme);
@@ -67,19 +59,16 @@ public sealed partial class ShellPage : Page
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         ShellMenuBarSettingsButton.RemoveHandler(PointerPressedEvent,
-            (PointerEventHandler)ShellMenuBarSettingsButton_PointerPressed);
+            (PointerEventHandler) ShellMenuBarSettingsButton_PointerPressed);
         ShellMenuBarSettingsButton.RemoveHandler(PointerReleasedEvent,
-            (PointerEventHandler)ShellMenuBarSettingsButton_PointerReleased);
+            (PointerEventHandler) ShellMenuBarSettingsButton_PointerReleased);
     }
 
     private static KeyboardAccelerator BuildKeyboardAccelerator(VirtualKey key, VirtualKeyModifiers? modifiers = null)
     {
-        var keyboardAccelerator = new KeyboardAccelerator() {Key = key};
+        var keyboardAccelerator = new KeyboardAccelerator {Key = key};
 
-        if (modifiers.HasValue)
-        {
-            keyboardAccelerator.Modifiers = modifiers.Value;
-        }
+        if (modifiers.HasValue) keyboardAccelerator.Modifiers = modifiers.Value;
 
         keyboardAccelerator.Invoked += OnKeyboardAcceleratorInvoked;
 
@@ -98,22 +87,21 @@ public sealed partial class ShellPage : Page
 
     private void ShellMenuBarSettingsButton_PointerEntered(object sender, PointerRoutedEventArgs e)
     {
-        AnimatedIcon.SetState((UIElement)sender, "PointerOver");
+        AnimatedIcon.SetState((UIElement) sender, "PointerOver");
     }
 
     private void ShellMenuBarSettingsButton_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        AnimatedIcon.SetState((UIElement)sender, "Pressed");
+        AnimatedIcon.SetState((UIElement) sender, "Pressed");
     }
 
     private void ShellMenuBarSettingsButton_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
-        AnimatedIcon.SetState((UIElement)sender, "Normal");
+        AnimatedIcon.SetState((UIElement) sender, "Normal");
     }
 
     private void ShellMenuBarSettingsButton_PointerExited(object sender, PointerRoutedEventArgs e)
     {
-        AnimatedIcon.SetState((UIElement)sender, "Normal");
+        AnimatedIcon.SetState((UIElement) sender, "Normal");
     }
 }
-

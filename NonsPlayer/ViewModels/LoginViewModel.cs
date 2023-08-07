@@ -1,13 +1,10 @@
-﻿using System.ComponentModel;
-using System.Drawing.Imaging;
-using System.Runtime.CompilerServices;
+﻿using System.Drawing.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Api;
-using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using QRCoder;
 
@@ -15,10 +12,10 @@ namespace NonsPlayer.ViewModels;
 
 public partial class LoginViewModel : ObservableObject
 {
-    [ObservableProperty] private ImageBrush qrCode;
     [ObservableProperty] private string key;
+    [ObservableProperty] private ImageBrush qrCode;
     [ObservableProperty] private string text;
-    
+
     public async void Init()
     {
         Text = "扫描二维码登录";
@@ -28,10 +25,7 @@ public partial class LoginViewModel : ObservableObject
 
     public async Task GetQrCode()
     {
-        if (key == null)
-        {
-            key = (await Apis.Login.QRCode.Key(getCurrentTimestamp(), Nons.Instance))["unikey"].ToString();
-        }
+        if (key == null) key = (await Apis.Login.QRCode.Key(getCurrentTimestamp(), Nons.Instance))["unikey"].ToString();
 
         var qrCodeImage =
             new QRCode(new QRCodeGenerator().CreateQrCode(
@@ -65,25 +59,15 @@ public partial class LoginViewModel : ObservableObject
                 else if (code == 802)
                 {
                     // 二维码已确认
-                    ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-                    {
-                        Text = "请在手机上确认登录";
-                    });
+                    ServiceHelper.DispatcherQueue.TryEnqueue(() => { Text = "请在手机上确认登录"; });
                 }
                 else if (code == 803)
                 {
                     // 二维码登录成功
-                    ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-                    {
-                        Text = "登录成功";
-                    });
+                    ServiceHelper.DispatcherQueue.TryEnqueue(() => { Text = "登录成功"; });
                     foreach (var cookieItem in result.Cookies)
-                    {
                         if (cookieItem.Name == "MUSIC_U")
-                        {
                             Account.Instance.LoginByToken(cookieItem.Value);
-                        }
-                    }
 
                     ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                     {
@@ -99,6 +83,6 @@ public partial class LoginViewModel : ObservableObject
 
     private string getCurrentTimestamp()
     {
-        return ((DateTimeOffset)DateTime.Now).ToUnixTimeMilliseconds().ToString();
+        return ((DateTimeOffset) DateTime.Now).ToUnixTimeMilliseconds().ToString();
     }
 }

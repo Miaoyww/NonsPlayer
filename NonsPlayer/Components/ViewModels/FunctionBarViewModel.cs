@@ -1,16 +1,12 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using NonsPlayer.Components.Models;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Heplers;
 using NonsPlayer.Models;
 
-namespace NonsPlayer.Components.ViewModels
+namespace NonsPlayer.Components.ViewModels;
+
+public class FunctionBarViewModel
 {
-    public class FunctionBarViewModel
-    {
-        public MusicState MusicState => MusicState.Instance;
-        public ObservableCollection<Playlist> UserPlaylists => UserPlaylistHelper.Instance.UserPlaylists;
-    }
+    public MusicState MusicState => MusicState.Instance;
+    public ObservableCollection<Playlist> UserPlaylists => UserPlaylistHelper.Instance.UserPlaylists;
 }

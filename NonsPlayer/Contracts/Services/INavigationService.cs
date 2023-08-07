@@ -5,17 +5,11 @@ namespace NonsPlayer.Contracts.Services;
 
 public interface INavigationService
 {
+    bool CanGoBack { get; }
+
+    Frame? Frame { get; set; }
+
     event NavigatedEventHandler Navigated;
-
-    bool CanGoBack
-    {
-        get;
-    }
-
-    Frame? Frame
-    {
-        get; set;
-    }
 
     bool NavigateTo(string pageKey, object? parameter = null, bool clearNavigation = false);
 

@@ -19,7 +19,8 @@
                             <Line Stroke="#A4A4A4" Margin="-10,0,0,0" StrokeThickness="1" X1="0" X2="66" />
                             <Grid HorizontalAlignment="Left" Margin="0,10,0,0">
                                 <StackPanel Orientation="Horizontal">
-                                    <Border Width="140" Height="140" Background="{x:Bind BestResultBrush, Mode=OneWay}" CornerRadius="20" />
+                                    <Border Width="140" Height="140" Background="{x:Bind BestResultBrush, Mode=OneWay}"
+                                            CornerRadius="20" />
                                     <StackPanel Margin="20,0,0,0">
                                         <Grid HorizontalAlignment="Left" Margin="0,0,0,10">
                                             <Border Background="#C4C4C4" Opacity="0.4" Width="50" Height="24"
@@ -52,15 +53,15 @@
                                     </Image.RenderTransform>
                                 </Image>
                             </Viewbox>
-                            
-                            <TextBlock Text="艺术家" Margin="20,10,0,0" 
+
+                            <TextBlock Text="艺术家" Margin="20,10,0,0"
                                        FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="24"
                                        FontWeight="Bold" CharacterSpacing="300"
-                                       VerticalAlignment="Top" HorizontalAlignment="Center"/>
+                                       VerticalAlignment="Top" HorizontalAlignment="Center" />
                             <TextBlock Text="白鲨JAWS"
-                                FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="36"
-                                FontWeight="Bold" CharacterSpacing="300"
-                                VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                       FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="36"
+                                       FontWeight="Bold" CharacterSpacing="300"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center" />
                         </Grid>
                     </Border>
 

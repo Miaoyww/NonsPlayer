@@ -8,7 +8,7 @@
 
     <Grid Margin="{StaticResource PageCommonMargin}">
         <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
-            <TextBlock Text="发现页面还在开发当中!" FontSize="24" FontWeight="Black"/>
+            <TextBlock Text="发现页面还在开发当中!" FontSize="24" FontWeight="Black" />
         </Grid>
     </Grid>
 </Page>

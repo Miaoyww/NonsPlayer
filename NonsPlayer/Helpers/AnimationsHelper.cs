@@ -38,6 +38,8 @@ public static class AnimationsHelper
         StartAnimationIfAPIPresent(sender as UIElement, _springAnimation);
     }
 
-    private static void StartAnimationIfAPIPresent(UIElement sender, CompositionAnimation animation) =>
+    private static void StartAnimationIfAPIPresent(UIElement sender, CompositionAnimation animation)
+    {
         sender.StartAnimation(animation);
+    }
 }

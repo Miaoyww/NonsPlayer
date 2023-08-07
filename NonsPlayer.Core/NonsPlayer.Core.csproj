@@ -1,17 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net6.0-windows10.0.22000.0</TargetFramework>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-    <RootNamespace>NonsPlayer.Core</RootNamespace>
-    <Platforms>AnyCPU;x64;x86</Platforms>
-    <Platforms>x86;x64;arm64;AnyCPU</Platforms>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net6.0-windows10.0.22000.0</TargetFramework>
+        <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+        <RootNamespace>NonsPlayer.Core</RootNamespace>
+        <Platforms>AnyCPU;x64;x86</Platforms>
+        <Platforms>x86;x64;arm64;AnyCPU</Platforms>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="NAudio" Version="2.1.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="RestSharp" Version="106.15.0" />
-    <PackageReference Include="System.Management" Version="7.0.2" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="NAudio" Version="2.1.0"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageReference Include="RestSharp" Version="106.15.0"/>
+        <PackageReference Include="System.Management" Version="7.0.2"/>
+    </ItemGroup>
 </Project>

@@ -9,12 +9,13 @@ namespace NonsPlayer.Services;
 
 public class ActivationService : IActivationService
 {
-    private readonly ActivationHandler<LaunchActivatedEventArgs> _defaultHandler;
     private readonly IEnumerable<IActivationHandler> _activationHandlers;
+    private readonly ActivationHandler<LaunchActivatedEventArgs> _defaultHandler;
     private readonly IThemeSelectorService _themeSelectorService;
-    private UIElement? _shell = null;
+    private UIElement? _shell;
 
-    public ActivationService(ActivationHandler<LaunchActivatedEventArgs> defaultHandler, IEnumerable<IActivationHandler> activationHandlers, IThemeSelectorService themeSelectorService)
+    public ActivationService(ActivationHandler<LaunchActivatedEventArgs> defaultHandler,
+        IEnumerable<IActivationHandler> activationHandlers, IThemeSelectorService themeSelectorService)
     {
         _defaultHandler = defaultHandler;
         _activationHandlers = activationHandlers;
@@ -48,15 +49,9 @@ public class ActivationService : IActivationService
     {
         var activationHandler = _activationHandlers.FirstOrDefault(h => h.CanHandle(activationArgs));
 
-        if (activationHandler != null)
-        {
-            await activationHandler.HandleAsync(activationArgs);
-        }
+        if (activationHandler != null) await activationHandler.HandleAsync(activationArgs);
 
-        if (_defaultHandler.CanHandle(activationArgs))
-        {
-            await _defaultHandler.HandleAsync(activationArgs);
-        }
+        if (_defaultHandler.CanHandle(activationArgs)) await _defaultHandler.HandleAsync(activationArgs);
     }
 
     private async Task InitializeAsync()

@@ -1,10 +1,6 @@
-﻿using System.ComponentModel;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Newtonsoft.Json.Linq;
-using NonsPlayer.Cache;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Helpers;
 
@@ -14,8 +10,8 @@ namespace NonsPlayer.Components.ViewModels;
 public partial class PlaylistCardViewModel
 {
     [ObservableProperty] private ImageBrush cover;
-    [ObservableProperty] private string title;
     [ObservableProperty] private string id;
+    [ObservableProperty] private string title;
 
     public void Init(Playlist item)
     {
@@ -24,6 +20,8 @@ public partial class PlaylistCardViewModel
         Cover = CacheHelper.GetImageBrush(item.CacheMiddleCoverId, item.MiddleCoverUrl);
     }
 
-    public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e) =>
+    public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e)
+    {
         PlaylistHelper.OpenMusicListDetail(long.Parse(id), ServiceHelper.NavigationService);
+    }
 }

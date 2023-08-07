@@ -2,30 +2,21 @@
 using System.Text;
 using Newtonsoft.Json.Linq;
 using RestSharp;
-using NonsPlayer.Core.Account;
 
 namespace NonsPlayer.Core.Api;
 
 public class Nons
 {
-    public static Nons Instance
-    {
-        get;
-    } = new();
+    private readonly RestClient _client = new("https://music.163.com");
 
-    
-    private RestClient _client = new("https://music.163.com");
-    
+    public static Nons Instance { get; } = new();
+
     public async Task<IRestResponse> RequestRestResponse(string url, IDictionary<string, object>? parameters = null)
     {
         var request = new RestRequest(url, Method.POST);
         if (parameters != null)
-        {
             foreach (var keyValuePair in parameters)
-            {
                 request.AddParameter(keyValuePair.Key, keyValuePair.Value);
-            }
-        }
 
         request.AddCookie("os", "pc");
         request.AddCookie("appver", "2.9.7");
@@ -34,9 +25,7 @@ public class Nons
         request.AddHeader("Referrer", "https://music.163.com");
 
         if (!Account.Account.Instance.Token.Equals(string.Empty))
-        {
             request.AddCookie("MUSIC_U", Account.Account.Instance.Token);
-        }
 
         return await _client.ExecuteAsync(request);
     }
@@ -56,14 +45,11 @@ public class Nons
     public string Md5(string content)
     {
         MD5 md5 = new MD5CryptoServiceProvider();
-        byte[] fromData = Encoding.UTF8.GetBytes(content);
-        byte[] targetData = md5.ComputeHash(fromData);
-        string byte2String = string.Empty;
+        var fromData = Encoding.UTF8.GetBytes(content);
+        var targetData = md5.ComputeHash(fromData);
+        var byte2String = string.Empty;
 
-        for (int i = 0; i < targetData.Length; i++)
-        {
-            byte2String = byte2String + targetData[i].ToString("x2");
-        }
+        for (var i = 0; i < targetData.Length; i++) byte2String = byte2String + targetData[i].ToString("x2");
 
         return byte2String;
     }

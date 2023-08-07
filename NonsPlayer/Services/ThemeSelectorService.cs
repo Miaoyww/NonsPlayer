@@ -8,14 +8,14 @@ public class ThemeSelectorService : IThemeSelectorService
 {
     private const string SettingsKey = "AppBackgroundRequestedTheme";
 
-    public ElementTheme Theme { get; set; } = ElementTheme.Default;
-
     private readonly ILocalSettingsService _localSettingsService;
 
     public ThemeSelectorService(ILocalSettingsService localSettingsService)
     {
         _localSettingsService = localSettingsService;
     }
+
+    public ElementTheme Theme { get; set; } = ElementTheme.Default;
 
     public async Task InitializeAsync()
     {
@@ -34,11 +34,8 @@ public class ThemeSelectorService : IThemeSelectorService
     public async Task SetRequestedThemeAsync()
     {
         if (App.MainWindow.Content is FrameworkElement rootElement)
-        {
             //  rootElement.RequestedTheme = Theme;
-
             TitleBarHelper.UpdateTitleBar(Theme);
-        }
 
         await Task.CompletedTask;
     }
@@ -47,10 +44,7 @@ public class ThemeSelectorService : IThemeSelectorService
     {
         var themeName = await _localSettingsService.ReadSettingAsync<string>(SettingsKey);
 
-        if (Enum.TryParse(themeName, out ElementTheme cacheTheme))
-        {
-            return cacheTheme;
-        }
+        if (Enum.TryParse(themeName, out ElementTheme cacheTheme)) return cacheTheme;
 
         return ElementTheme.Default;
     }

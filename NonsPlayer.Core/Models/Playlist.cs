@@ -9,47 +9,44 @@ namespace NonsPlayer.Core.Models;
 
 public class Playlist
 {
+    [JsonPropertyName("pic_url")] public string CoverUrl;
     [JsonPropertyName("create_time")] public DateTime CreateTime;
+
+    [JsonPropertyName("creator")] public string Creator;
+    [JsonPropertyName("description")] public string Description;
+
+    [JsonPropertyName("id")] public long? Id;
+    public bool IsCardMode;
+
+    [JsonPropertyName("musics")] public Music[] Musics;
 
     [JsonPropertyName("music_track_ids")] public long[] MusicTrackIds;
 
-    [JsonPropertyName("tags")] public string[] Tags;
-
     [JsonPropertyName("name")] public string Name;
-
-    [JsonPropertyName("id")] public long? Id;
-    public string CacheId => Id.ToString() + "_playlist";
-    public string CacheCoverId => Id.ToString() + "_playlist_cover";
-    public string CacheMiddleCoverId => Id.ToString() + "_playlist_middle_cover";
-    public string CacheSmallCoverId => Id.ToString() + "_playlist_small_cover";
-
-    [JsonPropertyName("pic_url")] public string CoverUrl;
-    public string SmallCoverUrl => CoverUrl + "?param=40y40";
-    public string MiddleCoverUrl => CoverUrl + "?param=200y200";
-    [JsonPropertyName("description")] public string Description;
-
-    [JsonPropertyName("creator")] public string Creator;
-    [JsonPropertyName("musics_count")] public int MusicsCount => MusicTrackIds.Length;
-
-    [JsonPropertyName("musics")] public Music[] Musics;
     private JObject? PlaylistDetail;
-    public bool IsCardMode = false;
-    public Playlist This => this;
+
+    [JsonPropertyName("tags")] public string[] Tags;
 
     private Playlist()
     {
     }
 
+    public string CacheId => Id + "_playlist";
+    public string CacheCoverId => Id + "_playlist_cover";
+    public string CacheMiddleCoverId => Id + "_playlist_middle_cover";
+    public string CacheSmallCoverId => Id + "_playlist_small_cover";
+    public string SmallCoverUrl => CoverUrl + "?param=40y40";
+    public string MiddleCoverUrl => CoverUrl + "?param=200y200";
+    [JsonPropertyName("musics_count")] public int MusicsCount => MusicTrackIds.Length;
+    public Playlist This => this;
+
     public static async Task<Playlist> CreateCardModeAsync(JObject? item)
     {
-        if (item == null)
-        {
-            throw new PlaylistIdNullException("歌单JObject为空");
-        }
+        if (item == null) throw new PlaylistIdNullException("歌单JObject为空");
 
         var playlist = new Playlist
         {
-            Id = (long)item["id"],
+            Id = (long) item["id"],
             Name = item["name"].ToString(),
             CoverUrl = item["picUrl"].ToString(),
             IsCardMode = true
@@ -59,10 +56,7 @@ public class Playlist
 
     public static async Task<Playlist> CreateAsync(long? id)
     {
-        if (id == null)
-        {
-            throw new PlaylistIdNullException("歌单Id为空");
-        }
+        if (id == null) throw new PlaylistIdNullException("歌单Id为空");
 
         var playlist = new Playlist();
         await playlist.LoadAsync(id).ConfigureAwait(false);
@@ -73,22 +67,22 @@ public class Playlist
     {
         Id = id;
         var playlistDetail = await Apis.Playlist.Detail(Id, Nons.Instance);
-        playlistDetail = (JObject)playlistDetail["playlist"];
+        playlistDetail = (JObject) playlistDetail["playlist"];
         PlaylistDetail = playlistDetail;
         Name = playlistDetail["name"].ToString();
         Description = playlistDetail["description"].ToString();
-        Tags = ((JArray)playlistDetail["tags"]).Select(tag => tag.ToString()).ToArray();
+        Tags = ((JArray) playlistDetail["tags"]).Select(tag => tag.ToString()).ToArray();
         CoverUrl = playlistDetail["coverImgUrl"].ToString();
-        CreateTime = DateTimeOffset.FromUnixTimeMilliseconds((long)playlistDetail["createTime"]).DateTime;
+        CreateTime = DateTimeOffset.FromUnixTimeMilliseconds((long) playlistDetail["createTime"]).DateTime;
         Creator = playlistDetail["creator"]["nickname"].ToString();
-        MusicTrackIds = ((JArray)playlistDetail["trackIds"]).Select(track => long.Parse(track["id"].ToString()))
+        MusicTrackIds = ((JArray) playlistDetail["trackIds"]).Select(track => long.Parse(track["id"].ToString()))
             .ToArray();
     }
 
     public async Task InitMusicsAsync()
     {
         // 直接从PlaylistDetail中获取歌曲信息, 因为它会传递小于等于1000的歌曲信息
-        var musicTasks = ((JArray)PlaylistDetail["tracks"]).Select(track => Music.CreateAsync((JObject)track))
+        var musicTasks = ((JArray) PlaylistDetail["tracks"]).Select(track => Music.CreateAsync((JObject) track))
             .ToArray();
         if (MusicsCount >= 1000)
         {
@@ -105,7 +99,7 @@ public class Playlist
             Debug.WriteLine($"剩余歌曲信息获取完毕({elapsed.TotalMilliseconds}ms)");
             // 解析JObject并合并到musicTasks中
             var musicTasks2 = joBjectResult
-                .SelectMany(x => ((JArray)x["songs"]).Select(track => Music.CreateAsync((JObject)track)))
+                .SelectMany(x => ((JArray) x["songs"]).Select(track => Music.CreateAsync((JObject) track)))
                 .ToArray();
             musicTasks = musicTasks.Concat(musicTasks2).ToArray();
         }

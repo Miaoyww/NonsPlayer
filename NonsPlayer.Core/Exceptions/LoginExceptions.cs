@@ -3,9 +3,8 @@
 [Serializable]
 public class LoginFailureException : Exception
 {
-    public LoginFailureException() : base()
+    public LoginFailureException()
     {
-        
     }
 
     public LoginFailureException(string message) : base(message)

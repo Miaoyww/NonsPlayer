@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Cache;
-using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Helpers;
@@ -40,7 +39,7 @@ public static class CacheHelper
 
     public static ImageBrush GetImageBrush(string cacheId, string url)
     {
-        return GetCacheItem<ImageBrush>(cacheId, async () => new ImageBrush
+        return GetCacheItem(cacheId, async () => new ImageBrush
         {
             ImageSource = new BitmapImage(new Uri(url))
         }).Result.Data;
@@ -48,7 +47,7 @@ public static class CacheHelper
 
     public static async Task<ImageBrush> GetImageBrushAsync(string cacheId, string url)
     {
-        return (await GetCacheItem<ImageBrush>(cacheId, async () => new ImageBrush
+        return (await GetCacheItem(cacheId, async () => new ImageBrush
         {
             ImageSource = await GetImageStreamFromServer(url)
         })).Data;
@@ -56,7 +55,7 @@ public static class CacheHelper
 
     public static async Task<ImageBrush> UpdateImageBrushAsync(string cacheId, string url)
     {
-        return (await UpdateCacheItem<ImageBrush>(cacheId, async () => new ImageBrush
+        return (await UpdateCacheItem(cacheId, async () => new ImageBrush
         {
             ImageSource = await GetImageStreamFromServer(url)
         })).Data;
@@ -111,12 +110,12 @@ public static class CacheHelper
                 response.EnsureSuccessStatusCode();
 
                 // 从响应数据中获取图像的字节流
-                byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
+                var imageBytes = await response.Content.ReadAsByteArrayAsync();
 
                 // 创建 InMemoryRandomAccessStream 并将图像数据写入其中
-                using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
+                using (var stream = new InMemoryRandomAccessStream())
                 {
-                    using (DataWriter writer = new DataWriter(stream.GetOutputStreamAt(0)))
+                    using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
                     {
                         writer.WriteBytes(imageBytes);
                         await writer.StoreAsync();

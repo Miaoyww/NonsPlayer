@@ -1,153 +1,153 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows10.0.22000.0</TargetFramework>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-    <RootNamespace>NonsPlayer</RootNamespace>
-    <Platforms>x86;x64;arm64</Platforms>
-    <RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
-    <PublishProfile>Properties\PublishProfiles\win10-$(Platform).pubxml</PublishProfile>
-	<ImplicitUsings>enable</ImplicitUsings>
-	<Nullable>enable</Nullable>
-	<UseWinUI>true</UseWinUI>
-    <EnableMsixTooling>true</EnableMsixTooling>
-    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <DefaultLanguage>zh-cn</DefaultLanguage>
-    <PackageId>$(AssemblyName)</PackageId>
-    <Version>0.3.1</Version>
-    <AssemblyVersion>0.3.1</AssemblyVersion>
-    <FileVersion>0.3.1</FileVersion>
-    <Product>Miaoyww</Product>
-    <PackageCertificateThumbprint>1B4546F36CAFF8A204BEB64202DB844480503318</PackageCertificateThumbprint>
-    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
-    <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <NeutralLanguage>zh</NeutralLanguage>
-    <GenerateAppInstallerFile>True</GenerateAppInstallerFile>
-    <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
-    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
-    <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
-    <GenerateTestArtifacts>True</GenerateTestArtifacts>
-    <AppxBundle>Never</AppxBundle>
-    <AppInstallerUri>D:\Program Files\NonsPlayer</AppInstallerUri>
-    <RepositoryUrl>https://github.com/Miaoyww/NonsPlayer</RepositoryUrl>
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net6.0-windows10.0.22000.0</TargetFramework>
+        <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+        <RootNamespace>NonsPlayer</RootNamespace>
+        <Platforms>x86;x64;arm64</Platforms>
+        <RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
+        <PublishProfile>Properties\PublishProfiles\win10-$(Platform).pubxml</PublishProfile>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UseWinUI>true</UseWinUI>
+        <EnableMsixTooling>true</EnableMsixTooling>
+        <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+        <DefaultLanguage>zh-cn</DefaultLanguage>
+        <PackageId>$(AssemblyName)</PackageId>
+        <Version>0.3.1</Version>
+        <AssemblyVersion>0.3.1</AssemblyVersion>
+        <FileVersion>0.3.1</FileVersion>
+        <Product>Miaoyww</Product>
+        <PackageCertificateThumbprint>1B4546F36CAFF8A204BEB64202DB844480503318</PackageCertificateThumbprint>
+        <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+        <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <NeutralLanguage>zh</NeutralLanguage>
+        <GenerateAppInstallerFile>True</GenerateAppInstallerFile>
+        <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+        <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+        <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
+        <GenerateTestArtifacts>True</GenerateTestArtifacts>
+        <AppxBundle>Never</AppxBundle>
+        <AppInstallerUri>D:\Program Files\NonsPlayer</AppInstallerUri>
+        <RepositoryUrl>https://github.com/Miaoyww/NonsPlayer</RepositoryUrl>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Manifest Include="$(ApplicationManifest)" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
-    <PackageReference Include="NAudio" Version="2.1.0" />
-    <PackageReference Include="QRCoder" Version="1.4.3" />
-    <PackageReference Include="RestSharp" Version="106.15.0" />
-    <PackageReference Include="WinUIEx" Version="2.2.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="appsettings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <Page Update="Components\Views\FunctionBar.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Update="Components\Views\PlayerBar.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Update="Components\Views\LyricBox.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Update="Components\Views\UserPlaylistCard.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-    <ProjectCapability Include="Msix" />
-  </ItemGroup>
-  
-  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <Optimize>False</Optimize>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Optimize>False</Optimize>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm64'">
-    <Optimize>False</Optimize>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <Optimize>False</Optimize>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Optimize>False</Optimize>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm64'">
-    <Optimize>False</Optimize>
-  </PropertyGroup>
-
-  <Target Name="_RemoveFrameworkReferences" BeforeTargets="_ConvertItems;_CalculateInputsForGenerateCurrentProjectAppxManifest">
     <ItemGroup>
-      <FrameworkSdkReference Remove="@(FrameworkSdkReference)" Condition="$([System.String]::Copy('%(FrameworkSdkReference.SDKName)').StartsWith('Microsoft.WindowsAppRuntime.'))" />
+        <Manifest Include="$(ApplicationManifest)"/>
     </ItemGroup>
-  </Target>
 
-  <ItemGroup>
-    <PRIResource Remove="Strings\新文件夹\**" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1"/>
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002"/>
+        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9"/>
+        <PackageReference Include="NAudio" Version="2.1.0"/>
+        <PackageReference Include="QRCoder" Version="1.4.3"/>
+        <PackageReference Include="RestSharp" Version="106.15.0"/>
+        <PackageReference Include="WinUIEx" Version="2.2.0"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Content Remove="Assets\SplashScreen.scale-100.png" />
-    <Content Remove="Assets\SplashScreen.scale-400.png" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <Page Update="Components\Views\FunctionBar.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </Page>
+        <Page Update="Components\Views\PlayerBar.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </Page>
+        <Page Update="Components\Views\LyricBox.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </Page>
+        <Page Update="Components\Views\UserPlaylistCard.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </Page>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Remove="Assets\Icons\arrow-back.svg" />
-    <None Remove="Assets\Icons\arrow-next.svg" />
-    <None Remove="Assets\Icons\liked.svg" />
-    <None Remove="Assets\Icons\search.svg" />
-    <None Remove="Assets\Icons\unliked.svg" />
-    <None Remove="Assets\SplashScreen.png" />
-    <None Remove="Assets\UnknowResource.png" />
-    <None Remove="Assets\WindowIcon.ico" />
-    <None Remove="Components\Views\FunctionBar.xaml" />
-    <None Remove="Components\Views\LyricBox.xaml" />
-    <None Remove="Components\Views\PlayerBar.xaml" />
-    <None Remove="Components\Views\UserPlaylistCard.xaml" />
-  </ItemGroup>
+    <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+        <ProjectCapability Include="Msix"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Content Update="Assets\UnknowResource.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Content>
-    <Content Update="Assets\WindowIcon.ico">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+    <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+        <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="Views\CommonPages\" />
-  </ItemGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+        <Optimize>False</Optimize>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Page Update="Components\MusicListDetail.xaml">
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+        <Optimize>False</Optimize>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm64'">
+        <Optimize>False</Optimize>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+        <Optimize>False</Optimize>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+        <Optimize>False</Optimize>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm64'">
+        <Optimize>False</Optimize>
+    </PropertyGroup>
+
+    <Target Name="_RemoveFrameworkReferences" BeforeTargets="_ConvertItems;_CalculateInputsForGenerateCurrentProjectAppxManifest">
+        <ItemGroup>
+            <FrameworkSdkReference Remove="@(FrameworkSdkReference)" Condition="$([System.String]::Copy('%(FrameworkSdkReference.SDKName)').StartsWith('Microsoft.WindowsAppRuntime.'))"/>
+        </ItemGroup>
+    </Target>
+
+    <ItemGroup>
+        <PRIResource Remove="Strings\新文件夹\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Remove="Assets\SplashScreen.scale-100.png"/>
+        <Content Remove="Assets\SplashScreen.scale-400.png"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="Assets\Icons\arrow-back.svg"/>
+        <None Remove="Assets\Icons\arrow-next.svg"/>
+        <None Remove="Assets\Icons\liked.svg"/>
+        <None Remove="Assets\Icons\search.svg"/>
+        <None Remove="Assets\Icons\unliked.svg"/>
+        <None Remove="Assets\SplashScreen.png"/>
+        <None Remove="Assets\UnknowResource.png"/>
+        <None Remove="Assets\WindowIcon.ico"/>
+        <None Remove="Components\Views\FunctionBar.xaml"/>
+        <None Remove="Components\Views\LyricBox.xaml"/>
+        <None Remove="Components\Views\PlayerBar.xaml"/>
+        <None Remove="Components\Views\UserPlaylistCard.xaml"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Update="Assets\UnknowResource.png">
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Assets\WindowIcon.ico">
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Views\CommonPages\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Page Update="Components\MusicListDetail.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+            <Generator>MSBuild:Compile</Generator>
+        </Page>
+    </ItemGroup>
 </Project>

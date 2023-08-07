@@ -1,13 +1,12 @@
 ﻿using NonsPlayer.Contracts.Services;
 using NonsPlayer.ViewModels;
 
-namespace NonsPlayer.Helpers
+namespace NonsPlayer.Helpers;
+
+public static class PlaylistHelper
 {
-    public static class PlaylistHelper
+    public static void OpenMusicListDetail(long id, INavigationService navigationService)
     {
-        public static void OpenMusicListDetail(long id, INavigationService navigationService)
-        {
-            navigationService.NavigateTo(typeof(PlaylistDetailViewModel).FullName!, id);
-        }
+        navigationService.NavigateTo(typeof(PlaylistDetailViewModel).FullName!, id);
     }
 }

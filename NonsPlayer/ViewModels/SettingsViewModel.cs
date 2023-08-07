@@ -1,14 +1,12 @@
 ﻿using System.Reflection;
 using System.Windows.Input;
+using Windows.ApplicationModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Helpers;
-using Windows.ApplicationModel;
 using NonsPlayer.Core.Account;
-using NonsPlayer.Services;
-
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
@@ -39,15 +37,9 @@ public class SettingsViewModel : ObservableRecipient
         set => SetProperty(ref _versionDescription, value);
     }
 
-    public ICommand SwitchThemeCommand
-    {
-        get;
-    }
+    public ICommand SwitchThemeCommand { get; }
 
-    public ICommand TestButtonClickCommand
-    {
-        get;
-    }
+    public ICommand TestButtonClickCommand { get; }
 
     public SettingsViewModel(IThemeSelectorService themeSelectorService)
     {
@@ -63,7 +55,8 @@ public class SettingsViewModel : ObservableRecipient
         {
             var packageVersion = Package.Current.Id.Version;
 
-            version = new(packageVersion.Major, packageVersion.Minor, packageVersion.Build, packageVersion.Revision);
+            version = new Version(packageVersion.Major, packageVersion.Minor, packageVersion.Build,
+                packageVersion.Revision);
         }
         else
         {

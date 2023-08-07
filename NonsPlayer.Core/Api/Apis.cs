@@ -9,7 +9,7 @@ public static class Apis
     {
         public static async Task<JObject> Detail(long? id, Nons nons)
         {
-            string _URL = $"https://music.163.com/api/v6/playlist/detail";
+            var _URL = "https://music.163.com/api/v6/playlist/detail";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"id", id.ToString()},
@@ -20,7 +20,7 @@ public static class Apis
 
         public static async Task<JObject> Personalized(Nons nons, int limit = 30)
         {
-            string _URL = $"https://music.163.com/api/personalized/playlist";
+            var _URL = "https://music.163.com/api/personalized/playlist";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"limit", limit.ToString()},
@@ -35,20 +35,14 @@ public static class Apis
     {
         public static async Task<JObject> Detail(long[] ids, Nons nons)
         {
-            string dataString = "[";
-            for (int index = 0; index <= ids.Length - 1; index++)
-            {
+            var dataString = "[";
+            for (var index = 0; index <= ids.Length - 1; index++)
                 if (index != ids.Length - 1)
-                {
-                    dataString += "{id:" + ids[index].ToString() + "},";
-                }
+                    dataString += "{id:" + ids[index] + "},";
                 else
-                {
-                    dataString += "{id:" + ids[index].ToString() + "}]";
-                }
-            }
+                    dataString += "{id:" + ids[index] + "}]";
 
-            string _URL = $"https://music.163.com/api/v3/song/detail";
+            var _URL = "https://music.163.com/api/v3/song/detail";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"c", dataString}
@@ -58,21 +52,15 @@ public static class Apis
 
         public static async Task<JObject> Url(long?[] ids, Nons nons)
         {
-            string _URL = "http://music.163.com/api/song/enhance/player/url";
-            string idsBody = "[";
-            for (int index = 0; index <= ids.Length - 1; index++)
-            {
+            var _URL = "http://music.163.com/api/song/enhance/player/url";
+            var idsBody = "[";
+            for (var index = 0; index <= ids.Length - 1; index++)
                 if (index != ids.Length - 1)
-                {
-                    idsBody += ids[index].ToString() + ", ";
-                }
+                    idsBody += ids[index] + ", ";
                 else
-                {
-                    idsBody += ids[index].ToString() + "]";
-                }
-            }
+                    idsBody += ids[index] + "]";
 
-            string resBody = $"{idsBody}&br=999000";
+            var resBody = $"{idsBody}&br=999000";
             HttpContent data = new StringContent(resBody);
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
@@ -84,7 +72,7 @@ public static class Apis
 
         public static async Task<JObject> Like(string id, bool like, Nons nons)
         {
-            string _URL = "https://music.163.com/api/radio/like";
+            var _URL = "https://music.163.com/api/radio/like";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"alg", "itembased"},
@@ -110,8 +98,8 @@ public static class Apis
     {
         public static async Task<JObject> GetLyric(string id, Nons nons)
         {
-            string _URL = "https://music.163.com/api/song/lyric?_nmclfl=1";
-            string resBody = $"id={id}&tv=-1&lv=-1&rv=-1&kv=-1";
+            var _URL = "https://music.163.com/api/song/lyric?_nmclfl=1";
+            var resBody = $"id={id}&tv=-1&lv=-1&rv=-1&kv=-1";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"id", id},
@@ -127,8 +115,8 @@ public static class Apis
     {
         public static async Task<JObject> Email(string email, string password, Nons nons)
         {
-            string _URL = "https://music.163.com/api/login";
-            string pswMD5 = nons?.Md5(password);
+            var _URL = "https://music.163.com/api/login";
+            var pswMD5 = nons?.Md5(password);
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"username", email},
@@ -140,8 +128,8 @@ public static class Apis
 
         public static async Task<JObject> PhonePsw(int phone, string password, Nons nons, int countryCode = 86)
         {
-            string _URL = "https://music.163.com/api/login/cellphone";
-            string pswMD5 = nons.Md5(password);
+            var _URL = "https://music.163.com/api/login/cellphone";
+            var pswMD5 = nons.Md5(password);
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"phone", phone.ToString()},
@@ -154,7 +142,7 @@ public static class Apis
 
         public static async Task<JObject> PhoneVer(int phone, int captcha, Nons nons, int countryCode = 86)
         {
-            string _URL = "https://music.163.com/api/login/cellphone";
+            var _URL = "https://music.163.com/api/login/cellphone";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"phone", phone.ToString()},
@@ -168,7 +156,7 @@ public static class Apis
         {
             public static async Task<JObject> Key(string timestamp, Nons nons)
             {
-                string _URL = "https://music.163.com/api/login/qrcode/unikey?type=1";
+                var _URL = "https://music.163.com/api/login/qrcode/unikey?type=1";
                 IDictionary<string, object> pairs = new Dictionary<string, object>
                 {
                     {"timestamp", timestamp}
@@ -178,7 +166,7 @@ public static class Apis
 
             public static async Task<JObject> Creat(string key, string timestamp, Nons nons)
             {
-                string _URL = $"https://music.163.com/login?type=1";
+                var _URL = "https://music.163.com/login?type=1";
                 IDictionary<string, object> pairs = new Dictionary<string, object>
                 {
                     {"timestamp", timestamp},
@@ -189,7 +177,7 @@ public static class Apis
 
             public static async Task<IRestResponse> Check(string key, Nons nons)
             {
-                string _URL = $"https://music.163.com/api/login/qrcode/client/login?type=1&key={key}";
+                var _URL = $"https://music.163.com/api/login/qrcode/client/login?type=1&key={key}";
                 return await nons.RequestRestResponse(_URL);
             }
         }
@@ -199,19 +187,19 @@ public static class Apis
     {
         public static async Task<JObject> Detail(string id, Nons nons)
         {
-            string _URL = $"https://music.163.com/api/v1/user/detail/{id}";
+            var _URL = $"https://music.163.com/api/v1/user/detail/{id}";
             return await nons.Request(_URL);
         }
 
         public static async Task<JObject> Account(Nons nons)
         {
-            string _URL = "https://music.163.com/api/nuser/account/get";
+            var _URL = "https://music.163.com/api/nuser/account/get";
             return await nons.Request(_URL);
         }
 
         public static async Task<JObject> DailyTask(string type, Nons nons)
         {
-            string _URL = "https://music.163.com/api/point/dailyTask";
+            var _URL = "https://music.163.com/api/point/dailyTask";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"type", type}
@@ -221,7 +209,7 @@ public static class Apis
 
         public static async Task<JObject> Likelist(string id, Nons nons)
         {
-            string _URL = "https://music.163.com/api/song/like/get";
+            var _URL = "https://music.163.com/api/song/like/get";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"uid", id}
@@ -232,7 +220,7 @@ public static class Apis
         public static async Task<JObject> Playlist(string uid, Nons nons, int limit = 30, int offset = 0,
             bool includeVideo = false)
         {
-            string _URL = "https://music.163.com/api/user/playlist";
+            var _URL = "https://music.163.com/api/user/playlist";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"uid", uid},
@@ -248,13 +236,13 @@ public static class Apis
     {
         public static async Task<JObject> Resource(Nons nons)
         {
-            string _URL = "https://music.163.com/weapi/v1/discovery/recommend/resource";
+            var _URL = "https://music.163.com/weapi/v1/discovery/recommend/resource";
             return await nons.Request(_URL);
         }
 
         public static async Task<JObject> Musics(Nons nons)
         {
-            string _URL = "https://music.163.com/api/v3/discovery/recommend/songs";
+            var _URL = "https://music.163.com/api/v3/discovery/recommend/songs";
             return await nons.Request(_URL);
         }
     }
@@ -264,7 +252,7 @@ public static class Apis
         /// <param name="type">1: 单曲, 10: 专辑, 100: 歌手, 1000: 歌单, 1002: 用户, 1004: MV, 1006: 歌词, 1009: 电台, 1014: 视频</param>
         public static async Task<JObject> Default(string keyword, int limit, int type, Nons nons)
         {
-            string _URL = "https://music.163.com/api/search/get";
+            var _URL = "https://music.163.com/api/search/get";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"s", keyword},
@@ -274,10 +262,10 @@ public static class Apis
             };
             return await nons.Request(_URL, pairs);
         }
-        
+
         public static async Task<JObject> Suggest(string keyword, string type, Nons nons)
         {
-            string _URL = $"https://music.163.com/api/search/suggest/{type}";
+            var _URL = $"https://music.163.com/api/search/suggest/{type}";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"s", keyword}
@@ -287,7 +275,7 @@ public static class Apis
 
         public static async Task<JObject> MultiMatch(string keyword, Nons nons)
         {
-            string _URL = $"https://music.163.com/api/search/suggest/multimatch";
+            var _URL = "https://music.163.com/api/search/suggest/multimatch";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"s", keyword}

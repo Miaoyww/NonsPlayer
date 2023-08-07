@@ -14,38 +14,13 @@ using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.CommonPages;
 using NonsPlayer.Views.Pages;
+using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
 
 namespace NonsPlayer;
 
 // To learn more about WinUI 3, see https://docs.microsoft.com/windows/apps/winui/winui3/.
 public partial class App : Application
 {
-    // The .NET Generic Host provides dependency injection, configuration, logging, and other services.
-    // https://docs.microsoft.com/dotnet/core/extensions/generic-host
-    // https://docs.microsoft.com/dotnet/core/extensions/dependency-injection
-    // https://docs.microsoft.com/dotnet/core/extensions/configuration
-    // https://docs.microsoft.com/dotnet/core/extensions/logging
-    public IHost Host
-    {
-        get;
-    }
-
-    public static T GetService<T>()
-        where T : class
-    {
-        if ((Current as App)!.Host.Services.GetService(typeof(T)) is not T service)
-        {
-            throw new ArgumentException($"{typeof(T)} needs to be registered in ConfigureServices within App.xaml.cs.");
-        }
-
-        return service;
-    }
-
-    public static WindowEx MainWindow
-    {
-        get;
-    } = new MainWindow();
-
     public App()
     {
         InitializeComponent();
@@ -107,7 +82,25 @@ public partial class App : Application
         UnhandledException += App_UnhandledException;
     }
 
-    private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+    // The .NET Generic Host provides dependency injection, configuration, logging, and other services.
+    // https://docs.microsoft.com/dotnet/core/extensions/generic-host
+    // https://docs.microsoft.com/dotnet/core/extensions/dependency-injection
+    // https://docs.microsoft.com/dotnet/core/extensions/configuration
+    // https://docs.microsoft.com/dotnet/core/extensions/logging
+    public IHost Host { get; }
+
+    public static WindowEx MainWindow { get; } = new MainWindow();
+
+    public static T GetService<T>()
+        where T : class
+    {
+        if ((Current as App)!.Host.Services.GetService(typeof(T)) is not T service)
+            throw new ArgumentException($"{typeof(T)} needs to be registered in ConfigureServices within App.xaml.cs.");
+
+        return service;
+    }
+
+    private void App_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
         // TODO: Log and handle exceptions as appropriate.
         // https://docs.microsoft.com/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.application.unhandledexception.

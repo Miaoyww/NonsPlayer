@@ -1,24 +1,22 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace NonsPlayer.Core.Models
+namespace NonsPlayer.Core.Models;
+
+public class Artist
 {
-    public class Artist
-    {
-        [JsonPropertyName("id")] public long Id;
-        public string CacheId => Id.ToString() + "_artist";
+    [JsonPropertyName("account_id")] public long AccountId;
 
-        [JsonPropertyName("name")] public string Name;
+    public int AlbumCount;
 
-        [JsonPropertyName("pic_url")] public string PicUrl;
+    public List<Music> HotMusics;
+    [JsonPropertyName("id")] public long Id;
 
-        public int MvCount;
+    public int MusicCount;
 
-        public int MusicCount;
+    public int MvCount;
 
-        public int AlbumCount;
+    [JsonPropertyName("name")] public string Name;
 
-        [JsonPropertyName("account_id")] public long AccountId;
-
-        public List<Music> HotMusics;
-    }
+    [JsonPropertyName("pic_url")] public string PicUrl;
+    public string CacheId => Id + "_artist";
 }

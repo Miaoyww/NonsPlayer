@@ -1,10 +1,8 @@
-﻿using System.Diagnostics;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Exceptions;
-using NonsPlayer.Core.Helpers;
 
 namespace NonsPlayer.Core.Models;
 
@@ -14,31 +12,31 @@ public class Music
 
     [JsonPropertyName("artists")] public List<Artist> Artists;
 
-    [JsonPropertyName("total_time")] public TimeSpan TotalTime;
-
-    public string TotalTimeString => TotalTime.ToString(@"m\:ss");
-
     public string FileType;
 
     [JsonPropertyName("id")] public long? Id;
-    public string CacheId => Id.ToString() + "_music";
+
+    [JsonPropertyName("is_empty")] public bool IsEmpty;
     public bool IsLiked;
+
+    [JsonPropertyName("lyrics")] public Lyrics Lyrics;
 
     [JsonPropertyName("name")] public string Name;
 
-    [JsonPropertyName("url")] public string Url;
-
-    [JsonPropertyName("is_empty")] public bool IsEmpty;
-
-    [JsonPropertyName("lyrics")] public Lyrics Lyrics;
-    public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
-    public string AlbumName => Album?.Name;
-
     public MusicQualityLevel[] QualityLevels;
+
+    [JsonPropertyName("total_time")] public TimeSpan TotalTime;
+
+    [JsonPropertyName("url")] public string Url;
 
     private Music()
     {
     }
+
+    public string TotalTimeString => TotalTime.ToString(@"m\:ss");
+    public string CacheId => Id + "_music";
+    public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
+    public string AlbumName => Album?.Name;
 
     public static async Task<Music> CreateAsync(JObject playlistMusicTrack)
     {
@@ -53,7 +51,7 @@ public class Music
         JObject result;
         try
         {
-            result = (JObject)(await Apis.Music.Detail(new long[] {id}, Nons.Instance))["songs"][0];
+            result = (JObject) (await Apis.Music.Detail(new[] {id}, Nons.Instance))["songs"][0];
         }
         catch (InvalidCastException)
         {
@@ -82,38 +80,35 @@ public class Music
     private async Task ParseJObjectAsync(JObject item)
     {
         Id = long.Parse(item["id"].ToString());
-        Name = (string)item["name"];
+        Name = (string) item["name"];
         TotalTime = TimeSpan.FromMilliseconds(int.Parse(item["dt"].ToString()));
 
         Album = new Album
         {
-            Name = (string)item["al"]["name"],
-            Id = (int)item["al"]["id"],
-            CoverUrl = (string)item["al"]["picUrl"],
-            SmallCoverUrl = (string)item["al"]["picUrl"] + "?param=40y40",
+            Name = (string) item["al"]["name"],
+            Id = (int) item["al"]["id"],
+            CoverUrl = (string) item["al"]["picUrl"],
+            SmallCoverUrl = (string) item["al"]["picUrl"] + "?param=40y40"
         };
 
-        Artists = ((JArray)item["ar"]).Select(t => new Artist
+        Artists = ((JArray) item["ar"]).Select(t => new Artist
         {
-            Name = (string)t["name"],
-            Id = (int)t["id"]
+            Name = (string) t["name"],
+            Id = (int) t["id"]
         }).ToList();
         IsEmpty = false;
     }
 
     public async Task GetDetailsAsync()
     {
-        if (Id == null)
-        {
-            throw new MusicIdNullException("音乐Id为空, 请在调用此函数调用CreateAsync()");
-        }
+        if (Id == null) throw new MusicIdNullException("音乐Id为空, 请在调用此函数调用CreateAsync()");
 
         await Task.WhenAll(GetFileInfo(), GetLyric());
     }
 
     public async Task GetFileInfo()
     {
-        var musicFile = (JObject)(await Apis.Music.Url(new long?[] {Id}, Nons.Instance))["data"][0];
+        var musicFile = (JObject) (await Apis.Music.Url(new[] {Id}, Nons.Instance))["data"][0];
         Url = musicFile["url"].ToString();
         FileType = musicFile["type"].ToString();
     }

@@ -5,18 +5,30 @@ namespace NonsPlayer.Core.Player;
 
 public class PlayQueue
 {
-    public static PlayQueue Instance { get; } = new();
-
-    private Music _currentMusic;
-    private List<Music> _randomMusicList = new();
-    private bool _isUserPressed = false;
-
     public delegate void MusicAddedEventHandler(Music value);
 
     public delegate void PlaylistAddedEventHandler();
 
-    public event MusicAddedEventHandler MusicAdded;
-    public event PlaylistAddedEventHandler PlaylistAdded;
+    public enum PlayModeEnum
+    {
+        Sequential = 0, //顺序播放
+        Random = 1, //随机播放
+        SingleLoop = 2, //单曲循环
+        ListLoop = 3 //列表循环
+    }
+
+    private Music _currentMusic;
+    private bool _isUserPressed;
+    private List<Music> _randomMusicList = new();
+
+    public PlayQueue()
+    {
+        MusicList = new List<Music>();
+        PlayMode = PlayModeEnum.ListLoop;
+        Player.Instance.OutputDevice.PlaybackStopped += OnMusicStopped;
+    }
+
+    public static PlayQueue Instance { get; } = new();
 
     public List<Music> MusicList { get; set; }
     public int Count => MusicList.Count;
@@ -26,48 +38,28 @@ public class PlayQueue
         get => _currentMusic;
         set
         {
-            if (value == _currentMusic)
-            {
-                return;
-            }
+            if (value == _currentMusic) return;
 
             _currentMusic = value;
             OnCurrentMusicChanged();
         }
     }
 
-    public enum PlayModeEnum
-    {
-        Sequential = 0, //顺序播放
-        Random = 1, //随机播放
-        SingleLoop = 2, //单曲循环
-        ListLoop = 3, //列表循环
-    }
-
 
     public PlayModeEnum PlayMode { get; set; }
 
-    public PlayQueue()
-    {
-        MusicList = new();
-        PlayMode = PlayModeEnum.ListLoop;
-        Player.Instance.OutputDevice.PlaybackStopped += OnMusicStopped;
-    }
+    public event MusicAddedEventHandler MusicAdded;
+    public event PlaylistAddedEventHandler PlaylistAdded;
 
     public void OnMusicStopped(object sender, StoppedEventArgs e)
     {
         if (PlayMode == PlayModeEnum.ListLoop && Player.Instance.IsInitializingNewMusic == false)
-        {
             if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic && PlayMode != PlayModeEnum.SingleLoop)
             {
-                if (_isUserPressed)
-                {
-                    return;
-                }
+                if (_isUserPressed) return;
 
                 PlayNext();
             }
-        }
     }
 
     // 当CurrentMusic改变时，将触发PlayerService的NewPlay方法
@@ -87,10 +79,7 @@ public class PlayQueue
             _ => PlayModeEnum.Sequential
         };
         // 如果模式是随机播放，调用GetRandomList方法
-        if (PlayMode is PlayModeEnum.Random)
-        {
-            _randomMusicList = GetRandomList(CurrentMusic);
-        }
+        if (PlayMode is PlayModeEnum.Random) _randomMusicList = GetRandomList(CurrentMusic);
     }
 
     public void AddMusicList(Music[] musicList)
@@ -122,10 +111,7 @@ public class PlayQueue
         // 如果播放列表不为空，那么就在当前播放歌曲的后面插入
         MusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
         MusicAdded(music);
-        if (PlayMode is PlayModeEnum.Random)
-        {
-            _randomMusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
-        }
+        if (PlayMode is PlayModeEnum.Random) _randomMusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
 
         CurrentMusic = music;
     }
@@ -133,10 +119,7 @@ public class PlayQueue
     public void RemoveMusic(Music music)
     {
         MusicList.Remove(music);
-        if (PlayMode is PlayModeEnum.Random)
-        {
-            _randomMusicList.Remove(music);
-        }
+        if (PlayMode is PlayModeEnum.Random) _randomMusicList.Remove(music);
     }
 
     public void Clear()
@@ -170,10 +153,7 @@ public class PlayQueue
         var index = list.IndexOf(CurrentMusic) + 1;
         if (PlayMode is PlayModeEnum.Sequential)
         {
-            if (index >= list.Count)
-            {
-                return;
-            }
+            if (index >= list.Count) return;
 
             Play(list[index]);
             return;
@@ -181,10 +161,7 @@ public class PlayQueue
 
         if (PlayMode is PlayModeEnum.ListLoop)
         {
-            if (list.Count == 0)
-            {
-                return;
-            }
+            if (list.Count == 0) return;
 
             index = index >= list.Count ? 0 : index;
             Play(list[index]);
@@ -196,10 +173,7 @@ public class PlayQueue
         _isUserPressed = isUserPressed;
         var list = PlayMode is PlayModeEnum.Random ? _randomMusicList : MusicList;
         var index = list.IndexOf(CurrentMusic) - 1;
-        if (index < 0)
-        {
-            index = list.Count - 1;
-        }
+        if (index < 0) index = list.Count - 1;
 
         Play(list[index]);
     }
@@ -210,7 +184,7 @@ public class PlayQueue
     }
 
     /// <summary>
-    /// 获取随机播放列表
+    ///     获取随机播放列表
     /// </summary>
     /// <param name="music">当前播放的歌曲</param>
     private List<Music> GetRandomList(Music music)

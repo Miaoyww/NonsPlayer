@@ -1,43 +1,23 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Windows.Input;
-
-using AccountState = NonsPlayer.Models.AccountState;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
-
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
-using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
-
-using Windows.System;
-using Windows.UI.Xaml.Interop;
-using NonsPlayer.Views.Pages;
+using AccountState = NonsPlayer.Models.AccountState;
 
 namespace NonsPlayer.ViewModels;
 
 public partial class ShellViewModel : ObservableRecipient
 {
-    public AccountState AccountState => AccountState.Instance;
     private bool _isBackEnabled;
-
-    public bool IsBackEnabled
-    {
-        get => _isBackEnabled;
-        set => SetProperty(ref _isBackEnabled, value);
-    }
 
 
     public ShellViewModel(INavigationService navigationService)
@@ -49,40 +29,62 @@ public partial class ShellViewModel : ObservableRecipient
         Account.Instance.LoginByReg();
     }
 
+    public AccountState AccountState => AccountState.Instance;
 
-    public void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    public bool IsBackEnabled
     {
-
-        NavigationService.NavigateTo(typeof(SearchViewModel).FullName!);
+        get => _isBackEnabled;
+        set => SetProperty(ref _isBackEnabled, value);
     }
 
     #region 接口实现
 
-    public INavigationService NavigationService
-    {
-        get;
-    }
+    public INavigationService NavigationService { get; }
 
     #endregion 接口实现
 
+
+    public void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        NavigationService.NavigateTo(typeof(SearchViewModel).FullName!);
+    }
+
     #region 页面注册
 
-    private void OnNavigated(object sender, NavigationEventArgs e) => IsBackEnabled = NavigationService.CanGoBack;
+    private void OnNavigated(object sender, NavigationEventArgs e)
+    {
+        IsBackEnabled = NavigationService.CanGoBack;
+    }
 
     [RelayCommand]
-    private void OpenMenuHome() => NavigationService.NavigateTo(typeof(HomeViewModel).FullName!);
+    private void OpenMenuHome()
+    {
+        NavigationService.NavigateTo(typeof(HomeViewModel).FullName!);
+    }
 
     [RelayCommand]
-    private void OpenMenuExplore() => NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
+    private void OpenMenuExplore()
+    {
+        NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
+    }
 
     [RelayCommand]
-    private void OpenMenuPersonalCenter() => NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName!);
+    private void OpenMenuPersonalCenter()
+    {
+        NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName!);
+    }
 
     [RelayCommand]
-    private void OpenMenuSettings() => NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
+    private void OpenMenuSettings()
+    {
+        NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
+    }
 
     [RelayCommand]
-    private void GoBack() => NavigationService.GoBack();
+    private void GoBack()
+    {
+        NavigationService.GoBack();
+    }
 
     #endregion 页面注册
 }
@@ -90,8 +92,8 @@ public partial class ShellViewModel : ObservableRecipient
 [INotifyPropertyChanged]
 public partial class PlayQueueBarViewModel
 {
-    public ObservableCollection<MusicItem> MusicItems = new();
     [ObservableProperty] private int count;
+    public ObservableCollection<MusicItem> MusicItems = new();
 
     public PlayQueueBarViewModel()
     {
@@ -121,16 +123,13 @@ public partial class PlayQueueBarViewModel
     {
         MusicItems.Insert(PlayQueue.Instance.GetIndex(value), new MusicItem
         {
-            Music = value,
+            Music = value
         });
     }
-    
+
     public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
     {
         var listView = sender as ListView;
-        if (listView.SelectedItem is MusicItem item)
-        {
-            PlayQueue.Instance.Play(item.Music);
-        }
+        if (listView.SelectedItem is MusicItem item) PlayQueue.Instance.Play(item.Music);
     }
 }

@@ -8,11 +8,6 @@ namespace NonsPlayer.Components.Views;
 
 public sealed partial class LyricBox : UserControl
 {
-    public LyricBoxViewModel ViewModel
-    {
-        get;
-    }
-
     public LyricBox()
     {
         ViewModel = App.GetService<LyricBoxViewModel>();
@@ -20,4 +15,6 @@ public sealed partial class LyricBox : UserControl
         ViewModel.Init();
         DropShadow.Receivers.Add(Body);
     }
+
+    public LyricBoxViewModel ViewModel { get; }
 }

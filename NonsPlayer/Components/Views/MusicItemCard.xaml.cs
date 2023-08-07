@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Models;
@@ -9,10 +8,11 @@ namespace NonsPlayer.Components.Views;
 [INotifyPropertyChanged]
 public sealed partial class MusicItemCard : UserControl
 {
-    public MusicItemCardViewModel ViewModel
-    {
-        get;
-    }
+    [ObservableProperty] private string index;
+
+    [ObservableProperty] private bool isCoverInit;
+
+    [ObservableProperty] private Music music;
 
 
     public MusicItemCard()
@@ -21,21 +21,17 @@ public sealed partial class MusicItemCard : UserControl
         InitializeComponent();
     }
 
-    [ObservableProperty] private Music music;
+    public MusicItemCardViewModel ViewModel { get; }
 
     partial void OnMusicChanged(Music music)
     {
         ViewModel.Init(music);
     }
 
-    [ObservableProperty] private bool isCoverInit;
-
     partial void OnIsCoverInitChanged(bool isCoverInit)
     {
         ViewModel.IsInitCover = isCoverInit;
     }
-
-    [ObservableProperty] private string index;
 
     partial void OnIndexChanged(string index)
     {

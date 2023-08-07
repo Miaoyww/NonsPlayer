@@ -7,7 +7,8 @@
     mc:Ignorable="d">
 
     <Grid>
-        <Border Height="350" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="{StaticResource PageCommonMargin}"
+        <Border Height="350" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center"
+                Margin="{StaticResource PageCommonMargin}"
                 Padding="0,40,0,0">
             <Grid>
                 <Grid.RowDefinitions>

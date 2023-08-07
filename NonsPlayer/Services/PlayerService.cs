@@ -2,24 +2,16 @@
 using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
-using NonsPlayer.Models;
 using NonsPlayer.Helpers;
+using NonsPlayer.Models;
 
 namespace NonsPlayer.Services;
 
 public class PlayerService
 {
-    public static PlayerService Instance
-    {
-        get;
-    } = new();
-
     private PlayerService()
     {
-        MusicPlayCommand = new RelayCommand(() =>
-        {
-            Player.Instance.Play();
-        });
+        MusicPlayCommand = new RelayCommand(() => { Player.Instance.Play(); });
         VolumeMuteCommand = new RelayCommand(Mute);
         NextMusicCommand = new RelayCommand(OnNextMusic);
         PreviousMusicCommand = new RelayCommand(OnPreviousMusic);
@@ -27,33 +19,34 @@ public class PlayerService
         Player.Instance.MusicChangedHandle += OnMusicChanged;
         Player.Instance.PositionChangedHandle += OnPositionChanged;
     }
-    
+
+    public static PlayerService Instance { get; } = new();
+
+    public ICommand MusicPlayCommand { get; }
+
+    public ICommand NextMusicCommand { get; }
+
+    public ICommand PreviousMusicCommand { get; }
+
+    public ICommand VolumeMuteCommand { get; }
+
     public void OnPlaystateChanged(bool isPlaying)
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        {
-            MusicState.Instance.IsPlaying = isPlaying;
-        });
+        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicState.Instance.IsPlaying = isPlaying; });
     }
 
     public void OnPositionChanged(TimeSpan position)
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
-            if(MusicState.Instance.OnDrag)
-            {
-                return;
-            }
+            if (MusicState.Instance.OnDrag) return;
             MusicState.Instance.Position = position.TotalSeconds;
         });
     }
 
     public void OnMusicChanged(Music music)
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        {
-            MusicState.Instance.CurrentMusic = music;
-        });
+        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicState.Instance.CurrentMusic = music; });
     }
 
     private void Mute()
@@ -69,28 +62,13 @@ public class PlayerService
         }
     }
 
-    private void OnPreviousMusic() => PlayQueue.Instance.PlayPrevious(isUserPressed: true);
-
-    private void OnNextMusic() => PlayQueue.Instance.PlayNext(isUserPressed: true);
-
-    public ICommand MusicPlayCommand
+    private void OnPreviousMusic()
     {
-        get;
+        PlayQueue.Instance.PlayPrevious(true);
     }
 
-    public ICommand NextMusicCommand
+    private void OnNextMusic()
     {
-        get;
-    }
-
-    public ICommand PreviousMusicCommand
-    {
-        get;
-    }
-
-    public ICommand VolumeMuteCommand
-    {
-        get;
+        PlayQueue.Instance.PlayNext(true);
     }
 }
-

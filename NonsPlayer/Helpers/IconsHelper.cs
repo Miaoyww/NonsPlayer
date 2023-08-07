@@ -6,16 +6,11 @@ public class PlayerIconConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
-        if ((bool)value)
-        {
+        if ((bool) value)
             // 正在播放
             return "\uf8ae";
-        }
-        else
-        {
-            // 未播放
-            return "\uf5b0";
-        }
+        // 未播放
+        return "\uf5b0";
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
@@ -28,7 +23,7 @@ public class VolumeIconConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
-        return (double)value switch
+        return (double) value switch
         {
             var n when n <= 10 => "\ue992",
             var n when n is <= 40 and > 10 => "\ue993",
@@ -48,10 +43,7 @@ public class LikeIconConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
-        if ((bool)value)
-        {
-            return "\uEB52";
-        }
+        if ((bool) value) return "\uEB52";
 
         return "\uEB51";
     }

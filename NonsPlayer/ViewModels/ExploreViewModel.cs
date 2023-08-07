@@ -4,7 +4,4 @@ namespace NonsPlayer.ViewModels;
 
 public class ExploreViewModel : ObservableRecipient
 {
-    public ExploreViewModel()
-    {
-    }
 }

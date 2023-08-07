@@ -4,17 +4,14 @@ namespace NonsPlayer.Cache;
 
 public class CacheManager
 {
-    public static CacheManager Instance
-    {
-        get;
-    } = new();
-
     private readonly Dictionary<string, object> _cache = new();
 
     private readonly Dictionary<string, int> _refCount = new();
-    
+
+    public static CacheManager Instance { get; } = new();
+
     /// <summary>
-    /// 尝试获取缓存资源
+    ///     尝试获取缓存资源
     /// </summary>
     /// <param name="key"></param>
     /// <typeparam name="T"></typeparam>
@@ -24,13 +21,9 @@ public class CacheManager
         if (_cache.TryGetValue(key, out var value))
         {
             if (_refCount.TryGetValue(key, out var count))
-            {
                 _refCount[key] = count + 1;
-            }
             else
-            {
                 _refCount.Add(key, 1);
-            }
 
             return value as CacheItem<T>;
         }
@@ -45,10 +38,7 @@ public class CacheManager
 
     public void Add<T>(string key, T value)
     {
-        if (_cache.ContainsKey(key))
-        {
-            return;
-        }
+        if (_cache.ContainsKey(key)) return;
 
         _cache.Add(key, new CacheItem<T>
         {
@@ -71,10 +61,7 @@ public class CacheManager
 
     public void Remove(string key)
     {
-        if (!_cache.ContainsKey(key))
-        {
-            return;
-        }
+        if (!_cache.ContainsKey(key)) return;
 
         try
         {
@@ -95,6 +82,4 @@ public class CacheManager
         _cache.Clear();
         _refCount.Clear();
     }
-
-   
 }

@@ -41,9 +41,7 @@
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="收藏的歌单"
                                FontFamily="HarmonyOS Sans SC" FontSize="17" FontWeight="Medium" />
-                    <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None">
-
-                    </ListView>
+                    <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None" />
                 </Grid>
             </StackPanel>
 

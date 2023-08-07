@@ -2,9 +2,8 @@
 
 public class PlaylistIdNullException : Exception
 {
-    public PlaylistIdNullException() : base()
+    public PlaylistIdNullException()
     {
-        
     }
 
     public PlaylistIdNullException(string message) : base(message)

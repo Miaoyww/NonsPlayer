@@ -1,28 +1,15 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using System.Timers;
 using NAudio.Utils;
 using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Services;
 using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Core.Player;
 
 public class Player
 {
-    public static Player Instance
-    {
-        get;
-    } = new();
-
-    private float _volume;
-    private MediaFoundationReader _mfr;
-    public WaveOutEvent OutputDevice;
-    public Music PreviousMusic;
-
-    [JsonPropertyName("currentMusic")] public Music CurrentMusic;
+    public delegate void MusicChanged(Music currentMusic);
 
     public delegate void MusicStopped();
 
@@ -30,12 +17,32 @@ public class Player
 
     public delegate void PositionChanged(TimeSpan time);
 
-    public delegate void MusicChanged(Music currentMusic);
+    private MediaFoundationReader _mfr;
+
+    private float _volume;
+
+    [JsonPropertyName("currentMusic")] public Music CurrentMusic;
+    public MusicChanged MusicChangedHandle;
 
     public MusicStopped MusicStoppedHandle;
+    public WaveOutEvent OutputDevice;
     public PlayStateChanged PlayStateChangedHandle;
     public PositionChanged PositionChangedHandle;
-    public MusicChanged MusicChangedHandle;
+    public Music PreviousMusic;
+
+    public Player()
+    {
+        OutputDevice = new WaveOutEvent();
+        var timer = new Timer();
+        timer.Interval = 20;
+        timer.Elapsed += GetCurrentInfo;
+        timer.Start();
+        var dataWriter = new Timer();
+        dataWriter.Interval = 1000;
+        timer.Elapsed += WriteCurrentInfo;
+    }
+
+    public static Player Instance { get; } = new();
 
     [JsonPropertyName("position")]
     public TimeSpan Position
@@ -43,10 +50,7 @@ public class Player
         get => OutputDevice.GetPositionTimeSpan();
         set
         {
-            if (_mfr == null)
-            {
-                return;
-            }
+            if (_mfr == null) return;
 
             _mfr.CurrentTime = value;
         }
@@ -63,26 +67,10 @@ public class Player
         }
     }
 
-    public bool IsInitializingNewMusic
-    {
-        get;
-        set;
-    }
-
-    public Player()
-    {
-        OutputDevice = new WaveOutEvent();
-        var timer = new Timer();
-        timer.Interval = 20;
-        timer.Elapsed += GetCurrentInfo;
-        timer.Start();
-        var dataWriter = new Timer();
-        dataWriter.Interval = 1000;
-        timer.Elapsed += WriteCurrentInfo;
-    }
+    public bool IsInitializingNewMusic { get; set; }
 
     /// <summary>
-    /// 用于获取播放器当前信息
+    ///     用于获取播放器当前信息
     /// </summary>
     private void GetCurrentInfo(object? sender, ElapsedEventArgs e)
     {
@@ -100,9 +88,7 @@ public class Player
 
             if (OutputDevice.PlaybackState == PlaybackState.Paused ||
                 OutputDevice.PlaybackState == PlaybackState.Stopped)
-            {
                 PlayStateChangedHandle(false);
-            }
         }
     }
 
@@ -110,32 +96,23 @@ public class Player
     private void WriteCurrentInfo(object? sender, ElapsedEventArgs e)
     {
         if (OutputDevice != null && PlayStateChangedHandle != null)
-        {
             if (OutputDevice.PlaybackState == PlaybackState.Playing)
             {
-                
             }
-        }
     }
 
     /// <summary>
-    /// 播放一个新的音乐
+    ///     播放一个新的音乐
     /// </summary>
     /// <param name="music2play">即将播放的音乐</param>
     public async void NewPlay(Music music2play)
     {
-        if (OutputDevice == null)
-        {
-            OutputDevice = new WaveOutEvent();
-        }
+        if (OutputDevice == null) OutputDevice = new WaveOutEvent();
 
         await Task.WhenAll(music2play.GetLyric(), music2play.GetFileInfo());
         MusicChangedHandle(music2play);
         CurrentMusic = music2play;
-        if (_mfr == null)
-        {
-            _mfr = new MediaFoundationReader(music2play.Url);
-        }
+        if (_mfr == null) _mfr = new MediaFoundationReader(music2play.Url);
 
         if (music2play.Url != null)
         {
@@ -156,15 +133,12 @@ public class Player
     }
 
     /// <summary>
-    /// 播放音乐
+    ///     播放音乐
     /// </summary>
     /// <param name="rePlay">是否从头播放</param>
     public void Play()
     {
-        if (CurrentMusic == null)
-        {
-            return;
-        }
+        if (CurrentMusic == null) return;
 
         try
         {

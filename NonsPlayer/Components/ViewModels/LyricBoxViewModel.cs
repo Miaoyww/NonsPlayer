@@ -5,106 +5,101 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
 using NonsPlayer.Models;
 
-namespace NonsPlayer.Components.ViewModels
-{   
-    //TODO: LyricBox废弃, 功能保留
-    public class LyricBoxViewModel : INotifyPropertyChanged
+namespace NonsPlayer.Components.ViewModels;
+
+//TODO: LyricBox废弃, 功能保留
+public class LyricBoxViewModel : INotifyPropertyChanged
+{
+    private Lyric? _currentLyric;
+    private Lyric? _nextLyric;
+    private string _originalLyric = string.Empty;
+    private string _tranLyric = string.Empty;
+
+    public string TranLyric
     {
-        private string _originalLyric = string.Empty;
-        private string _tranLyric = string.Empty;
-
-        private Lyric? _currentLyric = null;
-        private Lyric? _nextLyric = null;
-
-        public string TranLyric
+        get => _tranLyric;
+        set
         {
-            get => _tranLyric;
-            set
-            {
-                _tranLyric = value;
-                OnPropertyChanged(nameof(TranLyric));
-                OnPropertyChanged(nameof(TransVisibility));
-            }
+            _tranLyric = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TransVisibility));
         }
+    }
 
-        public string OriginalLyric
+    public string OriginalLyric
+    {
+        get => _originalLyric;
+        set
         {
-            get => _originalLyric;
-            set
-            {
-                _originalLyric = value;
-                OnPropertyChanged(nameof(OriginalLyric));
-            }
+            _originalLyric = value;
+            OnPropertyChanged();
         }
-        
-        public Visibility TransVisibility => TranLyric == "" ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    public Visibility TransVisibility => TranLyric == "" ? Visibility.Collapsed : Visibility.Visible;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
 
-        private void OnMusicChanged(Music currentMusic)
+    private void OnMusicChanged(Music currentMusic)
+    {
+        _currentLyric = null;
+        _nextLyric = null;
+    }
+
+    private void LyricChanger(TimeSpan time)
+    {
+        try
         {
-            _currentLyric = null;
-            _nextLyric = null;
-        }
+            if (MusicState.Instance.CurrentMusic.Lyrics == null) return;
 
-        private void LyricChanger(TimeSpan time)
-        {
-            try
+            var lyrics = MusicState.Instance.CurrentMusic.Lyrics.Lrc;
+            var left = 0;
+            var right = lyrics.Count - 1;
+            int middle;
+
+            while (left <= right)
             {
-                if (MusicState.Instance.CurrentMusic.Lyrics == null)
+                middle = (left + right) / 2;
+
+                if (time >= lyrics[middle].Time && time < lyrics[middle + 1].Time)
                 {
+                    // 匹配成功，更新歌词显示
+                    _currentLyric = lyrics[middle];
+                    _nextLyric = lyrics[middle + 1];
+                    OriginalLyric = lyrics[middle].OriginalLyric;
+                    TranLyric = lyrics[middle].TranLyric;
                     return;
                 }
 
-                var lyrics = MusicState.Instance.CurrentMusic.Lyrics.Lrc;
-                var left = 0;
-                var right = lyrics.Count - 1;
-                int middle;
-
-                while (left <= right)
+                if (time < lyrics[middle].Time)
                 {
-                    middle = (left + right) / 2;
-
-                    if (time >= lyrics[middle].Time && time < lyrics[middle + 1].Time)
-                    {
-                        // 匹配成功，更新歌词显示
-                        _currentLyric = lyrics[middle];
-                        _nextLyric = lyrics[middle + 1];
-                        OriginalLyric = lyrics[middle].OriginalLyric;
-                        TranLyric = lyrics[middle].TranLyric;
-                        return;
-                    }
-                    else if (time < lyrics[middle].Time)
-                    {
-                        right = middle - 1;
-                    }
-                    else
-                    {
-                        left = middle + 1;
-                    }
+                    right = middle - 1;
                 }
-
-                // 未匹配到，可以显示 "暂未播放" 或其他提示信息
-                OriginalLyric = "暂未播放";
-                TranLyric = "";
-
+                else
+                {
+                    left = middle + 1;
+                }
             }
-            catch (Exception e)
-            {
-            }
-        }
 
-        public void Init()
-        {
-            Player.Instance.PositionChangedHandle += LyricChanger;
-            Player.Instance.MusicChangedHandle += OnMusicChanged;
+            // 未匹配到，可以显示 "暂未播放" 或其他提示信息
             OriginalLyric = "暂未播放";
+            TranLyric = "";
         }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        catch (Exception e)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    public void Init()
+    {
+        Player.Instance.PositionChangedHandle += LyricChanger;
+        Player.Instance.MusicChangedHandle += OnMusicChanged;
+        OriginalLyric = "暂未播放";
+    }
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

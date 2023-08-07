@@ -2,7 +2,6 @@
     x:Class="NonsPlayer.Components.Views.LyricBox"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:NonsPlayer.Components.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -11,7 +10,7 @@
             <ThemeShadow x:Name="DropShadow" />
         </Grid.Resources>
         <Border Name="Body" Translation="0,0,32"
-                Margin="0,0,0,10" 
+                Margin="0,0,0,10"
                 Height="80" Width="200" CornerRadius="20">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <TextBlock Name="OriginalLyric" Text="{x:Bind ViewModel.OriginalLyric,Mode=OneWay}"

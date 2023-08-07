@@ -2,9 +2,6 @@
 
 namespace NonsPlayer.ViewModels;
 
-public partial class SearchViewModel : ObservableRecipient
+public class SearchViewModel : ObservableRecipient
 {
-    public SearchViewModel()
-    {
-    }
 }

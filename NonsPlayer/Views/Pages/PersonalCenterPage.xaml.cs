@@ -5,16 +5,11 @@ namespace NonsPlayer.Views.Pages;
 
 public sealed partial class PersonalCenterPage : Page
 {
-    public PersonalCenterViewModel ViewModel
-    {
-        get;
-    }
-
     public PersonalCenterPage()
     {
         ViewModel = App.GetService<PersonalCenterViewModel>();
         InitializeComponent();
     }
 
-
+    public PersonalCenterViewModel ViewModel { get; }
 }

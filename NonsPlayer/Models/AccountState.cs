@@ -1,24 +1,19 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using NonsPlayer.Core.Account;
 
 namespace NonsPlayer.Models;
 
 [INotifyPropertyChanged]
 public partial class AccountState
 {
-    public static AccountState Instance
-    {
-        get;
-    } = new();
+    [ObservableProperty] private ImageBrush face;
+    [ObservableProperty] private string faceUrl;
+    [ObservableProperty] private string name;
 
     [ObservableProperty] private string uid;
-    [ObservableProperty] private string name;
-    [ObservableProperty] private string faceUrl;
-    [ObservableProperty] private ImageBrush face;
+
+    public static AccountState Instance { get; } = new();
 
     partial void OnFaceUrlChanged(string value)
     {

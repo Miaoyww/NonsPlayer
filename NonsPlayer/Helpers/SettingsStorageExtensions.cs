@@ -1,7 +1,6 @@
-﻿using NonsPlayer.Core.Helpers;
-
-using Windows.Storage;
+﻿using Windows.Storage;
 using Windows.Storage.Streams;
+using NonsPlayer.Core.Helpers;
 
 namespace NonsPlayer.Helpers;
 
@@ -26,10 +25,7 @@ public static class SettingsStorageExtensions
 
     public static async Task<T?> ReadAsync<T>(this StorageFolder folder, string name)
     {
-        if (!File.Exists(Path.Combine(folder.Path, GetFileName(name))))
-        {
-            return default;
-        }
+        if (!File.Exists(Path.Combine(folder.Path, GetFileName(name)))) return default;
 
         var file = await folder.GetFileAsync($"{name}.json");
         var fileContent = await FileIO.ReadTextAsync(file);
@@ -51,25 +47,18 @@ public static class SettingsStorageExtensions
     {
         object? obj;
 
-        if (settings.Values.TryGetValue(key, out obj))
-        {
-            return await Json.ToObjectAsync<T>((string)obj);
-        }
+        if (settings.Values.TryGetValue(key, out obj)) return await Json.ToObjectAsync<T>((string) obj);
 
         return default;
     }
 
-    public static async Task<StorageFile> SaveFileAsync(this StorageFolder folder, byte[] content, string fileName, CreationCollisionOption options = CreationCollisionOption.ReplaceExisting)
+    public static async Task<StorageFile> SaveFileAsync(this StorageFolder folder, byte[] content, string fileName,
+        CreationCollisionOption options = CreationCollisionOption.ReplaceExisting)
     {
-        if (content == null)
-        {
-            throw new ArgumentNullException(nameof(content));
-        }
+        if (content == null) throw new ArgumentNullException(nameof(content));
 
         if (string.IsNullOrEmpty(fileName))
-        {
             throw new ArgumentException("File name is null or empty. Specify a valid file name", nameof(fileName));
-        }
 
         var storageFile = await folder.CreateFileAsync(fileName, options);
         await FileIO.WriteBytesAsync(storageFile, content);
@@ -96,7 +85,7 @@ public static class SettingsStorageExtensions
         {
             using IRandomAccessStream stream = await file.OpenReadAsync();
             using var reader = new DataReader(stream.GetInputStreamAt(0));
-            await reader.LoadAsync((uint)stream.Size);
+            await reader.LoadAsync((uint) stream.Size);
             var bytes = new byte[stream.Size];
             reader.ReadBytes(bytes);
             return bytes;

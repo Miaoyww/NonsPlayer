@@ -1,31 +1,25 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
-using NonsPlayer.Core.Models;
 using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Core.Services;
 
 public class FavoritePlaylistService
 {
-    public static FavoritePlaylistService Instance { get; } = new();
+    public delegate void LikeSongsChangedEventHandler();
+
+    public string FavoritePlaylistId = string.Empty;
+    public bool IsLikeSongsChanged;
 
     public List<string> LikedSongs = new();
-    public string FavoritePlaylistId = string.Empty;
-    public bool IsLikeSongsChanged = false;
-
-    public delegate void LikeSongsChangedEventHandler();
+    public static FavoritePlaylistService Instance { get; } = new();
 
     public event LikeSongsChangedEventHandler LikeSongsChanged;
 
     public bool IsLiked(long? id)
     {
-        if (LikedSongs.Contains(id.ToString()))
-        {
-            return true;
-        }
+        if (LikedSongs.Contains(id.ToString())) return true;
 
         return false;
     }

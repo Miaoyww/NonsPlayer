@@ -7,7 +7,6 @@
     xmlns:helpers="using:NonsPlayer.Helpers"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <helpers:LikeIconConverter x:Key="LikeIconConverter" />
     </UserControl.Resources>
     <Grid>
         <Border BorderThickness="0" CornerRadius="10"
@@ -17,7 +16,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Name="CoverBorder" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
                         HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2"

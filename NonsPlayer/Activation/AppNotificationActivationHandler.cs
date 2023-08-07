@@ -10,7 +10,8 @@ public class AppNotificationActivationHandler : ActivationHandler<LaunchActivate
     private readonly INavigationService _navigationService;
     private readonly IAppNotificationService _notificationService;
 
-    public AppNotificationActivationHandler(INavigationService navigationService, IAppNotificationService notificationService)
+    public AppNotificationActivationHandler(INavigationService navigationService,
+        IAppNotificationService notificationService)
     {
         _navigationService = navigationService;
         _notificationService = notificationService;
@@ -38,10 +39,12 @@ public class AppNotificationActivationHandler : ActivationHandler<LaunchActivate
         ////     });
         //// }
 
-        App.MainWindow.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
-        {
-            App.MainWindow.ShowMessageDialogAsync("TODO: Handle notification activations.", "Notification Activation");
-        });
+        App.MainWindow.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low,
+            () =>
+            {
+                App.MainWindow.ShowMessageDialogAsync("TODO: Handle notification activations.",
+                    "Notification Activation");
+            });
 
         await Task.CompletedTask;
     }
