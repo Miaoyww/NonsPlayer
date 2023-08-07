@@ -69,7 +69,7 @@ public class CacheManager
         }
         catch (Exception e)
         {
-            Debug.WriteLine($"尝试删除{key}时出现了错误, 可能是由于它依然被控件所引用造成的{e}");
+            Debug.WriteLine($"尝试删除{key}时出现了错误, 可能是由于它依然被控件所引用{e}");
             return;
         }
 
