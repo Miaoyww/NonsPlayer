@@ -47,7 +47,7 @@ public class Lyrics
                     "time",
                     item.Groups[1].Value == "99:00.00"
                         ? TimeSpan.MaxValue
-                        : TimeSpan.Parse("00:" + item.Groups[1].Value)
+                        : TimeSpan.Parse(item.Groups[1].Value)
                 },
                 {"word", item.Groups[2].Value}
             });

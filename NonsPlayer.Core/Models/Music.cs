@@ -115,6 +115,6 @@ public class Music
 
     public async Task GetLyric()
     {
-        Lyrics = new Lyrics(await Apis.Lyric.GetLyric(Id.ToString(), Nons.Instance));
+        // Lyrics = new Lyrics(await Apis.Lyric.GetLyric(Id.ToString(), Nons.Instance));
     }
 }
