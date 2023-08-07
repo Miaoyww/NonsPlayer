@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
@@ -31,5 +32,11 @@ public partial class BestMusicCardViewModel
         Title = value.Name;
         Subtitle = value.ArtistsName;
         Cover = await CacheHelper.GetImageBrushAsync(value.Album.CacheMiddleAvatarId, value.Album.MiddleAvatarUrl);
+    }
+
+    [RelayCommand]
+    public void Play()
+    {
+        PlayQueue.Instance.Play(SearchHelper.Instance.BestMusicResult);
     }
 }

@@ -72,30 +72,7 @@ public class SearchViewModel : ObservableRecipient, INavigationAware
 
     public async Task Search(string key)
     {
-        var (result, elapsed) =
-            await Task.WhenAll(Apis.Search.Default(key, 2, 1018, Nons.Instance)).MeasureExecutionTimeAsync();
-        Debug.WriteLine($"搜索耗时：{elapsed.TotalMilliseconds}ms");
-        var songResult = (JArray) result[0]["result"]["song"]["songs"];
-        var artistResult = (JArray) result[0]["result"]["artist"]["artists"];
-        var playlistResult = (JArray) result[0]["result"]["playList"]["playLists"];
-        var albumResult = (JArray) result[0]["result"]["album"]["albums"];
-        var data = new List<Tuple<SearchDataType, Tuple<double, JObject>>>
-        {
-            ParseResult(SearchDataType.Music, songResult[0]["name"].ToString().ToLower(), (JObject) songResult[0]),
-            ParseResult(SearchDataType.Artist, artistResult[0]["name"].ToString().ToLower(), (JObject) artistResult[0]),
-            ParseResult(SearchDataType.Playlist, playlistResult[0]["name"].ToString().ToLower(),
-                (JObject) playlistResult[0]),
-            ParseResult(SearchDataType.Album, albumResult[0]["name"].ToString().ToLower(), (JObject) albumResult[0])
-        };
-        QuickSortAlgorithm(data, 0, data.Count - 1);
-        if (data[0].Item2.Item1 == data[1].Item2.Item1)
-        {
-            if (data[1].Item1 == SearchDataType.Music)
-            {
-                (data[1], data[0]) = (data[0], data[1]);
-            }
-        }
-
-        SearchHelper.Instance.BestMusicResult = await Music.CreateAsync(data[0].Item2.Item2);
+        var result = await Apis.Search.Default(key, 1, 1, Nons.Instance);
+        SearchHelper.Instance.BestMusicResult = await Music.CreateAsync(result["result"]["songs"][0]["id"].ToObject<long>());
     }
 }

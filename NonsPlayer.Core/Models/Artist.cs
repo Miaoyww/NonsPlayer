@@ -30,7 +30,7 @@ public class Artist : INonsModel
         {
             Name = result["data"]["artist"]["name"].ToString(),
             Id = result["data"]["artist"]["id"].ToObject<long>(),
-            AvatarUrl = result["data"]["artist"]["avatar"].ToString()
+            AvatarUrl = result["data"]["artist"]["cover"].ToString()
         };
     }
 

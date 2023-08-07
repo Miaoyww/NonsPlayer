@@ -13,40 +13,48 @@
     </UserControl.Resources>
     <Grid>
         <Border Background="#323232" CornerRadius="20"
-                Width="500" Height="200"
-                >
-            <StackPanel Margin="20,10,0,0">
-                <TextBlock Text="最佳音乐结果" Margin="-10,0,0,0"
+                Width="500" Height="200">
+            <Grid>
+                <StackPanel Margin="20,10,0,0">
+                    <TextBlock Text="最佳音乐结果" Margin="-10,0,0,0"
                            FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="16"
                            FontWeight="Bold" />
-                <Line Stroke="#A4A4A4" Margin="-10,0,0,0" StrokeThickness="1" X1="5" X2="120" />
-                <Grid HorizontalAlignment="Left" Margin="0,10,0,0">
-                    <StackPanel Orientation="Horizontal">
-                        <Border Width="140" Height="140" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
+                    <Line Stroke="#A4A4A4" Margin="-10,0,0,0" StrokeThickness="1" X1="5" X2="120" />
+                    <Grid HorizontalAlignment="Left" Margin="-5,10,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="140" Height="140" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
                                 CornerRadius="20" />
-                        <StackPanel Margin="20,0,0,0">
-                            <Grid HorizontalAlignment="Left" Margin="0,0,0,10">
-                                <Border Background="#C4C4C4" Opacity="0.4" Width="50" Height="24"
+                            <StackPanel Margin="20,0,0,0">
+                                <Grid HorizontalAlignment="Left" Margin="0,0,0,10">
+                                    <Border Background="#C4C4C4" Opacity="0.4" Width="50" Height="24"
                                         CornerRadius="10" />
-                                <TextBlock
+                                    <TextBlock
                                     Text="单曲"
                                     VerticalAlignment="Center" HorizontalAlignment="Center"
                                     FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9"
                                     FontSize="16"
                                     FontWeight="Bold" />
-                            </Grid>
-                            <Grid Height="100" Margin="0,-30,0,0">
+                                </Grid>
                                 <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" VerticalAlignment="Center"
-                                           FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="26"
-                                           FontWeight="Bold" />
+                                       Margin="0,-2,0,0" Width="200"
+                                       FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="26"
+                                       FontWeight="Bold" TextWrapping="WrapWholeWords"/>
                                 <TextBlock Text="{x:Bind ViewModel.Subtitle,Mode=OneWay}" VerticalAlignment="Bottom"
-                                           FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="20"
-                                           FontWeight="Bold" />
-                            </Grid>
+                                       Margin="0,15,0,0" Width="200"
+                                       FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="20"
+                                       FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
                         </StackPanel>
-                    </StackPanel>
-                </Grid>
-            </StackPanel>
+                    </Grid>
+                </StackPanel>
+                <Button Background="#5D5D5D" Width="50" Height="50" CornerRadius="10"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                        Margin="0,0,40,30"
+                        Command="{x:Bind ViewModel.PlayCommand}">
+                    <FontIcon Glyph="&#xF5B0;" Foreground="#EFEFEF"/>
+                </Button>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>
