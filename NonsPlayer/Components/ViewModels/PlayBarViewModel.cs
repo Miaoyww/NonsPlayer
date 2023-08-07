@@ -27,15 +27,7 @@ public partial class PlayerBarViewModel : ObservableObject
     public PlayerService PlayerService => PlayerService.Instance;
     public MusicState MusicState => MusicState.Instance;
     public UserPlaylistHelper UserPlaylistHelper => UserPlaylistHelper.Instance;
-
-    [RelayCommand]
-    public async void Like()
-    {
-        if (MusicState.Instance.CurrentMusic.IsEmpty) return;
-
-        await FavoritePlaylistService.Instance.Like(MusicState.Instance.CurrentMusic.Id);
-    }
-
+    
     public void UpdateLike()
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
