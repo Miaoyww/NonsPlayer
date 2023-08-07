@@ -112,8 +112,6 @@ public class PlayQueue
         MusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
         MusicAdded(music);
         if (PlayMode is PlayModeEnum.Random) _randomMusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
-
-        CurrentMusic = music;
     }
 
     public void RemoveMusic(Music music)
@@ -135,6 +133,12 @@ public class PlayQueue
             Player.Instance.Play();
             return;
         }
+
+        if (!MusicList.Contains(music))
+        {
+            AddMusic(music);
+        }
+
 
         CurrentMusic = music;
         _isUserPressed = false;
