@@ -81,6 +81,7 @@ the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/mast
 
 - [Zhuym](https://github.com/Zhuym07) 为图标设计提供帮助
 - [GooGuJiang](https://github.com/GooGuJiang) 为图标设计、UI设计提供帮助
+- [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) 提供网易云音乐Api
 
 # 💡灵感来源
 

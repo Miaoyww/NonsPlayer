@@ -88,6 +88,7 @@ the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/mast
 
 - [Zhuym](https://github.com/Zhuym07) provide the idea of Icon
 - [GooGuJiang](https://github.com/GooGuJiang) provide help with Ui and Icon
+- [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) provide the api of NeteaseCloudMusic
 
 # 💡Source of inspiration
 
