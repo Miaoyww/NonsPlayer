@@ -10,7 +10,7 @@ namespace NonsPlayer.Helpers;
 
 public static class CacheHelper
 {
-    public static async Task<CacheItem<T>> GetCacheItem<T>(string cacheId, Func<Task<T>> createItemAsync)
+    public static async Task<CacheItem<T>> GetCacheItemAsync<T>(string cacheId, Func<Task<T>> createItemAsync)
         where T : class
     {
         try
@@ -26,7 +26,32 @@ public static class CacheHelper
             }
 
             return cacheItem;
-        }catch (Exception e)
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return null;
+        }
+    }
+    
+    public static CacheItem<T> GetCacheItem<T>(string cacheId, Func<T> createItemAsync)
+        where T : class
+    {
+        try
+        {
+            var cacheItem = CacheManager.Instance.TryGet<T>(cacheId);
+            if (cacheItem == null)
+            {
+                cacheItem = new CacheItem<T>
+                {
+                    Data = createItemAsync()
+                };
+                CacheManager.Instance.Set(cacheId, cacheItem);
+            }
+
+            return cacheItem;
+        }
+        catch (Exception e)
         {
             Console.WriteLine(e);
             return null;
@@ -44,10 +69,10 @@ public static class CacheHelper
         CacheManager.Instance.Set(cacheId, cacheItem);
         return cacheItem;
     }
-    
+
     public static ImageBrush GetImageBrush(string cacheId, string url)
     {
-        return GetCacheItem(cacheId, async () => new ImageBrush
+        return GetCacheItemAsync(cacheId, async () => new ImageBrush
         {
             ImageSource = new BitmapImage(new Uri(url))
         }).Result.Data;
@@ -55,7 +80,7 @@ public static class CacheHelper
 
     public static async Task<ImageBrush> GetImageBrushAsync(string cacheId, string url)
     {
-        return (await GetCacheItem(cacheId, async () => new ImageBrush
+        return (await GetCacheItemAsync(cacheId, async () => new ImageBrush
         {
             ImageSource = await GetImageStreamFromServer(url)
         })).Data;
@@ -71,39 +96,38 @@ public static class CacheHelper
 
     public static async Task<Playlist> GetPlaylistAsync(string cacheId, string id)
     {
-        return (await GetCacheItem<Playlist>(cacheId, async () =>
-            await Playlist.CreateAsync(long.Parse(id)))).Data;
+        return (await GetCacheItemAsync<Playlist>(cacheId, async () =>
+            await PlaylistAdaptes.CreateById(long.Parse(id)))).Data;
     }
 
-    public static async Task<Playlist> GetPlaylistCardAsync(string cacheId, JObject item)
+    public static Playlist GetPlaylistCard(string cacheId, JObject item)
     {
-        return (await GetCacheItem<Playlist>(cacheId, async () =>
-            await Playlist.CreateCardModeAsync(item))).Data;
+        return GetCacheItem<Playlist>(cacheId, () => PlaylistAdaptes.CreateFromRecommend(item)).Data;
     }
 
     public static async Task<Playlist> UpdatePlaylistAsync(string cacheId, string id)
     {
         var playlist = (await UpdateCacheItem<Playlist>(cacheId, async () =>
-            await Playlist.CreateAsync(long.Parse(id)))).Data;
+            await PlaylistAdaptes.CreateById(long.Parse(id)))).Data;
         await UpdateImageBrushAsync(playlist.CacheAvatarId, playlist.AvatarUrl);
         return playlist;
     }
 
     public static Playlist GetPlaylist(string cacheId, string id)
     {
-        return GetCacheItem<Playlist>(cacheId, async () =>
-            await Playlist.CreateAsync(long.Parse(id))).Result.Data;
+        return GetCacheItemAsync<Playlist>(cacheId, async () =>
+            await PlaylistAdaptes.CreateById(long.Parse(id))).Result.Data;
     }
 
     public static async Task<Music> GetMusicAsync(string cacheId, string id)
     {
-        return (await GetCacheItem<Music>(cacheId, async () =>
+        return (await GetCacheItemAsync<Music>(cacheId, async () =>
             await MusicAdapters.CreateById(long.Parse(id)))).Data;
     }
 
     public static Music GetMusic(string cacheId, string id)
     {
-        return GetCacheItem<Music>(cacheId, async () =>
+        return GetCacheItemAsync<Music>(cacheId, async () =>
             await MusicAdapters.CreateById(long.Parse(id))).Result.Data;
     }
 

@@ -7,6 +7,10 @@ namespace NonsPlayer.Core.Adapters;
 
 public static class MusicAdapters
 {
+    public static Music[] CreateFromMuiscDetail(JArray item)
+    {
+        return item.Select(x => CreateFromPlaylistTrack(x as JObject)).ToArray();
+    }
     public static Music CreateFromPlaylistTrack(JObject item)
     {
         return new Music

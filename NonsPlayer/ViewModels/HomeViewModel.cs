@@ -28,12 +28,11 @@ public partial class HomeViewModel : ObservableRecipient
             return;
 
         var playlists = (JArray) response["result"];
-        var tasks = playlists.Select(item =>
-            CacheHelper.GetPlaylistCardAsync(item["id"] + "_playlist", (JObject) item));
-        var results = await Task.WhenAll(tasks);
-        results.ToList().ForEach(item =>
+        foreach (var item in playlists.Select(item =>
+                     CacheHelper.GetPlaylistCard(item["id"] + "_playlist", (JObject) item)))
         {
             ServiceHelper.DispatcherQueue.TryEnqueue(() => { RecommendedPlaylist.Add(item); });
-        });
+
+        }
     }
 }

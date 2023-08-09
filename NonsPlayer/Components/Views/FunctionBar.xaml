@@ -16,7 +16,7 @@
         </Grid.RowDefinitions>
         <ScrollViewer Grid.Row="0">
             <StackPanel Margin="14,0,14,0">
-                <Grid BorderThickness="0,1,0,0" BorderBrush="#DDDDDD" Margin="0,20,0,0"
+                <Grid BorderThickness="0,1,0,0" Margin="0,20,0,0"
                       HorizontalAlignment="Center">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -25,7 +25,7 @@
                     <TextBlock Grid.Row="0" Text="创建的歌单"
                                FontFamily="HarmonyOS Sans SC" TextAlignment="Center" FontSize="17" FontWeight="Medium" />
                     <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None"
-                              ItemsSource="{x:Bind ViewModel.UserPlaylists}">
+                              ItemsSource="{x:Bind ViewModel.UserPlaylists,Mode=OneWay}">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="models:Playlist">
                                 <local:UserPlaylistCard PlaylistItem="{x:Bind This}" />
@@ -33,15 +33,22 @@
                         </ListView.ItemTemplate>
                     </ListView>
                 </Grid>
-                <Grid BorderThickness="0,1,0,0" BorderBrush="#DDDDDD" Margin="0,20,0,0"
+                <Grid BorderThickness="0,1,0,0" Margin="0,20,0,0"
                       HorizontalAlignment="Center">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="收藏的歌单"
-                               FontFamily="HarmonyOS Sans SC" FontSize="17" FontWeight="Medium" />
-                    <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None" />
+                    <TextBlock Grid.Row="0" Text="创建的歌单"
+                               FontFamily="HarmonyOS Sans SC" TextAlignment="Center" FontSize="17" FontWeight="Medium"  />
+                    <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None"
+                              ItemsSource="{x:Bind ViewModel.SavedPlaylists, Mode=OneWay}">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:Playlist">
+                                <local:UserPlaylistCard PlaylistItem="{x:Bind This}" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
                 </Grid>
             </StackPanel>
 

@@ -8,4 +8,5 @@ public class MusicItem
 
     public bool IsInitCover;
     public Music Music;
+    public bool IsPlaying;
 }
