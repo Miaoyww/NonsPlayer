@@ -90,7 +90,7 @@ public class PlayQueue
     {
         Clear();
         MusicList.AddRange(musicList);
-        Play(musicList[0]);
+        Play(musicList[0], true);
         PlaylistAdded();
     }
 
@@ -125,11 +125,11 @@ public class PlayQueue
         _randomMusicList.Clear();
     }
 
-    public void Play(Music music)
+    public void Play(Music music, bool rePlay = false)
     {
         if (music == CurrentMusic)
         {
-            Player.Instance.Play();
+            Player.Instance.Play(rePlay);
             return;
         }
 

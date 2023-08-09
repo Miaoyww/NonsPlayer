@@ -136,12 +136,15 @@ public class Player
     ///     播放音乐
     /// </summary>
     /// <param name="rePlay">是否从头播放</param>
-    public void Play()
+    public void Play(bool rePlay = false)
     {
         if (CurrentMusic == null) return;
-
         try
         {
+            if (rePlay)
+            {
+                Position = TimeSpan.Zero;
+            }
             if (OutputDevice.PlaybackState == PlaybackState.Paused)
             {
                 OutputDevice.Play();
