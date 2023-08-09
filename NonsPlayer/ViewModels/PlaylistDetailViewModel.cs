@@ -39,6 +39,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     public async void OnNavigatedTo(object parameter)
     {
         CurrentId = (long) parameter;
+        UserPlaylistService.Instance.PlaylistUpdated += OnPlaylistUpdated;
         if (CurrentId.ToString() == FavoritePlaylistService.Instance.FavoritePlaylistId)
             if (FavoritePlaylistService.Instance.IsLikeSongsChanged)
             {
@@ -70,7 +71,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             Description = PlayListObject.Description;
             MusicsCount = PlayListObject.MusicsCount + "Tracks";
             Cover = CacheHelper.GetImageBrush(PlayListObject.CacheAvatarId, PlayListObject.AvatarUrl);
-            IsLiked = SavedPlaylistService.Instance.IsLiked(CurrentId);
+            IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
         });
     }
 
@@ -141,10 +142,20 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             // +1到达最后一个歌曲
             await playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
         }
-        
+
         PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
     }
 
+    [RelayCommand]
+    public async void Like()
+    {
+        await UserPlaylistService.Instance.Like(CurrentId).ConfigureAwait(false);
+    }
+
+    private void OnPlaylistUpdated()
+    {
+        IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
+    }
 
     public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
     {

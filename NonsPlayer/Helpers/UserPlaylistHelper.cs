@@ -5,7 +5,6 @@ using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
-using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Heplers;
 
@@ -21,7 +20,7 @@ public partial class UserPlaylistHelper
     public async void Init()
     {
         var result = (JArray) (await Apis.User.Playlist(Account.Instance.Uid, Nons.Instance))["playlist"];
-        SavedPlaylistService.Instance.Init(result);
+        UserPlaylistService.Instance.Init(result);
         foreach (var playlistItem in result)
         {
             if (playlistItem["name"].ToString() == Account.Instance.Name + "喜欢的音乐")
@@ -30,12 +29,18 @@ public partial class UserPlaylistHelper
                 break;
             }
         }
-        foreach (var item in SavedPlaylistService.Instance.CreatedPlaylists)
+        BindData();
+    }
+
+    
+    public void BindData()
+    {
+        foreach (var item in UserPlaylistService.Instance.CreatedPlaylists)
         {
             CreatedPlaylists.Add(item);
         }
 
-        foreach (var item in SavedPlaylistService.Instance.SavedPlaylists)
+        foreach (var item in UserPlaylistService.Instance.SavedPlaylists)
         {
             SavedPlaylists.Add(item);
         }

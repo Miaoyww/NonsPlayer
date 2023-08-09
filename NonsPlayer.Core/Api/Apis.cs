@@ -30,6 +30,16 @@ public static class Apis
             };
             return await nons.Request(_URL, pairs);
         }
+
+        public static async Task<JObject> Subscribe(long id, bool isSubscribe, Nons nons)
+        {
+            var _URL = $"https://music.163.com/api/playlist/{(isSubscribe ? "subscribe" : "unsubscribe")}";
+            IDictionary<string, object> pairs = new Dictionary<string, object>
+            {
+                {"id", id}
+            };
+            return await nons.Request(_URL, pairs);
+        }
     }
 
     public static class Music

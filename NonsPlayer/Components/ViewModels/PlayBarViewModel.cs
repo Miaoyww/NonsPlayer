@@ -26,7 +26,6 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public PlayerService PlayerService => PlayerService.Instance;
     public MusicState MusicState => MusicState.Instance;
-    public UserPlaylistHelper UserPlaylistHelper => UserPlaylistHelper.Instance;
     
     public void UpdateLike()
     {

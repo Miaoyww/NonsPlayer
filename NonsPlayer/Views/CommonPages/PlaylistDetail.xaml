@@ -76,8 +76,8 @@
                                     </StackPanel>
                                 </Button>
                                 <Button Name="Like"
-                                        Width="50" Height="50" CornerRadius="180"
-                                        Padding="0"
+                                        Width="50" Height="50" CornerRadius="180" Padding="0"
+                                        Command="{x:Bind ViewModel.LikeCommand}"
                                         FontFamily="HarmonyOS Sans SC" FontWeight="Medium" FontSize="16"
                                         Margin="0,0,10,0">
                                     <FontIcon FontFamily="Segoe Fluent Icons"
