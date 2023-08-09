@@ -26,6 +26,7 @@
                             Margin="20,2,0,0">
                     <Grid>
                         <TextBlock Name="NameTextBlock" Text="{x:Bind ViewModel.Name, Mode=OneWay}"
+                                   Foreground="{x:Bind FontBrush, Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top"
                                    FontWeight="Black" FontSize="15" FontFamily="HarmonyOS Sans SC" MaxLines="2"
                                    TextAlignment="Left"
