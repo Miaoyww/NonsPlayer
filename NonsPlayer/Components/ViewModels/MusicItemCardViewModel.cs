@@ -40,7 +40,7 @@ public partial class MusicItemCardViewModel : ObservableObject
 
     public async Task InitCover()
     {
-        var temp = await CacheHelper.GetImageBrushAsync(Music.Album.SmallAvatarUrl, Music.Album.CacheSmallAvatarId)
+        var temp = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl)
             .ConfigureAwait(false);
         ServiceHelper.DispatcherQueue.TryEnqueue(() => { Cover = temp; });
     }

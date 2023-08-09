@@ -19,66 +19,19 @@ public class Music : INonsModel
     public TimeSpan TotalTime;
     public string Url;
 
-    private Music()
-    {
-    }
-
     public string TotalTimeString => TotalTime.ToString(@"m\:ss");
     public string CacheId => Id + "_music";
     public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
     public string AlbumName => Album?.Name;
 
-    public static async Task<Music> CreateAsync(JObject playlistMusicTrack)
-    {
-        var music = new Music();
-        await music.ParseJObjectAsync(playlistMusicTrack);
-        return music;
-    }
-
-    public static async Task<Music> CreateAsync(long id)
-    {
-        var music = new Music();
-        JObject result;
-        try
-        {
-            result = (JObject) (await Apis.Music.Detail(new[] {id}, Nons.Instance))["songs"][0];
-        }
-        catch (InvalidCastException)
-        {
-            throw new InvalidCastException($"未能发现此音乐{id}");
-        }
-
-        await music.ParseJObjectAsync(result);
-        return music;
-    }
-
     public static Music CreateEmpty()
     {
-        var music = new Music();
-        music.Name = "暂无歌曲";
-        music.Artists = new[]
+        return new Music
         {
-            Artist.CreatEmpty()
+            Name = "暂无歌曲",
+            Artists = new[] {Artist.CreatEmpty()},
+            IsEmpty = true
         };
-        music.IsEmpty = true;
-        return music;
-    }
-
-    private async Task ParseJObjectAsync(JObject item)
-    {
-        Id = long.Parse(item["id"].ToString());
-        Name = (string) item["name"];
-        TotalTime = TimeSpan.FromMilliseconds(int.Parse(item["dt"].ToString()));
-
-        Album = new Album
-        {
-            Name = (string) item["al"]["name"],
-            Id = (int) item["al"]["id"],
-            AvatarUrl = (string) item["al"]["picUrl"],
-        };
-
-        Artists = await Task.WhenAll(((JArray) item["ar"]).Select(x =>  Artist.CreatAsync(x["id"].ToObject<long>()))).ConfigureAwait(false);
-        IsEmpty = false;
     }
 
     public async Task GetDetailsAsync()
