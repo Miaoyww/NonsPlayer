@@ -78,11 +78,10 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     {
         if (PlayListObject.Musics == null)
         {
-            var elapsed = await Tools.MeasureExecutionTimeAsync(PlayListObject.InitMusicsAsync());
-            Debug.WriteLine($"初始化歌单音乐耗时: {elapsed.TotalMilliseconds}ms");
+            PlayListObject.InitTracksAsync();
         }
 
-        for (var i = 0; i < PlayListObject.Musics.Length; i++)
+        for (var i = 0; i < PlayListObject.Musics.Count; i++)
         {
             var index = i;
             if (index < musicItemGroupCount)
@@ -137,7 +136,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     [RelayCommand]
     private void PlayAll()
     {
-        PlayQueue.Instance.AddMusicList(playListObject.Musics);
+        PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
     }
 
 
@@ -146,9 +145,10 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         var listView = sender as ListView;
         if (listView.SelectedItem is MusicItem item)
         {
+            if (PlayQueue.Instance.Count == 0) PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
             PlayQueue.Instance.Play(item.Music);
             //TODO: 设置是否将歌曲添加到播放队列
-            if (PlayQueue.Instance.Count == 0) PlayQueue.Instance.AddMusicList(playListObject.Musics);
+            
         }
     }
 }
