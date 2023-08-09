@@ -1,22 +1,32 @@
 ﻿namespace NonsPlayer.Core.Enums;
 
-/// <summary>
-///     表示音乐的质量等级
-/// </summary>
 public enum MusicQualityLevel
 {
-    /// <summary>
-    ///     低级 128k以下
-    /// </summary>
-    Low = 0,
+    Standard,
+    Higher,
+    ExHigh,
+    Lossless,
+    Hires,
+    Effect,
+    Sky,
+    Master,
+}
 
-    /// <summary>
-    ///     320k
-    /// </summary>
-    Sq = 1,
-
-    /// <summary>
-    ///     无损
-    /// </summary>
-    Hq = 2
+public static class MusicQualityLevelConvert
+{
+    public static string ToQualityString(MusicQualityLevel level)
+    {
+        return level switch
+        {
+            MusicQualityLevel.Standard => "standard",
+            MusicQualityLevel.Higher => "higher",
+            MusicQualityLevel.ExHigh => "exhigh",
+            MusicQualityLevel.Lossless => "lossless",
+            MusicQualityLevel.Hires => "hires",
+            MusicQualityLevel.Effect => "jyeffect",
+            MusicQualityLevel.Sky => "sky",
+            MusicQualityLevel.Master => "jymaster",
+            _ => throw new ArgumentOutOfRangeException(nameof(level), level, null)
+        };
+    }
 }

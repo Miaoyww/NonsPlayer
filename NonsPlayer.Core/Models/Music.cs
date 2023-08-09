@@ -43,7 +43,7 @@ public class Music : INonsModel
 
     public async Task GetFileInfo()
     {
-        var musicFile = (JObject) (await Apis.Music.Url(new[] {Id}, Nons.Instance))["data"][0];
+        var musicFile = (JObject) (await Apis.Music.Url(Id, MusicQualityLevel.ExHigh, Nons.Instance))["data"][0];
         Url = musicFile["url"].ToString();
         FileType = musicFile["type"].ToString();
     }

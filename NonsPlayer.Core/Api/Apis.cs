@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using NonsPlayer.Core.Enums;
 using RestSharp;
 
 namespace NonsPlayer.Core.Api;
@@ -50,23 +51,20 @@ public static class Apis
             return await nons.Request(_URL, pairs);
         }
 
-        public static async Task<JObject> Url(long[] ids, Nons nons)
+        public static async Task<JObject> Url(long id, MusicQualityLevel level, Nons nons)
         {
-            var _URL = "http://music.163.com/api/song/enhance/player/url";
-            var idsBody = "[";
-            for (var index = 0; index <= ids.Length - 1; index++)
-                if (index != ids.Length - 1)
-                    idsBody += ids[index] + ", ";
-                else
-                    idsBody += ids[index] + "]";
-
-            var resBody = $"{idsBody}&br=999000";
-            HttpContent data = new StringContent(resBody);
+            var _URL = "https://interface.music.163.com/api/song/enhance/player/url/v1";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
-                {"ids", idsBody},
-                {"br", "999000"}
+                {"ids", $"[{id}]"},
+                {"level", MusicQualityLevelConvert.ToQualityString(level)},
+                {"encodeType", "flac"}
             };
+            if (level is MusicQualityLevel.Sky)
+            {
+                pairs.Add("immerseType", "c51");
+            }
+
             return await nons.Request(_URL, pairs);
         }
 
