@@ -134,8 +134,14 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
 
     [RelayCommand]
-    private void PlayAll()
+    private async void PlayAll()
     {
+        if (playListObject.Musics.Count != playListObject.MusicTrackIds.Length)
+        {
+            // +1到达最后一个歌曲
+            await playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
+        }
+        
         PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
     }
 
@@ -145,10 +151,18 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         var listView = sender as ListView;
         if (listView.SelectedItem is MusicItem item)
         {
-            if (PlayQueue.Instance.Count == 0) PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
-            PlayQueue.Instance.Play(item.Music);
             //TODO: 设置是否将歌曲添加到播放队列
-            
+            if (PlayQueue.Instance.Count == 0)
+            {
+                if (playListObject.Musics.Count != playListObject.MusicTrackIds.Length)
+                {
+                    playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
+                }
+
+                PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
+            }
+
+            PlayQueue.Instance.Play(item.Music);
         }
     }
 }

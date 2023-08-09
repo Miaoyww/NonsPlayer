@@ -15,56 +15,14 @@ public class Playlist : INonsModel
     [JsonPropertyName("creator")] public string Creator;
     [JsonPropertyName("description")] public string Description;
     public bool IsCardMode;
-    public string CacheId => Id + "_playlist";
     [JsonPropertyName("musics")] public List<Music> Musics;
 
     [JsonPropertyName("music_track_ids")] public long[] MusicTrackIds;
-
     private JObject? PlaylistDetail;
-
+    public string CacheId => Id + "_playlist";
     [JsonPropertyName("tags")] public string[] Tags;
-
-    private Playlist()
-    {
-    }
-
     [JsonPropertyName("musics_count")] public int MusicsCount => MusicTrackIds.Length;
     public Playlist This => this;
-
-    public static async Task<Playlist> CreateCardModeAsync(JObject? item)
-    {
-        if (item == null) throw new PlaylistIdNullException("歌单JObject为空");
-
-        var playlist = new Playlist
-        {
-            Id = (long) item["id"],
-            Name = item["name"].ToString(),
-            AvatarUrl = item["picUrl"].ToString(),
-            IsCardMode = true
-        };
-        return playlist;
-    }
-
-    public static async Task<Playlist> CreateAsync(long id)
-    {
-        if (id == null) throw new PlaylistIdNullException("歌单Id为空");
-
-        var playlist = new Playlist();
-        await playlist.LoadAsync(id).ConfigureAwait(false);
-        return playlist;
-    }
-
-    public static async Task<Playlist> CreateAsync(JObject item)
-    {
-        var playlist = new Playlist
-        {
-            Id = (long) item["id"],
-            Name = item["name"].ToString(),
-            AvatarUrl = item["picUrl"].ToString(),
-        };
-        await playlist.LoadAsync(playlist.Id).ConfigureAwait(false);
-        return playlist;
-    }
 
     public async Task LoadAsync(long id)
     {
@@ -96,13 +54,13 @@ public class Playlist : INonsModel
     public async Task InitTrackByIndexAsync(int start, int end)
     {
         var ids = MusicTrackIds.Skip(start).Take(end - start).ToArray();
-        var musicTrackIdsGroup = MusicTrackIds.Select((id, index) => new {id, index})
+        var musicTrackIdsGroup = ids.Select((id, index) => new {id, index})
             .GroupBy(x => x.index / 200)
             .Select(x => x.Select(v => v.id).ToArray())
             .ToArray();
         var musicJObjectTasks = musicTrackIdsGroup.Select(x => Apis.Music.Detail(x, Nons.Instance));
         var (result, elapsed) = await Task.WhenAll(musicJObjectTasks).MeasureExecutionTimeAsync();
-        Musics.AddRange(result.Select(item => MusicAdapters.CreateFromPlaylistTrack(item)));
+        Musics.AddRange(result.Select(item => MusicAdapters.CreateFromMuiscDetail(item["songs"] as JArray)).SelectMany(x => x));
         Debug.WriteLine($"获取歌曲({start}-{end})信息获取完毕 {elapsed.TotalMilliseconds}ms");
     }
 }
