@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using F23.StringSimilarity;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.ViewModels;
+using NonsPlayer.Core.Adapters;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
@@ -73,6 +74,7 @@ public class SearchViewModel : ObservableRecipient, INavigationAware
     public async Task Search(string key)
     {
         var result = await Apis.Search.Default(key, 1, 1, Nons.Instance);
-        SearchHelper.Instance.BestMusicResult = await Music.CreateAsync(result["result"]["songs"][0]["id"].ToObject<long>());
+        SearchHelper.Instance.BestMusicResult =
+            await MusicAdapters.CreateById(result["result"]["songs"][0]["id"].ToObject<long>());
     }
 }

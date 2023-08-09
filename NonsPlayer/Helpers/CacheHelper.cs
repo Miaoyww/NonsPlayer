@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Cache;
+using NonsPlayer.Core.Adapters;
 using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Helpers;
@@ -12,17 +13,24 @@ public static class CacheHelper
     public static async Task<CacheItem<T>> GetCacheItem<T>(string cacheId, Func<Task<T>> createItemAsync)
         where T : class
     {
-        var cacheItem = CacheManager.Instance.TryGet<T>(cacheId);
-        if (cacheItem == null)
+        try
         {
-            cacheItem = new CacheItem<T>
+            var cacheItem = CacheManager.Instance.TryGet<T>(cacheId);
+            if (cacheItem == null)
             {
-                Data = await createItemAsync()
-            };
-            CacheManager.Instance.Set(cacheId, cacheItem);
-        }
+                cacheItem = new CacheItem<T>
+                {
+                    Data = await createItemAsync()
+                };
+                CacheManager.Instance.Set(cacheId, cacheItem);
+            }
 
-        return cacheItem;
+            return cacheItem;
+        }catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return null;
+        }
     }
 
     public static async Task<CacheItem<T>> UpdateCacheItem<T>(string cacheId, Func<Task<T>> createItemAsync)
@@ -90,13 +98,13 @@ public static class CacheHelper
     public static async Task<Music> GetMusicAsync(string cacheId, string id)
     {
         return (await GetCacheItem<Music>(cacheId, async () =>
-            await Music.CreateAsync(long.Parse(id)))).Data;
+            await MusicAdapters.CreateById(long.Parse(id)))).Data;
     }
 
     public static Music GetMusic(string cacheId, string id)
     {
         return GetCacheItem<Music>(cacheId, async () =>
-            await Music.CreateAsync(long.Parse(id))).Result.Data;
+            await MusicAdapters.CreateById(long.Parse(id))).Result.Data;
     }
 
     public static async Task<BitmapImage> GetImageStreamFromServer(string imageUrl)
