@@ -3,6 +3,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 
@@ -47,6 +49,17 @@ public sealed partial class ShellPage : Page
             new PointerEventHandler(ShellMenuBarSettingsButton_PointerPressed), true);
         ShellMenuBarSettingsButton.AddHandler(PointerReleasedEvent,
             new PointerEventHandler(ShellMenuBarSettingsButton_PointerReleased), true);
+        PlayQueue.Instance.CurrentMusicChanged += OnCurrentMusicChanged;
+    }
+
+    private void OnCurrentMusicChanged(Music value)
+    {
+        if (value.IsEmpty)
+        {
+            return;
+        }
+
+        App.MainWindow.Title = "AppDisplayName".GetLocalized() + " - " + value.Name;
     }
 
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
@@ -104,6 +117,4 @@ public sealed partial class ShellPage : Page
     {
         AnimatedIcon.SetState((UIElement) sender, "Normal");
     }
-
-
 }

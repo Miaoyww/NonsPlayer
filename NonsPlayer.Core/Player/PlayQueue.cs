@@ -5,16 +5,12 @@ namespace NonsPlayer.Core.Player;
 
 public class PlayQueue
 {
-    public delegate void MusicAddedEventHandler(Music value);
-
-    public delegate void PlaylistAddedEventHandler();
-
     public enum PlayModeEnum
     {
-        Sequential = 0, //顺序播放
-        Random = 1, //随机播放
-        SingleLoop = 2, //单曲循环
-        ListLoop = 3 //列表循环
+        Sequential, //顺序播放
+        Random, //随机播放
+        SingleLoop, //单曲循环
+        ListLoop //列表循环
     }
 
     private Music _currentMusic;
@@ -26,6 +22,7 @@ public class PlayQueue
         MusicList = new List<Music>();
         PlayMode = PlayModeEnum.ListLoop;
         Player.Instance.OutputDevice.PlaybackStopped += OnMusicStopped;
+        CurrentMusicChanged += OnCurrentMusicChanged;
     }
 
     public static PlayQueue Instance { get; } = new();
@@ -41,13 +38,20 @@ public class PlayQueue
             if (value == _currentMusic) return;
 
             _currentMusic = value;
-            OnCurrentMusicChanged();
+            CurrentMusicChanged(value);
         }
     }
 
 
     public PlayModeEnum PlayMode { get; set; }
 
+    public delegate void MusicAddedEventHandler(Music value);
+
+    public delegate void CurrentMusicChangedEventHandler(Music value);
+
+    public delegate void PlaylistAddedEventHandler();
+
+    public event CurrentMusicChangedEventHandler CurrentMusicChanged;
     public event MusicAddedEventHandler MusicAdded;
     public event PlaylistAddedEventHandler PlaylistAdded;
 
@@ -63,9 +67,9 @@ public class PlayQueue
     }
 
     // 当CurrentMusic改变时，将触发PlayerService的NewPlay方法
-    public void OnCurrentMusicChanged()
+    public void OnCurrentMusicChanged(Music value)
     {
-        Player.Instance.NewPlay(CurrentMusic);
+        Player.Instance.NewPlay(value);
     }
 
     public void ChangePlayMode()
@@ -92,18 +96,18 @@ public class PlayQueue
 
     public void AddMusic(Music music)
     {
-        // 若播放列表为空，那么直接添加到播放列表中
+        if (MusicList.Contains(music))
+        {
+            return;
+        }
+
         if (MusicList.Count == 0)
         {
             MusicList.Add(music);
             MusicAdded(music);
             return;
         }
-        
-        if (MusicList.Contains(music))
-        {
-            return;
-        }
+
         MusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
         MusicAdded(music);
         if (PlayMode is PlayModeEnum.Random) _randomMusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
