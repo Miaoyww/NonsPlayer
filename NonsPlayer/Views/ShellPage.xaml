@@ -147,7 +147,7 @@
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="models:MusicItem">
                                 <views:PlayQueueItemCard
-                                    Music="{x:Bind Music}" />
+                                    Music="{x:Bind Music}" IsPlaying="{x:Bind IsPlaying}"/>
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>

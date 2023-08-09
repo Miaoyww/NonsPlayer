@@ -54,11 +54,12 @@ public partial class ShellViewModel : ObservableRecipient
     }
 
     public void SearchBox_Query(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
-    {        
+    {
         if (args.QueryText.Equals(string.Empty))
         {
             return;
         }
+
         NavigationService.NavigateTo(typeof(SearchViewModel).FullName!, args.QueryText);
     }
 
@@ -127,7 +128,8 @@ public partial class PlayQueueBarViewModel
         {
             MusicItems.Add(new MusicItem
             {
-                Music = item
+                Music = item,
+                IsPlaying = PlayQueue.Instance.CurrentMusic == item
             });
         });
     }
@@ -139,7 +141,7 @@ public partial class PlayQueueBarViewModel
             Music = value
         });
     }
-
+    
     public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
     {
         var listView = sender as ListView;
