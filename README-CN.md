@@ -77,12 +77,6 @@ Copyright Miaomiaoywww 2022.
 Distributed under the terms of
 the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
 
-# 特别鸣谢
-
-- [Zhuym](https://github.com/Zhuym07) 为图标设计提供帮助
-- [GooGuJiang](https://github.com/GooGuJiang) 为图标设计、UI设计提供帮助
-- [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) 提供网易云音乐Api
-
 # 💡灵感来源
 
 - [Spotify](https://www.spotify.com/)
@@ -91,3 +85,13 @@ the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/mast
 - [网易云音乐](https://music.163.com/)
 - [QQ音乐](https://y.qq.com/)
 - [BiliBili客户端](https://app.bilibili.com/)
+
+# 特别鸣谢
+
+- [Zhuym](https://github.com/Zhuym07) 为图标设计提供帮助
+- [GooGuJiang](https://github.com/GooGuJiang) 为图标设计、UI设计提供帮助
+- [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) 提供网易云音乐Api
+
+特别感谢 [JetBrains](https://www.jetbrains.com/) 为本项目提供的大力支持！
+
+<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg" height="100">
