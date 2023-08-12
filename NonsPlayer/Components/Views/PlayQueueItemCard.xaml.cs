@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -7,13 +8,22 @@ using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
+using NonsPlayer.Helpers;
+using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Components.Views;
 
 [INotifyPropertyChanged]
 public sealed partial class PlayQueueItemCard : UserControl
-{    
+{
     [ObservableProperty] private Brush fontBrush = (Brush) Application.Current.Resources["TextFillColorPrimaryBrush"];
+    [ObservableProperty] private string artists;
+    [ObservableProperty] private Tuple<string, string> coverUrl;
+    [ObservableProperty] private ImageBrush cover;
+    [ObservableProperty] private bool liked; //TODO: Implement this
+    [ObservableProperty] private string name;
+    [ObservableProperty] private string time;
+    [ObservableProperty] private long id;
 
     public PlayQueueItemCard()
     {
@@ -24,23 +34,24 @@ public sealed partial class PlayQueueItemCard : UserControl
 
     public PlayQueueItemCardViewModel ViewModel { get; }
 
-    public Music Music
+    partial void OnCoverUrlChanged(Tuple<string, string> value)
     {
-        set => ViewModel.Music = value;
+        Cover = CacheHelper.GetImageBrush(value.Item1, value.Item2);
     }
 
-    public bool IsPlaying
-    {
-        set{
-            if (value)
-            {
-                FontBrush = (Brush) Application.Current.Resources["AccentFillColorSecondaryBrush"];
-            }
-        }
-    }
     private void OnCurrentMusicChanged(Music value)
     {
-        if (value == ViewModel.Music)
+        FontBrushChanger();
+    }
+
+    private void PlayQueueItemCard_OnLoaded(object sender, RoutedEventArgs e)
+    {
+        FontBrushChanger();
+    }
+
+    private void FontBrushChanger()
+    {
+        if (PlayQueue.Instance.CurrentMusic.Id == Id)
         {
             FontBrush = (Brush) Application.Current.Resources["AccentFillColorSecondaryBrush"];
         }
@@ -49,8 +60,9 @@ public sealed partial class PlayQueueItemCard : UserControl
             FontBrush = (Brush) Application.Current.Resources["TextFillColorPrimaryBrush"];
         }
     }
+
     public void Play(object sender, PointerRoutedEventArgs e)
     {
-        PlayQueue.Instance.Play(ViewModel.Music);
+        App.GetService<PlayQueueBarViewModel>().Play(Id);
     }
 }

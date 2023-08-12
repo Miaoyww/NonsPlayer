@@ -34,7 +34,7 @@ public class Player
     {
         OutputDevice = new WaveOutEvent();
         var timer = new Timer();
-        timer.Interval = 20;
+        timer.Interval = 10;
         timer.Elapsed += GetCurrentInfo;
         timer.Start();
         var dataWriter = new Timer();

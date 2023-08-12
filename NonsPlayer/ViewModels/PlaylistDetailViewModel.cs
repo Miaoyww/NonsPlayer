@@ -162,18 +162,13 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         var listView = sender as ListView;
         if (listView.SelectedItem is MusicItem item)
         {
-            //TODO: 设置是否将歌曲添加到播放队列
             if (PlayQueue.Instance.Count == 0)
             {
-                if (playListObject.Musics.Count != playListObject.MusicTrackIds.Length)
-                {
-                    playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
-                }
-
-                PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
+                //TODO: 设置是否将歌曲添加到播放队列
+                PlayAll();
             }
 
-            PlayQueue.Instance.Play(item.Music);
+            // PlayQueue.Instance.Play(item.Music);
         }
     }
 }

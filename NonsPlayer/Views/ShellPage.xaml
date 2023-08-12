@@ -121,7 +121,7 @@
         </Grid>
         <SplitView Name="PlayQueueBar"
                    BorderThickness="0" CornerRadius="12,0,0,12"
-                   Margin="0,100,0,0" Width="400" HorizontalAlignment="Right"
+                   Margin="0,100,0,60" Width="400" HorizontalAlignment="Right"
                    DisplayMode="Overlay" OpenPaneLength="400" PanePlacement="Right"
                    PaneBackground="{ThemeResource CustomAcrylicBrush}">
             <SplitView.Pane>
@@ -146,8 +146,11 @@
                         </ListView.Header>
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="models:MusicItem">
-                                <views:PlayQueueItemCard
-                                    Music="{x:Bind Music}" IsPlaying="{x:Bind IsPlaying}"/>
+                                <views:PlayQueueItemCard Cover="{x:Bind Cover}"
+                                                         Name="{x:Bind Name}"
+                                                         Artists="{x:Bind Artists}"
+                                                         Id="{x:Bind Id}"
+                                                         Time="{x:Bind Time}" />
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>

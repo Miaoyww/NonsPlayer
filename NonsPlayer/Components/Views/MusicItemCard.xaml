@@ -53,7 +53,7 @@
                             FontSize="16" />
                     </Button>
                     <TextBlock Name="TimeTextBlock" Text="{x:Bind ViewModel.Time, Mode=OneWay}"
-                               Margin="0,0,0,0"
+                               Margin="0,3,0,0"
                                FontSize="14" />
                 </StackPanel>
 

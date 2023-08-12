@@ -108,7 +108,7 @@
                     <TextBlock Grid.Column="0" Text="#" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
                     <TextBlock Grid.Column="1" Margin="30,0,0,0" Text="标题" FontFamily="HarmonyOS Sans SC"
                                FontWeight="Bold" />
-                    <TextBlock Grid.Column="2" Text="专辑" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
+                    <TextBlock Grid.Column="2" Text="专辑" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" Margin="-40,0,0,0"/>
                     <TextBlock Grid.Column="3" Text="时长" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
                 </Grid>
                 <ListView Grid.Row="2"
@@ -120,8 +120,7 @@
                         <DataTemplate x:DataType="models:MusicItem">
                             <views:MusicItemCard
                                 Music="{x:Bind Music}"
-                                Index="{x:Bind Index}"
-                                IsCoverInit="{x:Bind IsInitCover}" />
+                                Index="{x:Bind Index}"/>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>

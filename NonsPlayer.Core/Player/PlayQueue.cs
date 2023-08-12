@@ -61,7 +61,6 @@ public class PlayQueue
             if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic && PlayMode != PlayModeEnum.SingleLoop)
             {
                 if (_isUserPressed) return;
-
                 PlayNext();
             }
     }
