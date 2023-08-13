@@ -1,4 +1,5 @@
 ﻿using Windows.System;
+using Windows.Win32.Foundation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -6,6 +7,7 @@ using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
+using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Views;
@@ -50,6 +52,8 @@ public sealed partial class ShellPage : Page
         ShellMenuBarSettingsButton.AddHandler(PointerReleasedEvent,
             new PointerEventHandler(ShellMenuBarSettingsButton_PointerReleased), true);
         PlayQueue.Instance.CurrentMusicChanged += OnCurrentMusicChanged;
+
+
     }
 
     private void OnCurrentMusicChanged(Music value)

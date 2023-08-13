@@ -1,8 +1,12 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Runtime.InteropServices;
+using System.Windows.Forms;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.Input.KeyboardAndMouse;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-
 using NonsPlayer.Activation;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Contracts.Services;
@@ -15,7 +19,8 @@ using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
-
+using WinRT;
+using Application = Microsoft.UI.Xaml.Application;
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
 
 namespace NonsPlayer;
@@ -118,4 +123,19 @@ public partial class App : Application
 
         await GetService<IActivationService>().ActivateAsync(args);
     }
+}
+
+public static class WindowExtensions
+{
+    // https://www.sharpgis.net/post/Using-the-CWin32-code-generator-to-enhance-your-WinUI-3-app
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("EECDBF0E-BAE9-4CB6-A68E-9598E1CB57BB")]
+    internal interface IWindowNative
+    {
+        IntPtr WindowHandle { get; }
+    }
+
+    public static IntPtr GetWindowHandle(this Microsoft.UI.Xaml.Window window)
+        => window is null ? throw new ArgumentNullException(nameof(window)) : window.As<IWindowNative>().WindowHandle;
 }

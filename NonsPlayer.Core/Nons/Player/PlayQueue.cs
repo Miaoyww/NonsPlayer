@@ -128,7 +128,7 @@ public class PlayQueue
         MusicList.Clear();
         _randomMusicList.Clear();
     }
-    
+
     public void Play(Music music)
     {
         if (music == CurrentMusic)
@@ -151,6 +151,7 @@ public class PlayQueue
     {
         _isUserPressed = isUserPressed;
         var list = PlayMode is PlayModeEnum.Random ? _randomMusicList : MusicList;
+        if (list.Count == 0) return;
         if (PlayMode is PlayModeEnum.SingleLoop)
         {
             Play(CurrentMusic);
@@ -179,9 +180,9 @@ public class PlayQueue
     {
         _isUserPressed = isUserPressed;
         var list = PlayMode is PlayModeEnum.Random ? _randomMusicList : MusicList;
+        if (list.Count == 0) return;
         var index = list.IndexOf(CurrentMusic) - 1;
         if (index < 0) index = list.Count - 1;
-
         Play(list[index]);
     }
 

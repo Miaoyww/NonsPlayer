@@ -7,19 +7,19 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Components.Models;
+using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
 public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
-    private readonly double loadOffset = 500; // 到达底部多少距离时加载
-    private readonly int musicItemGroupCount = 30; // 一次加载的MusicItem数量
     [ObservableProperty] private ImageBrush cover;
     [ObservableProperty] private string createTime;
     [ObservableProperty] private string creator;
@@ -85,7 +85,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         for (var i = 0; i < PlayListObject.Musics.Count; i++)
         {
             var index = i;
-            if (index < musicItemGroupCount)
+            if (index < App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
                     MusicItems.Add(new MusicItem
@@ -96,7 +96,8 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
                 });
         }
 
-        currentItemGroupIndex = musicItemGroupCount;
+        currentItemGroupIndex =
+            App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount;
     }
 
     public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
@@ -106,8 +107,12 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             var offset = scrollViewer.VerticalOffset;
 
             var height = scrollViewer.ScrollableHeight;
-            if (height - offset < loadOffset && currentItemGroupIndex < playListObject.MusicsCount - 1)
+            if (height - offset <
+                App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount &&
+                currentItemGroupIndex < playListObject.MusicsCount - 1)
+            {
                 await LoadMusicItemsByGroup();
+            }
         }
     }
 
@@ -116,7 +121,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     /// </summary>
     private async Task LoadMusicItemsByGroup()
     {
-        for (var i = 0; i < musicItemGroupCount; i++)
+        for (var i = 0; i < App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount; i++)
         {
             var index = currentItemGroupIndex + i;
             if (index < PlayListObject.MusicsCount)
@@ -130,7 +135,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
                 });
         }
 
-        currentItemGroupIndex += musicItemGroupCount;
+        currentItemGroupIndex += App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount;
     }
 
 

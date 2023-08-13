@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using Windows.Win32.Foundation;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Controls;

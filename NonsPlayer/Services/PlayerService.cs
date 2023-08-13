@@ -8,14 +8,10 @@ using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Services;
 
-public class PlayerService
+public partial class PlayerService
 {
     private PlayerService()
     {
-        MusicPlayCommand = new RelayCommand(() => { Player.Instance.Play(); });
-        VolumeMuteCommand = new RelayCommand(Mute);
-        NextMusicCommand = new RelayCommand(OnNextMusic);
-        PreviousMusicCommand = new RelayCommand(OnPreviousMusic);
         Player.Instance.PlayStateChangedHandle += OnPlaystateChanged;
         Player.Instance.MusicChangedHandle += OnMusicChanged;
         Player.Instance.PositionChangedHandle += OnPositionChanged;
@@ -23,19 +19,11 @@ public class PlayerService
 
     public static PlayerService Instance { get; } = new();
 
-    public ICommand MusicPlayCommand { get; }
-
-    public ICommand NextMusicCommand { get; }
-
-    public ICommand PreviousMusicCommand { get; }
-
-    public ICommand VolumeMuteCommand { get; }
-
     public void OnPlaystateChanged(bool isPlaying)
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateModel.Instance.IsPlaying = isPlaying; });
     }
-
+    
     public void OnPositionChanged(TimeSpan position)
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
@@ -50,6 +38,10 @@ public class PlayerService
         ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateModel.Instance.CurrentMusic = music; });
     }
 
+    [RelayCommand]
+    public void Play() => Player.Instance.Play();
+
+    [RelayCommand]
     private void Mute()
     {
         if (MusicStateModel.Instance.Volume > 0)
@@ -63,13 +55,9 @@ public class PlayerService
         }
     }
 
-    private void OnPreviousMusic()
-    {
-        PlayQueue.Instance.PlayPrevious(true);
-    }
+    [RelayCommand]
+    private void PreviousMusic() => PlayQueue.Instance.PlayPrevious(true);
 
-    private void OnNextMusic()
-    {
-        PlayQueue.Instance.PlayNext(true);
-    }
+    [RelayCommand]
+    private void NextMusic() => PlayQueue.Instance.PlayNext(true);
 }

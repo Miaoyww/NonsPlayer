@@ -54,7 +54,7 @@
                         <Button Name="Play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
                                 HorizontalAlignment="Center" Background="Transparent" BorderThickness="0,0,0,0"
                                 Padding="0,0,0,0"
-                                Command="{x:Bind ViewModel.PlayerService.MusicPlayCommand}">
+                                Command="{x:Bind ViewModel.PlayerService.PlayCommand}">
                             <FontIcon FontFamily="Segoe Fluent Icons"
                                       Glyph="{x:Bind ViewModel.MusicStateModel.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
                                       FontSize="20" />
@@ -90,7 +90,7 @@
                             Margin="0,0,30,0">
                     <Button Name="VolumeButton" Width="45" Height="45" Margin="5" Background="Transparent"
                             BorderThickness="0,0,0,0"
-                            Command="{x:Bind ViewModel.PlayerService.VolumeMuteCommand}">
+                            Command="{x:Bind ViewModel.PlayerService.MuteCommand}">
                         <FontIcon FontFamily="Segoe Fluent Icons" FontSize="22"
                                   Glyph="{x:Bind ViewModel.MusicStateModel.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
                     </Button>

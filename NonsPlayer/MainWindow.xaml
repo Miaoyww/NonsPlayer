@@ -8,5 +8,6 @@
     MinHeight="780"
     MinWidth="1400"
     PersistenceId="MainWindow"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Activated="MainWindow_OnActivated">
 </windowex:WindowEx>
