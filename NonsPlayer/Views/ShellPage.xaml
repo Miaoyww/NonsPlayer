@@ -44,7 +44,7 @@
                     <Grid Column="1" Name="PageButtons" VerticalAlignment="Center" Margin="10,0,0,0">
                         <StackPanel Orientation="Horizontal" Width="150" HorizontalAlignment="Left">
                             <Button Name="Back" Height="35" Width="35" Margin="10,0,5,0" Padding="0"
-                                    BorderThickness="0"
+                                    BorderThickness="0" Background="Transparent"
                                     Command="{x:Bind ViewModel.GoBackCommand}">
                                 <FontIcon Glyph="&#xE973;" FontSize="24" />
                             </Button>
