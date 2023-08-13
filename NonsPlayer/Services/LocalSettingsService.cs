@@ -73,6 +73,11 @@ public class LocalSettingsService : ILocalSettingsService
         }
     }
 
+    public LocalSettingsOptions GetOptions()
+    {
+        return _options;
+    }
+
     private async Task InitializeAsync()
     {
         if (!_isInitialized)
