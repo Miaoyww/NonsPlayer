@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 

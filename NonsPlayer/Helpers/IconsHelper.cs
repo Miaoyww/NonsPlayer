@@ -1,4 +1,5 @@
 ﻿using Microsoft.UI.Xaml.Data;
+using NonsPlayer.Core.Enums;
 
 namespace NonsPlayer.Helpers;
 

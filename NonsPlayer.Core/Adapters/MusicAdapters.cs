@@ -2,6 +2,7 @@
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Adapters;
 
@@ -26,7 +27,7 @@ public static class MusicAdapters
 
     public static async Task<Music> CreateById(long id)
     {
-        var result = await Apis.Music.Detail(new[] {id}, Nons.Instance);
+        var result = await Apis.Music.Detail(new[] {id}, NonsCore.Instance);
         return CreateFromPlaylistTrack(result["songs"][0] as JObject);
     }
 }

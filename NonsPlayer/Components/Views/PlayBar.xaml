@@ -12,7 +12,7 @@
         <helpers:LikeIconConverter x:Key="LikeIconConverter" />
     </UserControl.Resources>
     <Grid>
-        <Border Name="PlayBar" BorderThickness="0,1,0,0" Padding="0"
+        <Border Name="Body" BorderThickness="0,1,0,0" Padding="0"
                 BorderBrush="#7FB9B9B9"
                 Background="{StaticResource CustomAcrylicBrush}"
                 Margin="0,680,0,0"
@@ -21,13 +21,13 @@
                 <StackPanel Orientation="Horizontal" Width="300" HorizontalAlignment="Left" Margin="20,0,0,0">
                     <StackPanel VerticalAlignment="Center" MaxWidth="190" Margin="0,0,0,5">
                         <TextBlock Name="Name"
-                                   Text="{x:Bind ViewModel.MusicStateViewModel.CurrentMusic.Name, Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.Name, Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20"
                                    Margin="0,0,0,10" FontWeight="Medium"
                                    TextTrimming="CharacterEllipsis" FontFamily="HarmonyOS Sans SC" />
 
                         <TextBlock Name="Artists"
-                                   Text="{x:Bind ViewModel.MusicStateViewModel.CurrentMusic.ArtistsName,Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.ArtistsName,Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15"
                                    FontFamily="HarmonyOS Sans SC" FontWeight="Medium"
                                    TextTrimming="CharacterEllipsis" Foreground="Black" Opacity="0.75" />
@@ -37,7 +37,7 @@
                             Margin="8,0,0,0"
                             Padding="0" Background="Transparent" BorderThickness="0">
                         <FontIcon
-                            Glyph="{x:Bind ViewModel.MusicStateViewModel.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
+                            Glyph="{x:Bind ViewModel.MusicStateModel.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
                             FontSize="20" />
                     </Button>
                 </StackPanel>
@@ -56,7 +56,7 @@
                                 Padding="0,0,0,0"
                                 Command="{x:Bind ViewModel.PlayerService.MusicPlayCommand}">
                             <FontIcon FontFamily="Segoe Fluent Icons"
-                                      Glyph="{x:Bind ViewModel.MusicStateViewModel.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
+                                      Glyph="{x:Bind ViewModel.MusicStateModel.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
                                       FontSize="20" />
                         </Button>
                         <Button Name="NextMusic" Width="35" Height="35" VerticalAlignment="Center"
@@ -69,18 +69,18 @@
                     <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center"
                                 VerticalAlignment="Bottom">
                         <TextBlock Name="CurrentTimeTextBlock"
-                                   Text="{x:Bind ViewModel.MusicStateViewModel.PositionString ,Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.MusicStateModel.PositionString ,Mode=OneWay}"
                                    FontWeight="Black"
                                    FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
                                    Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
                         <Slider Name="CurrentTimeSlider" IsThumbToolTipEnabled="False" Width="340"
-                                Value="{x:Bind ViewModel.MusicStateViewModel.Position, Mode=TwoWay}"
+                                Value="{x:Bind ViewModel.MusicStateModel.Position, Mode=TwoWay}"
                                 ValueChanged="{x:Bind ViewModel.CurrentTimeSlider_OnValueChanged}"
                                 PointerEntered="{x:Bind ViewModel.CurrentTimeSlider_PointerEntered}"
                                 PointerExited="{x:Bind ViewModel.CurrentTimeSlider_PointerExited}"
-                                Maximum="{x:Bind ViewModel.MusicStateViewModel.Duration.TotalSeconds, Mode=OneWay}" />
+                                Maximum="{x:Bind ViewModel.MusicStateModel.Duration.TotalSeconds, Mode=OneWay}" />
                         <TextBlock Name="DurationTime"
-                                   Text="{x:Bind ViewModel.MusicStateViewModel.DurationString, Mode=OneWay}"
+                                   Text="{x:Bind ViewModel.MusicStateModel.DurationString, Mode=OneWay}"
                                    FontWeight="Black" FontFamily="JetBrains Mono"
                                    Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0"
                                    HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
@@ -92,10 +92,10 @@
                             BorderThickness="0,0,0,0"
                             Command="{x:Bind ViewModel.PlayerService.VolumeMuteCommand}">
                         <FontIcon FontFamily="Segoe Fluent Icons" FontSize="22"
-                                  Glyph="{x:Bind ViewModel.MusicStateViewModel.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
+                                  Glyph="{x:Bind ViewModel.MusicStateModel.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
                     </Button>
                     <Slider Name="VolumeSlider" IsThumbToolTipEnabled="False"
-                            Value="{x:Bind ViewModel.MusicStateViewModel.Volume, Mode=TwoWay}" Width="100"
+                            Value="{x:Bind ViewModel.MusicStateModel.Volume, Mode=TwoWay}" Width="100"
                             HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
                     <Button Name="PlayQueue" Command="{x:Bind OpenPlayQueueCommand}"
                             Width="45" Height="45" Margin="5" Background="Transparent"

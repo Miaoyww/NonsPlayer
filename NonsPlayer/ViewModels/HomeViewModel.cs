@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
@@ -22,7 +23,7 @@ public partial class HomeViewModel : ObservableRecipient
 
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
     {
-        var response = await Apis.Playlist.Personalized(Nons.Instance, 20).ConfigureAwait(false);
+        var response = await Apis.Playlist.Personalized(NonsCore.Instance, 20).ConfigureAwait(false);
         if ((int) response["code"] != 200)
             //TODO: 处理此错误
             return;

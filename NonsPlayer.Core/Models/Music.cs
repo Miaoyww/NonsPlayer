@@ -4,6 +4,7 @@ using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Exceptions;
+using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Models;
 
@@ -43,7 +44,7 @@ public class Music : INonsModel
 
     public async Task GetFileInfo()
     {
-        var musicFile = (JObject) (await Apis.Music.Url(Id, MusicQualityLevel.ExHigh, Nons.Instance))["data"][0];
+        var musicFile = (JObject) (await Apis.Music.Url(Id, MusicQualityLevel.ExHigh, NonsCore.Instance))["data"][0];
         Url = musicFile["url"].ToString();
         FileType = musicFile["type"].ToString();
     }

@@ -10,7 +10,7 @@ using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 

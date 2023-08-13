@@ -6,7 +6,6 @@ using Microsoft.UI.Xaml.Media;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Adapters;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 

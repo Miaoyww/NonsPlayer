@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.ViewModels;
-using NonsPlayer.Views.CommonPages;
+using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.Services;

@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Models;
+using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Components.Views;
 
@@ -31,8 +32,8 @@ public sealed partial class PlayBar : UserControl
     [RelayCommand]
     private async void LikeMusic()
     {
-        if (MusicStateViewModel.Instance.CurrentMusic.IsEmpty) return;
-        var code = await FavoritePlaylistService.Instance.Like(MusicStateViewModel.Instance.CurrentMusic.Id);
+        if (MusicStateModel.Instance.CurrentMusic.IsEmpty) return;
+        var code = await FavoritePlaylistService.Instance.Like(MusicStateModel.Instance.CurrentMusic.Id);
         if (code != 200)
         {
             string content;

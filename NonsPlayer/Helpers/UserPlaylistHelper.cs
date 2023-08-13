@@ -1,9 +1,10 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons;
+using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Core.Services;
 
 namespace NonsPlayer.Heplers;
@@ -13,13 +14,13 @@ public partial class UserPlaylistHelper
 {
     public static UserPlaylistHelper Instance { get; } = new();
 
-    public ObservableCollection<PlaylistModel> CreatedPlaylists { get; } = new();
+    public ObservableCollection<Playlist> CreatedPlaylists { get; } = new();
 
-    public ObservableCollection<PlaylistModel> SavedPlaylists { get; } = new();
+    public ObservableCollection<Playlist> SavedPlaylists { get; } = new();
 
     public async void Init()
     {
-        var result = (JArray) (await Apis.User.Playlist(Account.Instance.Uid, Nons.Instance))["playlist"];
+        var result = (JArray) (await Apis.User.Playlist(Account.Instance.Uid, NonsCore.Instance))["playlist"];
         UserPlaylistService.Instance.Init(result);
         foreach (var playlistItem in result)
         {

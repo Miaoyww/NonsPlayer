@@ -57,7 +57,7 @@
                 Name="Cover"
                 Height="200"
                 VerticalAlignment="Bottom"
-                Background="{x:Bind ViewModel.MusicStateViewModel.Cover, Mode=OneWay}"
+                Background="{x:Bind ViewModel.MusicStateModel.Cover, Mode=OneWay}"
                 BorderThickness="0"
                 Margin="0,0,0,90" />
     </Grid>

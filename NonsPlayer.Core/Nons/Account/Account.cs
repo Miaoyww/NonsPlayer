@@ -76,7 +76,7 @@ public class Account
 
     public async void InitAccount()
     {
-        var result = await Apis.User.Account(Nons.Instance);
+        var result = await Apis.User.Account(NonsCore.Instance);
         if (result is null) throw new LoginFailureException("登陆token错误");
 
         Uid = result["profile"]["userId"].ToString();

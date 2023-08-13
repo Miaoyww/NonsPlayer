@@ -6,6 +6,7 @@ using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Helpers;
+using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Models;
 
@@ -27,7 +28,7 @@ public class Playlist : INonsModel
     public async Task LoadAsync(long id)
     {
         Id = id;
-        var playlistDetail = await Apis.Playlist.Detail(Id, Nons.Instance);
+        var playlistDetail = await Apis.Playlist.Detail(Id, NonsCore.Instance);
         playlistDetail = (JObject) playlistDetail["playlist"];
         PlaylistDetail = playlistDetail;
         Name = playlistDetail["name"].ToString();
@@ -58,7 +59,7 @@ public class Playlist : INonsModel
             .GroupBy(x => x.index / 200)
             .Select(x => x.Select(v => v.id).ToArray())
             .ToArray();
-        var musicJObjectTasks = musicTrackIdsGroup.Select(x => Apis.Music.Detail(x, Nons.Instance));
+        var musicJObjectTasks = musicTrackIdsGroup.Select(x => Apis.Music.Detail(x, NonsCore.Instance));
         var (result, elapsed) = await Task.WhenAll(musicJObjectTasks).MeasureExecutionTimeAsync();
         Musics.AddRange(result.Select(item => MusicAdapters.CreateFromMuiscDetail(item["songs"] as JArray)).SelectMany(x => x));
         Debug.WriteLine($"获取歌曲({start}-{end})信息获取完毕 {elapsed.TotalMilliseconds}ms");

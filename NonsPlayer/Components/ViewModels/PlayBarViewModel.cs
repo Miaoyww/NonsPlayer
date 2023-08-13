@@ -8,6 +8,7 @@ using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
 using NonsPlayer.Models;
 using NonsPlayer.Services;
+using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -20,25 +21,25 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public PlayerBarViewModel()
     {
-        MusicStateViewModel.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 100.0).ToString());
+        MusicStateModel.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 100.0).ToString());
         FavoritePlaylistService.Instance.LikeSongsChanged += UpdateLike;
     }
 
     public PlayerService PlayerService => PlayerService.Instance;
-    public MusicStateViewModel MusicStateViewModel => MusicStateViewModel.Instance;
+    public MusicStateModel MusicStateModel => MusicStateModel.Instance;
     
     public void UpdateLike()
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
-            MusicStateViewModel.Instance.CurrentSongLiked =
-                FavoritePlaylistService.Instance.IsLiked(MusicStateViewModel.Instance.CurrentMusic.Id);
+            MusicStateModel.Instance.CurrentSongLiked =
+                FavoritePlaylistService.Instance.IsLiked(MusicStateModel.Instance.CurrentMusic.Id);
         });
     }
 
     public void CurrentTimeSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
-        if (MusicStateViewModel.Instance.OnDrag)
+        if (MusicStateModel.Instance.OnDrag)
         {
             // Player.Instance.Position = TimeSpan.FromSeconds(e.NewValue);
         }
@@ -46,13 +47,13 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public void CurrentTimeSlider_PointerEntered(object sender, RoutedEventArgs e)
     {
-        MusicStateViewModel.Instance.OnDrag = true;
+        MusicStateModel.Instance.OnDrag = true;
         IsDragging = true;
     }
 
     public void CurrentTimeSlider_PointerExited(object sender, RoutedEventArgs e)
     {
-        MusicStateViewModel.Instance.OnDrag = false;
+        MusicStateModel.Instance.OnDrag = false;
         IsDragging = false;
     }
 

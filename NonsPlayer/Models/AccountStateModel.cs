@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 namespace NonsPlayer.ViewModels;
 
 [INotifyPropertyChanged]
-public partial class AccountModel
+public partial class AccountStateModel
 {
     [ObservableProperty] private ImageBrush face;
     [ObservableProperty] private string faceUrl;
@@ -13,7 +13,7 @@ public partial class AccountModel
 
     [ObservableProperty] private string uid;
 
-    public static AccountModel Instance { get; } = new();
+    public static AccountStateModel Instance { get; } = new();
 
     partial void OnFaceUrlChanged(string value)
     {

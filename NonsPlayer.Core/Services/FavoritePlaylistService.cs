@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Nons;
+using NonsPlayer.Core.Nons.Account;
 using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Core.Services;
@@ -35,17 +37,17 @@ public class FavoritePlaylistService
 
     public async Task UpdatePlaylistInfo()
     {
-        if (Account.Account.Instance.IsLoggedIn)
+        if (Account.Instance.IsLoggedIn)
         {
             var likedSongs =
-                (JArray) (await Apis.Music.LikeList(FavoritePlaylistId, Nons.Instance))["ids"];
+                (JArray) (await Apis.Music.LikeList(FavoritePlaylistId, NonsCore.Instance))["ids"];
             LikedSongs = likedSongs.Select(likedSong => likedSong.ToString()).ToList();
         }
     }
 
     public async Task<int> Like(long? id)
     {
-        var result = await Apis.Music.Like(id.ToString(), !IsLiked(id), Nons.Instance);
+        var result = await Apis.Music.Like(id.ToString(), !IsLiked(id), NonsCore.Instance);
         Debug.WriteLine($"喜欢歌曲({id}): {result["code"]}");
         if ((int) result["code"] == 200)
         {

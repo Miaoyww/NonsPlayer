@@ -10,10 +10,10 @@ using NonsPlayer.Core.Contracts.Services;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
+using NonsPlayer.Models;
 using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
-using NonsPlayer.Views.CommonPages;
 using NonsPlayer.Views.Pages;
 
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;

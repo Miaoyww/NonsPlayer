@@ -6,9 +6,9 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Nons.Account;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 using NonsPlayer.Services;
@@ -25,11 +25,11 @@ public partial class ShellViewModel : ObservableRecipient
         NavigationService = navigationService;
         ServiceHelper.NavigationService = navigationService;
         NavigationService.Navigated += OnNavigated;
-        Services.AccountService.Instance.UpdateInfo();
+        AccountService.Instance.UpdateInfo();
         Account.Instance.LoginByReg();
     }
 
-    public AccountModel AccountModel => AccountModel.Instance;
+    public AccountStateModel AccountStateModel => AccountStateModel.Instance;
 
     public bool IsBackEnabled
     {

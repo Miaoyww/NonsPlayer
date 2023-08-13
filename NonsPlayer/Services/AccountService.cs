@@ -1,8 +1,9 @@
 ﻿using NonsPlayer.Components.ViewModels;
-using NonsPlayer.Core.Account;
+using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Helpers;
 using NonsPlayer.Heplers;
 using NonsPlayer.Models;
+using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Services;
 
@@ -19,9 +20,9 @@ public class AccountService
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
-            AccountStateViewModel.Instance.Uid = Account.Instance.Uid;
-            AccountStateViewModel.Instance.Name = Account.Instance.Name;
-            AccountStateViewModel.Instance.FaceUrl = Account.Instance.FaceUrl;
+            AccountStateModel.Instance.Uid = Account.Instance.Uid;
+            AccountStateModel.Instance.Name = Account.Instance.Name;
+            AccountStateModel.Instance.FaceUrl = Account.Instance.FaceUrl;
         });
     }
 

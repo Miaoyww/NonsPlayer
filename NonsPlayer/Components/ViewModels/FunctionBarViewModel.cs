@@ -1,19 +1,19 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Heplers;
 using NonsPlayer.Models;
+using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Components.ViewModels;
 
 [INotifyPropertyChanged]
 public partial class FunctionBarViewModel
 {
-    public MusicStateViewModel MusicStateViewModel => MusicStateViewModel.Instance;
+    public MusicStateModel MusicStateModel => MusicStateModel.Instance;
     public ObservableCollection<Playlist> CreatedPlaylists => UserPlaylistHelper.Instance.CreatedPlaylists;
     public ObservableCollection<Playlist> SavedPlaylists => UserPlaylistHelper.Instance.SavedPlaylists;
 

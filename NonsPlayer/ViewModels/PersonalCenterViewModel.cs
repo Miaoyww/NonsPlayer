@@ -2,7 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Core.Account;
+using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Models;
 
 namespace NonsPlayer.ViewModels;
@@ -14,7 +14,7 @@ public class PersonalCenterViewModel : ObservableRecipient, INotifyPropertyChang
         NavigationService = navigationService;
     }
 
-    public AccountModel AccountModel => AccountModel.Instance;
+    public AccountStateModel AccountStateModel => AccountStateModel.Instance;
 
     public string Greeting
     {

@@ -5,11 +5,11 @@ using RestSharp;
 
 namespace NonsPlayer.Core.Nons;
 
-public class Nons
+public class NonsCore
 {
     private readonly RestClient _client = new("https://music.163.com");
 
-    public static Nons Instance { get; } = new();
+    public static NonsCore Instance { get; } = new();
 
     public async Task<IRestResponse> RequestRestResponse(string url, IDictionary<string, object>? parameters = null)
     {

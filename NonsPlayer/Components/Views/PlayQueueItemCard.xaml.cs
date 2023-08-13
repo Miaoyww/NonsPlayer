@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 

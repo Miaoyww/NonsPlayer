@@ -1,9 +1,10 @@
 ﻿using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
+using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Services;
 
@@ -32,33 +33,33 @@ public class PlayerService
 
     public void OnPlaystateChanged(bool isPlaying)
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateViewModel.Instance.IsPlaying = isPlaying; });
+        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateModel.Instance.IsPlaying = isPlaying; });
     }
 
     public void OnPositionChanged(TimeSpan position)
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
-            if (MusicStateViewModel.Instance.OnDrag) return;
-            MusicStateViewModel.Instance.Position = position.TotalSeconds;
+            if (MusicStateModel.Instance.OnDrag) return;
+            MusicStateModel.Instance.Position = position.TotalSeconds;
         });
     }
 
     public void OnMusicChanged(Music music)
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateViewModel.Instance.CurrentMusic = music; });
+        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateModel.Instance.CurrentMusic = music; });
     }
 
     private void Mute()
     {
-        if (MusicStateViewModel.Instance.Volume > 0)
+        if (MusicStateModel.Instance.Volume > 0)
         {
-            MusicStateViewModel.Instance.PreviousVolume = MusicStateViewModel.Instance.Volume;
-            MusicStateViewModel.Instance.Volume = 0;
+            MusicStateModel.Instance.PreviousVolume = MusicStateModel.Instance.Volume;
+            MusicStateModel.Instance.Volume = 0;
         }
         else
         {
-            MusicStateViewModel.Instance.Volume = MusicStateViewModel.Instance.PreviousVolume;
+            MusicStateModel.Instance.Volume = MusicStateModel.Instance.PreviousVolume;
         }
     }
 

@@ -5,8 +5,10 @@ using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Adapters;
 using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
@@ -73,7 +75,7 @@ public class SearchViewModel : ObservableRecipient, INavigationAware
 
     public async Task Search(string key)
     {
-        var result = await Apis.Search.Default(key, 1, 1, Nons.Instance);
+        var result = await Apis.Search.Default(key, 1, 1, NonsCore.Instance);
         SearchHelper.Instance.BestMusicResult =
             await MusicAdapters.CreateById(result["result"]["songs"][0]["id"].ToObject<long>());
     }

@@ -2,8 +2,9 @@
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Models;
+using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -51,9 +52,9 @@ public class LyricBoxViewModel : INotifyPropertyChanged
     {
         try
         {
-            if (MusicStateViewModel.Instance.CurrentMusic.Lyrics == null) return;
+            if (MusicStateModel.Instance.CurrentMusic.Lyrics == null) return;
 
-            var lyrics = MusicStateViewModel.Instance.CurrentMusic.Lyrics.Lrc;
+            var lyrics = MusicStateModel.Instance.CurrentMusic.Lyrics.Lrc;
             var left = 0;
             var right = lyrics.Count - 1;
             int middle;

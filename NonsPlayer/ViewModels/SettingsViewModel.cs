@@ -6,7 +6,6 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Core.Account;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;

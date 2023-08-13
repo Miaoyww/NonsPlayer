@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Adapters;
 
@@ -8,7 +9,7 @@ public static class ArtistAdapters
 {
     public static async Task<Artist> CreateById(long id)
     {
-        var result = await Apis.Artist.Detail(id, Nons.Instance);
+        var result = await Apis.Artist.Detail(id, NonsCore.Instance);
         return new Artist
         {
             Id = result["data"]["artist"]["id"].ToObject<long>(),

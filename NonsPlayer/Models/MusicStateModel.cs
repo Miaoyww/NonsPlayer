@@ -3,14 +3,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Player;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
 [INotifyPropertyChanged]
-public partial class MusicModel
+public partial class MusicStateModel
 {
     [ObservableProperty] private Brush cover;
     [ObservableProperty] private Music currentMusic;
@@ -25,14 +25,14 @@ public partial class MusicModel
     [ObservableProperty] private double previousVolume;
     [ObservableProperty] private double volume;
 
-    private MusicModel()
+    private MusicStateModel()
     {
         Player.Instance.Position = TimeSpan.Zero;
         CurrentMusic = Music.CreateEmpty();
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
     }
 
-    public static MusicModel Instance { get; } = new();
+    public static MusicStateModel Instance { get; } = new();
 
     public double Position
     {

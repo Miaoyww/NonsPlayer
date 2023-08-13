@@ -3,6 +3,8 @@ using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Adapters;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons;
+using NonsPlayer.Core.Nons.Account;
 using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Core.Services;
@@ -43,7 +45,7 @@ public class UserPlaylistService
 
     public async Task Like(long id)
     {
-        var result = await Apis.Playlist.Subscribe(id, !IsLiked(id), Nons.Instance);
+        var result = await Apis.Playlist.Subscribe(id, !IsLiked(id), NonsCore.Instance);
         if (result["code"].ToObject<int>() == 200)
         {
             await UpdatePlaylists();
@@ -55,7 +57,7 @@ public class UserPlaylistService
     {
         try
         {
-            var result = (JArray) (await Apis.User.Playlist(Account.Account.Instance.Uid, Nons.Instance))["playlist"];
+            var result = (JArray) (await Apis.User.Playlist(Account.Instance.Uid, NonsCore.Instance))["playlist"];
             CreatedPlaylists.Clear();
             SavedPlaylists.Clear();
             UserPlaylistIds.Clear();
@@ -75,7 +77,7 @@ public class UserPlaylistService
     private void ParseInfo(JObject item)
     {
         var playlist = PlaylistAdaptes.CreateFromUserPlaylist(item);
-        if (playlist.Creator.Equals(Account.Account.Instance.Name))
+        if (playlist.Creator.Equals(Account.Instance.Name))
         {
             CreatedPlaylists.Add(playlist);
         }

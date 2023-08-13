@@ -3,8 +3,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Nons;
+using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Helpers;
 using QRCoder;
 
@@ -25,7 +26,7 @@ public partial class LoginViewModel : ObservableObject
 
     public async Task GetQrCode()
     {
-        if (key == null) key = (await Apis.Login.QRCode.Key(getCurrentTimestamp(), Nons.Instance))["unikey"].ToString();
+        if (key == null) key = (await Apis.Login.QRCode.Key(getCurrentTimestamp(), NonsCore.Instance))["unikey"].ToString();
 
         var qrCodeImage =
             new QRCode(new QRCodeGenerator().CreateQrCode(
@@ -49,7 +50,7 @@ public partial class LoginViewModel : ObservableObject
         {
             while (true)
             {
-                var result = await Apis.Login.QRCode.Check(key, Nons.Instance);
+                var result = await Apis.Login.QRCode.Check(key, NonsCore.Instance);
                 var code = int.Parse(JObject.Parse(result.Content)["code"].ToString());
                 if (code == 800)
                 {
