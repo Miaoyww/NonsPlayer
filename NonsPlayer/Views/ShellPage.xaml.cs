@@ -117,5 +117,4 @@ public sealed partial class ShellPage : Page
     {
         AnimatedIcon.SetState((UIElement) sender, "Normal");
     }
-    
 }

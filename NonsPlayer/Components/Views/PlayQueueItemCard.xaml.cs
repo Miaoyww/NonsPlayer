@@ -18,6 +18,7 @@ public sealed partial class PlayQueueItemCard : UserControl
 {
     [ObservableProperty] private Brush fontBrush = (Brush) Application.Current.Resources["TextFillColorPrimaryBrush"];
     [ObservableProperty] private string artists;
+    [ObservableProperty] private Music music;
     [ObservableProperty] private Tuple<string, string> coverUrl;
     [ObservableProperty] private ImageBrush cover;
     [ObservableProperty] private bool liked; //TODO: Implement this
@@ -51,18 +52,19 @@ public sealed partial class PlayQueueItemCard : UserControl
 
     private void FontBrushChanger()
     {
-        if (PlayQueue.Instance.CurrentMusic.Id == Id)
-        {
-            FontBrush = (Brush) Application.Current.Resources["AccentFillColorSecondaryBrush"];
-        }
-        else
-        {
-            FontBrush = (Brush) Application.Current.Resources["TextFillColorPrimaryBrush"];
-        }
+        // TODO: 这b玩意BUG怎么这么多?
+        // if (PlayQueue.Instance.CurrentMusic.Id == Id)
+        // {
+        //     FontBrush = (Brush) Application.Current.Resources["AccentFillColorSecondaryBrush"];
+        // }
+        // else
+        // {
+        //     FontBrush = (Brush) Application.Current.Resources["TextFillColorPrimaryBrush"];
+        // }
     }
 
     public void Play(object sender, PointerRoutedEventArgs e)
     {
-        App.GetService<PlayQueueBarViewModel>().Play(Id);
+        PlayQueue.Instance.Play(Music);
     }
 }

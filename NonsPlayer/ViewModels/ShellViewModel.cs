@@ -107,7 +107,6 @@ public partial class ShellViewModel : ObservableRecipient
 public partial class PlayQueueBarViewModel
 {
     [ObservableProperty] private int count;
-    public Dictionary<long, Music> MusicDictionary = new();
     public ObservableCollection<MusicItem> MusicItems = new();
 
     public PlayQueueBarViewModel()
@@ -124,11 +123,9 @@ public partial class PlayQueueBarViewModel
 
     public void OnPlaylistAdded()
     {
-        MusicDictionary.Clear();
         MusicItems.Clear();
         PlayQueue.Instance.MusicList.ForEach(item =>
         {
-            MusicDictionary.Add(item.Id, item);
             MusicItems.Add(new MusicItem
             {
                 Music = item
@@ -142,11 +139,6 @@ public partial class PlayQueueBarViewModel
         {
             Music = value
         });
-    }
-
-    public void Play(long id)
-    {
-        PlayQueue.Instance.Play(MusicDictionary[id]);
     }
 
     public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)

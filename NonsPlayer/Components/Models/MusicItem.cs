@@ -6,7 +6,7 @@ public class MusicItem
 {
     public Music Music;
     public string Index;
-    public string Cover => Music.Album.SmallAvatarUrl;
+    public Tuple<string, string> Cover => Tuple.Create(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl);
     public string Name => Music.Name;
     public string Artists => Music.ArtistsName;
     public string Time => Music.TotalTimeString;

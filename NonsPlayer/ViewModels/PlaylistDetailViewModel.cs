@@ -118,7 +118,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     {
         for (var i = 0; i < musicItemGroupCount; i++)
         {
-            var index = currentItemGroupIndex + i + 1;
+            var index = currentItemGroupIndex + i;
             if (index < PlayListObject.MusicsCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
@@ -162,13 +162,12 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         var listView = sender as ListView;
         if (listView.SelectedItem is MusicItem item)
         {
+            PlayQueue.Instance.Play(item.Music);
             if (PlayQueue.Instance.Count == 0)
             {
                 //TODO: 设置是否将歌曲添加到播放队列
                 PlayAll();
             }
-
-            // PlayQueue.Instance.Play(item.Music);
         }
     }
 }
