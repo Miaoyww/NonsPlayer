@@ -1,5 +1,7 @@
-﻿using NAudio.Wave;
+﻿using System.Timers;
+using NAudio.Wave;
 using NonsPlayer.Core.Models;
+using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Core.Nons.Player;
 
@@ -57,12 +59,15 @@ public class PlayQueue
 
     public void OnMusicStopped(object sender, StoppedEventArgs e)
     {
-        if (PlayMode == PlayModeEnum.ListLoop && Player.Instance.IsInitializingNewMusic == false)
+        if (PlayMode == PlayModeEnum.ListLoop)
+        {
             if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic && PlayMode != PlayModeEnum.SingleLoop)
             {
                 if (_isUserPressed) return;
+                if (CurrentMusic.TotalTime.TotalSeconds - Player.Instance.Position.TotalSeconds > 1) return;
                 PlayNext();
             }
+        }
     }
 
     // 当CurrentMusic改变时，将触发PlayerService的NewPlay方法
@@ -89,7 +94,7 @@ public class PlayQueue
     {
         Clear();
         MusicList.AddRange(musicList);
-        Play(musicList[0], true);
+        Play(musicList[0]);
         PlaylistAdded();
     }
 
@@ -123,12 +128,12 @@ public class PlayQueue
         MusicList.Clear();
         _randomMusicList.Clear();
     }
-
-    public void Play(Music music, bool rePlay = false)
+    
+    public void Play(Music music)
     {
         if (music == CurrentMusic)
         {
-            Player.Instance.Play(rePlay);
+            Player.Instance.Play(true);
             return;
         }
 

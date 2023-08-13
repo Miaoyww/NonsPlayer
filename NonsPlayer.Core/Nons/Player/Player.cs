@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics;
+using System.Text.Json.Serialization;
 using System.Timers;
 using NAudio.Utils;
 using NAudio.Wave;
@@ -108,7 +109,6 @@ public class Player
     public async void NewPlay(Music music2play)
     {
         if (OutputDevice == null) OutputDevice = new WaveOutEvent();
-
         await Task.WhenAll(music2play.GetLyric(), music2play.GetFileInfo());
         MusicChangedHandle(music2play);
         CurrentMusic = music2play;
@@ -124,7 +124,6 @@ public class Player
         }
 
         OutputDevice.Play();
-        //TODO: 这里依旧会有问题，当快速切换歌曲时，它就会播放下一首歌而不是当前所选的歌曲
         await Task.Run(async () =>
         {
             await Task.Delay(1000);
@@ -144,8 +143,13 @@ public class Player
             if (rePlay)
             {
                 Position = TimeSpan.Zero;
+                OutputDevice.Play();
+                PlayStateChangedHandle(true);
+                return;
             }
-            if (OutputDevice.PlaybackState == PlaybackState.Paused)
+
+            if (OutputDevice.PlaybackState == PlaybackState.Paused ||
+                OutputDevice.PlaybackState == PlaybackState.Stopped)
             {
                 OutputDevice.Play();
                 PlayStateChangedHandle(true);
@@ -156,8 +160,9 @@ public class Player
                 PlayStateChangedHandle(false);
             }
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException e)
         {
+            Debug.WriteLine(e);
         }
     }
 }
