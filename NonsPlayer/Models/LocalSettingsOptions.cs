@@ -1,4 +1,4 @@
-﻿namespace NonsPlayer.Heplers;
+﻿namespace NonsPlayer.Models;
 
 public class LocalSettingsOptions
 {

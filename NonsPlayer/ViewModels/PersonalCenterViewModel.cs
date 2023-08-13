@@ -14,7 +14,7 @@ public class PersonalCenterViewModel : ObservableRecipient, INotifyPropertyChang
         NavigationService = navigationService;
     }
 
-    public AccountState AccountState => AccountState.Instance;
+    public AccountModel AccountModel => AccountModel.Instance;
 
     public string Greeting
     {

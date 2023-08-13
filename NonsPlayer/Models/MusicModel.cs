@@ -7,10 +7,10 @@ using NonsPlayer.Core.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 
-namespace NonsPlayer.Models;
+namespace NonsPlayer.ViewModels;
 
 [INotifyPropertyChanged]
-public partial class MusicState
+public partial class MusicModel
 {
     [ObservableProperty] private Brush cover;
     [ObservableProperty] private Music currentMusic;
@@ -25,14 +25,14 @@ public partial class MusicState
     [ObservableProperty] private double previousVolume;
     [ObservableProperty] private double volume;
 
-    private MusicState()
+    private MusicModel()
     {
         Player.Instance.Position = TimeSpan.Zero;
         CurrentMusic = Music.CreateEmpty();
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
     }
 
-    public static MusicState Instance { get; } = new();
+    public static MusicModel Instance { get; } = new();
 
     public double Position
     {

@@ -51,9 +51,9 @@ public class LyricBoxViewModel : INotifyPropertyChanged
     {
         try
         {
-            if (MusicState.Instance.CurrentMusic.Lyrics == null) return;
+            if (MusicStateViewModel.Instance.CurrentMusic.Lyrics == null) return;
 
-            var lyrics = MusicState.Instance.CurrentMusic.Lyrics.Lrc;
+            var lyrics = MusicStateViewModel.Instance.CurrentMusic.Lyrics.Lrc;
             var left = 0;
             var right = lyrics.Count - 1;
             int middle;

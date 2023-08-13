@@ -5,7 +5,7 @@ using NAudio.Wave;
 using NonsPlayer.Core.Models;
 using Timer = System.Timers.Timer;
 
-namespace NonsPlayer.Core.Player;
+namespace NonsPlayer.Core.Nons.Player;
 
 public class Player
 {

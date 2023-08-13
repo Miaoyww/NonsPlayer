@@ -2,10 +2,10 @@
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 
-namespace NonsPlayer.Models;
+namespace NonsPlayer.ViewModels;
 
 [INotifyPropertyChanged]
-public partial class AccountState
+public partial class AccountModel
 {
     [ObservableProperty] private ImageBrush face;
     [ObservableProperty] private string faceUrl;
@@ -13,7 +13,7 @@ public partial class AccountState
 
     [ObservableProperty] private string uid;
 
-    public static AccountState Instance { get; } = new();
+    public static AccountModel Instance { get; } = new();
 
     partial void OnFaceUrlChanged(string value)
     {

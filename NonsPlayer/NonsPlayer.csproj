@@ -66,7 +66,7 @@
         <Page Update="Components\Views\BestMusicCard.xaml">
           <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         </Page>
-        <Page Update="Components\Views\PlayerBar.xaml">
+        <Page Update="Components\Views\PlayBar.xaml">
             <Generator>MSBuild:Compile</Generator>
         </Page>
         <Page Update="Components\Views\LyricBox.xaml">
@@ -148,10 +148,6 @@
         <Content Update="Assets\WindowIcon.ico">
             <CopyToOutputDirectory>Never</CopyToOutputDirectory>
         </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Folder Include="Views\CommonPages\" />
     </ItemGroup>
 
     <ItemGroup>

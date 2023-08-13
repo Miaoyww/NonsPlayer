@@ -12,23 +12,23 @@
         <ScrollViewer>
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">
                 <Grid Margin="{StaticResource PageCommonMargin}">
-                    <TextBlock Text="For you" FontWeight="Black" FontSize="30" FontFamily="JetBrains Mono" />
+                    <TextBlock Text="For you" FontWeight="Black" FontSize="30" Style="{StaticResource CommonTextStyle}" />
                     <Border x:Name="b_dailyMusic" PointerEntered="{x:Bind CardShow}" PointerExited="{x:Bind CardHide}"
                             HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500"
                             Height="200" Margin="0,70,0,0">
                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="每日单曲推荐"
-                                   Foreground="Black" FontWeight="Bold" FontSize="30" FontFamily="JetBrains Mono" />
+                                   Foreground="Black" FontWeight="Bold" FontSize="30" Style="{StaticResource CommonTextStyle}" />
                     </Border>
                 </Grid>
                 <Grid Margin="0,60,0,80">
-                    <TextBlock Text="推荐歌单" FontWeight="Black" FontSize="25" FontFamily="JetBrains Mono" />
+                    <TextBlock Text="推荐歌单" FontWeight="Black" FontSize="25" Style="{StaticResource CommonTextStyle}" />
                     <GridView Name="RecommendPlaylistView"
                               ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
                               SelectionMode="None"
                               HorizontalAlignment="Left" Margin="0,40,0,0">
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="models:Playlist">
-                                <views:PlaylistCard PlaylistItem="{x:Bind This}" />
+                                <views:RecommendedPlaylistCard PlaylistItem="{x:Bind This}" />
                             </DataTemplate>
                         </GridView.ItemTemplate>
                     </GridView>

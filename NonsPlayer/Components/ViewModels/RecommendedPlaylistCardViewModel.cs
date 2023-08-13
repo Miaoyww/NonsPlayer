@@ -7,7 +7,7 @@ using NonsPlayer.Helpers;
 namespace NonsPlayer.Components.ViewModels;
 
 [INotifyPropertyChanged]
-public partial class PlaylistCardViewModel
+public partial class RecommendedPlaylistCardViewModel
 {
     [ObservableProperty] private ImageBrush cover;
     [ObservableProperty] private string id;

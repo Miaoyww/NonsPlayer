@@ -1,5 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using AccountState = NonsPlayer.Models.AccountState;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Controls;
@@ -11,6 +10,7 @@ using NonsPlayer.Core.Account;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Player;
 using NonsPlayer.Helpers;
+using NonsPlayer.Models;
 using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
@@ -25,11 +25,11 @@ public partial class ShellViewModel : ObservableRecipient
         NavigationService = navigationService;
         ServiceHelper.NavigationService = navigationService;
         NavigationService.Navigated += OnNavigated;
-        AccountService.Instance.UpdateInfo();
+        Services.AccountService.Instance.UpdateInfo();
         Account.Instance.LoginByReg();
     }
 
-    public AccountState AccountState => AccountState.Instance;
+    public AccountModel AccountModel => AccountModel.Instance;
 
     public bool IsBackEnabled
     {

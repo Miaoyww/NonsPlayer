@@ -7,7 +7,7 @@ using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels;
 
-public partial class MusicItemCardViewModel : ObservableObject
+public partial class PlaylistMusicItemCardViewModel : ObservableObject
 {
     [ObservableProperty] private string album;
     [ObservableProperty] private string artists;

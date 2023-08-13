@@ -66,8 +66,8 @@ public partial class App : Application
                 services.AddTransient<SearchPage>();
 
                 // Components Views and ViewModels
-                services.AddTransient<MusicItemCardViewModel>();
-                services.AddTransient<PlaylistCardViewModel>();
+                services.AddTransient<PlaylistMusicItemCardViewModel>();
+                services.AddTransient<RecommendedPlaylistCardViewModel>();
                 services.AddTransient<UserPlaylistCardViewModel>();
                 services.AddTransient<LyricBoxViewModel>();
                 services.AddTransient<PlayerBarViewModel>();

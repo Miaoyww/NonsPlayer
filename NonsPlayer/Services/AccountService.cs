@@ -19,9 +19,9 @@ public class AccountService
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
-            AccountState.Instance.Uid = Account.Instance.Uid;
-            AccountState.Instance.Name = Account.Instance.Name;
-            AccountState.Instance.FaceUrl = Account.Instance.FaceUrl;
+            AccountStateViewModel.Instance.Uid = Account.Instance.Uid;
+            AccountStateViewModel.Instance.Name = Account.Instance.Name;
+            AccountStateViewModel.Instance.FaceUrl = Account.Instance.FaceUrl;
         });
     }
 

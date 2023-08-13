@@ -25,12 +25,5 @@ namespace NonsPlayer.Helpers
         }
     }
 
-    public enum SearchDataType
-    {
-        Unknown,
-        Music,
-        Artist,
-        Playlist,
-        Album
-    }
+
 }

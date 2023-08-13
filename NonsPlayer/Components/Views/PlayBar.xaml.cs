@@ -1,50 +1,38 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.ViewModels;
-using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Models;
 
 namespace NonsPlayer.Components.Views;
 
-[INotifyPropertyChanged]
-public sealed partial class MusicItemCard : UserControl
+public sealed partial class PlayBar : UserControl
 {
-    [ObservableProperty] private string index;
+    public ICommand OpenPlayQueueCommand;
 
-    [ObservableProperty] private bool isCoverInit;
-
-    [ObservableProperty] private Music music;
-
-
-    public MusicItemCard()
+    public PlayBar()
     {
-        ViewModel = App.GetService<MusicItemCardViewModel>();
+        ViewModel = App.GetService<PlayerBarViewModel>();
         InitializeComponent();
+        OpenPlayQueueCommand = new RelayCommand(OpenPlayQueueBar);
     }
 
-    public MusicItemCardViewModel ViewModel { get; }
+    public PlayerBarViewModel ViewModel { get; }
 
-    partial void OnMusicChanged(Music music)
-    {
-        ViewModel.Init(music);
-    }
+    public event EventHandler OnPlayQueueBarOpenHandler;
 
-    partial void OnIsCoverInitChanged(bool isCoverInit)
+    public void OpenPlayQueueBar()
     {
-        ViewModel.IsInitCover = isCoverInit;
-    }
-
-    partial void OnIndexChanged(string index)
-    {
-        ViewModel.Index = index;
+        OnPlayQueueBarOpenHandler?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]
-    private async void Like()
+    private async void LikeMusic()
     {
-        var code = await FavoritePlaylistService.Instance.Like(Music.Id);
+        if (MusicStateViewModel.Instance.CurrentMusic.IsEmpty) return;
+        var code = await FavoritePlaylistService.Instance.Like(MusicStateViewModel.Instance.CurrentMusic.Id);
         if (code != 200)
         {
             string content;

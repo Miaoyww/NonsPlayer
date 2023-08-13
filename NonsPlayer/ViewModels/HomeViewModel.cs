@@ -13,7 +13,7 @@ public partial class HomeViewModel : ObservableRecipient
 {
     public INavigationService NavigationService;
 
-    [ObservableProperty] public ObservableCollection<Playlist>? recommendedPlaylist = new();
+    [ObservableProperty] private ObservableCollection<Playlist>? recommendedPlaylist = new();
 
     public HomeViewModel(INavigationService navigationService)
     {

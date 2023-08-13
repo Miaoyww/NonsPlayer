@@ -1,7 +1,7 @@
 ﻿using NAudio.Wave;
 using NonsPlayer.Core.Models;
 
-namespace NonsPlayer.Core.Player;
+namespace NonsPlayer.Core.Nons.Player;
 
 public class PlayQueue
 {

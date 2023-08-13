@@ -10,7 +10,7 @@ using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
 
-namespace NonsPlayer.Core.Account;
+namespace NonsPlayer.Core.Nons.Account;
 
 public class Account
 {

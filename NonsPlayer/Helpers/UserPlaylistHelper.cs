@@ -13,9 +13,9 @@ public partial class UserPlaylistHelper
 {
     public static UserPlaylistHelper Instance { get; } = new();
 
-    public ObservableCollection<Playlist> CreatedPlaylists { get; } = new();
+    public ObservableCollection<PlaylistModel> CreatedPlaylists { get; } = new();
 
-    public ObservableCollection<Playlist> SavedPlaylists { get; } = new();
+    public ObservableCollection<PlaylistModel> SavedPlaylists { get; } = new();
 
     public async void Init()
     {

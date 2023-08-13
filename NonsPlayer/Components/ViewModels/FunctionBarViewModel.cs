@@ -13,7 +13,7 @@ namespace NonsPlayer.Components.ViewModels;
 [INotifyPropertyChanged]
 public partial class FunctionBarViewModel
 {
-    public MusicState MusicState => MusicState.Instance;
+    public MusicStateViewModel MusicStateViewModel => MusicStateViewModel.Instance;
     public ObservableCollection<Playlist> CreatedPlaylists => UserPlaylistHelper.Instance.CreatedPlaylists;
     public ObservableCollection<Playlist> SavedPlaylists => UserPlaylistHelper.Instance.SavedPlaylists;
 

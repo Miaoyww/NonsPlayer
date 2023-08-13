@@ -3,7 +3,7 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
-namespace NonsPlayer.Core.Api;
+namespace NonsPlayer.Core.Nons;
 
 public class Nons
 {

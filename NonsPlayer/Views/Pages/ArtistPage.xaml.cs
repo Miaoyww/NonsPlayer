@@ -2,7 +2,7 @@
 
 using NonsPlayer.ViewModels;
 
-namespace NonsPlayer.Views.CommonPages;
+namespace NonsPlayer.Views;
 
 public sealed partial class ArtistPage : Page
 {

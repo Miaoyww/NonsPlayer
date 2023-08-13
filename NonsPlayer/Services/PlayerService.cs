@@ -32,33 +32,33 @@ public class PlayerService
 
     public void OnPlaystateChanged(bool isPlaying)
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicState.Instance.IsPlaying = isPlaying; });
+        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateViewModel.Instance.IsPlaying = isPlaying; });
     }
 
     public void OnPositionChanged(TimeSpan position)
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
-            if (MusicState.Instance.OnDrag) return;
-            MusicState.Instance.Position = position.TotalSeconds;
+            if (MusicStateViewModel.Instance.OnDrag) return;
+            MusicStateViewModel.Instance.Position = position.TotalSeconds;
         });
     }
 
     public void OnMusicChanged(Music music)
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicState.Instance.CurrentMusic = music; });
+        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateViewModel.Instance.CurrentMusic = music; });
     }
 
     private void Mute()
     {
-        if (MusicState.Instance.Volume > 0)
+        if (MusicStateViewModel.Instance.Volume > 0)
         {
-            MusicState.Instance.PreviousVolume = MusicState.Instance.Volume;
-            MusicState.Instance.Volume = 0;
+            MusicStateViewModel.Instance.PreviousVolume = MusicStateViewModel.Instance.Volume;
+            MusicStateViewModel.Instance.Volume = 0;
         }
         else
         {
-            MusicState.Instance.Volume = MusicState.Instance.PreviousVolume;
+            MusicStateViewModel.Instance.Volume = MusicStateViewModel.Instance.PreviousVolume;
         }
     }
 

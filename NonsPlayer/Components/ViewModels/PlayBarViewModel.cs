@@ -20,25 +20,25 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public PlayerBarViewModel()
     {
-        MusicState.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 100.0).ToString());
+        MusicStateViewModel.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 100.0).ToString());
         FavoritePlaylistService.Instance.LikeSongsChanged += UpdateLike;
     }
 
     public PlayerService PlayerService => PlayerService.Instance;
-    public MusicState MusicState => MusicState.Instance;
+    public MusicStateViewModel MusicStateViewModel => MusicStateViewModel.Instance;
     
     public void UpdateLike()
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
-            MusicState.Instance.CurrentSongLiked =
-                FavoritePlaylistService.Instance.IsLiked(MusicState.Instance.CurrentMusic.Id);
+            MusicStateViewModel.Instance.CurrentSongLiked =
+                FavoritePlaylistService.Instance.IsLiked(MusicStateViewModel.Instance.CurrentMusic.Id);
         });
     }
 
     public void CurrentTimeSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
-        if (MusicState.Instance.OnDrag)
+        if (MusicStateViewModel.Instance.OnDrag)
         {
             // Player.Instance.Position = TimeSpan.FromSeconds(e.NewValue);
         }
@@ -46,13 +46,13 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public void CurrentTimeSlider_PointerEntered(object sender, RoutedEventArgs e)
     {
-        MusicState.Instance.OnDrag = true;
+        MusicStateViewModel.Instance.OnDrag = true;
         IsDragging = true;
     }
 
     public void CurrentTimeSlider_PointerExited(object sender, RoutedEventArgs e)
     {
-        MusicState.Instance.OnDrag = false;
+        MusicStateViewModel.Instance.OnDrag = false;
         IsDragging = false;
     }
 
