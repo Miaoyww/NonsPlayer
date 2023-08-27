@@ -6,11 +6,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
     <Grid Margin="{StaticResource PageCommonMargin}">
-        <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
-            <TextBlock Text="设置页面还在开发当中!" FontSize="24" FontWeight="Black" Margin="0,0,0,80" />
-            <Button Margin="0,30,0,0" Width="200" Height="50" Background="White" Content="测试按钮"
-                    Command="{x:Bind TestCommand}" />
-        </Grid>
         <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,20">
             <StackPanel>
                 <Grid VerticalAlignment="Center" Height="72" Width="1052" HorizontalAlignment="Center">
@@ -19,7 +14,8 @@
                                    FontSize="16" FontFamily="Humnst777 BlkCn BT" />
                         <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" />
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
                             <HyperlinkButton x:Uid="SettingsPage_GithubLink" />
                             <HyperlinkButton x:Uid="SettingsPage_BilibiliLink" />
                         </StackPanel>

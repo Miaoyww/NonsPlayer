@@ -44,7 +44,10 @@ public partial class LyricViewModel : ObservableRecipient
             while (left <= right)
             {
                 middle = (left + right) / 2;
-
+                if (middle == lyrics.Count - 1)
+                {
+                    return;
+                }
                 if (time >= lyrics[middle].Time && time < lyrics[middle + 1].Time)
                 {
                     // 匹配成功，更新歌词显示

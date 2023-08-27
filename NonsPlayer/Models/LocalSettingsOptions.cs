@@ -1,4 +1,6 @@
-﻿namespace NonsPlayer.Models;
+﻿using Microsoft.UI.Xaml.Media;
+
+namespace NonsPlayer.Models;
 
 public class LocalSettingsOptions
 {
@@ -41,5 +43,13 @@ public class LocalSettingsOptions
     /// </summary>
     public double PlaylistLoadOffset = 500;
     
+    /// <summary>
+    /// 是否显示翻译歌词
+    /// </summary>
+    public bool IsShowTranLyric = true;
     
+    /// <summary>
+    /// 歌词字体
+    /// </summary>
+    public FontFamily LyricFontFamily;
 }
