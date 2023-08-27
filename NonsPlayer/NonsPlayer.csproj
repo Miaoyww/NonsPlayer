@@ -74,9 +74,6 @@
         <Page Update="Components\Views\PlayBar.xaml">
             <Generator>MSBuild:Compile</Generator>
         </Page>
-        <Page Update="Components\Views\LyricBox.xaml">
-            <Generator>MSBuild:Compile</Generator>
-        </Page>
         <Page Update="Components\Views\UserPlaylistCard.xaml">
             <Generator>MSBuild:Compile</Generator>
         </Page>

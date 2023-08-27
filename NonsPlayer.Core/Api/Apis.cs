@@ -107,14 +107,17 @@ public static class Apis
     {
         public static async Task<JObject> GetLyric(string id, NonsCore NonsCore)
         {
-            var _URL = "https://music.163.com/api/song/lyric?_nmclfl=1";
-            var resBody = $"id={id}&tv=-1&lv=-1&rv=-1&kv=-1";
+            var _URL = "https://interface3.music.163.com/api/song/lyric/v1";
             IDictionary<string, object> pairs = new Dictionary<string, object>
             {
                 {"id", id},
-                {"tv", "-1"},
-                {"lv", "-1"},
-                {"kv", "-1"}
+                {"lv", 0},
+                {"kv", 0},
+                {"tv", 0},
+                {"yv", 0},
+                {"rv", 0},
+                {"ytv",0},
+                {"yrv", 0}
             };
             return await NonsCore.Request(_URL, pairs);
         }

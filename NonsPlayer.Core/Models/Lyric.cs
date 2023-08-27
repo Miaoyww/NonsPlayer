@@ -1,57 +1,94 @@
 ﻿using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
+using NonsPlayer.Core.Helpers;
 
 namespace NonsPlayer.Core.Models;
 
-public class Lyrics
+public class LyricGroup
 {
-    [JsonPropertyName("lyrics")] public List<Lyric>? Lrc;
+    [JsonPropertyName("lyrics")] public List<Lyric> Lyrics;
 
-    public Lyrics(JObject lrc)
+    public LyricGroup(JObject lrc)
     {
-        Lrc = new List<Lyric>();
-        var oArray = ParseLrc(lrc["lrc"]["lyric"].ToString());
-        JArray tArray = new();
-        if (lrc.Property("tlyric") != null) tArray = ParseLrc(lrc["tlyric"]["lyric"].ToString());
-        // TODO: 翻译与原句个数不符的歌曲不显示歌词 Every Second - Mina Okabe
-        foreach (var originalLrc in oArray)
-            if (tArray.Count > 0)
-                foreach (var tranLrc in tArray)
+        Lyrics = new List<Lyric>();
+        Tuple<TimeSpan, string>[] oArray = ParseLrc(lrc["lrc"]["lyric"].ToString());
+        Tuple<TimeSpan, string>[]? tArray = null;
+        Dictionary<TimeSpan, int> timeSpanTable = new();
+        foreach (var item in lrc["lrc"]["lyric"].ToString().Split("\n"))
+        {
+            JObject newLyric;
+            try
+            {
+                if (item.Contains("{"))
                 {
-                    if (!((TimeSpan) originalLrc["time"]).Equals((TimeSpan) tranLrc["time"])) continue;
-
-                    Lrc.Add(new Lyric(
-                        originalLrc["word"].ToString(),
-                        tranLrc["word"].ToString(),
-                        (TimeSpan) originalLrc["time"]));
+                    newLyric = JObject.Parse(item);
                 }
-            else
-                Lrc.Add(new Lyric(
-                    originalLrc["word"].ToString(),
-                    "",
-                    (TimeSpan) originalLrc["time"]));
+                else
+                {
+                    continue;
+                }
+            }
+            catch (Exception e)
+            {
+                continue;
+            }
+
+            var time = TimeSpan.Zero;
+            var word = string.Join("", newLyric["c"].Select(x => x["tx"].ToString()));
+            Lyrics.Add(new Lyric(word, string.Empty, time));
+        }
+
+        if (lrc.Property("tlyric") != null)
+        {
+            tArray = ParseLrc(lrc["tlyric"]["lyric"].ToString());
+            for (int i = 0; i < tArray.Length; i++)
+            {
+                var item = tArray[i];
+                timeSpanTable[item.Item1] = i;
+            }
+        }
+        
+        foreach (var item in oArray)
+        {
+            var tLyric = string.Empty;
+            if (tArray != null)
+            {
+                if (timeSpanTable.TryGetValue(item.Item1, out var index))
+                {
+                    tLyric = tArray[index].Item2;
+                }
+            }
+
+            Lyrics.Add(new Lyric(item.Item2, tLyric, item.Item1));
+        }
     }
 
-    [JsonPropertyName("lyric_count")] public int? Count => Lrc.Count;
+    [JsonPropertyName("lyric_count")] public int? Count => Lyrics.Count;
 
-
-    private JArray ParseLrc(string content)
+    private Tuple<TimeSpan, string>[] ParseLrc(string content)
     {
-        JArray value = new();
         var match = Regex.Matches(content, "\\[([0-9.:]*)\\]+(.*)", RegexOptions.Compiled);
-        foreach (Match item in match)
-            value.Add(new JObject
+        var result = new Tuple<TimeSpan, string>[match.Count];
+        for (var i = 0; i < match.Count; i++)
+        {
+            var item = match[i];
+            TimeSpan time;
+            if (item.Groups[1].Value == "99:00.00")
             {
-                {
-                    "time",
-                    item.Groups[1].Value == "99:00.00"
-                        ? TimeSpan.MaxValue
-                        : TimeSpan.Parse(item.Groups[1].Value)
-                },
-                {"word", item.Groups[2].Value}
-            });
-        return value;
+                // 纯音乐或无歌词
+                time = TimeSpan.MaxValue;
+            }
+            else
+            {
+                time = TimeSpan.Parse("00:" + item.Groups[1].Value);
+            }
+
+            var word = item.Groups[2].Value;
+            result[i] = new Tuple<TimeSpan, string>(time, word);
+        }
+
+        return result;
     }
 }
 

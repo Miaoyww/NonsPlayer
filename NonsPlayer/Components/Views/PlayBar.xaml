@@ -75,9 +75,6 @@
                                    Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
                         <Slider Name="CurrentTimeSlider" IsThumbToolTipEnabled="False" Width="340"
                                 Value="{x:Bind ViewModel.MusicStateModel.Position, Mode=TwoWay}"
-                                ValueChanged="{x:Bind ViewModel.CurrentTimeSlider_OnValueChanged}"
-                                PointerEntered="{x:Bind ViewModel.CurrentTimeSlider_PointerEntered}"
-                                PointerExited="{x:Bind ViewModel.CurrentTimeSlider_PointerExited}"
                                 Maximum="{x:Bind ViewModel.MusicStateModel.Duration.TotalSeconds, Mode=OneWay}" />
                         <TextBlock Name="DurationTime"
                                    Text="{x:Bind ViewModel.MusicStateModel.DurationString, Mode=OneWay}"
@@ -88,21 +85,29 @@
                 </Grid>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Margin="0,0,30,0">
-                    <Button Name="VolumeButton" Width="45" Height="45" Margin="5" Background="Transparent"
-                            BorderThickness="0,0,0,0"
+                    <Button Name="Lyric" Command="{x:Bind OpenLyricCommand}"
+                            Height="25" Width="25" Padding="0"
+                            Background="Transparent" BorderThickness="0" >
+                        <TextBlock Text="词" 
+                                   Style="{StaticResource CommonTextStyle}" 
+                                   Opacity="0.9" FontWeight="Medium" Padding="0"
+                                   Margin="0,0,0,0.5"/>
+                    </Button>
+                    <Button Name="PlayQueue" Command="{x:Bind OpenPlayQueueBarCommand}"
+                            Width="25" Height="25" Margin="0" Background="Transparent"
+                            BorderThickness="0" Padding="0">
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf168;" FontSize="17" 
+                                  Margin="0,0,0,0"/>
+                    </Button>
+                    <Button Name="VolumeButton" Width="25" Height="25" Margin="0" Background="Transparent"
+                            BorderThickness="0,0,0,0" Padding="0"
                             Command="{x:Bind ViewModel.PlayerService.MuteCommand}">
-                        <FontIcon FontFamily="Segoe Fluent Icons" FontSize="22"
+                        <FontIcon FontFamily="Segoe Fluent Icons" FontSize="20"
                                   Glyph="{x:Bind ViewModel.MusicStateModel.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
                     </Button>
                     <Slider Name="VolumeSlider" IsThumbToolTipEnabled="False"
                             Value="{x:Bind ViewModel.MusicStateModel.Volume, Mode=TwoWay}" Width="100"
                             HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
-                    <Button Name="PlayQueue" Command="{x:Bind OpenPlayQueueCommand}"
-                            Width="45" Height="45" Margin="5" Background="Transparent"
-                            FontSize="26"
-                            BorderThickness="0,0,0,0">
-                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf168;" FontSize="18" />
-                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

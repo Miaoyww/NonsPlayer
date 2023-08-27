@@ -131,12 +131,15 @@ public class PlayQueue
 
     public void Play(Music music)
     {
-        if (music == CurrentMusic)
+        if (CurrentMusic != null)
         {
-            Player.Instance.Play(true);
-            return;
+            if (music.Id == CurrentMusic.Id)
+            {
+                Player.Instance.Play(true);
+                return;
+            }
         }
-
+        
         if (!MusicList.Contains(music))
         {
             AddMusic(music);

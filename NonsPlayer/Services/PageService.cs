@@ -23,6 +23,7 @@ public class PageService : IPageService
         Configure<LoginViewModel, LoginPage>();
         Configure<SearchViewModel, SearchPage>();
         Configure<ArtistViewModel, ArtistPage>();
+        Configure<LyricViewModel, LyricPage>();
     }
 
     public Type GetPageType(string key)

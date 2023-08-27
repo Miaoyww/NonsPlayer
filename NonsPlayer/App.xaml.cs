@@ -1,8 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using Windows.Win32;
-using Windows.Win32.Foundation;
-using Windows.Win32.UI.Input.KeyboardAndMouse;
+using Application = Microsoft.UI.Xaml.Application;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
@@ -19,9 +17,11 @@ using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
-using WinRT;
-using Application = Microsoft.UI.Xaml.Application;
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.Input.KeyboardAndMouse;
+using WinRT;
 
 namespace NonsPlayer;
 
@@ -69,12 +69,13 @@ public partial class App : Application
                 services.AddTransient<LoginPage>();
                 services.AddTransient<SearchViewModel>();
                 services.AddTransient<SearchPage>();
+                services.AddTransient<LyricViewModel>();
+                services.AddTransient<LyricPage>();
 
                 // Components Views and ViewModels
                 services.AddTransient<PlaylistMusicItemCardViewModel>();
                 services.AddTransient<RecommendedPlaylistCardViewModel>();
                 services.AddTransient<UserPlaylistCardViewModel>();
-                services.AddTransient<LyricBoxViewModel>();
                 services.AddTransient<PlayerBarViewModel>();
                 services.AddTransient<FunctionBarViewModel>();
                 services.AddTransient<PlayQueueBarViewModel>();

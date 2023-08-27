@@ -4,26 +4,32 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 using NonsPlayer.ViewModels;
+using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.Components.Views;
 
 public sealed partial class PlayBar : UserControl
 {
-    public ICommand OpenPlayQueueCommand;
-
     public PlayBar()
     {
         ViewModel = App.GetService<PlayerBarViewModel>();
         InitializeComponent();
-        OpenPlayQueueCommand = new RelayCommand(OpenPlayQueueBar);
     }
 
     public PlayerBarViewModel ViewModel { get; }
 
     public event EventHandler OnPlayQueueBarOpenHandler;
 
+    [RelayCommand]
+    public void OpenLyric()
+    {
+        ServiceHelper.NavigationService.NavigateTo(typeof(LyricViewModel)?.FullName);
+    }
+
+    [RelayCommand]
     public void OpenPlayQueueBar()
     {
         OnPlayQueueBarOpenHandler?.Invoke(this, EventArgs.Empty);

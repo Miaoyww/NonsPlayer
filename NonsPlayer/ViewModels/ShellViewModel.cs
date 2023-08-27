@@ -1,10 +1,12 @@
 ﻿using System.Collections.ObjectModel;
-using Windows.Win32.Foundation;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
+
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Models;
@@ -13,6 +15,8 @@ using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 using NonsPlayer.Services;
+
+using Windows.Win32.Foundation;
 
 namespace NonsPlayer.ViewModels;
 

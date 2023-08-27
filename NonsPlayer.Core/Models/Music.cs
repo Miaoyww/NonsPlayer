@@ -15,7 +15,7 @@ public class Music : INonsModel
     public string FileType;
     public bool IsEmpty;
     public bool IsLiked;
-    public Lyrics Lyrics;
+    public LyricGroup LyricGroup;
     public MusicQualityLevel[] QualityLevels;
     public TimeSpan TotalTime;
     public string Url;
@@ -51,6 +51,6 @@ public class Music : INonsModel
 
     public async Task GetLyric()
     {
-        // Lyrics = new Lyrics(await Apis.Lyric.GetLyric(Id.ToString(), Nons.Instance));
+        LyricGroup = new LyricGroup(await Apis.Lyric.GetLyric(Id.ToString(), NonsCore.Instance));
     }
 }
