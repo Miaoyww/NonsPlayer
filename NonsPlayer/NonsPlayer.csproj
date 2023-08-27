@@ -55,6 +55,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj" />
+        <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj" />
     </ItemGroup>
     <ItemGroup>
         <None Update="appsettings.json">

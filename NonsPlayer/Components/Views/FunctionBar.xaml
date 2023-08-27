@@ -39,7 +39,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="创建的歌单"
+                    <TextBlock Grid.Row="0" Text="收藏的歌单"
                                FontFamily="HarmonyOS Sans SC" TextAlignment="Center" FontSize="17" FontWeight="Medium"  />
                     <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None"
                               ItemsSource="{x:Bind ViewModel.SavedPlaylists, Mode=OneWay}">
