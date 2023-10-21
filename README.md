@@ -5,7 +5,7 @@
 
 # NonsPlayer
 
-![.net](https://img.shields.io/badge/C%23-.net6.0-orange)
+![.net](https://img.shields.io/badge/C%23-.net7.0-orange)
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
 ![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl)
 
@@ -39,8 +39,8 @@ version, unzip it.
 
 You can see a `NonsPlayer_x.x.x.x_xxx.msix` file and a `NonsPlayer_x.x.x.x_xxx.cer` file.
 Double Click the cer, select `Install Certificate` and press Next Button.Select `Local Machine` and next
-select `Automatically select the certificate store based...` and press Next Button.Then Finish installing the
-certificate.
+select `Place all certificates in the following store` and press `Browse`.In the Select Certificate Store dialog, 
+select Trusted Root Certification Authorities.
 
 After installed the cer, double click the `msix` file and press Install Button and then You can use it!
 

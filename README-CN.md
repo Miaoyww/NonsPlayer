@@ -5,7 +5,7 @@
 
 # NonsPlayer
 
-![.net](https://img.shields.io/badge/C%23-.net6.0-orange)
+![.net](https://img.shields.io/badge/C%23-.net7.0-orange)
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
 ![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl)
 
@@ -38,8 +38,8 @@
 
 你可以看到解压后目录中有 `NonsPlayer_x.x.x.x_xxx.msix` 文件和 `NonsPlayer_x.x.x.x_xxx.cer` 文件
 双击`cer`文件, 选择 `安装证书` 然后点击下一步.选择 `本地计算机` 然后下一步
-选择 `根据证书类型自动..` 接着下一步, 然后完成即可.
-双击打开`msix` 文件, 然后点击安装即可.
+选择 `将所有的证书都放入下列储存` 接着选择 `受信任的根证书颁发机构` .
+双击打开`msix` 文件, 再次点击安装即可.
 
 # 🧭开发指南
 

@@ -18,7 +18,7 @@
         <AssemblyVersion>0.3.2</AssemblyVersion>
         <FileVersion>0.3.2</FileVersion>
         <Product>NonsPlayer</Product>
-        <PackageCertificateThumbprint>1B4546F36CAFF8A204BEB64202DB844480503318</PackageCertificateThumbprint>
+        <PackageCertificateThumbprint>4381F2516CEDCC8E4FEFF35808EA2926312EE456</PackageCertificateThumbprint>
         <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
         <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
         <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -28,38 +28,39 @@
         <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
         <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
         <GenerateTestArtifacts>True</GenerateTestArtifacts>
-        <AppxBundle>Never</AppxBundle>
+        <AppxBundle>Auto</AppxBundle>
         <AppInstallerUri>D:\Program Files\NonsPlayer</AppInstallerUri>
         <RepositoryUrl></RepositoryUrl>
         <IsPackable>false</IsPackable>
-        <Authors/>
+        <Authors />
         <Company>Miaoyww</Company>
         <PublicSign>false</PublicSign>
+        <AppxBundlePlatforms>x86|x64</AppxBundlePlatforms>
     </PropertyGroup>
 
     <ItemGroup>
-        <Manifest Include="$(ApplicationManifest)"/>
+        <Manifest Include="$(ApplicationManifest)" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1"/>
-        <PackageReference Include="F23.StringSimilarity" Version="5.1.0"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1"/>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+        <PackageReference Include="F23.StringSimilarity" Version="5.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
         <PackageReference Include="Microsoft.Windows.CsWin32" PrivateAssets="all" Version="0.3.18-beta">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002"/>
-        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9"/>
-        <PackageReference Include="NAudio" Version="2.1.0"/>
-        <PackageReference Include="QRCoder" Version="1.4.3"/>
-        <PackageReference Include="RestSharp" Version="106.15.0"/>
-        <PackageReference Include="WinUIEx" Version="2.2.0"/>
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002" />
+        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
+        <PackageReference Include="NAudio" Version="2.1.0" />
+        <PackageReference Include="QRCoder" Version="1.4.3" />
+        <PackageReference Include="RestSharp" Version="106.15.0" />
+        <PackageReference Include="WinUIEx" Version="2.2.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj"/>
-        <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj"/>
+        <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj" />
+        <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj" />
     </ItemGroup>
     <ItemGroup>
         <None Update="appsettings.json">
@@ -135,20 +136,20 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Assets\Icons\arrow-back.svg"/>
-        <None Remove="Assets\Icons\arrow-next.svg"/>
-        <None Remove="Assets\Icons\liked.svg"/>
-        <None Remove="Assets\Icons\search.svg"/>
-        <None Remove="Assets\Icons\unliked.svg"/>
-        <None Remove="Assets\SplashScreen.png"/>
-        <None Remove="Assets\UnknowResource.png"/>
-        <None Remove="Assets\WindowIcon.ico"/>
-        <None Remove="Components\Views\BestArtistCard.xaml"/>
-        <None Remove="Components\Views\BestResultCard.xaml"/>
-        <None Remove="Components\Views\FunctionBar.xaml"/>
-        <None Remove="Components\Views\LyricBox.xaml"/>
-        <None Remove="Components\Views\PlayerBar.xaml"/>
-        <None Remove="Components\Views\UserPlaylistCard.xaml"/>
+        <None Remove="Assets\Icons\arrow-back.svg" />
+        <None Remove="Assets\Icons\arrow-next.svg" />
+        <None Remove="Assets\Icons\liked.svg" />
+        <None Remove="Assets\Icons\search.svg" />
+        <None Remove="Assets\Icons\unliked.svg" />
+        <None Remove="Assets\SplashScreen.png" />
+        <None Remove="Assets\UnknowResource.png" />
+        <None Remove="Assets\WindowIcon.ico" />
+        <None Remove="Components\Views\BestArtistCard.xaml" />
+        <None Remove="Components\Views\BestResultCard.xaml" />
+        <None Remove="Components\Views\FunctionBar.xaml" />
+        <None Remove="Components\Views\LyricBox.xaml" />
+        <None Remove="Components\Views\PlayerBar.xaml" />
+        <None Remove="Components\Views\UserPlaylistCard.xaml" />
     </ItemGroup>
 
     <ItemGroup>
