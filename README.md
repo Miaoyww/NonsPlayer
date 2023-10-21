@@ -9,7 +9,7 @@
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
 ![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl)
 
-A music player that allows you to remote control it.
+A music player that can be controlled remotely
 
 ![Alt](https://repobeats.axiom.co/api/embed/104248b2c1f2c27f8f5b29df5ab1ab2a4269ed96.svg "Repobeats analytics image")
 
