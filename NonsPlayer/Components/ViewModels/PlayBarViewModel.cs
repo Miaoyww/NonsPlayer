@@ -1,12 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using NonsPlayer.Heplers;
-using NonsPlayer.Models;
 using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 
@@ -27,7 +24,7 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public PlayerService PlayerService => PlayerService.Instance;
     public MusicStateModel MusicStateModel => MusicStateModel.Instance;
-    
+
     public void UpdateLike()
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>

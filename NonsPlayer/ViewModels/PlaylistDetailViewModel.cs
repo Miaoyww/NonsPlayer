@@ -14,7 +14,6 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
@@ -38,7 +37,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     public async void OnNavigatedTo(object parameter)
     {
-        CurrentId = (long) parameter;
+        CurrentId = (long)parameter;
         UserPlaylistService.Instance.PlaylistUpdated += OnPlaylistUpdated;
         if (CurrentId.ToString() == FavoritePlaylistService.Instance.FavoritePlaylistId)
             if (FavoritePlaylistService.Instance.IsLikeSongsChanged)
@@ -77,10 +76,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     private async Task InitMusicsAsync()
     {
-        if (PlayListObject.Musics == null)
-        {
-            PlayListObject.InitTracksAsync();
-        }
+        if (PlayListObject.Musics == null) PlayListObject.InitTracksAsync();
 
         for (var i = 0; i < PlayListObject.Musics.Count; i++)
         {
@@ -110,9 +106,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             if (height - offset <
                 App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount &&
                 currentItemGroupIndex < playListObject.MusicsCount - 1)
-            {
                 await LoadMusicItemsByGroup();
-            }
         }
     }
 
@@ -143,10 +137,8 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     private async void PlayAll()
     {
         if (playListObject.Musics.Count != playListObject.MusicTrackIds.Length)
-        {
             // +1到达最后一个歌曲
             await playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
-        }
 
         PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
     }
@@ -169,10 +161,8 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         {
             PlayQueue.Instance.Play(item.Music);
             if (PlayQueue.Instance.Count == 0)
-            {
                 //TODO: 设置是否将歌曲添加到播放队列
                 PlayAll();
-            }
         }
     }
 }

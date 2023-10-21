@@ -23,11 +23,11 @@ public sealed partial class RecommendedPlaylistCard : UserControl
 
     private void CardShow(object sender, PointerRoutedEventArgs e)
     {
-        AnimationsHelper.CardShow(sender, e);
+        AnimationHelper.CardShow(sender, e);
     }
 
     private void CardHide(object sender, PointerRoutedEventArgs e)
     {
-        AnimationsHelper.CardHide(sender, e);
+        AnimationHelper.CardHide(sender, e);
     }
 }

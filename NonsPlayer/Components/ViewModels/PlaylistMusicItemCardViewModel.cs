@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
@@ -18,7 +17,7 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
     public Music Music;
     [ObservableProperty] private string name;
     [ObservableProperty] private string time;
-    
+
     public void Init(Music music)
     {
         Music = music;
@@ -37,6 +36,7 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
             });
         };
     }
+
     public async Task InitCover()
     {
         var temp = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl)

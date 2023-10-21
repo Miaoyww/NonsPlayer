@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Nons.Account;
-using NonsPlayer.Models;
 
 namespace NonsPlayer.ViewModels;
 

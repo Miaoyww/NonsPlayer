@@ -1,15 +1,55 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
 using Windows.UI;
 using Microsoft.UI;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Data;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using NonsPlayer.Core.Enums;
 using WinRT.Interop;
 
 namespace NonsPlayer.Helpers;
 
-// Helper class to workaround custom title bar bugs.
-// DISCLAIMER: The resource key names and color values used below are subject to change. Do not depend on them.
-// https://github.com/microsoft/TemplateStudio/issues/4516
+public static class AnimationHelper
+{
+    private static readonly Compositor _compositor = CompositionTarget.GetCompositorForCurrentThread();
+    private static SpringVector3NaturalMotionAnimation _springAnimation;
+
+    private static void UpdateSpringAnimation(float finalValue)
+    {
+        if (_springAnimation == null)
+        {
+            _springAnimation = _compositor.CreateSpringVector3Animation();
+            _springAnimation.Target = "Scale";
+        }
+
+        _springAnimation.FinalValue = new Vector3(finalValue);
+        _springAnimation.DampingRatio = 1f;
+        _springAnimation.Period = new TimeSpan(350000);
+    }
+
+    public static void CardHide(object sender, PointerRoutedEventArgs e)
+    {
+        UpdateSpringAnimation(1f);
+
+        StartAnimationIfAPIPresent(sender as UIElement, _springAnimation);
+    }
+
+    public static void CardShow(object sender, PointerRoutedEventArgs e)
+    {
+        UpdateSpringAnimation(1.038f);
+
+        StartAnimationIfAPIPresent(sender as UIElement, _springAnimation);
+    }
+
+    private static void StartAnimationIfAPIPresent(UIElement sender, CompositionAnimation animation)
+    {
+        sender.StartAnimation(animation);
+    }
+}
+
 internal class TitleBarHelper
 {
     private const int WAINACTIVE = 0x00;
@@ -86,5 +126,82 @@ internal class TitleBarHelper
                 SendMessage(hwnd, WMACTIVATE, WAINACTIVE, IntPtr.Zero);
             }
         }
+    }
+}
+
+public class PlayerIconConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if ((bool)value)
+            // 正在播放
+            return "\uf8ae";
+        // 未播放
+        return "\uf5b0";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+    {
+        return value.ToString() == "\uf8ae";
+    }
+}
+
+public class VolumeIconConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        return (double)value switch
+        {
+            var n when n <= 10 => "\ue992",
+            var n when n is <= 50 and > 10 => "\ue993",
+            var n when n is <= 100 and > 50 => "\ue994",
+            _ => "\ue992"
+        };
+    }
+
+    public object? ConvertBack(object value, Type targetType, object parameter, string language)
+    {
+        return null;
+    }
+}
+
+public class LikeIconConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        if ((bool)value) return "\uEB52";
+
+        return "\uEB51";
+    }
+
+    public object? ConvertBack(object value, Type targetType, object parameter, string language)
+    {
+        return null;
+    }
+}
+
+public class SearchDataTypeToString : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        var item = value as SearchDataType?;
+        switch (item)
+        {
+            case SearchDataType.Music:
+                return "单曲";
+            case SearchDataType.Artist:
+                return "艺术家";
+            case SearchDataType.Playlist:
+                return "歌单";
+            case SearchDataType.Album:
+                return "专辑";
+            default:
+                return "未知";
+        }
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+    {
+        return "未知";
     }
 }

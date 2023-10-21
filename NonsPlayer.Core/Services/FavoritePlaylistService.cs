@@ -40,7 +40,7 @@ public class FavoritePlaylistService
         if (Account.Instance.IsLoggedIn)
         {
             var likedSongs =
-                (JArray) (await Apis.Music.LikeList(FavoritePlaylistId, NonsCore.Instance))["ids"];
+                (JArray)(await Apis.Music.LikeList(FavoritePlaylistId, NonsCore.Instance))["ids"];
             LikedSongs = likedSongs.Select(likedSong => likedSong.ToString()).ToList();
         }
     }
@@ -49,7 +49,7 @@ public class FavoritePlaylistService
     {
         var result = await Apis.Music.Like(id.ToString(), !IsLiked(id), NonsCore.Instance);
         Debug.WriteLine($"喜欢歌曲({id}): {result["code"]}");
-        if ((int) result["code"] == 200)
+        if ((int)result["code"] == 200)
         {
             LikedSongs.Add(id.ToString());
             await UpdatePlaylistInfo().ConfigureAwait(false);
@@ -57,7 +57,7 @@ public class FavoritePlaylistService
             LikeSongsChanged();
             return 200;
         }
-        
+
         return (int)result["code"];
     }
 }

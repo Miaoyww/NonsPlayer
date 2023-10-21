@@ -33,7 +33,7 @@ public static class CacheHelper
             return null;
         }
     }
-    
+
     public static CacheItem<T> GetCacheItem<T>(string cacheId, Func<T> createItemAsync)
         where T : class
     {
@@ -102,7 +102,7 @@ public static class CacheHelper
 
     public static Playlist GetPlaylistCard(string cacheId, JObject item)
     {
-        return GetCacheItem<Playlist>(cacheId, () => PlaylistAdaptes.CreateFromRecommend(item)).Data;
+        return GetCacheItem(cacheId, () => PlaylistAdaptes.CreateFromRecommend(item)).Data;
     }
 
     public static async Task<Playlist> UpdatePlaylistAsync(string cacheId, string id)

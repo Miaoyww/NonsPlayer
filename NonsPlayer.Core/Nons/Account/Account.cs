@@ -56,8 +56,8 @@ public class Account
     public void LoginByReg()
     {
         // 读取注册表中的Token，若存在进行登陆操作，否则return
-        var data = (string) RegHelper.Instance.Get(RegHelper.Regs.AccountToken, string.Empty);
-        _tokenMd5 = (string) RegHelper.Instance.Get(RegHelper.Regs.AccountTokenMd5, string.Empty);
+        var data = (string)RegHelper.Instance.Get(RegHelper.Regs.AccountToken, string.Empty);
+        _tokenMd5 = (string)RegHelper.Instance.Get(RegHelper.Regs.AccountTokenMd5, string.Empty);
         if (string.IsNullOrEmpty(data) || string.IsNullOrEmpty(_tokenMd5)) return;
 
         var dataBytes = Convert.FromBase64String(AESDecrypt(data, GetKey(data)));
@@ -99,7 +99,7 @@ public class Account
     private string AESEncrypt(string Data, string Key)
     {
         byte[] _aesKeyByte =
-            {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
+            { 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF };
         var _aesKeyStr = Encoding.UTF8.GetString(_aesKeyByte);
         var plainBytes = Encoding.UTF8.GetBytes(Data);
         var bKey = new byte[32];
@@ -135,7 +135,7 @@ public class Account
     private string AESDecrypt(string data, string key)
     {
         byte[] _aesKeyByte =
-            {0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF};
+            { 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF };
         var _aesKeyStr = Encoding.UTF8.GetString(_aesKeyByte);
         var encryptedBytes = Convert.FromBase64String(data);
         var bKey = new byte[32];
@@ -218,7 +218,7 @@ public class Account
         var codeMD5 = Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(data)));
         var dataB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
         var result = AESEncrypt(dataB64, GetKey(dataB64));
-        return new string[2] {result, codeMD5};
+        return new string[2] { result, codeMD5 };
     }
 
     #endregion 加密解密 Token

@@ -11,7 +11,7 @@
                 <Grid VerticalAlignment="Center" Height="72" Width="1052" HorizontalAlignment="Center">
                     <StackPanel>
                         <TextBlock Text="MADE BY MIAOYWW" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   FontSize="16" FontFamily="Humnst777 BlkCn BT" />
+                                   FontSize="16" Style="{StaticResource CommonTextStyle}" />
                         <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" />
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"

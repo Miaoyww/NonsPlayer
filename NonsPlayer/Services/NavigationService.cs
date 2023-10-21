@@ -96,7 +96,7 @@ public class NavigationService : INavigationService
     {
         if (sender is Frame frame)
         {
-            var clearNavigation = (bool) frame.Tag;
+            var clearNavigation = (bool)frame.Tag;
             if (clearNavigation) frame.BackStack.Clear();
 
             if (frame.GetPageViewModel() is INavigationAware navigationAware)

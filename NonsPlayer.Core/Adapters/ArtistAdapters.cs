@@ -15,7 +15,7 @@ public static class ArtistAdapters
             Id = result["data"]["artist"]["id"].ToObject<long>(),
             Name = result["data"]["artist"]["name"].ToString(),
             Description = result["data"]["artist"]["briefDesc"].ToString(),
-            AvatarUrl = result["data"]["artist"]["avatar"].ToString(),
+            AvatarUrl = result["data"]["artist"]["avatar"].ToString()
         };
     }
 
@@ -24,7 +24,7 @@ public static class ArtistAdapters
         return new Artist
         {
             Id = item["id"].ToObject<long>(),
-            Name = item["name"].ToString(),
+            Name = item["name"].ToString()
         };
     }
 }

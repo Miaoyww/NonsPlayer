@@ -12,12 +12,11 @@ public partial class UserPlaylistCardViewModel
 {
     [ObservableProperty] private ImageBrush? cover;
     [ObservableProperty] private string? name = string.Empty;
-
     public string Uid;
 
     public void Init(Playlist playlistItem)
     {
-        CacheManager.Instance.Set(playlistItem.CacheId, new CacheItem<Playlist> {Data = playlistItem});
+        CacheManager.Instance.Set(playlistItem.CacheId, new CacheItem<Playlist> { Data = playlistItem });
         Name = playlistItem.Name;
         Uid = playlistItem.Id.ToString();
         Cover = CacheHelper.GetImageBrush(playlistItem.CacheSmallAvatarId, playlistItem.SmallAvatarUrl);

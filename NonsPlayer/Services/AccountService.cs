@@ -1,8 +1,5 @@
-﻿using NonsPlayer.Components.ViewModels;
-using NonsPlayer.Core.Nons.Account;
+﻿using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Helpers;
-using NonsPlayer.Heplers;
-using NonsPlayer.Models;
 using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Services;

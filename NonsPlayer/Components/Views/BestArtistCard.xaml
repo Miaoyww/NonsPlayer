@@ -10,7 +10,8 @@
             <Grid>
                 <Grid.Resources>
                     <Storyboard x:Name="AvatarAnimation">
-                        <DoubleAnimation Storyboard.TargetName="AvatarTransform" Storyboard.TargetProperty="Y" Duration="0:0:10">
+                        <DoubleAnimation Storyboard.TargetName="AvatarTransform" Storyboard.TargetProperty="Y"
+                                         Duration="0:0:10">
                             <DoubleAnimation.EasingFunction>
                                 <ExponentialEase Exponent="1" EasingMode="EaseInOut" />
                             </DoubleAnimation.EasingFunction>
@@ -20,7 +21,7 @@
                 <Viewbox Stretch="UniformToFill">
                     <Image Name="Avater" Source="{x:Bind Cover, Mode=OneWay}">
                         <Image.RenderTransform>
-                           <TranslateTransform x:Name="AvatarTransform"/>
+                            <TranslateTransform x:Name="AvatarTransform" />
                         </Image.RenderTransform>
                     </Image>
                 </Viewbox>

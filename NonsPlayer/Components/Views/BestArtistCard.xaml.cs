@@ -2,7 +2,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
-using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Adapters;
 using NonsPlayer.Core.Models;
@@ -16,7 +15,9 @@ namespace NonsPlayer.Components.Views;
 [INotifyPropertyChanged]
 public sealed partial class BestArtistCard : UserControl
 {
-    public BestArtistCardViewModel ViewModel { get; }
+    [ObservableProperty] private ImageSource cover;
+    [ObservableProperty] private long? id;
+    [ObservableProperty] private string name;
 
     public BestArtistCard()
     {
@@ -26,17 +27,12 @@ public sealed partial class BestArtistCard : UserControl
         InitializeComponent();
     }
 
-    [ObservableProperty] private ImageSource cover;
-    [ObservableProperty] private long? id;
-    [ObservableProperty] private string name;
+    public BestArtistCardViewModel ViewModel { get; }
 
     partial void OnCoverChanged(ImageSource value)
     {
         BeginAnimation();
-        AvatarAnimation.Completed += (sender, o) =>
-        {
-            BeginAnimation();
-        };
+        AvatarAnimation.Completed += (sender, o) => { BeginAnimation(); };
     }
 
     private async void BeginAnimation()
@@ -45,6 +41,7 @@ public sealed partial class BestArtistCard : UserControl
         AvatarAnimation.Children[0].SetValue(DoubleAnimation.ToProperty, AvatarTransform.Y <= -300 ? 0 : -300);
         AvatarAnimation.Begin();
     }
+
     private async void OnBestMusicResultChanged(Music value)
     {
         Id = value.Artists[0].Id;

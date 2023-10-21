@@ -4,7 +4,6 @@ using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Services;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Helpers;
-using NonsPlayer.Heplers;
 using NonsPlayer.Models;
 
 namespace NonsPlayer.Services;
@@ -44,14 +43,14 @@ public class LocalSettingsService : ILocalSettingsService
         if (RuntimeHelper.IsMSIX)
         {
             if (ApplicationData.Current.LocalSettings.Values.TryGetValue(key, out var obj))
-                return await Json.ToObjectAsync<T>((string) obj);
+                return await Json.ToObjectAsync<T>((string)obj);
         }
         else
         {
             await InitializeAsync();
 
             if (_settings != null && _settings.TryGetValue(key, out var obj))
-                return await Json.ToObjectAsync<T>((string) obj);
+                return await Json.ToObjectAsync<T>((string)obj);
         }
 
         return default;

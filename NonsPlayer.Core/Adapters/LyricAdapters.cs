@@ -2,5 +2,4 @@
 
 public static class LyricAdapters
 {
-    
 }

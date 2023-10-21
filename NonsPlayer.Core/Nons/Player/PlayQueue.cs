@@ -1,12 +1,16 @@
-﻿using System.Timers;
-using NAudio.Wave;
+﻿using NAudio.Wave;
 using NonsPlayer.Core.Models;
-using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Core.Nons.Player;
 
 public class PlayQueue
 {
+    public delegate void CurrentMusicChangedEventHandler(Music value);
+
+    public delegate void MusicAddedEventHandler(Music value);
+
+    public delegate void PlaylistAddedEventHandler();
+
     public enum PlayModeEnum
     {
         Sequential, //顺序播放
@@ -47,12 +51,6 @@ public class PlayQueue
 
     public PlayModeEnum PlayMode { get; set; }
 
-    public delegate void MusicAddedEventHandler(Music value);
-
-    public delegate void CurrentMusicChangedEventHandler(Music value);
-
-    public delegate void PlaylistAddedEventHandler();
-
     public event CurrentMusicChangedEventHandler CurrentMusicChanged;
     public event MusicAddedEventHandler MusicAdded;
     public event PlaylistAddedEventHandler PlaylistAdded;
@@ -60,14 +58,12 @@ public class PlayQueue
     public void OnMusicStopped(object sender, StoppedEventArgs e)
     {
         if (PlayMode == PlayModeEnum.ListLoop)
-        {
             if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic && PlayMode != PlayModeEnum.SingleLoop)
             {
                 if (_isUserPressed) return;
                 if (CurrentMusic.TotalTime.TotalSeconds - Player.Instance.Position.TotalSeconds > 1) return;
                 PlayNext();
             }
-        }
     }
 
     // 当CurrentMusic改变时，将触发PlayerService的NewPlay方法
@@ -100,10 +96,7 @@ public class PlayQueue
 
     public void AddMusic(Music music)
     {
-        if (MusicList.Contains(music))
-        {
-            return;
-        }
+        if (MusicList.Contains(music)) return;
 
         if (MusicList.Count == 0)
         {
@@ -132,18 +125,13 @@ public class PlayQueue
     public void Play(Music music)
     {
         if (CurrentMusic != null)
-        {
             if (music.Id == CurrentMusic.Id)
             {
                 Player.Instance.Play(true);
                 return;
             }
-        }
-        
-        if (!MusicList.Contains(music))
-        {
-            AddMusic(music);
-        }
+
+        if (!MusicList.Contains(music)) AddMusic(music);
 
 
         CurrentMusic = music;

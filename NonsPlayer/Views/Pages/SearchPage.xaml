@@ -11,8 +11,8 @@
         <ScrollViewer>
             <Grid Margin="{StaticResource PlaylistDetailMargin}">
                 <Grid VerticalAlignment="Top">
-                    <views:BestMusicCard HorizontalAlignment="Left"/>
-                    <views:BestArtistCard HorizontalAlignment="Right"/>
+                    <views:BestMusicCard HorizontalAlignment="Left" />
+                    <views:BestArtistCard HorizontalAlignment="Right" />
                 </Grid>
             </Grid>
         </ScrollViewer>

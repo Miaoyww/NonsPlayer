@@ -3,13 +3,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style x:Key="CommonTextStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="18"/>
-        <Setter Property="FontFamily" Value="HarmonyOS Sans SC"/>
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontFamily" Value="HarmonyOS Sans SC" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextWrapping" Value="WrapWholeWords" />
-        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="FontWeight" Value="Normal" />
     </Style>
-    
+
     <Style x:Key="BodyTextStyle" TargetType="TextBlock">
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="FontSize" Value="{StaticResource MediumFontSize}" />

@@ -1,13 +1,10 @@
-﻿using System.Diagnostics;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using F23.StringSimilarity;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Adapters;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Enums;
-using NonsPlayer.Core.Helpers;
-using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
 using NonsPlayer.Helpers;
 
@@ -40,17 +37,15 @@ public class SearchViewModel : ObservableRecipient, INavigationAware
 
     private int Partition(List<Tuple<SearchDataType, Tuple<double, JObject>>> data, int low, int high)
     {
-        double pivotValue = data[high].Item2.Item1;
-        int i = low - 1;
+        var pivotValue = data[high].Item2.Item1;
+        var i = low - 1;
 
-        for (int j = low; j < high; j++)
-        {
+        for (var j = low; j < high; j++)
             if (data[j].Item2.Item1 < pivotValue)
             {
                 i++;
                 Swap(data, i, j);
             }
-        }
 
         Swap(data, i + 1, high);
         return i + 1;

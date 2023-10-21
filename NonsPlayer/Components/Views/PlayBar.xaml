@@ -87,17 +87,17 @@
                             Margin="0,0,30,0">
                     <Button Name="Lyric" Command="{x:Bind OpenLyricCommand}"
                             Height="25" Width="25" Padding="0"
-                            Background="Transparent" BorderThickness="0" >
-                        <TextBlock Text="词" 
-                                   Style="{StaticResource CommonTextStyle}" 
+                            Background="Transparent" BorderThickness="0">
+                        <TextBlock Text="词"
+                                   Style="{StaticResource CommonTextStyle}"
                                    Opacity="0.9" FontWeight="Medium" Padding="0"
-                                   Margin="0,0,0,0.5"/>
+                                   Margin="0,0,0,0.5" />
                     </Button>
                     <Button Name="PlayQueue" Command="{x:Bind OpenPlayQueueBarCommand}"
                             Width="25" Height="25" Margin="0" Background="Transparent"
                             BorderThickness="0" Padding="0">
-                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf168;" FontSize="17" 
-                                  Margin="0,0,0,0"/>
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf168;" FontSize="17"
+                                  Margin="0,0,0,0" />
                     </Button>
                     <Button Name="VolumeButton" Width="25" Height="25" Margin="0" Background="Transparent"
                             BorderThickness="0,0,0,0" Padding="0"
@@ -106,6 +106,7 @@
                                   Glyph="{x:Bind ViewModel.MusicStateModel.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
                     </Button>
                     <Slider Name="VolumeSlider" IsThumbToolTipEnabled="False"
+                            Margin="5,0,0,0"
                             Value="{x:Bind ViewModel.MusicStateModel.Volume, Mode=TwoWay}" Width="100"
                             HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
                 </StackPanel>

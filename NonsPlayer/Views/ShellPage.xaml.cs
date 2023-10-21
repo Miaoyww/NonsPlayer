@@ -6,8 +6,6 @@ using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
-using NonsPlayer.Services;
-using NonsPlayer.Updater;
 using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Views;
@@ -56,10 +54,7 @@ public sealed partial class ShellPage : Page
 
     private void OnCurrentMusicChanged(Music value)
     {
-        if (value.IsEmpty)
-        {
-            return;
-        }
+        if (value.IsEmpty) return;
 
         App.MainWindow.Title = "AppDisplayName".GetLocalized() + " - " + value.Name;
     }
@@ -74,14 +69,14 @@ public sealed partial class ShellPage : Page
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         ShellMenuBarSettingsButton.RemoveHandler(PointerPressedEvent,
-            (PointerEventHandler) ShellMenuBarSettingsButton_PointerPressed);
+            (PointerEventHandler)ShellMenuBarSettingsButton_PointerPressed);
         ShellMenuBarSettingsButton.RemoveHandler(PointerReleasedEvent,
-            (PointerEventHandler) ShellMenuBarSettingsButton_PointerReleased);
+            (PointerEventHandler)ShellMenuBarSettingsButton_PointerReleased);
     }
 
     private static KeyboardAccelerator BuildKeyboardAccelerator(VirtualKey key, VirtualKeyModifiers? modifiers = null)
     {
-        var keyboardAccelerator = new KeyboardAccelerator {Key = key};
+        var keyboardAccelerator = new KeyboardAccelerator { Key = key };
 
         if (modifiers.HasValue) keyboardAccelerator.Modifiers = modifiers.Value;
 
@@ -102,21 +97,21 @@ public sealed partial class ShellPage : Page
 
     private void ShellMenuBarSettingsButton_PointerEntered(object sender, PointerRoutedEventArgs e)
     {
-        AnimatedIcon.SetState((UIElement) sender, "PointerOver");
+        AnimatedIcon.SetState((UIElement)sender, "PointerOver");
     }
 
     private void ShellMenuBarSettingsButton_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        AnimatedIcon.SetState((UIElement) sender, "Pressed");
+        AnimatedIcon.SetState((UIElement)sender, "Pressed");
     }
 
     private void ShellMenuBarSettingsButton_PointerReleased(object sender, PointerRoutedEventArgs e)
     {
-        AnimatedIcon.SetState((UIElement) sender, "Normal");
+        AnimatedIcon.SetState((UIElement)sender, "Normal");
     }
 
     private void ShellMenuBarSettingsButton_PointerExited(object sender, PointerRoutedEventArgs e)
     {
-        AnimatedIcon.SetState((UIElement) sender, "Normal");
+        AnimatedIcon.SetState((UIElement)sender, "Normal");
     }
 }

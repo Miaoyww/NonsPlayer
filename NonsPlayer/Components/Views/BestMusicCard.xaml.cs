@@ -1,6 +1,4 @@
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Components.ViewModels;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -10,11 +8,11 @@ namespace NonsPlayer.Components.Views;
 
 public sealed partial class BestMusicCard : UserControl
 {
-    public BestMusicCardViewModel ViewModel { get; }
-
     public BestMusicCard()
     {
         ViewModel = App.GetService<BestMusicCardViewModel>();
         InitializeComponent();
     }
+
+    public BestMusicCardViewModel ViewModel { get; }
 }

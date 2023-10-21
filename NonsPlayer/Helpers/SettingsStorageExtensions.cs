@@ -47,7 +47,7 @@ public static class SettingsStorageExtensions
     {
         object? obj;
 
-        if (settings.Values.TryGetValue(key, out obj)) return await Json.ToObjectAsync<T>((string) obj);
+        if (settings.Values.TryGetValue(key, out obj)) return await Json.ToObjectAsync<T>((string)obj);
 
         return default;
     }
@@ -85,7 +85,7 @@ public static class SettingsStorageExtensions
         {
             using IRandomAccessStream stream = await file.OpenReadAsync();
             using var reader = new DataReader(stream.GetInputStreamAt(0));
-            await reader.LoadAsync((uint) stream.Size);
+            await reader.LoadAsync((uint)stream.Size);
             var bytes = new byte[stream.Size];
             reader.ReadBytes(bytes);
             return bytes;
