@@ -8,6 +8,7 @@ public class Artist : INonsModel
     public List<Music> HotMusics;
     public int MusicCount;
     public int MvCount;
+    public string Trans;
     public string MiddleAvatarUrl => AvatarUrl + "?param=500y500";
     public string SmallAvaterUrl => AvatarUrl + "?param=100y100";
 

@@ -1,8 +1,11 @@
-﻿namespace NonsPlayer.Core.Contracts.Models;
+﻿using System.Security.Cryptography;
+
+namespace NonsPlayer.Core.Contracts.Models;
 
 public class INonsModel
 {
     public long Id { get; set; }
+    public string Md5 { get; set; }
     public string Name { get; set; }
 
     public string AvatarUrl { get; set; }

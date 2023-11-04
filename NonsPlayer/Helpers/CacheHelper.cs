@@ -131,6 +131,18 @@ public static class CacheHelper
             await MusicAdapters.CreateById(long.Parse(id))).Result.Data;
     }
 
+    public static async Task<SearchResult> GetSearchResultAsync(string cacheId, string keyWords)
+    {
+        return (await GetCacheItemAsync<SearchResult>(cacheId, async () =>
+            await SearchResult.CreateSearchAsync(keyWords))).Data;
+    }
+
+    public static SearchResult GetSearchResult(string cacheId, string keyWords)
+    {
+        return GetCacheItemAsync<SearchResult>(cacheId, async () =>
+            await SearchResult.CreateSearchAsync(keyWords)).Result.Data;
+    }
+
     public static async Task<BitmapImage> GetImageStreamFromServer(string imageUrl)
     {
         using (var httpClient = new HttpClient())
