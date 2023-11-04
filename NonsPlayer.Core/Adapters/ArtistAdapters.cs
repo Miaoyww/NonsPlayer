@@ -19,6 +19,17 @@ public static class ArtistAdapters
         };
     }
 
+    public static Artist CreateFromSearch(JObject content)
+    {
+        return new Artist
+        {
+            Id = content["id"].ToObject<long>(),
+            Name = content["name"].ToString(),
+            Trans = content["trans"].ToString(),
+            AvatarUrl = content["picUrl"].ToString()
+        };
+    }
+
     public static Artist CreateFromPlaylistTrack(JObject item)
     {
         return new Artist

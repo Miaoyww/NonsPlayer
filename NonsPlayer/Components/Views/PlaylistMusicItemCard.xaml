@@ -31,10 +31,19 @@
                 <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Stretch"
                             Margin="20,2,0,0">
                     <Grid>
-                        <TextBlock Name="NameTextBlock" Text="{x:Bind ViewModel.Name, Mode=OneWay}"
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Name="NameTextBlock"  Text="{x:Bind ViewModel.Name, Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top"
                                    FontWeight="Black" FontSize="15" FontFamily="HarmonyOS Sans SC" MaxLines="2"
-                                   TextAlignment="Left"
+                                   TextTrimming="WordEllipsis" TextWrapping="Wrap" />
+                        <TextBlock Grid.Column="1" Name="TransTextBlock" Text="{x:Bind ViewModel.Trans, Mode=OneWay}"
+                                   Visibility="{x:Bind ViewModel.TransVisibility, Mode=OneWay}"
+                                   HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4,0,0,0"
+                                   FontWeight="Bold" FontSize="12" FontFamily="HarmonyOS Sans SC" MaxLines="1"
+                                   TextAlignment="Left" Opacity="0.8"
                                    TextTrimming="WordEllipsis" TextWrapping="Wrap" />
                     </Grid>
                     <TextBlock x:Name="ArtistsTextBlock" Text="{x:Bind ViewModel.Artists, Mode=OneWay}"
@@ -43,6 +52,7 @@
                 </StackPanel>
                 <TextBlock Grid.Column="3" Name="AlbumTextBlock" Text="{x:Bind ViewModel.Album, Mode=OneWay}"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
                            Width="200" Margin="0,0,0,0" />
                 <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Orientation="Horizontal">

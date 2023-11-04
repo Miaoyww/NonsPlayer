@@ -22,7 +22,10 @@ public static class MusicAdapters
             TotalTime = TimeSpan.FromMilliseconds(item["dt"].ToObject<long>()),
             Album = AlbumAdapters.CreateFromPlaylistTrack(item["al"] as JObject),
             Artists = ((JArray)item["ar"]).Select(arItem => ArtistAdapters.CreateFromPlaylistTrack(arItem as JObject))
-                .ToArray()
+                .ToArray(),
+            Trans = !((JArray)item["alia"]).Any()
+                ? (!item.ContainsKey("tns") ? string.Empty : item["tns"][0].ToString())
+                : item["alia"][0].ToString()
         };
     }
 

@@ -34,4 +34,16 @@ public static class PlaylistAdaptes
         await playlist.LoadAsync(id);
         return playlist;
     }
+
+    public static Playlist CreateFromSearch(JObject content)
+    {
+        return new Playlist
+        {
+            Id = content["id"].ToObject<long>(),
+            Name = content["name"].ToString(),
+            AvatarUrl = content["coverImgUrl"].ToString(),
+            Creator = content["creator"].ToString(),
+            IsCardMode = true
+        };
+    }
 }

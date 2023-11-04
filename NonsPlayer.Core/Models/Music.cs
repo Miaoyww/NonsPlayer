@@ -12,6 +12,7 @@ public class Music : INonsModel
     public Album Album;
     public Artist[] Artists;
     public string FileType;
+    public string Trans;
     public bool IsEmpty;
     public bool IsLiked;
     public LyricGroup LyricGroup;
