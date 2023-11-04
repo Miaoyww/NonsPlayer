@@ -17,21 +17,22 @@ public class PersonalCenterViewModel : ObservableRecipient, INotifyPropertyChang
 
     public string Greeting
     {
+        //TODO: 应用一言 https://developer.hitokoto.cn/
         get
         {
             var hour = DateTime.Now.Hour;
             switch (hour)
             {
                 case int n when n >= 0 && n < 6:
-                    return "凌晨好!";
+                    return "夜深了, ";
                 case int n when n >= 6 && n < 12:
-                    return "早上好!";
+                    return "Good Morning~";
                 case int n when n >= 12 && n < 14:
                     return "中午好!";
                 case int n when n >= 14 && n < 18:
-                    return "下午好!";
+                    return "来杯下午茶吧, ";
                 default:
-                    return "晚上好!";
+                    return "日落归去, 晚好,";
             }
         }
     }

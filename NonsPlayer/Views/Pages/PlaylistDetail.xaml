@@ -31,10 +31,14 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" x:Name="Name" Text="{x:Bind ViewModel.Name, Mode=OneWay}"
-                                   TextTrimming="WordEllipsis"
-                                   HorizontalAlignment="Left" VerticalAlignment="Top"
-                                   FontSize="35" FontFamily="HarmonyOS Sans SC" />
+                        <RichTextBlock Grid.Row="0" x:Name="Name"
+                                       TextTrimming="WordEllipsis" CanDrag="True"
+                                       HorizontalAlignment="Left" VerticalAlignment="Top"
+                                       FontSize="35" FontFamily="HarmonyOS Sans SC">
+                            <Paragraph>
+                                <Run Text="{x:Bind ViewModel.Name, Mode=OneWay}" />
+                            </Paragraph>
+                        </RichTextBlock>
                         <Grid Grid.Row="1">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -55,10 +59,14 @@
                                        FontFamily="HarmonyOS Sans SC" Opacity="0.6" />
                         </Grid>
                         <Grid Grid.Row="2" Height="80" Margin="0,10,0,0" Width="600" HorizontalAlignment="Left">
-                            <TextBlock Name="Description" Text="{x:Bind ViewModel.Description, Mode=OneWay}"
-                                       VerticalAlignment="Top"
-                                       TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
-                                       FontSize="15" FontFamily="HarmonyOS Sans SC" />
+                            <RichTextBlock Name="Description"
+                                           VerticalAlignment="Top"
+                                           TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                           FontSize="15" FontFamily="HarmonyOS Sans SC">
+                                <Paragraph>
+                                    <Run Text="{x:Bind ViewModel.Description, Mode=OneWay}" />
+                                </Paragraph>
+                            </RichTextBlock>
                         </Grid>
                         <Grid Grid.Row="4" VerticalAlignment="Bottom">
                             <StackPanel Orientation="Horizontal">

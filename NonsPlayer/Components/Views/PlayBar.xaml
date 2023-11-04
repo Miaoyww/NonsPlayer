@@ -18,19 +18,25 @@
                 Margin="0,680,0,0"
                 Height="90">
             <Grid>
-                <StackPanel Orientation="Horizontal" Width="300" HorizontalAlignment="Left" Margin="20,0,0,0">
-                    <StackPanel VerticalAlignment="Center" MaxWidth="190" Margin="0,0,0,5">
-                        <TextBlock Name="Name"
-                                   Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.Name, Mode=OneWay}"
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="20,0,0,0">
+                    <StackPanel VerticalAlignment="Center"  Margin="0,0,0,5">
+                        <RichTextBlock Name="Name"
                                    HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20"
-                                   Margin="0,0,0,10" FontWeight="Medium"
-                                   TextTrimming="CharacterEllipsis" FontFamily="HarmonyOS Sans SC" />
+                                   Margin="0,0,0,10" FontWeight="Medium" MaxWidth="300" MaxLines="1"
+                                   TextTrimming="CharacterEllipsis" FontFamily="HarmonyOS Sans SC" >
+                            <Paragraph>
+                                <Run Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.Name, Mode=OneWay}"/>
+                            </Paragraph>
+                        </RichTextBlock>
 
-                        <TextBlock Name="Artists"
-                                   Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.ArtistsName,Mode=OneWay}"
+                        <RichTextBlock Name="Artists"
                                    HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="15"
-                                   FontFamily="HarmonyOS Sans SC" FontWeight="Medium"
-                                   TextTrimming="CharacterEllipsis" Foreground="Black" Opacity="0.75" />
+                                   FontFamily="HarmonyOS Sans SC" FontWeight="Medium" MaxWidth="300"
+                                   TextTrimming="CharacterEllipsis" Foreground="Black" Opacity="0.75" >
+                            <Paragraph>
+                                <Run Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.ArtistsName,Mode=OneWay}"/>
+                            </Paragraph>
+                        </RichTextBlock>
                     </StackPanel>
                     <Button Name="Like" Width="35" Height="35" Command="{x:Bind LikeMusicCommand}"
                             VerticalAlignment="Center" HorizontalAlignment="Center"

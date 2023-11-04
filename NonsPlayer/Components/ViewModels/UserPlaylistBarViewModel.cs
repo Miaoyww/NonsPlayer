@@ -26,10 +26,13 @@ public partial class UserPlaylistBarViewModel
 
     public void OnPlaylistUpdated()
     {
-        UserPlaylistHelper.Instance.CreatedPlaylists.Clear();
-        UserPlaylistHelper.Instance.SavedPlaylists.Clear();
-        UserPlaylistHelper.Instance.BindData();
-        PlaylistVis = Visibility.Visible;
-        TipVis = Visibility.Collapsed;
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            UserPlaylistHelper.Instance.CreatedPlaylists.Clear();
+            UserPlaylistHelper.Instance.SavedPlaylists.Clear();
+            UserPlaylistHelper.Instance.BindData();
+            PlaylistVis = Visibility.Visible;
+            TipVis = Visibility.Collapsed;
+        });
     }
 }

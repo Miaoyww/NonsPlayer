@@ -8,20 +8,27 @@
     Loaded="{x:Bind ViewModel.PersonalCenterPage_OnLoaded}">
 
     <Grid Margin="{StaticResource PageCommonMargin}">
-        <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Border Grid.Row="0" Name="Face" Height="200" Width="200" CornerRadius="180"
+        <Grid Margin="20,20,0,0" VerticalAlignment="Top" HorizontalAlignment="Left">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Name="Face" Height="200" Width="200" CornerRadius="20"
                     Background="{x:Bind ViewModel.AccountStateModel.Face, Mode=OneWay}" Margin="0,0,0,20" />
-            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
-                <TextBlock Text="{x:Bind ViewModel.Greeting, Mode=OneWay}"
-                           FontWeight="Black" FontSize="15" FontFamily="HarmonyOS Sans SC" />
-                <TextBlock Text="{x:Bind ViewModel.AccountStateModel.Name, Mode=OneWay}"
-                           FontWeight="Black" FontSize="15" FontFamily="HarmonyOS Sans SC" />
-            </StackPanel>
+
+            <RichTextBlock Grid.Column="1"
+                           VerticalAlignment="Center" FontWeight="Black"
+                           FontSize="25" Margin="20,0,0,0" 
+                           Style="{StaticResource CommonRichTextStyle}">
+                <Paragraph FontSize="30" Margin="0,0,0,20">
+                    <Run Text="{x:Bind ViewModel.Greeting, Mode=OneWay}" />
+                </Paragraph>
+                <Paragraph>
+                    <Run Text="{x:Bind ViewModel.AccountStateModel.Name, Mode=OneWay}"/>
+                </Paragraph>
+            </RichTextBlock>
+
+
         </Grid>
     </Grid>
 </Page>

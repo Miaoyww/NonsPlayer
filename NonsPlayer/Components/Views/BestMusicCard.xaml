@@ -13,18 +13,24 @@
     <Grid>
         <Border Background="#323232" CornerRadius="20"
                 Width="500" Height="200">
-            <Grid>
-                <StackPanel Margin="20,10,0,0">
+            <Grid Margin="20,10,0,0">
+                <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left">
                     <TextBlock Text="最佳音乐结果" Margin="-10,0,0,0"
                                FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="16"
                                FontWeight="Bold" />
                     <Line Stroke="#A4A4A4" Margin="-10,0,0,0" StrokeThickness="1" X1="5" X2="120" />
-                    <Grid HorizontalAlignment="Left" Margin="-5,10,0,0">
-                        <StackPanel Orientation="Horizontal">
-                            <Border Width="140" Height="140" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
-                                    CornerRadius="20" />
-                            <StackPanel Margin="20,0,0,0">
-                                <Grid HorizontalAlignment="Left" Margin="0,0,0,10">
+                </StackPanel>
+                <Grid HorizontalAlignment="Left" Margin="-5,10,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="140" Height="140" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
+                                CornerRadius="20" />
+                        <Grid Margin="20,0,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Column="0" HorizontalAlignment="Left" Margin="0,0,0,10">
                                     <Border Background="#C4C4C4" Opacity="0.4" Width="50" Height="24"
                                             CornerRadius="10" />
                                     <TextBlock
@@ -34,19 +40,29 @@
                                         FontSize="16"
                                         FontWeight="Bold" />
                                 </Grid>
-                                <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" VerticalAlignment="Center"
-                                           Margin="0,-2,0,0" Width="200"
-                                           FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="26"
-                                           FontWeight="Bold" TextWrapping="WrapWholeWords" />
-                                <TextBlock Text="{x:Bind ViewModel.Subtitle,Mode=OneWay}" VerticalAlignment="Bottom"
-                                           Margin="0,15,0,0" Width="200"
-                                           FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="20"
-                                           FontWeight="Bold" TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
+                                <Grid Grid.Row="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,-2,0,0" MaxWidth="200" MaxHeight="200" MaxLines="2"
+                                               FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="26"
+                                               FontWeight="Bold" TextWrapping="WrapWholeWords"
+                                               TextTrimming="WordEllipsis" />
+                                    <TextBlock Grid.Row="1" Text="{x:Bind ViewModel.Subtitle,Mode=OneWay}"
+                                               VerticalAlignment="Bottom"
+                                               Margin="0,15,0,0" Width="200"
+                                               FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9" FontSize="20"
+                                               FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                                </Grid>
 
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                    </StackPanel>
+                </Grid>
                 <Button Background="#5D5D5D" Width="50" Height="50" CornerRadius="10"
                         HorizontalAlignment="Right" VerticalAlignment="Bottom"
                         Margin="0,0,40,30"

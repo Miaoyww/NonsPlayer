@@ -5,21 +5,25 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
-public class SettingsViewModel : ObservableRecipient
+public partial class SettingsViewModel : ObservableRecipient
 {
+    [RelayCommand]
     private void Test()
     {
+        Account.Instance.LogOut();
+        App.MainWindow.Close();
     }
     // private void Test()
     // {
     //     Account.Instance.LogOut();
     //     App.MainWindow.Close();
     // }
-
+    
     #region 66
 
     private readonly IThemeSelectorService _themeSelectorService;
