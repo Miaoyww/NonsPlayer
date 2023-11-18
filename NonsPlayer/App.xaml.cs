@@ -76,6 +76,7 @@ public partial class App : Application
                 services.AddTransient<PlayQueueItemCardViewModel>();
                 services.AddTransient<BestMusicCardViewModel>();
                 services.AddTransient<BestArtistCardViewModel>();
+                services.AddTransient<MusicListBarViewModel>();
                 // Configuration
                 services.Configure<LocalSettingsOptions>(
                     context.Configuration.GetSection(nameof(LocalSettingsOptions)));

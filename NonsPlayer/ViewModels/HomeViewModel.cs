@@ -23,7 +23,7 @@ public partial class HomeViewModel : ObservableRecipient
 
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
     {
-        var response = await Apis.Playlist.Personalized(
+        var response = await Apis.Recommend.Playlist(
                 NonsCore.Instance,
                 App.GetService<ILocalSettingsService>().GetOptions().RecommendedPlaylistCount)
             .ConfigureAwait(false);

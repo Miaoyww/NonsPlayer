@@ -19,42 +19,7 @@
                     <views:BestMusicCard HorizontalAlignment="Left" />
                     <views:BestArtistCard HorizontalAlignment="Right" />
                 </Grid>
-                <Grid Grid.Row="1">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="1" Margin="20,20,40,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="#" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
-                        <TextBlock Grid.Column="1" Margin="30,0,0,0" Text="标题" FontFamily="HarmonyOS Sans SC"
-                                   FontWeight="Bold" />
-                        <TextBlock Grid.Column="2" Text="专辑" FontFamily="HarmonyOS Sans SC" FontWeight="Bold"
-                                   Margin="-40,0,0,0" />
-                        <TextBlock Grid.Column="3" Text="时长" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
-                    </Grid>
-                    <ListView Grid.Row="2"
-                              Padding="0,5,0,0"
-                              BorderThickness="0,1,0,0" BorderBrush="#F0F1F2"
-                              ItemsSource="{x:Bind ViewModel.MusicItems, Mode=OneWay}"
-                              DoubleTapped="{x:Bind ViewModel.DoubleClick}">
-                        <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="models:MusicItem">
-                                <views:PlaylistMusicItemCard
-                                    Music="{x:Bind Music}"
-                                    Index="{x:Bind Index}" />
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                </Grid>
-
-
+                <views:MusicListBar Grid.Row="1" MusicItems="{x:Bind ViewModel.MusicItems, Mode=OneWay}" />
             </Grid>
         </ScrollViewer>
     </Grid>
