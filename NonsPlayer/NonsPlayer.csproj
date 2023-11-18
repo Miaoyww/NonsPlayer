@@ -82,6 +82,9 @@
         <Page Update="Components\Views\UserPlaylistCard.xaml">
             <Generator>MSBuild:Compile</Generator>
         </Page>
+        <Page Update="Components\Views\MusicListBar.xaml">
+          <SubType>Designer</SubType>
+        </Page>
     </ItemGroup>
 
     <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">

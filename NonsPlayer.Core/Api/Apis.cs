@@ -20,18 +20,6 @@ public static class Apis
             return await NonsCore.Request(_URL, pairs);
         }
 
-        public static async Task<JObject> Personalized(NonsCore NonsCore, int limit = 30)
-        {
-            var _URL = "https://music.163.com/api/personalized/playlist";
-            IDictionary<string, object> pairs = new Dictionary<string, object>
-            {
-                { "limit", limit.ToString() },
-                { "total", "true" },
-                { "n", "1000" }
-            };
-            return await NonsCore.Request(_URL, pairs);
-        }
-
         public static async Task<JObject> Subscribe(long id, bool isSubscribe, NonsCore NonsCore)
         {
             var _URL = $"https://music.163.com/api/playlist/{(isSubscribe ? "subscribe" : "unsubscribe")}";
@@ -253,6 +241,18 @@ public static class Apis
         {
             var _URL = "https://music.163.com/api/v3/discovery/recommend/songs";
             return await NonsCore.Request(_URL);
+        }
+
+        public static async Task<JObject> Playlist(NonsCore NonsCore, int limit = 30)
+        {
+            var _URL = "https://music.163.com/api/personalized/playlist";
+            IDictionary<string, object> pairs = new Dictionary<string, object>
+            {
+                { "limit", limit.ToString() },
+                { "total", "true" },
+                { "n", "1000" }
+            };
+            return await NonsCore.Request(_URL, pairs);
         }
     }
 
