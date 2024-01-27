@@ -9,7 +9,7 @@ public enum MusicQualityLevel
     Hires,
     Effect,
     Sky,
-    Master,
+    Master
 }
 
 public static class MusicQualityLevelConvert

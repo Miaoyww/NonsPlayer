@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
@@ -17,10 +18,13 @@ public partial class AccountStateModel
 
     partial void OnFaceUrlChanged(string value)
     {
-        face = new ImageBrush
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
-            ImageSource = new BitmapImage(new Uri(value))
-        };
+            Face = new ImageBrush
+            {
+                ImageSource = new BitmapImage(new Uri(value))
+            };
+        });
         OnPropertyChanged(nameof(Face));
     }
 }

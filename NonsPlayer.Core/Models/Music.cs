@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Enums;
@@ -13,6 +12,7 @@ public class Music : INonsModel
     public Album Album;
     public Artist[] Artists;
     public string FileType;
+    public string Trans;
     public bool IsEmpty;
     public bool IsLiked;
     public LyricGroup LyricGroup;
@@ -30,7 +30,7 @@ public class Music : INonsModel
         return new Music
         {
             Name = "暂无歌曲",
-            Artists = new[] {Artist.CreatEmpty()},
+            Artists = new[] { Artist.CreatEmpty() },
             IsEmpty = true
         };
     }
@@ -44,7 +44,7 @@ public class Music : INonsModel
 
     public async Task GetFileInfo()
     {
-        var musicFile = (JObject) (await Apis.Music.Url(Id, MusicQualityLevel.ExHigh, NonsCore.Instance))["data"][0];
+        var musicFile = (JObject)(await Apis.Music.Url(Id, MusicQualityLevel.ExHigh, NonsCore.Instance))["data"][0];
         Url = musicFile["url"].ToString();
         FileType = musicFile["type"].ToString();
     }

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -29,23 +28,19 @@ public class KeyHookService
     private void RegKey(int id, HOT_KEY_MODIFIERS modifiers, Keys keys)
     {
         UnRegKey(id);
-        if (PInvoke.RegisterHotKey((HWND) _hwnd, id, modifiers, (uint) keys))
-        {
+        if (PInvoke.RegisterHotKey((HWND)_hwnd, id, modifiers, (uint)keys))
             Debug.WriteLine($"注册成功{modifiers}+{keys}");
-        }
         else
-        {
             Debug.WriteLine("注册失败");
-        }
     }
 
     private void UnRegKey(int id)
     {
-        PInvoke.UnregisterHotKey((HWND) _hwnd, id);
+        PInvoke.UnregisterHotKey((HWND)_hwnd, id);
     }
 
     /// <summary>
-    /// 1:播放/暂停 2:下一首 3:上一首 4:音量+ 5:音量- 6:喜欢歌曲
+    ///     1:播放/暂停 2:下一首 3:上一首 4:音量+ 5:音量- 6:喜欢歌曲
     /// </summary>
     /// <param name="id"></param>
     public void OnHotKey(int id)

@@ -17,7 +17,8 @@
                             HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500"
                             Height="200" Margin="0,70,0,0">
                         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="每日单曲推荐"
-                                   Foreground="Black" FontWeight="Bold" FontSize="30" Style="{StaticResource CommonTextStyle}" />
+                                   Foreground="Black" FontWeight="Bold" FontSize="30"
+                                   Style="{StaticResource CommonTextStyle}" />
                     </Border>
                 </Grid>
                 <Grid Margin="0,60,0,80">

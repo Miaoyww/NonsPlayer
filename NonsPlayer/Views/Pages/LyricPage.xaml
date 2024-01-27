@@ -15,7 +15,7 @@
             <TextBlock Name="TranLyric" Text="{x:Bind ViewModel.TranLyric, Mode=OneWay}"
                        Visibility="{x:Bind ViewModel.TransVisibility, Mode=OneWay}"
                        HorizontalAlignment="Center" TextAlignment="Center"
-                       FontFamily="HarmonyOS Sans SC" FontWeight="Bold" FontSize="18"/>
+                       FontFamily="HarmonyOS Sans SC" FontWeight="Bold" FontSize="18" />
         </StackPanel>
     </Grid>
 </Page>

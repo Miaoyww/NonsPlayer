@@ -5,15 +5,21 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:NonsPlayer.Components.Views"
+    xmlns:models="using:NonsPlayer.Components.Models"
     mc:Ignorable="d">
 
     <Grid>
-        <ScrollViewer>
+        <ScrollViewer ViewChanged="{x:Bind ViewModel.OnScrollViewerViewChanged}">
             <Grid Margin="{StaticResource PlaylistDetailMargin}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
                 <Grid VerticalAlignment="Top">
-                    <views:BestMusicCard HorizontalAlignment="Left"/>
-                    <views:BestArtistCard HorizontalAlignment="Right"/>
+                    <views:BestMusicCard HorizontalAlignment="Left" />
+                    <views:BestArtistCard HorizontalAlignment="Right" />
                 </Grid>
+                <views:MusicListBar Grid.Row="1" MusicItems="{x:Bind ViewModel.MusicItems, Mode=OneWay}" />
             </Grid>
         </ScrollViewer>
     </Grid>

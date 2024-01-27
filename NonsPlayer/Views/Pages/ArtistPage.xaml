@@ -17,9 +17,7 @@
             x:Uid="Artist_Title"
             Style="{StaticResource PageTitleStyle}" />
 
-        <Grid Grid.Row="1">
-            
-        </Grid>
-        
+        <Grid Grid.Row="1" />
+
     </Grid>
 </Page>

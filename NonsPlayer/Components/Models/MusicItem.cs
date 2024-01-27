@@ -4,8 +4,8 @@ namespace NonsPlayer.Components.Models;
 
 public class MusicItem
 {
-    public Music Music;
     public string Index;
+    public Music Music;
     public Tuple<string, string> Cover => Tuple.Create(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl);
     public string Name => Music.Name;
     public string Artists => Music.ArtistsName;

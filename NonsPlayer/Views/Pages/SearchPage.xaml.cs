@@ -1,6 +1,4 @@
 ﻿using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Views.Pages;

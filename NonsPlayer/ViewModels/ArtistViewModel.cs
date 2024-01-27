@@ -2,9 +2,6 @@
 
 namespace NonsPlayer.ViewModels;
 
-public partial class ArtistViewModel : ObservableRecipient
+public class ArtistViewModel : ObservableRecipient
 {
-    public ArtistViewModel()
-    {
-    }
 }

@@ -1,22 +1,16 @@
 ﻿using System.Collections.ObjectModel;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
-
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
-using NonsPlayer.Models;
 using NonsPlayer.Services;
-
-using Windows.Win32.Foundation;
 
 namespace NonsPlayer.ViewModels;
 
@@ -50,20 +44,14 @@ public partial class ShellViewModel : ObservableRecipient
 
     public void SearchBox_Entered(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs text)
     {
-        if (text.Equals(string.Empty))
-        {
-            return;
-        }
+        if (text.Equals(string.Empty)) return;
 
         NavigationService.NavigateTo(typeof(SearchViewModel).FullName!, text);
     }
 
     public void SearchBox_Query(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
-        if (args.QueryText.Equals(string.Empty))
-        {
-            return;
-        }
+        if (args.QueryText.Equals(string.Empty)) return;
 
         NavigationService.NavigateTo(typeof(SearchViewModel).FullName!, args.QueryText);
     }

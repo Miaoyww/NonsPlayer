@@ -26,7 +26,8 @@ public partial class LoginViewModel : ObservableObject
 
     public async Task GetQrCode()
     {
-        if (key == null) key = (await Apis.Login.QRCode.Key(getCurrentTimestamp(), NonsCore.Instance))["unikey"].ToString();
+        if (key == null)
+            key = (await Apis.Login.QRCode.Key(getCurrentTimestamp(), NonsCore.Instance))["unikey"].ToString();
 
         var qrCodeImage =
             new QRCode(new QRCodeGenerator().CreateQrCode(
@@ -84,6 +85,6 @@ public partial class LoginViewModel : ObservableObject
 
     private string getCurrentTimestamp()
     {
-        return ((DateTimeOffset) DateTime.Now).ToUnixTimeMilliseconds().ToString();
+        return ((DateTimeOffset)DateTime.Now).ToUnixTimeMilliseconds().ToString();
     }
 }

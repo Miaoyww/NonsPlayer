@@ -39,8 +39,8 @@ version, unzip it.
 
 You can see a `NonsPlayer_x.x.x.x_xxx.msix` file and a `NonsPlayer_x.x.x.x_xxx.cer` file.
 Double Click the cer, select `Install Certificate` and press Next Button.Select `Local Machine` and next
-select `Automatically select the certificate store based...` and press Next Button.Then Finish installing the
-certificate.
+select `Place all certificates in the following store` and press `Browse`.In the Select Certificate Store dialog, 
+select Trusted Root Certification Authorities.
 
 After installed the cer, double click the `msix` file and press Install Button and then You can use it!
 

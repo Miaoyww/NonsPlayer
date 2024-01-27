@@ -33,7 +33,7 @@ public static class CacheHelper
             return null;
         }
     }
-    
+
     public static CacheItem<T> GetCacheItem<T>(string cacheId, Func<T> createItemAsync)
         where T : class
     {
@@ -102,7 +102,7 @@ public static class CacheHelper
 
     public static Playlist GetPlaylistCard(string cacheId, JObject item)
     {
-        return GetCacheItem<Playlist>(cacheId, () => PlaylistAdaptes.CreateFromRecommend(item)).Data;
+        return GetCacheItem(cacheId, () => PlaylistAdaptes.CreateFromRecommend(item)).Data;
     }
 
     public static async Task<Playlist> UpdatePlaylistAsync(string cacheId, string id)
@@ -129,6 +129,18 @@ public static class CacheHelper
     {
         return GetCacheItemAsync<Music>(cacheId, async () =>
             await MusicAdapters.CreateById(long.Parse(id))).Result.Data;
+    }
+
+    public static async Task<SearchResult> GetSearchResultAsync(string cacheId, string keyWords)
+    {
+        return (await GetCacheItemAsync<SearchResult>(cacheId, async () =>
+            await SearchResult.CreateSearchAsync(keyWords))).Data;
+    }
+
+    public static SearchResult GetSearchResult(string cacheId, string keyWords)
+    {
+        return GetCacheItemAsync<SearchResult>(cacheId, async () =>
+            await SearchResult.CreateSearchAsync(keyWords)).Result.Data;
     }
 
     public static async Task<BitmapImage> GetImageStreamFromServer(string imageUrl)

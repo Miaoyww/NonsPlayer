@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -9,22 +7,21 @@ using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
-using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Components.Views;
 
 [INotifyPropertyChanged]
 public sealed partial class PlayQueueItemCard : UserControl
 {
-    [ObservableProperty] private Brush fontBrush = (Brush) Application.Current.Resources["TextFillColorPrimaryBrush"];
     [ObservableProperty] private string artists;
-    [ObservableProperty] private Music music;
-    [ObservableProperty] private Tuple<string, string> coverUrl;
     [ObservableProperty] private ImageBrush cover;
+    [ObservableProperty] private Tuple<string, string> coverUrl;
+    [ObservableProperty] private Brush fontBrush = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
+    [ObservableProperty] private long id;
     [ObservableProperty] private bool liked; //TODO: Implement this
+    [ObservableProperty] private Music music;
     [ObservableProperty] private string name;
     [ObservableProperty] private string time;
-    [ObservableProperty] private long id;
 
     public PlayQueueItemCard()
     {

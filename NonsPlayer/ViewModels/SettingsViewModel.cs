@@ -4,25 +4,26 @@ using Windows.ApplicationModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Helpers;
-using NonsPlayer.Updater;
 
 namespace NonsPlayer.ViewModels;
 
-public class SettingsViewModel : ObservableRecipient
+public partial class SettingsViewModel : ObservableRecipient
 {
+    [RelayCommand]
     private void Test()
     {
-
+        Account.Instance.LogOut();
+        App.MainWindow.Close();
     }
     // private void Test()
     // {
     //     Account.Instance.LogOut();
     //     App.MainWindow.Close();
     // }
-
+    
     #region 66
 
     private readonly IThemeSelectorService _themeSelectorService;
@@ -67,6 +68,7 @@ public class SettingsViewModel : ObservableRecipient
         {
             version = Assembly.GetExecutingAssembly().GetName().Version!;
         }
+
         return $"v{version.Major}.{version.Minor}.{version.Build}";
     }
 

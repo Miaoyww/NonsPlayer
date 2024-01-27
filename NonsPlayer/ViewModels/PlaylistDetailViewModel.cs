@@ -1,11 +1,15 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage.Streams;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
@@ -14,7 +18,6 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
@@ -38,7 +41,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     public async void OnNavigatedTo(object parameter)
     {
-        CurrentId = (long) parameter;
+        CurrentId = (long)parameter;
         UserPlaylistService.Instance.PlaylistUpdated += OnPlaylistUpdated;
         if (CurrentId.ToString() == FavoritePlaylistService.Instance.FavoritePlaylistId)
             if (FavoritePlaylistService.Instance.IsLikeSongsChanged)
@@ -69,7 +72,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             Creator = "made by " + PlayListObject.Creator;
             CreateTime = $"· {PlayListObject.CreateTime.ToString().Split(" ")[0]}";
             Description = PlayListObject.Description;
-            MusicsCount = PlayListObject.MusicsCount + "Tracks";
+            MusicsCount = PlayListObject.MusicsCount + " Tracks";
             Cover = CacheHelper.GetImageBrush(PlayListObject.CacheAvatarId, PlayListObject.AvatarUrl);
             IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
         });
@@ -77,10 +80,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     private async Task InitMusicsAsync()
     {
-        if (PlayListObject.Musics == null)
-        {
-            PlayListObject.InitTracksAsync();
-        }
+        if (PlayListObject.Musics == null) PlayListObject.InitTracksAsync();
 
         for (var i = 0; i < PlayListObject.Musics.Count; i++)
         {
@@ -110,9 +110,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             if (height - offset <
                 App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount &&
                 currentItemGroupIndex < playListObject.MusicsCount - 1)
-            {
                 await LoadMusicItemsByGroup();
-            }
         }
     }
 
@@ -143,10 +141,8 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     private async void PlayAll()
     {
         if (playListObject.Musics.Count != playListObject.MusicTrackIds.Length)
-        {
             // +1到达最后一个歌曲
             await playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
-        }
 
         PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
     }
@@ -162,17 +158,6 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
     }
 
-    public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
-    {
-        var listView = sender as ListView;
-        if (listView.SelectedItem is MusicItem item)
-        {
-            PlayQueue.Instance.Play(item.Music);
-            if (PlayQueue.Instance.Count == 0)
-            {
-                //TODO: 设置是否将歌曲添加到播放队列
-                PlayAll();
-            }
-        }
-    }
+
+    
 }

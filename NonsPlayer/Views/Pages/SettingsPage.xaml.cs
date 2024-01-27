@@ -18,10 +18,10 @@ public sealed partial class SettingsPage : Page
     [RelayCommand]
     private async void Test()
     {
-        ContentDialog dialog = new ContentDialog();
+        var dialog = new ContentDialog();
 
         // XamlRoot must be set in the case of a ContentDialog running in a Desktop app
-        dialog.XamlRoot = this.XamlRoot;
+        dialog.XamlRoot = XamlRoot;
         dialog.Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style;
         dialog.Title = "Test";
         dialog.PrimaryButtonText = "Got it";

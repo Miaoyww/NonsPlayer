@@ -1,6 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using System.Windows.Forms;
-using Application = Microsoft.UI.Xaml.Application;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
@@ -11,17 +9,13 @@ using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Services;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using NonsPlayer.Heplers;
 using NonsPlayer.Models;
 using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
-using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
-using Windows.Win32;
-using Windows.Win32.Foundation;
-using Windows.Win32.UI.Input.KeyboardAndMouse;
 using WinRT;
+using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
 
 namespace NonsPlayer;
 
@@ -77,11 +71,12 @@ public partial class App : Application
                 services.AddTransient<RecommendedPlaylistCardViewModel>();
                 services.AddTransient<UserPlaylistCardViewModel>();
                 services.AddTransient<PlayerBarViewModel>();
-                services.AddTransient<FunctionBarViewModel>();
+                services.AddTransient<UserPlaylistBarViewModel>();
                 services.AddTransient<PlayQueueBarViewModel>();
                 services.AddTransient<PlayQueueItemCardViewModel>();
                 services.AddTransient<BestMusicCardViewModel>();
                 services.AddTransient<BestArtistCardViewModel>();
+                services.AddTransient<MusicListBarViewModel>();
                 // Configuration
                 services.Configure<LocalSettingsOptions>(
                     context.Configuration.GetSection(nameof(LocalSettingsOptions)));
@@ -128,6 +123,13 @@ public partial class App : Application
 
 public static class WindowExtensions
 {
+    public static IntPtr GetWindowHandle(this Window window)
+    {
+        return window is null
+            ? throw new ArgumentNullException(nameof(window))
+            : window.As<IWindowNative>().WindowHandle;
+    }
+
     // https://www.sharpgis.net/post/Using-the-CWin32-code-generator-to-enhance-your-WinUI-3-app
     [ComImport]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -136,7 +138,4 @@ public static class WindowExtensions
     {
         IntPtr WindowHandle { get; }
     }
-
-    public static IntPtr GetWindowHandle(this Microsoft.UI.Xaml.Window window)
-        => window is null ? throw new ArgumentNullException(nameof(window)) : window.As<IWindowNative>().WindowHandle;
 }

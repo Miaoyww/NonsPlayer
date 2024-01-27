@@ -1,82 +1,94 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
-using F23.StringSimilarity;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Newtonsoft.Json.Linq;
+using NonsPlayer.Components.Models;
+using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Adapters;
 using NonsPlayer.Core.Api;
-using NonsPlayer.Core.Enums;
-using NonsPlayer.Core.Helpers;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
+
 
 namespace NonsPlayer.ViewModels;
 
-public class SearchViewModel : ObservableRecipient, INavigationAware
+public partial class SearchViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
     private string queryKey;
+    public ObservableCollection<MusicItem> MusicItems = new();
+    [ObservableProperty] private Artist[] artists;
+    [ObservableProperty] private Playlist[] playlists;
 
-    public async void OnNavigatedTo(object parameter)
+    public void OnNavigatedTo(object parameter)
     {
         queryKey = (parameter as string).ToLower();
-        await Search(queryKey).ConfigureAwait(false);
+        Search(queryKey).ConfigureAwait(false);
     }
 
     public void OnNavigatedFrom()
     {
     }
 
-
-    private void QuickSortAlgorithm(List<Tuple<SearchDataType, Tuple<double, JObject>>> data, int low, int high)
+    public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
     {
-        if (low < high)
+        var listView = sender as ListView;
+        if (listView.SelectedItem is MusicItem item)
         {
-            var pivotIndex = Partition(data, low, high);
-            QuickSortAlgorithm(data, low, pivotIndex - 1);
-            QuickSortAlgorithm(data, pivotIndex + 1, high);
+            PlayQueue.Instance.Play(item.Music);
         }
-    }
-
-    private int Partition(List<Tuple<SearchDataType, Tuple<double, JObject>>> data, int low, int high)
-    {
-        double pivotValue = data[high].Item2.Item1;
-        int i = low - 1;
-
-        for (int j = low; j < high; j++)
-        {
-            if (data[j].Item2.Item1 < pivotValue)
-            {
-                i++;
-                Swap(data, i, j);
-            }
-        }
-
-        Swap(data, i + 1, high);
-        return i + 1;
-    }
-
-    private void Swap(List<Tuple<SearchDataType, Tuple<double, JObject>>> data, int i, int j)
-    {
-        (data[i], data[j]) = (data[j], data[i]);
-    }
-
-
-    private Tuple<SearchDataType, Tuple<double, JObject>> ParseResult(SearchDataType type, string name,
-        JObject originalJObject)
-    {
-        var l = new Levenshtein();
-        return new Tuple<SearchDataType, Tuple<double, JObject>>
-        (
-            type,
-            new Tuple<double, JObject>(l.Distance(name, queryKey.ToLower()), originalJObject)
-        );
     }
 
     public async Task Search(string key)
     {
-        var result = await Apis.Search.Default(key, 1, 1, NonsCore.Instance);
-        SearchHelper.Instance.BestMusicResult =
-            await MusicAdapters.CreateById(result["result"]["songs"][0]["id"].ToObject<long>());
+        var searcher = await CacheHelper.GetSearchResultAsync(GetB64(key), key);
+        await Task.WhenAll(
+            searcher.SearchMusics(),
+            searcher.SearchArtists(),
+            searcher.SearchPlaylists());
+        SearchHelper.Instance.BestMusicResult = searcher.Musics[0];
+        Artists = searcher.Artists;
+        Playlists = searcher.Playlists;
+        for (var i = 0; i < searcher.Musics.Count(); i++)
+        {
+            var index = i;
+            if (index < App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount)
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                {
+                    MusicItems.Add(new MusicItem
+                    {
+                        Music = searcher.Musics[index],
+                        Index = (index + 1).ToString("D2")
+                    });
+                });
+        }
+    }
+
+    public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
+    {
+        //
+        // if (sender is ScrollViewer scrollViewer)
+        // {
+        //     var offset = scrollViewer.VerticalOffset;
+        //
+        //     var height = scrollViewer.ScrollableHeight;
+        //     if (height - offset <
+        //         App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount &&
+        //         currentItemGroupIndex < playListObject.MusicsCount - 1)
+        //         await LoadMusicItemsByGroup();
+        // }
+    }
+
+    private string GetB64(string kyw)
+    {
+        return Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(kyw)));
     }
 }

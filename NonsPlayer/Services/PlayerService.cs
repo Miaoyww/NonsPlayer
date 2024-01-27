@@ -1,9 +1,7 @@
-﻿using System.Windows.Input;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
-using NonsPlayer.Models;
 using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Services;
@@ -23,7 +21,7 @@ public partial class PlayerService
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateModel.Instance.IsPlaying = isPlaying; });
     }
-    
+
     public void OnPositionChanged(TimeSpan position)
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
@@ -39,7 +37,10 @@ public partial class PlayerService
     }
 
     [RelayCommand]
-    public void Play() => Player.Instance.Play();
+    public void Play()
+    {
+        Player.Instance.Play();
+    }
 
     [RelayCommand]
     private void Mute()
@@ -56,8 +57,14 @@ public partial class PlayerService
     }
 
     [RelayCommand]
-    private void PreviousMusic() => PlayQueue.Instance.PlayPrevious(true);
+    private void PreviousMusic()
+    {
+        PlayQueue.Instance.PlayPrevious(true);
+    }
 
     [RelayCommand]
-    private void NextMusic() => PlayQueue.Instance.PlayNext(true);
+    private void NextMusic()
+    {
+        PlayQueue.Instance.PlayNext(true);
+    }
 }

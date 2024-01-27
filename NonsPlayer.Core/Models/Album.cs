@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Contracts.Models;
 
 namespace NonsPlayer.Core.Models;

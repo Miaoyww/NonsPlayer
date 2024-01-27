@@ -1,5 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
@@ -15,10 +15,12 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
     [ObservableProperty] private string index;
     [ObservableProperty] private bool isInitCover;
     [ObservableProperty] private bool liked;
+    [ObservableProperty] private string trans;
+    [ObservableProperty] private Visibility transVisibility;
     public Music Music;
     [ObservableProperty] private string name;
     [ObservableProperty] private string time;
-    
+
     public void Init(Music music)
     {
         Music = music;
@@ -26,6 +28,16 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         Time = Music.TotalTimeString;
         Album = Music.AlbumName;
         Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
+        Trans = $"({Music.Trans})";
+        if (Music.Trans.Equals(string.Empty))
+        {
+            TransVisibility = Visibility.Collapsed;
+        }
+        else
+        {
+            TransVisibility = Visibility.Visible;
+        }
+
         Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
         InitCover().ConfigureAwait(false);
         FavoritePlaylistService.Instance.LikeSongsChanged += () =>
@@ -37,6 +49,7 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
             });
         };
     }
+
     public async Task InitCover()
     {
         var temp = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl)

@@ -5,14 +5,11 @@ namespace NonsPlayer.Views.Pages;
 
 public sealed partial class LyricPage : Page
 {
-    public LyricViewModel ViewModel
-    {
-        get;
-    }
-
     public LyricPage()
     {
         ViewModel = App.GetService<LyricViewModel>();
         InitializeComponent();
     }
+
+    public LyricViewModel ViewModel { get; }
 }

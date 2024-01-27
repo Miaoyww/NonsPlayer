@@ -1,13 +1,10 @@
-using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using NonsPlayer.Models;
 using NonsPlayer.ViewModels;
-using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.Components.Views;
 

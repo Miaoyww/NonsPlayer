@@ -1,25 +1,19 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
-using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
-using NonsPlayer.Models;
 
 namespace NonsPlayer.Components.ViewModels;
 
 [INotifyPropertyChanged]
 public partial class BestMusicCardViewModel
 {
-    [ObservableProperty] private long? id;
-    [ObservableProperty] private string title;
-    [ObservableProperty] private string subtitle;
     [ObservableProperty] private ImageBrush cover;
+    [ObservableProperty] private long? id;
+    [ObservableProperty] private string subtitle;
+    [ObservableProperty] private string title;
 
     public BestMusicCardViewModel()
     {

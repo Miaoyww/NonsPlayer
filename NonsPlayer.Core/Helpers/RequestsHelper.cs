@@ -24,7 +24,7 @@ public static class HttpRequest
     public static JObject? JObjectHttpGet(Stream stream)
     {
         var objReader = new StreamReader(stream);
-        return (JObject) JsonConvert.DeserializeObject(objReader.ReadLine());
+        return (JObject)JsonConvert.DeserializeObject(objReader.ReadLine());
     }
 
     public static JObject? GetJson(string url)

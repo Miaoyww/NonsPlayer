@@ -7,7 +7,6 @@ using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
 using NonsPlayer.Helpers;
-using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
@@ -24,19 +23,17 @@ public partial class HomeViewModel : ObservableRecipient
 
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
     {
-        var response = await Apis.Playlist.Personalized(
+        var response = await Apis.Recommend.Playlist(
                 NonsCore.Instance,
                 App.GetService<ILocalSettingsService>().GetOptions().RecommendedPlaylistCount)
             .ConfigureAwait(false);
-        if ((int) response["code"] != 200)
+        if ((int)response["code"] != 200)
             //TODO: 处理此错误
             return;
 
-        var playlists = (JArray) response["result"];
+        var playlists = (JArray)response["result"];
         foreach (var item in playlists.Select(item =>
-                     CacheHelper.GetPlaylistCard(item["id"] + "_playlist", (JObject) item)))
-        {
+                     CacheHelper.GetPlaylistCard(item["id"] + "_playlist", (JObject)item)))
             ServiceHelper.DispatcherQueue.TryEnqueue(() => { RecommendedPlaylist.Add(item); });
-        }
     }
 }

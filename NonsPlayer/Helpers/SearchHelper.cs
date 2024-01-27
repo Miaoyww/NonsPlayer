@@ -1,29 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
-using Newtonsoft.Json.Linq;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using NonsPlayer.Core.Models;
 
-namespace NonsPlayer.Helpers
+namespace NonsPlayer.Helpers;
+
+[INotifyPropertyChanged]
+public partial class SearchHelper
 {
-    [INotifyPropertyChanged]
-    public partial class SearchHelper
+    public delegate void BestMusicResultChangedHandler(Music value);
+
+    [ObservableProperty] private Music bestMusicResult;
+    public static SearchHelper Instance { get; set; } = new();
+
+    public event BestMusicResultChangedHandler BestMusicResultChanged;
+
+    partial void OnBestMusicResultChanged(Music value)
     {
-        public static SearchHelper Instance { get; set; } = new();
-        [ObservableProperty] private Music bestMusicResult;
-
-        public delegate void BestMusicResultChangedHandler(Music value);
-
-        public event BestMusicResultChangedHandler BestMusicResultChanged;
-
-        partial void OnBestMusicResultChanged(Music value)
-        {
-            BestMusicResultChanged(value);
-        }
+        BestMusicResultChanged(value);
     }
-
-
 }

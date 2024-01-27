@@ -1,7 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Core.Helpers;
 
 namespace NonsPlayer.Core.Models;
 
@@ -12,7 +11,7 @@ public class LyricGroup
     public LyricGroup(JObject lrc)
     {
         Lyrics = new List<Lyric>();
-        Tuple<TimeSpan, string>[] oArray = ParseLrc(lrc["lrc"]["lyric"].ToString());
+        var oArray = ParseLrc(lrc["lrc"]["lyric"].ToString());
         Tuple<TimeSpan, string>[]? tArray = null;
         Dictionary<TimeSpan, int> timeSpanTable = new();
         foreach (var item in lrc["lrc"]["lyric"].ToString().Split("\n"))
@@ -21,13 +20,9 @@ public class LyricGroup
             try
             {
                 if (item.Contains("{"))
-                {
                     newLyric = JObject.Parse(item);
-                }
                 else
-                {
                     continue;
-                }
             }
             catch (Exception e)
             {
@@ -42,23 +37,19 @@ public class LyricGroup
         if (lrc.Property("tlyric") != null)
         {
             tArray = ParseLrc(lrc["tlyric"]["lyric"].ToString());
-            for (int i = 0; i < tArray.Length; i++)
+            for (var i = 0; i < tArray.Length; i++)
             {
                 var item = tArray[i];
                 timeSpanTable[item.Item1] = i;
             }
         }
-        
+
         foreach (var item in oArray)
         {
             var tLyric = string.Empty;
             if (tArray != null)
-            {
                 if (timeSpanTable.TryGetValue(item.Item1, out var index))
-                {
                     tLyric = tArray[index].Item2;
-                }
-            }
 
             Lyrics.Add(new Lyric(item.Item2, tLyric, item.Item1));
         }
@@ -75,14 +66,10 @@ public class LyricGroup
             var item = match[i];
             TimeSpan time;
             if (item.Groups[1].Value == "99:00.00")
-            {
                 // 纯音乐或无歌词
                 time = TimeSpan.MaxValue;
-            }
             else
-            {
                 time = TimeSpan.Parse("00:" + item.Groups[1].Value);
-            }
 
             var word = item.Groups[2].Value;
             result[i] = new Tuple<TimeSpan, string>(time, word);

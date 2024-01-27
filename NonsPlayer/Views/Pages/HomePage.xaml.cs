@@ -17,11 +17,11 @@ public sealed partial class HomePage : Page
 
     private void CardHide(object sender, PointerRoutedEventArgs e)
     {
-        AnimationsHelper.CardHide(sender, e);
+        AnimationHelper.CardHide(sender, e);
     }
 
     private void CardShow(object sender, PointerRoutedEventArgs e)
     {
-        AnimationsHelper.CardShow(sender, e);
+        AnimationHelper.CardShow(sender, e);
     }
 }
