@@ -5,7 +5,7 @@
 
 # NonsPlayer
 
-![.net](https://img.shields.io/badge/C%23-.net6.0-orange)
+![.net](https://img.shields.io/badge/C%23-.net7.0-orange)
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
 ![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl)
 
@@ -41,6 +41,7 @@
 选择 `根据证书类型自动..` 接着下一步, 然后完成即可.
 双击打开`msix` 文件, 然后点击安装即可.
 
+**需要[.net7.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/7.0)**
 # 🧭开发指南
 
 ## 环境

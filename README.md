@@ -5,11 +5,11 @@
 
 # NonsPlayer
 
-![.net](https://img.shields.io/badge/C%23-.net6.0-orange)
+![.net](https://img.shields.io/badge/C%23-.net7.0-orange)
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
 ![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl)
 
-A music player that allows you to remote control it.
+A music player that can be controlled remotely
 
 ![Alt](https://repobeats.axiom.co/api/embed/104248b2c1f2c27f8f5b29df5ab1ab2a4269ed96.svg "Repobeats analytics image")
 
@@ -44,7 +44,7 @@ certificate.
 
 After installed the cer, double click the `msix` file and press Install Button and then You can use it!
 
-**Require[.net6.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/6.0)**
+**Require[.net7.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/7.0)**
 
 # 🧭Development
 
@@ -79,7 +79,7 @@ Welcome **Issues** and **Pull Request**!
 
 # 📜Open Source License
 
-Copyright Miaomiaoywww 2022.
+Copyright Miaomiaoywww 2022.  
 
 Distributed under the terms of
 the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
