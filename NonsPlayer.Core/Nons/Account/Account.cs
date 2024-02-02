@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Helpers;
@@ -43,17 +44,17 @@ public class Account
 
     public static Account Instance { get; } = new();
 
-    public void LoginByToken(string token)
+    public async Task LoginByToken(string token)
     {
         var result = Encrypt(token);
 
         RegHelper.Instance.Set(RegHelper.Regs.AccountToken, result[0]);
         RegHelper.Instance.Set(RegHelper.Regs.AccountTokenMd5, result[1]);
         Token = token;
-        InitAccount();
+        await InitAccount();
     }
 
-    public void LoginByReg()
+    public async Task LoginByReg()
     {
         // 读取注册表中的Token，若存在进行登陆操作，否则return
         var data = (string)RegHelper.Instance.Get(RegHelper.Regs.AccountToken, string.Empty);
@@ -65,20 +66,24 @@ public class Account
         var result = Encoding.UTF8.GetString(dataBytes);
 
         if (Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(result))).Equals(_tokenMd5))
-            LoginByToken(result);
+        {
+            await LoginByToken(result);
+        }
     }
 
     public void LogOut()
     {
         RegHelper.Instance.Set(RegHelper.Regs.AccountToken, "");
         RegHelper.Instance.Set(RegHelper.Regs.AccountTokenMd5, "");
+        Token = string.Empty;
+        _tokenMd5 = string.Empty;
     }
 
-    public async void InitAccount()
+    public async Task InitAccount()
     {
         var result = await Apis.User.Account(NonsCore.Instance);
-        if (result is null) throw new LoginFailureException("登陆token错误");
-
+        if (result["account"].Next is null) throw new LoginFailureException("登陆token错误");
+        
         Uid = result["profile"]["userId"].ToString();
         Name = result["profile"]["nickname"].ToString();
         FaceUrl = result["profile"]["avatarUrl"].ToString();

@@ -7,6 +7,10 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
+using static NonsPlayer.Views.ShellPage;
+using NonsPlayer.Core.Exceptions;
+using NonsPlayer.Core.Nons.Account;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.Views;
 
@@ -33,12 +37,16 @@ public sealed partial class ShellPage : Page
 
     public PlayQueueBarViewModel PlayQueueBarViewModel { get; }
 
+    public delegate void ShellViewDialogShowEventHandler();
+
+    public event ShellViewDialogShowEventHandler OnDialogShowCall;
+
     public void OnOpenPlayQueueButton_Click(object? sender, EventArgs e)
     {
         PlayQueueBar.IsPaneOpen = !PlayQueueBar.IsPaneOpen;
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         TitleBarHelper.UpdateTitleBar(RequestedTheme);
 
@@ -50,6 +58,30 @@ public sealed partial class ShellPage : Page
         ShellMenuBarSettingsButton.AddHandler(PointerReleasedEvent,
             new PointerEventHandler(ShellMenuBarSettingsButton_PointerReleased), true);
         PlayQueue.Instance.CurrentMusicChanged += OnCurrentMusicChanged;
+        AccountService.Instance.UpdateInfo();
+
+        try
+        {
+            await Account.Instance.LoginByReg();
+        }
+        catch (LoginFailureException error)
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
+                Title = "错误",
+                PrimaryButtonText = "知道了",
+                CloseButtonText = "取消",
+                DefaultButton = ContentDialogButton.Primary,
+                Content = $"登录失败~ {error.Message}"
+            };
+            await dialog.ShowAsync();
+        }
+        finally
+        { 
+            Account.Instance.LogOut();
+        }
     }
 
     private void OnCurrentMusicChanged(Music value)
@@ -113,5 +145,21 @@ public sealed partial class ShellPage : Page
     private void ShellMenuBarSettingsButton_PointerExited(object sender, PointerRoutedEventArgs e)
     {
         AnimatedIcon.SetState((UIElement)sender, "Normal");
+    }
+
+    private async void OnOnDialogShowCall(string content)
+    {
+        OnDialogShowCall?.Invoke();
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
+            Title = "错误",
+            PrimaryButtonText = "知道了",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Primary,
+            Content = content
+        };
+        await dialog.ShowAsync();
     }
 }

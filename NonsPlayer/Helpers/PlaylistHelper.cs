@@ -30,7 +30,8 @@ public partial class UserPlaylistHelper
 
     public async void Init()
     {
-        var result = (JArray)(await Apis.User.Playlist(Account.Instance.Uid, NonsCore.Instance))["playlist"];
+        var test = (await Apis.User.Playlist(Account.Instance.Uid, NonsCore.Instance));
+        var result = (JArray)test["playlist"];
         UserPlaylistService.Instance.Init(result);
         foreach (var playlistItem in result)
             if (playlistItem["name"].ToString() == Account.Instance.Name + "喜欢的音乐")
