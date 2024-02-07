@@ -25,7 +25,8 @@ public static class MusicAdapters
                 .ToArray(),
             Trans = !((JArray)item["alia"]).Any()
                 ? (!item.ContainsKey("tns") ? string.Empty : item["tns"][0].ToString())
-                : item["alia"][0].ToString()
+                : item["alia"][0].ToString(),
+            ShareUrl = $"https://music.163.com/music/{(int)item["id"]}"
         };
     }
 

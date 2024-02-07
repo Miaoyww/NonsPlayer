@@ -13,13 +13,32 @@
             <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">
                 <Grid Margin="{StaticResource PageCommonMargin}">
                     <TextBlock Text="For you" FontWeight="Black" FontSize="30" Style="{StaticResource CommonTextStyle}" />
-                    <Border x:Name="b_dailyMusic" PointerEntered="{x:Bind CardShow}" PointerExited="{x:Bind CardHide}"
-                            HorizontalAlignment="Left" CornerRadius="15" Background="White" Opacity="0.8" Width="500"
-                            Height="200" Margin="0,70,0,0">
-                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="每日单曲推荐"
-                                   Foreground="Black" FontWeight="Bold" FontSize="30"
-                                   Style="{StaticResource CommonTextStyle}" />
-                    </Border>
+                    <GridView Name="ForYou"
+                              SelectionMode="None"
+                              HorizontalAlignment="Left" Margin="0,40,0,0">
+                        <Border Name="DailyMusic"
+                                CornerRadius="0" Background="White"
+                                BorderBrush="SkyBlue" BorderThickness="0,0,0,2"
+                                Opacity="0.8" Width="400"
+                                Height="200" Margin="0,70,0,0">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                           Text="每日"
+                                           Foreground="Black" CharacterSpacing="300"  FontWeight="Bold" FontSize="30"
+                                           Style="{StaticResource CommonTextStyle}" />
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                           Text="单曲推荐"
+                                           Foreground="Black" CharacterSpacing="300"  FontWeight="Bold" FontSize="30"
+                                           Style="{StaticResource CommonTextStyle}"/>
+                            </StackPanel>
+
+                        </Border>
+                        <StackPanel Margin="0,70,0,0">
+
+                        </StackPanel>
+                        
+                    </GridView>
+     
                 </Grid>
                 <Grid Margin="0,60,0,80">
                     <TextBlock Text="推荐歌单" FontWeight="Black" FontSize="25" Style="{StaticResource CommonTextStyle}" />

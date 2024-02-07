@@ -82,7 +82,7 @@ public class Account
     public async Task InitAccount()
     {
         var result = await Apis.User.Account(NonsCore.Instance);
-        if (result["account"].Next is null) throw new LoginFailureException("登陆token错误");
+        if (result["account"].First == null) throw new LoginFailureException("登陆token错误");
         
         Uid = result["profile"]["userId"].ToString();
         Name = result["profile"]["nickname"].ToString();

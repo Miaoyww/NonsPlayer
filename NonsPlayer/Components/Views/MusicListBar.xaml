@@ -39,6 +39,17 @@
                         Index="{x:Bind Index}" />
                 </DataTemplate>
             </ListView.ItemTemplate>
+            <ListView.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Text="下一首播放" Icon="Play" />
+                    <MenuFlyoutItem Text="查看艺术家" Icon="Contact" />
+                    <MenuFlyoutItem Text="查看专辑" Icon="MusicAlbum" />
+                    <MenuFlyoutSubItem Text="分享" Icon="Share">
+                        <MenuFlyoutItem Text="复制链接" Icon="Link" Command="{x:Bind ViewModel.CopyShareUrlCommand}"/>
+                        <MenuFlyoutItem Text="复制信息" Icon="MusicInfo" />
+                    </MenuFlyoutSubItem>
+                </MenuFlyout>
+            </ListView.ContextFlyout>
         </ListView>
     </Grid>
 </UserControl>

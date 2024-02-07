@@ -16,7 +16,8 @@ public class PlayQueue
         Sequential, //顺序播放
         Random, //随机播放
         SingleLoop, //单曲循环
-        ListLoop //列表循环
+        ListLoop, //列表循环
+        Recommend
     }
 
     private Music _currentMusic;
@@ -79,7 +80,8 @@ public class PlayQueue
             PlayModeEnum.Sequential => PlayModeEnum.Random,
             PlayModeEnum.Random => PlayModeEnum.SingleLoop,
             PlayModeEnum.SingleLoop => PlayModeEnum.ListLoop,
-            PlayModeEnum.ListLoop => PlayModeEnum.Sequential,
+            PlayModeEnum.ListLoop => PlayModeEnum.Recommend,
+            PlayModeEnum.Recommend => PlayModeEnum.Sequential,
             _ => PlayModeEnum.Sequential
         };
         // 如果模式是随机播放，调用GetRandomList方法
