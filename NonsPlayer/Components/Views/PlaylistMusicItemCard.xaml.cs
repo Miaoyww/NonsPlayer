@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
@@ -74,4 +75,5 @@ public sealed partial class PlaylistMusicItemCard : UserControl
             await dialog.ShowAsync();
         }
     }
+
 }

@@ -1,8 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using Windows.ApplicationModel.DataTransfer;
@@ -52,6 +54,34 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         };
     }
 
+    [RelayCommand]
+    public void PlayNext()
+    {
+        PlayQueue.Instance.AddNext(Music);
+    }
+
+    [RelayCommand]
+    public void CheckAlbum()
+    {
+    }
+
+    [RelayCommand]
+    public void CheckArtist()
+    {
+    }
+
+    [RelayCommand]
+    public void CopyShareUrl()
+    {
+        var data = new DataPackage();
+        data.SetText(Music.ShareUrl);
+        Clipboard.SetContent(data);
+    }
+
+    public void Play(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        PlayQueue.Instance.Play(Music);
+    }
 
     public async Task InitCover()
     {

@@ -9,7 +9,22 @@
     <UserControl.Resources>
         <helpers:LikeIconConverter x:Key="LikeIconConverter" />
     </UserControl.Resources>
-    <Grid>
+    <Grid Background="Transparent" DoubleTapped="{x:Bind ViewModel.Play}">
+        <Grid.ContextFlyout>
+            <MenuFlyout>
+                <MenuFlyoutItem Text="下一首播放" Icon="Play" Command="{x:Bind ViewModel.PlayNextCommand}" />
+                <MenuFlyoutItem Text="查看艺术家" Icon="Contact" Command="{x:Bind ViewModel.CheckArtistCommand}" />
+                <MenuFlyoutItem Text="查看专辑" Command="{x:Bind ViewModel.CheckAlbumCommand}">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE93C;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutSubItem Text="分享" Icon="Share">
+                    <MenuFlyoutItem Text="复制链接" Icon="Link" Command="{x:Bind ViewModel.CopyShareUrlCommand}" />
+                    <MenuFlyoutItem Text="复制信息" Icon="MusicInfo" />
+                </MenuFlyoutSubItem>
+            </MenuFlyout>
+        </Grid.ContextFlyout>
         <Border BorderThickness="0" CornerRadius="10"
                 Margin="0,5,30,5" HorizontalAlignment="Stretch">
             <Grid>
@@ -35,7 +50,7 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="NameTextBlock"  Text="{x:Bind ViewModel.Name, Mode=OneWay}"
+                        <TextBlock Grid.Column="0" Name="NameTextBlock" Text="{x:Bind ViewModel.Name, Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top"
                                    FontWeight="Black" FontSize="15" FontFamily="HarmonyOS Sans SC" MaxLines="2"
                                    TextTrimming="WordEllipsis" TextWrapping="Wrap" />
