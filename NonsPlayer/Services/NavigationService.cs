@@ -14,6 +14,9 @@ public class NavigationService : INavigationService
     private readonly IPageService _pageService;
     private Frame? _frame;
     private object? _lastParameterUsed;
+    private object? _lastParameter;
+
+    public string LastPage { get; set; }
 
     public NavigationService(IPageService pageService)
     {
@@ -60,7 +63,7 @@ public class NavigationService : INavigationService
         return false;
     }
 
-    public bool NavigateTo(string pageKey, object? parameter = null, bool clearNavigation = false)
+    public bool NavigateTo(string pageKey, object? parameter = null, bool clearNavigation = false, bool isBack = false)
     {
         var pageType = _pageService.GetPageType(pageKey);
 
@@ -75,7 +78,6 @@ public class NavigationService : INavigationService
                 _lastParameterUsed = parameter;
                 if (vmBeforeNavigation is INavigationAware navigationAware) navigationAware.OnNavigatedFrom();
             }
-
             return navigated;
         }
 

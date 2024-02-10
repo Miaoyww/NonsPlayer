@@ -6,9 +6,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Loaded="PlayQueueItemCard_OnLoaded">
-    <Grid>
+    <Grid Background="Transparent" DoubleTapped="Play">
         <Border BorderThickness="0" CornerRadius="10"
-                PointerPressed="{x:Bind Play}"
                 Margin="0,5,30,5" HorizontalAlignment="Stretch">
             <Grid>
                 <Grid.ColumnDefinitions>

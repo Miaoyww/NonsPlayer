@@ -94,10 +94,13 @@
                     <Button Name="Lyric" Command="{x:Bind OpenLyricCommand}"
                             Height="25" Width="25" Padding="0"
                             Background="Transparent" BorderThickness="0">
-                        <TextBlock Text="词"
+                        <TextBlock Text="词" 
                                    Style="{StaticResource CommonTextStyle}"
                                    Opacity="0.9" FontWeight="Medium" Padding="0"
                                    Margin="0,0,0,0.5" />
+                        <!-- 
+                        TODO: 把Lyric界面做成类似于PlayQueue样式的版本
+                        -->
                     </Button>
                     <Button Name="PlayQueue" Command="{x:Bind OpenPlayQueueBarCommand}"
                             Width="25" Height="25" Margin="0" Background="Transparent"

@@ -29,13 +29,4 @@ public sealed partial class MusicListBar : UserControl
     }
 
     public MusicListBarViewModel ViewModel { get; }
-
-    public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
-    {
-        var listView = sender as ListView;
-        if (listView.SelectedItem is MusicItem item)
-        {
-            PlayQueue.Instance.Play(item.Music);
-        }
-    }
 }

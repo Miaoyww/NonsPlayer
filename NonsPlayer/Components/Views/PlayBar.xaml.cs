@@ -5,6 +5,7 @@ using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
+using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.Components.Views;
 
@@ -23,6 +24,11 @@ public sealed partial class PlayBar : UserControl
     [RelayCommand]
     public void OpenLyric()
     {
+        // if (ServiceHelper.NavigationService.Frame.Content.GetType().ToString() == typeof(LyricPage)?.FullName)
+        // {
+        //     ServiceHelper.NavigationService.NavigateTo(ServiceHelper.NavigationService.LastPage, isBack: true);
+        //     return;
+        // }
         ServiceHelper.NavigationService.NavigateTo(typeof(LyricViewModel)?.FullName);
     }
 

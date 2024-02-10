@@ -24,10 +24,11 @@ public partial class ShellViewModel : ObservableRecipient
 {
     private bool _isBackEnabled;
 
+    public static INavigationService OutNavigationService;
     public ShellViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
-        ServiceHelper.NavigationService = navigationService;
+        OutNavigationService = NavigationService;
         NavigationService.Navigated += OnNavigated;
     }
 
@@ -108,16 +109,11 @@ public partial class PlayQueueBarViewModel
     public PlayQueueBarViewModel()
     {
         PlayQueue.Instance.MusicAdded += OnMusicAdded;
-        PlayQueue.Instance.PlaylistAdded += OnPlaylistAdded;
         MusicItems.CollectionChanged += OnCollectionChanged;
+        PlayQueue.Instance.CurrentQueueChanged += InstanceOnCurrentQueueChanged;
     }
 
-    public void OnCollectionChanged(object? sender, EventArgs e)
-    {
-        Count = MusicItems.Count;
-    }
-
-    public void OnPlaylistAdded()
+    private void InstanceOnCurrentQueueChanged()
     {
         MusicItems.Clear();
         PlayQueue.Instance.MusicList.ForEach(item =>
@@ -129,17 +125,16 @@ public partial class PlayQueueBarViewModel
         });
     }
 
-    public void OnMusicAdded(Music value)
+    public void OnCollectionChanged(object? sender, EventArgs e)
     {
-        MusicItems.Insert(PlayQueue.Instance.GetIndex(value), new MusicItem
-        {
-            Music = value
-        });
+        Count = MusicItems.Count;
     }
 
-    public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
+    public void OnMusicAdded(Music value)
     {
-        var listView = sender as ListView;
-        if (listView.SelectedItem is MusicItem item) PlayQueue.Instance.Play(item.Music);
+        // MusicItems.Insert(PlayQueue.Instance.GetIndex(value), new MusicItem
+        // {
+        //     Music = value
+        // });
     }
 }

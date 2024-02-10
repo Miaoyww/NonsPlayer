@@ -5,6 +5,7 @@ namespace NonsPlayer.Core.Nons.Player;
 
 public class PlayQueue
 {
+    public delegate void PlayQueueChangedHandler();
     public delegate void CurrentMusicChangedEventHandler(Music value);
 
     public delegate void MusicAddedEventHandler(Music value);
@@ -30,6 +31,19 @@ public class PlayQueue
         PlayMode = PlayModeEnum.ListLoop;
         Player.Instance.OutputDevice.PlaybackStopped += OnMusicStopped;
         CurrentMusicChanged += OnCurrentMusicChanged;
+        MusicAdded += OnMusicAdded;
+        PlaylistAdded += OnPlaylistAdded;
+    }
+
+    private void OnPlaylistAdded()
+    {
+        CurrentQueueChanged?.Invoke();
+    }
+
+    private void OnMusicAdded(Music value)
+    {
+        CurrentQueueChanged?.Invoke();
+        
     }
 
     public static PlayQueue Instance { get; } = new();
@@ -53,6 +67,7 @@ public class PlayQueue
     public PlayModeEnum PlayMode { get; set; }
 
     public event CurrentMusicChangedEventHandler CurrentMusicChanged;
+    public event PlayQueueChangedHandler CurrentQueueChanged;
     public event MusicAddedEventHandler MusicAdded;
     public event PlaylistAddedEventHandler PlaylistAdded;
 
@@ -96,32 +111,67 @@ public class PlayQueue
         PlaylistAdded();
     }
 
-    public void AddMusic(Music music)
+    /// <summary>
+    /// 向正在播放的音乐后添加一歌曲
+    /// </summary>
+    /// <param name="music"></param>
+    public void AddNext(Music music)
     {
-        if (MusicList.Contains(music)) return;
-
-        if (MusicList.Count == 0)
+        if (MusicList.Contains(music))
         {
-            MusicList.Add(music);
-            MusicAdded(music);
+            var c = GetCurrentIndex();
+            var name = music.Name;
+            Remove(music);
+            Insert(GetCurrentIndex() + 1, music);
             return;
         }
 
-        MusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
-        MusicAdded(music);
+        if (MusicList.Count == 0)
+        {
+            Add(music);
+            MusicAdded?.Invoke(music);
+            return;
+        }
+
+        Insert(GetCurrentIndex() + 1, music);
+        MusicAdded?.Invoke(music);
         if (PlayMode is PlayModeEnum.Random) _randomMusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
     }
 
-    public void RemoveMusic(Music music)
+    private void _removeMusic(Music music)
     {
         MusicList.Remove(music);
         if (PlayMode is PlayModeEnum.Random) _randomMusicList.Remove(music);
+
     }
 
+    public void Add(Music music)
+    {
+        MusicList.Add(music);
+        CurrentQueueChanged?.Invoke();
+    }
+    public void Insert(int index, Music music)
+    {
+        MusicList.Insert(index, music);
+        CurrentQueueChanged?.Invoke();
+    }
+
+    public void RemoveAt(int index)
+    {
+        _removeMusic(MusicList[index]);
+        CurrentQueueChanged?.Invoke();
+    }
+
+    public void Remove(Music music)
+    {
+        _removeMusic(music);
+        CurrentQueueChanged?.Invoke();
+    }
     public void Clear()
     {
         MusicList.Clear();
         _randomMusicList.Clear();
+        CurrentQueueChanged?.Invoke();
     }
 
     public void Play(Music music)
@@ -133,7 +183,7 @@ public class PlayQueue
                 return;
             }
 
-        if (!MusicList.Contains(music)) AddMusic(music);
+        if (!MusicList.Contains(music)) AddNext(music);
 
 
         CurrentMusic = music;
@@ -184,6 +234,7 @@ public class PlayQueue
         return MusicList.IndexOf(music);
     }
 
+    public int GetCurrentIndex() => GetIndex(CurrentMusic);
     /// <summary>
     ///     获取随机播放列表
     /// </summary>

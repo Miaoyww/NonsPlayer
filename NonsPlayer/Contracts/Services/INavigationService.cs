@@ -9,9 +9,11 @@ public interface INavigationService
 
     Frame? Frame { get; set; }
 
+    string LastPage { get; set; }
+
     event NavigatedEventHandler Navigated;
 
-    bool NavigateTo(string pageKey, object? parameter = null, bool clearNavigation = false);
+    bool NavigateTo(string pageKey, object? parameter = null, bool clearNavigation = false, bool isBack = false);
 
     bool GoBack();
 }

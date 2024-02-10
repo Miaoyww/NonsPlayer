@@ -60,8 +60,9 @@ public sealed partial class PlayQueueItemCard : UserControl
         // }
     }
 
-    public void Play(object sender, PointerRoutedEventArgs e)
+
+    private void Play(object sender, DoubleTappedRoutedEventArgs e)
     {
-        PlayQueue.Instance.Play(Music);
+            PlayQueue.Instance.Play(Music);
     }
 }

@@ -20,14 +20,6 @@ public partial class MusicListBarViewModel : ObservableObject
     {
     }
 
-    [RelayCommand]
-    public void CopyShareUrl()
-    {
-        var data = new DataPackage();
-        data.SetText(MusicItems[0].Music.ShareUrl);
-        Clipboard.SetContent(data);
-    }
-
     public void UpdateMusicItems(ObservableCollection<MusicItem> items)
     {
         MusicItems = items;
