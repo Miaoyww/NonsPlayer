@@ -77,9 +77,6 @@ public sealed partial class ShellPage : Page
                 Content = $"登录失败~ {error.Message}"
             };
             await dialog.ShowAsync();
-        }
-        finally
-        { 
             Account.Instance.LogOut();
         }
     }
