@@ -69,7 +69,10 @@ public partial class App : Application
                 services.AddTransient<SearchPage>();
                 services.AddTransient<LyricViewModel>();
                 services.AddTransient<LyricPage>();
-
+                services.AddTransient<ArtistPage>();
+                services.AddTransient<ArtistViewModel>();
+                services.AddTransient<AlbumPage>();
+                services.AddTransient<AlbumViewModel>();
                 // Components Views and ViewModels
                 services.AddTransient<PlaylistMusicItemCardViewModel>();
                 services.AddTransient<RecommendedPlaylistCardViewModel>();

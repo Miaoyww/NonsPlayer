@@ -6,6 +6,9 @@ using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Helpers;
+using NonsPlayer.ViewModels;
+using NonsPlayer.Views;
 
 namespace NonsPlayer.Components.Views;
 
@@ -30,6 +33,21 @@ public sealed partial class PlaylistMusicItemCard : UserControl
     partial void OnMusicChanged(Music music)
     {
         ViewModel.Init(music);
+        for (int i = 0; i < Music.Artists.Length; i++)
+        {
+            CheckArtists.Items.Add(new MenuFlyoutItem()
+            {
+                Text = Music.Artists[i].Name,
+                Command = CheckArtistCommand,
+                CommandParameter = Music.Artists[i]
+            });
+        }
+    }
+
+    [RelayCommand]
+    public void CheckArtist(Artist artist)
+    {
+        ServiceHelper.NavigationService.NavigateTo(typeof(ArtistViewModel)?.FullName, artist);
     }
 
     partial void OnIsCoverInitChanged(bool isCoverInit)
@@ -75,5 +93,4 @@ public sealed partial class PlaylistMusicItemCard : UserControl
             await dialog.ShowAsync();
         }
     }
-
 }

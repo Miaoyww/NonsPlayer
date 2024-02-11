@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:helpers="using:NonsPlayer.Helpers"
+    xmlns:models="using:NonsPlayer.Components.Models"
     mc:Ignorable="d">
     <UserControl.Resources>
         <helpers:LikeIconConverter x:Key="LikeIconConverter" />
@@ -13,7 +14,8 @@
         <Grid.ContextFlyout>
             <MenuFlyout>
                 <MenuFlyoutItem Text="下一首播放" Icon="Play" Command="{x:Bind ViewModel.PlayNextCommand}" />
-                <MenuFlyoutItem Text="查看艺术家" Icon="Contact" Command="{x:Bind ViewModel.CheckArtistCommand}" />
+                <MenuFlyoutSubItem x:Name="CheckArtists" Text="查看艺术家" Icon="Contact"/>
+
                 <MenuFlyoutItem Text="查看专辑" Command="{x:Bind ViewModel.CheckAlbumCommand}">
                     <MenuFlyoutItem.Icon>
                         <FontIcon Glyph="&#xE93C;" />
@@ -21,7 +23,7 @@
                 </MenuFlyoutItem>
                 <MenuFlyoutSubItem Text="分享" Icon="Share">
                     <MenuFlyoutItem Text="复制链接" Icon="Link" Command="{x:Bind ViewModel.CopyShareUrlCommand}" />
-                    <MenuFlyoutItem Text="复制信息" Icon="MusicInfo" />
+                    <MenuFlyoutItem Text="复制信息" Icon="MusicInfo" Command="{x:Bind ViewModel.CopyMusicInfoCommand}"/>
                 </MenuFlyoutSubItem>
             </MenuFlyout>
         </Grid.ContextFlyout>

@@ -8,6 +8,7 @@ using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using Windows.ApplicationModel.DataTransfer;
+using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -32,6 +33,8 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         Time = Music.TotalTimeString;
         Album = Music.AlbumName;
         Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
+  
+
         Trans = $"({Music.Trans})";
         if (Music.Trans.Equals(string.Empty))
         {
@@ -63,13 +66,16 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
     [RelayCommand]
     public void CheckAlbum()
     {
+        ServiceHelper.NavigationService.NavigateTo(typeof(AlbumViewModel)?.FullName, Music.Album);
     }
 
     [RelayCommand]
-    public void CheckArtist()
+    public void CopyMusicInfo()
     {
+        var data = new DataPackage();
+        data.SetText($"Share music: {Music.Name} made by {Music.ArtistsName}");
+        Clipboard.SetContent(data);
     }
-
     [RelayCommand]
     public void CopyShareUrl()
     {
