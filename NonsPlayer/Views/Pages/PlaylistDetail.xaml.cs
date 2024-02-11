@@ -1,11 +1,19 @@
 ﻿using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
+using Windows.Storage.AccessCache;
+using Windows.Storage.Pickers;
+using Windows.Storage.Provider;
 using Windows.Storage.Streams;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
+using WinRT;
+using WinRT.Interop;
+using Buffer = Windows.Storage.Streams.Buffer;
 
 namespace NonsPlayer.Views;
 
@@ -26,14 +34,39 @@ public sealed partial class PlaylistDetailPage : Page
 
     public PlaylistDetailViewModel ViewModel { get; }
 
-    private void Cover_OnRightTapped(object sender, RightTappedRoutedEventArgs e)
+    [RelayCommand]
+    public async void SaveCover()
     {
-        ShowMenu(true, CoverFlyout, Cover);
-    }
 
-    private void Cover_OnContextRequested(UIElement sender, ContextRequestedEventArgs args)
-    {
-        ShowMenu(false, CoverFlyout, Cover);
+        FileSavePicker savePicker = new Windows.Storage.Pickers.FileSavePicker();
+        var window = App.MainWindow;
+        var hWnd = WindowNative.GetWindowHandle(window);
+        InitializeWithWindow.Initialize(savePicker, hWnd);
+        savePicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+        savePicker.FileTypeChoices.Add("图像文件", new List<string>() { ".jpg", ".png" });
+        savePicker.SuggestedFileName = ViewModel.CurrentId.ToString();
+        StorageFile file = await savePicker.PickSaveFileAsync();
+        if (file != null)
+        {
+            CachedFileManager.DeferUpdates(file);
+            using (var stream = await file.OpenStreamForWriteAsync())
+            {
+                using (var tw = new StreamWriter(stream))
+                {
+                    var content = (await CacheHelper.GetImageStreamFromServer(ViewModel.PlayListObject.AvatarUrl)).AsStream();
+                    var btArray = new byte[512];// 定义一个字节数据,用来向readStream读取内容和向writeStream写入内容
+                    var contentSize = await content.ReadAsync(btArray, 0, btArray.Length);// 向远程文件读第一次
+
+                    while (contentSize > 0)// 如果读取长度大于零则继续读
+                    {
+                        stream.Write(btArray, 0, contentSize);// 写入本地文件
+                        contentSize = await content.ReadAsync(btArray, 0, btArray.Length);// 继续向远程文件读取
+                    }
+                }
+            }
+
+        }
+
     }
 
     [RelayCommand]
@@ -42,7 +75,6 @@ public sealed partial class PlaylistDetailPage : Page
         var data = new DataPackage();
         data.SetBitmap(RandomAccessStreamReference.CreateFromUri(new Uri(ViewModel.PlayListObject.AvatarUrl)));
         Clipboard.SetContent(data);
-        ShowMenu(false, CoverFlyout, Cover);
     }
 
     [RelayCommand]

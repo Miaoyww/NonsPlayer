@@ -10,11 +10,7 @@
     mc:Ignorable="d">
     <Page.Resources>
         <helpers:LikeIconConverter x:Key="LikeIconConverter" />
-        <CommandBarFlyout Placement="Right" x:Name="CoverFlyout">
-            <AppBarButton Label="复制" Icon="Copy" ToolTipService.ToolTip="复制"
-                          Command="{x:Bind CopyCoverCommand}" />
-            <AppBarButton Label="保存" Icon="Save" ToolTipService.ToolTip="保存" />
-        </CommandBarFlyout>
+
     </Page.Resources>
     <Grid>
         <ScrollViewer ViewChanged="{x:Bind ViewModel.OnScrollViewerViewChanged}">
@@ -26,9 +22,15 @@
                 </Grid.RowDefinitions>
                 <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Top" Height="250">
                     <Border Name="Cover" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left"
-                            RightTapped="Cover_OnRightTapped" ContextRequested="Cover_OnContextRequested"
                             VerticalAlignment="Top" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
-                            CornerRadius="10,10,10,10" />
+                            CornerRadius="10,10,10,10" >
+                        <Border.ContextFlyout>
+                            <MenuBarItemFlyout Placement="Right" x:Name="CoverFlyout">
+                                <MenuFlyoutItem Text="复制" Icon="Copy" Command="{x:Bind CopyCoverCommand}" />
+                                <MenuFlyoutItem Text="保存" Icon="Save" Command="{x:Bind SaveCoverCommand}"/>
+                            </MenuBarItemFlyout>
+                        </Border.ContextFlyout>
+                    </Border>
                     <Grid Margin="30,-10,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />

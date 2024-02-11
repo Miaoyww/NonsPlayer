@@ -82,7 +82,7 @@ public static class CacheHelper
     {
         return (await GetCacheItemAsync(cacheId, async () => new ImageBrush
         {
-            ImageSource = await GetImageStreamFromServer(url)
+            ImageSource = await GetBitmapImageFromServer(url)
         })).Data;
     }
 
@@ -90,7 +90,7 @@ public static class CacheHelper
     {
         return (await UpdateCacheItem(cacheId, async () => new ImageBrush
         {
-            ImageSource = await GetImageStreamFromServer(url)
+            ImageSource = await GetBitmapImageFromServer(url)
         })).Data;
     }
 
@@ -143,7 +143,7 @@ public static class CacheHelper
             await SearchResult.CreateSearchAsync(keyWords)).Result.Data;
     }
 
-    public static async Task<BitmapImage> GetImageStreamFromServer(string imageUrl)
+    public static async Task<BitmapImage> GetBitmapImageFromServer(string imageUrl)
     {
         using (var httpClient = new HttpClient())
         {
@@ -169,6 +169,33 @@ public static class CacheHelper
                     await bitmap.SetSourceAsync(stream);
                     return bitmap;
                 }
+            }
+            catch (Exception ex)
+            {
+                // 处理异常
+                Console.WriteLine($"Error: {ex.Message}");
+                return null;
+            }
+        }
+    }
+
+    public static async Task<IRandomAccessStream> GetImageStreamFromServer(string imageUrl)
+    {
+        using (var httpClient = new HttpClient())
+        {
+            try
+            {
+                var response = await httpClient.GetAsync(imageUrl);
+                response.EnsureSuccessStatusCode();
+                var imageBytes = await response.Content.ReadAsByteArrayAsync();
+                var stream = new InMemoryRandomAccessStream();
+                using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
+                {
+                    writer.WriteBytes(imageBytes);
+                    await writer.StoreAsync();
+                }
+
+                return stream;
             }
             catch (Exception ex)
             {
