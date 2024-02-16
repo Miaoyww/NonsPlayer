@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
@@ -6,16 +7,32 @@ using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Services;
 
-public partial class PlayerService
+public partial class PlayerService : ObservableRecipient
 {
+    [ObservableProperty] private PlayQueue.PlayModeEnum currentPlayMode;
+    [ObservableProperty] private bool isShuffle;
+
     private PlayerService()
     {
+        PlayQueue.Instance.PlayModeChanged += OnPlayModeChanged;
+        PlayQueue.Instance.ShuffleChanged += OnShuffleChanged;
         Player.Instance.PlayStateChangedHandle += OnPlaystateChanged;
         Player.Instance.MusicChangedHandle += OnMusicChanged;
         Player.Instance.PositionChangedHandle += OnPositionChanged;
+        CurrentPlayMode = PlayQueue.PlayModeEnum.ListLoop; //TODO: 播放状态储存
     }
 
     public static PlayerService Instance { get; } = new();
+
+    private void OnPlayModeChanged(PlayQueue.PlayModeEnum mode)
+    {
+        CurrentPlayMode = mode;
+    }
+
+    private void OnShuffleChanged(bool value)
+    {
+        IsShuffle = value;
+    }
 
     public void OnPlaystateChanged(bool isPlaying)
     {

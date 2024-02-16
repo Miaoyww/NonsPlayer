@@ -3,7 +3,9 @@ using System.Text.Json.Serialization;
 using System.Timers;
 using NAudio.Utils;
 using NAudio.Wave;
+using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Models;
+using Exception = System.Exception;
 using Timer = System.Timers.Timer;
 
 namespace NonsPlayer.Core.Nons.Player;
@@ -39,7 +41,7 @@ public class Player
         timer.Elapsed += GetCurrentInfo;
         timer.Start();
         var dataWriter = new Timer();
-        dataWriter.Interval = 1000;
+        dataWriter.Interval = 100;
         timer.Elapsed += WriteCurrentInfo;
     }
 
@@ -48,11 +50,21 @@ public class Player
     [JsonPropertyName("position")]
     public TimeSpan Position
     {
-        get => OutputDevice.GetPositionTimeSpan();
+        get
+        {
+            try
+            {
+                var tempPosition = OutputDevice.GetPositionTimeSpan();
+                return tempPosition;
+            }
+            catch (Exception e)
+            {
+                return TimeSpan.Zero;
+            }
+        }
         set
         {
             if (_mfr == null) return;
-
             _mfr.CurrentTime = value;
         }
     }
@@ -106,7 +118,7 @@ public class Player
     ///     播放一个新的音乐
     /// </summary>
     /// <param name="music2play">即将播放的音乐</param>
-    public async void NewPlay(Music music2play)
+    public async Task NewPlay(Music music2play)
     {
         if (OutputDevice == null) OutputDevice = new WaveOutEvent();
         await Task.WhenAll(music2play.GetLyric(), music2play.GetFileInfo());
@@ -123,6 +135,11 @@ public class Player
             OutputDevice.Init(_mfr);
         }
 
+        if (music2play.Url == null)
+        {
+            throw new MusicUrlNullException($"此音乐{music2play.Name} - {music2play.ArtistsName}的Url为空,可能是音乐源");
+        }
+
         OutputDevice.Play();
         await Task.Run(async () =>
         {
@@ -135,14 +152,18 @@ public class Player
     ///     播放音乐
     /// </summary>
     /// <param name="rePlay">是否从头播放</param>
-    public void Play(bool rePlay = false)
+    public async void Play(bool rePlay = false)
     {
         if (CurrentMusic == null) return;
         try
         {
             if (rePlay)
             {
+                OutputDevice.Pause();
+                OutputDevice.Stop();
                 Position = TimeSpan.Zero;
+                PositionChangedHandle(TimeSpan.Zero);
+                await Task.Delay(500);
                 OutputDevice.Play();
                 PlayStateChangedHandle(true);
                 return;
