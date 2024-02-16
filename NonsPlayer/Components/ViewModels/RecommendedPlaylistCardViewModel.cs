@@ -1,7 +1,12 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Diagnostics;
+using Windows.ApplicationModel.DataTransfer;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels;
@@ -12,15 +17,44 @@ public partial class RecommendedPlaylistCardViewModel
     [ObservableProperty] private ImageBrush cover;
     [ObservableProperty] private string id;
     [ObservableProperty] private string title;
+    public Playlist CurrentPlaylist;
 
     public void Init(Playlist item)
     {
+        CurrentPlaylist = item;
         Id = item.Id.ToString();
         Title = item.Name;
         Cover = CacheHelper.GetImageBrush(item.CacheMiddleAvatarId, item.MiddleAvatarUrl);
     }
 
-    public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e)
+    [RelayCommand]
+    public void CopyShareUrl()
+    {
+        var data = new DataPackage();
+        data.SetText(CurrentPlaylist.ShareUrl);
+        Clipboard.SetContent(data);
+    }
+
+    [RelayCommand]
+    public async void PlayNext()
+    {
+        if (CurrentPlaylist.IsCardMode)
+        {
+            var elapsed = await Tools.MeasureExecutionTimeAsync(CurrentPlaylist.LoadAsync(CurrentPlaylist.Id))
+                .ConfigureAwait(false);
+            Debug.WriteLine($"获取歌单Api耗时{elapsed.TotalMilliseconds}ms");
+            CurrentPlaylist.IsCardMode = false;
+        }
+
+        CurrentPlaylist.InitTracks();
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            PlayQueue.Instance.AddNext(CurrentPlaylist.Musics.ToArray());
+        });
+    }
+
+
+    public void OpenMusicListDetail(object sender, DoubleTappedRoutedEventArgs e)
     {
         PlaylistHelper.OpenMusicListDetail(long.Parse(id), ServiceHelper.NavigationService);
     }

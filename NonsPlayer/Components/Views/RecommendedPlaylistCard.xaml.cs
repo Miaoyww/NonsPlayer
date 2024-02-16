@@ -30,4 +30,9 @@ public sealed partial class RecommendedPlaylistCard : UserControl
     {
         AnimationHelper.CardHide(sender, e);
     }
+
+    private void UIElement_OnDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -8,9 +8,13 @@
 
     <Grid>
         <Border Margin="5,10,10,10" CornerRadius="10"
-                PointerPressed="{x:Bind ViewModel.OpenMusicListDetail,Mode=OneWay}"
-                PointerEntered="{x:Bind CardShow,Mode=OneWay}"
-                PointerExited="{x:Bind CardHide,Mode=OneWay}">
+                DoubleTapped="{x:Bind ViewModel.OpenMusicListDetail}">
+            <Border.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Text="分享" Icon="Share" Command="{x:Bind ViewModel.CopyShareUrlCommand}"/>
+                    <MenuFlyoutItem Text="下一首播放" Icon="Play" Command="{x:Bind ViewModel.PlayNextCommand}"/>
+                </MenuFlyout>
+            </Border.ContextFlyout>
             <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
                 <Border Name="Cover"
                         Background="{x:Bind ViewModel.Cover,Mode=OneWay}"
