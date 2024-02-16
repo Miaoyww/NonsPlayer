@@ -19,7 +19,6 @@ public class Music : INonsModel
     public MusicQualityLevel[] QualityLevels;
     public TimeSpan TotalTime;
     public string Url;
-    public string ShareUrl;
 
     public string TotalTimeString => TotalTime.ToString(@"m\:ss");
     public string CacheId => Id + "_music";

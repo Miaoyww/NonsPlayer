@@ -24,6 +24,7 @@ public static class PlaylistAdaptes
             Id = item["id"].ToObject<long>(),
             Name = item["name"].ToString(),
             AvatarUrl = item["picUrl"].ToString(),
+            ShareUrl = $"https://music.163.com/playlist?id={item["id"]}",
             IsCardMode = true
         };
     }
@@ -43,6 +44,7 @@ public static class PlaylistAdaptes
             Name = content["name"].ToString(),
             AvatarUrl = content["coverImgUrl"].ToString(),
             Creator = content["creator"].ToString(),
+            ShareUrl = $"https://music.163.com/playlist?id={content["id"]}",
             IsCardMode = true
         };
     }

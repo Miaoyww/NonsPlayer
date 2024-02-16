@@ -43,7 +43,7 @@ public class Playlist : INonsModel
     /// <summary>
     ///     只会获取前1000个歌曲信息
     /// </summary>
-    public void InitTracksAsync()
+    public void InitTracks()
     {
         // 直接从PlaylistDetail中获取歌曲信息, 因为它会传递小于等于1000的歌曲信息
         Musics = ((JArray)PlaylistDetail["tracks"])

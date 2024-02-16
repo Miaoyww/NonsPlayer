@@ -161,5 +161,13 @@
             </SplitView.Pane>
         </SplitView>
         <views:PlayBar x:Name="PlayerBar" VerticalAlignment="Bottom" />
+        <TeachingTip x:Name="ExceptionTtp"
+                     PreferredPlacement="Auto"
+                     PlacementMargin="20"
+                     IsLightDismissEnabled="True"
+                     ActionButtonCommand="{x:Bind ExceptionActionCommand}"
+                     ActionButtonContent="OK"
+                     CloseButtonContent="知道了">
+        </TeachingTip>
     </Grid>
 </Page>

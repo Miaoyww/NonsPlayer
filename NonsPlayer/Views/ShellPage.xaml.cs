@@ -1,4 +1,5 @@
 ﻿using Windows.System;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -10,6 +11,7 @@ using NonsPlayer.ViewModels;
 using static NonsPlayer.Views.ShellPage;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Nons.Account;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Services;
 
 namespace NonsPlayer.Views;
@@ -29,10 +31,23 @@ public sealed partial class ShellPage : Page
         App.MainWindow.ExtendsContentIntoTitleBar = true;
         App.MainWindow.SetTitleBar(AppTitleBar);
         App.MainWindow.Activated += MainWindow_Activated;
+        ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
         AppTitleBarText.Text = "AppDisplayName".GetLocalized();
         PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
     }
 
+    private void OnExceptionThrew(Exception exception)
+    {
+        ExceptionTtp.Title = "出错啦！";
+        ExceptionTtp.Content = exception.Message;
+        ExceptionTtp.IsOpen = true;
+    }
+
+    [RelayCommand]
+    public void ExceptionAction()
+    {
+        ExceptionTtp.IsOpen = false;
+    }
     public ShellViewModel ViewModel { get; }
 
     public PlayQueueBarViewModel PlayQueueBarViewModel { get; }

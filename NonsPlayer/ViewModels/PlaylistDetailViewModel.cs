@@ -80,7 +80,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     private async Task InitMusicsAsync()
     {
-        if (PlayListObject.Musics == null) PlayListObject.InitTracksAsync();
+        if (PlayListObject.Musics == null) PlayListObject.InitTracks();
 
         for (var i = 0; i < PlayListObject.Musics.Count; i++)
         {

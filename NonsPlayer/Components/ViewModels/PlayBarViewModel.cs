@@ -1,7 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using NonsPlayer.Core.Helpers;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
@@ -34,6 +36,17 @@ public partial class PlayerBarViewModel : ObservableObject
         });
     }
 
+    [RelayCommand]
+    public void SwitchPlayMode()
+    {
+        PlayQueue.Instance.SwitchPlayMode();
+    }
+
+    [RelayCommand]
+    public void SwitchShuffle()
+    {
+        PlayQueue.Instance.SwitchShuffle();
+    }
     public void CurrentTimeSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (MusicStateModel.Instance.OnDrag)

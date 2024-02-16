@@ -14,3 +14,19 @@ public class MusicIdNullException : Exception
     {
     }
 }
+
+
+public class MusicUrlNullException : Exception
+{
+    public MusicUrlNullException()
+    {
+    }
+
+    public MusicUrlNullException(string message) : base(message)
+    {
+    }
+
+    public MusicUrlNullException(string message, Exception inner) : base(message, inner)
+    {
+    }
+}
