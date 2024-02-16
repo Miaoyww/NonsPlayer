@@ -1,4 +1,6 @@
 ﻿using Microsoft.UI.Xaml.Media;
+using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Models;
 
@@ -48,7 +50,7 @@ public class LocalSettingsOptions
     ///     按一下音量加减的增量
     /// </summary>
     public double VolumeAddition = 5;
-
+    
     public string? ApplicationDataFolder { get; set; }
 
     public string? LocalSettingsFile { get; set; }

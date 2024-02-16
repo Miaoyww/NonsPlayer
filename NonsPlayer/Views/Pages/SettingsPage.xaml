@@ -7,11 +7,15 @@
     mc:Ignorable="d">
     <Grid Margin="{StaticResource PageCommonMargin}">
         <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Button Command="{x:Bind ViewModel.TestCommand}">
-                <Grid>
-                    <TextBlock Text="测试按钮"/>
-                </Grid>
-            </Button>
+            <StackPanel>
+                <Button Content="检查更新" Command="{x:Bind ViewModel.CheckUpdateCommand}"/>
+                <Button Command="{x:Bind ViewModel.TestCommand}">
+                    <Grid>
+                        <TextBlock Text="测试按钮"/>
+                    </Grid>
+                </Button>
+            </StackPanel>
+
         </Grid>
         <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,20">
             <StackPanel>

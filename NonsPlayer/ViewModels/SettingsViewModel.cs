@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Helpers;
+using NuGet.Versioning;
 
 namespace NonsPlayer.ViewModels;
 
@@ -18,11 +19,12 @@ public partial class SettingsViewModel : ObservableRecipient
         Account.Instance.LogOut();
         App.MainWindow.Close();
     }
-    // private void Test()
-    // {
-    //     Account.Instance.LogOut();
-    //     App.MainWindow.Close();
-    // }
+
+    [RelayCommand]
+    public void CheckUpdate()
+    {
+        var currentVersion = Package.Current.Id.Version;
+    }
     
     #region 66
 
