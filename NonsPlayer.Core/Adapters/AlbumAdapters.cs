@@ -11,7 +11,8 @@ public static class AlbumAdapters
         {
             AvatarUrl = item["picUrl"].ToString(),
             Name = item["name"].ToString(),
-            Id = item["id"].ToObject<long>()
+            Id = item["id"].ToObject<long>(),
+            ShareUrl = $"https://music.163.com/album?id={item["id"]}"
         };
     }
 }
