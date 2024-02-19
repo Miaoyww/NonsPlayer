@@ -8,7 +8,7 @@
     <Grid Margin="{StaticResource PageCommonMargin}">
         <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
             <StackPanel>
-                <Button Content="检查更新" Command="{x:Bind ViewModel.CheckUpdateCommand}"/>
+                <!-- <Button Content="检查更新" Command="{x:Bind ViewModel.CheckUpdateCommand}"/> -->
                 <Button Command="{x:Bind ViewModel.TestCommand}">
                     <Grid>
                         <TextBlock Text="测试按钮"/>

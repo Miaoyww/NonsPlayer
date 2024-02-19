@@ -36,12 +36,11 @@
 
 打开 [Latest Release](https://github.com/Miaoywww/NeteaseCloudMusicControl/releases) 页面, 下载最新版本,并解压
 
-你可以看到解压后目录中有 `NonsPlayer_x.x.x.x_xxx.msix` 文件和 `NonsPlayer_x.x.x.x_xxx.cer` 文件
-双击`cer`文件, 选择 `安装证书` 然后点击下一步.选择 `本地计算机` 然后下一步
-选择 `将所有的证书都放入下列储存` 接着选择 `受信任的根证书颁发机构` .
-双击打开`msix` 文件, 再次点击安装即可.
+找到 `NonsPlayer.exe` 文件, 打开它即可！
 
 **需要[.net7.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/7.0)**
+
+**Windows 10版本需要额外下载[Fluent Icons](https://learn.microsoft.com/zh-cn/windows/apps/design/downloads/#fonts)字体库，在未来的版本中会自动为您安装，但现在您需要手动安装它**
 # 🧭开发指南
 
 ## 环境
@@ -67,7 +66,7 @@
     - `Cache` - 缓存系统, 请在此处获取以及注册数据, 基础使用请见
       `Components`-> `ViewModels` -> `PlaylistCardViewModel.cs`
 + `NonsPlayer.Core` - 核心项目
-    - `Apis` - 其他平台的API都在这里, 请在这里创建新的API
+    - `Apis` - 目前使用的Api在这里，不过不建议向其添加其它平台的内容，后续会提供adapter供多平台接口使用
     - `Account` - 用户系统
     - `Player` - 播放器系统
 
@@ -86,13 +85,19 @@ the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/mast
 - [网易云音乐](https://music.163.com/)
 - [QQ音乐](https://y.qq.com/)
 - [BiliBili客户端](https://app.bilibili.com/)
+- [Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics) 
 
 # 特别鸣谢
 
 - [Zhuym](https://github.com/Zhuym07) 为图标设计提供帮助
 - [GooGuJiang](https://github.com/GooGuJiang) 为图标设计、UI设计提供帮助
 - [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) 提供网易云音乐Api
-
-特别感谢 [JetBrains](https://www.jetbrains.com/) 为本项目提供的大力支持！
-
-<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg" height="100">
+- [Starward](https://github.com/Scighost/Starward) 一个出色的WinUi3项目！提供了部分代码逻辑，部分代码经过了修改和调整。
+- [Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics) 提供出色的歌词服务!
+  
+<div align="center">
+<image src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg"></image>
+<div>
+特别感谢 <a href=https://jb.gg/OpenSourceSupport>JetBrains</a> 为本项目提供的大力支持
+</div>
+</div>

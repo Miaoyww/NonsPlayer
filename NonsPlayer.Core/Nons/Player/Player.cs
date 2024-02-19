@@ -166,7 +166,7 @@ public class Player
                 await Task.Delay(500);
                 OutputDevice.Play();
                 PlayStateChangedHandle(true);
-                return;
+                return; 
             }
 
             if (OutputDevice.PlaybackState == PlaybackState.Paused ||

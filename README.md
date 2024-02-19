@@ -37,14 +37,14 @@ For details: [Latest Release](https://github.com/Miaoyww/NonsPlayer/releases/lat
 Open the [Latest Release](https://github.com/Miaoywww/NeteaseCloudMusicControl/releases) Page, download the latest
 version, unzip it.
 
-You can see a `NonsPlayer_x.x.x.x_xxx.msix` file and a `NonsPlayer_x.x.x.x_xxx.cer` file.
-Double Click the cer, select `Install Certificate` and press Next Button.Select `Local Machine` and next
-select `Place all certificates in the following store` and press `Browse`.In the Select Certificate Store dialog, 
-select Trusted Root Certification Authorities.
+Find `NonsPlayer.exe` and open it, then you can enjoy time!
 
 After installed the cer, double click the `msix` file and press Install Button and then You can use it!
 
 **Require[.net7.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/7.0)**
+
+
+**Windows 10 needs [Fluent Icons](https://learn.microsoft.com/zh-cn/windows/apps/design/downloads/#fonts)，NonsPlayer will automatically install it for you in the future, but for now you need manually install it**
 
 # 🧭Development
 
@@ -71,7 +71,7 @@ and so on will not be introduced here.
     - `Cache` - The whole cache system, please get and access data here.Basic usage see
       `Components`-> `ViewModels` -> `PlaylistCardViewModel.cs`
 + `NonsPlayer.Core` - The core project
-    - `Apis` - The apis of the core project, you can create other platforms apis here
+    - `Apis` - The apis we are using now, but we don't suggest to add any other platforms' api, we will provide a adapter to use soon
     - `Account` - Account system here
     - `Player` - Player system here
 
@@ -94,10 +94,15 @@ the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/mast
 - [BiliBili客户端](https://app.bilibili.com/)
 # Thanks for
 
-- [Zhuym](https://github.com/Zhuym07) provide the idea of Icon
-- [GooGuJiang](https://github.com/GooGuJiang) provide help with Ui and Icon
-- [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) provide the api of NeteaseCloudMusic
-
-Special thanks to [JetBrains](https://www.jetbrains.com/) for providing great support for this project!
-
-<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg" height="100">
+- [Zhuym](https://github.com/Zhuym07) providing the idea of Icon
+- [GooGuJiang](https://github.com/GooGuJiang) providing help with Ui and Icon
+- [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) for providing the api of NeteaseCloudMusic
+- [StarWard](https://github.com/Scighost/Starward) A fantastic WinUi3 project! For providing some parts code logic, with some code being modified and adapted.
+- [Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics) A fantastic apple music-like lyrics display component library! For providing the lyric service!
+  
+<div align="center">
+<image src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg"></image>
+<div>
+Special thanks to <a href=https://jb.gg/OpenSourceSupport>JetBrains</a> for providing great support for this project!
+</div>
+</div>
