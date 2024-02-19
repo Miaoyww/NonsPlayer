@@ -92,6 +92,7 @@ the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/mast
 - [网易云音乐](https://music.163.com/)
 - [QQ音乐](https://y.qq.com/)
 - [BiliBili客户端](https://app.bilibili.com/)
+- [Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics) 
 # Thanks for
 
 - [Zhuym](https://github.com/Zhuym07) providing the idea of Icon
