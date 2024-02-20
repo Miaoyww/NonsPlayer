@@ -1,9 +1,0 @@
-﻿<ResourceDictionary
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-
-
-    <CornerRadius x:Key="CustomCornerRadius">20</CornerRadius>
-    <Thickness x:Key="PageCommonMargin">0,54,0,80</Thickness>
-    <Thickness x:Key="PlaylistDetailMargin">45,80,45,100</Thickness>
-</ResourceDictionary>
