@@ -13,6 +13,7 @@ using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 using NonsPlayer.Services;
+using NonsPlayer.Updater.Update;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
@@ -46,6 +47,9 @@ public partial class App : Application
                 services.AddSingleton<IActivationService, ActivationService>();
                 services.AddSingleton<IPageService, PageService>();
                 services.AddSingleton<INavigationService, NavigationService>();
+                services.AddSingleton<VersionService>();
+                services.AddSingleton<UpdateService>();
+                services.AddSingleton<UpdateClient>();
 
                 // Core Services
                 services.AddSingleton<IFileService, FileService>();
@@ -72,7 +76,9 @@ public partial class App : Application
                 services.AddTransient<ArtistPage>();
                 services.AddTransient<ArtistViewModel>();
                 services.AddTransient<AlbumPage>();
-                services.AddTransient<AlbumViewModel>();
+                services.AddTransient<AlbumViewModel>();                
+                services.AddTransient<UpdatePage>();
+                services.AddTransient<UpdateViewModel>();
                 // Components Views and ViewModels
                 services.AddTransient<PlaylistMusicItemCardViewModel>();
                 services.AddTransient<RecommendedPlaylistCardViewModel>();
