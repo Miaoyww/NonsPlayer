@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows.Input;
 using Windows.ApplicationModel;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -7,12 +8,16 @@ using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Helpers;
+using NonsPlayer.Services;
+using NonsPlayer.Updater.Update;
 using NuGet.Versioning;
 
 namespace NonsPlayer.ViewModels;
 
 public partial class SettingsViewModel : ObservableRecipient
 {
+    private UpdateService _updateService = App.GetService<UpdateService>();
+    private VersionService _versionService = App.GetService<VersionService>();
     [RelayCommand]
     private void Test()
     {
@@ -21,38 +26,20 @@ public partial class SettingsViewModel : ObservableRecipient
     }
 
     [RelayCommand]
-    public void CheckUpdate()
+    public async void CheckUpdate()
     {
-        var currentVersion = Package.Current.Id.Version;
-    }
-    
-    #region 66
-
-    private readonly IThemeSelectorService _themeSelectorService;
-    private ElementTheme _elementTheme;
-    private string _versionDescription;
-
-    public ElementTheme ElementTheme
-    {
-        get => _elementTheme;
-        set => SetProperty(ref _elementTheme, value);
+        var release = await _updateService.CheckUpdateAsync(_versionService.CurrentVersion, RuntimeInformation.OSArchitecture);
+        if (release != null)
+        {
+            ServiceHelper.NavigationService.NavigateTo(typeof(UpdateViewModel).FullName, release);
+        }
     }
 
-
-    public string VersionDescription
-    {
-        get => _versionDescription;
-        set => SetProperty(ref _versionDescription, value);
-    }
-
-    public ICommand SwitchThemeCommand { get; }
-
-    public ICommand TestButtonClickCommand { get; }
+    [ObservableProperty] public string versionDescription;
 
     public SettingsViewModel(IThemeSelectorService themeSelectorService)
     {
-        _versionDescription = GetVersionDescription();
-        TestButtonClickCommand = new RelayCommand(Test);
+        VersionDescription = GetVersionDescription();
     }
 
     private static string GetVersionDescription()
@@ -73,6 +60,4 @@ public partial class SettingsViewModel : ObservableRecipient
 
         return $"v{version.Major}.{version.Minor}.{version.Build}";
     }
-
-    #endregion
 }

@@ -7,8 +7,8 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Updater.Github;
-using NuGet.Versioning;
 
 namespace NonsPlayer.Updater.Update;
 
@@ -42,7 +42,7 @@ public class UpdateService
     {
         _httpClient = new HttpClient(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.All })
             { DefaultRequestVersion = HttpVersion.Version20 };
-        _updateClient = _inUpdateClient;
+        _updateClient = new();
     }
 
 
@@ -73,39 +73,19 @@ public class UpdateService
             ErrorMessage = string.Empty;
             _releaseVersion = release;
             State = UpdateState.Preparing;
-            var baseFolder = new DirectoryInfo(AppContext.BaseDirectory).Parent?.FullName;
-            if (baseFolder == null)
-            {
-                // 无法自动更新
-                // ErrorMessage = Lang.UpdateService_CannotUpdateAutomatically;
-                State = UpdateState.NotSupport;
-                return;
-            }
-
-            var exe = Path.Join(baseFolder, "NonsPlayer.exe");
-            if (!File.Exists(exe))
-            {
-                // 无法自动更新
-                // ErrorMessage = Lang.UpdateService_CannotUpdateAutomatically;
-                State = UpdateState.NotSupport;
-                return;
-            }
-
             _updateFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "NonsPlayer\\data");
+
             Directory.CreateDirectory(_updateFolder);
-            await Task.Run(() =>
-            {
-                GetLocalFilesHash();
-                GetDownloadFile();
-            });
+            GetDownloadFile();
             progress_BytesDownloaded = 0;
             Progress_BytesToDownload = _downloadFile.Release.PortableSize;
             State = UpdateState.Pending;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Prepare for update");
+            ExceptionService.Instance.Throw(ex);
+            // _logger.LogError(ex, "Prepare for update");
             State = UpdateState.Stop;
         }
     }
@@ -128,6 +108,7 @@ public class UpdateService
 
         var file = new ReleaseFile
         {
+            Release = _releaseVersion,
             Path = targetFilePath
         };
         _downloadFile = file;
@@ -192,7 +173,7 @@ public class UpdateService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Update failed");
+            // _logger.LogError(ex, "Update failed");
             State = UpdateState.Error;
             ErrorMessage = ex.Message;
         }
@@ -243,7 +224,7 @@ public class UpdateService
                 {
                     _logger.LogWarning("Checksum failed, path: {path}, actual hash: {hash}, true hash: {truehash}",
                         releaseFile.Path, hash, releaseFile.Release.PortableHash);
-                    throw new Exception($"Checksum failed: {releaseFile.Path}");
+                        throw new Exception($"Checksum failed: {releaseFile.Path}");
                 }
 
                 break;

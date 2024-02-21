@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NonsPlayer.Updater.Github;
-using NuGet.Versioning;
 
 namespace NonsPlayer.Updater.Update;
 

@@ -1,0 +1,188 @@
+﻿<Page
+    x:Class="NonsPlayer.Views.Pages.UpdatePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:cvs="using:NonsPlayer.Converters"
+    mc:Ignorable="d"
+    Loaded="UpdatePage_OnLoaded"
+    Unloaded="UpdatePage_OnUnloaded">
+    <Page.Resources>
+        <ResourceDictionary>
+            <cvs:ByteLengthToStringConverter x:Key="ByteLengthToStringConverter" />
+        </ResourceDictionary>
+    </Page.Resources>
+    <Grid Margin="{StaticResource PageCommonMargin}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" MinWidth="360" />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+        <Image Grid.ColumnSpan="2"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               Stretch="UniformToFill" />
+
+        <!--  Release Info  -->
+        <StackPanel Margin="24" Spacing="8">
+            <TextBlock FontSize="32" Text="发现新版本！" />
+            <StackPanel Margin="0,16,0,0"
+                        Orientation="Horizontal"
+                        Spacing="12">
+                <TextBlock Text="{x:Bind ViewModel.VersionService.CurrentVersionDescription}" />
+                <FontIcon VerticalAlignment="Bottom"
+                          FontSize="16"
+                          Glyph="&#xEBE7;" />
+                <TextBlock Text="{x:Bind ViewModel.NewVersion, Mode=OneWay}" />
+            </StackPanel>
+            <Grid Margin="0,8,0,0"
+                  ColumnSpacing="12"
+                  RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <!--  架构：  -->
+                <TextBlock Grid.Row="0"
+                           Grid.Column="0"
+                           Text="架构" />
+                <TextBlock Grid.Row="0"
+                           Grid.Column="1"
+                           Text="{x:Bind ViewModel.LatestVersion.Architecture}" />
+                <!--  编译时间：  -->
+                <TextBlock Grid.Row="2"
+                           Grid.Column="0"
+                           Text="编译时间" />
+                <TextBlock Grid.Row="2"
+                           Grid.Column="1"
+                           Text="{x:Bind ViewModel.LatestVersion.BuildTime}" />
+            </Grid>
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <!--  相关链接  -->
+                <TextBlock Margin="0,6,0,0"
+                           VerticalAlignment="Top"
+                           Text="相关链接" />
+                <StackPanel Grid.Column="1" Spacing="4">
+                    <HyperlinkButton Command="{x:Bind ViewModel.ReferToUrlCommand}"
+                                     CommandParameter="github"
+                                     Content="Github页面" />
+                    <HyperlinkButton Command="{x:Bind ViewModel.ReferToUrlCommand}"
+                                     CommandParameter="portable">
+                        <TextBlock>
+                            <Run Text="手动下载" />
+                            <Run Text="" />
+                            <Run Text="(" />
+                            <Run
+                                Text="{x:Bind ViewModel.LatestVersion.PortableSize, Converter={StaticResource ByteLengthToStringConverter},Mode=OneWay}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                    </HyperlinkButton>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+
+
+        <!--  Operation Button  -->
+        <StackPanel Margin="24,0,24,24"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Orientation="Horizontal"
+                    Spacing="24">
+
+            <Button x:Name="Button_Update"
+                    Height="36"
+                    BorderThickness="0"
+                    Command="{x:Bind UpdateNowCommand}"
+                    CornerRadius="18"
+                    Translation="0,0,16">
+                <StackPanel Margin="12,0,12,0"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                    <FontIcon FontSize="16" Glyph="&#xE752;" />
+                    <TextBlock Text="现在更新" />
+                </StackPanel>
+            </Button>
+
+            <Grid>
+                <SplitButton x:Name="Button_RemindLatter"
+                             Height="36"
+                             BorderThickness="0"
+                             Command="{x:Bind RemindMeLatterCommand}"
+                             CornerRadius="18"
+                             Opacity="0"
+                             PointerEntered="Button_RemindLatter_PointerEntered"
+                             PointerExited="Button_RemindLatter_PointerExited">
+                    <TextBlock Margin="4,0,0,0"
+                               Foreground="Transparent"
+                               Text="不是现在" />
+                    <SplitButton.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Command="{x:Bind IgnoreThisVersionCommand}"
+                                            Text="忽略此版本" />
+                        </MenuFlyout>
+                    </SplitButton.Flyout>
+                </SplitButton>
+                <TextBlock Margin="16,0,0,0"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           IsHitTestVisible="False"
+                           Text="不是现在" />
+            </Grid>
+        </StackPanel>
+
+
+        <!--  Download Progress  -->
+        <Grid Margin="24,0,24,80"
+              VerticalAlignment="Bottom"
+              RowSpacing="4">
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition />
+                <RowDefinition />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>  
+            <TextBlock Name="TextBlockProgress"
+                       Grid.Row="0"
+                       HorizontalAlignment="Right"
+                       Text="{x:Bind ProgressPercentText}"
+                       Visibility="{x:Bind IsProgressTextVisible}" />
+            <ProgressBar Name="ProgresBarUpdate"
+                         Grid.Row="1"
+                         Visibility="{x:Bind IsProgressBarVisible}"
+                         Value="0" />
+            <TextBlock Name="TextBlockSpeed"
+                       Grid.Row="2"
+                       HorizontalAlignment="Left"
+                       Text="{x:Bind ProgressSpeedText}"
+                       Visibility="{x:Bind IsProgressTextVisible}" />
+            <TextBlock Name="TextBlockBytes"
+                       Grid.Row="2"
+                       HorizontalAlignment="Right"
+                       Text="{x:Bind ProgressBytesText}"
+                       Visibility="{x:Bind IsProgressTextVisible}" />
+        </Grid>
+
+
+        <Border x:Name="Border_Markdown"
+                Grid.Column="1"
+                Margin="0,48,0,0"
+                Background="#404040"
+                CornerRadius="8,0,0,0"
+                Visibility="Collapsed">
+            <WebView2 x:Name="webview" DefaultBackgroundColor="#404040">
+                <WebView2.Resources>
+                </WebView2.Resources>
+            </WebView2>
+        </Border>
+    </Grid>
+</Page>
