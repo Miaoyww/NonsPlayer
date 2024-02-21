@@ -41,13 +41,13 @@ $release = @{
     DisableAutoUpdate = $false
     InstallSize       = 0
     InstallHash       = $null
-    Portable          = "https://github.com/Miaoyww/NonsPlayer/releases/download/$portableName"
+    Portable          = "https://github.com/Miaoyww/NonsPlayer/releases/download/$Version/$portableName"
     PortableSize      = (Get-Item $portableFile).Length
     PortableHash      = (Get-FileHash $portableFile).Hash
 };
 
 if ($Dev) {
-    $release.Portable = "https://github.com/Miaoyww/NonsPlayer/releases/download/$portableName";
+    $release.Portable = "https://github.com/Miaoyww/NonsPlayer/releases/download/$Version/$portableName";
 }
 
 Out-File -Path "$metadata/version_preview_$Architecture.json" -InputObject (ConvertTo-Json $release);
