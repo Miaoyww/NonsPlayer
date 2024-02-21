@@ -41,7 +41,7 @@ $release = @{
     DisableAutoUpdate = $false
     InstallSize       = 0
     InstallHash       = $null
-    Portable          = "https://github.com/Miaoyww/NonsPlayer/releases/download/$Version   /$portableName"
+    Portable          = "https://github.com/Miaoyww/NonsPlayer/releases/download/$Version/$portableName"
     PortableSize      = (Get-Item $portableFile).Length
     PortableHash      = (Get-FileHash $portableFile).Hash
 };
