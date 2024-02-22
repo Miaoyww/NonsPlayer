@@ -44,8 +44,8 @@ jobs:
         run: |
           $sha = "${{ steps.sha.outputs.sha }}"
           New-Item -Path "build/NonsPlayer/" -Type Directory
-          msbuild src/NonsPlayer.Launcher "-property:Configuration=$env:Configuration;Platform=$env:Platform;OutDir=$(Resolve-Path "build/NonsPlayer/")"
-          dotnet build src/NonsPlayer -c $env:Configuration -o "build/NonsPlayer/app-build.$sha" -p:Platform=$env:Platform -p:Version="0.0.1-build.$sha" -p:DefineConstants=CI
+          msbuild NonsPlayer.Launcher "-property:Configuration=$env:Configuration;Platform=$env:Platform;OutDir=$(Resolve-Path "build/NonsPlayer/")"
+          dotnet build NonsPlayer -c $env:Configuration -o "build/NonsPlayer/app-build.$sha" -p:Platform=$env:Platform -p:Version="0.0.1-build.$sha" -p:DefineConstants=CI
           Add-Content "build/NonsPlayer/version.ini" -Value "app_folder=app-build.$sha`r`nexe_name=NonsPlayer.exe"
           Remove-Item "build/NonsPlayer/NonsPlayer.pdb" -Force
 
