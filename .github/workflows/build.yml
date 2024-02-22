@@ -1,21 +1,21 @@
+
 name: Build
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
+
 
 jobs:
 
   build:
-
+    runs-on: windows-latest
     strategy:
       matrix:
-        configuration: [ Debug, Release ]
-        platform: [ x64, x86 ]
-
-    runs-on: windows-latest
+        configuration: [Debug, Release]
+        platform: [x64, arm64]
 
     env:
       Configuration: ${{ matrix.configuration }}
@@ -30,15 +30,12 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Setup MSBuild.exe
-        uses: microsoft/setup-msbuild@v1.0.2
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.3.1
 
       - name: SHA
         id: sha
         run: echo "sha=$("${{ github.sha }}".SubString(0, 7))" >> $env:GITHUB_OUTPUT
-
-      - name: Restore NuGet Packages
-        run: dotnet restore NonsPlayer
 
       - name: Build
         run: |
@@ -52,5 +49,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v3.1.2
         with:
-          name: NonsPlayer_{{ matrix.configuration }}_${{ matrix.platform }}_${{ steps.sha.outputs.sha }}
+          name: NonsPlayer_${{ matrix.configuration }}_${{ matrix.platform }}_${{ steps.sha.outputs.sha }}
           path: build/NonsPlayer/

@@ -42,23 +42,11 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Setup MSBuild.exe
-        uses: microsoft/setup-msbuild@v1.0.2
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.3.1
 
-      - name: SHA
-        id: sha
-        run: echo "sha=$("${{ github.sha }}".SubString(0, 7))" >> $env:GITHUB_OUTPUT
-    
-      - name: Restore NuGet Packages
-        run: dotnet restore NonsPlayer
-        
       - name: Build
-        run: $sha = "${{ steps.sha.outputs.sha }}"
-          New-Item -Path "build/NonsPlayer/" -Type Directory
-          msbuild NonsPlayer.Launcher "-property:Configuration=$env:Configuration;Platform=$env:Platform;OutDir=$(Resolve-Path "build/NonsPlayer/")"
-          dotnet build NonsPlayer -c $env:Configuration -o "build/NonsPlayer/app-build.$sha" -p:Platform=$env:Platform -p:Version="0.0.1-build.$sha" -p:DefineConstants=CI
-          Add-Content "build/NonsPlayer/version.ini" -Value "app_folder=app-build.$sha`r`nexe_name=NonsPlayer.exe"
-          Remove-Item "build/NonsPlayer/NonsPlayer.pdb" -Force
+        run: ./build.ps1 -Architecture $env:Platform -Version $env:Version
 
       - name: Metadata
         run: ./metadata.ps1 -Architecture $env:Platform -Version $env:Version
