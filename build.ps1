@@ -15,7 +15,7 @@ else {
 
 $env:Path += ';C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\';
 
-msbuild NonsPlayer "-property:Configuration=Release;Platform=$Architecture;OutDir=$(Resolve-Path "build/NonsPlayer/")";
+msbuild NonsPlayer.Launcher "-property:Configuration=Release;Platform=$Architecture;OutDir=$(Resolve-Path "build/NonsPlayer/")";
 
 Add-Content "build/NonsPlayer/version.ini" -Value "exe_path=app-$Version\NonsPlayer.exe";
 
