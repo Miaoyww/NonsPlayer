@@ -17,23 +17,9 @@
         <AssemblyVersion>0.4.0</AssemblyVersion>
         <FileVersion>0.4.0</FileVersion>
         <Product>NonsPlayer</Product>
-        <PackageCertificateThumbprint>4381F2516CEDCC8E4FEFF35808EA2926312EE456</PackageCertificateThumbprint>
         <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
         <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
-        <ApplicationManifest>app.manifest</ApplicationManifest>
-        <NeutralLanguage>zh</NeutralLanguage>
-        <GenerateAppInstallerFile>True</GenerateAppInstallerFile>
-        <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
-        <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
-        <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
-        <GenerateTestArtifacts>True</GenerateTestArtifacts>
-        <AppxBundle>Auto</AppxBundle>
-        <AppInstallerUri>D:\Program Files\NonsPlayer</AppInstallerUri>
-        <IsPackable>false</IsPackable>
-        <Authors/>
-        <Company>Miaoyww</Company>
-        <PublicSign>false</PublicSign>
-        <AppxBundlePlatforms>x86|x64</AppxBundlePlatforms>
+
     </PropertyGroup>
 
     <ItemGroup>

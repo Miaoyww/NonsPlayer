@@ -5,6 +5,8 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Updater.Github;
+using NonsPlayer.Updater.Metadata;
+using SevenZipExtractor;
 
 namespace NonsPlayer.Updater.Update;
 
@@ -38,12 +40,17 @@ public class UpdateService
 
     private ReleaseFile _downloadFile;
 
-
     private ReleaseVersion _releaseVersion;
 
     private string _updateFolder;
 
+    private string _unzipFolder;
+
     private long progress_BytesDownloaded;
+
+    private List<LocalFile> localFiles;
+
+    private List<LocalFile> targetFiles;
 
     public UpdateService(UpdateClient _inUpdateClient)
     {
@@ -88,7 +95,8 @@ public class UpdateService
             State = UpdateState.Preparing;
             _updateFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "NonsPlayer\\data");
-
+            _unzipFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "NonsPlayer\\data\\unzip");
             Directory.CreateDirectory(_updateFolder);
             GetDownloadFile();
             progress_BytesDownloaded = 0;
@@ -103,26 +111,19 @@ public class UpdateService
         }
     }
 
-
-    public byte[] GetLocalFilesHash()
-    {
-        using var fs = File.Open(_downloadFile.Path, FileMode.Open, FileAccess.Read,
-            FileShare.ReadWrite | FileShare.Delete);
-        var len = (int)fs.Length;
-        var bytes = ArrayPool<byte>.Shared.Rent(len);
-        fs.Read(bytes, 0, len);
-        var span = bytes.AsSpan(0, len);
-        return SHA256.HashData(span);
-    }
-
     private void GetDownloadFile()
     {
-        var targetFilePath = Path.Combine(_updateFolder, _releaseVersion.PortableHash);
-
+        var targetFilePath = Path.Combine(_updateFolder,
+            $"NonsPlayer_Portable_{_releaseVersion.Version}_{_releaseVersion.Architecture}.7z");
+        var localFile = new LocalFile
+        {
+            Path = targetFilePath,
+            To = _unzipFolder
+        };
         var file = new ReleaseFile
         {
             Release = _releaseVersion,
-            Path = targetFilePath
+            File = localFile
         };
         _downloadFile = file;
     }
@@ -168,7 +169,12 @@ public class UpdateService
 
             State = UpdateState.Moving;
             await Task.Delay(1000);
-            MovingFile();
+            await Task.Run(() =>
+            {
+                UnzipFile();
+                GetUnzipFiles();
+                MovingFiles();
+            });
             State = UpdateState.Finish;
         }
         catch (TaskCanceledException)
@@ -199,7 +205,7 @@ public class UpdateService
             try
             {
                 readLength = 0;
-                var file = Path.Combine(_updateFolder, releaseFile.Release.PortableHash);
+                var file = _downloadFile.File.Path;
                 if (!File.Exists(file))
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, releaseFile.Release.Portable)
@@ -226,8 +232,8 @@ public class UpdateService
                 if (!string.Equals(hash, releaseFile.Release.PortableHash, StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogWarning("Checksum failed, path: {path}, actual hash: {hash}, true hash: {truehash}",
-                        releaseFile.Path, hash, releaseFile.Release.PortableHash);
-                    throw new Exception($"Checksum failed: {releaseFile.Path}");
+                        releaseFile.File.Path, hash, releaseFile.Release.PortableHash);
+                    throw new Exception($"Checksum failed: {releaseFile.File.Path}");
                 }
 
                 break;
@@ -248,20 +254,61 @@ public class UpdateService
 
     private bool CheckDownloadFile()
     {
-        var file = Path.Combine(_updateFolder, _downloadFile.Release.PortableHash);
+        var file = _downloadFile.File.Path;
         if (!File.Exists(file)) return false;
 
         return true;
     }
 
-
-    private void MovingFile()
+    private void UnzipFile()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_downloadFile.To)!);
-        if (_downloadFile.IsMoving)
-            File.Move(_downloadFile.From, _downloadFile.To, true);
-        else
-            File.Copy(_downloadFile.From, _downloadFile.To, true);
+        Directory.CreateDirectory(Path.GetDirectoryName(_downloadFile.File.To)!);
+        using (var archiveFile = new ArchiveFile(_downloadFile.File.Path))
+        {
+            archiveFile.Extract(_downloadFile.File.To);
+        }
+    }
+
+    private void GetUnzipFiles()
+    {
+        if (targetFiles == null)
+        {
+            var files = Directory.GetFiles(_downloadFile.File.To, "*", SearchOption.AllDirectories);
+            var releaseFiles = new List<LocalFile>(files.Length);
+            foreach (var file in files)
+            {
+                using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                var len = (int)fs.Length;
+                var bytes = ArrayPool<byte>.Shared.Rent(len);
+                fs.Read(bytes, 0, len);
+                var span = bytes.AsSpan(0, len);
+                var sha256 = SHA256.HashData(span);
+                ArrayPool<byte>.Shared.Return(bytes);
+                releaseFiles.Add(new LocalFile
+                {
+                    Path = file,
+                    To = Path.Combine(AppContext.BaseDirectory, Path.GetFileName(file)),
+                    Hash = Convert.ToHexString(sha256)
+                });
+            }
+
+            targetFiles = releaseFiles;
+        }
+    }
+
+    private void MovingFiles()
+    {
+        foreach (var file in targetFiles)
+        {
+            if (file.IsMoving)
+            {
+                File.Move(file.Path, file.To, true);
+            }
+            else
+            {
+                File.Copy(file.Path, file.To, true);
+            }
+        }
     }
 
     #endregion
