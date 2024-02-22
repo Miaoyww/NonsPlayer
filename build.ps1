@@ -19,4 +19,4 @@ msbuild NonsPlayer.Launcher "-property:Configuration=$env:Configuration;Platform
 
 Add-Content "build/NonsPlayer/version.ini" -Value "exe_path=app-$Version\NonsPlayer.exe";
 
-Remove-Item "build/NonsPlayer/NonsPlayer.pdb" -Force;
+Remove-Item "build/NonsPlayer.pdb" -Force;
