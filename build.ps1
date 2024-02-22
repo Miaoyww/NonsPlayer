@@ -15,8 +15,8 @@ else {
 
 $env:Path += ';C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\';
 
-msbuild NonsPlayer.Launcher "-property:Configuration=$env:Configuration;Platform=$env:Platform;OutDir=$(Resolve-Path "build/NonsPlayer/")"
+msbuild NonsPlayer.Launcher "-property:Configuration=Release;Platform=$Architecture;OutDir=$(Resolve-Path "build/NonsPlayer/")";
 
 Add-Content "build/NonsPlayer/version.ini" -Value "exe_path=app-$Version\NonsPlayer.exe";
 
-Remove-Item "build/NonsPlayer.pdb" -Force;
+Remove-Item "build/NonsPlayer/NonsPlayer.pdb" -Force;
