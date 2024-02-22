@@ -1,32 +1,25 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Newtonsoft.Json.Linq;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
-using NonsPlayer.Core.Adapters;
-using NonsPlayer.Core.Api;
-using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Nons;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
-
 
 namespace NonsPlayer.ViewModels;
 
 public partial class SearchViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
-    private string queryKey;
-    public ObservableCollection<MusicItem> MusicItems = new();
     [ObservableProperty] private Artist[] artists;
+    public ObservableCollection<MusicItem> MusicItems = new();
     [ObservableProperty] private Playlist[] playlists;
+    private string queryKey;
 
     public void OnNavigatedTo(object parameter)
     {
@@ -41,10 +34,7 @@ public partial class SearchViewModel : ObservableRecipient, INavigationAware, IN
     public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
     {
         var listView = sender as ListView;
-        if (listView.SelectedItem is MusicItem item)
-        {
-            PlayQueue.Instance.Play(item.Music);
-        }
+        if (listView.SelectedItem is MusicItem item) PlayQueue.Instance.Play(item.Music);
     }
 
     public async Task Search(string key)

@@ -1,30 +1,20 @@
 ﻿using System.Collections.ObjectModel;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
-
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Core.Nons.Player;
-using NonsPlayer.Helpers;
-using NonsPlayer.Services;
-using NonsPlayer.Views;
 
 namespace NonsPlayer.ViewModels;
 
 public partial class ShellViewModel : ObservableRecipient
 {
+    public static INavigationService OutNavigationService;
     private bool _isBackEnabled;
 
-    public static INavigationService OutNavigationService;
     public ShellViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;

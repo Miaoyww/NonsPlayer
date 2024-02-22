@@ -167,7 +167,6 @@
                      IsLightDismissEnabled="True"
                      ActionButtonCommand="{x:Bind ExceptionActionCommand}"
                      ActionButtonContent="OK"
-                     CloseButtonContent="知道了">
-        </TeachingTip>
+                     CloseButtonContent="知道了" />
     </Grid>
 </Page>

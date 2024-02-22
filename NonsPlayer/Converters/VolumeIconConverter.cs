@@ -1,16 +1,4 @@
-﻿using System.Drawing;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using Microsoft.UI;
-using Microsoft.UI.Composition;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using NonsPlayer.Core.Enums;
-using NonsPlayer.Core.Nons.Player;
-using WinRT.Interop;
-using Color = Windows.UI.Color;
+﻿using Microsoft.UI.Xaml.Data;
 
 namespace NonsPlayer.Converters;
 

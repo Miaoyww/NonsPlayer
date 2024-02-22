@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Helpers;
@@ -66,9 +65,7 @@ public class Account
         var result = Encoding.UTF8.GetString(dataBytes);
 
         if (Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(result))).Equals(_tokenMd5))
-        {
             await LoginByToken(result);
-        }
     }
 
     public void LogOut()
@@ -83,7 +80,7 @@ public class Account
     {
         var result = await Apis.User.Account(NonsCore.Instance);
         if (result["account"].First == null) throw new LoginFailureException("登陆token错误");
-        
+
         Uid = result["profile"]["userId"].ToString();
         Name = result["profile"]["nickname"].ToString();
         FaceUrl = result["profile"]["avatarUrl"].ToString();

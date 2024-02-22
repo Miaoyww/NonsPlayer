@@ -1,38 +1,35 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.Net.Http;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Windows.System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.Web.WebView2.Core;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Updater.Github;
 using NonsPlayer.Updater.Update;
 using NonsPlayer.ViewModels;
+using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
 
 namespace NonsPlayer.Views.Pages;
 
 [INotifyPropertyChanged]
 public sealed partial class UpdatePage : Page
 {
+    private readonly DispatcherQueueTimer _timer;
     private readonly UpdateClient _updateClient = App.GetService<UpdateClient>();
     private readonly UpdateService _updateService = App.GetService<UpdateService>();
 
-    private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _timer;
-    public UpdateViewModel ViewModel { get; }
+    [ObservableProperty] private string? errorMessage;
 
-    [ObservableProperty] private ReleaseVersion latestRelease;
+    [ObservableProperty] private bool isProgressBarVisible;
 
     [ObservableProperty] private bool isProgressTextVisible;
 
-    [ObservableProperty] private bool isProgressBarVisible;
+    [ObservableProperty] private ReleaseVersion latestRelease;
 
     [ObservableProperty] private string progressBytesText;
 
@@ -42,8 +39,6 @@ public sealed partial class UpdatePage : Page
 
     [ObservableProperty] private string progressSpeedText;
 
-    [ObservableProperty] private string? errorMessage;
-
     public UpdatePage()
     {
         ViewModel = App.GetService<UpdateViewModel>();
@@ -52,6 +47,8 @@ public sealed partial class UpdatePage : Page
         _timer.Interval = TimeSpan.FromMilliseconds(100);
         _timer.Tick += _timer_Tick;
     }
+
+    public UpdateViewModel ViewModel { get; }
 
     private void UpdatePage_OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -70,10 +67,8 @@ public sealed partial class UpdatePage : Page
         try
         {
             if (ViewModel.LatestVersion is null)
-            {
                 ViewModel.LatestVersion = await _updateClient.GetLatestVersionAsync(false,
                     RuntimeInformation.OSArchitecture);
-            }
 
             await ShowGithubReleaseAsync(ViewModel.LatestVersion.Version);
 
@@ -103,21 +98,18 @@ public sealed partial class UpdatePage : Page
             var release = await _updateClient.GetGithubReleaseAsync(tag);
             if (release != null)
             {
-                string markdown = $"""
-                                   # {release.Name}
+                var markdown = $"""
+                                # {release.Name}
 
-                                   > Update at {release.PublishedAt.LocalDateTime:yyyy-MM-dd HH:mm:ss}
+                                > Update at {release.PublishedAt.LocalDateTime:yyyy-MM-dd HH:mm:ss}
 
-                                   {release.Body}
+                                {release.Body}
 
-                                   """;
-                string html = await _updateClient.RenderGithubMarkdownAsync(markdown);
+                                """;
+                var html = await _updateClient.RenderGithubMarkdownAsync(markdown);
                 var cssFile = Path.Combine(AppContext.BaseDirectory, @"Assets\CSS\github-markdown-dark.css");
-                string css = "";
-                if (File.Exists(cssFile))
-                {
-                    css = await File.ReadAllTextAsync(cssFile);
-                }
+                var css = "";
+                if (File.Exists(cssFile)) css = await File.ReadAllTextAsync(cssFile);
 
                 html = $$"""
                          <!DOCTYPE html>
@@ -166,7 +158,7 @@ public sealed partial class UpdatePage : Page
                 Border_Markdown.Visibility = Visibility.Visible;
                 await webview.EnsureCoreWebView2Async();
                 webview.CoreWebView2.Profile.PreferredColorScheme =
-                    Microsoft.Web.WebView2.Core.CoreWebView2PreferredColorScheme.Dark;
+                    CoreWebView2PreferredColorScheme.Dark;
                 webview.CoreWebView2.NewWindowRequested += async (s, e) =>
                 {
                     try
@@ -181,9 +173,6 @@ public sealed partial class UpdatePage : Page
             }
         }
     }
-
-
-    
 
 
     [RelayCommand]
@@ -211,25 +200,15 @@ public sealed partial class UpdatePage : Page
             Button_RemindLatter.IsEnabled = false;
 
             if (LatestRelease is null)
-            {
                 LatestRelease = await _updateClient.GetLatestVersionAsync(false, RuntimeInformation.OSArchitecture);
-            }
 
             _timer.Start();
-            while (_updateService.State is UpdateService.UpdateState.Preparing)
-            {
-                await Task.Delay(100);
-            }
+            while (_updateService.State is UpdateService.UpdateState.Preparing) await Task.Delay(100);
 
             if (_updateService.State is not UpdateService.UpdateState.Pending)
-            {
                 await _updateService.PrepareForUpdateAsync(LatestRelease);
-            }
 
-            if (_updateService.State is UpdateService.UpdateState.Pending)
-            {
-                _updateService.Start();
-            }
+            if (_updateService.State is UpdateService.UpdateState.Pending) _updateService.Start();
 
             _timer.Start();
         }
@@ -253,12 +232,10 @@ public sealed partial class UpdatePage : Page
         }
 
         if (_updateService.State is UpdateService.UpdateState.Pending)
-        {
             // IsProgressTextVisible = true;
             // IsProgressBarVisible = true;
             // ProgresBar_Update.IsIndeterminate = false;
             UpdateProgressValue();
-        }
 
         if (_updateService.State is UpdateService.UpdateState.Downloading)
         {
@@ -329,7 +306,7 @@ public sealed partial class UpdatePage : Page
     }
 
 
-    private void _timer_Tick(Microsoft.UI.Dispatching.DispatcherQueueTimer sender, object args)
+    private void _timer_Tick(DispatcherQueueTimer sender, object args)
     {
         try
         {
@@ -342,9 +319,7 @@ public sealed partial class UpdatePage : Page
 
             if (_updateService.State is UpdateService.UpdateState.Stop or UpdateService.UpdateState.Error
                 or UpdateService.UpdateState.NotSupport)
-            {
                 _timer.Stop();
-            }
         }
         catch (Exception ex)
         {
@@ -364,7 +339,7 @@ public sealed partial class UpdatePage : Page
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = exe,
-                    WorkingDirectory = baseDir,
+                    WorkingDirectory = baseDir
                 });
                 // AppConfig.IgnoreVersion = null;
                 Environment.Exit(0);
@@ -383,12 +358,12 @@ public sealed partial class UpdatePage : Page
     }
 
 
-    private void Button_RemindLatter_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    private void Button_RemindLatter_PointerEntered(object sender, PointerRoutedEventArgs e)
     {
         Button_RemindLatter.Opacity = 1;
     }
 
-    private void Button_RemindLatter_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    private void Button_RemindLatter_PointerExited(object sender, PointerRoutedEventArgs e)
     {
         Button_RemindLatter.Opacity = 0;
     }

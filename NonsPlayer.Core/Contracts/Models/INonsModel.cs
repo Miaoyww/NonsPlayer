@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography;
-
-namespace NonsPlayer.Core.Contracts.Models;
+﻿namespace NonsPlayer.Core.Contracts.Models;
 
 public class INonsModel
 {

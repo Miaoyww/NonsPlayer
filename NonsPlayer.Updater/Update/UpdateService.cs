@@ -1,11 +1,7 @@
 ﻿using System.Buffers;
 using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Updater.Github;
@@ -14,36 +10,56 @@ namespace NonsPlayer.Updater.Update;
 
 public class UpdateService
 {
-    private readonly ILogger<UpdateService> _logger;
+    public enum UpdateState
+    {
+        Stop,
+
+        Preparing,
+
+        Pending,
+
+        Downloading,
+
+        Moving,
+
+        Checking,
+
+        Finish,
+
+        Error,
+
+        NotSupport
+    }
 
     private readonly HttpClient _httpClient;
+    private readonly ILogger<UpdateService> _logger;
 
     private readonly UpdateClient _updateClient;
 
-    private string _updateFolder;
+    private ReleaseFile _downloadFile;
 
 
     private ReleaseVersion _releaseVersion;
 
-    private ReleaseFile _downloadFile;
-
-    public UpdateState State { get; private set; }
-
-
-    public long Progress_BytesToDownload { get; private set; }
+    private string _updateFolder;
 
     private long progress_BytesDownloaded;
-    public long Progress_BytesDownloaded => progress_BytesDownloaded;
-
-
-    public string ErrorMessage { get; set; }
 
     public UpdateService(UpdateClient _inUpdateClient)
     {
         _httpClient = new HttpClient(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.All })
             { DefaultRequestVersion = HttpVersion.Version20 };
-        _updateClient = new();
+        _updateClient = new UpdateClient();
     }
+
+    public UpdateState State { get; private set; }
+
+
+    public long Progress_BytesToDownload { get; private set; }
+    public long Progress_BytesDownloaded => progress_BytesDownloaded;
+
+
+    public string ErrorMessage { get; set; }
 
 
     public async Task<ReleaseVersion?> CheckUpdateAsync(Version currentVersion, Architecture architecture,
@@ -54,10 +70,7 @@ public class UpdateService
         // _logger.LogInformation("Current version: {0}, latest version: {1}, ignore version: {2}", AppConfig.AppVersion, release?.Version, ignoreVersion);
         Version? latestVersion;
         Version.TryParse(latestRelease.Version, out latestVersion);
-        if (currentVersion.CompareTo(latestVersion) < 0)
-        {
-            return latestRelease;
-        }
+        if (currentVersion.CompareTo(latestVersion) < 0) return latestRelease;
 
         return null;
     }
@@ -142,25 +155,16 @@ public class UpdateService
         try
         {
             cancelSource?.Cancel();
-            cancelSource = new();
+            cancelSource = new CancellationTokenSource();
             var source = cancelSource;
             State = UpdateState.Downloading;
             await DownloadFilesAsync(source.Token);
-            if (source.IsCancellationRequested)
-            {
-                throw new TaskCanceledException();
-            }
+            if (source.IsCancellationRequested) throw new TaskCanceledException();
 
             var check = CheckDownloadFile();
-            if (!check)
-            {
-                throw new Exception("File verification failed");
-            }
+            if (!check) throw new Exception("File verification failed");
 
-            if (source.IsCancellationRequested)
-            {
-                throw new TaskCanceledException();
-            }
+            if (source.IsCancellationRequested) throw new TaskCanceledException();
 
             State = UpdateState.Moving;
             await Task.Delay(1000);
@@ -191,8 +195,7 @@ public class UpdateService
     private async Task DownloadFileAsync(ReleaseFile releaseFile, CancellationToken cancellationToken = default)
     {
         var readLength = 0;
-        for (int i = 0; i < 3; i++)
-        {
+        for (var i = 0; i < 3; i++)
             try
             {
                 readLength = 0;
@@ -219,12 +222,12 @@ public class UpdateService
                 }
 
                 using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                string hash = Convert.ToHexString(await SHA256.HashDataAsync(fs, cancellationToken));
+                var hash = Convert.ToHexString(await SHA256.HashDataAsync(fs, cancellationToken));
                 if (!string.Equals(hash, releaseFile.Release.PortableHash, StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogWarning("Checksum failed, path: {path}, actual hash: {hash}, true hash: {truehash}",
                         releaseFile.Path, hash, releaseFile.Release.PortableHash);
-                        throw new Exception($"Checksum failed: {releaseFile.Path}");
+                    throw new Exception($"Checksum failed: {releaseFile.Path}");
                 }
 
                 break;
@@ -238,22 +241,15 @@ public class UpdateService
             {
                 _logger.LogWarning("Download failed: {error}\r\n{url}", ex.Message, releaseFile.Release.Portable);
                 Interlocked.Add(ref progress_BytesDownloaded, -readLength);
-                if (i == 2)
-                {
-                    throw;
-                }
+                if (i == 2) throw;
             }
-        }
     }
 
 
     private bool CheckDownloadFile()
     {
         var file = Path.Combine(_updateFolder, _downloadFile.Release.PortableHash);
-        if (!File.Exists(file))
-        {
-            return false;
-        }
+        if (!File.Exists(file)) return false;
 
         return true;
     }
@@ -263,36 +259,10 @@ public class UpdateService
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_downloadFile.To)!);
         if (_downloadFile.IsMoving)
-        {
             File.Move(_downloadFile.From, _downloadFile.To, true);
-        }
         else
-        {
             File.Copy(_downloadFile.From, _downloadFile.To, true);
-        }
     }
 
     #endregion
-
-
-    public enum UpdateState
-    {
-        Stop,
-
-        Preparing,
-
-        Pending,
-
-        Downloading,
-
-        Moving,
-
-        Checking,
-
-        Finish,
-
-        Error,
-
-        NotSupport,
-    }
 }

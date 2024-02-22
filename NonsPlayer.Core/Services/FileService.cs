@@ -8,7 +8,7 @@ namespace NonsPlayer.Core.Services;
 public class FileService : IFileService
 {
     public static FileService Instance { get; } = new();
-    
+
     public T Read<T>(string folderPath, string fileName)
     {
         var path = Path.Combine(folderPath, fileName);
@@ -29,14 +29,14 @@ public class FileService : IFileService
         File.WriteAllText(Path.Combine(folderPath, fileName), fileContent, Encoding.UTF8);
     }
 
-    public void Move<T>(string targetFile, string folderPath)
-    {
-        
-    }
     public void Delete(string folderPath, string fileName)
     {
         if (fileName != null && File.Exists(Path.Combine(folderPath, fileName)))
             File.Delete(Path.Combine(folderPath, fileName));
+    }
+
+    public void Move<T>(string targetFile, string folderPath)
+    {
     }
 
     public void WriteData(string filename, string content)

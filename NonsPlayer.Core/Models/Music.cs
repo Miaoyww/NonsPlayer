@@ -12,12 +12,12 @@ public class Music : INonsModel
     public Album Album;
     public Artist[] Artists;
     public string FileType;
-    public string Trans;
     public bool IsEmpty;
     public bool IsLiked;
     public LyricGroup LyricGroup;
     public MusicQualityLevel[] QualityLevels;
     public TimeSpan TotalTime;
+    public string Trans;
     public string Url;
 
     public string TotalTimeString => TotalTime.ToString(@"m\:ss");

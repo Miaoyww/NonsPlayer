@@ -136,9 +136,7 @@ public class Player
         }
 
         if (music2play.Url == null)
-        {
             throw new MusicUrlNullException($"此音乐{music2play.Name} - {music2play.ArtistsName}的Url为空,可能是音乐源");
-        }
 
         OutputDevice.Play();
         await Task.Run(async () =>
@@ -166,7 +164,7 @@ public class Player
                 await Task.Delay(500);
                 OutputDevice.Play();
                 PlayStateChangedHandle(true);
-                return; 
+                return;
             }
 
             if (OutputDevice.PlaybackState == PlaybackState.Paused ||

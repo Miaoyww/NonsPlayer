@@ -1,19 +1,10 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using NonsPlayer.Contracts.ViewModels;
-using NonsPlayer.Core.Helpers;
-using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Services;
-using NonsPlayer.Helpers;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using Windows.System;
+﻿using Windows.System;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
-using Microsoft.UI.Xaml;
+using NonsPlayer.Contracts.ViewModels;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Services;
 using NonsPlayer.Updater.Github;
-using NonsPlayer.Updater.Update;
-using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.ViewModels;
 
@@ -42,13 +33,10 @@ public partial class UpdateViewModel : ObservableRecipient, INavigationAware
             {
                 "github" => LatestVersion.ReleasePageURL,
                 "portable" => LatestVersion.Portable,
-                _ => null,
+                _ => null
             };
             // _logger.LogInformation("Open url: {url}", url);
-            if (Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out var uri))
-            {
-                await Launcher.LaunchUriAsync(uri);
-            }
+            if (Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out var uri)) await Launcher.LaunchUriAsync(uri);
         }
 
         catch (Exception e)

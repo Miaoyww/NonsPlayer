@@ -15,9 +15,9 @@ namespace NonsPlayer.Components.ViewModels;
 public partial class RecommendedPlaylistCardViewModel
 {
     [ObservableProperty] private ImageBrush cover;
+    public Playlist CurrentPlaylist;
     [ObservableProperty] private string id;
     [ObservableProperty] private string title;
-    public Playlist CurrentPlaylist;
 
     public void Init(Playlist item)
     {

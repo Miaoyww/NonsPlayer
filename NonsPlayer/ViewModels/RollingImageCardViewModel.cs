@@ -2,9 +2,6 @@
 
 namespace NonsPlayer.ViewModels;
 
-public partial class RollingImageCardViewModel : ObservableRecipient
+public class RollingImageCardViewModel : ObservableRecipient
 {
-    public RollingImageCardViewModel()
-    {
-    }
 }

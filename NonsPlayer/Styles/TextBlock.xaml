@@ -9,7 +9,7 @@
         <Setter Property="TextWrapping" Value="WrapWholeWords" />
         <Setter Property="FontWeight" Value="Normal" />
     </Style>
-    
+
     <Style x:Key="CommonRichTextStyle" TargetType="RichTextBlock">
         <Setter Property="FontSize" Value="18" />
         <Setter Property="FontFamily" Value="HarmonyOS Sans SC" />
@@ -17,7 +17,7 @@
         <Setter Property="TextWrapping" Value="WrapWholeWords" />
         <Setter Property="FontWeight" Value="Normal" />
     </Style>
-    
+
     <Style x:Key="BodyTextStyle" TargetType="TextBlock">
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="FontSize" Value="{StaticResource MediumFontSize}" />

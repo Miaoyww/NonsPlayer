@@ -1,15 +1,10 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
-using Windows.ApplicationModel.DataTransfer;
-using Windows.Storage.Streams;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
@@ -157,7 +152,4 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     {
         IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
     }
-
-
-    
 }

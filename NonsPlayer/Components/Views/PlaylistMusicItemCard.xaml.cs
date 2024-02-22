@@ -2,13 +2,11 @@
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
-using NonsPlayer.Views;
 
 namespace NonsPlayer.Components.Views;
 
@@ -33,15 +31,13 @@ public sealed partial class PlaylistMusicItemCard : UserControl
     partial void OnMusicChanged(Music music)
     {
         ViewModel.Init(music);
-        for (int i = 0; i < Music.Artists.Length; i++)
-        {
-            CheckArtists.Items.Add(new MenuFlyoutItem()
+        for (var i = 0; i < Music.Artists.Length; i++)
+            CheckArtists.Items.Add(new MenuFlyoutItem
             {
                 Text = Music.Artists[i].Name,
                 Command = CheckArtistCommand,
                 CommandParameter = Music.Artists[i]
             });
-        }
     }
 
     [RelayCommand]

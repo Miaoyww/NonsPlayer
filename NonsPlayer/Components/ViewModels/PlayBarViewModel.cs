@@ -47,6 +47,7 @@ public partial class PlayerBarViewModel : ObservableObject
     {
         PlayQueue.Instance.SwitchShuffle();
     }
+
     public void CurrentTimeSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (MusicStateModel.Instance.OnDrag)

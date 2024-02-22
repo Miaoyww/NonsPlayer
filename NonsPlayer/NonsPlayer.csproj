@@ -30,38 +30,38 @@
         <AppxBundle>Auto</AppxBundle>
         <AppInstallerUri>D:\Program Files\NonsPlayer</AppInstallerUri>
         <IsPackable>false</IsPackable>
-        <Authors />
+        <Authors/>
         <Company>Miaoyww</Company>
         <PublicSign>false</PublicSign>
         <AppxBundlePlatforms>x86|x64</AppxBundlePlatforms>
     </PropertyGroup>
 
     <ItemGroup>
-        <Manifest Include="$(ApplicationManifest)" />
+        <Manifest Include="$(ApplicationManifest)"/>
     </ItemGroup>
-
+    
     <ItemGroup>
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
-        <PackageReference Include="Dapper" Version="2.1.28" />
-        <PackageReference Include="F23.StringSimilarity" Version="5.1.0" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1"/>
+        <PackageReference Include="Dapper" Version="2.1.28"/>
+        <PackageReference Include="F23.StringSimilarity" Version="5.1.0"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1"/>
         <PackageReference Include="Microsoft.Windows.CsWin32" PrivateAssets="all" Version="0.3.18-beta">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002" />
-        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
-        <PackageReference Include="NAudio" Version="2.1.0" />
-        <PackageReference Include="NuGet.Versioning" Version="6.9.1" />
-        <PackageReference Include="QRCoder" Version="1.4.3" />
-        <PackageReference Include="RestSharp" Version="106.15.0" />
-        <PackageReference Include="Serilog" Version="3.1.2-dev-02097" />
-        <PackageReference Include="WinUIEx" Version="2.2.0" />
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002"/>
+        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9"/>
+        <PackageReference Include="NAudio" Version="2.1.0"/>
+        <PackageReference Include="NuGet.Versioning" Version="6.9.1"/>
+        <PackageReference Include="QRCoder" Version="1.4.3"/>
+        <PackageReference Include="RestSharp" Version="106.15.0"/>
+        <PackageReference Include="Serilog" Version="3.1.2-dev-02097"/>
+        <PackageReference Include="WinUIEx" Version="2.2.0"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj" />
-        <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj" />
+        <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj"/>
+        <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj"/>
     </ItemGroup>
     <ItemGroup>
         <None Update="appsettings.json">
@@ -84,12 +84,12 @@
             <Generator>MSBuild:Compile</Generator>
         </Page>
         <Page Update="Components\Views\MusicListBar.xaml">
-          <SubType>Designer</SubType>
+            <SubType>Designer</SubType>
         </Page>
     </ItemGroup>
 
     <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-        <ProjectCapability Include="Msix" />
+        <ProjectCapability Include="Msix"/>
     </ItemGroup>
 
     <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
@@ -122,39 +122,39 @@
 
     <Target Name="_RemoveFrameworkReferences" BeforeTargets="_ConvertItems;_CalculateInputsForGenerateCurrentProjectAppxManifest">
         <ItemGroup>
-            <FrameworkSdkReference Remove="@(FrameworkSdkReference)" Condition="$([System.String]::Copy('%(FrameworkSdkReference.SDKName)').StartsWith('Microsoft.WindowsAppRuntime.'))" />
+            <FrameworkSdkReference Remove="@(FrameworkSdkReference)" Condition="$([System.String]::Copy('%(FrameworkSdkReference.SDKName)').StartsWith('Microsoft.WindowsAppRuntime.'))"/>
         </ItemGroup>
     </Target>
 
     <ItemGroup>
-        <PRIResource Remove="Strings\新文件夹\**" />
+        <PRIResource Remove="Strings\新文件夹\**"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Content Remove="Assets\SplashScreen.scale-100.png" />
-        <Content Remove="Assets\SplashScreen.scale-400.png" />
-        <None Remove="Segoe Fluent Icons.ttf" />
-        <None Remove="Styles\CommonComponents.xaml" />
+        <Content Remove="Assets\SplashScreen.scale-100.png"/>
+        <Content Remove="Assets\SplashScreen.scale-400.png"/>
+        <None Remove="Segoe Fluent Icons.ttf"/>
+        <None Remove="Styles\CommonComponents.xaml"/>
         <Content Include="Segoe Fluent Icons.ttf">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Assets\Icons\arrow-back.svg" />
-        <None Remove="Assets\Icons\arrow-next.svg" />
-        <None Remove="Assets\Icons\liked.svg" />
-        <None Remove="Assets\Icons\search.svg" />
-        <None Remove="Assets\Icons\unliked.svg" />
-        <None Remove="Assets\SplashScreen.png" />
-        <None Remove="Assets\UnknowResource.png" />
-        <None Remove="Assets\WindowIcon.ico" />
-        <None Remove="Components\Views\BestArtistCard.xaml" />
-        <None Remove="Components\Views\BestResultCard.xaml" />
-        <None Remove="Components\Views\FunctionBar.xaml" />
-        <None Remove="Components\Views\LyricBox.xaml" />
-        <None Remove="Components\Views\PlayerBar.xaml" />
-        <None Remove="Components\Views\UserPlaylistCard.xaml" />
+        <None Remove="Assets\Icons\arrow-back.svg"/>
+        <None Remove="Assets\Icons\arrow-next.svg"/>
+        <None Remove="Assets\Icons\liked.svg"/>
+        <None Remove="Assets\Icons\search.svg"/>
+        <None Remove="Assets\Icons\unliked.svg"/>
+        <None Remove="Assets\SplashScreen.png"/>
+        <None Remove="Assets\UnknowResource.png"/>
+        <None Remove="Assets\WindowIcon.ico"/>
+        <None Remove="Components\Views\BestArtistCard.xaml"/>
+        <None Remove="Components\Views\BestResultCard.xaml"/>
+        <None Remove="Components\Views\FunctionBar.xaml"/>
+        <None Remove="Components\Views\LyricBox.xaml"/>
+        <None Remove="Components\Views\PlayerBar.xaml"/>
+        <None Remove="Components\Views\UserPlaylistCard.xaml"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -172,7 +172,7 @@
             <Generator>MSBuild:Compile</Generator>
         </Page>
         <Page Update="Styles\CommonComponents.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         </Page>
     </ItemGroup>
 </Project>

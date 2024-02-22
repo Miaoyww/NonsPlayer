@@ -96,7 +96,7 @@ public static class CacheHelper
 
     public static async Task<Playlist> GetPlaylistAsync(string cacheId, string id)
     {
-        return (await GetCacheItemAsync<Playlist>(cacheId, async () =>
+        return (await GetCacheItemAsync(cacheId, async () =>
             await PlaylistAdaptes.CreateById(long.Parse(id)))).Data;
     }
 
@@ -107,7 +107,7 @@ public static class CacheHelper
 
     public static async Task<Playlist> UpdatePlaylistAsync(string cacheId, string id)
     {
-        var playlist = (await UpdateCacheItem<Playlist>(cacheId, async () =>
+        var playlist = (await UpdateCacheItem(cacheId, async () =>
             await PlaylistAdaptes.CreateById(long.Parse(id)))).Data;
         await UpdateImageBrushAsync(playlist.CacheAvatarId, playlist.AvatarUrl);
         return playlist;
@@ -115,31 +115,31 @@ public static class CacheHelper
 
     public static Playlist GetPlaylist(string cacheId, string id)
     {
-        return GetCacheItemAsync<Playlist>(cacheId, async () =>
+        return GetCacheItemAsync(cacheId, async () =>
             await PlaylistAdaptes.CreateById(long.Parse(id))).Result.Data;
     }
 
     public static async Task<Music> GetMusicAsync(string cacheId, string id)
     {
-        return (await GetCacheItemAsync<Music>(cacheId, async () =>
+        return (await GetCacheItemAsync(cacheId, async () =>
             await MusicAdapters.CreateById(long.Parse(id)))).Data;
     }
 
     public static Music GetMusic(string cacheId, string id)
     {
-        return GetCacheItemAsync<Music>(cacheId, async () =>
+        return GetCacheItemAsync(cacheId, async () =>
             await MusicAdapters.CreateById(long.Parse(id))).Result.Data;
     }
 
     public static async Task<SearchResult> GetSearchResultAsync(string cacheId, string keyWords)
     {
-        return (await GetCacheItemAsync<SearchResult>(cacheId, async () =>
+        return (await GetCacheItemAsync(cacheId, async () =>
             await SearchResult.CreateSearchAsync(keyWords))).Data;
     }
 
     public static SearchResult GetSearchResult(string cacheId, string keyWords)
     {
-        return GetCacheItemAsync<SearchResult>(cacheId, async () =>
+        return GetCacheItemAsync(cacheId, async () =>
             await SearchResult.CreateSearchAsync(keyWords)).Result.Data;
     }
 

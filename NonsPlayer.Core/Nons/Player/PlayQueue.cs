@@ -6,8 +6,6 @@ namespace NonsPlayer.Core.Nons.Player;
 
 public class PlayQueue
 {
-    public delegate void PlayQueueChangedHandler();
-
     public delegate void CurrentMusicChangedEventHandler(Music value);
 
     public delegate void MusicAddedEventHandler(Music value);
@@ -15,6 +13,8 @@ public class PlayQueue
     public delegate void PlaylistAddedEventHandler();
 
     public delegate void PlayModeChangedEventHandler(PlayModeEnum mode);
+
+    public delegate void PlayQueueChangedHandler();
 
     public delegate void ShuffleChangedEventHandler(bool isShuffle);
 
@@ -26,15 +26,10 @@ public class PlayQueue
         Recommend
     }
 
-    private bool _isShuffle;
     private Music _currentMusic;
+
     private bool _isUserPressed;
     private List<Music> _randomMusicList = new();
-
-    public bool IsShuffle
-    {
-        get => _isShuffle;
-    }
 
     public PlayQueue()
     {
@@ -46,6 +41,8 @@ public class PlayQueue
         PlaylistAdded += OnPlaylistAdded;
         PlayModeChanged += OnPlayModeChanged;
     }
+
+    public bool IsShuffle { get; private set; }
 
 
     public static PlayQueue Instance { get; } = new();
@@ -90,7 +87,7 @@ public class PlayQueue
     {
         if (mode == PlayModeEnum.Recommend && IsShuffle)
         {
-            _isShuffle = false;
+            IsShuffle = false;
             ShuffleChanged?.Invoke(false);
         }
     }
@@ -124,12 +121,12 @@ public class PlayQueue
     {
         if (PlayMode == PlayModeEnum.Recommend && !IsShuffle)
         {
-            _isShuffle = false;
+            IsShuffle = false;
             ShuffleChanged?.Invoke(false);
             return;
         }
 
-        _isShuffle = !_isShuffle;
+        IsShuffle = !IsShuffle;
         ShuffleChanged?.Invoke(IsShuffle);
     }
 
@@ -157,7 +154,7 @@ public class PlayQueue
     }
 
     /// <summary>
-    /// 向正在播放的音乐后添加一歌曲
+    ///     向正在播放的音乐后添加一歌曲
     /// </summary>
     /// <param name="music"></param>
     public void AddNext(Music music)
@@ -186,10 +183,7 @@ public class PlayQueue
     public void AddNext(Music[] musics)
     {
         var content = musics.Reverse();
-        foreach (var item in content)
-        {
-            AddNext(item);
-        }
+        foreach (var item in content) AddNext(item);
     }
 
     private void _removeMusic(Music music)
@@ -277,7 +271,6 @@ public class PlayQueue
         if (PlayMode is PlayModeEnum.Recommend)
         {
             Play(CurrentMusic);
-            return;
         }
     }
 
@@ -296,7 +289,10 @@ public class PlayQueue
         return MusicList.IndexOf(music);
     }
 
-    public int GetCurrentIndex() => GetIndex(CurrentMusic);
+    public int GetCurrentIndex()
+    {
+        return GetIndex(CurrentMusic);
+    }
 
     /// <summary>
     ///     获取随机播放列表

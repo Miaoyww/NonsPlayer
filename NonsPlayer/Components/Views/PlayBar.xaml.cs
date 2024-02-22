@@ -5,7 +5,6 @@ using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
-using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.Components.Views;
 

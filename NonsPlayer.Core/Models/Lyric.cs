@@ -66,14 +66,10 @@ public class LyricGroup
             var item = match[i];
             TimeSpan time;
             if (item.Groups[1].Value == "99:00.00")
-            {
                 // 纯音乐或无歌词
                 time = TimeSpan.MaxValue;
-            }
             else
-            {
                 time = TimeSpan.Parse("00:" + item.Groups[1].Value);
-            }
 
             var word = item.Groups[2].Value;
             result[i] = new Tuple<TimeSpan, string>(time, word);

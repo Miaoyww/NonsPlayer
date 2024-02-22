@@ -4,20 +4,21 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Nons.Player;
-using NonsPlayer.Helpers;
-using NonsPlayer.ViewModels;
-using static NonsPlayer.Views.ShellPage;
 using NonsPlayer.Core.Exceptions;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Account;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Helpers;
 using NonsPlayer.Services;
+using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Views;
 
 public sealed partial class ShellPage : Page
 {
+    public delegate void ShellViewDialogShowEventHandler();
+
     public ShellPage(ShellViewModel viewModel)
     {
         ViewModel = viewModel;
@@ -36,6 +37,10 @@ public sealed partial class ShellPage : Page
         PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
     }
 
+    public ShellViewModel ViewModel { get; }
+
+    public PlayQueueBarViewModel PlayQueueBarViewModel { get; }
+
     private void OnExceptionThrew(Exception exception)
     {
         ExceptionTtp.Title = "出错啦！";
@@ -48,11 +53,6 @@ public sealed partial class ShellPage : Page
     {
         ExceptionTtp.IsOpen = false;
     }
-    public ShellViewModel ViewModel { get; }
-
-    public PlayQueueBarViewModel PlayQueueBarViewModel { get; }
-
-    public delegate void ShellViewDialogShowEventHandler();
 
     public event ShellViewDialogShowEventHandler OnDialogShowCall;
 

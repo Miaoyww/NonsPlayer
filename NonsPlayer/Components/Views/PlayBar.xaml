@@ -59,8 +59,10 @@
                                 Command="{x:Bind ViewModel.SwitchShuffleCommand}">
                             <Grid>
                                 <FontIcon FontSize="20" Glyph="&#xe8b1;" />
-                                <Line Margin="0,0,0,-4" StrokeThickness="2" X1="0" X2="10" VerticalAlignment="Bottom" HorizontalAlignment="Center" Visibility="{x:Bind ViewModel.PlayerService.IsShuffle, Converter={StaticResource ShuffleIconConverter}, Mode=OneWay}"
-                                      Stroke="#0067c0"/>
+                                <Line Margin="0,0,0,-4" StrokeThickness="2" X1="0" X2="10" VerticalAlignment="Bottom"
+                                      HorizontalAlignment="Center"
+                                      Visibility="{x:Bind ViewModel.PlayerService.IsShuffle, Converter={StaticResource ShuffleIconConverter}, Mode=OneWay}"
+                                      Stroke="#0067c0" />
                             </Grid>
 
                         </Button>

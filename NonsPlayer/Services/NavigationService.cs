@@ -13,15 +13,15 @@ public class NavigationService : INavigationService
 {
     private readonly IPageService _pageService;
     private Frame? _frame;
-    private object? _lastParameterUsed;
     private object? _lastParameter;
-
-    public string LastPage { get; set; }
+    private object? _lastParameterUsed;
 
     public NavigationService(IPageService pageService)
     {
         _pageService = pageService;
     }
+
+    public string LastPage { get; set; }
 
     public event NavigatedEventHandler? Navigated;
 
@@ -78,6 +78,7 @@ public class NavigationService : INavigationService
                 _lastParameterUsed = parameter;
                 if (vmBeforeNavigation is INavigationAware navigationAware) navigationAware.OnNavigatedFrom();
             }
+
             return navigated;
         }
 

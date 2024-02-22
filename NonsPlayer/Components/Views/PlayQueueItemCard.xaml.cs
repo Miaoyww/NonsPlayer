@@ -63,6 +63,6 @@ public sealed partial class PlayQueueItemCard : UserControl
 
     private void Play(object sender, DoubleTappedRoutedEventArgs e)
     {
-            PlayQueue.Instance.Play(Music);
+        PlayQueue.Instance.Play(Music);
     }
 }

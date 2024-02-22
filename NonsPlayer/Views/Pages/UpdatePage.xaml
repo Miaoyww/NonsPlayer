@@ -150,7 +150,7 @@
                 <RowDefinition />
                 <RowDefinition />
                 <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>  
+            </Grid.RowDefinitions>
             <TextBlock Name="TextBlockProgress"
                        Grid.Row="0"
                        HorizontalAlignment="Right"

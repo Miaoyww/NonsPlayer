@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Windows.ApplicationModel.DataTransfer;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
@@ -7,7 +8,6 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using Windows.ApplicationModel.DataTransfer;
 using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Components.ViewModels;
@@ -20,11 +20,11 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
     [ObservableProperty] private string index;
     [ObservableProperty] private bool isInitCover;
     [ObservableProperty] private bool liked;
-    [ObservableProperty] private string trans;
-    [ObservableProperty] private Visibility transVisibility;
     public Music Music;
     [ObservableProperty] private string name;
     [ObservableProperty] private string time;
+    [ObservableProperty] private string trans;
+    [ObservableProperty] private Visibility transVisibility;
 
     public void Init(Music music)
     {
@@ -33,17 +33,13 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         Time = Music.TotalTimeString;
         Album = Music.AlbumName;
         Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
-  
+
 
         Trans = $"({Music.Trans})";
         if (Music.Trans.Equals(string.Empty))
-        {
             TransVisibility = Visibility.Collapsed;
-        }
         else
-        {
             TransVisibility = Visibility.Visible;
-        }
 
         Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
         InitCover().ConfigureAwait(false);
@@ -76,6 +72,7 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         data.SetText($"Share music: {Music.Name} made by {Music.ArtistsName}");
         Clipboard.SetContent(data);
     }
+
     [RelayCommand]
     public void CopyShareUrl()
     {

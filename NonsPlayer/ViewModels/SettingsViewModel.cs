@@ -1,23 +1,28 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Windows.Input;
 using Windows.ApplicationModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Nons.Account;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 using NonsPlayer.Updater.Update;
-using NuGet.Versioning;
 
 namespace NonsPlayer.ViewModels;
 
 public partial class SettingsViewModel : ObservableRecipient
 {
-    private UpdateService _updateService = App.GetService<UpdateService>();
-    private VersionService _versionService = App.GetService<VersionService>();
+    private readonly UpdateService _updateService = App.GetService<UpdateService>();
+    private readonly VersionService _versionService = App.GetService<VersionService>();
+
+    [ObservableProperty] public string versionDescription;
+
+    public SettingsViewModel(IThemeSelectorService themeSelectorService)
+    {
+        VersionDescription = GetVersionDescription();
+    }
+
     [RelayCommand]
     private void Test()
     {
@@ -28,18 +33,9 @@ public partial class SettingsViewModel : ObservableRecipient
     [RelayCommand]
     public async void CheckUpdate()
     {
-        var release = await _updateService.CheckUpdateAsync(_versionService.CurrentVersion, RuntimeInformation.OSArchitecture);
-        if (release != null)
-        {
-            ServiceHelper.NavigationService.NavigateTo(typeof(UpdateViewModel).FullName, release);
-        }
-    }
-
-    [ObservableProperty] public string versionDescription;
-
-    public SettingsViewModel(IThemeSelectorService themeSelectorService)
-    {
-        VersionDescription = GetVersionDescription();
+        var release =
+            await _updateService.CheckUpdateAsync(_versionService.CurrentVersion, RuntimeInformation.OSArchitecture);
+        if (release != null) ServiceHelper.NavigationService.NavigateTo(typeof(UpdateViewModel).FullName, release);
     }
 
     private static string GetVersionDescription()

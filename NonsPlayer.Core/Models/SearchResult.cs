@@ -16,10 +16,7 @@ public class SearchResult : INonsModel
 
     private SearchResult(string keyWords)
     {
-        if (keyWords.Equals(string.Empty))
-        {
-            throw new SearchExceptions("搜索KeyWords不能为空");
-        }
+        if (keyWords.Equals(string.Empty)) throw new SearchExceptions("搜索KeyWords不能为空");
 
         KeyWords = keyWords;
     }

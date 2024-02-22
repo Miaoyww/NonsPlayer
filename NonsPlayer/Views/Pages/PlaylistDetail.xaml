@@ -5,7 +5,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:NonsPlayer.Components.Views"
-    xmlns:models="using:NonsPlayer.Components.Models"
     xmlns:helpers="using:NonsPlayer.Helpers"
     mc:Ignorable="d">
     <Page.Resources>
@@ -23,11 +22,11 @@
                 <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Top" Height="250">
                     <Border Name="Cover" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left"
                             VerticalAlignment="Top" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
-                            CornerRadius="10,10,10,10" >
+                            CornerRadius="10,10,10,10">
                         <Border.ContextFlyout>
                             <MenuBarItemFlyout Placement="Right" x:Name="CoverFlyout">
                                 <MenuFlyoutItem Text="复制" Icon="Copy" Command="{x:Bind CopyCoverCommand}" />
-                                <MenuFlyoutItem Text="保存" Icon="Save" Command="{x:Bind SaveCoverCommand}"/>
+                                <MenuFlyoutItem Text="保存" Icon="Save" Command="{x:Bind SaveCoverCommand}" />
                             </MenuBarItemFlyout>
                         </Border.ContextFlyout>
                     </Border>

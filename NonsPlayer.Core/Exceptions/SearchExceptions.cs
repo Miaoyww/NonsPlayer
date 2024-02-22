@@ -1,6 +1,6 @@
 ﻿namespace NonsPlayer.Core.Exceptions;
 
-public class SearchExceptions: Exception
+public class SearchExceptions : Exception
 {
     public SearchExceptions()
     {

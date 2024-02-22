@@ -7,7 +7,8 @@
     mc:Ignorable="d">
 
     <Grid>
-        <TextBlock Text="{x:Bind ViewModel.CurrentArtist.Name, Mode=OneWay}" HorizontalTextAlignment="Center" VerticalAlignment="Center"/>
+        <TextBlock Text="{x:Bind ViewModel.CurrentArtist.Name, Mode=OneWay}" HorizontalTextAlignment="Center"
+                   VerticalAlignment="Center" />
 
     </Grid>
 </Page>

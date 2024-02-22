@@ -1,5 +1,4 @@
-﻿using System.Drawing;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
@@ -207,18 +206,15 @@ public class PlayModeIconConverter : IValueConverter
         return null;
     }
 }
+
 public class ShuffleIconConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
     {
         var isShuffle = (bool)value;
-        if (isShuffle)
-        {
-            return Visibility.Visible;
-        }
+        if (isShuffle) return Visibility.Visible;
 
         return Visibility.Collapsed;
-
     }
 
     public object? ConvertBack(object value, Type targetType, object parameter, string language)
@@ -226,6 +222,7 @@ public class ShuffleIconConverter : IValueConverter
         return null;
     }
 }
+
 public class SearchDataTypeToString : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)

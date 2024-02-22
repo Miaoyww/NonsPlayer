@@ -11,8 +11,8 @@
                 DoubleTapped="{x:Bind ViewModel.OpenMusicListDetail}">
             <Border.ContextFlyout>
                 <MenuFlyout>
-                    <MenuFlyoutItem Text="分享" Icon="Share" Command="{x:Bind ViewModel.CopyShareUrlCommand}"/>
-                    <MenuFlyoutItem Text="下一首播放" Icon="Play" Command="{x:Bind ViewModel.PlayNextCommand}"/>
+                    <MenuFlyoutItem Text="分享" Icon="Share" Command="{x:Bind ViewModel.CopyShareUrlCommand}" />
+                    <MenuFlyoutItem Text="下一首播放" Icon="Play" Command="{x:Bind ViewModel.PlayNextCommand}" />
                 </MenuFlyout>
             </Border.ContextFlyout>
             <Grid VerticalAlignment="Center" HorizontalAlignment="Center">

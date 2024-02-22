@@ -30,7 +30,7 @@ public partial class UserPlaylistHelper
 
     public async void Init()
     {
-        var test = (await Apis.User.Playlist(Account.Instance.Uid, NonsCore.Instance));
+        var test = await Apis.User.Playlist(Account.Instance.Uid, NonsCore.Instance);
         var result = (JArray)test["playlist"];
         UserPlaylistService.Instance.Init(result);
         foreach (var playlistItem in result)

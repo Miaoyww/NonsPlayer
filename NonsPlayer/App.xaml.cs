@@ -1,10 +1,8 @@
 ﻿using System.Runtime.InteropServices;
-
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-
 using NonsPlayer.Activation;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Contracts.Services;
@@ -17,10 +15,8 @@ using NonsPlayer.Updater.Update;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
-
-using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
-
 using WinRT;
+using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
 
 namespace NonsPlayer;
 
@@ -76,7 +72,7 @@ public partial class App : Application
                 services.AddTransient<ArtistPage>();
                 services.AddTransient<ArtistViewModel>();
                 services.AddTransient<AlbumPage>();
-                services.AddTransient<AlbumViewModel>();                
+                services.AddTransient<AlbumViewModel>();
                 services.AddTransient<UpdatePage>();
                 services.AddTransient<UpdateViewModel>();
                 // Components Views and ViewModels

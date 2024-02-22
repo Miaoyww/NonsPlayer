@@ -24,7 +24,7 @@ public static class MusicAdapters
             Artists = ((JArray)item["ar"]).Select(arItem => ArtistAdapters.CreateFromPlaylistTrack(arItem as JObject))
                 .ToArray(),
             Trans = !((JArray)item["alia"]).Any()
-                ? (!item.ContainsKey("tns") ? string.Empty : item["tns"][0].ToString())
+                ? !item.ContainsKey("tns") ? string.Empty : item["tns"][0].ToString()
                 : item["alia"][0].ToString(),
             ShareUrl = $"https://music.163.com/song?id={(int)item["id"]}"
         };

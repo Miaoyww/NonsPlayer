@@ -15,7 +15,6 @@ public class MusicIdNullException : Exception
     }
 }
 
-
 public class MusicUrlNullException : Exception
 {
     public MusicUrlNullException()
