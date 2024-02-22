@@ -119,10 +119,10 @@ int wmain(int argc, wchar_t* argv[])
 	{
 		Log(L"NonsPlayer.exe not found");
 		SetProcessDPIAware();
-		auto ok = MessageBox(NULL, L"NonsPlayer files not found.\r\nWould you like to download it now?\r\nhttps://github.com/Scighost/NonsPlayer", L"NonsPlayer", MB_ICONWARNING | MB_OKCANCEL);
+		auto ok = MessageBox(NULL, L"NonsPlayer files not found.\r\nWould you like to download it now?\r\nhttps://github.com/Miaoyww/NonsPlayer", L"NonsPlayer", MB_ICONWARNING | MB_OKCANCEL);
 		if (ok == IDOK)
 		{
-			ShellExecute(NULL, NULL, L"https://github.com/Scighost/NonsPlayer", NULL, NULL, SW_SHOWNORMAL);
+			ShellExecute(NULL, NULL, L"https://github.com/Miaoyww/NonsPlayer", NULL, NULL, SW_SHOWNORMAL);
 		}
 	}
 
