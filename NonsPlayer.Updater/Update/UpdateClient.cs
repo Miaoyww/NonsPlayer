@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using NonsPlayer.Updater.Github;
+using NonsPlayer.Updater.Metadata;
 
 namespace NonsPlayer.Updater.Update;
 
@@ -33,7 +34,8 @@ public class UpdateClient
     }
 
 
-    public async Task<ReleaseVersion> GetLatestVersionAsync(bool isPrerelease, Architecture architecture)
+    public async Task<ReleaseVersion> GetLatestVersionAsync(bool isPrerelease, Architecture architecture,
+        CancellationToken cancellationToken = default)
     {
 #if DEV
         isPrerelease = true;
@@ -47,21 +49,27 @@ public class UpdateClient
             _ => throw new PlatformNotSupportedException($"{architecture} is not supported.")
         };
         var url = GetUrl(name);
-        return await ParseResponse<ReleaseVersion>(url);
+        return await ParseResponse<ReleaseVersion>(url, cancellationToken);
     }
 
-    public async Task<GithubRelease?> GetGithubReleaseAsync(string tag)
+    public async Task<GithubRelease?> GetGithubReleaseAsync(string tag, CancellationToken cancellationToken = default)
     {
         var url = $"https://api.github.com/repos/Miaoyww/NonsPlayer/releases/tags/{tag}";
-        return await ParseResponse<GithubRelease>(url);
+        return await ParseResponse<GithubRelease>(url, cancellationToken);
     }
 
-    private async Task<T> ParseResponse<T>(string url) where T : class
+    private async Task<T> ParseResponse<T>(string url, CancellationToken cancellationToken = default) where T : class
     {
-        var res = await _httpClient.GetFromJsonAsync(url, typeof(T)) as T;
-        if (res == null) throw new NullReferenceException($"尝试ParseResponse失败,res为空.URL= {url}");
-
-        return res;
+        var res =
+            await _httpClient.GetFromJsonAsync(url, typeof(T), MetadataJsonContext.Default, cancellationToken) as T;
+        if (res == null)
+        {
+            throw new NullReferenceException($"尝试ParseResponse失败,res为空.URL= {url}");
+        }
+        else
+        {
+            return res;
+        }
     }
 
     public async Task<string> RenderGithubMarkdownAsync(string markdown, CancellationToken cancellationToken = default)

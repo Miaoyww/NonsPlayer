@@ -46,6 +46,7 @@ public partial class App : Application
                 services.AddSingleton<VersionService>();
                 services.AddSingleton<UpdateService>();
                 services.AddSingleton<UpdateClient>();
+                services.AddSingleton<ExceptionService>();
 
                 // Core Services
                 services.AddSingleton<IFileService, FileService>();

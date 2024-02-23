@@ -20,7 +20,7 @@ public partial class SettingsViewModel : ObservableRecipient
 
     public SettingsViewModel(IThemeSelectorService themeSelectorService)
     {
-        VersionDescription = GetVersionDescription();
+        VersionDescription = _versionService.CurrentVersionDescription;
     }
 
     [RelayCommand]
@@ -37,23 +37,5 @@ public partial class SettingsViewModel : ObservableRecipient
             await _updateService.CheckUpdateAsync(_versionService.CurrentVersion, RuntimeInformation.OSArchitecture);
         if (release != null) ServiceHelper.NavigationService.NavigateTo(typeof(UpdateViewModel).FullName, release);
     }
-
-    private static string GetVersionDescription()
-    {
-        Version version;
-
-        if (RuntimeHelper.IsMSIX)
-        {
-            var packageVersion = Package.Current.Id.Version;
-
-            version = new Version(packageVersion.Major, packageVersion.Minor, packageVersion.Build,
-                packageVersion.Revision);
-        }
-        else
-        {
-            version = Assembly.GetExecutingAssembly().GetName().Version!;
-        }
-
-        return $"v{version.Major}.{version.Minor}.{version.Build}";
-    }
+    
 }

@@ -73,10 +73,10 @@
                            VerticalAlignment="Top"
                            Text="相关链接" />
                 <StackPanel Grid.Column="1" Spacing="4">
-                    <HyperlinkButton Command="{x:Bind ViewModel.ReferToUrlCommand}"
+                    <HyperlinkButton Command="{x:Bind ReferToUrlCommand}"
                                      CommandParameter="github"
                                      Content="Github页面" />
-                    <HyperlinkButton Command="{x:Bind ViewModel.ReferToUrlCommand}"
+                    <HyperlinkButton Command="{x:Bind ReferToUrlCommand}"
                                      CommandParameter="portable">
                         <TextBlock>
                             <Run Text="手动下载" />
@@ -99,7 +99,7 @@
                     Orientation="Horizontal"
                     Spacing="24">
 
-            <Button x:Name="Button_Update"
+            <Button x:Name="ButtonUpdate"
                     Height="36"
                     BorderThickness="0"
                     Command="{x:Bind UpdateNowCommand}"
@@ -114,7 +114,7 @@
             </Button>
 
             <Grid>
-                <SplitButton x:Name="Button_RemindLatter"
+                <SplitButton x:Name="ButtonRemindLatter"
                              Height="36"
                              BorderThickness="0"
                              Command="{x:Bind RemindMeLatterCommand}"
@@ -151,29 +151,29 @@
                 <RowDefinition />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <TextBlock Name="TextBlockProgress"
+            <TextBlock x:Name="TextBlockProgress"
                        Grid.Row="0"
                        HorizontalAlignment="Right"
-                       Text="{x:Bind ProgressPercentText}"
-                       Visibility="{x:Bind IsProgressTextVisible}" />
-            <ProgressBar Name="ProgresBarUpdate"
+                       Text="{x:Bind ProgressPercentText, Mode=OneWay}"
+                       Visibility="{x:Bind IsProgressTextVisible, Mode=OneWay}" />
+            <ProgressBar x:Name="ProgressBarUpdate"
                          Grid.Row="1"
-                         Visibility="{x:Bind IsProgressBarVisible}"
+                         Visibility="{x:Bind IsProgressBarVisible, Mode=OneWay}"
                          Value="0" />
-            <TextBlock Name="TextBlockSpeed"
+            <TextBlock x:Name="TextBlockSpeed"
                        Grid.Row="2"
                        HorizontalAlignment="Left"
-                       Text="{x:Bind ProgressSpeedText}"
-                       Visibility="{x:Bind IsProgressTextVisible}" />
-            <TextBlock Name="TextBlockBytes"
+                       Text="{x:Bind ProgressSpeedText, Mode=OneWay}"
+                       Visibility="{x:Bind IsProgressTextVisible, Mode=OneWay}" />
+            <TextBlock x:Name="TextBlockBytes"
                        Grid.Row="2"
                        HorizontalAlignment="Right"
-                       Text="{x:Bind ProgressBytesText}"
-                       Visibility="{x:Bind IsProgressTextVisible}" />
+                       Text="{x:Bind ProgressBytesText, Mode=OneWay}"
+                       Visibility="{x:Bind IsProgressTextVisible, Mode=OneWay}" />
         </Grid>
 
 
-        <Border x:Name="Border_Markdown"
+        <Border x:Name="BorderMarkdown"
                 Grid.Column="1"
                 Margin="0,48,0,0"
                 Background="#404040"

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 using Windows.System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -22,12 +23,11 @@ public sealed partial class UpdatePage : Page
     private readonly DispatcherQueueTimer _timer;
     private readonly UpdateClient _updateClient = App.GetService<UpdateClient>();
     private readonly UpdateService _updateService = App.GetService<UpdateService>();
-
     [ObservableProperty] private string? errorMessage;
 
-    [ObservableProperty] private bool isProgressBarVisible;
+    [ObservableProperty] private Visibility isProgressBarVisible;
 
-    [ObservableProperty] private bool isProgressTextVisible;
+    [ObservableProperty] private Visibility isProgressTextVisible;
 
     [ObservableProperty] private ReleaseVersion latestRelease;
 
@@ -50,16 +50,9 @@ public sealed partial class UpdatePage : Page
 
     public UpdateViewModel ViewModel { get; }
 
-    private void UpdatePage_OnLoaded(object sender, RoutedEventArgs e)
+    private async void UpdatePage_OnLoaded(object sender, RoutedEventArgs e)
     {
-        _timer.Stop();
-        _updateService.Stop();
-    }
-
-    private void UpdatePage_OnUnloaded(object sender, RoutedEventArgs e)
-    {
-        _timer.Stop();
-        _updateService.Stop();
+        await GetReleaseAsync();
     }
 
     private async Task GetReleaseAsync()
@@ -67,29 +60,34 @@ public sealed partial class UpdatePage : Page
         try
         {
             if (ViewModel.LatestVersion is null)
+            {
                 ViewModel.LatestVersion = await _updateClient.GetLatestVersionAsync(false,
                     RuntimeInformation.OSArchitecture);
+            }
 
-            await ShowGithubReleaseAsync(ViewModel.LatestVersion.Version);
-
-            LatestRelease =
-                await _updateClient.GetLatestVersionAsync(false,
-                    RuntimeInformation.OSArchitecture);
+            LatestRelease = ViewModel.LatestVersion;
             _timer.Start();
             await _updateService.PrepareForUpdateAsync(LatestRelease);
             UpdateProgressState();
             _timer.Stop();
+
+            await ShowGithubReleaseAsync(ViewModel.LatestVersion.Version);
         }
         catch (HttpRequestException ex)
         {
-            // _logger.LogWarning("Cannot get latest release: {error}", ex.Message);
+            ExceptionService.Instance.Throw($"Cannot get latest release: {ex.Message}");
         }
         catch (Exception ex)
         {
-            // _logger.LogWarning(ex, "Get release");
+            ExceptionService.Instance.Throw(ex);
         }
     }
 
+    private void UpdatePage_OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        _timer.Stop();
+        _updateService.Stop();
+    }
 
     private async Task ShowGithubReleaseAsync(string tag)
     {
@@ -132,7 +130,7 @@ public sealed partial class UpdatePage : Page
                          """;
                 await webview.EnsureCoreWebView2Async();
                 webview.NavigateToString(html);
-                Border_Markdown.Visibility = Visibility.Visible;
+                BorderMarkdown.Visibility = Visibility.Visible;
                 webview.CoreWebView2.Settings.AreDevToolsEnabled = false;
                 webview.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 webview.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
@@ -151,11 +149,11 @@ public sealed partial class UpdatePage : Page
         }
         catch (Exception ex)
         {
-            // _logger.LogWarning("Cannot get github release: {error}", ex.Message);
+            ExceptionService.Instance.Throw($"Cannot get github release: {ex.Message}");
             if (!tag.Contains("dev"))
             {
-                webview.Source = new Uri($"https://github.com/Scighost/Starward/releases/tag/{tag}");
-                Border_Markdown.Visibility = Visibility.Visible;
+                webview.Source = new Uri($"https://github.com/Miaoyww/NonsPlayer/releases/tag/{tag}");
+                BorderMarkdown.Visibility = Visibility.Visible;
                 await webview.EnsureCoreWebView2Async();
                 webview.CoreWebView2.Profile.PreferredColorScheme =
                     CoreWebView2PreferredColorScheme.Dark;
@@ -175,6 +173,34 @@ public sealed partial class UpdatePage : Page
     }
 
 
+    private void Restart()
+    {
+        try
+        {
+            var baseDir = new DirectoryInfo(AppContext.BaseDirectory).Parent?.FullName;
+            var exe = Path.Join(baseDir, "NonsPlayer.exe");
+            if (File.Exists(exe))
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = exe,
+                    WorkingDirectory = baseDir
+                });
+                AppConfig.IgnoreVersion = null;
+                Environment.Exit(0);
+            }
+        }
+        catch (Exception ex)
+        {
+            ExceptionService.Instance.Throw(ex);
+        }
+        finally
+        {
+            ButtonUpdate.IsEnabled = true;
+            ButtonRemindLatter.IsEnabled = true;
+        }
+    }
+
     [RelayCommand]
     private void RemindMeLatter()
     {
@@ -185,7 +211,7 @@ public sealed partial class UpdatePage : Page
     [RelayCommand]
     private void IgnoreThisVersion()
     {
-        // AppConfig.IgnoreVersion = NewVersion?.Version;
+        AppConfig.IgnoreVersion = LatestRelease?.Version;
         ServiceHelper.NavigationService.GoBack();
     }
 
@@ -195,9 +221,9 @@ public sealed partial class UpdatePage : Page
     {
         try
         {
-            // ErrorMessage = null;
-            Button_Update.IsEnabled = false;
-            Button_RemindLatter.IsEnabled = false;
+            ErrorMessage = null;
+            ButtonUpdate.IsEnabled = false;
+            ButtonRemindLatter.IsEnabled = false;
 
             if (LatestRelease is null)
                 LatestRelease = await _updateClient.GetLatestVersionAsync(false, RuntimeInformation.OSArchitecture);
@@ -215,98 +241,33 @@ public sealed partial class UpdatePage : Page
         catch (Exception ex)
         {
             ExceptionService.Instance.Throw(ex);
-            // _logger.LogError(ex, "Update now");
-            Button_Update.IsEnabled = true;
-            Button_RemindLatter.IsEnabled = true;
+            ButtonUpdate.IsEnabled = true;
+            ButtonRemindLatter.IsEnabled = true;
         }
     }
 
-
-    private void UpdateProgressState()
+    [RelayCommand]
+    public async Task ReferToUrl(string tag)
     {
-        if (_updateService.State is UpdateService.UpdateState.Preparing)
+        try
         {
-            // IsProgressTextVisible = false;
-            // IsProgressBarVisible = true;
-            // ProgresBar_Update.IsIndeterminate = true;
+            var url = tag switch
+            {
+                "github" => ViewModel.LatestVersion.ReleasePageURL,
+                "portable" => ViewModel.LatestVersion.Portable,
+                _ => null
+            };
+            // _logger.LogInformation("Open url: {url}", url);
+            if (Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out var uri)) await Launcher.LaunchUriAsync(uri);
         }
 
-        if (_updateService.State is UpdateService.UpdateState.Pending)
-            // IsProgressTextVisible = true;
-            // IsProgressBarVisible = true;
-            // ProgresBar_Update.IsIndeterminate = false;
-            UpdateProgressValue();
-
-        if (_updateService.State is UpdateService.UpdateState.Downloading)
+        catch (Exception e)
         {
-            Button_Update.IsEnabled = false;
-            Button_RemindLatter.IsEnabled = false;
-            // IsProgressBarVisible = true;
-            // IsProgressTextVisible = true;
-            // ProgresBar_Update.IsIndeterminate = false;
-            UpdateProgressValue();
-        }
-
-        if (_updateService.State is UpdateService.UpdateState.Moving)
-        {
-            Button_Update.IsEnabled = false;
-            Button_RemindLatter.IsEnabled = false;
-            // IsProgressBarVisible = true;
-            // IsProgressTextVisible = true;
-            // ProgresBar_Update.IsIndeterminate = true;
-            UpdateProgressValue();
-        }
-
-        if (_updateService.State is UpdateService.UpdateState.Finish)
-        {
-            // IsProgressTextVisible = false;
-            // ProgresBar_Update.IsIndeterminate = false;
-            // ProgresBar_Update.Value = 100;
-        }
-
-        if (_updateService.State is UpdateService.UpdateState.Stop)
-        {
-            // IsProgressTextVisible = false;
-            // IsProgressBarVisible = false;
-            // ErrorMessage = null;
-            Button_Update.IsEnabled = true;
-            Button_RemindLatter.IsEnabled = true;
-        }
-
-        if (_updateService.State is UpdateService.UpdateState.Error)
-        {
-            // IsProgressTextVisible = false;
-            // IsProgressBarVisible = false;
-            // ErrorMessage = _updateService.ErrorMessage;
-            Button_Update.IsEnabled = true;
-            Button_RemindLatter.IsEnabled = true;
-        }
-
-        if (_updateService.State is UpdateService.UpdateState.NotSupport)
-        {
-            // IsProgressTextVisible = false;
-            // IsProgressBarVisible = false;
-            // ErrorMessage = _updateService.ErrorMessage;
-            Button_Update.IsEnabled = false;
-            Button_RemindLatter.IsEnabled = true;
+            ExceptionService.Instance.Throw(e);
         }
     }
 
-
-    private void UpdateProgressValue()
-    {
-        const double mb = 1 << 20;
-        // ProgressBytesText =
-        //     $"{_updateService.Progress_BytesDownloaded / mb:F2}/{_updateService.Progress_BytesToDownload / mb:F2} MB";
-        // ProgressCountText =
-        //     $"{_updateService.Progress_FileCountDownloaded}/{_updateService.Progress_FileCountToDownload}";
-        // var progress = (double)_updateService.Progress_BytesDownloaded / _updateService.Progress_BytesToDownload;
-        // ProgressPercentText = $"{progress:P1}";
-        // ProgresBar_Update.Value = progress * 100;
-    }
-
-
-    private void _timer_Tick(DispatcherQueueTimer sender, object args)
+    public void _timer_Tick(DispatcherQueueTimer sender, object args)
     {
         try
         {
@@ -327,44 +288,96 @@ public sealed partial class UpdatePage : Page
         }
     }
 
-
-    private void Restart()
+    public void UpdateProgressState()
     {
-        try
+        if (_updateService.State is UpdateService.UpdateState.Preparing)
         {
-            var baseDir = new DirectoryInfo(AppContext.BaseDirectory).Parent?.FullName;
-            var exe = Path.Join(baseDir, "Starward.exe");
-            if (File.Exists(exe))
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = exe,
-                    WorkingDirectory = baseDir
-                });
-                // AppConfig.IgnoreVersion = null;
-                Environment.Exit(0);
-            }
+            IsProgressTextVisible = Visibility.Collapsed;
+            IsProgressBarVisible = Visibility.Visible;
+            ProgressBarUpdate.IsIndeterminate = true;
         }
-        catch (Exception ex)
+
+        if (_updateService.State is UpdateService.UpdateState.Pending)
         {
-            // _logger.LogWarning(ex, "Restart");
-            // ErrorMessage = ex.Message;
+            IsProgressTextVisible = Visibility.Visible;
+            IsProgressBarVisible = Visibility.Visible;
+            ProgressBarUpdate.IsIndeterminate = false;
+            UpdateProgressValue();
         }
-        finally
+
+
+        if (_updateService.State is UpdateService.UpdateState.Downloading)
         {
-            Button_Update.IsEnabled = true;
-            Button_RemindLatter.IsEnabled = true;
+            ButtonUpdate.IsEnabled = false;
+            ButtonRemindLatter.IsEnabled = false;
+            IsProgressBarVisible = Visibility.Visible;
+            IsProgressTextVisible = Visibility.Visible;
+            ProgressBarUpdate.IsIndeterminate = false;
+            UpdateProgressValue();
+        }
+
+        if (_updateService.State is UpdateService.UpdateState.Moving)
+        {
+            ButtonUpdate.IsEnabled = false;
+            ButtonRemindLatter.IsEnabled = false;
+            IsProgressBarVisible = Visibility.Visible;
+            IsProgressTextVisible = Visibility.Visible;
+            ProgressBarUpdate.IsIndeterminate = true;
+            UpdateProgressValue();
+        }
+
+        if (_updateService.State is UpdateService.UpdateState.Finish)
+        {
+            IsProgressTextVisible = Visibility.Collapsed;
+            ProgressBarUpdate.IsIndeterminate = false;
+            ProgressBarUpdate.Value = 100;
+        }
+
+        if (_updateService.State is UpdateService.UpdateState.Stop)
+        {
+            IsProgressTextVisible = Visibility.Collapsed;
+            IsProgressBarVisible = Visibility.Collapsed;
+            ErrorMessage = null;
+            ButtonUpdate.IsEnabled = true;
+            ButtonRemindLatter.IsEnabled = true;
+        }
+
+        if (_updateService.State is UpdateService.UpdateState.Error)
+        {
+            IsProgressTextVisible = Visibility.Collapsed;
+            IsProgressBarVisible = Visibility.Collapsed;
+            ErrorMessage = _updateService.ErrorMessage;
+            ButtonUpdate.IsEnabled = true;
+            ButtonRemindLatter.IsEnabled = true;
+        }
+
+        if (_updateService.State is UpdateService.UpdateState.NotSupport)
+        {
+            IsProgressTextVisible = Visibility.Collapsed;
+            IsProgressBarVisible = Visibility.Collapsed;
+            ErrorMessage = _updateService.ErrorMessage;
+            ButtonUpdate.IsEnabled = false;
+            ButtonRemindLatter.IsEnabled = true;
         }
     }
 
+    public void UpdateProgressValue()
+    {
+        const double mb = 1 << 20;
+        ProgressBytesText =
+            $"{_updateService.Progress_BytesDownloaded / mb:F2}/{_updateService.Progress_BytesToDownload / mb:F2} MB";
+        var progress = (double)_updateService.Progress_BytesDownloaded / _updateService.Progress_BytesToDownload;
+        ProgressPercentText = $"{progress:P1}";
+        ProgressBarUpdate.Value = progress * 100;
+    }
 
     private void Button_RemindLatter_PointerEntered(object sender, PointerRoutedEventArgs e)
     {
-        Button_RemindLatter.Opacity = 1;
+        ButtonRemindLatter.Opacity = 1;
     }
 
     private void Button_RemindLatter_PointerExited(object sender, PointerRoutedEventArgs e)
     {
-        Button_RemindLatter.Opacity = 0;
+        ButtonRemindLatter.Opacity = 0;
     }
 }

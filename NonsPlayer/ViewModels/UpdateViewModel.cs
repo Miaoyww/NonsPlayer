@@ -1,17 +1,25 @@
-﻿using Windows.System;
+﻿using System.Runtime.InteropServices;
+using Windows.System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.Web.WebView2.Core;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 using NonsPlayer.Updater.Github;
+using NonsPlayer.Updater.Update;
 
 namespace NonsPlayer.ViewModels;
 
 public partial class UpdateViewModel : ObservableRecipient, INavigationAware
 {
     [ObservableProperty] private ReleaseVersion latestVersion;
+    
     [ObservableProperty] private string newVersion;
+    
+ 
     public VersionService VersionService = App.GetService<VersionService>();
 
     public void OnNavigatedTo(object parameter)
@@ -22,26 +30,5 @@ public partial class UpdateViewModel : ObservableRecipient, INavigationAware
 
     public void OnNavigatedFrom()
     {
-    }
-
-    [RelayCommand]
-    public async Task ReferToUrl(string tag)
-    {
-        try
-        {
-            var url = tag switch
-            {
-                "github" => LatestVersion.ReleasePageURL,
-                "portable" => LatestVersion.Portable,
-                _ => null
-            };
-            // _logger.LogInformation("Open url: {url}", url);
-            if (Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out var uri)) await Launcher.LaunchUriAsync(uri);
-        }
-
-        catch (Exception e)
-        {
-            ExceptionService.Instance.Throw(e);
-        }
     }
 }

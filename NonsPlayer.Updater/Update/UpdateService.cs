@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Updater.Github;
 using NonsPlayer.Updater.Metadata;
+using NuGet.Versioning;
 using SevenZipExtractor;
 
 namespace NonsPlayer.Updater.Update;
@@ -42,15 +43,22 @@ public class UpdateService
 
     private ReleaseVersion _releaseVersion;
 
-    private string _updateFolder;
+    private string _appFolder;
 
     private string _unzipFolder;
 
+    public long Progress_BytesToDownload { get; private set; }
+
     private long progress_BytesDownloaded;
+    public long Progress_BytesDownloaded => progress_BytesDownloaded;
+
+
+    private int progress_FileCountDownloaded;
 
     private List<LocalFile> localFiles;
 
     private List<LocalFile> targetFiles;
+
 
     public UpdateService(UpdateClient _inUpdateClient)
     {
@@ -60,24 +68,22 @@ public class UpdateService
     }
 
     public UpdateState State { get; private set; }
-
-
-    public long Progress_BytesToDownload { get; private set; }
-    public long Progress_BytesDownloaded => progress_BytesDownloaded;
-
-
+    
     public string ErrorMessage { get; set; }
 
 
-    public async Task<ReleaseVersion?> CheckUpdateAsync(Version currentVersion, Architecture architecture,
+    public async Task<ReleaseVersion?> CheckUpdateAsync(string version, Architecture architecture,
         bool enablePreviewRelease = false, bool disableIgnore = false)
     {
+        NuGetVersion.TryParse(version, out var currentVersion);
         // _logger.LogInformation("Start to check update (Preview: {preview}, Arch: {arch})", AppConfig.EnablePreviewRelease, RuntimeInformation.OSArchitecture);
         var latestRelease = await _updateClient.GetLatestVersionAsync(enablePreviewRelease, architecture);
         // _logger.LogInformation("Current version: {0}, latest version: {1}, ignore version: {2}", AppConfig.AppVersion, release?.Version, ignoreVersion);
-        Version? latestVersion;
-        Version.TryParse(latestRelease.Version, out latestVersion);
-        if (currentVersion.CompareTo(latestVersion) < 0) return latestRelease;
+        NuGetVersion.TryParse(latestRelease.Version, out var latestVersion);
+        if (latestVersion! > currentVersion!)
+        {
+            return latestRelease;
+        }
 
         return null;
     }
@@ -93,11 +99,8 @@ public class UpdateService
             ErrorMessage = string.Empty;
             _releaseVersion = release;
             State = UpdateState.Preparing;
-            _updateFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "NonsPlayer\\data");
-            _unzipFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "NonsPlayer\\data\\unzip");
-            Directory.CreateDirectory(_updateFolder);
+            _appFolder = AppContext.BaseDirectory;
+            _unzipFolder = Path.Combine(_appFolder, "unzip");
             GetDownloadFile();
             progress_BytesDownloaded = 0;
             Progress_BytesToDownload = _downloadFile.Release.PortableSize;
@@ -113,7 +116,7 @@ public class UpdateService
 
     private void GetDownloadFile()
     {
-        var targetFilePath = Path.Combine(_updateFolder,
+        var targetFilePath = Path.Combine(_appFolder,
             $"NonsPlayer_Portable_{_releaseVersion.Version}_{_releaseVersion.Architecture}.7z");
         var localFile = new LocalFile
         {
@@ -151,15 +154,17 @@ public class UpdateService
     }
 
 
-    public async Task UpdateAsync()
+    public async Task UpdateAsync(CancellationToken cancellationToken = default)
     {
         try
         {
+            progress_BytesDownloaded = 0;
+            Progress_BytesToDownload = _downloadFile.Release.PortableSize;
             cancelSource?.Cancel();
             cancelSource = new CancellationTokenSource();
             var source = cancelSource;
             State = UpdateState.Downloading;
-            await DownloadFilesAsync(source.Token);
+            await DownloadFileAsync(_downloadFile, source.Token);
             if (source.IsCancellationRequested) throw new TaskCanceledException();
 
             var check = CheckDownloadFile();
@@ -172,8 +177,7 @@ public class UpdateService
             await Task.Run(() =>
             {
                 UnzipFile();
-                GetUnzipFiles();
-                MovingFiles();
+                MovingFolder();
             });
             State = UpdateState.Finish;
         }
@@ -187,14 +191,6 @@ public class UpdateService
             State = UpdateState.Error;
             ErrorMessage = ex.Message;
         }
-    }
-
-
-    private async Task DownloadFilesAsync(CancellationToken cancellationToken = default)
-    {
-        progress_BytesDownloaded = 0;
-        Progress_BytesToDownload = _downloadFile.Release.PortableSize;
-        await DownloadFileAsync(_downloadFile, cancellationToken);
     }
 
 
@@ -225,6 +221,7 @@ public class UpdateService
                     }
 
                     await File.WriteAllBytesAsync(file, ms.ToArray(), cancellationToken);
+                    Interlocked.Increment(ref progress_FileCountDownloaded);
                 }
 
                 using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -262,52 +259,36 @@ public class UpdateService
 
     private void UnzipFile()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_downloadFile.File.To)!);
+        Directory.CreateDirectory(_appFolder);
         using (var archiveFile = new ArchiveFile(_downloadFile.File.Path))
         {
             archiveFile.Extract(_downloadFile.File.To);
         }
     }
 
-    private void GetUnzipFiles()
+    private void MovingFolder()
     {
-        if (targetFiles == null)
+        try
         {
-            var files = Directory.GetFiles(_downloadFile.File.To, "*", SearchOption.AllDirectories);
-            var releaseFiles = new List<LocalFile>(files.Length);
-            foreach (var file in files)
-            {
-                using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                var len = (int)fs.Length;
-                var bytes = ArrayPool<byte>.Shared.Rent(len);
-                fs.Read(bytes, 0, len);
-                var span = bytes.AsSpan(0, len);
-                var sha256 = SHA256.HashData(span);
-                ArrayPool<byte>.Shared.Return(bytes);
-                releaseFiles.Add(new LocalFile
-                {
-                    Path = file,
-                    To = Path.Combine(AppContext.BaseDirectory, Path.GetFileName(file)),
-                    Hash = Convert.ToHexString(sha256)
-                });
+            var tagertFolder = new DirectoryInfo(AppContext.BaseDirectory).Parent?.FullName;
+            var appVersionFolder = $"app-{_downloadFile.Release.Version}";
+            File.Copy(Path.Combine(_unzipFolder, "NonsPlayer", "version.ini"),
+                Path.Combine(tagertFolder, "version.ini"),
+                overwrite: true);
+            var launcherFile = Path.Combine(tagertFolder, "NonsPlayer.exe");
+            if (!File.Exists(launcherFile))
+            { 
+                File.Copy(Path.Combine(_unzipFolder, "NonsPlayer", "NonsPlayer.exe"),
+                    launcherFile,
+                    overwrite: true);
             }
-
-            targetFiles = releaseFiles;
+            
+            Directory.Move(Path.Combine(_unzipFolder, "NonsPlayer", appVersionFolder),
+                Path.Combine(tagertFolder, appVersionFolder));
         }
-    }
-
-    private void MovingFiles()
-    {
-        foreach (var file in targetFiles)
+        catch (Exception ex)
         {
-            if (file.IsMoving)
-            {
-                File.Move(file.Path, file.To, true);
-            }
-            else
-            {
-                File.Copy(file.Path, file.To, true);
-            }
+            ExceptionService.Instance.Throw("更新失败~建议手动下载并覆盖");
         }
     }
 

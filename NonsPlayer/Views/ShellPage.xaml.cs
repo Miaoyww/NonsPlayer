@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Models;
@@ -32,20 +33,23 @@ public sealed partial class ShellPage : Page
         App.MainWindow.ExtendsContentIntoTitleBar = true;
         App.MainWindow.SetTitleBar(AppTitleBar);
         App.MainWindow.Activated += MainWindow_Activated;
-        ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
         AppTitleBarText.Text = "AppDisplayName".GetLocalized();
         PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
+        ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
     }
 
     public ShellViewModel ViewModel { get; }
 
     public PlayQueueBarViewModel PlayQueueBarViewModel { get; }
 
-    private void OnExceptionThrew(Exception exception)
+    private void OnExceptionThrew(string content)
     {
-        ExceptionTtp.Title = "出错啦！";
-        ExceptionTtp.Content = exception.Message;
-        ExceptionTtp.IsOpen = true;
+        ExceptionTtp.DispatcherQueue.TryEnqueue(() =>
+        {
+            ExceptionTtp.Title = "出错啦！";
+            ExceptionTtp.Content = content;
+            ExceptionTtp.IsOpen = true;
+        });
     }
 
     [RelayCommand]
@@ -73,6 +77,7 @@ public sealed partial class ShellPage : Page
         ShellMenuBarSettingsButton.AddHandler(PointerReleasedEvent,
             new PointerEventHandler(ShellMenuBarSettingsButton_PointerReleased), true);
         PlayQueue.Instance.CurrentMusicChanged += OnCurrentMusicChanged;
+        ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
         AccountService.Instance.UpdateInfo();
 
         try
@@ -105,9 +110,11 @@ public sealed partial class ShellPage : Page
 
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
     {
-        // var resource = args.WindowActivationState == WindowActivationState.Deactivated ? "WindowCaptionForegroundDisabled" : "WindowCaptionForeground";
+        var resource = args.WindowActivationState == WindowActivationState.Deactivated
+            ? "WindowCaptionForegroundDisabled"
+            : "WindowCaptionForeground";
 
-        // AppTitleBarText.Foreground = (SolidColorBrush)App.Current.Resources[resource];
+        AppTitleBarText.Foreground = (SolidColorBrush)App.Current.Resources[resource];
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)

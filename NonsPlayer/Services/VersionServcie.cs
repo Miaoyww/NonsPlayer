@@ -5,8 +5,15 @@ namespace NonsPlayer.Services;
 
 public partial class VersionService : ObservableObject
 {
-    [ObservableProperty] private Version currentVersion;
+    /// <summary>
+    /// 不带v
+    /// </summary>
+    [ObservableProperty] private string currentVersion;
+    
     [ObservableProperty] private string currentVersionDescription = string.Empty;
+    /// <summary>
+    /// 带v
+    /// </summary>
 
 
     public VersionService()
@@ -15,9 +22,9 @@ public partial class VersionService : ObservableObject
         GetVersionDescription();
     }
 
-    public Version GetCurrentVersion()
+    public string GetCurrentVersion()
     {
-        if (CurrentVersion == null) CurrentVersion = Assembly.GetExecutingAssembly().GetName().Version!;
+        if (CurrentVersion == null) CurrentVersion = AppConfig.AppVersion!;
 
         return CurrentVersion;
     }
@@ -26,7 +33,7 @@ public partial class VersionService : ObservableObject
     {
         if (CurrentVersion == null) GetCurrentVersion();
         if (CurrentVersionDescription == string.Empty)
-            CurrentVersionDescription = $"v{CurrentVersion.Major}.{CurrentVersion.Minor}.{CurrentVersion.Build}";
+            CurrentVersionDescription = $"v{CurrentVersion}";
 
         return CurrentVersionDescription;
     }
