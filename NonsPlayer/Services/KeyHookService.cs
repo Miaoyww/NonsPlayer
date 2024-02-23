@@ -61,19 +61,19 @@ public class KeyHookService
                 break;
             case 0x4:
                 Debug.WriteLine("按下了Ctrl+↑");
-                MusicStateModel.Instance.Volume += App.GetService<ILocalSettingsService>().GetOptions().VolumeAddition;
+                MusicStateModel.Instance.Volume += AppConfig.VolumeAddition;
                 break;
             case 0x5:
                 Debug.WriteLine("按下了Ctrl+↓");
                 if (MusicStateModel.Instance.Volume -
-                    App.GetService<ILocalSettingsService>().GetOptions().VolumeAddition <= 0)
+                    AppConfig.VolumeAddition <= 0)
                 {
                     MusicStateModel.Instance.Volume = 0;
                     break;
                 }
 
                 MusicStateModel.Instance.Volume -=
-                    App.GetService<ILocalSettingsService>().GetOptions().VolumeAddition;
+                    AppConfig.VolumeAddition;
                 break;
         }
     }

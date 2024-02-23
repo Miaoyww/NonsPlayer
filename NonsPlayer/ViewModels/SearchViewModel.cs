@@ -50,7 +50,7 @@ public partial class SearchViewModel : ObservableRecipient, INavigationAware, IN
         for (var i = 0; i < searcher.Musics.Count(); i++)
         {
             var index = i;
-            if (index < App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount)
+            if (index < AppConfig.PlaylistTrackShowCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
                     MusicItems.Add(new MusicItem

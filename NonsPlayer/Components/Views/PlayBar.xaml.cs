@@ -41,7 +41,7 @@ public sealed partial class PlayBar : UserControl
     private async void LikeMusic()
     {
         if (MusicStateModel.Instance.CurrentMusic.IsEmpty) return;
-        var code = await FavoritePlaylistService.Instance.Like(MusicStateModel.Instance.CurrentMusic.Id);
+        var code = await FavoritePlaylistService.Instance.LikeAsync(MusicStateModel.Instance.CurrentMusic.Id);
         if (code != 200)
         {
             string content;

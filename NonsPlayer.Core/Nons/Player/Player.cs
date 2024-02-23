@@ -75,6 +75,10 @@ public class Player
         get => _volume;
         set
         {
+            if (_volume - value <= 0)
+            {
+                _volume = 0;
+            }
             OutputDevice.Volume = value;
             _volume = value;
         }

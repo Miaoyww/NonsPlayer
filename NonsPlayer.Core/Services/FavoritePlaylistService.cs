@@ -45,7 +45,7 @@ public class FavoritePlaylistService
         }
     }
 
-    public async Task<int> Like(long? id)
+    public async Task<int> LikeAsync(long? id)
     {
         var result = await Apis.Music.Like(id.ToString(), !IsLiked(id), NonsCore.Instance);
         Debug.WriteLine($"喜欢歌曲({id}): {result["code"]}");

@@ -2,6 +2,7 @@
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Activation;
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
 
@@ -43,6 +44,8 @@ public class ActivationService : IActivationService
 
         // Execute tasks after activation.
         await StartupAsync();
+
+        await App.GetService<ControlService>().StartAsync();
     }
 
     private async Task HandleActivationAsync(object activationArgs)

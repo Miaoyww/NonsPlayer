@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Activation;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Contracts.Services;
@@ -36,10 +37,60 @@ internal static class AppConfig
     private static void Initialize()
     {
 #if DEBUG
-    AppVersion = "0.4.0";
+        AppVersion = "0.4.0";
 #else
         AppVersion = typeof(AppConfig).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion;
 #endif
     }
+
+    #region Player Settings
+
+    /// <summary>
+    ///     远程控制端口
+    /// </summary>
+    public static int ApiPort = 1217;
+
+    /// <summary>
+    ///     播放歌单内音乐直接将歌曲添加至播放列表中
+    /// </summary>
+    public static bool IsPlay2List = true;
+
+    /// <summary>
+    ///     是否显示翻译歌词
+    /// </summary>
+    public static bool IsShowTranLyric = true;
+
+    /// <summary>
+    ///     歌词字体
+    /// </summary>
+    public static FontFamily LyricFontFamily;
+
+    /// <summary>
+    ///     是否启用系统媒体控制
+    /// </summary>
+    public static bool MediaControl = true;
+
+    /// <summary>
+    ///     加载下一页歌单的偏移量
+    /// </summary>
+    public static double PlaylistLoadOffset = 500;
+
+    /// <summary>
+    ///     歌单详情页一次显示的歌曲数量
+    /// </summary>
+    public static int PlaylistTrackShowCount = 30;
+
+    /// <summary>
+    ///     主页推荐歌单数量
+    /// </summary>
+    public static int RecommendedPlaylistCount = 20;
+
+    /// <summary>
+    ///     按一下音量加减的增量
+    /// </summary>
+    public static double VolumeAddition = 5;
+
+    #endregion
+    
 }

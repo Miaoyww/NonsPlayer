@@ -25,7 +25,7 @@ public partial class HomeViewModel : ObservableRecipient
     {
         var response = await Apis.Recommend.Playlist(
                 NonsCore.Instance,
-                App.GetService<ILocalSettingsService>().GetOptions().RecommendedPlaylistCount)
+                AppConfig.RecommendedPlaylistCount)
             .ConfigureAwait(false);
         if ((int)response["code"] != 200)
             //TODO: 处理此错误

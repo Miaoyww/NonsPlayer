@@ -59,7 +59,7 @@ public sealed partial class PlaylistMusicItemCard : UserControl
     [RelayCommand]
     private async void Like()
     {
-        var code = await FavoritePlaylistService.Instance.Like(Music.Id);
+        var code = await FavoritePlaylistService.Instance.LikeAsync(Music.Id);
         if (code != 200)
         {
             string content;

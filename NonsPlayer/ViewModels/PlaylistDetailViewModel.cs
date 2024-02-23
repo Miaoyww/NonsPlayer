@@ -80,7 +80,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         for (var i = 0; i < PlayListObject.Musics.Count; i++)
         {
             var index = i;
-            if (index < App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount)
+            if (index < AppConfig.PlaylistTrackShowCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
                     MusicItems.Add(new MusicItem
@@ -92,7 +92,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         }
 
         currentItemGroupIndex =
-            App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount;
+            AppConfig.PlaylistTrackShowCount;
     }
 
     public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
@@ -103,7 +103,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
             var height = scrollViewer.ScrollableHeight;
             if (height - offset <
-                App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount &&
+                AppConfig.PlaylistTrackShowCount &&
                 currentItemGroupIndex < playListObject.MusicsCount - 1)
                 await LoadMusicItemsByGroup();
         }
@@ -114,7 +114,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     /// </summary>
     private async Task LoadMusicItemsByGroup()
     {
-        for (var i = 0; i < App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount; i++)
+        for (var i = 0; i < AppConfig.PlaylistTrackShowCount; i++)
         {
             var index = currentItemGroupIndex + i;
             if (index < PlayListObject.MusicsCount)
@@ -128,7 +128,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
                 });
         }
 
-        currentItemGroupIndex += App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount;
+        currentItemGroupIndex += AppConfig.PlaylistTrackShowCount;
     }
 
 
