@@ -5,7 +5,7 @@
 
 # NonsPlayer
 
-![.net](https://img.shields.io/badge/C%23-.net7.0-orange)
+![.net](https://img.shields.io/badge/C%23-.net8.0-orange)
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
 ![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl)
 
@@ -38,7 +38,7 @@
 
 找到 `NonsPlayer.exe` 文件, 打开它即可！
 
-**需要[.net7.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/7.0)**
+**需要[.net8.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/8.0)**
 
 **Windows 10版本需要额外下载[Fluent Icons](https://learn.microsoft.com/zh-cn/windows/apps/design/downloads/#fonts)字体库，在未来的版本中会自动为您安装，但现在您需要手动安装它**
 # 🧭开发指南
@@ -72,10 +72,10 @@
 
 # 📜开源许可
 
-Copyright Miaomiaoywww 2022.
+Copyright Miaoyww 2022-2024.
 
 Distributed under the terms of
-the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
+the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
 
 # 💡灵感来源
 

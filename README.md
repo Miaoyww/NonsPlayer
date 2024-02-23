@@ -5,7 +5,7 @@
 
 # NonsPlayer
 
-![.net](https://img.shields.io/badge/C%23-.net7.0-orange)
+![.net](https://img.shields.io/badge/C%23-.net8.0-orange)
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
 ![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl)
 
@@ -41,7 +41,7 @@ Find `NonsPlayer.exe` and open it, then you can enjoy time!
 
 After installed the cer, double click the `msix` file and press Install Button and then You can use it!
 
-**Require[.net7.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/7.0)**
+**Require[.net8.0](https://dotnet.microsoft.com/zh-cn/download/dotnet/8.0)**
 
 
 **Windows 10 needs [Fluent Icons](https://learn.microsoft.com/zh-cn/windows/apps/design/downloads/#fonts)，NonsPlayer will automatically install it for you in the future, but for now you need manually install it**
@@ -79,10 +79,10 @@ Welcome **Issues** and **Pull Request**!
 
 # 📜Open Source License
 
-Copyright Miaomiaoywww 2022.  
+Copyright Miaoyww 2022-2024.  
 
 Distributed under the terms of
-the [MIT license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
+the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
 
 # 💡Source of inspiration
 
