@@ -40,7 +40,7 @@ jobs:
       - name: Build
         run: |
           $sha = "${{ steps.sha.outputs.sha }}"
-          New-Item -Path "build/NonsPlayer/" -Type Directory
+          New-Item -Path "build/Starward/" -Type Directory
           msbuild NonsPlayer.Launcher "-property:Configuration=$env:Configuration;Platform=$env:Platform;OutDir=$(Resolve-Path "build/NonsPlayer/")"
           dotnet build NonsPlayer -c $env:Configuration -o "build/NonsPlayer/app-build.$sha" -p:Platform=$env:Platform -p:Version="0.0.1-build.$sha" -p:DefineConstants=CI
           Add-Content "build/NonsPlayer/version.ini" -Value "app_folder=app-build.$sha`r`nexe_name=NonsPlayer.exe"
@@ -49,5 +49,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v3.1.2
         with:
-          name: NonsPlayer_${{ matrix.configuration }}_${{ matrix.platform }}_${{ steps.sha.outputs.sha }}
+          name: NonsPlayer${{ matrix.configuration }}_${{ matrix.platform }}_${{ steps.sha.outputs.sha }}
           path: build/NonsPlayer/
