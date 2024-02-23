@@ -4,7 +4,7 @@
         <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
         <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
         <RootNamespace>NonsPlayer</RootNamespace>
-        <Platforms>x86;x64;arm64</Platforms>
+        <Platforms>x64;arm64;x86</Platforms>
         <RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
         <PublishProfile>Properties\PublishProfiles\win10-$(Platform).pubxml</PublishProfile>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -19,35 +19,36 @@
         <Product>NonsPlayer</Product>
         <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
         <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
+        <Configurations>Debug;Release</Configurations>
 
     </PropertyGroup>
 
     <ItemGroup>
-        <Manifest Include="$(ApplicationManifest)"/>
+        <Manifest Include="$(ApplicationManifest)" />
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1"/>
-        <PackageReference Include="Dapper" Version="2.1.28"/>
-        <PackageReference Include="F23.StringSimilarity" Version="5.1.0"/>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1"/>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+        <PackageReference Include="Dapper" Version="2.1.28" />
+        <PackageReference Include="F23.StringSimilarity" Version="5.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
         <PackageReference Include="Microsoft.Windows.CsWin32" PrivateAssets="all" Version="0.3.18-beta">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002"/>
-        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9"/>
-        <PackageReference Include="NAudio" Version="2.1.0"/>
-        <PackageReference Include="NuGet.Versioning" Version="6.9.1"/>
-        <PackageReference Include="QRCoder" Version="1.4.3"/>
-        <PackageReference Include="RestSharp" Version="106.15.0"/>
-        <PackageReference Include="Serilog" Version="3.1.2-dev-02097"/>
-        <PackageReference Include="WinUIEx" Version="2.2.0"/>
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.3.230602002" />
+        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
+        <PackageReference Include="NAudio" Version="2.1.0" />
+        <PackageReference Include="NuGet.Versioning" Version="6.9.1" />
+        <PackageReference Include="QRCoder" Version="1.4.3" />
+        <PackageReference Include="RestSharp" Version="106.15.0" />
+        <PackageReference Include="Serilog" Version="3.1.2-dev-02097" />
+        <PackageReference Include="WinUIEx" Version="2.2.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj"/>
-        <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj"/>
+        <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj" />
+        <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj" />
     </ItemGroup>
     <ItemGroup>
         <None Update="appsettings.json">
@@ -75,15 +76,11 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-        <ProjectCapability Include="Msix"/>
+        <ProjectCapability Include="Msix" />
     </ItemGroup>
 
     <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
         <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-        <Optimize>False</Optimize>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
