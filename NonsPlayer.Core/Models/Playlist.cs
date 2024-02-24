@@ -16,6 +16,7 @@ public class Playlist : INonsModel
     [JsonPropertyName("description")] public string Description;
     public bool IsCardMode;
     [JsonPropertyName("musics")] public List<Music> Musics;
+    private MusicAdapters _musicAdapter = new MusicAdapters();
 
     [JsonPropertyName("music_track_ids")] public long[] MusicTrackIds;
     private JObject? PlaylistDetail;
@@ -47,7 +48,7 @@ public class Playlist : INonsModel
     {
         // 直接从PlaylistDetail中获取歌曲信息, 因为它会传递小于等于1000的歌曲信息
         Musics = ((JArray)PlaylistDetail["tracks"])
-            .Select(track => MusicAdapters.CreateFromPlaylistTrack((JObject)track))
+            .Select(track => _musicAdapter.GetMusic((JObject)track))
             .ToList();
     }
 
@@ -60,7 +61,7 @@ public class Playlist : INonsModel
             .ToArray();
         var musicJObjectTasks = musicTrackIdsGroup.Select(x => Apis.Music.Detail(x, NonsCore.Instance));
         var (result, elapsed) = await Task.WhenAll(musicJObjectTasks).MeasureExecutionTimeAsync();
-        Musics.AddRange(result.Select(item => MusicAdapters.CreateFromMuiscDetail(item["songs"] as JArray))
+        Musics.AddRange(result.Select(item => _musicAdapter.GetMusicList(item["songs"] as JArray))
             .SelectMany(x => x));
         Debug.WriteLine($"获取歌曲({start}-{end})信息获取完毕 {elapsed.TotalMilliseconds}ms");
     }

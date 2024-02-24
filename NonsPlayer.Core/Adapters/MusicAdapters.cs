@@ -1,26 +1,42 @@
 ﻿using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Adapters;
 
-public static class MusicAdapters
+public class MusicAdapters: IMusicAdapter
 {
-    public static Music[] CreateFromMuiscDetail(JArray item)
+    
+    public Task<Music> GetMusicAsync(object content)
     {
-        return item.Select(x => CreateFromPlaylistTrack(x as JObject)).ToArray();
+
+        throw new NotImplementedException();
+    }
+    
+    public Task<Music[]> GetMusicListAsync(object content)
+    {
+        throw new NotImplementedException();
     }
 
-    public static Music CreateFromPlaylistTrack(JObject item)
+    public Music[] GetMusicList(object content)
     {
+        var item = content as JArray;
+        return item.Select(x => GetMusic(x as JObject)).ToArray();
+    }
+
+    public Music GetMusic(object content)
+    {
+        var item = content as JObject;
+        var albumAdapter = new AlbumAdapters();
         return new Music
         {
             Name = (string)item["name"],
             Id = (int)item["id"],
             AvatarUrl = (string)item["al"]["picUrl"],
             TotalTime = TimeSpan.FromMilliseconds(item["dt"].ToObject<long>()),
-            Album = AlbumAdapters.CreateFromPlaylistTrack(item["al"] as JObject),
+            Album =  albumAdapter.GetAlbum(item["al"] as JObject),
             Artists = ((JArray)item["ar"]).Select(arItem => ArtistAdapters.CreateFromPlaylistTrack(arItem as JObject))
                 .ToArray(),
             Trans = !((JArray)item["alia"]).Any()
@@ -29,10 +45,11 @@ public static class MusicAdapters
             ShareUrl = $"https://music.163.com/song?id={(int)item["id"]}"
         };
     }
-
-    public static async Task<Music> CreateById(long id)
+    
+    public async Task<Music> CreateById(long id)
     {
         var result = await Apis.Music.Detail(new[] { id }, NonsCore.Instance);
-        return CreateFromPlaylistTrack(result["songs"][0] as JObject);
+        return GetMusic(result["songs"][0] as JObject);
     }
+
 }

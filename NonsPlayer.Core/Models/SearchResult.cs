@@ -13,7 +13,7 @@ namespace NonsPlayer.Core.Models;
 public class SearchResult : INonsModel
 {
     public readonly string KeyWords;
-
+    private MusicAdapters _musicAdapters = new MusicAdapters();
     private SearchResult(string keyWords)
     {
         if (keyWords.Equals(string.Empty)) throw new SearchExceptions("搜索KeyWords不能为空");
@@ -38,7 +38,7 @@ public class SearchResult : INonsModel
     {
         var result = await Apis.Search.Default(KeyWords, limit, 1, NonsCore.Instance);
         var tasks = ((JArray)result["result"]["songs"])
-            .Select(x => MusicAdapters.CreateById(x["id"].ToObject<long>())).ToList();
+            .Select(x => _musicAdapters.CreateById(x["id"].ToObject<long>())).ToList();
         Musics = await Task.WhenAll(tasks);
         return Musics;
     }

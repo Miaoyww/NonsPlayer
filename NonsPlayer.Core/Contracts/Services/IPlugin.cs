@@ -1,7 +1,6 @@
 ﻿namespace NonsPlayer.Core.Contracts.Services;
 
-public interface IPlugin
+public interface IAdapterService
 {
-    public string Name { get; }
-    public string Description { get; }
+    object GetInfo();
 }

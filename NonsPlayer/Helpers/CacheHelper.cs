@@ -121,14 +121,16 @@ public static class CacheHelper
 
     public static async Task<Music> GetMusicAsync(string cacheId, string id)
     {
+        var musicAdapters = new MusicAdapters();
         return (await GetCacheItemAsync(cacheId, async () =>
-            await MusicAdapters.CreateById(long.Parse(id)))).Data;
+            await musicAdapters.CreateById(long.Parse(id)))).Data;
     }
 
     public static Music GetMusic(string cacheId, string id)
     {
+        var musicAdapters = new MusicAdapters();
         return GetCacheItemAsync(cacheId, async () =>
-            await MusicAdapters.CreateById(long.Parse(id))).Result.Data;
+            await musicAdapters.CreateById(long.Parse(id))).Result.Data;
     }
 
     public static async Task<SearchResult> GetSearchResultAsync(string cacheId, string keyWords)

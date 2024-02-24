@@ -45,12 +45,7 @@ internal static class AppConfig
     }
 
     #region Player Settings
-
-    /// <summary>
-    ///     远程控制端口
-    /// </summary>
-    public static int ApiPort = 1217;
-
+    
     /// <summary>
     ///     播放歌单内音乐直接将歌曲添加至播放列表中
     /// </summary>
@@ -89,7 +84,16 @@ internal static class AppConfig
     /// <summary>
     ///     按一下音量加减的增量
     /// </summary>
-    public static double VolumeAddition = 5;
+    public static double VolumeAddition = 10;
+
+    #endregion
+
+    #region Remote Settings
+
+    /// <summary>
+    ///     远程控制端口
+    /// </summary>
+    public static int ApiPort = 1217;
 
     #endregion
     
