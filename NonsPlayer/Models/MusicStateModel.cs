@@ -27,7 +27,6 @@ public partial class MusicStateModel
 
     private MusicStateModel()
     {
-        Player.Instance.Position = TimeSpan.Zero;
         CurrentMusic = Music.CreateEmpty();
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
     }

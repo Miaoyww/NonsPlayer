@@ -20,7 +20,7 @@ public class Player
 
     public delegate void PositionChanged(TimeSpan time);
 
-    private MediaFoundationReader _mfr;
+    public MediaFoundationReader NPMediaFoundationReader;
 
     private float _volume;
 
@@ -32,7 +32,7 @@ public class Player
     public PlayStateChanged PlayStateChangedHandle;
     public PositionChanged PositionChangedHandle;
     public Music PreviousMusic;
-
+    private TimeSpan _position;
     public Player()
     {
         OutputDevice = new WaveOutEvent();
@@ -47,28 +47,13 @@ public class Player
 
     public static Player Instance { get; } = new();
 
-    [JsonPropertyName("position")]
-    public TimeSpan Position
+    [JsonPropertyName("position")] public TimeSpan Position { get => NPMediaFoundationReader.CurrentTime; }
+    public void SetPosition(TimeSpan value)
     {
-        get
-        {
-            try
-            {
-                var tempPosition = OutputDevice.GetPositionTimeSpan();
-                return tempPosition;
-            }
-            catch (Exception e)
-            {
-                return TimeSpan.Zero;
-            }
-        }
-        set
-        {
-            if (_mfr == null) return;
-            _mfr.CurrentTime = value;
-        }
+        if (NPMediaFoundationReader == null) return;
+        NPMediaFoundationReader.CurrentTime = value;
+        _position = value;
     }
-
     [JsonPropertyName("volume")]
     public float Volume
     {
@@ -95,11 +80,7 @@ public class Player
         {
             if (OutputDevice.PlaybackState == PlaybackState.Playing)
             {
-                var playerState = new PlayerState
-                {
-                    Position = Position
-                };
-                PositionChangedHandle(playerState.Position);
+                PositionChangedHandle(Position);
                 PlayStateChangedHandle(true);
             }
 
@@ -128,15 +109,15 @@ public class Player
         await Task.WhenAll(music2play.GetLyric(), music2play.GetFileInfo());
         MusicChangedHandle(music2play);
         CurrentMusic = music2play;
-        if (_mfr == null) _mfr = new MediaFoundationReader(music2play.Url);
+        if (NPMediaFoundationReader == null) NPMediaFoundationReader = new MediaFoundationReader(music2play.Url);
 
         if (music2play.Url != null)
         {
             IsInitializingNewMusic = true;
             OutputDevice.Stop();
             OutputDevice.Dispose();
-            _mfr = new MediaFoundationReader(music2play.Url);
-            OutputDevice.Init(_mfr);
+            NPMediaFoundationReader = new MediaFoundationReader(music2play.Url);
+            OutputDevice.Init(NPMediaFoundationReader);
         }
 
         if (music2play.Url == null)
@@ -163,7 +144,7 @@ public class Player
             {
                 OutputDevice.Pause();
                 OutputDevice.Stop();
-                Position = TimeSpan.Zero;
+                SetPosition(TimeSpan.Zero);
                 PositionChangedHandle(TimeSpan.Zero);
                 await Task.Delay(500);
                 OutputDevice.Play();

@@ -4,14 +4,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:helpers="using:NonsPlayer.Helpers"
+    xmlns:converters="using:NonsPlayer.Converters"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <helpers:ShuffleIconConverter x:Key="ShuffleIconConverter" />
-        <helpers:PlayModeIconConverter x:Key="PlayModeIconConverter" />
-        <helpers:PlayerIconConverter x:Key="PlayerIconConverter" />
-        <helpers:VolumeIconConverter x:Key="VolumeIconConverter" />
-        <helpers:LikeIconConverter x:Key="LikeIconConverter" />
+        <converters:ShuffleIconConverter x:Key="ShuffleIconConverter" />
+        <converters:PlayModeIconConverter x:Key="PlayModeIconConverter" />
+        <converters:PlayerIconConverter x:Key="PlayerIconConverter" />
+        <converters:VolumeIconConverter x:Key="VolumeIconConverter" />
+        <converters:LikeIconConverter x:Key="LikeIconConverter" />
+        <converters:ThumbConverter x:Key="ThumbConverter"/>
     </UserControl.Resources>
     <Grid>
         <Border Name="Body" BorderThickness="0,1,0,0" Padding="0"
@@ -102,9 +103,17 @@
                                    FontWeight="Black"
                                    FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
                                    Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
-                        <Slider Name="CurrentTimeSlider" IsThumbToolTipEnabled="False" Width="340"
-                                Value="{x:Bind ViewModel.MusicStateModel.Position, Mode=TwoWay}"
-                                Maximum="{x:Bind ViewModel.MusicStateModel.Duration.TotalSeconds, Mode=OneWay}" />
+                        <Border Padding="5,0,5,0">
+                            <Slider x:Name="CurrentTimeSlider" Width="340" Margin="-5,0,-5,0"
+                                    ManipulationMode="TranslateX"
+                                    ManipulationCompleted="CurrentTimeSlider_OnManipulationCompleted"
+                                    ManipulationStarting="CurrentTimeSlider_OnManipulationStarting"
+                                    ManipulationStarted="CurrentTimeSlider_OnManipulationStarted"
+                                    ThumbToolTipValueConverter="{StaticResource ThumbConverter}"
+                                    Maximum="{x:Bind ViewModel.MusicStateModel.Duration.TotalSeconds, Mode=OneWay}" >
+                                
+                            </Slider>
+                        </Border>
                         <TextBlock Name="DurationTime"
                                    Text="{x:Bind ViewModel.MusicStateModel.DurationString, Mode=OneWay}"
                                    FontWeight="Black" FontFamily="JetBrains Mono"
@@ -137,7 +146,7 @@
                         <FontIcon FontFamily="Segoe Fluent Icons" FontSize="20"
                                   Glyph="{x:Bind ViewModel.MusicStateModel.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
                     </Button>
-                    <Slider Name="VolumeSlider" IsThumbToolTipEnabled="False"
+                    <Slider Name="VolumeSlider" IsThumbToolTipEnabled="True"
                             Margin="5,0,0,0"
                             Value="{x:Bind ViewModel.MusicStateModel.Volume, Mode=TwoWay}" Width="100"
                             HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />

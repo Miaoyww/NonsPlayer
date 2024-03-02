@@ -11,6 +11,13 @@ public partial class PlayerService : ObservableRecipient
 {
     [ObservableProperty] private PlayQueue.PlayModeEnum currentPlayMode;
     [ObservableProperty] private bool isShuffle;
+    public static List<TimeSpan> TargetSeekingTimeSpans = new List<TimeSpan>();
+    public static int IntervalCounter = 0;
+    private static Task _playerLoaderTask;
+    public static bool LockSeeking = false;
+    public static int CurrentRunningSeekingHandler = 0;
+
+    public static TimeSpan RunningTimeSpan = TimeSpan.Zero;
 
     private PlayerService()
     {
@@ -18,7 +25,6 @@ public partial class PlayerService : ObservableRecipient
         PlayQueue.Instance.ShuffleChanged += OnShuffleChanged;
         Player.Instance.PlayStateChangedHandle += OnPlaystateChanged;
         Player.Instance.MusicChangedHandle += OnMusicChanged;
-        Player.Instance.PositionChangedHandle += OnPositionChanged;
         CurrentPlayMode = PlayQueue.PlayModeEnum.ListLoop; //TODO: 播放状态储存
     }
 
@@ -39,14 +45,6 @@ public partial class PlayerService : ObservableRecipient
         ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateModel.Instance.IsPlaying = isPlaying; });
     }
 
-    public void OnPositionChanged(TimeSpan position)
-    {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        {
-            // if (MusicStateModel.Instance.OnDrag) return;
-            MusicStateModel.Instance.Position = position.TotalSeconds;
-        });
-    }
 
     public void OnMusicChanged(Music music)
     {
@@ -83,5 +81,46 @@ public partial class PlayerService : ObservableRecipient
     private void NextMusic()
     {
         PlayQueue.Instance.PlayNext(true);
+    }
+
+    private static void PlaybackSession_SeekCompleted()
+    {
+        DecreaseRunningSeekingHandler();
+    }
+
+    public static async void DecreaseRunningSeekingHandler()
+    {
+        TargetSeekingTimeSpans.Clear();
+    }
+
+    public static void Seek(TimeSpan? targetTimeSpan, bool isHandler = false)
+    {
+        lock (TargetSeekingTimeSpans)
+        {
+            if (isHandler)
+            {
+                var timespan = TargetSeekingTimeSpans.Last();
+                RunningTimeSpan = timespan;
+                Player.Instance.SetPosition(timespan);
+                IntervalCounter++;
+            }
+            else
+            {
+                if (_playerLoaderTask != null && _playerLoaderTask.IsCompleted == false) return;
+                if (TargetSeekingTimeSpans.Count == 0 && !LockSeeking)
+                {
+                    TargetSeekingTimeSpans.Add(targetTimeSpan.Value);
+                    RunningTimeSpan = targetTimeSpan.Value;
+                    Player.Instance.SetPosition(targetTimeSpan.Value);
+                    IntervalCounter++;
+                }
+                else
+                {
+                    TargetSeekingTimeSpans.Add(targetTimeSpan.Value);
+                }
+            }
+        }
+
+        PlaybackSession_SeekCompleted();
     }
 }

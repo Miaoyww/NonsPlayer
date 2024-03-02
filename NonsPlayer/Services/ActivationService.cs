@@ -45,7 +45,7 @@ public class ActivationService : IActivationService
         // Execute tasks after activation.
         await StartupAsync();
 
-        await App.GetService<ControlService>().StartAsync();
+        // await App.GetService<ControlService>().StartAsync();
     }
 
     private async Task HandleActivationAsync(object activationArgs)
