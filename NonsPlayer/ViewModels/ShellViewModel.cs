@@ -7,6 +7,7 @@ using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
+using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.ViewModels;
 
@@ -30,6 +31,7 @@ public partial class ShellViewModel : ObservableRecipient
         set => SetProperty(ref _isBackEnabled, value);
     }
 
+ 
     #region 接口实现
 
     public INavigationService NavigationService { get; }

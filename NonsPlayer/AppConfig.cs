@@ -93,7 +93,7 @@ internal static class AppConfig
     /// <summary>
     ///     远程控制端口
     /// </summary>
-    public static int ApiPort = 1217;
+    public static int ApiPort = 8080;
 
     #endregion
     

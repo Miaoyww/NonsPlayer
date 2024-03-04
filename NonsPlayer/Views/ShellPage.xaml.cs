@@ -58,6 +58,39 @@ public sealed partial class ShellPage : Page
         ExceptionTtp.IsOpen = false;
     }
 
+    [RelayCommand]
+    public void NavigateMe()
+    {
+        ViewModel.NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName);
+    }
+
+    [RelayCommand]
+    public async Task SignOut()
+    {
+        if (!Account.Instance.IsLoggedIn)
+        {
+            ExceptionTtp.Title = "出错啦！";
+            ExceptionTtp.Content =  "当前未登录哦.";
+            ExceptionTtp.IsOpen = true;
+            return;
+        }
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
+            Title = "确认",
+            PrimaryButtonText = "确定",
+            CloseButtonText = "点错了",
+            DefaultButton = ContentDialogButton.Primary,
+            Content = "确定要退出当前账号吗?"
+        };
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            await Account.Instance.LogOut();
+        }
+    }
+
     public event ShellViewDialogShowEventHandler OnDialogShowCall;
 
     public void OnOpenPlayQueueButton_Click(object? sender, EventArgs e)
@@ -97,7 +130,7 @@ public sealed partial class ShellPage : Page
                 Content = $"登录失败~ {error.Message}"
             };
             await dialog.ShowAsync();
-            Account.Instance.LogOut();
+            await Account.Instance.LogOut();
         }
     }
 
@@ -110,11 +143,11 @@ public sealed partial class ShellPage : Page
 
     private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
     {
-        var resource = args.WindowActivationState == WindowActivationState.Deactivated
-            ? "WindowCaptionForegroundDisabled"
-            : "WindowCaptionForeground";
+        // var resource = args.WindowActivationState == WindowActivationState.Deactivated
+        //     ? "WindowCaptionForegroundDisabled"
+        //     : "WindowCaptionForeground";
 
-        AppTitleBarText.Foreground = (SolidColorBrush)App.Current.Resources[resource];
+        // AppTitleBarText.Foreground = (SolidColorBrush)App.Current.Resources[resource];
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -123,6 +156,7 @@ public sealed partial class ShellPage : Page
             (PointerEventHandler)ShellMenuBarSettingsButton_PointerPressed);
         ShellMenuBarSettingsButton.RemoveHandler(PointerReleasedEvent,
             (PointerEventHandler)ShellMenuBarSettingsButton_PointerReleased);
+        App.GetService<ControlService>().Stop();
     }
 
     private static KeyboardAccelerator BuildKeyboardAccelerator(VirtualKey key, VirtualKeyModifiers? modifiers = null)
@@ -164,21 +198,5 @@ public sealed partial class ShellPage : Page
     private void ShellMenuBarSettingsButton_PointerExited(object sender, PointerRoutedEventArgs e)
     {
         AnimatedIcon.SetState((UIElement)sender, "Normal");
-    }
-
-    private async void OnOnDialogShowCall(string content)
-    {
-        OnDialogShowCall?.Invoke();
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-            Title = "错误",
-            PrimaryButtonText = "知道了",
-            CloseButtonText = "取消",
-            DefaultButton = ContentDialogButton.Primary,
-            Content = content
-        };
-        await dialog.ShowAsync();
     }
 }

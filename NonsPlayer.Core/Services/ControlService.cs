@@ -187,9 +187,17 @@ public class ControlService
 
     public void Stop()
     {
-        _httpListener.Stop();
-        _cancellationTokenSource.Cancel();
-        Console.WriteLine("WebSocket server stopped.");
+        try
+        {
+            _httpListener.Stop();
+            _cancellationTokenSource.Cancel();
+            Console.WriteLine("WebSocket server stopped.");
+        }
+        catch (Exception e)
+        {
+
+        }
+ 
     }
 
     private async void ProcessWebSocketRequest(HttpListenerContext context)

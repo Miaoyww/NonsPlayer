@@ -4,35 +4,120 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:ui="using:CommunityToolkit.WinUI"
+
     mc:Ignorable="d">
     <Grid Margin="{StaticResource PageCommonMargin}">
-        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-            <StackPanel>
-                <Button Content="检查更新" Command="{x:Bind ViewModel.CheckUpdateCommand}" />
-                <Button Command="{x:Bind ViewModel.TestCommand}">
-                    <Grid>
-                        <TextBlock Text="测试按钮" />
-                    </Grid>
-                </Button>
-            </StackPanel>
+        <ScrollViewer>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="设置" FontWeight="Bold" FontSize="30"
+                           Margin="20,20,0,0" />
+                <StackPanel Grid.Row="1" Margin="20">
+                    <toolkit:SettingsExpander Name="Appearance"
+                                              Header="个性化"
+                                              HeaderIcon="{ui:FontIcon Glyph=&#xE771;}">
+                        <toolkit:SettingsExpander.Items>
+                            <toolkit:SettingsCard Header="主题色"
+                                                  Description="Incomplete">
+                                <ComboBox SelectedIndex="0">
+                                    <ComboBox.Items>
+                                        <TextBlock Text="跟随系统" />
+                                        <TextBlock Text="亮色" />
+                                        <TextBlock Text="暗色" />
+                                    </ComboBox.Items>
+                                </ComboBox>
+                            </toolkit:SettingsCard>
+                        </toolkit:SettingsExpander.Items>
 
-        </Grid>
-        <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,20">
-            <StackPanel>
-                <Grid VerticalAlignment="Center" Height="72" Width="1052" HorizontalAlignment="Center">
-                    <StackPanel>
-                        <TextBlock Text="MADE BY MIAOYWW" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   FontSize="16" Style="{StaticResource CommonTextStyle}" />
-                        <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" />
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
-                            <HyperlinkButton x:Uid="SettingsPage_GithubLink" />
-                            <HyperlinkButton x:Uid="SettingsPage_BilibiliLink" />
+                    </toolkit:SettingsExpander>
+                    <toolkit:SettingsExpander Name="ApiControl"
+                                              Header="Api接口"
+                                              Description="开关/编辑 有关API接口"
+                                              HeaderIcon="{ui:FontIcon Glyph=&#xEDA3;}">
+                        <toolkit:SettingsExpander.Items>
+                            <toolkit:SettingsCard Header="开/关 API接口">
+                                <ToggleSwitch Toggled="ApiSwitch" />
+                            </toolkit:SettingsCard>
+                            <toolkit:SettingsCard Header="启动时自行开启API接口"
+                                                  Description="Incomplete">
+                                <ToggleSwitch />
+                            </toolkit:SettingsCard>
+                            <toolkit:SettingsCard Header="设置端口"
+                                                  Description="Incomplete">
+                                <TextBox Text="8080" />
+                            </toolkit:SettingsCard>
+                        </toolkit:SettingsExpander.Items>
+                    </toolkit:SettingsExpander>
+                    <toolkit:SettingsExpander Name="OtherSettings"
+                                              Header="其它设置"
+                                              HeaderIcon="{ui:FontIcon Glyph=&#xEE40;}"
+                                              Description="设置如 歌单详情页一次显示的歌曲数量 的设置">
+                        <toolkit:SettingsExpander.Items>
+                            <toolkit:SettingsCard Header="歌单详情页一次显示的歌曲数量"
+                                                  Description="Incomplete">
+                                <TextBox Text="30" />
+                            </toolkit:SettingsCard>
+                            <toolkit:SettingsCard Header="主页推荐歌单数量"
+                                                  Description="Incomplete">
+                                <TextBox Text="20" />
+                            </toolkit:SettingsCard>
+                            <toolkit:SettingsCard Header="按一下音量加减的增量"
+                                                  Description="Incomplete">
+                                <TextBox Text="10" />
+                            </toolkit:SettingsCard>
+                            <toolkit:SettingsCard Header="加载下一页歌单的偏移量"
+                                                  Description="Incomplete">
+                                <TextBox Text="500" />
+                            </toolkit:SettingsCard>
+                            <toolkit:SettingsCard Header="是否启用系统媒体控制"
+                                                  Description="Incomplete">
+                                <TextBox Text="500" />
+                            </toolkit:SettingsCard>
+
+                        </toolkit:SettingsExpander.Items>
+                    </toolkit:SettingsExpander>
+                    <toolkit:SettingsExpander Name="About"
+                                              Header="NonsPlayer"
+                                              HeaderIcon="{ui:BitmapIcon Source=ms-appx:///Assets/NonsPlayer.png}">
+                        <toolkit:SettingsExpander.Items>
+                            <toolkit:SettingsCard Header="当前版本">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}"
+                                               FontWeight="Normal"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" />
+                                    <Button Margin="10,0,0,0" Command="{x:Bind ViewModel.CheckUpdateCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <FontIcon Glyph="&#xE752;" FontSize="16" Margin="0,0,5,0"/>
+                                            <TextBlock Text="检查更新" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </toolkit:SettingsCard>
+                        </toolkit:SettingsExpander.Items>
+                    </toolkit:SettingsExpander>
+                </StackPanel>
+                <Grid Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,20">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"
+                                       Text="MADE BY MIAOYWW"
+                                       VerticalAlignment="Center" Style="{StaticResource CommonTextStyle}" />
+
+                            <TextBlock Text="Copyright Miaoyww 2022-2024." HorizontalTextAlignment="Center" />
+                            <TextBlock Text="Distributed under the terms of the GPL-3.0 license."
+                                       HorizontalTextAlignment="Center" />
                         </StackPanel>
-                    </StackPanel>
+
+                    </Grid>
                 </Grid>
-            </StackPanel>
-        </Grid>
+            </Grid>
+        </ScrollViewer>
     </Grid>
+
 </Page>

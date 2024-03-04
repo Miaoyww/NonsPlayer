@@ -8,6 +8,7 @@
     xmlns:views="using:NonsPlayer.Components.Views"
     xmlns:models="using:NonsPlayer.Components.Models"
     Loaded="OnLoaded"
+    Unloaded="OnUnloaded"
     mc:Ignorable="d">
     <Grid>
         <Grid>
@@ -71,7 +72,7 @@
                                 Foreground="#2d2d2d"
                                 Command="{x:Bind ViewModel.OpenMenuPersonalCenterCommand}" />
                     </StackPanel>
-                    <Grid Column="3" Name="UserController" VerticalAlignment="Center"
+                    <Grid Column="3" Margin="0,0,20,0" Name="UserController" VerticalAlignment="Center"
                           HorizontalAlignment="Right" Height="40">
                         <StackPanel Orientation="Horizontal">
                             <AutoSuggestBox Name="SearchBox" BorderThickness="1" CornerRadius="3"
@@ -85,11 +86,23 @@
                                         Width="200"
                                         Height="30"
                                         Margin="10,0,0,0">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,50,0">
-                                    <Border Name="UserFace" Height="30" Width="30"
-                                            Background="{x:Bind ViewModel.AccountStateModel.Face,Mode=OneWay}"
-                                            Margin="0,0,5,0"
-                                            CornerRadius="100" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                                    <StackPanel.ContextFlyout>
+                                        <MenuBarItemFlyout>
+                                            <MenuFlyoutItem Text="个人中心" Icon="Contact" Command="{x:Bind NavigateMeCommand}"/>
+                                            <MenuFlyoutItem Text="登出" Command="{x:Bind SignOutCommand}">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xF3B1;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                        </MenuBarItemFlyout>
+                                    </StackPanel.ContextFlyout>
+                                    <PersonPicture Name="UserFace" Height="30" Width="30"
+                                                   ProfilePicture="{x:Bind ViewModel.AccountStateModel.Face.ImageSource,Mode=OneWay}"
+                                                   Margin="0,0,5,0"
+                                                   CornerRadius="100">
+
+                                    </PersonPicture>
                                     <TextBlock Name="UserName"
                                                Text="{x:Bind ViewModel.AccountStateModel.Name, Mode=OneWay}"
                                                FontFamily="HarmonyOS Sans SC"
@@ -161,7 +174,7 @@
         </SplitView>
         <views:PlayBar x:Name="PlayerBar" VerticalAlignment="Bottom" />
         <TeachingTip x:Name="ExceptionTtp"
-                     PreferredPlacement="Auto"
+                     PreferredPlacement="Bottom"
                      PlacementMargin="20"
                      IsLightDismissEnabled="True"
                      ActionButtonCommand="{x:Bind ExceptionActionCommand}"

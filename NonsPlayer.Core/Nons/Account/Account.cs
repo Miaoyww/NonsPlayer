@@ -50,7 +50,7 @@ public class Account
         RegHelper.Instance.Set(RegHelper.Regs.AccountToken, result[0]);
         RegHelper.Instance.Set(RegHelper.Regs.AccountTokenMd5, result[1]);
         Token = token;
-        await InitAccount();
+        await RefreshAccountInfo();
     }
 
     public async Task LoginByReg()
@@ -68,15 +68,17 @@ public class Account
             await LoginByToken(result);
     }
 
-    public void LogOut()
+    public async Task LogOut()
     {
         RegHelper.Instance.Set(RegHelper.Regs.AccountToken, "");
         RegHelper.Instance.Set(RegHelper.Regs.AccountTokenMd5, "");
         Token = string.Empty;
         _tokenMd5 = string.Empty;
+        await RefreshAccountInfo();
+
     }
 
-    public async Task InitAccount()
+    public async Task RefreshAccountInfo()
     {
         var result = await Apis.User.Account(NonsCore.Instance);
         if (result["account"].First == null) throw new LoginFailureException("登陆token错误");
