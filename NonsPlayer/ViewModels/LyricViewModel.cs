@@ -3,11 +3,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LyricParser.Abstraction;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
+using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.ViewModels;
 
@@ -50,6 +52,7 @@ public partial class LyricViewModel : ObservableRecipient
     {
         CurrentMusic = music;
         LyricItems.Clear();
+
         for (int i = 0; i < music.Lyrics.Lyrics.Lines.Count; i++)
         {
             var visibility = Visibility.Visible;
@@ -65,7 +68,8 @@ public partial class LyricViewModel : ObservableRecipient
                 Translation = visibility == Visibility.Visible
                     ? music.Lyrics.TransLyrics?.Lines[i].CurrentLyric
                     : string.Empty,
-                TransVisibility = visibility
+                TransVisibility = visibility,
+                Margin = i == 0 ? new Thickness(0,40,0,0) : new Thickness(0)
             });
         }
 

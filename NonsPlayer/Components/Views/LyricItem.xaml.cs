@@ -1,10 +1,13 @@
 using System.Diagnostics;
+using System.Drawing;
 using System.Windows.Forms;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LyricParser.Abstraction;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
@@ -37,5 +40,10 @@ public sealed partial class LyricItem : UserControl
     public Visibility TransVisibility
     {
         set => ViewModel.TransVisibility = value;
+    }
+
+    public Thickness Margin
+    {
+        set => ViewModel.Margin = value;
     }
 }

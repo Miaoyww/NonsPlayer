@@ -1,5 +1,6 @@
 ﻿using LyricParser.Abstraction;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Components.Models;
@@ -17,7 +18,7 @@ public class LyricModel
 
     public ILyricLine LyricLine;
     public string Translation;
-
+    public Thickness Margin;
     public bool HaveTranslation => !string.IsNullOrEmpty(Translation);
     public Type LyricType => LyricLine.GetType();
     public Visibility TransVisibility;

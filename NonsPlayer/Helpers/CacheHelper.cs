@@ -151,14 +151,9 @@ public static class CacheHelper
         {
             try
             {
-                // 发起 HTTP 请求并获取响应数据
                 var response = await httpClient.GetAsync(imageUrl);
                 response.EnsureSuccessStatusCode();
-
-                // 从响应数据中获取图像的字节流
                 var imageBytes = await response.Content.ReadAsByteArrayAsync();
-
-                // 创建 InMemoryRandomAccessStream 并将图像数据写入其中
                 using (var stream = new InMemoryRandomAccessStream())
                 {
                     using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
@@ -183,28 +178,25 @@ public static class CacheHelper
 
     public static async Task<IRandomAccessStream> GetImageStreamFromServer(string imageUrl)
     {
-        using (var httpClient = new HttpClient())
+        using var httpClient = new HttpClient();
+        try
         {
-            try
+            var response = await httpClient.GetAsync(imageUrl);
+            response.EnsureSuccessStatusCode();
+            var imageBytes = await response.Content.ReadAsByteArrayAsync();
+            var stream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
             {
-                var response = await httpClient.GetAsync(imageUrl);
-                response.EnsureSuccessStatusCode();
-                var imageBytes = await response.Content.ReadAsByteArrayAsync();
-                var stream = new InMemoryRandomAccessStream();
-                using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
-                {
-                    writer.WriteBytes(imageBytes);
-                    await writer.StoreAsync();
-                }
-
-                return stream;
+                writer.WriteBytes(imageBytes);
+                await writer.StoreAsync();
             }
-            catch (Exception ex)
-            {
-                // 处理异常
-                Console.WriteLine($"Error: {ex.Message}");
-                return null;
-            }
+            return stream;
+        }
+        catch (Exception ex)
+        {
+            // 处理异常
+            Console.WriteLine($"Error: {ex.Message}");
+            return null;
         }
     }
 }

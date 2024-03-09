@@ -144,4 +144,3 @@ public class LikeIconConverter : IValueConverter
         return null;
     }
 }
-

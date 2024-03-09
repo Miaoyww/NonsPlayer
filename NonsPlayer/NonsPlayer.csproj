@@ -29,8 +29,10 @@
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
         <PackageReference Include="CommunityToolkit.WinUI" Version="7.1.2" />
         <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.0.240109" />
+        <PackageReference Include="CommunityToolkit.WinUI.Media" Version="8.0.240109" />
         <PackageReference Include="Dapper" Version="2.1.28" />
         <PackageReference Include="F23.StringSimilarity" Version="5.1.0" />
+        <PackageReference Include="ksemenenko.ColorThief" Version="1.1.1.4" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
         <PackageReference Include="Microsoft.Windows.CsWin32" PrivateAssets="all" Version="0.3.18-beta">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -124,7 +126,7 @@
         <Content Include="Assets\SplashScreen.scale-400.png" />
         <Content Include="Assets\UnknowResource.png" />
         <Content Include="Assets\WindowIcon.ico" />
-        <Content Include="Assets\NonsPlayer-Icon-Miaoyww.svg" >
+        <Content Include="Assets\NonsPlayer-Icon-Miaoyww.svg">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <None Remove="Assets\SplashScreen.scale-100.png" />
