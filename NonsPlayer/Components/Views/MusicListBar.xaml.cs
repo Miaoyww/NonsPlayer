@@ -13,7 +13,7 @@ public sealed partial class MusicListBar : UserControl
         InitializeComponent();
     }
 
-    public ObservableCollection<MusicItem> MusicItems
+    public ObservableCollection<MusicModel> MusicItems
     {
         set => ViewModel.UpdateMusicItems(value);
     }

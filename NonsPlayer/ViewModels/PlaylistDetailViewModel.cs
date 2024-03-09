@@ -25,7 +25,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     private int currentItemGroupIndex;
     [ObservableProperty] private string description;
     [ObservableProperty] private bool isLiked;
-    public ObservableCollection<MusicItem> MusicItems = new();
+    public ObservableCollection<MusicModel> MusicItems = new();
     [ObservableProperty] private string musicsCount;
     [ObservableProperty] private string name;
     [ObservableProperty] private Playlist playListObject;
@@ -83,7 +83,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             if (index < AppConfig.PlaylistTrackShowCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
-                    MusicItems.Add(new MusicItem
+                    MusicItems.Add(new MusicModel
                     {
                         Music = PlayListObject.Musics[index],
                         Index = (index + 1).ToString("D2")
@@ -120,7 +120,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             if (index < PlayListObject.MusicsCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
-                    MusicItems.Add(new MusicItem
+                    MusicItems.Add(new MusicModel
                     {
                         Music = PlayListObject.Musics[index],
                         Index = (index + 1).ToString("D2")

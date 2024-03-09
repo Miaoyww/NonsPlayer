@@ -1,9 +1,11 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using LyricParser.Abstraction;
+using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Nons;
+using LyricParser.Implementation;
 
 namespace NonsPlayer.Core.Models;
 
@@ -14,7 +16,7 @@ public class Music : INonsModel
     public string FileType;
     public bool IsEmpty;
     public bool IsLiked;
-    public LyricGroup LyricGroup;
+    public LyricGroup? Lyrics;
     public MusicQualityLevel[] QualityLevels;
     public TimeSpan TotalTime;
     public string Trans;
@@ -51,6 +53,14 @@ public class Music : INonsModel
 
     public async Task GetLyric()
     {
-        LyricGroup = new LyricGroup(await Apis.Lyric.GetLyric(Id.ToString(), NonsCore.Instance));
+        var response = await Apis.Lyric.GetLyric(Id.ToString(), NonsCore.Instance);
+        var originalLyric = LrcParser.ParseLrc(response["lrc"]["lyric"].ToString().AsSpan());
+        LrcLyricCollection? transLyric = null;
+        if (response["tlyric"]?["lyric"] != null)
+        {
+            transLyric = LrcParser.ParseLrc(response["tlyric"]["lyric"].ToString().AsSpan());
+        }
+        
+        Lyrics = new LyricGroup(originalLyric, transLyric);
     }
 }

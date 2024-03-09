@@ -96,7 +96,7 @@ public partial class ShellViewModel : ObservableRecipient
 public partial class PlayQueueBarViewModel
 {
     [ObservableProperty] private int count;
-    public ObservableCollection<MusicItem> MusicItems = new();
+    public ObservableCollection<MusicModel> MusicItems = new();
 
     public PlayQueueBarViewModel()
     {
@@ -110,7 +110,7 @@ public partial class PlayQueueBarViewModel
         MusicItems.Clear();
         PlayQueue.Instance.MusicList.ForEach(item =>
         {
-            MusicItems.Add(new MusicItem
+            MusicItems.Add(new MusicModel
             {
                 Music = item
             });

@@ -2,7 +2,7 @@
 
 namespace NonsPlayer.Components.Models;
 
-public class MusicItem
+public class MusicModel
 {
     public string Index;
     public Music Music;

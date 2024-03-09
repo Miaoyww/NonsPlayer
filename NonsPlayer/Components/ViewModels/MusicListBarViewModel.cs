@@ -6,9 +6,9 @@ namespace NonsPlayer.Components.ViewModels;
 
 public class MusicListBarViewModel : ObservableObject
 {
-    public ObservableCollection<MusicItem> MusicItems = new();
+    public ObservableCollection<MusicModel> MusicItems = new();
 
-    public void UpdateMusicItems(ObservableCollection<MusicItem> items)
+    public void UpdateMusicItems(ObservableCollection<MusicModel> items)
     {
         MusicItems = items;
     }

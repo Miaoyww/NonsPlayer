@@ -13,6 +13,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Controller\" />
+        <ProjectReference Include="..\LyricParser\LyricParser\LyricParser.csproj" />
     </ItemGroup>
 </Project>

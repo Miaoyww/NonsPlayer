@@ -107,7 +107,7 @@ public class Player
     {
         if (OutputDevice == null) OutputDevice = new WaveOutEvent();
         await Task.WhenAll(music2play.GetLyric(), music2play.GetFileInfo());
-        MusicChangedHandle(music2play);
+        MusicChangedHandle?.Invoke(music2play);
         CurrentMusic = music2play;
         if (NPMediaFoundationReader == null) NPMediaFoundationReader = new MediaFoundationReader(music2play.Url);
 

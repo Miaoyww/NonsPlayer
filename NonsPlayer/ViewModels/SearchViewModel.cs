@@ -17,7 +17,7 @@ namespace NonsPlayer.ViewModels;
 public partial class SearchViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
     [ObservableProperty] private Artist[] artists;
-    public ObservableCollection<MusicItem> MusicItems = new();
+    public ObservableCollection<MusicModel> MusicItems = new();
     [ObservableProperty] private Playlist[] playlists;
     private string queryKey;
 
@@ -34,7 +34,7 @@ public partial class SearchViewModel : ObservableRecipient, INavigationAware, IN
     public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
     {
         var listView = sender as ListView;
-        if (listView.SelectedItem is MusicItem item) PlayQueue.Instance.Play(item.Music);
+        if (listView.SelectedItem is MusicModel item) PlayQueue.Instance.Play(item.Music);
     }
 
     public async Task Search(string key)
@@ -53,7 +53,7 @@ public partial class SearchViewModel : ObservableRecipient, INavigationAware, IN
             if (index < AppConfig.PlaylistTrackShowCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
-                    MusicItems.Add(new MusicItem
+                    MusicItems.Add(new MusicModel
                     {
                         Music = searcher.Musics[index],
                         Index = (index + 1).ToString("D2")

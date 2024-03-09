@@ -1,83 +1,132 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using LyricParser.Abstraction;
 using Microsoft.UI.Xaml;
+using NonsPlayer.Components.Models;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.ViewModels;
 
 public partial class LyricViewModel : ObservableRecipient
 {
-    [ObservableProperty] private string originalLyric = string.Empty;
-    [ObservableProperty] private string tranLyric = string.Empty;
+    public ObservableCollection<LyricModel> LyricItems = new();
+    [ObservableProperty] private Music currentMusic;
+    public static int LyricPosition;
+
+    public PlayerService PlayerService => PlayerService.Instance;
+    public MusicStateModel MusicStateModel => MusicStateModel.Instance;
 
     public LyricViewModel()
     {
         Player.Instance.PositionChangedHandle += LyricChanger;
-        OriginalLyric = "暂未播放";
+        Player.Instance.MusicChangedHandle += OnMusicChanged;
+        LyricPosition = 0;
+        if (Player.Instance.CurrentMusic == null)
+        {
+            return;
+        }
+
+        OnMusicChanged(Player.Instance.CurrentMusic);
     }
 
-    public Visibility TransVisibility => TranLyric.Equals(string.Empty) ? Visibility.Collapsed : Visibility.Visible;
-
-    partial void OnTranLyricChanged(string value)
+    [RelayCommand]
+    public void SwitchPlayMode()
     {
-        if (!value.Equals(string.Empty)) OnPropertyChanged(nameof(TransVisibility));
+        PlayQueue.Instance.SwitchPlayMode();
+    }
+
+    [RelayCommand]
+    public void SwitchShuffle()
+    {
+        PlayQueue.Instance.SwitchShuffle();
+    }
+
+    // public Visibility TransVisibility => TranLyric.Equals(string.Empty) ? Visibility.Collapsed : Visibility.Visible;
+    private void OnMusicChanged(Music music)
+    {
+        CurrentMusic = music;
+        LyricItems.Clear();
+        for (int i = 0; i < music.Lyrics.Lyrics.Lines.Count; i++)
+        {
+            var visibility = Visibility.Visible;
+            if (music.Lyrics.TransLyrics == null || music.Lyrics.TransLyrics.Lines.Count == 0)
+            {
+                visibility = Visibility.Collapsed;
+            }
+
+
+            LyricItems.Add(new LyricModel()
+            {
+                LyricLine = music.Lyrics.Lyrics.Lines[i],
+                Translation = visibility == Visibility.Visible
+                    ? music.Lyrics.TransLyrics?.Lines[i].CurrentLyric
+                    : string.Empty,
+                TransVisibility = visibility
+            });
+        }
+
+        LyricPosition = 0;
     }
 
     private void LyricChanger(TimeSpan time)
     {
-        try
-        {
-            if (MusicStateModel.Instance.CurrentMusic.LyricGroup == null) return;
+        // if (LyricItems.Count == 0) return;
+        // if (LyricPosition >= LyricItems.Count || LyricPosition < 0) LyricPosition = 0;
+        // var changed = false;
+        // var realPos = Player.Instance.Position;
 
-            var lyrics = MusicStateModel.Instance.CurrentMusic.LyricGroup.Lyrics;
-            if (lyrics.Count == 1)
+        // if (LyricItems[LyricPosition].LyricLine.StartTime > realPos) //当感知到进度回溯时执行
+        // {
+        //     LyricPosition = LyricItems.ToList().FindLastIndex(t => t.LyricLine.StartTime <= realPos) - 1;
+        //     if (LyricPosition == -2) LyricPosition = -1;
+        //     changed = true;
+        // }
+        //
+        // try
+        // {
+        //     if (LyricPosition == 0 && LyricItems.Count != 1) changed = false;
+        //     while (LyricItems.Count > LyricPosition + 1 &&
+        //            LyricItems[LyricPosition + 1].LyricLine.StartTime <= realPos) //正常的滚歌词
+        //     {
+        //         LyricPosition++;
+        //         changed = true;
+        //     }
+        // }
+        // catch
+        // {
+        //     // ignored
+        // }
+
+
+        // if (changed)
+        // {
+        // OnLyricChanged();
+        // }
+    }
+
+    private void OnLyricChanged()
+    {
+        if (LyricPosition == -1) return;
+        if (LyricItems.Count <= LyricPosition) return;
+        if (LyricPosition < LyricItems.Count - 1 && LyricItems[LyricPosition + 1].LyricLine is LrcLyricsLine lrcLine)
+        {
+            if (lrcLine.StartTime.TotalSeconds - LyricItems[LyricPosition].LyricLine.StartTime.TotalSeconds > 1)
             {
-                OriginalLyric = lyrics[0].OriginalLyric;
+                ChangeLyric();
                 return;
             }
-
-            var left = 0;
-            var right = lyrics.Count - 1;
-            int middle;
-
-            while (left <= right)
-            {
-                middle = (left + right) / 2;
-                if (middle == lyrics.Count - 1) return;
-                if (time >= lyrics[middle].Time && time < lyrics[middle + 1].Time)
-                {
-                    // 匹配成功，更新歌词显示
-                    ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-                    {
-                        if (!OriginalLyric.Equals(lyrics[middle].OriginalLyric))
-                        {
-                            OriginalLyric = lyrics[middle].OriginalLyric;
-                            TranLyric = lyrics[middle].TranLyric;
-                        }
-                    });
-
-                    return;
-                }
-
-                if (time < lyrics[middle].Time)
-                    right = middle - 1;
-                else
-                    left = middle + 1;
-            }
-
-            // 未匹配到，可以显示 "暂未播放" 或其他提示信息
-            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-            {
-                OriginalLyric = "暂未播放";
-                TranLyric = "";
-            });
         }
-        catch (ArgumentOutOfRangeException e)
-        {
-            // ignored
-        }
-        catch (Exception e)
-        {
-        }
+
+        ChangeLyric();
+    }
+
+    private void ChangeLyric()
+    {
+        // LyricText = HyPlayList.Lyrics[HyPlayList.LyricPos].LyricLine.CurrentLyric;
+        // LyricControl.Lyric = HyPlayList.Lyrics[HyPlayList.LyricPos];
     }
 }

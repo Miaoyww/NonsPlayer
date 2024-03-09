@@ -161,7 +161,7 @@ public class ControlService
     public ControlService()
     {
         _httpListener = new HttpListener();
-        _httpListener.Prefixes.Add($"http://127.0.0.1:8080/nons/api/{API_VERSION}/");
+        _httpListener.Prefixes.Add($"http://192.168.101.111:8080/nons/api/{API_VERSION}/");
         _cancellationTokenSource = new CancellationTokenSource();
     }
 

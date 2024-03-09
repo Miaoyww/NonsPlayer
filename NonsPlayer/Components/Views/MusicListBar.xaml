@@ -32,7 +32,7 @@
                   BorderThickness="0,1,0,0" BorderBrush="#F0F1F2"
                   ItemsSource="{x:Bind ViewModel.MusicItems, Mode=OneWay}">
             <ListView.ItemTemplate>
-                <DataTemplate x:DataType="models:MusicItem">
+                <DataTemplate x:DataType="models:MusicModel">
                     <views:PlaylistMusicItemCard
                         Music="{x:Bind Music}"
                         Index="{x:Bind Index}" />

@@ -158,7 +158,7 @@
                             </Grid>
                         </ListView.Header>
                         <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="models:MusicItem">
+                            <DataTemplate x:DataType="models:MusicModel">
                                 <views:PlayQueueItemCard
                                     Music="{x:Bind Music}"
                                     CoverUrl="{x:Bind Cover}"
