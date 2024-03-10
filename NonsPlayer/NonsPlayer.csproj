@@ -12,12 +12,16 @@
         <UseWinUI>true</UseWinUI>
         <UseRidGraph>true</UseRidGraph>
         <EnableMsixTooling>true</EnableMsixTooling>
+        <WindowsPackageType>None</WindowsPackageType>
         <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
         <DefaultLanguage>zh-cn</DefaultLanguage>
         <Product>NonsPlayer</Product>
         <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
         <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
         <Configurations>Debug;Release</Configurations>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+        <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
 
     </PropertyGroup>
 
