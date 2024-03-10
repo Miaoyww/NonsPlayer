@@ -37,15 +37,16 @@ internal static class AppConfig
     private static void Initialize()
     {
 #if DEBUG
-        AppVersion = "0.4.0";
+        AppVersion = "0.4.1";
 #else
         AppVersion = typeof(AppConfig).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion;
 #endif
+        AppVersion = "0.4.1";
     }
 
     #region Player Settings
-    
+
     /// <summary>
     ///     播放歌单内音乐直接将歌曲添加至播放列表中
     /// </summary>
@@ -96,5 +97,4 @@ internal static class AppConfig
     public static int ApiPort = 8080;
 
     #endregion
-    
 }
