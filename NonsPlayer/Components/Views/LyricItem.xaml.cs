@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using NonsPlayer.Components.Models;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
@@ -28,20 +29,14 @@ public sealed partial class LyricItem : UserControl
 
     public LyricItemViewModel ViewModel { get; }
 
-    public ILyricLine? PureLyric
+    public SongLyric Lyric
     {
-        set => ViewModel.PureLyric = value;
+        set => ViewModel.SongLyric = value;
     }
-
-    public string? TransLyric
+    public int Index
     {
-        set => ViewModel.TransLyric = value;
-    }    
-    public Visibility TransVisibility
-    {
-        set => ViewModel.TransVisibility = value;
+        set => ViewModel.Index = value;
     }
-
     public Thickness Margin
     {
         set => ViewModel.Margin = value;

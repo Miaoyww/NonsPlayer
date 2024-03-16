@@ -144,3 +144,13 @@ public class LikeIconConverter : IValueConverter
         return null;
     }
 }
+
+public class UiHelper
+{
+    public static UiHelper Instance { get; } = new();
+
+    // 构建歌词修改时间
+    public delegate void LyricChangedHandler(int index);
+
+    public LyricChangedHandler LyricChanged;
+}

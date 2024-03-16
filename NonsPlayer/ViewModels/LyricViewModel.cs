@@ -15,16 +15,16 @@ namespace NonsPlayer.ViewModels;
 
 public partial class LyricViewModel : ObservableRecipient
 {
-    public ObservableCollection<LyricModel> LyricItems = new();
+    public ObservableCollection<LyricItemModel> LyricItems = new();
     [ObservableProperty] private Music currentMusic;
-    public static int LyricPosition;
+    public int LyricPosition;
 
     public PlayerService PlayerService => PlayerService.Instance;
     public MusicStateModel MusicStateModel => MusicStateModel.Instance;
 
     public LyricViewModel()
     {
-        Player.Instance.PositionChangedHandle += LyricChanger;
+        Player.Instance.PositionChangedHandle += LyricPositionGetter;
         Player.Instance.MusicChangedHandle += OnMusicChanged;
         LyricPosition = 0;
         if (Player.Instance.CurrentMusic == null)
@@ -61,76 +61,68 @@ public partial class LyricViewModel : ObservableRecipient
                 visibility = Visibility.Collapsed;
             }
 
-
-            LyricItems.Add(new LyricModel()
+            var songLyric = new SongLyric
             {
-                LyricLine = music.Lyrics.Lyrics.Lines[i],
+                PureLine = music.Lyrics.Lyrics.Lines[i],
                 Translation = visibility == Visibility.Visible
                     ? music.Lyrics.TransLyrics?.Lines[i].CurrentLyric
                     : string.Empty,
-                TransVisibility = visibility,
-                Margin = i == 0 ? new Thickness(0,40,0,0) : new Thickness(0)
-            });
+            };
+            LyricItems.Add(new LyricItemModel(songLyric, i));
         }
 
         LyricPosition = 0;
     }
-
-    private void LyricChanger(TimeSpan time)
+    
+    /// <summary>
+    /// 通过播放进度获取歌词位置
+    /// </summary>
+    /// <param name="time"></param>
+    private void LyricPositionGetter(TimeSpan time)
     {
-        // if (LyricItems.Count == 0) return;
-        // if (LyricPosition >= LyricItems.Count || LyricPosition < 0) LyricPosition = 0;
-        // var changed = false;
-        // var realPos = Player.Instance.Position;
-
-        // if (LyricItems[LyricPosition].LyricLine.StartTime > realPos) //当感知到进度回溯时执行
-        // {
-        //     LyricPosition = LyricItems.ToList().FindLastIndex(t => t.LyricLine.StartTime <= realPos) - 1;
-        //     if (LyricPosition == -2) LyricPosition = -1;
-        //     changed = true;
-        // }
-        //
-        // try
-        // {
-        //     if (LyricPosition == 0 && LyricItems.Count != 1) changed = false;
-        //     while (LyricItems.Count > LyricPosition + 1 &&
-        //            LyricItems[LyricPosition + 1].LyricLine.StartTime <= realPos) //正常的滚歌词
-        //     {
-        //         LyricPosition++;
-        //         changed = true;
-        //     }
-        // }
-        // catch
-        // {
-        //     // ignored
-        // }
-
-
-        // if (changed)
-        // {
-        // OnLyricChanged();
-        // }
+        if (LyricItems.Count == 0) return;
+        if (LyricPosition == -1) return;
+        if (LyricItems.Count <= LyricPosition) return;
+        if (LyricPosition < LyricItems.Count - 1)
+        {
+            if (LyricItems[LyricPosition + 1].SongLyric.PureLine.StartTime < time)
+            {
+                LyricPosition++;
+                OnLyricChanged();
+            }
+        }
     }
 
     private void OnLyricChanged()
     {
         if (LyricPosition == -1) return;
         if (LyricItems.Count <= LyricPosition) return;
-        if (LyricPosition < LyricItems.Count - 1 && LyricItems[LyricPosition + 1].LyricLine is LrcLyricsLine lrcLine)
+        if (LyricPosition < LyricItems.Count - 1 && LyricItems[LyricPosition + 1].SongLyric.PureLine is LrcLyricsLine lrcLine)
         {
-            if (lrcLine.StartTime.TotalSeconds - LyricItems[LyricPosition].LyricLine.StartTime.TotalSeconds > 1)
+            if (lrcLine.StartTime.TotalSeconds - LyricItems[LyricPosition].SongLyric.PureLine.StartTime.TotalSeconds > 1)
             {
                 ChangeLyric();
                 return;
             }
         }
-
+        
         ChangeLyric();
     }
-
+    
+    /// <summary>
+    /// 通过播放进度改变歌词
+    /// </summary>
     private void ChangeLyric()
     {
-        // LyricText = HyPlayList.Lyrics[HyPlayList.LyricPos].LyricLine.CurrentLyric;
-        // LyricControl.Lyric = HyPlayList.Lyrics[HyPlayList.LyricPos];
+        if (LyricPosition == -1) return;
+        if (LyricItems.Count <= LyricPosition) return;
+        if (LyricPosition < LyricItems.Count - 1)
+        {
+            if (LyricItems[LyricPosition + 1].SongLyric.PureLine.StartTime < Player.Instance.Position)
+            {
+                LyricPosition++;
+                OnLyricChanged();
+            }
+        }
     }
 }
