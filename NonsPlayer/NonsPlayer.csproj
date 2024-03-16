@@ -34,6 +34,7 @@
         <PackageReference Include="CommunityToolkit.WinUI" Version="7.1.2" />
         <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.0.240109" />
         <PackageReference Include="CommunityToolkit.WinUI.Media" Version="8.0.240109" />
+        <PackageReference Include="CommunityToolkit.WinUI.UI.Controls" Version="7.1.2" />
         <PackageReference Include="Dapper" Version="2.1.28" />
         <PackageReference Include="F23.StringSimilarity" Version="5.1.0" />
         <PackageReference Include="ksemenenko.ColorThief" Version="1.1.1.4" />

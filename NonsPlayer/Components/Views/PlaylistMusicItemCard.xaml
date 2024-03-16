@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:helpers="using:NonsPlayer.Helpers"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     mc:Ignorable="d">
     <UserControl.Resources>
         <helpers:LikeIconConverter x:Key="LikeIconConverter" />
@@ -62,14 +63,26 @@
                                    TextAlignment="Left" Opacity="0.8"
                                    TextTrimming="WordEllipsis" TextWrapping="Wrap" />
                     </Grid>
-                    <TextBlock x:Name="ArtistsTextBlock" Text="{x:Bind ViewModel.Artists, Mode=OneWay}"
-                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                               FontSize="14" FontFamily="HarmonyOS Sans SC" TextTrimming="CharacterEllipsis" />
+                    <controls:MetadataControl x:Name="ArtistsMetadata"
+                                              Separator=" / "
+                                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                              FontFamily="HarmonyOS Sans SC" FontSize="14" FontWeight="Medium"
+                                              Items="{x:Bind ViewModel.ArtistsMetadata, Mode=OneWay}">
+                        <controls:MetadataControl.TextBlockStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                            </Style>
+                        </controls:MetadataControl.TextBlockStyle>
+                    </controls:MetadataControl>
                 </StackPanel>
-                <TextBlock Grid.Column="3" Name="AlbumTextBlock" Text="{x:Bind ViewModel.Album, Mode=OneWay}"
-                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                           TextTrimming="CharacterEllipsis"
-                           Width="200" Margin="0,0,0,0" />
+                <HyperlinkButton Grid.Column="3" 
+                    x:Name="AlbumMetadata"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    FontFamily="HarmonyOS Sans SC" FontSize="14" FontWeight="Medium"
+                    MaxWidth="200" Margin="0,0,0,0"
+                    Foreground="Black"
+                    Content="{x:Bind ViewModel.Album, Mode=OneWay}"
+                    Command="{x:Bind ViewModel.ForwardAlbumCommand}"/>
                 <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Orientation="Horizontal">
                     <Button Margin="0,0,30,0" Height="30" Width="30" Padding="0" Background="Transparent"

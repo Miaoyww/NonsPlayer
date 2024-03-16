@@ -1,6 +1,8 @@
-﻿using Windows.ApplicationModel.DataTransfer;
+﻿using System.Collections.ObjectModel;
+using Windows.ApplicationModel.DataTransfer;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -25,6 +27,18 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
     [ObservableProperty] private string time;
     [ObservableProperty] private string trans;
     [ObservableProperty] private Visibility transVisibility;
+    public ObservableCollection<MetadataItem> ArtistsMetadata = new();
+
+    [RelayCommand]
+    private void ForwardArtist(Artist artist)
+    {
+        ServiceHelper.NavigationService.NavigateTo(typeof(ArtistViewModel)?.FullName, artist);
+    }    
+    [RelayCommand]
+    private void ForwardAlbum()
+    {
+        ServiceHelper.NavigationService.NavigateTo(typeof(AlbumViewModel)?.FullName, Music.Album);
+    }
 
     public void Init(Music music)
     {
@@ -32,6 +46,16 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         Name = Music.Name;
         Time = Music.TotalTimeString;
         Album = Music.AlbumName;
+        foreach (var artist in music.Artists)
+        {
+            ArtistsMetadata.Add(new MetadataItem
+            {
+                Label = artist.Name,
+                Command = ForwardArtistCommand,
+                CommandParameter = artist
+            });
+        }
+
         Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
 
 

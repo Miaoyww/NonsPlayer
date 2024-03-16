@@ -1,5 +1,8 @@
-﻿using Windows.UI;
+﻿using System.Collections.ObjectModel;
+using Windows.UI;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
@@ -19,6 +22,7 @@ public partial class MusicStateModel
     [ObservableProperty] private TimeSpan duration = TimeSpan.Zero;
     [ObservableProperty] private bool isPlaying;
     [ObservableProperty] private bool onDrag;
+    public ObservableCollection<MetadataItem> ArtistsMetadata = new();
     private double position;
 
 
@@ -64,6 +68,11 @@ public partial class MusicStateModel
         }
     }
 
+    [RelayCommand]
+    private void ForwardArtist(Artist artist)
+    {
+        ServiceHelper.NavigationService.NavigateTo(typeof(ArtistViewModel)?.FullName, artist);
+    }
     partial void OnCurrentMusicChanged(Music value)
     {
         if (value.IsEmpty) return;
@@ -71,6 +80,17 @@ public partial class MusicStateModel
         cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.Album.AvatarUrl);
         duration = value.TotalTime;
         CurrentSongLiked = FavoritePlaylistService.Instance.IsLiked(value.Id);
+        ArtistsMetadata.Clear();
+        foreach (var artist in value.Artists)
+        {
+            ArtistsMetadata.Add(new MetadataItem
+            {
+                Label = artist.Name,
+                Command = ForwardArtistCommand,
+                CommandParameter = artist
+            });
+
+        }
         OnPropertyChanged(nameof(Cover));
         OnPropertyChanged(nameof(Duration));
         OnPropertyChanged(nameof(DurationString));

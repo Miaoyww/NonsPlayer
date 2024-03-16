@@ -9,6 +9,7 @@
     xmlns:converters="using:NonsPlayer.Converters"
     xmlns:media="using:CommunityToolkit.WinUI.Media"
     xmlns:animations="using:CommunityToolkit.WinUI.Animations"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     Loaded="LyricPage_OnLoaded"
     mc:Ignorable="d">
     <Page.Resources>
@@ -56,10 +57,17 @@
                                            FontFamily="HarmonyOS Sans SC" FontWeight="Medium"
                                            Foreground="{x:Bind ForegroundAccentTextBrush, Mode=OneWay}"
                                            Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.Name, Mode=OneWay}" />
-                                <TextBlock Name="TextBlockArtists" FontSize="16" FontFamily="HarmonyOS Sans SC"
-                                           FontWeight="Medium"
-                                           Foreground="{x:Bind ForegroundAccentTextBrush, Mode=OneWay}"
-                                           Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.ArtistsName, Mode=OneWay}" />
+                                <controls:MetadataControl x:Name="ArtistsMetadata"
+                                                          Separator=" / "
+                                                          FontFamily="HarmonyOS Sans SC" FontSize="16" FontWeight="Medium"
+                                                          Items="{x:Bind ViewModel.MusicStateModel.ArtistsMetadata, Mode=OneWay}">
+                                    <controls:MetadataControl.TextBlockStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{x:Bind ForegroundAccentTextBrush, Mode=OneWay}"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                        </Style>
+                                    </controls:MetadataControl.TextBlockStyle>
+                                </controls:MetadataControl>
                             </StackPanel>
                         </Grid>
                         <StackPanel Name="MediaController">
