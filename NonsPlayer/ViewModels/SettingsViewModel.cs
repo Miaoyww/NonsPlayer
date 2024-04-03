@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Nons.Account;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 using NonsPlayer.Updater.Update;
@@ -24,10 +25,10 @@ public partial class SettingsViewModel : ObservableRecipient
     }
 
     [RelayCommand]
-    private void Test()
+    private async Task Test()
     {
-        Account.Instance.LogOut();
-        App.MainWindow.Close();
+        var r = (await Player.Instance.CurrentMusic.GetLyric())["yrc"]["lyric"];
+        var a = AMLL.Parsers.PraserYrc.ParseYrc(r.ToString());
     }
 
     [RelayCommand]

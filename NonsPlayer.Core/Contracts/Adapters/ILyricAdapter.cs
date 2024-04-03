@@ -5,7 +5,7 @@ namespace NonsPlayer.Core.Contracts.Adapters;
 
 public interface ILyricAdapter
 {
-    Task<Lyric> GetLyricAsync(object content);
-
-    Lyric GetLyric(object content);
+    // Task<Lyric> GetLyricAsync(object content);
+    //
+    // Lyric GetLyric(object content);
 }

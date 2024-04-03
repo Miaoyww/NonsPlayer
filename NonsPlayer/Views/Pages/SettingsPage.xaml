@@ -19,9 +19,9 @@
                 <TextBlock Text="设置" FontWeight="Bold" FontSize="30"
                            Margin="20,20,0,0" />
                 <StackPanel Grid.Row="1" Margin="20">
-                    <toolkit:SettingsExpander Name="Appearance"
-                                              Header="个性化"
-                                              HeaderIcon="{ui:FontIcon Glyph=&#xE771;}">
+                    <toolkit:SettingsExpander
+                        Header="个性化"
+                        HeaderIcon="{ui:FontIcon Glyph=&#xE771;}">
                         <toolkit:SettingsExpander.Items>
                             <toolkit:SettingsCard Header="主题色"
                                                   Description="Incomplete">
@@ -36,10 +36,10 @@
                         </toolkit:SettingsExpander.Items>
 
                     </toolkit:SettingsExpander>
-                    <toolkit:SettingsExpander Name="ApiControl"
-                                              Header="Api接口"
-                                              Description="开关/编辑 有关API接口"
-                                              HeaderIcon="{ui:FontIcon Glyph=&#xEDA3;}">
+                    <toolkit:SettingsExpander
+                        Header="Api接口"
+                        Description="开关/编辑 有关API接口"
+                        HeaderIcon="{ui:FontIcon Glyph=&#xEDA3;}">
                         <toolkit:SettingsExpander.Items>
                             <toolkit:SettingsCard Header="开/关 API接口">
                                 <ToggleSwitch Toggled="ApiSwitch" />
@@ -54,10 +54,10 @@
                             </toolkit:SettingsCard>
                         </toolkit:SettingsExpander.Items>
                     </toolkit:SettingsExpander>
-                    <toolkit:SettingsExpander Name="OtherSettings"
-                                              Header="其它设置"
-                                              HeaderIcon="{ui:FontIcon Glyph=&#xEE40;}"
-                                              Description="设置如 歌单详情页一次显示的歌曲数量 的设置">
+                    <toolkit:SettingsExpander
+                        Header="其它设置"
+                        HeaderIcon="{ui:FontIcon Glyph=&#xEE40;}"
+                        Description="设置如 歌单详情页一次显示的歌曲数量 的设置">
                         <toolkit:SettingsExpander.Items>
                             <toolkit:SettingsCard Header="歌单详情页一次显示的歌曲数量"
                                                   Description="Incomplete">
@@ -82,9 +82,9 @@
 
                         </toolkit:SettingsExpander.Items>
                     </toolkit:SettingsExpander>
-                    <toolkit:SettingsExpander Name="About"
-                                              Header="NonsPlayer"
-                                              HeaderIcon="{ui:BitmapIcon Source=ms-appx:///Assets/NonsPlayer.png}">
+                    <toolkit:SettingsExpander
+                        Header="NonsPlayer"
+                        HeaderIcon="{ui:BitmapIcon Source=ms-appx:///Assets/NonsPlayer.png}">
                         <toolkit:SettingsExpander.Items>
                             <toolkit:SettingsCard Header="当前版本">
                                 <StackPanel Orientation="Horizontal">
@@ -93,20 +93,28 @@
                                                HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" />
                                     <Button Margin="10,0,0,0" Command="{x:Bind ViewModel.CheckUpdateCommand}">
                                         <StackPanel Orientation="Horizontal">
-                                            <FontIcon Glyph="&#xE752;" FontSize="16" Margin="0,0,5,0"/>
+                                            <FontIcon Glyph="&#xE752;" FontSize="16" Margin="0,0,5,0" />
                                             <TextBlock Text="检查更新" />
                                         </StackPanel>
                                     </Button>
                                 </StackPanel>
                             </toolkit:SettingsCard>
+                            <toolkit:SettingsCard Header="测试">
+                                <Button Margin="10,0,0,0" Content="测试按钮"
+                                        Command="{x:Bind ViewModel.TestCommand}">
+
+                                </Button>
+                            </toolkit:SettingsCard>
                             <toolkit:SettingsCard>
                                 <toolkit:SettingsCard.Header>
-                                    <HyperlinkButton Content="Github" NavigateUri="https://github.com/Miaoyww/NonsPlayer"/>
+                                    <HyperlinkButton Content="Github"
+                                                     NavigateUri="https://github.com/Miaoyww/NonsPlayer" />
                                 </toolkit:SettingsCard.Header>
                             </toolkit:SettingsCard>
                             <toolkit:SettingsCard>
                                 <toolkit:SettingsCard.Header>
-                                    <HyperlinkButton Content="Bilibili" NavigateUri="https://space.bilibili.com/435970102"/>
+                                    <HyperlinkButton Content="Bilibili"
+                                                     NavigateUri="https://space.bilibili.com/435970102" />
                                 </toolkit:SettingsCard.Header>
                             </toolkit:SettingsCard>
                         </toolkit:SettingsExpander.Items>
@@ -122,9 +130,10 @@
                             <TextBlock Text="Copyright Miaoyww 2022-2024." HorizontalTextAlignment="Center" />
                             <TextBlock Text="Distributed under the terms of the GPL-3.0 license."
                                        HorizontalTextAlignment="Center" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <HyperlinkButton Content="Github" NavigateUri="https://github.com/Miaoyww/NonsPlayer"/>
-                                <HyperlinkButton Content="Bilibili" NavigateUri="https://space.bilibili.com/435970102"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                        VerticalAlignment="Center">
+                                <HyperlinkButton Content="Github" NavigateUri="https://github.com/Miaoyww/NonsPlayer" />
+                                <HyperlinkButton Content="Bilibili" NavigateUri="https://space.bilibili.com/435970102" />
                             </StackPanel>
                         </StackPanel>
 

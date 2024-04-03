@@ -88,7 +88,6 @@ public partial class App : Application
                 services.AddTransient<BestMusicCardViewModel>();
                 services.AddTransient<BestArtistCardViewModel>();
                 services.AddTransient<MusicListBarViewModel>();
-                services.AddTransient<LyricItemViewModel>();
                 // Configuration
                 services.Configure<LocalSettingsOptions>(
                     context.Configuration.GetSection(nameof(LocalSettingsOptions)));

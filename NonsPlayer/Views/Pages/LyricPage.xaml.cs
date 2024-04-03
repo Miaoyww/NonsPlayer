@@ -57,7 +57,7 @@ public sealed partial class LyricPage : Page
     {
         ViewModel = App.GetService<LyricViewModel>();
         InitializeComponent();
-        Player.Instance.PositionChangedHandle += OnPositionChanged;
+        // Player.Instance.PositionChangedHandle += OnPositionChanged;
         Player.Instance.MusicChangedHandle += OnMusicChanged;
     }
 
@@ -98,128 +98,128 @@ public sealed partial class LyricPage : Page
         //     ForegroundAccentTextBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 0, 0));
         //     ForegroundIdleTextBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(114, 0, 0, 0));
         // }
-        ViewModel.LyricPosition = 0;
-        LyricBoxContainer.ChangeView(null, 0, null, false);
+        // ViewModel.LyricPosition = 0;
+        // LyricBoxContainer.ChangeView(null, 0, null, false);
     }
 
-    public void OnPositionChanged(TimeSpan position)
-    {
-        try
-        {
-            if (Player.Instance.CurrentMusic.IsEmpty) return;
-            if (!_isSliding)
-            {
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    MusicStateModel.Instance.Position =
-                        Player.Instance.NPMediaFoundationReader.CurrentTime.TotalSeconds;
-                    CurrentTimeSlider.Value = Player.Instance.NPMediaFoundationReader.CurrentTime.TotalSeconds;
-                });
-            }
-
-            // 判断是否需要滚动歌词
-            if (ViewModel.LyricItems.Count == 0) return;
-            var lyric = ViewModel.LyricItems[ViewModel.LyricPosition];
-            // 控制ListView滚动
-            if (lyric.SongLyric.PureLine.StartTime <= position)
-            {
-                if (ViewModel.LyricPosition < ViewModel.LyricItems.Count - 1)
-                {
-                    ViewModel.LyricPosition++;
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        ScrollLyric();
-                        UiHelper.Instance.LyricChanged?.Invoke(ViewModel.LyricPosition);
-                    });
-                }
-            }
-        }
-        catch
-        {
-            // ignore
-        }
-    }
-
-    private readonly BringIntoViewOptions NoAnimationBringIntoViewOptions =
-        new BringIntoViewOptions()
-        {
-            VerticalAlignmentRatio = 0.5,
-            AnimationDesired = false,
-        };
-
-    private void ScrollLyric()
-    {
-        try
-        {
-            if (ViewModel.LyricPosition == -1)
-            {
-                LyricBoxContainer.ChangeView(null, 0, null, false);
-                return;
-            }
-
-            var item = ViewModel.LyricItems[ViewModel.LyricPosition];
-            var k = LyricBox.ItemsSourceView.IndexOf(item);
-            UIElement actualElement;
-            bool isNewLoaded = false;
-            if (LyricBox.TryGetElement(k) is { } ele)
-            {
-                actualElement = ele;
-            }
-            else
-            {
-                actualElement = LyricBox.GetOrCreateElement(k) as Border;
-                isNewLoaded = true;
-            }
-
-            if (actualElement != null && item != null &&
-                !string.IsNullOrEmpty(item.SongLyric.PureLine.CurrentLyric))
-            {
-                actualElement.UpdateLayout();
-
-                if (!isNewLoaded)
-                {
-                    var transform = actualElement?.TransformToVisual((UIElement)LyricBoxContainer.ContentTemplateRoot);
-                    var position = transform?.TransformPoint(new Windows.Foundation.Point(0, 0));
-                    LyricBoxContainer.ChangeView(0,
-                        (position?.Y + LyricHost.Margin.Top - MainGrid.ActualHeight / 4) - 200, 1,
-                        false);
-                }
-                else
-                {
-                    // actualElement.StartBringIntoView(NoAnimationBringIntoViewOptions);
-                }
-            }
-        }
-        catch
-        {
-            // igrone pls
-        }
-    }
-
-    private void CurrentTimeSlider_OnManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
-    {
-        _slidingEventArgs = null;
-        var value = TimeSpan.FromSeconds(CurrentTimeSlider.Value);
-        if (Math.Abs((value - StartingTimeSpan).TotalMilliseconds) > 250d)
-        {
-            PlayerService.Seek(value);
-        }
-
-        _isSliding = false;
-    }
-
-    private void CurrentTimeSlider_OnManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
-    {
-        var value = TimeSpan.FromSeconds(CurrentTimeSlider.Value);
-        StartingTimeSpan = value;
-        PlayerService.Seek(value);
-    }
-
-    private void CurrentTimeSlider_OnManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
-    {
-        _isSliding = true;
-        _slidingEventArgs = e;
-    }
+    // public void OnPositionChanged(TimeSpan position)
+    // {
+    //     try
+    //     {
+    //         if (Player.Instance.CurrentMusic.IsEmpty) return;
+    //         if (!_isSliding)
+    //         {
+    //             DispatcherQueue.TryEnqueue(() =>
+    //             {
+    //                 MusicStateModel.Instance.Position =
+    //                     Player.Instance.NPMediaFoundationReader.CurrentTime.TotalSeconds;
+    //                 CurrentTimeSlider.Value = Player.Instance.NPMediaFoundationReader.CurrentTime.TotalSeconds;
+    //             });
+    //         }
+    //
+    //         // 判断是否需要滚动歌词
+    //         if (ViewModel.LyricItems.Count == 0) return;
+    //         var lyric = ViewModel.LyricItems[ViewModel.LyricPosition];
+    //         // 控制ListView滚动
+    //         if (lyric.SongLyric.PureLine.StartTime <= position)
+    //         {
+    //             if (ViewModel.LyricPosition < ViewModel.LyricItems.Count - 1)
+    //             {
+    //                 ViewModel.LyricPosition++;
+    //                 DispatcherQueue.TryEnqueue(() =>
+    //                 {
+    //                     ScrollLyric();
+    //                     UiHelper.Instance.LyricChanged?.Invoke(ViewModel.LyricPosition);
+    //                 });
+    //             }
+    //         }
+    //     }
+    //     catch
+    //     {
+    //         // ignore
+    //     }
+    // }
+    //
+    // private readonly BringIntoViewOptions NoAnimationBringIntoViewOptions =
+    //     new BringIntoViewOptions()
+    //     {
+    //         VerticalAlignmentRatio = 0.5,
+    //         AnimationDesired = false,
+    //     };
+    //
+    // private void ScrollLyric()
+    // {
+    //     try
+    //     {
+    //         if (ViewModel.LyricPosition == -1)
+    //         {
+    //             LyricBoxContainer.ChangeView(null, 0, null, false);
+    //             return;
+    //         }
+    //
+    //         var item = ViewModel.LyricItems[ViewModel.LyricPosition];
+    //         var k = LyricBox.ItemsSourceView.IndexOf(item);
+    //         UIElement actualElement;
+    //         bool isNewLoaded = false;
+    //         if (LyricBox.TryGetElement(k) is { } ele)
+    //         {
+    //             actualElement = ele;
+    //         }
+    //         else
+    //         {
+    //             actualElement = LyricBox.GetOrCreateElement(k) as Border;
+    //             isNewLoaded = true;
+    //         }
+    //
+    //         if (actualElement != null && item != null &&
+    //             !string.IsNullOrEmpty(item.SongLyric.PureLine.CurrentLyric))
+    //         {
+    //             actualElement.UpdateLayout();
+    //
+    //             if (!isNewLoaded)
+    //             {
+    //                 var transform = actualElement?.TransformToVisual((UIElement)LyricBoxContainer.ContentTemplateRoot);
+    //                 var position = transform?.TransformPoint(new Windows.Foundation.Point(0, 0));
+    //                 LyricBoxContainer.ChangeView(0,
+    //                     (position?.Y + LyricHost.Margin.Top - MainGrid.ActualHeight / 4) - 200, 1,
+    //                     false);
+    //             }
+    //             else
+    //             {
+    //                 // actualElement.StartBringIntoView(NoAnimationBringIntoViewOptions);
+    //             }
+    //         }
+    //     }
+    //     catch
+    //     {
+    //         // igrone pls
+    //     }
+    // }
+    //
+    // private void CurrentTimeSlider_OnManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
+    // {
+    //     _slidingEventArgs = null;
+    //     var value = TimeSpan.FromSeconds(CurrentTimeSlider.Value);
+    //     if (Math.Abs((value - StartingTimeSpan).TotalMilliseconds) > 250d)
+    //     {
+    //         PlayerService.Seek(value);
+    //     }
+    //
+    //     _isSliding = false;
+    // }
+    //
+    // private void CurrentTimeSlider_OnManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
+    // {
+    //     var value = TimeSpan.FromSeconds(CurrentTimeSlider.Value);
+    //     StartingTimeSpan = value;
+    //     PlayerService.Seek(value);
+    // }
+    //
+    // private void CurrentTimeSlider_OnManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
+    // {
+    //     _isSliding = true;
+    //     _slidingEventArgs = e;
+    // }
 
     private void LyricPage_OnLoaded(object sender, RoutedEventArgs e)
     {
