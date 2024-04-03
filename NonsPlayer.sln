@@ -11,12 +11,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NonsPlayer.Updater", "NonsP
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NonsPlayer.Launcher", "NonsPlayer.Launcher\NonsPlayer.Launcher.vcxproj", "{3A19539D-2A99-419E-9DBB-05C98409A8AC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LyricParser", "LyricParser\LyricParser\LyricParser.csproj", "{2CEBACD2-9266-43BC-8DF8-1F9ADD004449}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AMLL", "AppleMusic-Like-Lyrics\AMLL\AMLL.csproj", "{536C87A3-C17C-4DD1-A1A1-8E70CA8FC332}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AMLL.Core", "AppleMusic-Like-Lyrics\AMLL.Core\AMLL.Core.csproj", "{A250FDBC-AA33-47AB-A484-AE7404968195}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
