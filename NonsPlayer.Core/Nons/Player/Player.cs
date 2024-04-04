@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Timers;
 using NAudio.Utils;
 using NAudio.Wave;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Models;
 using Exception = System.Exception;
@@ -12,7 +13,7 @@ namespace NonsPlayer.Core.Nons.Player;
 
 public class Player
 {
-    public delegate void MusicChanged(Music currentMusic);
+    public delegate void MusicChanged(IMusic currentMusic);
 
     public delegate void MusicStopped();
 
@@ -24,15 +25,16 @@ public class Player
 
     private float _volume;
 
-    [JsonPropertyName("currentMusic")] public Music CurrentMusic;
+    [JsonPropertyName("currentMusic")] public IMusic CurrentMusic;
     public MusicChanged MusicChangedHandle;
 
     public MusicStopped MusicStoppedHandle;
     public WaveOutEvent OutputDevice;
     public PlayStateChanged PlayStateChangedHandle;
     public PositionChanged PositionChangedHandle;
-    public Music PreviousMusic;
+    public IMusic PreviousMusic;
     private TimeSpan _position;
+
     public Player()
     {
         OutputDevice = new WaveOutEvent();
@@ -47,13 +49,19 @@ public class Player
 
     public static Player Instance { get; } = new();
 
-    [JsonPropertyName("position")] public TimeSpan Position { get => NPMediaFoundationReader.CurrentTime; }
+    [JsonPropertyName("position")]
+    public TimeSpan Position
+    {
+        get => NPMediaFoundationReader.CurrentTime;
+    }
+
     public void SetPosition(TimeSpan value)
     {
         if (NPMediaFoundationReader == null) return;
         NPMediaFoundationReader.CurrentTime = value;
         _position = value;
     }
+
     [JsonPropertyName("volume")]
     public float Volume
     {
@@ -64,6 +72,7 @@ public class Player
             {
                 _volume = 0;
             }
+
             OutputDevice.Volume = value;
             _volume = value;
         }
@@ -105,24 +114,33 @@ public class Player
     /// <param name="music2play">即将播放的音乐</param>
     public async Task NewPlay(Music music2play)
     {
-        if (OutputDevice == null) OutputDevice = new WaveOutEvent();
         await Task.WhenAll(music2play.GetLyric(), music2play.GetFileInfo());
-        MusicChangedHandle?.Invoke(music2play);
-        CurrentMusic = music2play;
-        if (NPMediaFoundationReader == null) NPMediaFoundationReader = new MediaFoundationReader(music2play.Url);
+        await PlayCore(music2play);
+    }
 
-        if (music2play.Url != null)
+    public async Task NewPlay(LocalMusic music2play)
+    {
+        await PlayCore(music2play);
+    }
+
+    private async Task PlayCore(IMusic music2play)
+    {
+        if (OutputDevice == null) OutputDevice = new WaveOutEvent();
+        if (NPMediaFoundationReader == null) NPMediaFoundationReader = new MediaFoundationReader(music2play.Uri);
+
+        if (music2play.Uri != null)
         {
             IsInitializingNewMusic = true;
             OutputDevice.Stop();
             OutputDevice.Dispose();
-            NPMediaFoundationReader = new MediaFoundationReader(music2play.Url);
+            NPMediaFoundationReader = new MediaFoundationReader(music2play.Uri);
             OutputDevice.Init(NPMediaFoundationReader);
         }
 
-        if (music2play.Url == null)
+        if (music2play.Uri == null)
             throw new MusicUrlNullException($"此音乐{music2play.Name} - {music2play.ArtistsName}的Url为空,可能是音乐源");
-
+        MusicChangedHandle?.Invoke(music2play);
+        CurrentMusic = music2play;
         OutputDevice.Play();
         await Task.Run(async () =>
         {

@@ -9,22 +9,12 @@ using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Models;
 
-public class Music : INonsModel
+public class Music : IMusic
 {
-    public Album Album;
-    public Artist[] Artists;
-    public string FileType;
-    public bool IsEmpty;
     public bool IsLiked;
     public MusicQualityLevel[] QualityLevels;
-    public TimeSpan TotalTime;
-    public string Trans;
-    public string Url;
-    public Lyric? Lyric;
-    public string TotalTimeString => TotalTime.ToString(@"m\:ss");
     public string CacheId => Id + "_music";
-    public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
-    public string AlbumName => Album?.Name;
+    public string? Trans;
 
     public static Music CreateEmpty()
     {
@@ -46,8 +36,7 @@ public class Music : INonsModel
     public async Task GetFileInfo()
     {
         var musicFile = (JObject)(await Apis.Music.Url(Id, MusicQualityLevel.ExHigh, NonsCore.Instance))["data"][0];
-        Url = musicFile["url"].ToString();
-        FileType = musicFile["type"].ToString();
+        Uri = musicFile["url"].ToString();
     }
 
     public async Task GetLyric()
@@ -59,10 +48,10 @@ public class Music : INonsModel
 
         var response = await Apis.Lyric.GetLyric(Id.ToString(), NonsCore.Instance);
         var originalLyric = response.ContainsKey("lrc")
-            ? AMLL.Parsers.Lrc.ParseLrc(((JObject)response.GetValue("lrc")).GetValue("lyric").ToString(), TotalTime)
+            ? AMLL.Parsers.Lrc.ParseLrc(((JObject)response.GetValue("lrc")).GetValue("lyric").ToString(), Duration)
             : null;
         var transLyric = response.ContainsKey("tlyric")
-            ? AMLL.Parsers.Lrc.ParseLrc(((JObject)response.GetValue("tlyric")).GetValue("lyric").ToString(), TotalTime)
+            ? AMLL.Parsers.Lrc.ParseLrc(((JObject)response.GetValue("tlyric")).GetValue("lyric").ToString(), Duration)
             : null;
         var yrc = response.ContainsKey("yrc")
             ? AMLL.Parsers.Yrc.ParseYrc(((JObject)response.GetValue("yrc")).GetValue("lyric").ToString())

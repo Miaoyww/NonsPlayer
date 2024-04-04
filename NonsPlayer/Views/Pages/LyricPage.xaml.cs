@@ -19,6 +19,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.WinUI.Animations;
 using Microsoft.UI.Xaml.Media;
 using CommunityToolkit.WinUI.Media;
+using NonsPlayer.Core.Contracts.Models;
 
 namespace NonsPlayer.Views.Pages;
 
@@ -75,7 +76,7 @@ public sealed partial class LyricPage : Page
         Application.Current.Resources["TextFillColorTertiaryBrush"] as SolidColorBrush;
 
 
-    public async void OnMusicChanged(Music value)
+    public async void OnMusicChanged(IMusic value)
     {
         // var stream = await CacheHelper.GetImageStreamFromServer(value.Album.SmallAvatarUrl);
         // var image = new Bitmap(stream.AsStream());

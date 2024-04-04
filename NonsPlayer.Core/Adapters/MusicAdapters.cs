@@ -35,7 +35,7 @@ public class MusicAdapters: IMusicAdapter
             Name = (string)item["name"],
             Id = (int)item["id"],
             AvatarUrl = (string)item["al"]["picUrl"],
-            TotalTime = TimeSpan.FromMilliseconds(item["dt"].ToObject<long>()),
+            Duration = TimeSpan.FromMilliseconds(item["dt"].ToObject<long>()),
             Album =  albumAdapter.GetAlbum(item["al"] as JObject),
             Artists = ((JArray)item["ar"]).Select(arItem => ArtistAdapters.CreateFromPlaylistTrack(arItem as JObject))
                 .ToArray(),

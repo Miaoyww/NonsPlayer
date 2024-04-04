@@ -1,11 +1,12 @@
-﻿using NonsPlayer.Core.Models;
+﻿using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 
 namespace NonsPlayer.Core.Services;
 
 public class PlayCounter
 {
-    public Dictionary<Music, int> Data;
+    public Dictionary<IMusic, int> Data;
 
     public PlayCounter()
     {
@@ -13,12 +14,12 @@ public class PlayCounter
         Player.Instance.MusicChangedHandle += OnMusicChanged;
     }
 
-    private void OnMusicChanged(Music music)
+    private void OnMusicChanged(IMusic music)
     {
         RecordNewPlay(music);
     }
 
-    public void RecordNewPlay(Music music)
+    public void RecordNewPlay(IMusic music)
     {
         Data[music] += 1;
     }

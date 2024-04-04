@@ -47,6 +47,11 @@ public class FavoritePlaylistService
 
     public async Task<int> LikeAsync(long? id)
     {
+        if (id == 0)
+        {
+            ExceptionService.Instance.Throw(new ArgumentException("当前音乐是本地音乐, 无法喜欢哦~"));
+            return 200;
+        }
         var result = await Apis.Music.Like(id.ToString(), !IsLiked(id), NonsCore.Instance);
         Debug.WriteLine($"喜欢歌曲({id}): {result["code"]}");
         if ((int)result["code"] == 200)

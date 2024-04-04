@@ -77,6 +77,27 @@ public static class CacheHelper
             ImageSource = new BitmapImage(new Uri(url))
         }).Result.Data;
     }
+    public static async Task<ImageBrush> GetImageBrush(string cacheId, byte[] cover)
+    { 
+        using (var stream = new InMemoryRandomAccessStream())
+        {
+            // 使用DataWriter将字节数组写入流
+            using (DataWriter writer = new DataWriter(stream.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(cover);
+                await writer.StoreAsync();
+            }
+
+            // 创建BitmapImage并从流中加载图像
+            var bitmapImage = new BitmapImage();
+            await bitmapImage.SetSourceAsync(stream);
+            return GetCacheItemAsync(cacheId, async () => new ImageBrush
+            {
+                ImageSource = bitmapImage
+            }).Result.Data;
+        }
+        
+    }
 
     public static async Task<ImageBrush> GetImageBrushAsync(string cacheId, string url)
     {
@@ -190,6 +211,7 @@ public static class CacheHelper
                 writer.WriteBytes(imageBytes);
                 await writer.StoreAsync();
             }
+
             return stream;
         }
         catch (Exception ex)

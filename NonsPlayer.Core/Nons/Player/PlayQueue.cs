@@ -94,13 +94,21 @@ public class PlayQueue
 
     public void OnMusicStopped(object sender, StoppedEventArgs e)
     {
-        if (PlayMode == PlayModeEnum.ListLoop)
-            if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic && PlayMode != PlayModeEnum.SingleLoop)
-            {
-                if (_isUserPressed) return;
-                if (CurrentMusic.TotalTime.TotalSeconds - Player.Instance.Position.TotalSeconds > 1) return;
-                PlayNext();
-            }
+        try
+        {
+            if (PlayMode == PlayModeEnum.ListLoop)
+                if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic &&
+                    PlayMode != PlayModeEnum.SingleLoop)
+                {
+                    if (_isUserPressed) return;
+                    if (CurrentMusic.Duration.TotalSeconds - Player.Instance.Position.TotalSeconds > 1) return;
+                    PlayNext();
+                }
+        }
+        catch (Exception exception)
+        {
+            ExceptionService.Instance.Throw(exception);
+        }
     }
 
     // 当CurrentMusic改变时，将触发PlayerService的NewPlay方法

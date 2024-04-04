@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.AMLL.Models;
 using NonsPlayer.Core.AMLL.Models;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 
@@ -36,7 +37,7 @@ public partial class AMLLViewModel : ObservableRecipient
         Player.Instance.MusicChangedHandle += OnMusicChanged;
         
     }
-    private async void OnMusicChanged(Music value)
+    private async void OnMusicChanged(IMusic value)
     {
         LyricItems.Clear();
         try

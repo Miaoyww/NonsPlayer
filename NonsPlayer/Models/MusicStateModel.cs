@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.UI.Xaml.Media;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
@@ -16,7 +17,7 @@ namespace NonsPlayer.ViewModels;
 public partial class MusicStateModel
 {
     [ObservableProperty] private Brush cover;
-    [ObservableProperty] private Music currentMusic;
+    [ObservableProperty] private IMusic currentMusic;
     [ObservableProperty] private bool currentSongLiked;
     [ObservableProperty] private double currentVolume;
     [ObservableProperty] private TimeSpan duration = TimeSpan.Zero;
@@ -73,12 +74,22 @@ public partial class MusicStateModel
     {
         ServiceHelper.NavigationService.NavigateTo(typeof(ArtistViewModel)?.FullName, artist);
     }
-    partial void OnCurrentMusicChanged(Music value)
+
+    async partial void OnCurrentMusicChanged(IMusic value)
     {
         if (value.IsEmpty) return;
 
-        cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.Album.AvatarUrl);
-        duration = value.TotalTime;
+
+        if (value is LocalMusic)
+        {
+            Cover = await CacheHelper.GetImageBrush(value.Album.CacheAvatarId, ((LocalMusic)value).Cover);
+        }
+        else
+        {
+            Cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.Album.AvatarUrl);
+        }
+
+        Duration = value.Duration;
         CurrentSongLiked = FavoritePlaylistService.Instance.IsLiked(value.Id);
         ArtistsMetadata.Clear();
         foreach (var artist in value.Artists)
@@ -89,8 +100,8 @@ public partial class MusicStateModel
                 Command = ForwardArtistCommand,
                 CommandParameter = artist
             });
-
         }
+
         OnPropertyChanged(nameof(Cover));
         OnPropertyChanged(nameof(Duration));
         OnPropertyChanged(nameof(DurationString));

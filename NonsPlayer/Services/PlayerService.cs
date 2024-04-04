@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
@@ -46,7 +47,7 @@ public partial class PlayerService : ObservableRecipient
     }
 
 
-    public void OnMusicChanged(Music music)
+    public void OnMusicChanged(IMusic music)
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateModel.Instance.CurrentMusic = music; });
     }
