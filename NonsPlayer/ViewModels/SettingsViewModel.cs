@@ -27,8 +27,6 @@ public partial class SettingsViewModel : ObservableRecipient
     [RelayCommand]
     private async Task Test()
     {
-        var r = (await Player.Instance.CurrentMusic.GetLyric())["yrc"]["lyric"];
-        var a = AMLL.Parsers.PraserYrc.ParseYrc(r.ToString());
     }
 
     [RelayCommand]

@@ -10,6 +10,7 @@
     xmlns:media="using:CommunityToolkit.WinUI.Media"
     xmlns:animations="using:CommunityToolkit.WinUI.Animations"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:amll="using:NonsPlayer.AMLL.Views"
     Loaded="LyricPage_OnLoaded"
     mc:Ignorable="d">
     <Page.Resources>
@@ -33,8 +34,8 @@
                 </media:UIElementExtensions.VisualFactory>
             </Rectangle>
         </Grid>
+        <amll:AMLL/>
 
-       
 
     </Grid>
 </Page>

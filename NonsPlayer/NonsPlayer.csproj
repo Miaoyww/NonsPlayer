@@ -53,7 +53,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AppleMusic-Like-Lyrics\AMLL\AMLL.csproj" />
         <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj" />
         <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj" />
     </ItemGroup>
@@ -80,6 +79,10 @@
         <Page Update="Components\Views\MusicListBar.xaml">
             <SubType>Designer</SubType>
         </Page>
+        <Page Remove="BundleArtifacts\**" />
+        <None Remove="BundleArtifacts\**" />
+        <Page Remove="Properties\**" />
+        <None Remove="Properties\**" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
@@ -151,6 +154,8 @@
       <Resource Include="Assets\WindowIcon.ico">
         <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       </Resource>
+      <Resource Remove="BundleArtifacts\**" />
+      <Resource Remove="Properties\**" />
     </ItemGroup>
 
     <ItemGroup>
@@ -167,5 +172,20 @@
         <Page Update="Styles\CommonComponents.xaml">
             <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         </Page>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="BundleArtifacts\**" />
+      <Compile Remove="Properties\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="BundleArtifacts\**" />
+      <EmbeddedResource Remove="Properties\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PRIResource Remove="BundleArtifacts\**" />
+      <PRIResource Remove="Properties\**" />
     </ItemGroup>
 </Project>

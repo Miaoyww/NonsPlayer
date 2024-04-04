@@ -1,4 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
+using NonsPlayer.Core.AMLL.Models;
+using NonsPlayer.Core.AMLL.Parsers;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Enums;
@@ -18,7 +20,7 @@ public class Music : INonsModel
     public TimeSpan TotalTime;
     public string Trans;
     public string Url;
-
+    public Lyric? Lyric;
     public string TotalTimeString => TotalTime.ToString(@"m\:ss");
     public string CacheId => Id + "_music";
     public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
@@ -47,18 +49,35 @@ public class Music : INonsModel
         Url = musicFile["url"].ToString();
         FileType = musicFile["type"].ToString();
     }
-    
-    public async Task<JObject> GetLyric()
+
+    public async Task GetLyric()
     {
+        if (Lyric != null)
+        {
+            return;
+        }
+
         var response = await Apis.Lyric.GetLyric(Id.ToString(), NonsCore.Instance);
-        return response;
-        // var originalLyric = LrcParser.ParseLrc(response["lrc"]["lyric"].ToString().AsSpan());
-        // LrcLyricCollection? transLyric = null;
-        // if (response["tlyric"]?["lyric"] != null)
-        // {
-        //     transLyric = LrcParser.ParseLrc(response["tlyric"]["lyric"].ToString().AsSpan());
-        // }
-        //
-        // Lyrics = new LyricGroup(originalLyric, transLyric);
+        var originalLyric = response.ContainsKey("lrc")
+            ? AMLL.Parsers.Lrc.ParseLrc(((JObject)response.GetValue("lrc")).GetValue("lyric").ToString(), TotalTime)
+            : null;
+        var transLyric = response.ContainsKey("tlyric")
+            ? AMLL.Parsers.Lrc.ParseLrc(((JObject)response.GetValue("tlyric")).GetValue("lyric").ToString(), TotalTime)
+            : null;
+        var yrc = response.ContainsKey("yrc")
+            ? AMLL.Parsers.Yrc.ParseYrc(((JObject)response.GetValue("yrc")).GetValue("lyric").ToString())
+            : null;
+        if (yrc != null)
+        {
+            yrc.CombinePure(originalLyric);
+            yrc.AddTrans(transLyric);
+            Lyric = yrc;
+
+            return;
+        }
+
+        originalLyric.AddTrans(transLyric);
+
+        Lyric = originalLyric;
     }
 }
