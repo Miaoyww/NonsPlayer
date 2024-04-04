@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Account;
@@ -134,7 +135,7 @@ public sealed partial class ShellPage : Page
         }
     }
 
-    private void OnCurrentMusicChanged(Music value)
+    private void OnCurrentMusicChanged(IMusic value)
     {
         if (value.IsEmpty) return;
 

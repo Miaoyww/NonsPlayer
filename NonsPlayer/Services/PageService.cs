@@ -24,6 +24,7 @@ public class PageService : IPageService
         Configure<LyricViewModel, LyricPage>();
         Configure<AlbumViewModel, AlbumPage>();
         Configure<UpdateViewModel, UpdatePage>();
+        Configure<LocalViewModel, LocalPage>();
     }
 
     public Type GetPageType(string key)

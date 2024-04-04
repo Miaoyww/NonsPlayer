@@ -9,20 +9,19 @@ using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Models;
 
-public class Playlist : INonsModel
+public class Playlist : IPlaylist
 {
     [JsonPropertyName("create_time")] public DateTime CreateTime;
     [JsonPropertyName("creator")] public string Creator;
     [JsonPropertyName("description")] public string Description;
     public bool IsCardMode;
-    [JsonPropertyName("musics")] public List<Music> Musics;
+    
     private MusicAdapters _musicAdapter = new MusicAdapters();
 
     [JsonPropertyName("music_track_ids")] public long[] MusicTrackIds;
     private JObject? PlaylistDetail;
     [JsonPropertyName("tags")] public string[] Tags;
     public string CacheId => Id + "_playlist";
-    [JsonPropertyName("musics_count")] public int MusicsCount => MusicTrackIds.Length;
     public Playlist This => this;
 
     public async Task LoadAsync(long id)
@@ -47,9 +46,12 @@ public class Playlist : INonsModel
     public void InitTracks()
     {
         // 直接从PlaylistDetail中获取歌曲信息, 因为它会传递小于等于1000的歌曲信息
-        Musics = ((JArray)PlaylistDetail["tracks"])
+        Musics =
+        [
+            ..((JArray)PlaylistDetail["tracks"])
             .Select(track => _musicAdapter.GetMusic((JObject)track))
-            .ToList();
+            .ToList()
+        ];
     }
 
     public async Task InitTrackByIndexAsync(int start, int end)

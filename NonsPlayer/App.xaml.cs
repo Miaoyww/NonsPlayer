@@ -80,6 +80,8 @@ public partial class App : Application
                 services.AddTransient<AlbumViewModel>();
                 services.AddTransient<UpdatePage>();
                 services.AddTransient<UpdateViewModel>();
+                services.AddTransient<LocalPage>();
+                services.AddTransient<LocalViewModel>();
 
                 #endregion
 
@@ -97,12 +99,12 @@ public partial class App : Application
                 services.AddTransient<MusicListBarViewModel>();
 
                 #endregion
-               
-                
+
+
                 // AMLL
                 services.AddTransient<AMLLViewModel>();
                 services.AddTransient<LyricCardViewModel>();
-                
+
                 // Configuration
                 services.Configure<LocalSettingsOptions>(
                     context.Configuration.GetSection(nameof(LocalSettingsOptions)));

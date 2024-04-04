@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.ViewModels;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
@@ -17,7 +18,7 @@ public sealed partial class PlaylistMusicItemCard : UserControl
 
     [ObservableProperty] private bool isCoverInit;
 
-    [ObservableProperty] private Music music;
+    [ObservableProperty] private IMusic music;
 
 
     public PlaylistMusicItemCard()
@@ -28,9 +29,9 @@ public sealed partial class PlaylistMusicItemCard : UserControl
 
     public PlaylistMusicItemCardViewModel ViewModel { get; }
 
-    partial void OnMusicChanged(Music music)
+    partial void OnMusicChanged(IMusic music)
     {
-        ViewModel.Init(music);
+        ViewModel.Init(music as Music);
         for (var i = 0; i < Music.Artists.Length; i++)
             CheckArtists.Items.Add(new MenuFlyoutItem
             {

@@ -1,0 +1,19 @@
+﻿<Page
+    x:Class="NonsPlayer.Views.Pages.LocalPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <StackPanel>
+            <Button Content="打开本地音乐" />
+            <TextBox Name="FileName" />
+            <Button Content="保存至本地歌单"
+                    CommandParameter="{x:Bind FileName.Text}"
+                    Command="{x:Bind ViewModel.ScanCommand}" />
+        </StackPanel>
+
+    </Grid>
+</Page>

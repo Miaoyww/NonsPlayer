@@ -1,4 +1,5 @@
 ﻿using NAudio.Wave;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
 
@@ -6,9 +7,9 @@ namespace NonsPlayer.Core.Nons.Player;
 
 public class PlayQueue
 {
-    public delegate void CurrentMusicChangedEventHandler(Music value);
+    public delegate void CurrentMusicChangedEventHandler(IMusic value);
 
-    public delegate void MusicAddedEventHandler(Music value);
+    public delegate void MusicAddedEventHandler(IMusic value);
 
     public delegate void PlaylistAddedEventHandler();
 
@@ -26,14 +27,14 @@ public class PlayQueue
         Recommend
     }
 
-    private Music _currentMusic;
+    private IMusic _currentMusic;
 
     private bool _isUserPressed;
-    private List<Music> _randomMusicList = new();
+    private List<IMusic> _randomMusicList = new();
 
     public PlayQueue()
     {
-        MusicList = new List<Music>();
+        MusicList = new List<IMusic>();
         PlayMode = PlayModeEnum.ListLoop;
         Player.Instance.OutputDevice.PlaybackStopped += OnMusicStopped;
         CurrentMusicChanged += OnCurrentMusicChanged;
@@ -47,10 +48,10 @@ public class PlayQueue
 
     public static PlayQueue Instance { get; } = new();
 
-    public List<Music> MusicList { get; set; }
+    public List<IMusic> MusicList { get; set; }
     public int Count => MusicList.Count;
 
-    public Music CurrentMusic
+    public IMusic CurrentMusic
     {
         get => _currentMusic;
         set
@@ -78,7 +79,7 @@ public class PlayQueue
         CurrentQueueChanged?.Invoke();
     }
 
-    private void OnMusicAdded(Music value)
+    private void OnMusicAdded(IMusic value)
     {
         CurrentQueueChanged?.Invoke();
     }
@@ -112,7 +113,7 @@ public class PlayQueue
     }
 
     // 当CurrentMusic改变时，将触发PlayerService的NewPlay方法
-    public async void OnCurrentMusicChanged(Music value)
+    public async void OnCurrentMusicChanged(IMusic value)
     {
         try
         {
@@ -153,7 +154,7 @@ public class PlayQueue
         PlayModeChanged?.Invoke(PlayMode);
     }
 
-    public void AddMusicList(Music[] musicList)
+    public void AddMusicList(IMusic[] musicList)
     {
         Clear();
         MusicList.AddRange(musicList);
@@ -165,7 +166,7 @@ public class PlayQueue
     ///     向正在播放的音乐后添加一歌曲
     /// </summary>
     /// <param name="music"></param>
-    public void AddNext(Music music)
+    public void AddNext(IMusic music)
     {
         if (MusicList.Contains(music))
         {
@@ -188,25 +189,25 @@ public class PlayQueue
         if (IsShuffle) _randomMusicList.Insert(MusicList.IndexOf(CurrentMusic) + 1, music);
     }
 
-    public void AddNext(Music[] musics)
+    public void AddNext(IMusic[] musics)
     {
         var content = musics.Reverse();
         foreach (var item in content) AddNext(item);
     }
 
-    private void _removeMusic(Music music)
+    private void _removeMusic(IMusic music)
     {
         MusicList.Remove(music);
         if (IsShuffle) _randomMusicList.Remove(music);
     }
 
-    public void Add(Music music)
+    public void Add(IMusic music)
     {
         MusicList.Add(music);
         CurrentQueueChanged?.Invoke();
     }
 
-    public void Insert(int index, Music music)
+    public void Insert(int index, IMusic music)
     {
         MusicList.Insert(index, music);
         CurrentQueueChanged?.Invoke();
@@ -218,7 +219,7 @@ public class PlayQueue
         CurrentQueueChanged?.Invoke();
     }
 
-    public void Remove(Music music)
+    public void Remove(IMusic music)
     {
         _removeMusic(music);
         CurrentQueueChanged?.Invoke();
@@ -231,7 +232,7 @@ public class PlayQueue
         CurrentQueueChanged?.Invoke();
     }
 
-    public void Play(Music music)
+    public void Play(IMusic music)
     {
         if (CurrentMusic != null)
             if (music.Id == CurrentMusic.Id)
@@ -292,7 +293,7 @@ public class PlayQueue
         Play(list[index]);
     }
 
-    public int GetIndex(Music music)
+    public int GetIndex(IMusic music)
     {
         return MusicList.IndexOf(music);
     }
@@ -306,9 +307,9 @@ public class PlayQueue
     ///     获取随机播放列表
     /// </summary>
     /// <param name="music">当前播放的歌曲</param>
-    private List<Music> GetRandomList(Music music)
+    private List<IMusic> GetRandomList(IMusic music)
     {
-        return new List<Music>();
+        return new List<IMusic>();
         // var random = new Random();
         // var list = MusicList.ToList();
         // list.RemoveAt(0);

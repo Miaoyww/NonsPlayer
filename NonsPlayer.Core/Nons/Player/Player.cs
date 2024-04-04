@@ -112,14 +112,18 @@ public class Player
     ///     播放一个新的音乐
     /// </summary>
     /// <param name="music2play">即将播放的音乐</param>
-    public async Task NewPlay(Music music2play)
+    public async Task NewPlay(IMusic music2play)
     {
-        await Task.WhenAll(music2play.GetLyric(), music2play.GetFileInfo());
-        await PlayCore(music2play);
-    }
+        if (music2play is LocalMusic localMusic)
+        {
+            await NewPlay(localMusic);
+        }
+        else
+        {
+            await NewPlay((Music)music2play);
+            await Task.WhenAll(((Music)music2play).GetLyric(), ((Music)music2play).GetFileInfo());
 
-    public async Task NewPlay(LocalMusic music2play)
-    {
+        }
         await PlayCore(music2play);
     }
 

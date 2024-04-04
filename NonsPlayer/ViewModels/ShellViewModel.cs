@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
+using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Views.Pages;
@@ -122,7 +123,7 @@ public partial class PlayQueueBarViewModel
         Count = MusicItems.Count;
     }
 
-    public void OnMusicAdded(Music value)
+    public void OnMusicAdded(IMusic value)
     {
         // MusicItems.Insert(PlayQueue.Instance.GetIndex(value), new MusicItem
         // {

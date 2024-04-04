@@ -11,6 +11,7 @@
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
         <PackageReference Include="RestSharp" Version="106.15.0"/>
         <PackageReference Include="System.Management" Version="9.0.0-preview.2.24128.5" />
+        <PackageReference Include="System.Text.Json" Version="9.0.0-preview.2.24128.5" />
         <PackageReference Include="TagLibSharp" Version="2.3.0" />
     </ItemGroup>
 </Project>

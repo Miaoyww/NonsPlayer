@@ -1,4 +1,5 @@
-﻿using NonsPlayer.Core.Contracts.Models;
+﻿using System.Text.Json.Serialization;
+using NonsPlayer.Core.Contracts.Models;
 
 namespace NonsPlayer.Core.Models;
 
@@ -10,7 +11,9 @@ public class LocalMusic : IMusic
      */
     public byte[]? Cover;
     public TagLib.File File;
+    [JsonPropertyName("path")] public string Path;
     public string CacheId => Md5 + "_music";
+
     public LocalMusic(string path)
     {
         File = TagLib.File.Create(path);
@@ -18,6 +21,7 @@ public class LocalMusic : IMusic
         Uri = path;
         Cover = File.Tag.Pictures.Length > 0 ? File.Tag.Pictures[0].Data.Data : null;
         Md5 = File.GetHashCode().ToString();
+        Path = path;
         Album = new Album()
         {
             Name = File.Tag.Album
@@ -31,6 +35,5 @@ public class LocalMusic : IMusic
         };
         Duration = File.Properties.Duration;
         Name = File.Tag.Title;
-        
     }
 }
