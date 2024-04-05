@@ -116,15 +116,13 @@ public class Player
     {
         if (music2play is LocalMusic localMusic)
         {
-            await NewPlay(localMusic);
+            await PlayCore(localMusic);
         }
         else
         {
-            await NewPlay((Music)music2play);
             await Task.WhenAll(((Music)music2play).GetLyric(), ((Music)music2play).GetFileInfo());
-
+            await PlayCore((Music)music2play);
         }
-        await PlayCore(music2play);
     }
 
     private async Task PlayCore(IMusic music2play)
