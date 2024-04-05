@@ -9,13 +9,14 @@ using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Models;
 
-public class Playlist : IPlaylist
+public class Playlist : INonsModel
 {
     [JsonPropertyName("create_time")] public DateTime CreateTime;
     [JsonPropertyName("creator")] public string Creator;
     [JsonPropertyName("description")] public string Description;
     public bool IsCardMode;
-    
+    public List<Music> Musics;
+    public int MusicsCount => MusicTrackIds.Length;
     private MusicAdapters _musicAdapter = new MusicAdapters();
 
     [JsonPropertyName("music_track_ids")] public long[] MusicTrackIds;

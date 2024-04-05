@@ -82,7 +82,7 @@ public partial class MusicStateModel
 
         if (value is LocalMusic)
         {
-            Cover = await CacheHelper.GetImageBrush(value.Album.CacheAvatarId, ((LocalMusic)value).Cover);
+            Cover = await CacheHelper.GetImageBrush(value.Album.CacheAvatarId, ((LocalMusic)value).LocalCover);
         }
         else
         {

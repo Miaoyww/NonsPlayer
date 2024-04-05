@@ -7,9 +7,9 @@ public class Album : INonsModel
 {
     [JsonPropertyName("create_date")] public DateTime CreateDate;
     [JsonPropertyName("description")] public string Description;
-    public List<Music> Musics { get; set; }
-    public List<Artist> Artists { get; set; }
-    [JsonPropertyName("artists_name")] public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
-    public int CollectionCount { set; get; }
-    public int TrackCount { get; set; }
+    [JsonPropertyName("musics")] public List<Music> Musics { get; set; }
+    [JsonPropertyName("artists")] public List<Artist> Artists { get; set; }
+    [JsonIgnore] public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
+    [JsonPropertyName("collection_count")] public int CollectionCount { set; get; }
+    [JsonPropertyName("track_count")] public int TrackCount { get; set; }
 }

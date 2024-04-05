@@ -16,7 +16,12 @@ public sealed partial class PlayQueueItemCard : UserControl
 {
     [ObservableProperty] private string artists;
     [ObservableProperty] private ImageBrush cover;
-    [ObservableProperty] private Tuple<string, string> coverUrl;
+
+    /// <summary>
+    /// Item1: CacheId Item2: Url Item3: LocalCover
+    /// </summary>
+    [ObservableProperty] private Tuple<string, string, byte[]> coverUrl;
+
     [ObservableProperty] private Brush fontBrush = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
     [ObservableProperty] private long id;
     [ObservableProperty] private bool liked; //TODO: Implement this
@@ -33,9 +38,15 @@ public sealed partial class PlayQueueItemCard : UserControl
 
     public PlayQueueItemCardViewModel ViewModel { get; }
 
-    partial void OnCoverUrlChanged(Tuple<string, string> value)
+    async partial void OnCoverUrlChanged(Tuple<string, string, byte[]> value)
     {
-        Cover = CacheHelper.GetImageBrush(value.Item1, value.Item2);
+        if (value.Item3 != null)
+        {
+            Cover = await CacheHelper.GetImageBrush(value.Item1, value.Item3);
+        }
+
+
+        Cover = await CacheHelper.GetImageBrushAsync(value.Item1, value.Item2);
     }
 
     private void OnCurrentMusicChanged(IMusic value)

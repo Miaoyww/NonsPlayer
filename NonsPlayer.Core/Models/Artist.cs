@@ -1,16 +1,14 @@
-﻿using NonsPlayer.Core.Contracts.Models;
+﻿using System.Text.Json.Serialization;
+using NonsPlayer.Core.Contracts.Models;
 
 namespace NonsPlayer.Core.Models;
 
 public class Artist : INonsModel
 {
-    public string Description;
-    public List<Music> HotMusics;
-    public int MusicCount;
-    public int MvCount;
-    public string Trans;
-    public string MiddleAvatarUrl => AvatarUrl + "?param=500y500";
-    public string SmallAvaterUrl => AvatarUrl + "?param=100y100";
+    [JsonPropertyName("desc")] public string Description { get; set; }
+    [JsonPropertyName("musics")] public List<Music> HotMusics { get; set; }
+    [JsonPropertyName("music_count")] public int MusicCount { get; set; }
+    [JsonPropertyName("trans")] public string Trans { get; set; }
 
     public static Artist CreatEmpty()
     {

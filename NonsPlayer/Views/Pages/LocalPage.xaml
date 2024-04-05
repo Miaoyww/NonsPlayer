@@ -6,12 +6,12 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid>
+    <Grid Margin="{StaticResource PageCommonMargin}">
         <StackPanel>
             <Button Content="打开本地音乐" />
             <TextBox Name="FileName" />
             <Button Content="保存至本地歌单"
-                    CommandParameter="{x:Bind FileName.Text}"
+                    CommandParameter="{x:Bind FileName.Text, Mode=OneWay}"
                     Command="{x:Bind ViewModel.ScanCommand}" />
         </StackPanel>
 
