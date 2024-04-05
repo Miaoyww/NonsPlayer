@@ -49,6 +49,13 @@ public class LyricLine
     /// <summary>
     /// 空白歌词行
     /// </summary>
+    public LyricLine(string pure)
+    {
+        Pure = pure;
+        StartTime = TimeSpan.Zero;
+        EndTime = TimeSpan.MaxValue;
+    }
+
     public LyricLine()
     {
     }

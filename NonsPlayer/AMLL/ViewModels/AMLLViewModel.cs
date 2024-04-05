@@ -14,19 +14,17 @@ public partial class AMLLViewModel : ObservableRecipient
     public ObservableCollection<LyricCombiner> LyricItems = new();
     [ObservableProperty] private Music currentMusic;
     public int LyricPosition;
-    
+
     #region 命令
 
     [RelayCommand]
     public void SwitchPlayMode()
     {
-        
     }
 
     [RelayCommand]
     public void SwitchShuffle()
     {
-        
     }
 
     #endregion
@@ -35,11 +33,30 @@ public partial class AMLLViewModel : ObservableRecipient
     {
         // LyricPositionGetter += OnLyricPositionGetter;
         Player.Instance.MusicChangedHandle += OnMusicChanged;
-        
     }
+
     private async void OnMusicChanged(IMusic value)
     {
         LyricItems.Clear();
+        if (value.Lyric == null)
+        {
+            LyricItems.Add(new LyricCombiner
+            {
+                LyricItemModel = new LyricItemModel(new LyricLine("暂无歌词")),
+                Index = 0
+            });
+            return;
+        }
+
+        if (value.Lyric.Count == 0)
+        {
+            LyricItems.Add(new LyricCombiner
+            {
+                LyricItemModel = new LyricItemModel(new LyricLine("纯音乐,请欣赏")),
+                Index = 0
+            });
+        }
+
         try
         {
             for (int i = 0; i < value.Lyric.Count; i++)
@@ -55,8 +72,6 @@ public partial class AMLLViewModel : ObservableRecipient
         {
             Console.WriteLine(e);
         }
-     
-        
     }
     // private void OnMusicChanged(Music music)
     // {
