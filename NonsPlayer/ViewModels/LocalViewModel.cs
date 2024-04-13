@@ -64,6 +64,7 @@ public partial class LocalViewModel : ObservableObject
             {
                 continue;
             }
+
             var music = new LocalMusic(file.Path);
             LocalPlaylist.Musics.Add(music);
         }
@@ -71,5 +72,11 @@ public partial class LocalViewModel : ObservableObject
         LocalPlaylist.Save();
         PlayQueue.Instance.AddMusicList(LocalPlaylist.Musics.ToArray());
     }
-    
+
+    [RelayCommand]
+    public async Task GetInfo()
+    {
+        var tasks = LocalPlaylist.Musics.Select(async x => await x.TryGetInfo());
+        await Task.WhenAll(tasks);
+    }
 }

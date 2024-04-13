@@ -13,6 +13,8 @@
             <Button Content="保存至本地歌单"
                     CommandParameter="{x:Bind FileName.Text, Mode=OneWay}"
                     Command="{x:Bind ViewModel.ScanCommand}" />
+            <Button Content="获取歌曲信息"
+                    Command="{x:Bind ViewModel.GetInfoCommand}"/>
         </StackPanel>
 
     </Grid>
