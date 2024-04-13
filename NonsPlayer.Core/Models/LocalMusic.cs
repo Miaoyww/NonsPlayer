@@ -12,9 +12,9 @@ public class LocalMusic : IMusic
     private const string LastFMAPIKey = "22a44c4543a01040deaf60265a3c30e4";
     private const string LastFMAPISecret = "0a04baf46f4a6f75df9347ba29c488c2";
     private LastfmClient _lastfmClient = new(LastFMAPIKey, LastFMAPISecret);
-    public LastAlbum LastAlbum;
-    public List<LastArtist> LastArtists;
-    public LastTrack LastTrack;
+    public LastAlbum? LastAlbum;
+    public List<LastArtist>? LastArtists;
+    public LastTrack? LastTrack;
 
     public LocalMusic(string path)
     {
