@@ -5,12 +5,12 @@
         <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
         <RootNamespace>NonsPlayer</RootNamespace>
         <Platforms>x64;arm64;x86</Platforms>
-        <RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <PublishProfile>Properties\PublishProfiles\win10-$(Platform).pubxml</PublishProfile>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UseWinUI>true</UseWinUI>
-        <UseRidGraph>true</UseRidGraph>
+        <UseRidGraph>false</UseRidGraph>
         <EnableMsixTooling>true</EnableMsixTooling>
         <WindowsPackageType>None</WindowsPackageType>
         <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
@@ -44,6 +44,7 @@
         </PackageReference>
         <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231008000" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
+        <PackageReference Include="MouseKeyHook" Version="5.7.1" />
         <PackageReference Include="NAudio" Version="2.1.0" />
         <PackageReference Include="NuGet.Versioning" Version="6.9.1" />
         <PackageReference Include="QRCoder" Version="1.4.3" />

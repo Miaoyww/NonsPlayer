@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Net;
+﻿using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
@@ -7,7 +6,9 @@ using NonsPlayer.Core.Services;
 using NonsPlayer.Updater.Github;
 using NonsPlayer.Updater.Metadata;
 using NuGet.Versioning;
-using SevenZipExtractor;
+using SharpCompress.Archives;
+using SharpCompress.Archives.SevenZip;
+using SharpCompress.Common;
 
 namespace NonsPlayer.Updater.Update;
 
@@ -260,9 +261,16 @@ public class UpdateService
     private void UnzipFile()
     {
         Directory.CreateDirectory(_appFolder);
-        using (var archiveFile = new ArchiveFile(_downloadFile.File.Path))
+        using (var archive = SevenZipArchive.Open(_downloadFile.File.Path))
         {
-            archiveFile.Extract(_downloadFile.File.To);
+            foreach (var entry in archive.Entries.Where(entry => !entry.IsDirectory))
+            {
+                entry.WriteToDirectory(_downloadFile.File.To, new ExtractionOptions()
+                {
+                    ExtractFullPath = true,
+                    Overwrite = true
+                });
+            }
         }
     }
 
