@@ -7,24 +7,11 @@ namespace NonsPlayer;
 
 public sealed partial class MainWindow : WindowEx
 {
-    private readonly WindowMessageMonitor monitor;
-
     public MainWindow()
     {
         InitializeComponent();
         Content = null;
         Title = "AppDisplayName".GetLocalized();
-        monitor = new WindowMessageMonitor(this);
-        monitor.WindowMessageReceived += MonitorOnWindowMessageReceived;
-        KeyHookService.Instance.Init(this.GetWindowHandle());
-    }
-
-    private void MonitorOnWindowMessageReceived(object? sender, WindowMessageEventArgs e)
-    {
-        if (e.Message.MessageId == 0x0312) KeyHookService.Instance.OnHotKey((int)e.Message.WParam);
-    }
-
-    private void MainWindow_OnActivated(object sender, WindowActivatedEventArgs args)
-    {
+        KeyHookService.Instance.Init();
     }
 }

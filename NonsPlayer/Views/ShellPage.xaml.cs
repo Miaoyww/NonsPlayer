@@ -1,5 +1,6 @@
 ﻿using Windows.System;
 using CommunityToolkit.Mvvm.Input;
+using Gma.System.MouseKeyHook;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -153,11 +154,13 @@ public sealed partial class ShellPage : Page
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        Hook.GlobalEvents().Dispose();
         ShellMenuBarSettingsButton.RemoveHandler(PointerPressedEvent,
             (PointerEventHandler)ShellMenuBarSettingsButton_PointerPressed);
         ShellMenuBarSettingsButton.RemoveHandler(PointerReleasedEvent,
             (PointerEventHandler)ShellMenuBarSettingsButton_PointerReleased);
         App.GetService<ControlService>().Stop();
+       
     }
 
     private static KeyboardAccelerator BuildKeyboardAccelerator(VirtualKey key, VirtualKeyModifiers? modifiers = null)
