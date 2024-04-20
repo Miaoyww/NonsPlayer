@@ -23,6 +23,7 @@ public partial class MusicStateModel
     [ObservableProperty] private TimeSpan duration = TimeSpan.Zero;
     [ObservableProperty] private bool isPlaying;
     [ObservableProperty] private bool onDrag;
+    [ObservableProperty] private bool showCover = false;
     public ObservableCollection<MetadataItem> ArtistsMetadata = new();
     private double position;
 
@@ -79,15 +80,25 @@ public partial class MusicStateModel
     {
         if (value.IsEmpty) return;
 
+        try
+        {
+            if (value is LocalMusic)
+            {
+                Cover = await CacheHelper.GetImageBrush(value.Album.CacheAvatarId, ((LocalMusic)value).LocalCover);
+            }
+            else
+            {
+                Cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.Album.AvatarUrl);
+            }
 
-        if (value is LocalMusic)
-        {
-            Cover = await CacheHelper.GetImageBrush(value.Album.CacheAvatarId, ((LocalMusic)value).LocalCover);
+            ShowCover = true;
         }
-        else
+        catch (Exception e)
         {
-            Cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.Album.AvatarUrl);
+            // 此为无封面
+            ShowCover = false;
         }
+
 
         Duration = value.Duration;
         CurrentSongLiked = FavoritePlaylistService.Instance.IsLiked(value.Id);

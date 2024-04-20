@@ -59,6 +59,7 @@
                    TextAlignment="Center" HorizontalTextAlignment="Center" VerticalAlignment="Center" />
         <Border Grid.Row="2"
                 Name="Cover"
+                Visibility="{x:Bind ViewModel.MusicStateModel.ShowCover, Mode=OneWay}"
                 Height="200"
                 VerticalAlignment="Bottom"
                 Background="{x:Bind ViewModel.MusicStateModel.Cover, Mode=OneWay}"
