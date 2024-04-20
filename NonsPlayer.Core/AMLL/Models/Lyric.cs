@@ -1,4 +1,6 @@
-﻿namespace NonsPlayer.Core.AMLL.Models;
+﻿using System.Diagnostics;
+
+namespace NonsPlayer.Core.AMLL.Models;
 
 public class Lyric
 {
@@ -6,11 +8,12 @@ public class Lyric
 
     public List<LyricLine> LyricLines { get; set; }
     public int Count => LyricLines.Count;
+
     public Lyric(List<LyricLine> lyricLines)
     {
         LyricLines = lyricLines;
     }
-    
+
     /// <summary>
     /// 添加歌词原文。若歌词为逐字歌词，需要翻译时必须调用此方法
     /// </summary>
@@ -25,6 +28,7 @@ public class Lyric
             LyricLines[i].EndTime = pure.LyricLines[i].EndTime;
         }
     }
+
     public void AddTrans(Lyric? translatedLyrics)
     {
         if (translatedLyrics == null || translatedLyrics.LyricLines.Count == 0)
@@ -33,10 +37,32 @@ public class Lyric
         }
 
         int translatedIndex = 0; // 翻译行索引
+        if (translatedLyrics.Count == LyricLines.Count)
+        {
+            // 逐行翻译
+            for (int i = 0; i < LyricLines.Count; i++)
+            {
+                var originalLine = LyricLines[i];
+                var translatedLine = translatedLyrics.LyricLines[i];
+
+                originalLine.SetTranslation(translatedLine.Pure);
+            }
+        }
+
         for (int i = 0; i < LyricLines.Count; i++)
         {
             var originalLine = LyricLines[i];
-            var translatedLine = translatedLyrics.LyricLines[translatedIndex];
+            LyricLine translatedLine;
+            try
+            {
+                translatedLine = translatedLyrics.LyricLines[translatedIndex];
+            }
+            catch (ArgumentException e)
+            {
+                translatedLine = new LyricLine();
+                Debug.WriteLine($"抛出了一个异常: 原歌词数{LyricLines.Count},翻译歌词数{translatedLyrics.Count}\n" + e);
+            }
+
             if (originalLine.StartTime != translatedLine.StartTime)
             {
                 translatedLine = new LyricLine();
@@ -46,6 +72,8 @@ public class Lyric
                 translatedIndex++;
             }
 
+            Debug.WriteLine(
+                $"{i} - {translatedIndex}: {originalLine.Pure}, {translatedLine.Pure} - {originalLine.StartTime == translatedLine.StartTime}");
             originalLine.SetTranslation(translatedLine.Pure);
         }
     }
