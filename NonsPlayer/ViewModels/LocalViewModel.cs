@@ -23,7 +23,7 @@ public partial class LocalViewModel : ObservableObject
 {
     public LocalPlaylist LocalPlaylist;
 
-    public async Task save()
+    public async Task Save()
     {
         // Create a file picker
         var openPicker = new Windows.Storage.Pickers.FileOpenPicker();
@@ -57,26 +57,43 @@ public partial class LocalViewModel : ObservableObject
         openPicker.FileTypeFilter.Add("*");
         StorageFolder folder = await openPicker.PickSingleFolderAsync();
         LocalPlaylist = new LocalPlaylist(folder.Path, name);
+        LocalPlaylist.Musics = await ScanMusic(await folder.GetItemsAsync());
+        LocalPlaylist.Save();
+        PlayQueue.Instance.AddMusicList(LocalPlaylist.Musics.ToArray());
+    }
 
-        foreach (var file in await folder.GetItemsAsync())
+    private async Task<List<LocalMusic>> ScanMusic(IReadOnlyList<IStorageItem> items)
+    {
+        List<LocalMusic> musics = new();
+        foreach (var file in items)
         {
             if (file.Attributes.HasFlag(FileAttributes.Directory))
             {
-                continue;
+                musics.AddRange(await ScanMusic(await (file as StorageFolder).GetItemsAsync()));
             }
-
-            var music = new LocalMusic(file.Path);
-            LocalPlaylist.Musics.Add(music);
+            else if (file.Attributes.HasFlag(FileAttributes.Normal))
+            {
+                // 判断是否为音乐文件
+                //TODO: 优化音乐文件判断
+                try
+                {
+                    var track = TagLib.File.Create(file.Path);
+                    musics.Add(new LocalMusic(track));
+                }
+                catch (Exception e)
+                {
+                    //igrone
+                }
+            }
         }
 
-        LocalPlaylist.Save();
-        PlayQueue.Instance.AddMusicList(LocalPlaylist.Musics.ToArray());
+        return musics;
     }
 
     [RelayCommand]
     public async Task GetInfo()
     {
         var tasks = LocalPlaylist.Musics.Select(async x => await x.TryGetInfo());
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 }

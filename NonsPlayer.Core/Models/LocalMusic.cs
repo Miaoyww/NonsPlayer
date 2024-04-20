@@ -19,9 +19,21 @@ public class LocalMusic : IMusic
     public LocalMusic(string path)
     {
         File = TagLib.File.Create(path);
+        Init(File);
+    }
+
+    public LocalMusic(TagLib.File file)
+    {
+        File = file;
+        Init(file);
+    }
+
+    private void Init(TagLib.File file)
+    {
         LocalCover = File.Tag.Pictures.Length > 0 ? File.Tag.Pictures[0].Data.Data : null;
         Md5 = File.GetHashCode().ToString();
-        Uri = path;
+        Id = $"{File.Tag.Title}_{Md5}".GetHashCode();
+        Uri = file.Name;
         Album = new Album()
         {
             Name = File.Tag.Album,
@@ -38,7 +50,6 @@ public class LocalMusic : IMusic
         ];
         Duration = File.Properties.Duration;
         Name = File.Tag.Title;
-        // Id = $"{Name}_{Md5}".GetHashCode();
     }
 
     /// <summary>
@@ -53,12 +64,13 @@ public class LocalMusic : IMusic
             LastAlbum = (await _lastfmClient.Album.GetInfoAsync(ArtistsName, Artists[0].Name)).Content;
             LastArtists = (await Task.WhenAll(artistsTasks)).Select(x => x.Content).ToList();
             LastTrack = (await _lastfmClient.Track.GetInfoAsync(Name, ArtistsName)).Content;
-        }catch (Exception e)
+        }
+        catch (Exception e)
         {
             ExceptionService.Instance.Throw(e);
             return false;
         }
-       
+
         return true;
     }
 }
