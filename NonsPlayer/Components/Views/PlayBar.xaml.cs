@@ -89,8 +89,8 @@ public sealed partial class PlayBar : UserControl
         {
             DispatcherQueue.TryEnqueue(() =>
             {
-                MusicStateModel.Instance.Position = Player.Instance.NPMediaFoundationReader.CurrentTime.TotalSeconds;
-                CurrentTimeSlider.Value = Player.Instance.NPMediaFoundationReader.CurrentTime.TotalSeconds;
+                MusicStateModel.Instance.Position = Player.Instance.CurrentReader.CurrentTime.TotalSeconds;
+                CurrentTimeSlider.Value = Player.Instance.CurrentReader.CurrentTime.TotalSeconds;
             });
         }
     }

@@ -14,7 +14,9 @@
                     CommandParameter="{x:Bind FileName.Text, Mode=OneWay}"
                     Command="{x:Bind ViewModel.ScanCommand}" />
             <Button Content="获取歌曲信息"
-                    Command="{x:Bind ViewModel.GetInfoCommand}"/>
+                    Command="{x:Bind ViewModel.GetInfoCommand}" />
+            <Button Content="衔接模式"
+                    Command="{x:Bind ViewModel.MixModeCommand}" />
         </StackPanel>
 
     </Grid>

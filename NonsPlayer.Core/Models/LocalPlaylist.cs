@@ -11,7 +11,11 @@ public class LocalPlaylist : INonsModel
     // 本地歌单数据的路径
     public string Path;
     [JsonPropertyName("musics")] public List<LocalMusic> Musics { get; set; }
+
     [JsonPropertyName("music_count")] public int MusicCount => Musics.Count;
+
+    // 无缝播放模式
+    [JsonPropertyName("mix_enable")] public bool MixEnable { get; set; }
 
     public LocalPlaylist(string path, string name)
     {

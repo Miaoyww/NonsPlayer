@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Models;
@@ -59,7 +61,6 @@ public partial class LocalViewModel : ObservableObject
         LocalPlaylist = new LocalPlaylist(folder.Path, name);
         LocalPlaylist.Musics = await ScanMusic(await folder.GetItemsAsync());
         LocalPlaylist.Save();
-        PlayQueue.Instance.AddMusicList(LocalPlaylist.Musics.ToArray());
     }
 
     private async Task<List<LocalMusic>> ScanMusic(IReadOnlyList<IStorageItem> items)
@@ -95,5 +96,15 @@ public partial class LocalViewModel : ObservableObject
     {
         var tasks = LocalPlaylist.Musics.Select(async x => await x.TryGetInfo());
         await Task.WhenAll(tasks).ConfigureAwait(false);
+    }
+
+    [RelayCommand]
+    public async Task MixMode()
+    {
+        foreach (var music in LocalPlaylist.Musics)
+        {
+            // 创建一个 AudioFileReader 来读取音乐文件
+            Player.Instance.EnqueueTrack(music);
+        }
     }
 }
