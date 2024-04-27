@@ -67,11 +67,14 @@ public class Yrc
         var lines = src.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
         var result = new List<LyricLine>();
         // 去除 作词 作曲 等无用信息
-        lines = lines.SkipWhile(l => !l.StartsWith("[")).ToArray();
         foreach (var line in lines)
         {
             if (!string.IsNullOrWhiteSpace(line))
             {
+                if (!line.StartsWith("["))
+                {
+                    continue;
+                }
                 result.Add(ParseLine(line));
             }
         }
