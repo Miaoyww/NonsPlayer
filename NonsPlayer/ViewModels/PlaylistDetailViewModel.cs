@@ -139,7 +139,8 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             // +1到达最后一个歌曲
             await playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
 
-        PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray());
+        PlayQueue.Instance.Clear();
+        PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray(), true);
     }
 
     [RelayCommand]
