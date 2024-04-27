@@ -102,5 +102,7 @@ public partial class LocalViewModel : ObservableObject
     public async Task MixMode()
     {
         Player.Instance.EnqueueTrack(LocalPlaylist.Musics.ToArray());
+        
+        PlayQueue.Instance.AddMusicList(LocalPlaylist.Musics.ToArray());
     }
 }

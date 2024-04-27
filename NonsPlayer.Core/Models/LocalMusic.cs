@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text;
+using System.Text.Json.Serialization;
 using IF.Lastfm.Core.Api;
 using IF.Lastfm.Core.Objects;
 using NonsPlayer.Core.Contracts.Models;
@@ -31,8 +32,9 @@ public class LocalMusic : IMusic
     private void Init(TagLib.File file)
     {
         LocalCover = File.Tag.Pictures.Length > 0 ? File.Tag.Pictures[0].Data.Data : null;
+        Name = File.Tag.Title;
         Md5 = File.GetHashCode().ToString();
-        Id = $"{File.Tag.Title}_{Md5}".GetHashCode();
+        Id = $"{Name}_{Md5}".GetHashCode();
         Uri = file.Name;
         Album = new Album()
         {
@@ -49,7 +51,6 @@ public class LocalMusic : IMusic
             }
         ];
         Duration = File.Properties.Duration;
-        Name = File.Tag.Title;
     }
 
     /// <summary>
@@ -72,5 +73,12 @@ public class LocalMusic : IMusic
         }
 
         return true;
+    }
+
+    private string ConvertEncoding(string str, Encoding from, Encoding to)
+    {
+        byte[] fromBytes = from.GetBytes(str);
+        byte[] toBytes = Encoding.Convert(from, to, fromBytes);
+        return to.GetString(toBytes);
     }
 }

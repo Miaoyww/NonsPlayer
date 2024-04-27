@@ -85,6 +85,8 @@ public class Player
 
     public async Task NewPlay(IMusic music)
     {
+        _queue.Clear();
+        IsMixed = false;
         if (music is LocalMusic localMusic)
         {
             await PlayCore(localMusic);
@@ -163,12 +165,11 @@ public class Player
         }
 
         _queue.Enqueue(mixer);
-        if (_queue.Count == 1 && CurrentReader == null)
+        if (_queue.Count == 1)
         {
             LoadNextTrack();
         }
 
-        PlayQueue.Instance.AddMusicList(music);
     }
 
     public void EnqueueTrack(string uri)
@@ -197,23 +198,7 @@ public class Player
                 {
                     OutputDevice.Stop();
                 }
-
-                if (IsMixed)
-                {
-                    // // 判断当前位置是否在无缝切换的时间点
-                    // var current = _jointlessTimes?.FirstOrDefault(x => x.Item2 <= Position && x.Item3 >= Position);
-                    // if (current != null)
-                    // {
-                    //     if (!Equals(current.Item1, CurrentMusic))
-                    //     {
-                    //         CurrentMusic = current.Item1;
-                    //         MusicChangedHandle?.Invoke(CurrentMusic);
-                    //     }
-                    // }
-
-                    return;
-                }
-
+                
                 var nextTrack = _queue.Dequeue();
                 if (nextTrack.IsMixed || _jointlessTimes == null)
                 {
