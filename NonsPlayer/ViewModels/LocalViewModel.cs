@@ -101,10 +101,6 @@ public partial class LocalViewModel : ObservableObject
     [RelayCommand]
     public async Task MixMode()
     {
-        foreach (var music in LocalPlaylist.Musics)
-        {
-            // 创建一个 AudioFileReader 来读取音乐文件
-            Player.Instance.EnqueueTrack(music);
-        }
+        Player.Instance.EnqueueTrack(LocalPlaylist.Musics.ToArray());
     }
 }

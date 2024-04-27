@@ -167,11 +167,10 @@ public class PlayQueue
         PlayModeChanged?.Invoke(PlayMode);
     }
 
-    public void AddMusicList(IMusic[] musicList)
+    public void AddMusicList(IMusic[] musicList, bool play = false)
     {
-        Clear();
         MusicList.AddRange(musicList);
-        Play(musicList[0]);
+        if (play) Play(musicList[0]);
         PlaylistAdded();
     }
 
