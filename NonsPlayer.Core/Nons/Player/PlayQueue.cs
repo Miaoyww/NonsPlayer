@@ -97,12 +97,21 @@ public class PlayQueue
     {
         try
         {
+            if (Player.Instance.IsMixed)
+            {
+                Player.Instance.LoadNextTrack();
+                return;
+            };
             if (PlayMode == PlayModeEnum.ListLoop)
                 if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic &&
                     PlayMode != PlayModeEnum.SingleLoop)
                 {
                     if (_isUserPressed) return;
                     if (CurrentMusic.Duration.TotalSeconds - Player.Instance.Position.TotalSeconds > 1) return;
+                    if (Player.Instance.IsMixed)
+                    {
+                        return;
+                    }
                     PlayNext();
                 }
         }
@@ -117,6 +126,10 @@ public class PlayQueue
     {
         try
         {
+            if (Player.Instance.IsMixed)
+            {
+                Player.Instance.LoadNextTrack();
+            }
             await Player.Instance.NewPlay(value);
         }
         catch (Exception e)
@@ -154,11 +167,10 @@ public class PlayQueue
         PlayModeChanged?.Invoke(PlayMode);
     }
 
-    public void AddMusicList(IMusic[] musicList)
+    public void AddMusicList(IMusic[] musicList, bool play = false)
     {
-        Clear();
         MusicList.AddRange(musicList);
-        Play(musicList[0]);
+        if (play) Play(musicList[0]);
         PlaylistAdded();
     }
 

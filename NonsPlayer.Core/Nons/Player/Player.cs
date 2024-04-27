@@ -3,9 +3,11 @@ using System.Text.Json.Serialization;
 using System.Timers;
 using NAudio.Utils;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Services;
 using Exception = System.Exception;
 using Timer = System.Timers.Timer;
 
@@ -13,56 +15,59 @@ namespace NonsPlayer.Core.Nons.Player;
 
 public class Player
 {
-    public delegate void MusicChanged(IMusic currentMusic);
+    #region 事件
 
-    public delegate void MusicStopped();
+    public delegate void MusicChanged(IMusic currentMusic);
 
     public delegate void PlayStateChanged(bool isPlaying);
 
     public delegate void PositionChanged(TimeSpan time);
 
-    public MediaFoundationReader NPMediaFoundationReader;
-
-    private float _volume;
-
-    [JsonPropertyName("currentMusic")] public IMusic CurrentMusic;
-    public MusicChanged MusicChangedHandle;
-
-    public MusicStopped MusicStoppedHandle;
-    public WaveOutEvent OutputDevice;
     public PlayStateChanged PlayStateChangedHandle;
     public PositionChanged PositionChangedHandle;
-    public IMusic PreviousMusic;
+    public MusicChanged MusicChangedHandle;
+
+    #endregion
+
+    public bool IsMixed;
+    public MediaFoundationReader? CurrentReader;
+    public VolumeSampleProvider? VolumeProvider;
+    public WaveOutEvent OutputDevice;
+
+    public IMusic CurrentMusic;
+    private float _volume;
     private TimeSpan _position;
+    public IMusic PreviousMusic;
+    public Queue<MusicMixer> _queue;
+    public TimeSpan Duration => CurrentMusic?.Duration ?? TimeSpan.Zero;
+
+    /// <summary>
+    /// 无缝切换的时间点 Item1: 音乐 Item2: 开始时间 Item3: 结束时间 Item4: Reader
+    /// </summary>
+    private List<Tuple<IMusic, TimeSpan, TimeSpan, MediaFoundationReader>>? _jointlessTimes;
+
+    private Tuple<IMusic, TimeSpan, TimeSpan, MediaFoundationReader>? _currentJointlessTime;
+    public TimeSpan Position => CurrentReader?.CurrentTime ?? TimeSpan.Zero;
 
     public Player()
     {
         OutputDevice = new WaveOutEvent();
         var timer = new Timer();
+        _queue = new();
         timer.Interval = 10;
         timer.Elapsed += GetCurrentInfo;
         timer.Start();
-        var dataWriter = new Timer();
-        dataWriter.Interval = 100;
-        timer.Elapsed += WriteCurrentInfo;
     }
 
     public static Player Instance { get; } = new();
 
-    [JsonPropertyName("position")]
-    public TimeSpan Position
-    {
-        get => NPMediaFoundationReader.CurrentTime;
-    }
-
     public void SetPosition(TimeSpan value)
     {
-        if (NPMediaFoundationReader == null) return;
-        NPMediaFoundationReader.CurrentTime = value;
+        if (CurrentReader == null) return;
+        CurrentReader.CurrentTime = value;
         _position = value;
     }
 
-    [JsonPropertyName("volume")]
     public float Volume
     {
         get => _volume;
@@ -73,89 +78,25 @@ public class Player
                 _volume = 0;
             }
 
-            OutputDevice.Volume = value;
             _volume = value;
+            if (VolumeProvider != null) VolumeProvider.Volume = value;
         }
     }
 
-    public bool IsInitializingNewMusic { get; set; }
-
-    /// <summary>
-    ///     用于获取播放器当前信息
-    /// </summary>
-    private void GetCurrentInfo(object? sender, ElapsedEventArgs e)
+    public async Task NewPlay(IMusic music)
     {
-        if (OutputDevice != null && PlayStateChangedHandle != null)
-        {
-            if (OutputDevice.PlaybackState == PlaybackState.Playing)
-            {
-                PositionChangedHandle(Position);
-                PlayStateChangedHandle(true);
-            }
-
-            if (OutputDevice.PlaybackState == PlaybackState.Paused ||
-                OutputDevice.PlaybackState == PlaybackState.Stopped)
-                PlayStateChangedHandle(false);
-        }
-    }
-
-    //TODO: 为播放器添加一个缓冲区，用于存储播放器的信息，当播放器停止时，将缓冲区的信息写入文件
-    private void WriteCurrentInfo(object? sender, ElapsedEventArgs e)
-    {
-        if (OutputDevice != null && PlayStateChangedHandle != null)
-            if (OutputDevice.PlaybackState == PlaybackState.Playing)
-            {
-            }
-    }
-
-    /// <summary>
-    ///     播放一个新的音乐
-    /// </summary>
-    /// <param name="music2play">即将播放的音乐</param>
-    public async Task NewPlay(IMusic music2play)
-    {
-        if (music2play is LocalMusic localMusic)
+        if (music is LocalMusic localMusic)
         {
             await PlayCore(localMusic);
         }
         else
         {
-            await Task.WhenAll(((Music)music2play).GetLyric(), ((Music)music2play).GetFileInfo());
-            await PlayCore((Music)music2play);
+            await Task.WhenAll(((Music)music).GetLyric(), ((Music)music).GetFileInfo());
+            await PlayCore((Music)music);
         }
     }
 
-    private async Task PlayCore(IMusic music2play)
-    {
-        if (OutputDevice == null) OutputDevice = new WaveOutEvent();
-        if (NPMediaFoundationReader == null) NPMediaFoundationReader = new MediaFoundationReader(music2play.Uri);
-
-        if (music2play.Uri != null)
-        {
-            IsInitializingNewMusic = true;
-            OutputDevice.Stop();
-            OutputDevice.Dispose();
-            NPMediaFoundationReader = new MediaFoundationReader(music2play.Uri);
-            OutputDevice.Init(NPMediaFoundationReader);
-        }
-
-        if (music2play.Uri == null)
-            throw new MusicUrlNullException($"此音乐{music2play.Name} - {music2play.ArtistsName}的Url为空,可能是音乐源");
-        MusicChangedHandle?.Invoke(music2play);
-        CurrentMusic = music2play;
-        OutputDevice.Play();
-        await Task.Run(async () =>
-        {
-            await Task.Delay(1000);
-            IsInitializingNewMusic = false;
-        });
-    }
-
-    /// <summary>
-    ///     播放音乐
-    /// </summary>
-    /// <param name="rePlay">是否从头播放</param>
-    public async void Play(bool rePlay = false)
+    public async Task Play(bool rePlay = false)
     {
         if (CurrentMusic == null) return;
         try
@@ -187,6 +128,217 @@ public class Player
         catch (InvalidOperationException e)
         {
             Debug.WriteLine(e);
+        }
+    }
+
+    private async Task PlayCore(IMusic music)
+    {
+        if (OutputDevice == null) OutputDevice = new WaveOutEvent();
+        EnqueueTrack([music]);
+        CurrentMusic = music;
+        MusicChangedHandle?.Invoke(music);
+    }
+
+    // 使用ConcatenatingSampleProvider做到无缝切换
+    public void EnqueueTrack(IMusic[] music)
+    {
+        MusicMixer mixer;
+        if (music.Length != 0)
+        {
+            var readers = new MediaFoundationReader[music.Length];
+            var providers = new ISampleProvider[music.Length];
+            for (int i = 0; i < music.Length; i++)
+            {
+                readers[i] = new MediaFoundationReader(music[i].Uri);
+                providers[i] = readers[i].ToSampleProvider();
+            }
+
+            var concatenating = new ConcatenatingSampleProvider(providers);
+            mixer = new MusicMixer(music, concatenating, readers);
+        }
+        else
+        {
+            var reader = new MediaFoundationReader(music[0].Uri);
+            mixer = new MusicMixer(reader.ToSampleProvider(), [reader]);
+        }
+
+        _queue.Enqueue(mixer);
+        if (_queue.Count == 1 && CurrentReader == null)
+        {
+            LoadNextTrack();
+        }
+
+        PlayQueue.Instance.AddMusicList(music);
+    }
+
+    public void EnqueueTrack(string uri)
+    {
+        var reader = new MediaFoundationReader(uri);
+        var mixer = new MusicMixer(reader.ToSampleProvider(), [reader]); // only wave
+        _queue.Enqueue(mixer);
+        if (_queue.Count == 1 && CurrentReader == null)
+        {
+            LoadNextTrack();
+        }
+    }
+
+    public void LoadNextTrack()
+    {
+        try
+        {
+            if (_queue.Count > 0)
+            {
+                if (CurrentReader != null)
+                {
+                    CurrentReader.Dispose();
+                }
+
+                if (OutputDevice.PlaybackState == PlaybackState.Playing)
+                {
+                    OutputDevice.Stop();
+                }
+
+                if (IsMixed)
+                {
+                    // // 判断当前位置是否在无缝切换的时间点
+                    // var current = _jointlessTimes?.FirstOrDefault(x => x.Item2 <= Position && x.Item3 >= Position);
+                    // if (current != null)
+                    // {
+                    //     if (!Equals(current.Item1, CurrentMusic))
+                    //     {
+                    //         CurrentMusic = current.Item1;
+                    //         MusicChangedHandle?.Invoke(CurrentMusic);
+                    //     }
+                    // }
+
+                    return;
+                }
+
+                var nextTrack = _queue.Dequeue();
+                if (nextTrack.IsMixed || _jointlessTimes == null)
+                {
+                    _jointlessTimes = new();
+                    for (int i = 0; i < nextTrack.Music.Length; i++)
+                    {
+                        var music = nextTrack.Music[i];
+                        TimeSpan startTime;
+                        if (i == 0)
+                        {
+                            startTime = TimeSpan.Zero;
+                        }
+                        else
+                        {
+                            startTime = _jointlessTimes[^1].Item3;
+                        }
+
+                        _jointlessTimes.Add(
+                            new Tuple<IMusic, TimeSpan, TimeSpan, MediaFoundationReader>
+                                (music, startTime, startTime + music.Duration, nextTrack.Reader[i])
+                        );
+                    }
+
+                    _currentJointlessTime = _jointlessTimes[0];
+                    IsMixed = true;
+                }
+                else
+                {
+                    if (nextTrack.Music != null) CurrentMusic = nextTrack.Music[0];
+                }
+
+                CurrentMusic = nextTrack.Music[0];
+                CurrentReader = nextTrack.Reader[0];
+                VolumeProvider = new VolumeSampleProvider(nextTrack.Wave)
+                {
+                    Volume = _volume
+                };
+                OutputDevice.Init(VolumeProvider);
+                OutputDevice.Play();
+                MusicChangedHandle?.Invoke(CurrentMusic);
+            }
+        }
+        catch (Exception e)
+        {
+            ExceptionService.Instance.Throw(e);
+        }
+    }
+
+    private void GetCurrentInfo(object? sender, ElapsedEventArgs e)
+    {
+        if (OutputDevice != null && PlayStateChangedHandle != null)
+        {
+            if (CurrentReader != null)
+            {
+                // 无缝切换部分
+                if (IsMixed)
+                {
+                    if (_currentJointlessTime != null && _currentJointlessTime.Item3 <= Position)
+                    {
+                        foreach (var item in _jointlessTimes)
+                        {
+                            if (item.Item2 <= Position && item.Item3 > Position)
+                            {
+                                _currentJointlessTime = item;
+                                if (CurrentMusic != item.Item1)
+                                {
+                                    CurrentMusic = item.Item1;
+                                    MusicChangedHandle?.Invoke(CurrentMusic);
+                                }
+
+                                CurrentReader = item.Item4;
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if (CurrentMusic != null && CurrentReader.Position >= CurrentReader.Length)
+                {
+                    LoadNextTrack();
+                }
+
+                if (CurrentReader.Position >= CurrentReader.Length)
+                {
+                    LoadNextTrack();
+                }
+            }
+
+            if (OutputDevice.PlaybackState == PlaybackState.Playing)
+            {
+                PositionChangedHandle(Position);
+                PlayStateChangedHandle(true);
+            }
+
+            if (OutputDevice.PlaybackState == PlaybackState.Paused ||
+                OutputDevice.PlaybackState == PlaybackState.Stopped)
+                PlayStateChangedHandle(false);
+        }
+    }
+
+    public class MusicMixer
+    {
+        public readonly MediaFoundationReader[]? Reader;
+        public readonly ISampleProvider Wave;
+        public readonly IMusic[]? Music;
+        public bool HasMusic => Music != null;
+        public bool IsMixed;
+
+        public MusicMixer(ISampleProvider wave, MediaFoundationReader[] reader)
+        {
+            Wave = wave;
+            IsMixed = false;
+            Music = null;
+            Reader = reader;
+        }
+
+        public MusicMixer(IMusic[] music, ISampleProvider wave, MediaFoundationReader[] reader)
+        {
+            Music = music;
+            Wave = wave;
+            if (music.Length > 1)
+            {
+                IsMixed = true;
+            }
+
+            Reader = reader;
         }
     }
 }
