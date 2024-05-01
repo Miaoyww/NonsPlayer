@@ -3,7 +3,7 @@ using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Core.Contracts.Adapters;
 
-public interface ILyricAdapter
+public interface ILyricAdapter: IAdapter
 {
     // Task<Lyric> GetLyricAsync(object content);
     //

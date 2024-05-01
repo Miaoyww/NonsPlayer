@@ -3,13 +3,9 @@ using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Core.Contracts.Adapters;
 
-public interface IMusicAdapter
+public interface IMusicAdapter: IAdapter
 {
-    Task<Music> GetMusicAsync(object content);
+    Task<Music?>? GetMusicAsync(object content);
     
-    Task<Music[]> GetMusicListAsync(object content);
-
-    Music[] GetMusicList(object content);
-
-    Music GetMusic(object content);
+    Task<Music[]?>? GetMusicListAsync(object content);
 }

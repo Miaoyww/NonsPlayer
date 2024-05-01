@@ -29,7 +29,7 @@ public partial class SettingsViewModel : ObservableRecipient
     [RelayCommand]
     private async Task Test()
     {
-        ServiceHelper.NavigationService.NavigateTo(typeof(LocalViewModel)?.FullName);
+        ServiceHelper.NavigationService.NavigateTo(typeof(TestViewModel)?.FullName);
     }
 
     [RelayCommand]

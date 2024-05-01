@@ -3,9 +3,7 @@ using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Core.Contracts.Adapters;
 
-public interface IPlaylistAdapter
+public interface IPlaylistAdapter : IAdapter
 {
     Task<Playlist> GetPlaylistAsync(long id);
-
-    Playlist GetPlaylist(long id);
 }

@@ -21,4 +21,10 @@ public class ExceptionService
         Debug.WriteLine($"抛出了一个异常: {exception}");
         ExceptionThrew?.Invoke(exception.Message);
     }
+
+    public void Throw(Exception exception, string content)
+    {
+        Debug.WriteLine($"抛出了一个异常: {exception}");
+        ExceptionThrew?.Invoke(content);
+    }
 }

@@ -82,6 +82,8 @@ public partial class App : Application
                 services.AddTransient<UpdateViewModel>();
                 services.AddTransient<LocalPage>();
                 services.AddTransient<LocalViewModel>();
+                services.AddTransient<TestPage>();
+                services.AddTransient<TestViewModel>();
 
                 #endregion
 
