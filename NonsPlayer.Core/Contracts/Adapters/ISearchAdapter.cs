@@ -2,7 +2,7 @@
 
 namespace NonsPlayer.Core.Contracts.Adapters;
 
-public interface ISearchAdapter: ISubAdapter
+public interface ISearchAdapter : ISubAdapter
 {
-    Task SearchAsync(string keyword, int limit = 20);
+    Task<SearchResult> SearchAsync(string keywords);
 }

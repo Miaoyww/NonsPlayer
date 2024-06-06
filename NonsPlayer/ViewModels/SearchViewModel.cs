@@ -10,6 +10,7 @@ using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
@@ -37,29 +38,25 @@ public partial class SearchViewModel : ObservableRecipient, INavigationAware, IN
         if (listView.SelectedItem is MusicModel item) PlayQueue.Instance.Play(item.Music);
     }
 
-    public async Task Search(string key)
+    public async Task Search(string keywords)
     {
-        // var searcher = await CacheHelper.GetSearchResultAsync(GetB64(key), key);
-        // await Task.WhenAll(
-        //     searcher.SearchMusics(),
-        //     searcher.SearchArtists(),
-        //     searcher.SearchPlaylists());
-        // SearchHelper.Instance.BestMusicResult = searcher.Musics[0];
-        // Artists = searcher.Artists;
-        // Playlists = searcher.Playlists;
-        // for (var i = 0; i < searcher.Musics.Count(); i++)
-        // {
-        //     var index = i;
-        //     if (index < AppConfig.PlaylistTrackShowCount)
-        //         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        //         {
-        //             MusicItems.Add(new MusicModel
-        //             {
-        //                 Music = searcher.Musics[index],
-        //                 Index = (index + 1).ToString("D2")
-        //             });
-        //         });
-        // }
+        var source = await AdapterService.Instance.GetAdapter("ncm").Search.SearchAsync(keywords);
+        SearchHelper.Instance.BestMusicResult = source.Musics[0];
+        Artists = source.Artists;
+        Playlists = source.Playlists;
+        for (var i = 0; i < source.Musics.Count(); i++)
+        {
+            var index = i;
+            if (index < AppConfig.PlaylistTrackShowCount)
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                {
+                    MusicItems.Add(new MusicModel
+                    {
+                        Music = source.Musics[index],
+                        Index = (index + 1).ToString("D2")
+                    });
+                });
+        }
     }
 
     public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
