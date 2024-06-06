@@ -3,7 +3,7 @@ using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Core.Contracts.Adapters;
 
-public interface IAlbumAdapter: IAdapter
+public interface IAlbumAdapter: ISubAdapter
 {
     Task<Album> GetAlbumAsync(object content);
     

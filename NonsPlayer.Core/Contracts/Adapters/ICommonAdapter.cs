@@ -1,17 +1,10 @@
-﻿using Newtonsoft.Json.Linq;
-using NonsPlayer.Core.Models;
+﻿using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Contracts.Adapters;
 
-public interface ICommonAdapter: IAdapter
+public interface ICommonAdapter: ISubAdapter
 {
-    bool IsEnable { get; set; }
+    Task<Playlist[]> GetRecommendedPlaylistAsync(object content, int count, NonsCore core);
     
-    Task<Playlist> GetHomePlaylistAsync(object content);
-    
-    Task<Music[]> GetMusicListAsync(object content);
-
-    Music[] GetMusicList(object content);
-
-    Music GetMusic(object content);
 }

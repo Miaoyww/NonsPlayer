@@ -8,33 +8,45 @@ namespace NonsPlayer.Core.Services;
 
 public class AdapterService
 {
-    public List<Assembly> Adapters { get; set; } = new List<Assembly>();
-    public static AdapterService Instance { get; } = new AdapterService();
+    private Dictionary<string, IAdapter> _adapters = new();
+    public static AdapterService Instance { get; } = new();
 
-    public List<Assembly> LoadAdapters(string directory)
+    public void LoadAdapters(string directory)
     {
-        var adapters = new List<Assembly>();
         string[] dllFiles = Directory.GetFiles(directory, "*.dll");
 
         foreach (var file in dllFiles)
         {
-            adapters.Add(LoadSingleAdapter(file));
+            var (name, assembly) = LoadSingleAdapter(file);
+            _adapters.Add(name, assembly);
         }
-
-        return adapters;
     }
 
-    public Assembly? LoadSingleAdapter(string file)
+    public Tuple<string, IAdapter>? LoadSingleAdapter(string file)
     {
         try
         {
             var assembly = Assembly.LoadFrom(file);
-            return assembly.GetTypes().Any(t => typeof(IAdapter).IsAssignableFrom(t)) ? assembly : null;
+            IAdapter adapter;
+            foreach (var item in assembly.GetTypes())
+            {
+                if (item.FullName.Contains("Adapters.Adapter"))
+                {
+                    adapter = (IAdapter)Activator.CreateInstance(item);
+                    return new Tuple<string, IAdapter>(adapter.GetMetadata().Platform, adapter);
+                }
+            }
+            return null;
         }
         catch (Exception ex)
         {
             ExceptionService.Instance.Throw(ex, $"Error loading plugin from '{file}': {ex.Message}");
             return null;
         }
+    }
+
+    public IAdapter GetAdapter(string platformName)
+    {
+        return _adapters.TryGetValue(platformName, out var adapter) ? adapter : null;
     }
 }

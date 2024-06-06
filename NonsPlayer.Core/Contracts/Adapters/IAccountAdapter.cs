@@ -4,7 +4,7 @@ using NonsPlayer.Core.Nons.Account;
 
 namespace NonsPlayer.Core.Contracts.Adapters;
 
-public interface IAccountAdapter: IAdapter
+public interface IAccountAdapter: ISubAdapter
 {
     bool IsEnable { get; set; }
     

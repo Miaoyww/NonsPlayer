@@ -113,7 +113,7 @@ public partial class App : Application
             }).Build();
 
         GetService<IAppNotificationService>().Initialize();
-
+        AdapterService.Instance.LoadAdapters("C:\\Users\\miaom\\Desktop\\Plugins");
         UnhandledException += App_UnhandledException;
     }
 
