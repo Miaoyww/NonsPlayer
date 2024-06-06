@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using Newtonsoft.Json.Linq;
-using NonsPlayer.Core.Adapters;
 using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
@@ -67,13 +66,13 @@ public class UserPlaylistService
 
     private void ParseInfo(JObject item)
     {
-        var playlist = PlaylistAdaptes.CreateFromUserPlaylist(item);
-        if (playlist.Creator.Equals(Account.Instance.Name))
-            CreatedPlaylists.Add(playlist);
-
-        else
-            SavedPlaylists.Add(playlist);
-
-        UserPlaylistIds.Add(playlist.Id);
+        // var playlist = PlaylistAdaptes.CreateFromUserPlaylist(item);
+        // if (playlist.Creator.Equals(Account.Instance.Name))
+        //     CreatedPlaylists.Add(playlist);
+        //
+        // else
+        //     SavedPlaylists.Add(playlist);
+        //
+        // UserPlaylistIds.Add(playlist.Id);
     }
 }

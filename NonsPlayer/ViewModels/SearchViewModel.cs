@@ -16,9 +16,9 @@ namespace NonsPlayer.ViewModels;
 
 public partial class SearchViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
-    [ObservableProperty] private Artist[] artists;
+    [ObservableProperty] private Artist[]? artists;
     public ObservableCollection<MusicModel> MusicItems = new();
-    [ObservableProperty] private Playlist[] playlists;
+    [ObservableProperty] private Playlist[]? playlists;
     private string queryKey;
 
     public void OnNavigatedTo(object parameter)
@@ -39,27 +39,27 @@ public partial class SearchViewModel : ObservableRecipient, INavigationAware, IN
 
     public async Task Search(string key)
     {
-        var searcher = await CacheHelper.GetSearchResultAsync(GetB64(key), key);
-        await Task.WhenAll(
-            searcher.SearchMusics(),
-            searcher.SearchArtists(),
-            searcher.SearchPlaylists());
-        SearchHelper.Instance.BestMusicResult = searcher.Musics[0];
-        Artists = searcher.Artists;
-        Playlists = searcher.Playlists;
-        for (var i = 0; i < searcher.Musics.Count(); i++)
-        {
-            var index = i;
-            if (index < AppConfig.PlaylistTrackShowCount)
-                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-                {
-                    MusicItems.Add(new MusicModel
-                    {
-                        Music = searcher.Musics[index],
-                        Index = (index + 1).ToString("D2")
-                    });
-                });
-        }
+        // var searcher = await CacheHelper.GetSearchResultAsync(GetB64(key), key);
+        // await Task.WhenAll(
+        //     searcher.SearchMusics(),
+        //     searcher.SearchArtists(),
+        //     searcher.SearchPlaylists());
+        // SearchHelper.Instance.BestMusicResult = searcher.Musics[0];
+        // Artists = searcher.Artists;
+        // Playlists = searcher.Playlists;
+        // for (var i = 0; i < searcher.Musics.Count(); i++)
+        // {
+        //     var index = i;
+        //     if (index < AppConfig.PlaylistTrackShowCount)
+        //         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        //         {
+        //             MusicItems.Add(new MusicModel
+        //             {
+        //                 Music = searcher.Musics[index],
+        //                 Index = (index + 1).ToString("D2")
+        //             });
+        //         });
+        // }
     }
 
     public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)

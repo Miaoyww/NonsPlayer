@@ -44,11 +44,6 @@ public partial class TestViewModel : ObservableObject
                     var music = await musicProvider.GetMusicAsync(2026565329L);
                     Debug.WriteLine(music.Name);
                     Debug.WriteLine(music.Id);
-                    var metadata = musicProvider.GetMetadata();
-                    Debug.WriteLine(metadata.Name);
-                    Debug.WriteLine(metadata.Version);
-                    Debug.WriteLine(metadata.Author);
-                    Debug.WriteLine(metadata.Description);
                 }
         
                 break;

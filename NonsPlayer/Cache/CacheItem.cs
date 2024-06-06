@@ -2,7 +2,7 @@
 
 public class CacheItem<T>
 {
-    public T Data;
+    public T? Data;
 
     public DateTime ExpirationTime;
 

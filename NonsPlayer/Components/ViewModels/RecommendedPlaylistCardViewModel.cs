@@ -40,9 +40,9 @@ public partial class RecommendedPlaylistCardViewModel
     {
         if (CurrentPlaylist.IsCardMode)
         {
-            var elapsed = await Tools.MeasureExecutionTimeAsync(CurrentPlaylist.LoadAsync(CurrentPlaylist.Id))
-                .ConfigureAwait(false);
-            Debug.WriteLine($"获取歌单Api耗时{elapsed.TotalMilliseconds}ms");
+            // var elapsed = await Tools.MeasureExecutionTimeAsync(CurrentPlaylist.LoadAsync(CurrentPlaylist.Id))
+                // .ConfigureAwait(false);
+            // Debug.WriteLine($"获取歌单Api耗时{elapsed.TotalMilliseconds}ms");
             CurrentPlaylist.IsCardMode = false;
         }
 

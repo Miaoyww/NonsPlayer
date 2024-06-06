@@ -38,22 +38,9 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     {
         CurrentId = (long)parameter;
         UserPlaylistService.Instance.PlaylistUpdated += OnPlaylistUpdated;
-        if (CurrentId.ToString() == FavoritePlaylistService.Instance.FavoritePlaylistId)
-            if (FavoritePlaylistService.Instance.IsLikeSongsChanged)
-            {
-                await CacheHelper.UpdatePlaylistAsync(CurrentId + "_playlist", CurrentId.ToString());
-                FavoritePlaylistService.Instance.IsLikeSongsChanged = false;
-            }
-
-        PlayListObject = await CacheHelper.GetPlaylistAsync(CurrentId + "_playlist", CurrentId.ToString());
-        if (PlayListObject.IsCardMode)
-        {
-            var elapsed = await Tools.MeasureExecutionTimeAsync(PlayListObject.LoadAsync(PlayListObject.Id))
+            PlayListObject = await AdapterService.Instance.GetAdapter("ncm").Playlist.GetPlaylistAsync(CurrentId)
                 .ConfigureAwait(false);
-            Debug.WriteLine($"获取歌单Api耗时{elapsed.TotalMilliseconds}ms");
             PlayListObject.IsCardMode = false;
-        }
-
         LoadPlaylistDetail();
 
         await InitMusicsAsync().ConfigureAwait(false);
