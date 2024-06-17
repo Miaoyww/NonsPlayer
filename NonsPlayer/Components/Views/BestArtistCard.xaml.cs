@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -46,6 +47,10 @@ public sealed partial class BestArtistCard : UserControl
         Id = value.Artists[0].Id;
         Name = value.Artists[0].Name;
         // value.Artists[0] = await ArtistAdapters.CreateById(value.Artists[0].Id);
+        if (value.Artists[0].AvatarUrl == null)
+        {
+            value.Artists[0] = await AdapterService.Instance.GetAdapter("ncm").Artist.GetArtistAsyncById(value.Artists[0].Id);
+        }
         var coverTemp = await CacheHelper.GetImageBrushAsync(value.Artists[0].CacheMiddleAvatarId,
             value.Artists[0].MiddleAvatarUrl);
         Avater.DispatcherQueue.TryEnqueue(() => { Cover = coverTemp.ImageSource; });

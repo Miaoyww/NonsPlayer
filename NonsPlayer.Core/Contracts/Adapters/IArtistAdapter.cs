@@ -5,7 +5,7 @@ namespace NonsPlayer.Core.Contracts.Adapters;
 
 public interface IArtistAdapter: ISubAdapter
 {
-    Task<Artist> GetArtistAsync(object content);
+    Task<Artist> GetArtistAsyncById(long id);
     
     Artist GetArtist(object content);
 }

@@ -26,6 +26,7 @@ public class PageService : IPageService
         Configure<UpdateViewModel, UpdatePage>();
         Configure<LocalViewModel, LocalPage>();
         Configure<TestViewModel, TestPage>();
+        Configure<AdapterManagerViewModel, AdapterManagerPage>();
     }
 
     public Type GetPageType(string key)

@@ -84,7 +84,8 @@ public partial class App : Application
                 services.AddTransient<LocalViewModel>();
                 services.AddTransient<TestPage>();
                 services.AddTransient<TestViewModel>();
-
+                services.AddTransient<AdapterManagerPage>();
+                services.AddTransient<AdapterManagerViewModel>();
                 #endregion
 
                 #region Components Views and ViewModels
@@ -99,7 +100,7 @@ public partial class App : Application
                 services.AddTransient<BestMusicCardViewModel>();
                 services.AddTransient<BestArtistCardViewModel>();
                 services.AddTransient<MusicListBarViewModel>();
-
+                services.AddTransient<AdapterCardViewModel>();
                 #endregion
 
 
@@ -110,9 +111,11 @@ public partial class App : Application
                 // Configuration
                 services.Configure<LocalSettingsOptions>(
                     context.Configuration.GetSection(nameof(LocalSettingsOptions)));
+                services.AddSingleton<ConfigManager>();
             }).Build();
-
+        
         GetService<IAppNotificationService>().Initialize();
+        GetService<ConfigManager>().LoadConfigAsync();
         AdapterService.Instance.LoadAdapters("C:\\Users\\miaom\\Desktop\\Plugins");
         UnhandledException += App_UnhandledException;
     }

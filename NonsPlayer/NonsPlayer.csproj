@@ -84,6 +84,9 @@
         <None Remove="BundleArtifacts\**" />
         <Page Remove="Properties\**" />
         <None Remove="Properties\**" />
+        <Page Update="Components\Views\AdapterCard.xaml">
+          <SubType>Designer</SubType>
+        </Page>
     </ItemGroup>
 
     <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">

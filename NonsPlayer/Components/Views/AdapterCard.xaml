@@ -1,0 +1,17 @@
+<UserControl
+    x:Class="NonsPlayer.Components.Views.AdapterCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    <Grid>
+        <StackPanel>
+            <TextBlock x:Name="NameTextBlock" Text="{x:Bind ViewModel.Metadata.Name}" />
+            <TextBlock x:Name="AuthorTextBlock" Text="{x:Bind ViewModel.Metadata.Author}" />
+            <TextBlock x:Name="UpdateTimeTextBlock" Text="{x:Bind ViewModel.Metadata.UpdateTime}" />
+            <TextBlock x:Name="VersionTextBlock" Text="{x:Bind ViewModel.Metadata.Version}" />
+            <HyperlinkButton x:Name="RepositoryHyperlinkButton" NavigateUri="{x:Bind ViewModel.Metadata.Repository}" Content="GitHub Repository" />
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -72,10 +72,11 @@ public sealed partial class ShellPage : Page
         if (!Account.Instance.IsLoggedIn)
         {
             ExceptionTtp.Title = "出错啦！";
-            ExceptionTtp.Content =  "当前未登录哦.";
+            ExceptionTtp.Content = "当前未登录哦.";
             ExceptionTtp.IsOpen = true;
             return;
         }
+
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
@@ -160,7 +161,7 @@ public sealed partial class ShellPage : Page
         ShellMenuBarSettingsButton.RemoveHandler(PointerReleasedEvent,
             (PointerEventHandler)ShellMenuBarSettingsButton_PointerReleased);
         App.GetService<ControlService>().Stop();
-       
+        App.GetService<ConfigManager>().SaveConfig();
     }
 
     private static KeyboardAccelerator BuildKeyboardAccelerator(VirtualKey key, VirtualKeyModifiers? modifiers = null)
