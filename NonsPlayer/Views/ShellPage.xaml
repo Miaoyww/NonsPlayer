@@ -71,6 +71,12 @@
                                 FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
                                 Foreground="#2d2d2d"
                                 Command="{x:Bind ViewModel.OpenMenuPersonalCenterCommand}" />
+                        <Button x:Uid="ShellMenu_Adapter" BorderThickness="0" Width="60" Height="25"
+                                FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                                FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                                Foreground="#2d2d2d"
+                                Command="{x:Bind ViewModel.OpenAdapterManagerPageCommand}" />
                     </StackPanel>
                     <Grid Column="3" Margin="0,0,20,0" Name="UserController" VerticalAlignment="Center"
                           HorizontalAlignment="Right" Height="40">

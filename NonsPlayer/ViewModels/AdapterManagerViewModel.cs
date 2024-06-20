@@ -11,11 +11,15 @@ public partial class AdapterManagerViewModel : ObservableRecipient, INavigationA
 {
     public ObservableCollection<AdapterMetadata> Adapters { set; get; } = new();
     public ConfigManager ConfigManager { get; } = App.GetService<ConfigManager>();
+    private readonly VersionService _versionService = App.GetService<VersionService>();
+
+    [ObservableProperty] private string versionDescription;
     [ObservableProperty] private string adapterPath;
 
     public AdapterManagerViewModel()
     {
         AdapterPath = ConfigManager.GetConfig("adapterPath").Get();
+        VersionDescription = _versionService.CurrentVersionDescription;
     }
 
     public void OnNavigatedTo(object parameter)

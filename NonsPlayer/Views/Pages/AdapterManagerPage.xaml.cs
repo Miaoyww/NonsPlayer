@@ -39,12 +39,11 @@ public sealed partial class AdapterManagerPage : Page
 
     private void LayoutToggleButton_Checked(object sender, RoutedEventArgs e)
     {
-        AdapterListView.ItemsPanel = (ItemsPanelTemplate)Resources["CardLayout"];
+        
     }
 
     private void LayoutToggleButton_Unchecked(object sender, RoutedEventArgs e)
     {
-        AdapterListView.ItemsPanel = (ItemsPanelTemplate)Resources["ColumnLayout"];
     }
 
     public AdapterManagerViewModel ViewModel { get; }

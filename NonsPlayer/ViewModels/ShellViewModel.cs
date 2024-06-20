@@ -83,7 +83,11 @@ public partial class ShellViewModel : ObservableRecipient
     {
         NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
     }
-
+    [RelayCommand]
+    private void OpenAdapterManagerPage()
+    {
+        NavigationService.NavigateTo(typeof(AdapterManagerViewModel).FullName!);
+    }
     [RelayCommand]
     private void GoBack()
     {

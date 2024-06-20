@@ -8,35 +8,55 @@
     xmlns:views="using:NonsPlayer.Components.Views"
     mc:Ignorable="d">
 
-    <Grid Margin="60,0,0,0">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0">
-            <TextBlock Text="{x:Bind ViewModel.AdapterPath, Mode=OneWay}" />
-            <Button Content="选择" />
-        </StackPanel>
-        <ToggleButton Grid.Row="1" x:Name="LayoutToggleButton" Content="Switch Layout"
-                      Checked="LayoutToggleButton_Checked"
-                      Unchecked="LayoutToggleButton_Unchecked" />
+    <Grid Margin="{StaticResource PageCommonMargin}">
+        <Grid Margin="40,30,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid>
+                    <!-- <StackPanel Orientation="Horizontal"> -->
+                    <!--     <Image Source="ms-appx:///Assets/NonsPlayer-High-Quaility.png" Height="100" Width="100" /> -->
+                    <!-- </StackPanel> -->
+                </Grid>
+                <Grid Grid.Column="1"></Grid>
+            </Grid>
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="插件商店" Style="{StaticResource CommonTextStyle}"
+                           HorizontalTextAlignment="Left" VerticalAlignment="Center"
+                           FontWeight="Bold" FontSize="30" />
 
-        <ListView x:Name="AdapterListView" Grid.Row="2" ItemsSource="{x:Bind ViewModel.Adapters}">
-            <ListView.ItemTemplate>
-                <DataTemplate x:DataType="adapter:AdapterMetadata">
-                    <views:AdapterCard>
-                        <views:AdapterCard.AdapterMetadata>
-                            <Binding Path="This" />
-                        </views:AdapterCard.AdapterMetadata>
-                    </views:AdapterCard>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-            <ListView.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapGrid Orientation="Horizontal" MaximumRowsOrColumns="2" />
-                </ItemsPanelTemplate>
-            </ListView.ItemsPanel>
-        </ListView>
+                <Pivot Grid.Row="1" FontWeight="Bold">
+                    <PivotItem Header="插件">
+                    </PivotItem>
+                    <PivotItem Header="适配器">
+                    </PivotItem>
+                    <PivotItem Header="已安装">
+                        <Pivot FontWeight="Bold">
+                            <PivotItem Header="插件">
+                            </PivotItem>
+                            <PivotItem Header="适配器">
+                            </PivotItem>
+                        </Pivot>
+                    </PivotItem>
+                    <PivotItem Header="设置" >
+
+                    </PivotItem>
+                </Pivot>
+
+            </Grid>
+        </Grid>
+
     </Grid>
 </Page>

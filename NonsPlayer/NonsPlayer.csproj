@@ -164,7 +164,7 @@
 
     <ItemGroup>
       <Content Update="Assets\NonsPlayer-Icon-Miaoyww.svg">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
 

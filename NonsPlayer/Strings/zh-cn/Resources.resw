@@ -173,6 +173,10 @@
   <data name="ShellMenu_Own.Content" xml:space="preserve">
     <value>我的</value>
     <comment>我的按钮的文本</comment>
+  </data>  
+  <data name="ShellMenu_Adapter.Content" xml:space="preserve">
+    <value>适配器</value>
+    <comment>适配器按钮的文本</comment>
   </data>
   <data name="SettingsPage_BilibiliLink.Content" xml:space="preserve">
     <value>Bilibili</value>
