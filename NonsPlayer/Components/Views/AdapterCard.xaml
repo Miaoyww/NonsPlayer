@@ -5,13 +5,46 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
-    <Grid>
-        <StackPanel>
-            <TextBlock x:Name="NameTextBlock" Text="{x:Bind ViewModel.Metadata.Name}" />
-            <TextBlock x:Name="AuthorTextBlock" Text="{x:Bind ViewModel.Metadata.Author}" />
-            <TextBlock x:Name="UpdateTimeTextBlock" Text="{x:Bind ViewModel.Metadata.UpdateTime}" />
-            <TextBlock x:Name="VersionTextBlock" Text="{x:Bind ViewModel.Metadata.Version}" />
-            <HyperlinkButton x:Name="RepositoryHyperlinkButton" NavigateUri="{x:Bind ViewModel.Metadata.Repository}" Content="GitHub Repository" />
-        </StackPanel>
+    <Grid Height="100" Margin="0,0,0,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid VerticalAlignment="Center" Margin="0,0,0,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="01"
+                       FontWeight="Bold" FontSize="30" />
+            <Line Grid.Row="1" StrokeThickness="4"
+                  VerticalAlignment="Center"
+                  X1="5" X2="25" Stroke="#0067C0"/>
+        </Grid>
+
+        <Grid Grid.Column="1">
+            <Grid Margin="20,5,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Height="80">
+                <TextBlock VerticalAlignment="Top" Grid.Column="0" x:Name="NameTextBlock"
+                           Style="{StaticResource CommonTextStyle}">
+                    <Run Text="{x:Bind ViewModel.Name, Mode=OneWay}" FontSize="30" FontWeight="Bold" />
+                    <Run Text="{x:Bind ViewModel.Version, Mode=OneWay}" FontSize="15" />
+                </TextBlock>
+
+                <TextBlock VerticalAlignment="Bottom" x:Name="AuthorTextBlock">
+                    <Run Text="Made By: " />
+                    <Run Text="{x:Bind ViewModel.Author, Mode=OneWay}" />
+                </TextBlock>
+            </Grid>
+        </Grid>
+        <Grid Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Height="80">
+            <HyperlinkButton x:Name="RepositoryHyperlinkButton"
+                             NavigateUri="{x:Bind ViewModel.Repository, Mode=OneWay}"
+                             HorizontalAlignment="Center" VerticalAlignment="Center"
+                             Content="GitHub"
+                             FontSize="20" />
+        </Grid>
+
+
     </Grid>
 </UserControl>

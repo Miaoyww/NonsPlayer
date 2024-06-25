@@ -43,10 +43,21 @@
                     <PivotItem Header="适配器">
                     </PivotItem>
                     <PivotItem Header="已安装">
+                        
                         <Pivot FontWeight="Bold">
                             <PivotItem Header="插件">
                             </PivotItem>
                             <PivotItem Header="适配器">
+                                <ListView BorderThickness="0,1,0,0"
+                                          Width="500" HorizontalAlignment="Left"
+                                          ItemsSource="{x:Bind ViewModel.InstalledAdapters, Mode=OneWay}">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="adapter:AdapterMetadata">
+                                            <views:AdapterCard
+                                                AdapterMetadata="{x:Bind This, Mode=OneWay}" />
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
                             </PivotItem>
                         </Pivot>
                     </PivotItem>

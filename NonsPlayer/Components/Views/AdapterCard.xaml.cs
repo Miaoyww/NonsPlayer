@@ -8,6 +8,7 @@ namespace NonsPlayer.Components.Views;
 [INotifyPropertyChanged]
 public sealed partial class AdapterCard : UserControl
 {
+
     public AdapterCard()
     {
         ViewModel = App.GetService<AdapterCardViewModel>();

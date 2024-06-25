@@ -192,4 +192,8 @@
       <PRIResource Remove="BundleArtifacts\**" />
       <PRIResource Remove="Properties\**" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Components\Models\MusicModel - 复制.cs" />
+    </ItemGroup>
 </Project>

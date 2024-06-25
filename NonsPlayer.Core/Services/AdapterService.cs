@@ -49,4 +49,9 @@ public class AdapterService
     {
         return _adapters.TryGetValue(platformName, out var adapter) ? adapter : null;
     }
+
+    public IAdapter[] GetLoadedAdapters()
+    {
+        return _adapters.Values.ToArray();
+    }
 }

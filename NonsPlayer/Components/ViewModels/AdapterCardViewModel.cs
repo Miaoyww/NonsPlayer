@@ -6,5 +6,23 @@ namespace NonsPlayer.Components.ViewModels;
 [INotifyPropertyChanged]
 public partial class AdapterCardViewModel
 {
-    public AdapterMetadata Metadata { get; set; }
+    [ObservableProperty] private string name;
+    [ObservableProperty] private string platform;
+    [ObservableProperty] private string author;
+    [ObservableProperty] private string description;
+    [ObservableProperty] private string version;
+    [ObservableProperty] private string buildTime;
+    [ObservableProperty] private Uri repository;
+    [ObservableProperty] private AdapterMetadata metadata;
+
+    partial void OnMetadataChanged(AdapterMetadata value)
+    {
+        Name = value.DisplayPlatform;
+        Platform = value.Platform;
+        Author = value.Author;
+        Description = value.Description;
+        Version = value.Version.ToString();
+        BuildTime = value.UpdateTime.ToString("g");
+        repository = value.Repository;
+    }
 }

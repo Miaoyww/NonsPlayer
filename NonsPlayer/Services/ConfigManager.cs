@@ -92,6 +92,7 @@ public class ConfigManager
         {
             new("adapterPath", _dataPath + "/adapters", "适配器路径"),
             new("pluginPath", _dataPath + "/plugins", "插件路径"),
+            new("data", _dataPath + "/data", "数据路径"),
             new("theme", "Light", "主题")
         };
         foreach (var item in configs)
