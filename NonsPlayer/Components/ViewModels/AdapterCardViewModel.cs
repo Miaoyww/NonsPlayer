@@ -1,5 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using NonsPlayer.Core.Contracts.Adapters;
+using NonsPlayer.Core.Services;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -14,6 +17,10 @@ public partial class AdapterCardViewModel
     [ObservableProperty] private string buildTime;
     [ObservableProperty] private Uri repository;
     [ObservableProperty] private AdapterMetadata metadata;
+    [ObservableProperty] private string index;
+    [ObservableProperty] private Visibility tipVisible = Visibility.Collapsed;
+
+    private int checkedTimes = 0;
 
     partial void OnMetadataChanged(AdapterMetadata value)
     {
@@ -24,5 +31,11 @@ public partial class AdapterCardViewModel
         Version = value.Version.ToString();
         BuildTime = value.UpdateTime.ToString("g");
         repository = value.Repository;
+    }
+
+    [RelayCommand]
+    public void Delete()
+    {
+        AdapterService.Instance.DisableAdapter(metadata);
     }
 }

@@ -4,13 +4,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace NonsPlayer.Services;
+namespace NonsPlayer.Core.Services;
 
 public class Config
 {
     [JsonPropertyName("key")] public string Key { get; set; }
 
-    [JsonPropertyName("value")] public string Value { get; set; }
+    [JsonPropertyName("value")] private string Value { get; set; }
 
     [JsonPropertyName("description")] public string Description { get; set; }
 
@@ -36,23 +36,33 @@ public class Config
 public class ConfigManager
 {
     private readonly string _dataPath;
-        
+
 
     private readonly string _configFilePath;
 
     private Dictionary<string, Config> _config;
 
+    public static ConfigManager Instance { get; } = new();
+
     public ConfigManager()
     {
-        _dataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/NonsPlayer"; _configFilePath = _dataPath + "/config.json";
+        _dataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/NonsPlayer";
+        _configFilePath = _dataPath + "/config.json";
     }
 
     public void LoadConfigAsync()
     {
         if (File.Exists(_configFilePath))
         {
-            string json = File.ReadAllText(_configFilePath);
-            _config = JsonSerializer.Deserialize<Dictionary<string, Config>>(json);
+            try
+            {
+                string json = File.ReadAllText(_configFilePath);
+                _config = JsonSerializer.Deserialize<Dictionary<string, Config>>(json);
+            }
+            catch
+            {
+                _config = DefaultConfig();
+            }
         }
         else
         {
@@ -61,12 +71,14 @@ public class ConfigManager
                 Directory.CreateDirectory(Path.GetDirectoryName(_configFilePath));
                 File.Create(_configFilePath).Close();
             }
+
             _config = DefaultConfig();
         }
     }
 
     public Config GetConfig(string key)
     {
+
         return _config[key];
     }
 
@@ -77,6 +89,7 @@ public class ConfigManager
             Directory.CreateDirectory(Path.GetDirectoryName(_configFilePath));
             File.Create(_configFilePath).Close();
         }
+
         var options = new JsonSerializerOptions
         {
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
@@ -93,7 +106,9 @@ public class ConfigManager
             new("adapterPath", _dataPath + "/adapters", "适配器路径"),
             new("pluginPath", _dataPath + "/plugins", "插件路径"),
             new("data", _dataPath + "/data", "数据路径"),
-            new("theme", "Light", "主题")
+            new("theme", "Light", "主题"),
+            new("disabledAdapters", "", "禁用的适配器"),
+            new("disabledPlugins", "", "禁用的插件"),
         };
         foreach (var item in configs)
         {

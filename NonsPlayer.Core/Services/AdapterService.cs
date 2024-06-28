@@ -9,7 +9,14 @@ namespace NonsPlayer.Core.Services;
 public class AdapterService
 {
     private Dictionary<string, IAdapter> _adapters = new();
+    private List<string> _disabledAdapters = new();
     public static AdapterService Instance { get; } = new();
+
+
+    public void Init()
+    {
+        _disabledAdapters = ConfigManager.Instance.GetConfig("disabled_adapters").Get().Split(";;").ToList();
+    }
 
     public void LoadAdapters(string directory)
     {
@@ -20,6 +27,20 @@ public class AdapterService
             var (name, assembly) = LoadSingleAdapter(file);
             _adapters.Add(name, assembly);
         }
+    }
+
+    public bool DisableAdapter(string platformName)
+    {
+        if (!_adapters.ContainsKey(platformName)) return false;
+        if (_disabledAdapters.Contains(platformName)) return false;
+        _disabledAdapters.Add(platformName);
+        ConfigManager.Instance.GetConfig("disabledAdapters").Set(string.Join(";;", _disabledAdapters));
+        return true;
+    }
+
+    public bool DisableAdapter(AdapterMetadata metadata)
+    {
+        return DisableAdapter(metadata.Platform);
     }
 
     public Tuple<string, IAdapter>? LoadSingleAdapter(string file)
@@ -36,6 +57,7 @@ public class AdapterService
                     return new Tuple<string, IAdapter>(adapter.GetMetadata().Platform, adapter);
                 }
             }
+
             return null;
         }
         catch (Exception ex)
@@ -45,9 +67,9 @@ public class AdapterService
         }
     }
 
-    public IAdapter GetAdapter(string platformName)
+    public IAdapter? GetAdapter(string platformName)
     {
-        return _adapters.TryGetValue(platformName, out var adapter) ? adapter : null;
+        return _adapters.GetValueOrDefault(platformName);
     }
 
     public IAdapter[] GetLoadedAdapters()

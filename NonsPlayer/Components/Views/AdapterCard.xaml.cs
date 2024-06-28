@@ -21,4 +21,10 @@ public sealed partial class AdapterCard : UserControl
         get => ViewModel.Metadata;
         set => ViewModel.Metadata = value;
     }
+
+    public int Index
+    {
+        get => int.Parse(ViewModel.Index);
+        set => ViewModel.Index = value.ToString("D2");
+    }
 }

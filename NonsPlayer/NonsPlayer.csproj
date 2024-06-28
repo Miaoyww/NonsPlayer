@@ -141,6 +141,7 @@
         <Content Include="Assets\NonsPlayer-Icon-Miaoyww.svg">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+        <None Remove="Assets\Icons\github-mark.svg" />
         <None Remove="Assets\SplashScreen.scale-100.png" />
         <None Remove="Assets\SplashScreen.scale-400.png" />
         <Content Include="Segoe Fluent Icons.ttf" />
@@ -191,9 +192,5 @@
     <ItemGroup>
       <PRIResource Remove="BundleArtifacts\**" />
       <PRIResource Remove="Properties\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Remove="Components\Models\MusicModel - 复制.cs" />
     </ItemGroup>
 </Project>

@@ -111,11 +111,10 @@ public partial class App : Application
                 // Configuration
                 services.Configure<LocalSettingsOptions>(
                     context.Configuration.GetSection(nameof(LocalSettingsOptions)));
-                services.AddSingleton<ConfigManager>();
             }).Build();
         
         GetService<IAppNotificationService>().Initialize();
-        GetService<ConfigManager>().LoadConfigAsync();
+        ConfigManager.Instance.LoadConfigAsync();
         AdapterService.Instance.LoadAdapters("C:\\Users\\miaom\\Desktop\\Plugins");
         UnhandledException += App_UnhandledException;
     }

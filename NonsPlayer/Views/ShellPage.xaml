@@ -78,62 +78,12 @@
                                 Foreground="#2d2d2d"
                                 Command="{x:Bind ViewModel.OpenAdapterManagerPageCommand}" />
                     </StackPanel>
-                    <Grid Column="3" Margin="0,0,20,0" Name="UserController" VerticalAlignment="Center"
+                    <Grid Column="3" Margin="0,0,200,0" Name="UserController" VerticalAlignment="Center"
                           HorizontalAlignment="Right" Height="40">
-                        <StackPanel Orientation="Horizontal">
-                            <AutoSuggestBox Name="SearchBox" BorderThickness="1" CornerRadius="3"
-                                            SuggestionChosen="{x:Bind ViewModel.SearchBox_Entered}"
-                                            QuerySubmitted="{x:Bind ViewModel.SearchBox_Query}"
-                                            QueryIcon="Find" Width="200" Height="34" />
-
-                            <StackPanel Name="UserInfo" Orientation="Horizontal"
-                                        VerticalAlignment="Center"
-                                        HorizontalAlignment="Right"
-                                        Width="200"
-                                        Height="30"
-                                        Margin="10,0,0,0">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                                    <StackPanel.ContextFlyout>
-                                        <MenuBarItemFlyout>
-                                            <MenuFlyoutItem Text="个人中心" Icon="Contact" Command="{x:Bind NavigateMeCommand}"/>
-                                            <MenuFlyoutItem Text="登出" Command="{x:Bind SignOutCommand}">
-                                                <MenuFlyoutItem.Icon>
-                                                    <FontIcon Glyph="&#xF3B1;" />
-                                                </MenuFlyoutItem.Icon>
-                                            </MenuFlyoutItem>
-                                        </MenuBarItemFlyout>
-                                    </StackPanel.ContextFlyout>
-                                    <PersonPicture Name="UserFace" Height="30" Width="30"
-                                                   ProfilePicture="{x:Bind ViewModel.AccountStateModel.Face.ImageSource,Mode=OneWay}"
-                                                   Margin="0,0,5,0"
-                                                   CornerRadius="100">
-
-                                    </PersonPicture>
-                                    <TextBlock Name="UserName"
-                                               Text="{x:Bind ViewModel.AccountStateModel.Name, Mode=OneWay}"
-                                               FontFamily="HarmonyOS Sans SC"
-                                               FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Right" />
-                                </StackPanel>
-
-                                <AppBarButton Width="30" Height="45" VerticalAlignment="Center"
-                                              HorizontalAlignment="Right"
-                                              Margin="10,0,0,0" x:Name="ShellMenuBarSettingsButton"
-                                              PointerEntered="ShellMenuBarSettingsButton_PointerEntered"
-                                              PointerExited="ShellMenuBarSettingsButton_PointerExited"
-                                              Command="{x:Bind ViewModel.OpenMenuSettingsCommand}">
-                                    <AnimatedIcon Margin="0,0,0,3" x:Name="ShellMenuBarSettingsButtonIcon">
-                                        <AnimatedIcon.Source>
-                                            <animatedvisuals:AnimatedSettingsVisualSource />
-                                        </AnimatedIcon.Source>
-                                        <AnimatedIcon.FallbackIconSource>
-                                            <FontIconSource FontFamily="{StaticResource SymbolThemeFontFamily}"
-                                                            Glyph="&#xE713;" />
-                                        </AnimatedIcon.FallbackIconSource>
-                                    </AnimatedIcon>
-                                </AppBarButton>
-
-                            </StackPanel>
-                        </StackPanel>
+                        <AutoSuggestBox Name="SearchBox" BorderThickness="1" CornerRadius="3"
+                                        SuggestionChosen="{x:Bind ViewModel.SearchBox_Entered}"
+                                        QuerySubmitted="{x:Bind ViewModel.SearchBox_Query}"
+                                        QueryIcon="Find" Width="200" Height="34" />
                     </Grid>
                 </Grid>
             </Border>

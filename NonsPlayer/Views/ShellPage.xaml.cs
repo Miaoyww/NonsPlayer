@@ -107,11 +107,6 @@ public sealed partial class ShellPage : Page
 
         KeyboardAccelerators.Add(BuildKeyboardAccelerator(VirtualKey.Left, VirtualKeyModifiers.Menu));
         KeyboardAccelerators.Add(BuildKeyboardAccelerator(VirtualKey.GoBack));
-
-        ShellMenuBarSettingsButton.AddHandler(PointerPressedEvent,
-            new PointerEventHandler(ShellMenuBarSettingsButton_PointerPressed), true);
-        ShellMenuBarSettingsButton.AddHandler(PointerReleasedEvent,
-            new PointerEventHandler(ShellMenuBarSettingsButton_PointerReleased), true);
         PlayQueue.Instance.CurrentMusicChanged += OnCurrentMusicChanged;
         ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
         AccountService.Instance.UpdateInfo();
@@ -156,12 +151,8 @@ public sealed partial class ShellPage : Page
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         Hook.GlobalEvents().Dispose();
-        ShellMenuBarSettingsButton.RemoveHandler(PointerPressedEvent,
-            (PointerEventHandler)ShellMenuBarSettingsButton_PointerPressed);
-        ShellMenuBarSettingsButton.RemoveHandler(PointerReleasedEvent,
-            (PointerEventHandler)ShellMenuBarSettingsButton_PointerReleased);
         App.GetService<ControlService>().Stop();
-        App.GetService<ConfigManager>().SaveConfig();
+        ConfigManager.Instance.SaveConfig();
     }
 
     private static KeyboardAccelerator BuildKeyboardAccelerator(VirtualKey key, VirtualKeyModifiers? modifiers = null)

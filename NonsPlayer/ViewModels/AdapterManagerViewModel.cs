@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Plugins;
@@ -11,9 +12,9 @@ namespace NonsPlayer.ViewModels;
 
 public partial class AdapterManagerViewModel : ObservableRecipient, INavigationAware
 {
-    public ObservableCollection<AdapterMetadata> InstalledAdapters { set; get; } = new();
-    public ObservableCollection<PluginMetadata> InstalledPlugins { set; get; } = new();
-    public ConfigManager ConfigManager { get; } = App.GetService<ConfigManager>();
+    public ObservableCollection<AdapterModel> InstalledAdapters { set; get; } = new();
+    public ObservableCollection<PluginModel> InstalledPlugins { set; get; } = new();
+    public ConfigManager ConfigManager => ConfigManager.Instance;
     private readonly VersionService _versionService = App.GetService<VersionService>();
 
     [ObservableProperty] private string versionDescription;
@@ -27,10 +28,22 @@ public partial class AdapterManagerViewModel : ObservableRecipient, INavigationA
 
     public void OnNavigatedTo(object parameter)
     {
-        foreach (var item in AdapterService.Instance.GetLoadedAdapters())
+        Refresh();
+    }
+
+    public void Refresh()
+    {
+        var adapters = AdapterService.Instance.GetLoadedAdapters();
+        for (int i = 0; i < adapters.Length; i++)
         {
-            InstalledAdapters.Add(item.GetMetadata());
+            InstalledAdapters.Add(new AdapterModel()
+            {
+                Index = i + 1,
+                Metadata = adapters[i].GetMetadata()
+            });
         }
+
+        // var plugins = PluginService.Instance.GetLoadedPlugins();
     }
 
     public void OnNavigatedFrom()
