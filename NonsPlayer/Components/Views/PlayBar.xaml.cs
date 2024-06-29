@@ -84,18 +84,26 @@ public sealed partial class PlayBar : UserControl
 
     public void OnPositionChanged(TimeSpan position)
     {
-        if (Player.Instance.CurrentMusic != null)
+        try
         {
-            if (Player.Instance.CurrentMusic.IsEmpty) return;
-            if (!_isSliding)
+            if (Player.Instance.CurrentMusic != null)
             {
-                DispatcherQueue.TryEnqueue(() =>
+                if (Player.Instance.CurrentMusic.IsEmpty) return;
+                if (!_isSliding)
                 {
-                    MusicStateModel.Instance.Position = Player.Instance.CurrentReader.CurrentTime.TotalSeconds;
-                    CurrentTimeSlider.Value = Player.Instance.CurrentReader.CurrentTime.TotalSeconds;
-                });
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        MusicStateModel.Instance.Position = Player.Instance.CurrentReader.CurrentTime.TotalSeconds;
+                        CurrentTimeSlider.Value = Player.Instance.CurrentReader.CurrentTime.TotalSeconds;
+                    });
+                }
             }
         }
+        catch
+        {
+            // ignore
+        }
+
         
     }
 

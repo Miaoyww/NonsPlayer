@@ -22,7 +22,7 @@ public partial class AdapterManagerViewModel : ObservableRecipient, INavigationA
 
     public AdapterManagerViewModel()
     {
-        AdapterPath = ConfigManager.GetConfig("adapterPath").Get();
+        AdapterPath = ConfigManager.Settings.AdapterPath;
         VersionDescription = _versionService.CurrentVersionDescription;
     }
 

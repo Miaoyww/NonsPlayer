@@ -4,10 +4,12 @@ using Microsoft.UI.Xaml;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Api;
+using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
+using static NonsPlayer.Core.Services.ControlFactory;
 
 namespace NonsPlayer.ViewModels;
 
@@ -24,8 +26,12 @@ public partial class HomeViewModel : ObservableRecipient
 
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
     {
-        var recommendedPlaylist = 
-            await AdapterService.Instance.GetAdapter("ncm").Common.GetRecommendedPlaylistAsync(null, 6, NonsCore.Instance);
+        var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
+        List<Playlist> recommendedPlaylist = new();
+        foreach (var item in adapters)
+        {
+            recommendedPlaylist.AddRange(await item.Common.GetRecommendedPlaylistAsync(null, 6, NonsCore.Instance));
+        }
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
             foreach (var item in recommendedPlaylist)

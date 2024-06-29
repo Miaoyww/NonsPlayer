@@ -169,7 +169,6 @@ public class Player
         {
             LoadNextTrack();
         }
-
     }
 
     public void EnqueueTrack(string uri)
@@ -198,7 +197,7 @@ public class Player
                 {
                     OutputDevice.Stop();
                 }
-                
+
                 var nextTrack = _queue.Dequeue();
                 if (nextTrack.IsMixed || _jointlessTimes == null)
                 {
@@ -325,5 +324,11 @@ public class Player
 
             Reader = reader;
         }
+    }
+
+    public void Dispose()
+    {
+        OutputDevice?.Dispose();
+        CurrentReader?.Dispose();
     }
 }

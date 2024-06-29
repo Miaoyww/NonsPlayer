@@ -56,6 +56,6 @@ public partial class RecommendedPlaylistCardViewModel
 
     public void OpenMusicListDetail(object sender, DoubleTappedRoutedEventArgs e)
     {
-        PlaylistHelper.OpenMusicListDetail(long.Parse(id), ServiceHelper.NavigationService);
+        PlaylistHelper.OpenMusicListDetail(CurrentPlaylist, ServiceHelper.NavigationService);
     }
 }

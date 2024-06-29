@@ -12,11 +12,13 @@ public partial class UserPlaylistCardViewModel
 {
     [ObservableProperty] private ImageBrush? cover;
     [ObservableProperty] private string? name = string.Empty;
+    public Playlist PurePlaylist;
     public string Uid;
 
     public void Init(Playlist playlistItem)
     {
         CacheManager.Instance.Set(playlistItem.CacheId, new CacheItem<Playlist> { Data = playlistItem });
+        PurePlaylist = playlistItem;
         Name = playlistItem.Name;
         Uid = playlistItem.Id.ToString();
         Cover = CacheHelper.GetImageBrush(playlistItem.CacheSmallAvatarId, playlistItem.SmallAvatarUrl);
@@ -24,6 +26,6 @@ public partial class UserPlaylistCardViewModel
 
     public void OpenMusicListDetail(object sender, PointerRoutedEventArgs e)
     {
-        PlaylistHelper.OpenMusicListDetail(long.Parse(Uid), ServiceHelper.NavigationService);
+        PlaylistHelper.OpenMusicListDetail(PurePlaylist, ServiceHelper.NavigationService);
     }
 }

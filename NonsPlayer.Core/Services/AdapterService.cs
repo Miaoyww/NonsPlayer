@@ -9,22 +9,32 @@ namespace NonsPlayer.Core.Services;
 public class AdapterService
 {
     private Dictionary<string, IAdapter> _adapters = new();
-    private List<string> _disabledAdapters = new();
+    private Dictionary<string, IAdapter> _disabledAdapters = new();
+    private List<string> _disabledAdaptersStrings = new();
     public static AdapterService Instance { get; } = new();
 
 
     public void Init()
     {
-        _disabledAdapters = ConfigManager.Instance.GetConfig("disabled_adapters").Get().Split(";;").ToList();
+        _disabledAdaptersStrings = ConfigManager.Instance.Settings.DisabledAdapters.Split(";;")
+            .SkipWhile(x => x.Equals(string.Empty)).ToList();
+        LoadAdapters(ConfigManager.Instance.Settings.AdapterPath);
     }
 
     public void LoadAdapters(string directory)
     {
+        if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
         string[] dllFiles = Directory.GetFiles(directory, "*.dll");
 
         foreach (var file in dllFiles)
         {
             var (name, assembly) = LoadSingleAdapter(file);
+            if (_disabledAdaptersStrings.Contains(assembly.GetMetadata().Platform))
+            {
+                _disabledAdapters.Add(name, assembly);
+                continue;
+            }
+
             _adapters.Add(name, assembly);
         }
     }
@@ -32,9 +42,9 @@ public class AdapterService
     public bool DisableAdapter(string platformName)
     {
         if (!_adapters.ContainsKey(platformName)) return false;
-        if (_disabledAdapters.Contains(platformName)) return false;
-        _disabledAdapters.Add(platformName);
-        ConfigManager.Instance.GetConfig("disabledAdapters").Set(string.Join(";;", _disabledAdapters));
+        if (_disabledAdaptersStrings.Contains(platformName)) return false;
+        _disabledAdaptersStrings.Add(platformName);
+        ConfigManager.Instance.Settings.DisabledAdapters = string.Join(";;", _disabledAdaptersStrings);
         return true;
     }
 
@@ -70,6 +80,11 @@ public class AdapterService
     public IAdapter? GetAdapter(string platformName)
     {
         return _adapters.GetValueOrDefault(platformName);
+    }
+
+    public IAdapter[] GetAdaptersByType(ISubAdapterEnum type)
+    {
+        return _adapters.Values.Where(adapter => adapter.GetMetadata().Types.Contains(type)).ToArray();
     }
 
     public IAdapter[] GetLoadedAdapters()

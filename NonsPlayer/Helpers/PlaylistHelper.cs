@@ -13,9 +13,10 @@ namespace NonsPlayer.Helpers;
 
 public static class PlaylistHelper
 {
-    public static void OpenMusicListDetail(long id, INavigationService navigationService)
+
+    public static void OpenMusicListDetail(Playlist playlist, INavigationService navigationService)
     {
-        navigationService.NavigateTo(typeof(PlaylistDetailViewModel).FullName!, id);
+        navigationService.NavigateTo(typeof(PlaylistDetailViewModel).FullName!, playlist);
     }
 }
 

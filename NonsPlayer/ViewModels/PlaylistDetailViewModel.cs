@@ -36,9 +36,10 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     public async void OnNavigatedTo(object parameter)
     {
-        CurrentId = (long)parameter;
+        PlayListObject = (Playlist)parameter;
+        CurrentId = PlayListObject.Id;
         UserPlaylistService.Instance.PlaylistUpdated += OnPlaylistUpdated;
-            PlayListObject = await AdapterService.Instance.GetAdapter("ncm").Playlist.GetPlaylistAsync(CurrentId)
+            PlayListObject = await PlayListObject.Adapter.Playlist.GetPlaylistAsync(CurrentId)
                 .ConfigureAwait(false);
             PlayListObject.IsCardMode = false;
         LoadPlaylistDetail();

@@ -25,13 +25,7 @@ public class AdapterMetadata
     public TimeSpan UpdateTime { get; set; }
     public Uri Repository { get; set; }
 
-    public AdapterType Type { get; set; }
-}
-
-public enum AdapterType
-{
-    Common,
-    OnlyMusic
+    public ISubAdapterEnum[] Types { get; set; }
 }
 
 public interface IAdapter
