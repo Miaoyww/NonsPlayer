@@ -34,21 +34,21 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Text="插件商店" Style="{StaticResource CommonTextStyle}"
+                <TextBlock x:Uid="AdapterStore" Grid.Row="0" Style="{StaticResource CommonTextStyle}"
                            HorizontalTextAlignment="Left" VerticalAlignment="Center"
                            FontWeight="Bold" FontSize="30" />
 
                 <Pivot Grid.Row="1" FontWeight="Bold">
-                    <PivotItem Header="插件">
+                    <PivotItem x:Uid="AdapterPlugin">
                     </PivotItem>
-                    <PivotItem Header="适配器">
+                    <PivotItem x:Uid="AdapterAdapter">
                     </PivotItem>
-                    <PivotItem Header="已安装">
+                    <PivotItem x:Uid="AdapterInstalled">
 
                         <Pivot FontWeight="Bold">
-                            <PivotItem Header="插件">
+                            <PivotItem x:Uid="AdapterPlugin">
                             </PivotItem>
-                            <PivotItem Header="适配器">
+                            <PivotItem x:Uid="AdapterAdapter">
                                 <ListView Name="InstalledAdapterView"
                                           BorderThickness="0,1,0,0"
                                           Width="500" HorizontalAlignment="Left"
@@ -64,7 +64,7 @@
                             </PivotItem>
                         </Pivot>
                     </PivotItem>
-                    <PivotItem Header="设置">
+                    <PivotItem x:Uid="AdapterSettings">
 
                     </PivotItem>
                 </Pivot>

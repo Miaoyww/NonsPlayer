@@ -22,7 +22,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="创建的歌单"
+                    <TextBlock Grid.Row="0" x:Uid="UserPlaylist_Created"
                                FontFamily="HarmonyOS Sans SC" TextAlignment="Center" FontSize="17" FontWeight="Medium" />
                     <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None"
                               ItemsSource="{x:Bind ViewModel.CreatedPlaylists, Mode=OneWay}">
@@ -39,7 +39,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="收藏的歌单"
+                    <TextBlock Grid.Row="0" x:Uid="UserPlaylist_Favorite"
                                FontFamily="HarmonyOS Sans SC" TextAlignment="Center" FontSize="17" FontWeight="Medium" />
                     <ListView Grid.Row="1" Margin="0,5,0,5" SelectionMode="None"
                               ItemsSource="{x:Bind ViewModel.SavedPlaylists, Mode=OneWay}">
@@ -53,10 +53,10 @@
             </StackPanel>
 
         </ScrollViewer>
-        <TextBlock Grid.Row="0" Visibility="{x:Bind ViewModel.TipVis, Mode=OneWay}"
+        <TextBlock x:Uid="UserPlaylist_Nothing"
+                   Grid.Row="0" Visibility="{x:Bind ViewModel.TipVis, Mode=OneWay}"
                    Style="{StaticResource CommonTextStyle}"
-                   Text="什么都没有哦" FontWeight="Bold"
-                   TextAlignment="Center" HorizontalTextAlignment="Center" VerticalAlignment="Center" />
+                   FontWeight="Bold" TextAlignment="Center" HorizontalTextAlignment="Center" VerticalAlignment="Center" />
         <Border Grid.Row="2"
                 Name="Cover"
                 Visibility="{x:Bind ViewModel.MusicStateModel.ShowCover, Mode=OneWay}"

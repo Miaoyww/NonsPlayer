@@ -46,18 +46,18 @@ public sealed partial class ShellPage : Page
 
     private void OnExceptionThrew(string content)
     {
-        ExceptionTtp.DispatcherQueue.TryEnqueue(() =>
+        ExceptionTip.DispatcherQueue.TryEnqueue(() =>
         {
-            ExceptionTtp.Title = "出错啦！";
-            ExceptionTtp.Content = content;
-            ExceptionTtp.IsOpen = true;
+            ExceptionTip.Title = "出错啦！";
+            ExceptionTip.Content = content;
+            ExceptionTip.IsOpen = true;
         });
     }
 
     [RelayCommand]
     public void ExceptionAction()
     {
-        ExceptionTtp.IsOpen = false;
+        ExceptionTip.IsOpen = false;
     }
 
     [RelayCommand]
@@ -71,9 +71,9 @@ public sealed partial class ShellPage : Page
     {
         if (!Account.Instance.IsLoggedIn)
         {
-            ExceptionTtp.Title = "出错啦！";
-            ExceptionTtp.Content = "当前未登录哦.";
-            ExceptionTtp.IsOpen = true;
+            ExceptionTip.Title = "出错啦！";
+            ExceptionTip.Content = "当前未登录哦.";
+            ExceptionTip.IsOpen = true;
             return;
         }
 

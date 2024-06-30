@@ -25,8 +25,8 @@
                             CornerRadius="10,10,10,10">
                         <Border.ContextFlyout>
                             <MenuBarItemFlyout Placement="Right" x:Name="CoverFlyout">
-                                <MenuFlyoutItem Text="复制" Icon="Copy" Command="{x:Bind CopyCoverCommand}" />
-                                <MenuFlyoutItem Text="保存" Icon="Save" Command="{x:Bind SaveCoverCommand}" />
+                                <MenuFlyoutItem x:Uid="PlaylistTips_Copy" Icon="Copy" Command="{x:Bind CopyCoverCommand}" />
+                                <MenuFlyoutItem  x:Uid="PlaylistTips_Save" Icon="Save" Command="{x:Bind SaveCoverCommand}" />
                             </MenuBarItemFlyout>
                         </Border.ContextFlyout>
                     </Border>
@@ -77,7 +77,7 @@
                         </Grid>
                         <Grid Grid.Row="4" VerticalAlignment="Bottom">
                             <StackPanel Orientation="Horizontal">
-                                <Button Name="PlayAllButton" Command="{x:Bind ViewModel.PlayAllCommand}"
+                                <Button x:Uid="PlaylistTips_PlayAll" Name="PlayAllButton" Command="{x:Bind ViewModel.PlayAllCommand}"
                                         Width="120" Height="50" CornerRadius="10" Padding="0"
                                         Margin="0,0,10,0">
                                     <StackPanel Orientation="Horizontal">
@@ -86,7 +86,7 @@
                                                   Margin="0,0,5,0"
                                                   Glyph="&#xF5B0;"
                                                   FontSize="16" />
-                                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Right" Text="播放全部"
+                                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Right"
                                                    FontFamily="HarmonyOS Sans SC" FontWeight="Medium" FontSize="16" />
                                     </StackPanel>
                                 </Button>
@@ -110,9 +110,9 @@
                                               FontSize="20" />
                                     <Button.Flyout>
                                         <MenuFlyout Placement="Right">
-                                            <MenuFlyoutItem Text="复制链接" Command="{x:Bind CopyLinkCommand}" />
-                                            <MenuFlyoutItem Text="复制ID" Command="{x:Bind CopyIdCommand}" />
-                                            <MenuFlyoutItem Text="复制歌单制作者名称"
+                                            <MenuFlyoutItem x:Uid="PlaylistTips_CopyLink" Command="{x:Bind CopyLinkCommand}" />
+                                            <MenuFlyoutItem x:Uid="PlaylistTips_CopyId" Command="{x:Bind CopyIdCommand}" />
+                                            <MenuFlyoutItem x:Uid="PlaylistTips_CopyInfo"
                                                             Command="{x:Bind CopyCreatorCommand}" />
                                         </MenuFlyout>
                                     </Button.Flyout>

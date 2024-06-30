@@ -14,7 +14,7 @@
                 Width="500" Height="200">
             <Grid Margin="20,10,0,0">
                 <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left">
-                    <TextBlock Text="最佳音乐结果" Margin="-10,0,0,0"
+                    <TextBlock x:Uid="BestMusic_Content" Margin="-10,0,0,0"
                                FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="16"
                                FontWeight="Bold" />
                     <Line Stroke="#A4A4A4" Margin="-10,0,0,0" StrokeThickness="1" X1="5" X2="120" />
@@ -33,7 +33,7 @@
                                     <Border Background="#C4C4C4" Opacity="0.4" Width="50" Height="24"
                                             CornerRadius="10" />
                                     <TextBlock
-                                        Text="单曲"
+                                        x:Uid="BestMusic_Single_Content"
                                         VerticalAlignment="Center" HorizontalAlignment="Center"
                                         FontFamily="HarmonyOS Sans SC" Foreground="#D9D9D9"
                                         FontSize="16"

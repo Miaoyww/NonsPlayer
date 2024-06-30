@@ -8,14 +8,14 @@
 
     <Grid Margin="{StaticResource PageCommonMargin}">
         <StackPanel>
-            <Button Content="打开本地音乐" />
+            <Button x:Uid="OpenLocalMusic"/>
             <TextBox Name="FileName" />
-            <Button Content="保存至本地歌单"
+            <Button x:Uid="SaveToLocalPlaylist"
                     CommandParameter="{x:Bind FileName.Text, Mode=OneWay}"
                     Command="{x:Bind ViewModel.ScanCommand}" />
-            <Button Content="获取歌曲信息"
+            <Button x:Uid="GetLocalMusicInfo"
                     Command="{x:Bind ViewModel.GetInfoCommand}" />
-            <Button Content="衔接模式"
+            <Button x:Uid="MixMode"
                     Command="{x:Bind ViewModel.MixModeCommand}" />
         </StackPanel>
 

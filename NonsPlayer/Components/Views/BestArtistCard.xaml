@@ -26,7 +26,7 @@
                     </Image>
                 </Viewbox>
 
-                <TextBlock Text="艺术家" Margin="20,10,0,0"
+                <TextBlock x:Uid="BestArtist_Content" Margin="20,10,0,0"
                            FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="24"
                            FontWeight="Bold" CharacterSpacing="300"
                            VerticalAlignment="Top" HorizontalAlignment="Center" />

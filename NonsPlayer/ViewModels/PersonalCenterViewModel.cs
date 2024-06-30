@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Nons.Account;
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
@@ -24,15 +25,15 @@ public class PersonalCenterViewModel : ObservableRecipient, INotifyPropertyChang
             switch (hour)
             {
                 case int n when n >= 0 && n < 6:
-                    return "夜深了, ";
+                    return "Greetings_MidNight".GetLocalized();
                 case int n when n >= 6 && n < 12:
-                    return "Good Morning~";
+                    return "Greetings_Morning".GetLocalized();
                 case int n when n >= 12 && n < 14:
-                    return "中午好!";
+                    return "Greetings_Noon".GetLocalized();
                 case int n when n >= 14 && n < 18:
-                    return "来杯下午茶吧, ";
+                    return "Greetings_Afternoon".GetLocalized();
                 default:
-                    return "日落归去, 晚好,";
+                    return "Greetings_Night".GetLocalized();
             }
         }
     }

@@ -13,17 +13,21 @@
     <Grid Background="Transparent" DoubleTapped="{x:Bind ViewModel.Play}">
         <Grid.ContextFlyout>
             <MenuFlyout>
-                <MenuFlyoutItem Text="下一首播放" Icon="Play" Command="{x:Bind ViewModel.PlayNextCommand}" />
-                <MenuFlyoutSubItem x:Name="CheckArtists" Text="查看艺术家" Icon="Contact" />
+                <MenuFlyoutItem x:Uid="PlayNext" Icon="Play"
+                                Command="{x:Bind ViewModel.PlayNextCommand}" />
+                <MenuFlyoutSubItem x:Uid="CheckArtist" x:Name="CheckArtists" Icon="Contact" />
 
-                <MenuFlyoutItem Text="查看专辑" Command="{x:Bind ViewModel.CheckAlbumCommand}">
+                <MenuFlyoutItem x:Uid="CheckAlbum"
+                                Command="{x:Bind ViewModel.CheckAlbumCommand}">
                     <MenuFlyoutItem.Icon>
                         <FontIcon Glyph="&#xE93C;" />
                     </MenuFlyoutItem.Icon>
                 </MenuFlyoutItem>
-                <MenuFlyoutSubItem Text="分享" Icon="Share">
-                    <MenuFlyoutItem Text="复制链接" Icon="Link" Command="{x:Bind ViewModel.CopyShareUrlCommand}" />
-                    <MenuFlyoutItem Text="复制信息" Icon="MusicInfo" Command="{x:Bind ViewModel.CopyMusicInfoCommand}" />
+                <MenuFlyoutSubItem x:Uid="Share" Icon="Share">
+                    <MenuFlyoutItem x:Uid="CopyLink" Icon="Link"
+                                    Command="{x:Bind ViewModel.CopyShareUrlCommand}" />
+                    <MenuFlyoutItem x:Uid="CopyInfo" Icon="MusicInfo"
+                                    Command="{x:Bind ViewModel.CopyMusicInfoCommand}" />
                 </MenuFlyoutSubItem>
             </MenuFlyout>
         </Grid.ContextFlyout>
@@ -75,14 +79,14 @@
                         </controls:MetadataControl.TextBlockStyle>
                     </controls:MetadataControl>
                 </StackPanel>
-                <HyperlinkButton Grid.Column="3" 
-                    x:Name="AlbumMetadata"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                    FontFamily="HarmonyOS Sans SC" FontSize="14" FontWeight="Medium"
-                    MaxWidth="200" Margin="0,0,0,0"
-                    Foreground="Black"
-                    Content="{x:Bind ViewModel.Album, Mode=OneWay}"
-                    Command="{x:Bind ViewModel.ForwardAlbumCommand}"/>
+                <HyperlinkButton Grid.Column="3"
+                                 x:Name="AlbumMetadata"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center"
+                                 FontFamily="HarmonyOS Sans SC" FontSize="14" FontWeight="Medium"
+                                 MaxWidth="200" Margin="0,0,0,0"
+                                 Foreground="Black"
+                                 Content="{x:Bind ViewModel.Album, Mode=OneWay}"
+                                 Command="{x:Bind ViewModel.ForwardAlbumCommand}" />
                 <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Orientation="Horizontal">
                     <Button Margin="0,0,30,0" Height="30" Width="30" Padding="0" Background="Transparent"

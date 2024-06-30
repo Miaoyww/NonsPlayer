@@ -103,7 +103,7 @@
                             <Grid>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock
-                                        Text="播放列表"
+                                        x:Uid="PlayQueue"
                                         Style="{StaticResource CommonTextStyle}" FontWeight="Black"
                                         HorizontalAlignment="Left" Margin="20,10,0,0" />
                                     <TextBlock
@@ -129,12 +129,11 @@
             </SplitView.Pane>
         </SplitView>
         <views:PlayBar x:Name="PlayerBar" VerticalAlignment="Bottom" />
-        <TeachingTip x:Name="ExceptionTtp"
+        <TeachingTip x:Uid="ExceptionTip"
+                     x:Name="ExceptionTip"
                      PreferredPlacement="Bottom"
                      PlacementMargin="20"
                      IsLightDismissEnabled="True"
-                     ActionButtonCommand="{x:Bind ExceptionActionCommand}"
-                     ActionButtonContent="OK"
-                     CloseButtonContent="知道了" />
+                     ActionButtonCommand="{x:Bind ExceptionActionCommand}"/>
     </Grid>
 </Page>

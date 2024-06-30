@@ -173,7 +173,7 @@
   <data name="ShellMenu_Own.Content" xml:space="preserve">
     <value>我的</value>
     <comment>我的按钮的文本</comment>
-  </data>  
+  </data>
   <data name="ShellMenu_Adapter.Content" xml:space="preserve">
     <value>适配器</value>
     <comment>适配器按钮的文本</comment>
@@ -185,5 +185,218 @@
   <data name="SettingsPage_BilibiliLink.NavigateUri" xml:space="preserve">
     <value>https://space.bilibili.com/435970102</value>
     <comment>设置页面 超链接文本 Bilibili链接</comment>
+  </data>
+  <data name="AdapterAdapter.Header" xml:space="preserve">
+    <value>适配器</value>
+  </data>
+  <data name="AdapterInstalled.Header" xml:space="preserve">
+    <value>已安装</value>
+  </data>
+  <data name="AdapterPlugin.Header" xml:space="preserve">
+    <value>插件</value>
+  </data>
+  <data name="AdapterSettings.Header" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="AdapterStore.Text" xml:space="preserve">
+    <value>插件商店</value>
+  </data>
+  <data name="BestArtist_Content.Text" xml:space="preserve">
+    <value>艺术家</value>
+  </data>
+  <data name="BestMusic_Content.Text" xml:space="preserve">
+    <value>最佳音乐结果</value>
+  </data>
+  <data name="BestMusic_Single_Content.Text" xml:space="preserve">
+    <value>单曲</value>
+  </data>
+  <data name="CheckAlbum.Text" xml:space="preserve">
+    <value>查看专辑</value>
+  </data>
+  <data name="CheckArtist.Text" xml:space="preserve">
+    <value>查看艺术家</value>
+  </data>
+  <data name="CopyInfo.Text" xml:space="preserve">
+    <value>复制信息</value>
+  </data>
+  <data name="CopyLink.Text" xml:space="preserve">
+    <value>复制链接</value>
+  </data>
+  <data name="DevelopingTip.Text" xml:space="preserve">
+    <value>当前功能还在开发当中</value>
+  </data>
+  <data name="ExceptionTip.ActionButtonContent" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="ExceptionTip.CloseButtonContent" xml:space="preserve">
+    <value>知道了</value>
+  </data>
+  <data name="GetLocalMusicInfo.Content" xml:space="preserve">
+    <value>获取歌曲信息</value>
+  </data>
+  <data name="Greetings_Afternoon" xml:space="preserve">
+    <value>来杯下午茶吧,</value>
+  </data>
+  <data name="Greetings_MidNight" xml:space="preserve">
+    <value>夜深了,</value>
+  </data>
+  <data name="Greetings_Morning" xml:space="preserve">
+    <value>Good Morning~</value>
+  </data>
+  <data name="Greetings_Night" xml:space="preserve">
+    <value>日落归去, 晚好,</value>
+  </data>
+  <data name="Greetings_Noon" xml:space="preserve">
+    <value>中午好!</value>
+  </data>
+  <data name="MixMode.Content" xml:space="preserve">
+    <value>衔接模式</value>
+  </data>
+  <data name="MusicListBar_Album.Text" xml:space="preserve">
+    <value>专辑</value>
+  </data>
+  <data name="MusicListBar_Duration.Text" xml:space="preserve">
+    <value>时长</value>
+  </data>
+  <data name="MusicListBar_Title.Text" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="OpenLocalMusic.Content" xml:space="preserve">
+    <value>打开本地音乐</value>
+  </data>
+  <data name="PlaylistTips_Copy.Text" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="PlaylistTips_CopyId.Text" xml:space="preserve">
+    <value>复制ID</value>
+  </data>
+  <data name="PlaylistTips_CopyInfo.Text" xml:space="preserve">
+    <value>复制歌单制作者名称</value>
+  </data>
+  <data name="PlaylistTips_CopyLink.Text" xml:space="preserve">
+    <value>复制链接</value>
+  </data>
+  <data name="PlaylistTips_PlayAll.Content" xml:space="preserve">
+    <value>播放全部</value>
+  </data>
+  <data name="PlaylistTips_Save.Text" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="PlayNext.Text" xml:space="preserve">
+    <value>下一首播放</value>
+  </data>
+  <data name="PlayQueue.Text" xml:space="preserve">
+    <value>播放列表</value>
+  </data>
+  <data name="RecommendedPlaylist.Text" xml:space="preserve">
+    <value>推荐歌单</value>
+  </data>
+  <data name="SaveToLocalPlaylist.Content" xml:space="preserve">
+    <value>保存至本地歌单</value>
+  </data>
+  <data name="Settings_Apis.Description" xml:space="preserve">
+    <value>开关/编辑 有关API接口</value>
+  </data>
+  <data name="Settings_Apis.Header" xml:space="preserve">
+    <value>Api接口</value>
+  </data>
+  <data name="Settings_Apis_SetPort.Header" xml:space="preserve">
+    <value>设置端口</value>
+  </data>
+  <data name="Settings_Apis_Switcher.Header" xml:space="preserve">
+    <value>开/关 API接口</value>
+  </data>
+  <data name="Settings_Apis_TurnOnWhen.Header" xml:space="preserve">
+    <value>启动时自行开启API接口</value>
+  </data>
+  <data name="Settings_OtherSettings.Description" xml:space="preserve">
+    <value>设置如 歌单详情页一次显示的歌曲数量 的设置</value>
+  </data>
+  <data name="Settings_OtherSettings.Header" xml:space="preserve">
+    <value>其它设置</value>
+  </data>
+  <data name="Settings_OtherSettings_HomeCount.Header" xml:space="preserve">
+    <value>主页推荐歌单数量</value>
+  </data>
+  <data name="Settings_OtherSettings_MediaControl.Header" xml:space="preserve">
+    <value>是否启用系统媒体控制</value>
+  </data>
+  <data name="Settings_OtherSettings_Offset.Header" xml:space="preserve">
+    <value>加载下一页歌单的偏移量</value>
+  </data>
+  <data name="Settings_OtherSettings_RecommendedCount.Header" xml:space="preserve">
+    <value>歌单详情页一次显示的歌曲数量</value>
+  </data>
+  <data name="Settings_OtherSettings_VolumeStep.Header" xml:space="preserve">
+    <value>按一下音量加减的增量</value>
+  </data>
+  <data name="Settings_Personalize.Header" xml:space="preserve">
+    <value>个性化</value>
+  </data>
+  <data name="Settings_Personalize_Theme.Header" xml:space="preserve">
+    <value>主题色</value>
+  </data>
+  <data name="Settings_Personalize_Theme_Dark.Text" xml:space="preserve">
+    <value>暗色</value>
+  </data>
+  <data name="Settings_Personalize_Theme_FollowSystem.Text" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Settings_Personalize_Theme_Light.Text" xml:space="preserve">
+    <value>亮色</value>
+  </data>
+  <data name="Settings_Settings.Text" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Settings_Version.Header" xml:space="preserve">
+    <value>当前版本</value>
+  </data>
+  <data name="Settings_Version_CheckUpdate.Text" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="Settings_Version_Test.Header" xml:space="preserve">
+    <value>测试</value>
+  </data>
+  <data name="Settings_Version_TestButton.Content" xml:space="preserve">
+    <value>测试按钮</value>
+  </data>
+  <data name="Share.Text" xml:space="preserve">
+    <value>分享</value>
+  </data>
+  <data name="Update_Architecture.Text" xml:space="preserve">
+    <value>架构</value>
+  </data>
+  <data name="Update_BuildTime.Text" xml:space="preserve">
+    <value>编译时间</value>
+  </data>
+  <data name="Update_DownloadByHand.Text" xml:space="preserve">
+    <value>手动下载</value>
+  </data>
+  <data name="Update_DownloadLater.Text" xml:space="preserve">
+    <value>不是现在</value>
+  </data>
+  <data name="Update_DownloadNow.Text" xml:space="preserve">
+    <value>现在更新</value>
+  </data>
+  <data name="Update_Found.Text" xml:space="preserve">
+    <value>发现新版本!</value>
+  </data>
+  <data name="Update_Github.Content" xml:space="preserve">
+    <value>Github页面</value>
+  </data>
+  <data name="Update_IgnoreVersion.Text" xml:space="preserve">
+    <value>忽略此版本</value>
+  </data>
+  <data name="Update_Links.Text" xml:space="preserve">
+    <value>相关链接</value>
+  </data>
+  <data name="UserPlaylist_Created.Text" xml:space="preserve">
+    <value>创建的歌单</value>
+  </data>
+  <data name="UserPlaylist_Favorite.Text" xml:space="preserve">
+    <value>收藏的歌单</value>
+  </data>
+  <data name="UserPlaylist_Nothing.Text" xml:space="preserve">
+    <value>什么都没有哦</value>
   </data>
 </root>
