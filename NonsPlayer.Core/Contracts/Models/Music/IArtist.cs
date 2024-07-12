@@ -1,20 +1,12 @@
 ﻿using System.Text.Json.Serialization;
 using NonsPlayer.Core.Contracts.Models;
 
-namespace NonsPlayer.Core.Models;
+namespace NonsPlayer.Core.Contracts.Models.Music;
 
-public class Artist : INonsModel
+public interface IArtist : IMusicModel
 {
     [JsonPropertyName("desc")] public string Description { get; set; }
-    [JsonPropertyName("musics")] public List<Music> HotMusics { get; set; }
+    [JsonPropertyName("musics")] public List<IMusic> HotMusics { get; set; }
     [JsonPropertyName("music_count")] public int MusicCount { get; set; }
     [JsonPropertyName("trans")] public string Trans { get; set; }
-
-    public static Artist CreatEmpty()
-    {
-        return new Artist
-        {
-            Name = "未知艺术家"
-        };
-    }
 }

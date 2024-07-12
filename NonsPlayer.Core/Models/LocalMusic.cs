@@ -2,7 +2,9 @@
 using System.Text.Json.Serialization;
 using IF.Lastfm.Core.Api;
 using IF.Lastfm.Core.Objects;
-using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.AMLL.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
+using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Services;
 
 namespace NonsPlayer.Core.Models;
@@ -34,20 +36,20 @@ public class LocalMusic : IMusic
         LocalCover = File.Tag.Pictures.Length > 0 ? File.Tag.Pictures[0].Data.Data : null;
         Name = File.Tag.Title;
         Md5 = File.GetHashCode().ToString();
-        Id = $"{Name}_{Md5}".GetHashCode();
-        Uri = file.Name;
-        Album = new Album()
+        Id = $"{Name}_{Md5}";
+        Url = file.Name;
+        Album = new LocalAlbum()
         {
             Name = File.Tag.Album,
-            Id = $"{File.Tag.Album}_{Md5}".GetHashCode(),
-            AvatarUrl = Uri,
+            Id = $"{File.Tag.Album}_{Md5}",
+            AvatarUrl = Url,
         };
         Artists =
         [
-            new()
+            new LocalArtist()
             {
                 Name = File.Tag.FirstPerformer,
-                Id = $"{File.Tag.FirstPerformer}_{Md5}".GetHashCode()
+                Id = $"{File.Tag.FirstPerformer}_{Md5}"
             }
         ];
         Duration = File.Properties.Duration;
@@ -59,19 +61,20 @@ public class LocalMusic : IMusic
     /// <returns></returns>
     public async Task<bool> TryGetInfo()
     {
-        try
-        {
-            var artistsTasks = Artists.Select(async x => await _lastfmClient.Artist.GetInfoAsync(x.Name)).ToList();
-            LastAlbum = (await _lastfmClient.Album.GetInfoAsync(ArtistsName, Artists[0].Name)).Content;
-            LastArtists = (await Task.WhenAll(artistsTasks)).Select(x => x.Content).ToList();
-            LastTrack = (await _lastfmClient.Track.GetInfoAsync(Name, ArtistsName)).Content;
-        }
-        catch (Exception e)
-        {
-            ExceptionService.Instance.Throw(e);
-            return false;
-        }
-
+        // try
+        // {
+        //     var artistsTasks = Artists.Select(async x => await _lastfmClient.Artist.GetInfoAsync(x.Name)).ToList();
+        //     LastAlbum = (await _lastfmClient.Album.GetInfoAsync(ArtistsName, Artists[0].Name)).Content;
+        //     LastArtists = (await Task.WhenAll(artistsTasks)).Select(x => x.Content).ToList();
+        //     LastTrack = (await _lastfmClient.Track.GetInfoAsync(Name, ArtistsName)).Content;
+        // }
+        // catch (Exception e)
+        // {
+        //     ExceptionService.Instance.Throw(e);
+        //     return false;
+        // }
+        //
+        // return true;
         return true;
     }
 
@@ -80,5 +83,30 @@ public class LocalMusic : IMusic
         byte[] fromBytes = from.GetBytes(str);
         byte[] toBytes = Encoding.Convert(from, to, fromBytes);
         return to.GetString(toBytes);
+    }
+
+    public string Id { get; set; }
+    public string Md5 { get; set; }
+    public string Name { get; set; }
+    public string ShareUrl { get; set; }
+    public string AvatarUrl { get; set; }
+    public IAlbum Album { get; set; }
+    public IArtist[] Artists { get; set; }
+    public bool IsEmpty { get; set; }
+    public TimeSpan Duration { get; set; }
+    public string Url { get; set; }
+    public Lyric Lyric { get; set; }
+    public byte[]? LocalCover { get; set; }
+    public bool IsLiked { get; set; }
+    public MusicQualityLevel[] QualityLevels { get; set; }
+    public string? Trans { get; set; }
+    public Task GetUrl()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task GetLyric()
+    {
+        throw new NotImplementedException();
     }
 }

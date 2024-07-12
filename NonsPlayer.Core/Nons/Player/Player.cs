@@ -5,6 +5,7 @@ using NAudio.Utils;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
@@ -93,8 +94,8 @@ public class Player
         }
         else
         {
-            await Task.WhenAll(((Music)music).GetLyric(), ((Music)music).GetFileInfo());
-            await PlayCore((Music)music);
+            await Task.WhenAll((music).GetLyric(), (music).GetUrl());
+            await PlayCore(music);
         }
     }
 
@@ -151,7 +152,7 @@ public class Player
             var providers = new ISampleProvider[music.Length];
             for (int i = 0; i < music.Length; i++)
             {
-                readers[i] = new MediaFoundationReader(music[i].Uri);
+                readers[i] = new MediaFoundationReader(music[i].Url);
                 providers[i] = readers[i].ToSampleProvider();
             }
 
@@ -160,7 +161,7 @@ public class Player
         }
         else
         {
-            var reader = new MediaFoundationReader(music[0].Uri);
+            var reader = new MediaFoundationReader(music[0].Url);
             mixer = new MusicMixer(reader.ToSampleProvider(), [reader]);
         }
 

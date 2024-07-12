@@ -1,11 +1,12 @@
 ﻿using Newtonsoft.Json.Linq;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Core.Contracts.Adapters;
 
 public interface IAlbumAdapter: ISubAdapter
 {
-    Task<Album> GetAlbumAsync(object content);
+    Task<IAlbum> GetAlbumAsync(object content);
     
-    Album GetAlbum(object content);
+    IAlbum GetAlbum(object content);
 }

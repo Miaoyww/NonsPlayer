@@ -1,14 +1,18 @@
 ﻿using Newtonsoft.Json.Linq;
+using NonsPlayer.Core.Contracts.Models.Music;
+using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Core.Contracts.Adapters;
 
 public interface IMusicAdapter : ISubAdapter
 {
-    Task<Music?>? GetMusicAsync(object content);
+    Task<IMusic?>? GetMusicAsync(object content);
 
-    Task<Music[]?>? GetMusicListAsync(object content);
+    Task<IMusic[]?>? GetMusicListAsync(object content);
 
-    Music? GetMusic(object content);
-    Music[]? GetMusicList(object content);
+    IMusic? GetMusic(object content);
+    IMusic[]? GetMusicList(object content);
+    
+    Task<string> GetMusicUrlAsync(string id, MusicQualityLevel qualityLevel);
 }

@@ -1,22 +1,32 @@
-﻿namespace NonsPlayer.Core.Contracts.Plugins;
+﻿using TagLib.Ogg;
+
+namespace NonsPlayer.Core.Contracts.Plugins;
 
 public interface IPlugin
 {
-    PluginMetadata GetMetadata();
     void Initialize();
     void Uninitialize();
+    Page[] GetPages();
+    
+    PluginMetadata GetMetadata();
 }
 
 public class PluginMetadata
 {
     public PluginMetadata This { get; set; }
-
     public PluginMetadata()
     {
         This = this;
     }
-
+    
+    /// <summary>
+    /// 
+    /// </summary>
     public string Name { get; set; }
+    /// <summary>
+    /// 用于显示在界面上的名字
+    /// </summary>
+    public string DisPlayName { get; set; }
     public string Author { get; set; }
     public string Description { get; set; }
     public Version Version { get; set; }

@@ -43,14 +43,14 @@ public class LocalSettingsService : ILocalSettingsService
         if (RuntimeHelper.IsMSIX)
         {
             if (ApplicationData.Current.LocalSettings.Values.TryGetValue(key, out var obj))
-                return await Json.ToObjectAsync<T>((string)obj);
+                return await JsonUtils.ToObjectAsync<T>((string)obj);
         }
         else
         {
             await InitializeAsync();
 
             if (_settings != null && _settings.TryGetValue(key, out var obj))
-                return await Json.ToObjectAsync<T>((string)obj);
+                return await JsonUtils.ToObjectAsync<T>((string)obj);
         }
 
         return default;
@@ -60,13 +60,13 @@ public class LocalSettingsService : ILocalSettingsService
     {
         if (RuntimeHelper.IsMSIX)
         {
-            ApplicationData.Current.LocalSettings.Values[key] = await Json.StringifyAsync(value);
+            ApplicationData.Current.LocalSettings.Values[key] = await JsonUtils.StringifyAsync(value);
         }
         else
         {
             await InitializeAsync();
 
-            _settings[key] = await Json.StringifyAsync(value);
+            _settings[key] = await JsonUtils.StringifyAsync(value);
 
             await Task.Run(() => _fileService.Save(_applicationDataFolder, _localsettingsFile, _settings));
         }

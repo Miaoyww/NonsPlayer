@@ -1,5 +1,4 @@
-﻿using NonsPlayer.Core.Contracts.Models;
-using NonsPlayer.Core.Models;
+﻿using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Nons.Player;
 
 namespace NonsPlayer.Core.Services;

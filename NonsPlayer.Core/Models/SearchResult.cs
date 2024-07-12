@@ -1,16 +1,13 @@
-﻿using System.Diagnostics;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
-using Newtonsoft.Json.Linq;
-using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Exceptions;
-using NonsPlayer.Core.Nons;
-using NonsPlayer.Core.Services;
+
 
 namespace NonsPlayer.Core.Models;
 
-public class SearchResult : INonsModel
+public class SearchResult: INonsModel
 {
     public readonly string KeyWords;
     public SearchResult(string keyWords)
@@ -20,16 +17,22 @@ public class SearchResult : INonsModel
         KeyWords = keyWords;
     }
 
-    public Playlist[]? Playlists { get; set; }
+    public IPlaylist[]? Playlists { get; set; }
 
-    public Artist[]? Artists { get; set; }
+    public IArtist[]? Artists { get; set; }
 
-    public Music[]? Musics { get; set; }
+    public IMusic[]? Musics { get; set; }
 
     /// <returns>Md5的b64形式</returns>
     private string GetMd5(string keyWords)
     {
-        Md5 = MD5.HashData(Encoding.UTF8.GetBytes(keyWords)).ToBase64String();
+        Md5 = Convert.ToBase64String(MD5.HashData(Encoding.UTF8.GetBytes(keyWords)));
         return Md5;
     }
+
+    public string Id { get; set; }
+    public string Md5 { get; set; }
+    public string Name { get; set; }
+    public string ShareUrl { get; set; }
+    public string AvatarUrl { get; set; }
 }

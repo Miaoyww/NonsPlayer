@@ -1,5 +1,6 @@
 ﻿using NAudio.Wave;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
 

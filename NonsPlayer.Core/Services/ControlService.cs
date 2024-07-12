@@ -84,34 +84,34 @@ public class ControlFactory
                 return Result.ResultFactory();
             case Command.GetPlayerState:
                 return Result.ResultFactory();
-            case Command.Like:
-                var code = await FavoritePlaylistService.Instance.LikeAsync(PlayQueue.Instance.CurrentMusic.Id);
-                if (code != 200)
-                {
-                    switch (code)
-                    {
-                        case 301:
-                            return new Result
-                            {
-                                IsFailed = true,
-                                Message = "请登录后再试"
-                            };
-                        case 400:
-                            return new Result
-                            {
-                                IsFailed = true,
-                                Message = "请检查网络后再试"
-                            };
-                        default:
-                            return new Result
-                            {
-                                IsFailed = true,
-                                Message = $"出现了错误 {code}"
-                            };
-                    }
-                }
-
-                return Result.ResultFactory();
+            // case Command.Like:
+            //     var code = await FavoritePlaylistService.Instance.LikeAsync(PlayQueue.Instance.CurrentMusic.Id);
+            //     if (code != 200)
+            //     {
+            //         switch (code)
+            //         {
+            //             case 301:
+            //                 return new Result
+            //                 {
+            //                     IsFailed = true,
+            //                     Message = "请登录后再试"
+            //                 };
+            //             case 400:
+            //                 return new Result
+            //                 {
+            //                     IsFailed = true,
+            //                     Message = "请检查网络后再试"
+            //                 };
+            //             default:
+            //                 return new Result
+            //                 {
+            //                     IsFailed = true,
+            //                     Message = $"出现了错误 {code}"
+            //                 };
+            //         }
+            //     }
+            //
+            //     return Result.ResultFactory();
             case Command.Mute:
                 Mute();
                 return Result.ResultFactory();
