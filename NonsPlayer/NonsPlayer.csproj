@@ -65,16 +65,10 @@
             <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
             <SubType>Designer</SubType>
         </Page>
-        <Page Update="Components\Views\UserPlaylistBar.xaml">
-            <Generator>MSBuild:Compile</Generator>
-        </Page>
         <Page Update="Components\Views\BestMusicCard.xaml">
             <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         </Page>
         <Page Update="Components\Views\PlayBar.xaml">
-            <Generator>MSBuild:Compile</Generator>
-        </Page>
-        <Page Update="Components\Views\UserPlaylistCard.xaml">
             <Generator>MSBuild:Compile</Generator>
         </Page>
         <Page Update="Components\Views\MusicListBar.xaml">

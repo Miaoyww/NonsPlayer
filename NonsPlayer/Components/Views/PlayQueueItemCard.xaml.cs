@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
@@ -23,7 +24,7 @@ public sealed partial class PlayQueueItemCard : UserControl
     [ObservableProperty] private Tuple<string, string, byte[]> coverUrl;
 
     [ObservableProperty] private Brush fontBrush = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
-    [ObservableProperty] private long id;
+    [ObservableProperty] private string id;
     [ObservableProperty] private bool liked; //TODO: Implement this
     [ObservableProperty] private IMusic music;
     [ObservableProperty] private string name;

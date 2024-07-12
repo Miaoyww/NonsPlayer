@@ -1,4 +1,5 @@
 ﻿using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Components.Models;
@@ -15,5 +16,5 @@ public class MusicModel
     public string Artists => Music.ArtistsName;
     public string Time => Music.TotalTimeString;
 
-    public long Id => Music.Id;
+    public string Id => Music.Id;
 }

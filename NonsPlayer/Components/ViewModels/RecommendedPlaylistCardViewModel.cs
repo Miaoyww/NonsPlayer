@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
@@ -15,11 +16,11 @@ namespace NonsPlayer.Components.ViewModels;
 public partial class RecommendedPlaylistCardViewModel
 {
     [ObservableProperty] private ImageBrush cover;
-    public Playlist CurrentPlaylist;
+    public IPlaylist CurrentPlaylist;
     [ObservableProperty] private string id;
     [ObservableProperty] private string title;
 
-    public void Init(Playlist item)
+    public void Init(IPlaylist item)
     {
         CurrentPlaylist = item;
         Id = item.Id.ToString();
@@ -38,15 +39,15 @@ public partial class RecommendedPlaylistCardViewModel
     [RelayCommand]
     public async void PlayNext()
     {
-        if (CurrentPlaylist.IsCardMode)
-        {
-            // var elapsed = await Tools.MeasureExecutionTimeAsync(CurrentPlaylist.LoadAsync(CurrentPlaylist.Id))
-                // .ConfigureAwait(false);
-            // Debug.WriteLine($"获取歌单Api耗时{elapsed.TotalMilliseconds}ms");
-            CurrentPlaylist.IsCardMode = false;
-        }
+        // if (CurrentPlaylist.IsCardMode)
+        // {
+        //     // var elapsed = await Tools.MeasureExecutionTimeAsync(CurrentPlaylist.LoadAsync(CurrentPlaylist.Id))
+        //         // .ConfigureAwait(false);
+        //     // Debug.WriteLine($"获取歌单Api耗时{elapsed.TotalMilliseconds}ms");
+        //     CurrentPlaylist.IsCardMode = false;
+        // }
 
-        CurrentPlaylist.InitTracks();
+        CurrentPlaylist.InitializeMusics();
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
             PlayQueue.Instance.AddNext(CurrentPlaylist.Musics.ToArray());

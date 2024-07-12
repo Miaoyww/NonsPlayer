@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
@@ -17,7 +18,7 @@ namespace NonsPlayer.ViewModels;
 public partial class MusicStateModel
 {
     [ObservableProperty] private Brush cover;
-    [ObservableProperty] private IMusic currentMusic;
+    [ObservableProperty] private IMusic? currentMusic;
     [ObservableProperty] private bool currentSongLiked;
     [ObservableProperty] private double currentVolume;
     [ObservableProperty] private TimeSpan duration = TimeSpan.Zero;
@@ -33,7 +34,7 @@ public partial class MusicStateModel
 
     private MusicStateModel()
     {
-        CurrentMusic = Music.CreateEmpty();
+        CurrentMusic = null;
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
     }
 
@@ -71,7 +72,7 @@ public partial class MusicStateModel
     }
 
     [RelayCommand]
-    private void ForwardArtist(Artist artist)
+    private void ForwardArtist(IArtist artist)
     {
         ServiceHelper.NavigationService.NavigateTo(typeof(ArtistViewModel)?.FullName, artist);
     }
@@ -101,7 +102,7 @@ public partial class MusicStateModel
 
 
         Duration = value.Duration;
-        CurrentSongLiked = FavoritePlaylistService.Instance.IsLiked(value.Id);
+        // CurrentSongLiked = FavoritePlaylistService.Instance.IsLiked(value.Id);
         ArtistsMetadata.Clear();
         foreach (var artist in value.Artists)
         {
@@ -128,7 +129,7 @@ public partial class MusicStateModel
     partial void OnVolumeChanging(double value)
     {
         currentVolume = value;
-        RegHelper.Instance.Set(RegHelper.Regs.Volume, value.ToString());
-        if (Player.Instance.OutputDevice != null) Player.Instance.Volume = (float)value / 100;
+        // RegHelper.Instance.Set(RegHelper.Regs.Volume, value.ToString());
+        // if (Player.Instance.OutputDevice != null) Player.Instance.Volume = (float)value / 100;
     }
 }

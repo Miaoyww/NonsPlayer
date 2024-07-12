@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Media;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
@@ -11,7 +12,7 @@ namespace NonsPlayer.Components.ViewModels;
 public partial class BestMusicCardViewModel
 {
     [ObservableProperty] private ImageBrush cover;
-    [ObservableProperty] private long? id;
+    [ObservableProperty] private string? id;
     [ObservableProperty] private string subtitle;
     [ObservableProperty] private string title;
 
@@ -20,7 +21,7 @@ public partial class BestMusicCardViewModel
         SearchHelper.Instance.BestMusicResultChanged += OnBestMusicResultChanged;
     }
 
-    public async void OnBestMusicResultChanged(Music value)
+    public async void OnBestMusicResultChanged(IMusic value)
     {
         Id = value.Id;
         Title = value.Name;

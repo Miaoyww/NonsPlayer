@@ -20,6 +20,7 @@ using CommunityToolkit.WinUI.Animations;
 using Microsoft.UI.Xaml.Media;
 using CommunityToolkit.WinUI.Media;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 
 namespace NonsPlayer.Views.Pages;
 

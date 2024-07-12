@@ -14,4 +14,6 @@ public interface IPlaylist : IMusicModel
     public List<IMusic> Musics { get; set; }
     public int MusicsCount => MusicTrackIds.Length;
     public string CacheId => Id + "_playlist";
+    
+    void InitializeMusics();
 }

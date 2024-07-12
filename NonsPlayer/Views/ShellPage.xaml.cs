@@ -7,9 +7,10 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Nons.Account;
+using NonsPlayer.Core.Nons;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
@@ -65,35 +66,6 @@ public sealed partial class ShellPage : Page
     {
         ViewModel.NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName);
     }
-
-    [RelayCommand]
-    public async Task SignOut()
-    {
-        if (!Account.Instance.IsLoggedIn)
-        {
-            ExceptionTip.Title = "出错啦！";
-            ExceptionTip.Content = "当前未登录哦.";
-            ExceptionTip.IsOpen = true;
-            return;
-        }
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-            Title = "确认",
-            PrimaryButtonText = "确定",
-            CloseButtonText = "点错了",
-            DefaultButton = ContentDialogButton.Primary,
-            Content = "确定要退出当前账号吗?"
-        };
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
-        {
-            await Account.Instance.LogOut();
-        }
-    }
-
     public event ShellViewDialogShowEventHandler OnDialogShowCall;
 
     public void OnOpenPlayQueueButton_Click(object? sender, EventArgs e)
@@ -109,27 +81,6 @@ public sealed partial class ShellPage : Page
         KeyboardAccelerators.Add(BuildKeyboardAccelerator(VirtualKey.GoBack));
         PlayQueue.Instance.CurrentMusicChanged += OnCurrentMusicChanged;
         ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
-        AccountService.Instance.UpdateInfo();
-
-        try
-        {
-            await Account.Instance.LoginByReg();
-        }
-        catch (LoginFailureException error)
-        {
-            var dialog = new ContentDialog
-            {
-                XamlRoot = XamlRoot,
-                Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-                Title = "错误",
-                PrimaryButtonText = "知道了",
-                CloseButtonText = "取消",
-                DefaultButton = ContentDialogButton.Primary,
-                Content = $"登录失败~ {error.Message}"
-            };
-            await dialog.ShowAsync();
-            await Account.Instance.LogOut();
-        }
     }
 
     private void OnCurrentMusicChanged(IMusic value)

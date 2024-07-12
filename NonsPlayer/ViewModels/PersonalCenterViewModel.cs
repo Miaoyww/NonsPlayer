@@ -2,7 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Core.Nons.Account;
+using NonsPlayer.Core.Nons;
 using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
@@ -42,6 +42,7 @@ public class PersonalCenterViewModel : ObservableRecipient, INotifyPropertyChang
 
     public void PersonalCenterPage_OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (!Account.Instance.IsLoggedIn) NavigationService.NavigateTo(typeof(LoginViewModel).FullName!);
+        //TODO: 本地账号设置
+        // if (!Account.Instance.IsLoggedIn) NavigationService.NavigateTo(typeof(LoginViewModel).FullName!);
     }
 }

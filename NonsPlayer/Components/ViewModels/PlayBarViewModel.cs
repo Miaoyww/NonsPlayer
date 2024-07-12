@@ -22,8 +22,9 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public PlayerBarViewModel()
     {
-        MusicStateModel.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 100.0).ToString());
-        FavoritePlaylistService.Instance.LikeSongsChanged += UpdateLike;
+        //TODO: 音量由本地config提供
+        // MusicStateModel.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 100.0).ToString());
+        // FavoritePlaylistService.Instance.LikeSongsChanged += UpdateLike;
     }
 
     public PlayerService PlayerService => PlayerService.Instance;
@@ -31,11 +32,11 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public void UpdateLike()
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        {
-            MusicStateModel.Instance.CurrentSongLiked =
-                FavoritePlaylistService.Instance.IsLiked(MusicStateModel.Instance.CurrentMusic.Id);
-        });
+        // ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        // {
+        //     MusicStateModel.Instance.CurrentSongLiked =
+        //         FavoritePlaylistService.Instance.IsLiked(MusicStateModel.Instance.CurrentMusic.Id);
+        // });
     }
 
     [RelayCommand]

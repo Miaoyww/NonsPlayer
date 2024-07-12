@@ -51,35 +51,35 @@ public sealed partial class PlayBar : UserControl
     private async void LikeMusic()
     {
         if (MusicStateModel.Instance.CurrentMusic.IsEmpty) return;
-        var code = await FavoritePlaylistService.Instance.LikeAsync(MusicStateModel.Instance.CurrentMusic.Id);
-        if (code != 200)
-        {
-            string content;
-            switch (code)
-            {
-                case 301:
-                    content = "请登录后再试";
-                    break;
-                case 400:
-                    content = "请检查网络后再试";
-                    break;
-                default:
-                    content = $"出现了错误 {code}";
-                    break;
-            }
-
-            var dialog = new ContentDialog
-            {
-                XamlRoot = XamlRoot,
-                Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-                Title = "错误",
-                PrimaryButtonText = "知道了",
-                CloseButtonText = "取消",
-                DefaultButton = ContentDialogButton.Primary,
-                Content = content
-            };
-            await dialog.ShowAsync();
-        }
+        // var code = await FavoritePlaylistService.Instance.LikeAsync(MusicStateModel.Instance.CurrentMusic.Id);
+        // if (code != 200)
+        // {
+        //     string content;
+        //     switch (code)
+        //     {
+        //         case 301:
+        //             content = "请登录后再试";
+        //             break;
+        //         case 400:
+        //             content = "请检查网络后再试";
+        //             break;
+        //         default:
+        //             content = $"出现了错误 {code}";
+        //             break;
+        //     }
+        //
+        //     var dialog = new ContentDialog
+        //     {
+        //         XamlRoot = XamlRoot,
+        //         Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
+        //         Title = "错误",
+        //         PrimaryButtonText = "知道了",
+        //         CloseButtonText = "取消",
+        //         DefaultButton = ContentDialogButton.Primary,
+        //         Content = content
+        //     };
+        //     await dialog.ShowAsync();
+        // }
     }
 
     public void OnPositionChanged(TimeSpan position)

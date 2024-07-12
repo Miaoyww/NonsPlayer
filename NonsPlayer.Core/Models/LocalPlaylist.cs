@@ -24,6 +24,11 @@ public class LocalPlaylist : IPlaylist
         set => _musics = value;
     }
 
+    public void InitializeMusics()
+    {
+        // igrone
+    }
+
     [JsonPropertyName("musics")] public List<LocalMusic> Musics { get; set; }
 
     [JsonPropertyName("music_count")] public int MusicCount => Musics.Count;

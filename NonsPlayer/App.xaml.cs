@@ -93,9 +93,7 @@ public partial class App : Application
 
                 services.AddTransient<PlaylistMusicItemCardViewModel>();
                 services.AddTransient<RecommendedPlaylistCardViewModel>();
-                services.AddTransient<UserPlaylistCardViewModel>();
                 services.AddTransient<PlayerBarViewModel>();
-                services.AddTransient<UserPlaylistBarViewModel>();
                 services.AddTransient<PlayQueueBarViewModel>();
                 services.AddTransient<PlayQueueItemCardViewModel>();
                 services.AddTransient<BestMusicCardViewModel>();

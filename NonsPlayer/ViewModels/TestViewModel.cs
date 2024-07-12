@@ -12,17 +12,7 @@ using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Core.AMLL.Parsers;
-using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Adapters;
-using NonsPlayer.Core.Contracts.Models;
-using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Nons;
-using NonsPlayer.Core.Nons.Account;
-using NonsPlayer.Core.Nons.Player;
-using NonsPlayer.Core.Services;
-using NonsPlayer.Helpers;
-using QRCoder;
-using FileAttributes = Windows.Storage.FileAttributes;
 
 namespace NonsPlayer.ViewModels;
 

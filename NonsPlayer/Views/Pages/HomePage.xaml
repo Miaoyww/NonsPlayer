@@ -6,7 +6,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     xmlns:views="using:NonsPlayer.Components.Views"
-    xmlns:models="using:NonsPlayer.Core.Models"
+    xmlns:models="using:NonsPlayer.Models"
+
     Loaded="{x:Bind ViewModel.HomePage_OnLoaded}">
     <Grid>
         <ScrollViewer>
@@ -45,8 +46,8 @@
                               SelectionMode="None"
                               HorizontalAlignment="Left" Margin="0,40,0,0">
                         <GridView.ItemTemplate>
-                            <DataTemplate x:DataType="models:Playlist">
-                                <views:RecommendedPlaylistCard PlaylistItem="{x:Bind This}" />
+                            <DataTemplate x:DataType="models:PlaylistModel">
+                                <views:RecommendedPlaylistCard PlaylistItem="{x:Bind Playlist}" />
                             </DataTemplate>
                         </GridView.ItemTemplate>
                     </GridView>

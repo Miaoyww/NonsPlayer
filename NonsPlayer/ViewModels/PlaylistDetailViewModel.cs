@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
@@ -21,14 +22,14 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     [ObservableProperty] private ImageBrush cover;
     [ObservableProperty] private string createTime;
     [ObservableProperty] private string creator;
-    [ObservableProperty] private long currentId;
+    [ObservableProperty] private string currentId;
     private int currentItemGroupIndex;
     [ObservableProperty] private string description;
     [ObservableProperty] private bool isLiked;
     public ObservableCollection<MusicModel> MusicItems = new();
     [ObservableProperty] private string musicsCount;
     [ObservableProperty] private string name;
-    [ObservableProperty] private Playlist playListObject;
+    [ObservableProperty] private IPlaylist playListObject;
 
     public void OnNavigatedFrom()
     {
@@ -36,12 +37,12 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     public async void OnNavigatedTo(object parameter)
     {
-        PlayListObject = (Playlist)parameter;
+        PlayListObject = (IPlaylist)parameter;
         CurrentId = PlayListObject.Id;
-        UserPlaylistService.Instance.PlaylistUpdated += OnPlaylistUpdated;
-            PlayListObject = await PlayListObject.Adapter.Playlist.GetPlaylistAsync(CurrentId)
-                .ConfigureAwait(false);
-            PlayListObject.IsCardMode = false;
+        // UserPlaylistService.Instance.PlaylistUpdated += OnPlaylistUpdated;
+            // PlayListObject = await PlayListObject.Adapter.Playlist.GetPlaylistAsync(CurrentId)
+            //     .ConfigureAwait(false);
+            // PlayListObject.IsCardMode = false;
         LoadPlaylistDetail();
 
         await InitMusicsAsync().ConfigureAwait(false);
@@ -57,13 +58,13 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             Description = PlayListObject.Description;
             MusicsCount = PlayListObject.MusicsCount + " Tracks";
             Cover = CacheHelper.GetImageBrush(PlayListObject.CacheAvatarId, PlayListObject.AvatarUrl);
-            IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
+            // IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
         });
     }
 
     private async Task InitMusicsAsync()
     {
-        if (PlayListObject.Musics == null) PlayListObject.InitTracks();
+        if (PlayListObject.Musics == null) PlayListObject.InitializeMusics();
 
         for (var i = 0; i < PlayListObject.Musics.Count; i++)
         {
@@ -125,7 +126,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     {
         if (playListObject.Musics.Count != playListObject.MusicTrackIds.Length)
             // +1到达最后一个歌曲
-            await playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
+            // await playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
 
         PlayQueue.Instance.Clear();
         PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray(), true);
@@ -134,11 +135,11 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     [RelayCommand]
     public async void Like()
     {
-        await UserPlaylistService.Instance.Like(CurrentId).ConfigureAwait(false);
+        // await UserPlaylistService.Instance.Like(CurrentId).ConfigureAwait(false);
     }
 
     private void OnPlaylistUpdated()
     {
-        IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
+        // IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Cache;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
 
@@ -143,7 +144,7 @@ public static class CacheHelper
     //         await musicAdapters.CreateById(long.Parse(id)))).Data;
     // }
     
-    public static Music GetMusic(string cacheId, string id, string platform)
+    public static IMusic GetMusic(string cacheId, string id, string platform)
     {
         var musicAdapters = AdapterService.Instance.GetAdapter(platform).Music;
         return GetCacheItemAsync(cacheId, async () =>

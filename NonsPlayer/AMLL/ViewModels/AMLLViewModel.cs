@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.AMLL.Models;
 using NonsPlayer.Core.AMLL.Models;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 
@@ -12,7 +13,7 @@ namespace NonsPlayer.AMLL.ViewModels;
 public partial class AMLLViewModel : ObservableRecipient
 {
     public ObservableCollection<LyricCombiner> LyricItems = new();
-    [ObservableProperty] private Music currentMusic;
+    [ObservableProperty] private IMusic currentMusic;
     public int LyricPosition;
 
     #region 命令

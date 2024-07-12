@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
@@ -23,7 +24,7 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
     [ObservableProperty] private string index;
     [ObservableProperty] private bool isInitCover;
     [ObservableProperty] private bool liked;
-    public Music Music;
+    public IMusic Music;
     [ObservableProperty] private string name;
     [ObservableProperty] private string time;
     [ObservableProperty] private string trans;
@@ -31,7 +32,7 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
     public ObservableCollection<MetadataItem> ArtistsMetadata = new();
 
     [RelayCommand]
-    private void ForwardArtist(Artist artist)
+    private void ForwardArtist(IArtist artist)
     {
         ServiceHelper.NavigationService.NavigateTo(typeof(ArtistViewModel)?.FullName, artist);
     }    
@@ -41,7 +42,7 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         ServiceHelper.NavigationService.NavigateTo(typeof(AlbumViewModel)?.FullName, Music.Album);
     }
 
-    public void Init(Music music)
+    public void Init(IMusic music)
     {
         Music = music;
         Name = Music.Name;
@@ -66,16 +67,16 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         else
             TransVisibility = Visibility.Visible;
 
-        Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
-        InitCover().ConfigureAwait(false);
-        FavoritePlaylistService.Instance.LikeSongsChanged += () =>
-        {
-            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-            {
-                if (Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id)) return;
-                Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
-            });
-        };
+        // Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
+        // InitCover().ConfigureAwait(false);
+        // FavoritePlaylistService.Instance.LikeSongsChanged += () =>
+        // {
+        //     ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        //     {
+        //         if (Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id)) return;
+        //         Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
+        //     });
+        // };
     }
 
     [RelayCommand]

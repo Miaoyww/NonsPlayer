@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
@@ -17,9 +18,9 @@ namespace NonsPlayer.ViewModels;
 
 public partial class SearchViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
-    [ObservableProperty] private Artist[]? artists;
+    [ObservableProperty] private IArtist[]? artists;
     public ObservableCollection<MusicModel> MusicItems = new();
-    [ObservableProperty] private Playlist[]? playlists;
+    [ObservableProperty] private IPlaylist[]? playlists;
     private string queryKey;
 
     public void OnNavigatedTo(object parameter)

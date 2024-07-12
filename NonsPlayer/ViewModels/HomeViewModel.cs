@@ -3,8 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Core.Api;
 using NonsPlayer.Core.Contracts.Adapters;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
 using NonsPlayer.Core.Services;
@@ -17,7 +17,7 @@ public partial class HomeViewModel : ObservableRecipient
 {
     public INavigationService NavigationService;
 
-    [ObservableProperty] private ObservableCollection<Playlist>? recommendedPlaylist = new();
+    [ObservableProperty] private ObservableCollection<IPlaylist>? recommendedPlaylist = new();
 
     public HomeViewModel(INavigationService navigationService)
     {
@@ -27,7 +27,7 @@ public partial class HomeViewModel : ObservableRecipient
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
     {
         var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
-        List<Playlist> recommendedPlaylist = new();
+        List<IPlaylist> recommendedPlaylist = new();
         foreach (var item in adapters)
         {
             recommendedPlaylist.AddRange(await item.Common.GetRecommendedPlaylistAsync(null, 6, NonsCore.Instance));
