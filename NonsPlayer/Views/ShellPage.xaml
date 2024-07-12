@@ -13,7 +13,7 @@
     <Grid>
         <Grid>
             <Grid>
-                <Frame x:Name="NavigationFrame" Margin="200,0,0,0" />
+                <Frame x:Name="NavigationFrame" Margin="0,0,0,0" />
             </Grid>
             <Border Name="TitleBar"
                     VerticalAlignment="Top"
@@ -21,7 +21,7 @@
                     BorderBrush="#F0F1F2"
                     Background="{StaticResource CustomAcrylicBrush}"
                     Height="54"
-                    Margin="200,0,0,0">
+                    Margin="0,0,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
