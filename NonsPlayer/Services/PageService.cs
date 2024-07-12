@@ -18,7 +18,6 @@ public class PageService : IPageService
         Configure<ExploreViewModel, ExplorePage>();
         Configure<PlaylistDetailViewModel, PlaylistDetailPage>();
         Configure<PersonalCenterViewModel, PersonalCenterPage>();
-        Configure<LoginViewModel, LoginPage>();
         Configure<SearchViewModel, SearchPage>();
         Configure<ArtistViewModel, ArtistPage>();
         Configure<LyricViewModel, LyricPage>();
