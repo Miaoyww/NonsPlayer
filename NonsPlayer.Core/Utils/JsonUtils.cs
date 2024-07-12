@@ -2,7 +2,7 @@
 
 namespace NonsPlayer.Core.Helpers;
 
-public static class Json
+public static class JsonUtils
 {
     public static async Task<T> ToObjectAsync<T>(string value)
     {
