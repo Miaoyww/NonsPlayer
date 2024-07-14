@@ -2,9 +2,9 @@
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
-namespace NonsPlayer.Core.Helpers;
+namespace NonsPlayer.Core.Utils;
 
-public static class HttpRequest
+public static class HttpUtils
 {
     public static Stream StreamHttpGet(string url)
     {
@@ -21,14 +21,19 @@ public static class HttpRequest
         return stream;
     }
 
-    public static JObject? JObjectHttpGet(Stream stream)
+    public static async Task<string> HttpGetAsync(string url, string contentType = "application/json", Dictionary<string, string> headers = null)
     {
-        var objReader = new StreamReader(stream);
-        return (JObject)JsonConvert.DeserializeObject(objReader.ReadLine());
-    }
-
-    public static JObject? GetJson(string url)
-    {
-        return JObjectHttpGet(StreamHttpGet(url));
+        using (HttpClient client = new HttpClient())
+        {
+            if (contentType != null)
+                client.DefaultRequestHeaders.Add("ContentType", contentType);
+            if (headers != null)
+            {
+                foreach (var header in headers)
+                    client.DefaultRequestHeaders.Add(header.Key, header.Value);
+            }
+            HttpResponseMessage response = await client.GetAsync(url);
+            return await response.Content.ReadAsStringAsync();
+        }
     }
 }
