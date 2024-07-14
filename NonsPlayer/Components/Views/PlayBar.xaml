@@ -16,8 +16,7 @@
         <converters:ThumbConverter x:Key="ThumbConverter" />
     </UserControl.Resources>
     <Grid>
-        <Border Name="Body" BorderThickness="0,1,0,0" Padding="0"
-                BorderBrush="#7FB9B9B9"
+        <Border Name="Body" Padding="0"
                 Background="{StaticResource CustomAcrylicBrush}"
                 Margin="0,680,0,0"
                 Height="90">
@@ -34,8 +33,8 @@
                         </RichTextBlock>
                         <controls:MetadataControl x:Name="ArtistsMetadata"
                                                   Separator=" / "
-                                                  HorizontalAlignment="Left" VerticalAlignment="Top" 
-                                                  FontFamily="HarmonyOS Sans SC" FontSize="15" Foreground="Black" 
+                                                  HorizontalAlignment="Left" VerticalAlignment="Top"
+                                                  FontFamily="HarmonyOS Sans SC" FontSize="15" Foreground="Black"
                                                   Opacity="0.75" MaxWidth="300" FontWeight="Medium"
                                                   Items="{x:Bind ViewModel.MusicStateModel.ArtistsMetadata, Mode=OneWay}">
                             <controls:MetadataControl.TextBlockStyle>
@@ -104,11 +103,12 @@
                                 VerticalAlignment="Bottom">
                         <TextBlock Name="CurrentTimeTextBlock"
                                    Text="{x:Bind ViewModel.MusicStateModel.PositionString ,Mode=OneWay}"
-                                   FontWeight="Black"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource CommonTextColor}"
                                    FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
                                    Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
-                        <Border Padding="5,0,5,0">
-                            <Slider x:Name="CurrentTimeSlider" Width="340" Margin="-5,0,-5,0"
+                        <Border VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <Slider x:Name="CurrentTimeSlider" Width="450" Margin="-5,0,-5,0"
                                     ManipulationMode="TranslateX"
                                     ManipulationCompleted="CurrentTimeSlider_OnManipulationCompleted"
                                     ManipulationStarting="CurrentTimeSlider_OnManipulationStarting"
@@ -119,8 +119,9 @@
                             </Slider>
                         </Border>
                         <TextBlock Name="DurationTime"
+                                   Foreground="{StaticResource CommonTextColor}"
                                    Text="{x:Bind ViewModel.MusicStateModel.DurationString, Mode=OneWay}"
-                                   FontWeight="Black" FontFamily="JetBrains Mono"
+                                   FontWeight="Bold" FontFamily="JetBrains Mono"
                                    Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0"
                                    HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
                     </StackPanel>

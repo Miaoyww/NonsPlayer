@@ -100,7 +100,12 @@ public partial class App : Application
                 services.AddTransient<BestArtistCardViewModel>();
                 services.AddTransient<MusicListBarViewModel>();
                 services.AddTransient<AdapterCardViewModel>();
-
+                services.AddTransient<GreetingsCardViewModel>();
+                services.AddTransient<HitokotoCardViewModel>();
+                services.AddTransient<RecentlyPlayCardViewModel>();
+                services.AddTransient<TodayDurationCardViewModel>();
+                services.AddTransient<TotalListenCardViewModel>();
+                services.AddTransient<RecentlyPlayItemCardViewModel>();
                 #endregion
 
 
@@ -116,7 +121,6 @@ public partial class App : Application
         GetService<IAppNotificationService>().Initialize();
         ConfigManager.Instance.LoadConfig();
         AdapterService.Instance.Init();
-
         UnhandledException += App_UnhandledException;
     }
 
@@ -149,8 +153,8 @@ public partial class App : Application
         base.OnLaunched(args);
 
         // App.GetService<IAppNotificationService>().Show(string.Format("AppNotificationSamplePayload".GetLocalized(), AppContext.BaseDirectory));
-
         await GetService<IActivationService>().ActivateAsync(args);
+        
     }
 }
 

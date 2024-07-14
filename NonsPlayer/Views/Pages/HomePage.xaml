@@ -6,53 +6,47 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     xmlns:views="using:NonsPlayer.Components.Views"
-    xmlns:models="using:NonsPlayer.Models"
 
     Loaded="{x:Bind ViewModel.HomePage_OnLoaded}">
-    <Grid>
-        <ScrollViewer>
-            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="60,0,0,0">
-                <Grid Margin="{StaticResource PageCommonMargin}">
-                    <TextBlock Text="For you" FontWeight="Black" FontSize="30" Style="{StaticResource CommonTextStyle}" />
-                    <GridView Name="ForYou"
-                              SelectionMode="None"
-                              HorizontalAlignment="Left" Margin="0,40,0,0">
-                        <!-- <Border Name="DailyMusic" -->
-                        <!--         CornerRadius="0" Background="White" -->
-                        <!--         BorderBrush="SkyBlue" BorderThickness="0,0,0,2" -->
-                        <!--         Opacity="0.8" Width="400" -->
-                        <!--         Height="200" Margin="0,70,0,0"> -->
-                        <!--     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"> -->
-                        <!--         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" -->
-                        <!--                    Text="每日" -->
-                        <!--                    Foreground="Black" CharacterSpacing="300" FontWeight="Bold" FontSize="30" -->
-                        <!--                    Style="{StaticResource CommonTextStyle}" /> -->
-                        <!--         <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" -->
-                        <!--                    Text="单曲推荐" -->
-                        <!--                    Foreground="Black" CharacterSpacing="300" FontWeight="Bold" FontSize="30" -->
-                        <!--                    Style="{StaticResource CommonTextStyle}" /> -->
-                        <!--     </StackPanel> -->
-                        <!-- -->
-                        <!-- </Border> -->
-                        <!-- <StackPanel Margin="0,70,0,0" /> -->
-
-                    </GridView>
+    <Grid Margin="{StaticResource PageCommonMargin}">
+        <Viewbox VerticalAlignment="Top">
+            <Grid Margin="30,30,30,30">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <views:RecentlyPlayCard Name="RecentPlayBorder" />
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <views:GreetingsCard Grid.Column="0" Name="Greetings" />
+                            <views:TotalListenCard Grid.Column="1" Name="TotalListen" />
+                        </Grid>
+                        <views:HitokotoCard Grid.Row="1" Name="Hitokoto" />
+                    </Grid>
+                    <views:TodayDurationCard Grid.Column="2" Name="TodayDuration" />
 
                 </Grid>
-                <Grid Margin="0,60,0,80">
-                    <TextBlock x:Uid="RecommendedPlaylist" FontWeight="Black" FontSize="25" Style="{StaticResource CommonTextStyle}" />
-                    <GridView Name="RecommendPlaylistView"
-                              ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
-                              SelectionMode="None"
-                              HorizontalAlignment="Left" Margin="0,40,0,0">
-                        <GridView.ItemTemplate>
-                            <DataTemplate x:DataType="models:PlaylistModel">
-                                <views:RecommendedPlaylistCard PlaylistItem="{x:Bind Playlist}" />
-                            </DataTemplate>
-                        </GridView.ItemTemplate>
-                    </GridView>
+                <Grid Grid.Row="1" Margin="0,40,0,0">
+                    <TextBlock FontWeight="Bold" FontSize="35" Text="最近歌单"
+                               Foreground="{StaticResource CommonTextColor}" />
                 </Grid>
-            </StackPanel>
-        </ScrollViewer>
+
+            </Grid>
+        </Viewbox>
+
     </Grid>
 </Page>

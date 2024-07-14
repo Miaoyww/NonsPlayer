@@ -13,5 +13,6 @@ public sealed partial class MainWindow : WindowEx
         Content = null;
         Title = "AppDisplayName".GetLocalized();
         KeyHookService.Instance.Init();
+        ExtendsContentIntoTitleBar = true;
     }
 }

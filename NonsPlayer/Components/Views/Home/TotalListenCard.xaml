@@ -1,0 +1,28 @@
+<UserControl
+    x:Class="NonsPlayer.Components.Views.TotalListenCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:winUi="using:CommunityToolkit.WinUI"
+    mc:Ignorable="d">
+    <Border Background="#F5F3F2"
+            CornerRadius="20"
+            Width="287" Height="99">
+        <Grid Grid.Row="0" Margin="20">
+            <StackPanel Orientation="Vertical">
+                <TextBlock x:Uid="TotalListenCard"
+                           FontWeight="Bold" FontSize="25"
+                           Foreground="{StaticResource CommonTextColor}"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="TOTAL LISTEN"
+                           Style="{StaticResource EnglishTextStyle}"
+                           FontWeight="Bold" FontSize="20"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Text="10455"
+                       FontWeight="Bold" FontSize="38" Foreground="#3662EC"
+                       VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,0,0" />
+        </Grid>
+    </Border>
+</UserControl>

@@ -1,0 +1,39 @@
+<UserControl
+    x:Class="NonsPlayer.Components.Views.RecentlyPlayCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:winUi="using:CommunityToolkit.WinUI"
+    xmlns:views="using:NonsPlayer.Components.Views"
+    mc:Ignorable="d">
+    <Border Background="#F5F3F2"
+            Width="460" Height="215"
+            Margin="0,0,20,0"
+            CornerRadius="20">
+        <Grid Margin="20,20,20,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Vertical">
+                <TextBlock x:Uid="RecentlyPlayCard" FontSize="25" FontWeight="Bold"
+                           Foreground="{StaticResource CommonTextColor}" />
+                <TextBlock Style="{StaticResource EnglishTextStyle}"
+                           FontSize="16"
+                           Text="RECENT PLAY" />
+            </StackPanel>
+            <StackPanel Grid.Row="1" Orientation="Horizontal">
+                <views:RecentlyPlayItemCard
+                    Url="https://p3.music.126.net/mp1sDYC9DgJ9yDF9dKj3zg==/109951168943170560.jpg?param=200x200" Margin="0,0,5,0" />
+                <views:RecentlyPlayItemCard
+                    Url="https://p4.music.126.net/dRwInA9PpkiKkmNWeUvi0w==/109951164220136544.jpg?param=200x200" Margin="0,0,5,0" />
+                <views:RecentlyPlayItemCard
+                    Url="https://p4.music.126.net/43BItmcZyd5Qm5FACIUJRw==/109951169620325037.jpg?param=200x200" Margin="0,0,5,0" />
+                <views:RecentlyPlayItemCard
+                    Url="https://p4.music.126.net/aGaJ8JYwntEf2GkL3kLFRg==/109951169384794103.jpg?param=200x200" Margin="0,0,5,0" />
+
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

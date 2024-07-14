@@ -24,4 +24,10 @@
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+
+    <Style x:Key="EnglishTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Novecento wide"/>
+        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
 </ResourceDictionary>

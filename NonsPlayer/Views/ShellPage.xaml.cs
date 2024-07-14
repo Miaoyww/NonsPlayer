@@ -16,6 +16,8 @@ using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
+using Microsoft.UI.Windowing;
+using Windows.UI.WindowManagement;
 
 namespace NonsPlayer.Views;
 
@@ -37,6 +39,7 @@ public sealed partial class ShellPage : Page
         App.MainWindow.SetTitleBar(AppTitleBar);
         App.MainWindow.Activated += MainWindow_Activated;
         AppTitleBarText.Text = "AppDisplayName".GetLocalized();
+        App.MainWindow.AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
         PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
         ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
     }

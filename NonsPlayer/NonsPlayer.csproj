@@ -61,6 +61,29 @@
         <None Update="appsettings.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <Page Update="Components\Views\Home\RecentlyPlayItemCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        </Page>
+        <Page Update="Components\Views\Home\TotalListenCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+          <SubType>Designer</SubType>
+        </Page>
+        <Page Update="Components\Views\Home\GreetingsCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+          <SubType>Designer</SubType>
+        </Page>
+        <Page Update="Components\Views\Home\TodayDurationCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+          <SubType>Designer</SubType>
+        </Page>
+        <Page Update="Components\Views\Home\HitokotoCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        </Page>
+        <Page Update="Components\Views\Recent.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+          <SubType>Designer</SubType>
+          <Generator>MSBuild:Compile</Generator>
+        </Page>
         <Page Update="Components\Views\BestArtistCard.xaml">
             <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
             <SubType>Designer</SubType>
@@ -135,9 +158,15 @@
         <Content Include="Assets\NonsPlayer-Icon-Miaoyww.svg">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+        <None Remove="Assets\Fonts\NOVECENTO-WIDE-BOLD.OTF" />
         <None Remove="Assets\Icons\github-mark.svg" />
         <None Remove="Assets\SplashScreen.scale-100.png" />
         <None Remove="Assets\SplashScreen.scale-400.png" />
+        <None Remove="Components\Views\Home\GreetingsCard.xaml" />
+        <None Remove="Components\Views\Home\HitokotoCard.xaml" />
+        <None Remove="Components\Views\Home\RecentlyPlayItemCard.xaml" />
+        <None Remove="Components\Views\Home\TodayDurationCard.xaml" />
+        <None Remove="Components\Views\Home\TotalListenCard.xaml" />
         <Content Include="Segoe Fluent Icons.ttf" />
         <None Remove="Styles\CommonComponents.xaml" />
     </ItemGroup>
@@ -158,6 +187,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Content Update="Assets\Fonts\NOVECENTO-WIDE-BOLD.OTF">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
       <Content Update="Assets\NonsPlayer-Icon-Miaoyww.svg">
         <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       </Content>

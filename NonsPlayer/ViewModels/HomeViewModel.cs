@@ -1,6 +1,10 @@
 ﻿using System.Collections.ObjectModel;
+using System.Drawing.Text;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using Newtonsoft.Json.Linq;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Adapters;
@@ -16,12 +20,24 @@ namespace NonsPlayer.ViewModels;
 public partial class HomeViewModel : ObservableRecipient
 {
     public INavigationService NavigationService;
-
+    [ObservableProperty] public string installedFonts;
     [ObservableProperty] private ObservableCollection<IPlaylist>? recommendedPlaylist = new();
 
     public HomeViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
+    }
+
+    [RelayCommand]
+    public void Test()
+    {
+        var ifc = new InstalledFontCollection();
+        var t = ifc.Families;
+        StringBuilder sb = new();
+        foreach (var item in t)
+        {
+            sb.Append(item.Name + " /");
+        }
     }
 
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
