@@ -7,6 +7,7 @@ public class PlayCounterService
 {
     public List<IMusic> RecentlyMusic;
     public Dictionary<IMusic, int> Data;
+    public int TotalPlayCount => Data.Values.Sum();
 
     public delegate void CounterChangedHandler();
 

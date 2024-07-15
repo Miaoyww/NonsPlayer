@@ -10,7 +10,11 @@
             CornerRadius="20"
             Width="287" Height="99">
         <Grid Grid.Row="0" Margin="20">
-            <StackPanel Orientation="Vertical">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Vertical">
                 <TextBlock x:Uid="TotalListenCard"
                            FontWeight="Bold" FontSize="25"
                            Foreground="{StaticResource CommonTextColor}"
@@ -20,9 +24,9 @@
                            FontWeight="Bold" FontSize="20"
                            VerticalAlignment="Center" />
             </StackPanel>
-            <TextBlock Text="10455"
+            <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.TotalListen, Mode=OneWay}"
                        FontWeight="Bold" FontSize="38" Foreground="#3662EC"
-                       VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,0,0" />
+                       VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20,0,0,0" />
         </Grid>
     </Border>
 </UserControl>

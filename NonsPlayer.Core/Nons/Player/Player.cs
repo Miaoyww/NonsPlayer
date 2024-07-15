@@ -139,7 +139,6 @@ public class Player
         if (OutputDevice == null) OutputDevice = new WaveOutEvent();
         EnqueueTrack([music]);
         CurrentMusic = music;
-        MusicChangedHandle?.Invoke(music);
     }
 
     // 使用ConcatenatingSampleProvider做到无缝切换

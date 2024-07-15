@@ -32,7 +32,7 @@ public partial class HomeViewModel : ObservableRecipient
     public async void Test(string id)
     {
         var music = await AdapterService.Instance.GetAdapter("ncm").Music.GetMusicAsyncById(id);
-        await Player.Instance.NewPlay(music);
+        PlayQueue.Instance.Play(music);
     }
 
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
