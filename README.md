@@ -7,7 +7,7 @@
 
 ![.net](https://img.shields.io/badge/C%23-.net8.0-orange)
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
-![license](https://img.shields.io/github/license/Miaoywww/NonsPlayer)
+![license](https://img.shields.io/github/license/Miaoyww/NonsPlayer)
 
 高性能 | 多平台 | 支持本地音乐 | 支持插件
 
