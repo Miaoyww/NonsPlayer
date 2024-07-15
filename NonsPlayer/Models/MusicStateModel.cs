@@ -89,7 +89,7 @@ public partial class MusicStateModel
             }
             else
             {
-                Cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.Album.AvatarUrl);
+                Cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.GetCoverUrl("?param=100x100"));
             }
 
             ShowCover = true;
@@ -130,6 +130,6 @@ public partial class MusicStateModel
     {
         currentVolume = value;
         // RegHelper.Instance.Set(RegHelper.Regs.Volume, value.ToString());
-        // if (Player.Instance.OutputDevice != null) Player.Instance.Volume = (float)value / 100;
+        if (Player.Instance.OutputDevice != null) Player.Instance.Volume = (float)value / 100;
     }
 }

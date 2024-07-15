@@ -50,6 +50,7 @@ public partial class App : Application
                 services.AddSingleton<UpdateClient>();
                 services.AddSingleton<ExceptionService>();
                 services.AddSingleton<ControlService>();
+                services.AddSingleton<PlayCounterService>();
 
                 // Core Services
                 services.AddSingleton<IFileService, FileService>();
@@ -122,6 +123,7 @@ public partial class App : Application
         ConfigManager.Instance.LoadConfig();
         AdapterService.Instance.Init();
         UnhandledException += App_UnhandledException;
+        GetService<PlayCounterService>().Init();
     }
 
     // The .NET Generic Host provides dependency injection, configuration, logging, and other services.

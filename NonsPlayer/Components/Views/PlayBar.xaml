@@ -21,11 +21,22 @@
                 Margin="0,680,0,0"
                 Height="90">
             <Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="20,0,0,0">
-                    <StackPanel VerticalAlignment="Center" Margin="0,0,0,5">
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="30,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Name="Cover"
+                            Visibility="{x:Bind ViewModel.MusicStateModel.ShowCover, Mode=OneWay}"
+                            Height="70" Width="70" CornerRadius="10"
+                            Background="{x:Bind ViewModel.MusicStateModel.Cover, Mode=OneWay}"
+                            BorderThickness="0"
+                            Margin="0,0,10,0" />
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <RichTextBlock Name="Name"
                                        HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20"
-                                       Margin="0,0,0,10" FontWeight="Medium" MaxWidth="300" MaxLines="1"
+                                       Margin="0,0,0,0" FontWeight="Medium" MaxWidth="300" MaxLines="1"
                                        TextTrimming="CharacterEllipsis" FontFamily="HarmonyOS Sans SC">
                             <Paragraph>
                                 <Run Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.Name, Mode=OneWay}" />
@@ -44,15 +55,15 @@
                             </controls:MetadataControl.TextBlockStyle>
                         </controls:MetadataControl>
                     </StackPanel>
-                    <Button Name="Like" Width="35" Height="35" Command="{x:Bind LikeMusicCommand}"
-                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                    <Button Grid.Column="2" Name="Like" Width="35" Height="35" Command="{x:Bind LikeMusicCommand}"
+                            VerticalAlignment="Center" HorizontalAlignment="Right"
                             Margin="8,0,0,0"
                             Padding="0" Background="Transparent" BorderThickness="0">
                         <FontIcon
                             Glyph="{x:Bind ViewModel.MusicStateModel.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
                             FontSize="20" />
                     </Button>
-                </StackPanel>
+                </Grid>
                 <Grid>
                     <StackPanel Margin="-20,15,0,0" Orientation="Horizontal" HorizontalAlignment="Center"
                                 VerticalAlignment="Top">

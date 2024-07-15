@@ -41,8 +41,17 @@
 
                 </Grid>
                 <Grid Grid.Row="1" Margin="0,40,0,0">
-                    <TextBlock FontWeight="Bold" FontSize="35" Text="最近歌单"
-                               Foreground="{StaticResource CommonTextColor}" />
+                    <StackPanel>
+                        <TextBlock FontWeight="Bold" FontSize="35" Text="最近歌单"
+                                   Foreground="{StaticResource CommonTextColor}" />
+                        <Grid Margin="0,20,0,0">
+                            <TextBox x:Name="Textaa" />
+                            <Button Content="测试" Command="{x:Bind ViewModel.TestCommand}"
+                                    CommandParameter="{x:Bind Textaa.Text, Mode=OneWay}" />
+                        </Grid>
+                    </StackPanel>
+
+
                 </Grid>
 
             </Grid>

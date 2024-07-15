@@ -20,7 +20,7 @@ public partial class RecentlyPlayItemCardViewModel
         Music = music;
         cover = new ImageBrush
         {
-            ImageSource = new BitmapImage(new Uri(music.AvatarUrl))
+            ImageSource = new BitmapImage(new Uri(music.GetCoverUrl("?param=200x200")))
         };
     }
 

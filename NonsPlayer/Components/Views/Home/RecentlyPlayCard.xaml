@@ -23,15 +23,7 @@
                            FontSize="16"
                            Text="RECENT PLAY" />
             </StackPanel>
-            <StackPanel Grid.Row="1" Orientation="Horizontal">
-                <views:RecentlyPlayItemCard
-                    Url="https://p3.music.126.net/mp1sDYC9DgJ9yDF9dKj3zg==/109951168943170560.jpg?param=200x200" Margin="0,0,5,0" />
-                <views:RecentlyPlayItemCard
-                    Url="https://p4.music.126.net/dRwInA9PpkiKkmNWeUvi0w==/109951164220136544.jpg?param=200x200" Margin="0,0,5,0" />
-                <views:RecentlyPlayItemCard
-                    Url="https://p4.music.126.net/43BItmcZyd5Qm5FACIUJRw==/109951169620325037.jpg?param=200x200" Margin="0,0,5,0" />
-                <views:RecentlyPlayItemCard
-                    Url="https://p4.music.126.net/aGaJ8JYwntEf2GkL3kLFRg==/109951169384794103.jpg?param=200x200" Margin="0,0,5,0" />
+            <StackPanel x:Name="CardPanel" Grid.Row="1" Orientation="Horizontal">
 
             </StackPanel>
         </Grid>

@@ -11,8 +11,10 @@ using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
+using SharpCompress.Common;
 using static NonsPlayer.Core.Services.ControlFactory;
 
 namespace NonsPlayer.ViewModels;
@@ -20,8 +22,6 @@ namespace NonsPlayer.ViewModels;
 public partial class HomeViewModel : ObservableRecipient
 {
     public INavigationService NavigationService;
-    [ObservableProperty] public string installedFonts;
-    [ObservableProperty] private ObservableCollection<IPlaylist>? recommendedPlaylist = new();
 
     public HomeViewModel(INavigationService navigationService)
     {
@@ -29,31 +29,28 @@ public partial class HomeViewModel : ObservableRecipient
     }
 
     [RelayCommand]
-    public void Test()
+    public async void Test(string id)
     {
-        var ifc = new InstalledFontCollection();
-        var t = ifc.Families;
-        StringBuilder sb = new();
-        foreach (var item in t)
-        {
-            sb.Append(item.Name + " /");
-        }
+        var music = await AdapterService.Instance.GetAdapter("ncm").Music.GetMusicAsyncById(id);
+        await Player.Instance.NewPlay(music);
     }
 
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
     {
-        var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
-        List<IPlaylist> recommendedPlaylist = new();
-        foreach (var item in adapters)
-        {
-            recommendedPlaylist.AddRange(await item.Common.GetRecommendedPlaylistAsync(null, 6));
-        }
-        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        {
-            foreach (var item in recommendedPlaylist)
-            {
-                RecommendedPlaylist.Add(item);
-            }
-        });
+
+        // var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
+        // List<IPlaylist> recommendedPlaylist = new();
+        // foreach (var item in adapters)
+        // {
+        //     recommendedPlaylist.AddRange(await item.Common.GetRecommendedPlaylistAsync(null, 6));
+        // }
+        // ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        // {
+        //     foreach (var item in recommendedPlaylist)
+        //     {
+        //         RecommendedPlaylist.Add(item);
+        //     }
+        // });
     }
+
 }

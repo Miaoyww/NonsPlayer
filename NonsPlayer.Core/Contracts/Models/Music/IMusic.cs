@@ -46,4 +46,11 @@ public interface IMusic : IMusicModel
     /// </summary>
     /// <returns>歌词</returns>
     Task<Lyric> GetLyric();
+
+    /// <summary>
+    /// 获取封面URL
+    /// </summary>
+    /// <param name="param">可选参数</param>
+    /// <returns></returns>
+    string GetCoverUrl(string param = "");
 }

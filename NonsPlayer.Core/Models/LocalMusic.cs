@@ -110,4 +110,9 @@ public class LocalMusic : IMusic
     {
         return null;
     }
+
+    public string GetCoverUrl(string param = "")
+    {
+        return null;
+    }
 }
