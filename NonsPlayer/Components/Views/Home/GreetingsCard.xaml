@@ -10,8 +10,8 @@
             CornerRadius="20"
             Width="287" Height="99">
         <Grid Grid.Row="0" Margin="20">
-            <TextBlock x:Uid="GreetingsCard_Night"
-                       FontWeight="Bold" FontSize="30"
+            <TextBlock FontWeight="Bold" FontSize="30"
+                       Text="{x:Bind ViewModel.Greetings, Mode=OneWay}"
                        Foreground="{StaticResource CommonTextColor}"
                        VerticalAlignment="Center" HorizontalAlignment="Left" />
             <TextBlock Text="{x:Bind ViewModel.TimeString, Mode=OneWay}"

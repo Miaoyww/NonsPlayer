@@ -4,18 +4,17 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:animatedvisuals="using:Microsoft.UI.Xaml.Controls.AnimatedVisuals"
     xmlns:views="using:NonsPlayer.Components.Views"
     xmlns:models="using:NonsPlayer.Components.Models"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
     mc:Ignorable="d">
     <Grid>
-        <Grid x:Name="AppTitleBar">
-            <Border
-                VerticalAlignment="Top"
-                Background="{StaticResource CustomAcrylicBrush}"
-                Height="60">
+        <Grid>
+            <Border x:Name="AppTitleBar"
+                    VerticalAlignment="Top"
+                    Background="{StaticResource CustomAcrylicBrush}"
+                    Height="60">
                 <Grid Margin="20,0,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -23,7 +22,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Grid Column="0" VerticalAlignment="Center"  Margin="20,0,0,0">
+                    <Grid Column="0" VerticalAlignment="Center" Margin="20,0,0,0">
                         <Grid VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
                                 <Image Source="ms-appx:///Assets/NonsPlayer-High-Quaility.png"

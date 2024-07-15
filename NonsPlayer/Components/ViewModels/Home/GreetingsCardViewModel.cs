@@ -14,9 +14,11 @@ public partial class GreetingsCardViewModel
 {
     private Timer timer;
     [ObservableProperty] private string timeString;
+    [ObservableProperty] private string greetings;
 
     public GreetingsCardViewModel()
     {
+        Greetings = "Loading...";
         timer = new Timer(3000);
 
         timer.Elapsed += OnTimedEvent;
@@ -28,6 +30,28 @@ public partial class GreetingsCardViewModel
 
     private void OnTimedEvent(object source, ElapsedEventArgs e)
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() => TimeString = DateTime.Now.ToString("HH:mm"));
+        int hour = DateTime.Now.Hour;
+
+
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (hour >= 5 && hour < 11)
+            {
+                Greetings = "GreetingsCard_Morning".GetLocalized();
+            }
+            else if (hour >= 11 && hour < 14)
+            {
+                Greetings = "GreetingsCard_Noon".GetLocalized();
+            }
+            else if (hour >= 14 && hour < 18)
+            {
+                Greetings = "GreetingsCard_AfterNoon".GetLocalized();
+            }
+            else
+            {
+                Greetings = "GreetingsCard_Night".GetLocalized();
+            }
+            TimeString = DateTime.Now.ToString("HH:mm");
+        });
     }
 }

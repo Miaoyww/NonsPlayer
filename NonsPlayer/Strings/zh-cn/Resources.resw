@@ -399,16 +399,16 @@
   <data name="UserPlaylist_Nothing.Text" xml:space="preserve">
     <value>什么都没有哦</value>
   </data>
-  <data name="GreetingsCard_AfterNoon.Text" xml:space="preserve">
+  <data name="GreetingsCard_AfterNoon" xml:space="preserve">
     <value>下午好</value>
   </data>
-  <data name="GreetingsCard_Morning.Text" xml:space="preserve">
+  <data name="GreetingsCard_Morning" xml:space="preserve">
     <value>早上好</value>
   </data>
-  <data name="GreetingsCard_Night.Text" xml:space="preserve">
+  <data name="GreetingsCard_Night" xml:space="preserve">
     <value>晚上好</value>
   </data>
-  <data name="GreetingsCard_Noon.Text" xml:space="preserve">
+  <data name="GreetingsCard_Noon" xml:space="preserve">
     <value>中午好</value>
   </data>
   <data name="HitokotoCard.Text" xml:space="preserve">
