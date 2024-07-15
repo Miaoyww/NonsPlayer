@@ -36,7 +36,6 @@ public interface IAdapter
     IMusicAdapter Music { get; }
     IArtistAdapter Artist { get; }
     IAlbumAdapter Album { get; }
-    ILyricAdapter Lyric { get; }
     IPlaylistAdapter Playlist { get; }
     AdapterMetadata GetMetadata();
 }

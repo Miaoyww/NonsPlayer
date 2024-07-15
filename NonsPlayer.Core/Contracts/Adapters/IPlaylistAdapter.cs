@@ -6,6 +6,5 @@ namespace NonsPlayer.Core.Contracts.Adapters;
 
 public interface IPlaylistAdapter : ISubAdapter
 {
-    Task<IPlaylist> GetPlaylistAsync(long id);
-    List<IMusic> InitTracks(JObject pure);
+    Task<IPlaylist> GetPlaylistByIdAsync(string id);
 }

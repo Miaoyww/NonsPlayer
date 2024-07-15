@@ -1,5 +1,8 @@
 ﻿namespace NonsPlayer.Core.AMLL.Models;
 
+/// <summary>
+/// 一行歌词
+/// </summary>
 public class LyricLine
 {
     public TimeSpan StartTime { get; set; }

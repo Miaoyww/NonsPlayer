@@ -100,13 +100,14 @@ public class LocalMusic : IMusic
     public bool IsLiked { get; set; }
     public MusicQualityLevel[] QualityLevels { get; set; }
     public string? Trans { get; set; }
-    public Task GetUrl()
+
+    public Task<string> GetUrl(MusicQualityLevel quality = MusicQualityLevel.Standard)
     {
-        throw new NotImplementedException();
+        return Task.FromResult(Url);
     }
 
-    public Task GetLyric()
+    public Task<Lyric?> GetLyric()
     {
-        throw new NotImplementedException();
+        return null;
     }
 }

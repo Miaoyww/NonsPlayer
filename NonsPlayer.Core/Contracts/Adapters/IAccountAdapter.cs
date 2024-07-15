@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Contracts.Models.Nons;
 using NonsPlayer.Core.Models;
 
@@ -6,29 +7,35 @@ namespace NonsPlayer.Core.Contracts.Adapters;
 
 public interface IAccountAdapter : ISubAdapter
 {
-    string Uid { get;  set; }
+    IPlaylist FavoritePlaylist { get; set; }
+    List<IPlaylist> CreatedPlaylists { get; set; }
+    List<IPlaylist> SavedPlaylists { get; set; }
 
-    string Name { get;  set; }
-
-    string FaceUrl { get;  set; } 
-    
-    public bool IsLoggedIn
-    {
-        get
-        {
-            if (!Token.Equals(string.Empty))
-                return true;
-            return false;
-        }
-    }
-
-    public string Token { get; set; }
-    bool IsEnable { get; set; }
-
-    Task<Uri> GetQrCode();
+    string Key { get; set; }
+    Task<Uri> GetQrCodeUrlAsync();
+    Task<QrCodeResult> CheckLoginAsync(string key);
 
     Task<IAccount> GetAccountAsync(string token);
 
-    Task<string> GetToken(string response);
-    
+    Task<string> GetTokenAsync(string response);
+
+    Task GetUserPlaylists();
+    Task GetFavoritePlaylist();
+}
+
+public class QrCodeResult
+{
+    public string? Key { get; set; }
+    public QrCodeStatus? Status { get; set; }
+    public IAccount? Account { get; set; }
+    public Uri? QrCodeUrl { get; set; }
+}
+
+public enum QrCodeStatus
+{
+    Waiting,
+    Scanned,
+    Confirmed,
+    Timeout,
+    Cancelled
 }

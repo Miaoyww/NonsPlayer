@@ -15,7 +15,7 @@ public class LocalPlaylist : IPlaylist
     public DateTime CreateTime { get; set; }
     public string Creator { get; set; }
     public string Description { get; set; }
-    public long[] MusicTrackIds { get; set; }
+    public string[] MusicTrackIds { get; set; }
     public string[] Tags { get; set; }
 
     List<IMusic> IPlaylist.Musics
@@ -24,9 +24,19 @@ public class LocalPlaylist : IPlaylist
         set => _musics = value;
     }
 
+    public void InitializePlaylist()
+    {
+        // ignore
+    }
+
     public void InitializeMusics()
     {
-        // igrone
+        // ignore
+    }
+
+    public void InitializeTracks()
+    {
+        // ignore
     }
 
     [JsonPropertyName("musics")] public List<LocalMusic> Musics { get; set; }

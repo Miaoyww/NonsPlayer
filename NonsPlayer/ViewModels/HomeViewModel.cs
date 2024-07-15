@@ -46,7 +46,7 @@ public partial class HomeViewModel : ObservableRecipient
         List<IPlaylist> recommendedPlaylist = new();
         foreach (var item in adapters)
         {
-            recommendedPlaylist.AddRange(await item.Common.GetRecommendedPlaylistAsync(null, 6, NonsCore.Instance));
+            recommendedPlaylist.AddRange(await item.Common.GetRecommendedPlaylistAsync(null, 6));
         }
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {

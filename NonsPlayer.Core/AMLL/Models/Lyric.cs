@@ -2,10 +2,12 @@
 
 namespace NonsPlayer.Core.AMLL.Models;
 
+
+/// <summary>
+/// 一首歌的所有歌词
+/// </summary>
 public class Lyric
 {
-    // 用于储存一首歌的所有歌词
-
     public List<LyricLine> LyricLines { get; set; }
     public int Count => LyricLines.Count;
 

@@ -7,10 +7,6 @@ public class Account
 {
     //TODO: 本地账号
     public delegate void AccountInitialized();
-
-    private string _machineCode = string.Empty;
-    private string _tokenMd5 = string.Empty;
-
     public AccountInitialized AccountInitializedHandle;
     [JsonPropertyName("name")] public string Name { get; private set; } = "NonsPlayer";
 

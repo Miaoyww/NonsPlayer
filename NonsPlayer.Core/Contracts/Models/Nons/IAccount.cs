@@ -6,6 +6,6 @@ public interface IAccount : INonsModel
 {
     string NickName { get; set; }
     string Token { get; set; }
-    string Uid { get; set; }
     string FaceUrl { get; set; }
+    bool IsLoggedIn { get; set; }
 }
