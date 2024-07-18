@@ -8,8 +8,6 @@
     xmlns:views="using:NonsPlayer.Components.Views"
     mc:Ignorable="d">
     <Border Background="#F5F3F2"
-            Width="460" Height="215"
-            Margin="0,0,20,0"
             CornerRadius="20">
         <Grid Margin="20,20,20,20">
             <Grid.RowDefinitions>

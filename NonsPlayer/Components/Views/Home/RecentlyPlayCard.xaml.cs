@@ -32,7 +32,7 @@ public sealed partial class RecentlyPlayCard : UserControl
             CardPanel.Children.Clear();
             // 取最近播放的四首歌
             var lastFourElements = PlayCounterService.RecentlyMusic
-                .Skip(Math.Max(0, PlayCounterService.RecentlyMusic.Count - 4)).ToList();
+                .Skip(Math.Max(0, PlayCounterService.RecentlyMusic.Count - 10)).ToList();
 
             lastFourElements.Reverse();
             for (int i = 0; i < lastFourElements.Count; i++)
@@ -40,7 +40,7 @@ public sealed partial class RecentlyPlayCard : UserControl
                 var music = lastFourElements[i];
                 CardPanel.Children.Add(new RecentlyPlayItemCard
                 {
-                    Margin = new(5, 0, 0, 0),
+                    Margin = new(10, 0, 10, 0),
                     Music = music
                 });
             }

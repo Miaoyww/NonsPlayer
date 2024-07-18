@@ -14,25 +14,53 @@
             <Border x:Name="AppTitleBar"
                     VerticalAlignment="Top"
                     Background="{StaticResource CustomAcrylicBrush}"
-                    Height="60">
+                    Height="50">
                 <Grid Margin="20,0,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Grid Column="0" VerticalAlignment="Center" Margin="20,0,0,0">
-                        <Grid VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal">
-                                <Image Source="ms-appx:///Assets/NonsPlayer-High-Quaility.png"
-                                       Width="45" Height="45"
+                    <Grid VerticalAlignment="Center" Margin="20,0,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="ms-appx:///Assets/NonsPlayer-High-Quaility.png"
+                                   Width="30" Height="30"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
+                                       Margin="10,0,0,0"
+                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                       FontSize="18" FontWeight="Bold" Foreground="#2d2d2d"
                                        VerticalAlignment="Center" HorizontalAlignment="Center" />
-                                <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
-                                           Margin="10,0,0,0"
-                                           Style="{StaticResource CaptionTextBlockStyle}"
-                                           FontSize="18" FontWeight="Bold" Foreground="#2d2d2d"
-                                           VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </StackPanel>
+                        <Grid Grid.Column="1" Margin="10,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Width="30" Height="30" Padding="0"
+                                        BorderThickness="0" Background="Transparent">
+                                    <FontIcon Glyph="&#xE970;" />
+                                </Button>
+                                <Button Width="30" Height="30" Padding="0"
+                                        Margin="5,0,0,0"
+                                        BorderThickness="0" Background="Transparent">
+                                    <FontIcon Glyph="&#xF78B;" />
+                                </Button>
+                            </StackPanel>
+
+                        </Grid>
+                        <Grid Grid.Column="2" Margin="10,0,0,0" HorizontalAlignment="Right">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Width="30" Height="30" Padding="0" BorderThickness="0" Background="Transparent">
+                                    <FontIcon Glyph="&#xF158;"
+                                              FontSize="18"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Button>
+                                <Button Width="30" Height="30" Padding="0" Margin="5,0,0,0" 
+                                        BorderThickness="0" Background="Transparent">
+                                    <FontIcon Glyph="&#xE713;" FontSize="18" />
+                                </Button>
                             </StackPanel>
 
                         </Grid>

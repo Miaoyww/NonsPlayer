@@ -7,8 +7,6 @@
     xmlns:winUi="using:CommunityToolkit.WinUI"
     mc:Ignorable="d">
     <Border Background="#F5F3F2"
-            Width="200" Height="215"
-            Margin="20,0,0,0"
             CornerRadius="20">
         <Grid Margin="20">
             <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center">

@@ -50,6 +50,8 @@ public sealed partial class PlayBar : UserControl
     [RelayCommand]
     private async void LikeMusic()
     {
+        if (MusicStateModel.Instance.CurrentMusic == null) return;
+
         if (MusicStateModel.Instance.CurrentMusic.IsEmpty) return;
         // var code = await FavoritePlaylistService.Instance.LikeAsync(MusicStateModel.Instance.CurrentMusic.Id);
         // if (code != 200)
@@ -103,8 +105,6 @@ public sealed partial class PlayBar : UserControl
         {
             // ignore
         }
-
-        
     }
 
     private void CurrentTimeSlider_OnManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)

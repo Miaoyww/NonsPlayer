@@ -7,8 +7,7 @@
     xmlns:winUi="using:CommunityToolkit.WinUI"
     mc:Ignorable="d">
     <Border Background="#F5F3F2"
-            CornerRadius="20"
-            Width="287" Height="99">
+            CornerRadius="20">
         <Grid Grid.Row="0" Margin="20">
             <TextBlock FontWeight="Bold" FontSize="30"
                        Text="{x:Bind ViewModel.Greetings, Mode=OneWay}"
