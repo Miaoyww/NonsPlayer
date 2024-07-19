@@ -8,7 +8,7 @@
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextWrapping" Value="WrapWholeWords" />
         <Setter Property="FontWeight" Value="Normal" />
-    </Style>
+    </Style>    
 
     <Style x:Key="CommonRichTextStyle" TargetType="RichTextBlock">
         <Setter Property="FontSize" Value="18" />

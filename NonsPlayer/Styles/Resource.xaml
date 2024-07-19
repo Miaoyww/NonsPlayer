@@ -5,6 +5,7 @@
 
     <CornerRadius x:Key="CustomCornerRadius">20</CornerRadius>
     <Thickness x:Key="PageCommonMargin">0,54,0,80</Thickness>
+    <Thickness x:Key="PageContentCommonMargin">80,20,40,80</Thickness>
     <Thickness x:Key="PlaylistDetailMargin">45,80,45,100</Thickness>
     <SolidColorBrush x:Key="CommonTextColor">#3D3D3D</SolidColorBrush>
 </ResourceDictionary>
