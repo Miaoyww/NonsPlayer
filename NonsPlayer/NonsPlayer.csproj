@@ -168,7 +168,6 @@
         <None Remove="Components\Views\Home\TodayDurationCard.xaml" />
         <None Remove="Components\Views\Home\TotalListenCard.xaml" />
         <Content Include="Segoe Fluent Icons.ttf" />
-        <None Remove="Styles\CommonComponents.xaml" />
     </ItemGroup>
 
     <ItemGroup>
@@ -199,9 +198,6 @@
         <Page Update="Components\MusicListDetail.xaml">
             <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
             <Generator>MSBuild:Compile</Generator>
-        </Page>
-        <Page Update="Styles\CommonComponents.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         </Page>
     </ItemGroup>
 

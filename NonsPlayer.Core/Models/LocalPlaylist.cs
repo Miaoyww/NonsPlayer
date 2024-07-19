@@ -18,25 +18,37 @@ public class LocalPlaylist : IPlaylist
     public string[] MusicTrackIds { get; set; }
     public string[] Tags { get; set; }
 
+    public string Id { get; set; }
+    public string Md5 { get; set; }
+    public string Name { get; set; }
+    public string ShareUrl { get; set; }
+    public string AvatarUrl { get; set; }
+    public bool IsInitialized { get; set; }
+
     List<IMusic> IPlaylist.Musics
     {
         get => _musics;
         set => _musics = value;
     }
 
-    public void InitializePlaylist()
+
+
+    public Task InitializePlaylist()
     {
         // ignore
+        return null;
     }
 
-    public void InitializeMusics()
+    public Task InitializeMusics()
     {
         // ignore
+        return null;
     }
 
-    public void InitializeTracks()
+    public Task InitializeTracks()
     {
         // ignore
+        return null;
     }
 
     [JsonPropertyName("musics")] public List<LocalMusic> Musics { get; set; }
@@ -72,9 +84,4 @@ public class LocalPlaylist : IPlaylist
         File.WriteAllText($"{Path}\\{Name}.json", jsonString);
     }
 
-    public string Id { get; set; }
-    public string Md5 { get; set; }
-    public string Name { get; set; }
-    public string ShareUrl { get; set; }
-    public string AvatarUrl { get; set; }
 }

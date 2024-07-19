@@ -7,15 +7,15 @@ using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.Views;
 
-public sealed partial class RecommendedPlaylistCard : UserControl
+public sealed partial class PlaylistCard : UserControl
 {
-    public RecommendedPlaylistCard()
+    public PlaylistCard()
     {
-        ViewModel = App.GetService<RecommendedPlaylistCardViewModel>();
+        ViewModel = App.GetService<PlaylistCardViewModel>();
         InitializeComponent();
     }
 
-    public RecommendedPlaylistCardViewModel ViewModel { get; }
+    public PlaylistCardViewModel ViewModel { get; }
 
     public IPlaylist PlaylistItem
     {

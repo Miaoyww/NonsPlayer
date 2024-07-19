@@ -18,6 +18,9 @@ using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using Microsoft.UI.Windowing;
 using Windows.UI.WindowManagement;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace NonsPlayer.Views;
 
@@ -76,6 +79,7 @@ public sealed partial class ShellPage : Page
         PlayQueueBar.IsPaneOpen = !PlayQueueBar.IsPaneOpen;
     }
 
+
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         TitleBarHelper.UpdateTitleBar(RequestedTheme);
@@ -129,25 +133,5 @@ public sealed partial class ShellPage : Page
         var result = navigationService.GoBack();
 
         args.Handled = result;
-    }
-
-    private void ShellMenuBarSettingsButton_PointerEntered(object sender, PointerRoutedEventArgs e)
-    {
-        AnimatedIcon.SetState((UIElement)sender, "PointerOver");
-    }
-
-    private void ShellMenuBarSettingsButton_PointerPressed(object sender, PointerRoutedEventArgs e)
-    {
-        AnimatedIcon.SetState((UIElement)sender, "Pressed");
-    }
-
-    private void ShellMenuBarSettingsButton_PointerReleased(object sender, PointerRoutedEventArgs e)
-    {
-        AnimatedIcon.SetState((UIElement)sender, "Normal");
-    }
-
-    private void ShellMenuBarSettingsButton_PointerExited(object sender, PointerRoutedEventArgs e)
-    {
-        AnimatedIcon.SetState((UIElement)sender, "Normal");
     }
 }

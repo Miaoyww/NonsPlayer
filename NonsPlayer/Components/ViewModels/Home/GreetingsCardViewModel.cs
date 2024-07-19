@@ -24,6 +24,7 @@ public partial class GreetingsCardViewModel
         timer.Elapsed += OnTimedEvent;
         timer.AutoReset = true;
         timer.Start();
+        OnTimedEvent(null, null);
         TimeString = DateTime.Now.ToString("HH:mm");
     }
 
@@ -51,6 +52,7 @@ public partial class GreetingsCardViewModel
             {
                 Greetings = "GreetingsCard_Night".GetLocalized();
             }
+
             TimeString = DateTime.Now.ToString("HH:mm");
         });
     }

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Activation;
 using NonsPlayer.AMLL.Components.ViewModels;
@@ -94,7 +95,7 @@ public partial class App : Application
                 #region Components Views and ViewModels
 
                 services.AddTransient<PlaylistMusicItemCardViewModel>();
-                services.AddTransient<RecommendedPlaylistCardViewModel>();
+                services.AddTransient<PlaylistCardViewModel>();
                 services.AddTransient<PlayerBarViewModel>();
                 services.AddTransient<PlayQueueBarViewModel>();
                 services.AddTransient<PlayQueueItemCardViewModel>();
@@ -155,7 +156,6 @@ public partial class App : Application
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         base.OnLaunched(args);
-
         // App.GetService<IAppNotificationService>().Show(string.Format("AppNotificationSamplePayload".GetLocalized(), AppContext.BaseDirectory));
         await GetService<IActivationService>().ActivateAsync(args);
         

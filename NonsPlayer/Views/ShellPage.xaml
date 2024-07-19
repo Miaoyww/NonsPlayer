@@ -11,69 +11,87 @@
     mc:Ignorable="d">
     <Grid>
         <Grid>
-            <Border x:Name="AppTitleBar"
-                    VerticalAlignment="Top"
-                    Background="{StaticResource CustomAcrylicBrush}"
-                    Height="50">
-                <Grid Margin="20,0,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Grid VerticalAlignment="Center" Margin="20,0,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal">
-                            <Image Source="ms-appx:///Assets/NonsPlayer-High-Quaility.png"
-                                   Width="30" Height="30"
-                                   VerticalAlignment="Center" HorizontalAlignment="Center" />
-                            <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
-                                       Margin="10,0,0,0"
-                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                       FontSize="18" FontWeight="Bold" Foreground="#2d2d2d"
-                                       VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </StackPanel>
-                        <Grid Grid.Column="1" Margin="10,0,0,0">
-                            <StackPanel Orientation="Horizontal">
-                                <Button Width="30" Height="30" Padding="0"
-                                        BorderThickness="0" Background="Transparent">
-                                    <FontIcon Glyph="&#xE970;" />
-                                </Button>
-                                <Button Width="30" Height="30" Padding="0"
-                                        Margin="5,0,0,0"
-                                        BorderThickness="0" Background="Transparent">
-                                    <FontIcon Glyph="&#xF78B;" />
-                                </Button>
-                            </StackPanel>
-
-                        </Grid>
-                        <Grid Grid.Column="2" Margin="10,0,0,0" HorizontalAlignment="Right">
-                            <StackPanel Orientation="Horizontal">
-                                <Button Width="30" Height="30" Padding="0" BorderThickness="0" Background="Transparent">
-                                    <FontIcon Glyph="&#xF158;"
-                                              FontSize="18"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Button>
-                                <Button Width="30" Height="30" Padding="0" Margin="5,0,0,0" 
-                                        BorderThickness="0" Background="Transparent">
-                                    <FontIcon Glyph="&#xE713;" FontSize="18" />
-                                </Button>
-                            </StackPanel>
-
-                        </Grid>
-                    </Grid>
-                </Grid>
-            </Border>
-        </Grid>
-        <Grid>
             <Frame x:Name="NavigationFrame" Margin="0,0,0,0" />
         </Grid>
+
+        <Grid VerticalAlignment="Top"
+              Background="{StaticResource  CustomAcrylicBrush}"
+              Height="50">
+            <Grid Margin="20,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid x:Name="AppTitleBar" VerticalAlignment="Center" Margin="20,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="ms-appx:///Assets/NonsPlayer-High-Quaility.png"
+                               Width="30" Height="30"
+                               VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
+                                   Margin="10,0,0,0"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   FontSize="18" FontWeight="Bold" Foreground="#2d2d2d"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+                <Grid Grid.Column="1" Margin="10,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Name="NativeBack" Width="30" Height="30" Padding="0"
+                                BorderThickness="0" Background="Transparent"
+                                Command="{x:Bind ViewModel.GoBackCommand, Mode=OneWay}">
+                            <FontIcon Glyph="&#xE96F;" />
+                        </Button>
+                        <Button Name="Search" Width="30" Height="30" Padding="0"
+                                Margin="5,0,0,0"
+                                BorderThickness="0" Background="Transparent">
+                            <FontIcon Glyph="&#xF78B;" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Height="30" Margin="-110,0,0,0">
+                    <Button x:Uid="ShellMenu_Home" BorderThickness="0" Width="50" Height="25"
+                            FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                            FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                            Foreground="#2d2d2d" Margin="5,0,5,0"
+                            Command="{x:Bind ViewModel.OpenMenuHomeCommand}" />
+                    <Button x:Uid="ShellMenu_Explore" BorderThickness="0" Width="50" Height="25"
+                            FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                            FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                            Foreground="#2d2d2d" Margin="5,0,5,0"
+                            Command="{x:Bind ViewModel.OpenMenuExploreCommand}" />
+                    <Button x:Uid="ShellMenu_Own" BorderThickness="0" Width="50" Height="25"
+                            FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                            FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                            Foreground="#2d2d2d" Margin="5,0,5,0"
+                            Command="{x:Bind ViewModel.OpenMenuPersonalCenterCommand}" />
+                </StackPanel>
+                <Grid Grid.Column="3" Margin="10,0,140,0" HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Name="SettingsButton"
+                            Width="30" Height="30" Padding="0" Margin="5,0,0,0"
+                                BorderThickness="0" Background="Transparent">
+                            <FontIcon Glyph="&#xE713;" FontSize="18" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Grid>
+        <views:PlayBar x:Name="PlayerBar"
+                       VerticalAlignment="Bottom" />
         <SplitView Name="PlayQueueBar"
                    BorderThickness="0" CornerRadius="12,0,0,12"
-                   Margin="0,100,0,60" Width="400" HorizontalAlignment="Right"
+                   Margin="0,100,0,100" Width="400" HorizontalAlignment="Right"
                    DisplayMode="Overlay" OpenPaneLength="400" PanePlacement="Right"
                    PaneBackground="{ThemeResource CustomAcrylicBrush}">
             <SplitView.Pane>
@@ -111,7 +129,7 @@
                 </Grid>
             </SplitView.Pane>
         </SplitView>
-        <views:PlayBar x:Name="PlayerBar" VerticalAlignment="Bottom" />
+
         <TeachingTip x:Uid="ExceptionTip"
                      x:Name="ExceptionTip"
                      PreferredPlacement="Bottom"

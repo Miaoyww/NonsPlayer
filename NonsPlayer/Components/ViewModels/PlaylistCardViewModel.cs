@@ -13,12 +13,13 @@ using NonsPlayer.Helpers;
 namespace NonsPlayer.Components.ViewModels;
 
 [INotifyPropertyChanged]
-public partial class RecommendedPlaylistCardViewModel
+public partial class PlaylistCardViewModel
 {
     [ObservableProperty] private ImageBrush cover;
     public IPlaylist CurrentPlaylist;
     [ObservableProperty] private string id;
     [ObservableProperty] private string title;
+    [ObservableProperty] private string creator;
 
     public void Init(IPlaylist item)
     {
@@ -26,6 +27,7 @@ public partial class RecommendedPlaylistCardViewModel
         Id = item.Id.ToString();
         Title = item.Name;
         Cover = CacheHelper.GetImageBrush(item.CacheMiddleAvatarId, item.MiddleAvatarUrl);
+        Creator = item.Creator;
     }
 
     [RelayCommand]

@@ -276,7 +276,7 @@
   <data name="PlaylistTips_CopyLink.Text" xml:space="preserve">
     <value>复制链接</value>
   </data>
-  <data name="PlaylistTips_PlayAll.Content" xml:space="preserve">
+  <data name="PlaylistTips_PlayAll.Text" xml:space="preserve">
     <value>播放全部</value>
   </data>
   <data name="PlaylistTips_Save.Text" xml:space="preserve">
@@ -289,7 +289,7 @@
     <value>播放列表</value>
   </data>
   <data name="RecommendedPlaylist.Text" xml:space="preserve">
-    <value>推荐歌单</value>
+    <value>歌单推荐</value>
   </data>
   <data name="SaveToLocalPlaylist.Content" xml:space="preserve">
     <value>保存至本地歌单</value>

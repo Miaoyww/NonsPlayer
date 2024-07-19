@@ -15,159 +15,157 @@
         <converters:LikeIconConverter x:Key="LikeIconConverter" />
         <converters:ThumbConverter x:Key="ThumbConverter" />
     </UserControl.Resources>
-    <Grid>
-        <Border Name="Body" Padding="0"
-                Background="{StaticResource CustomAcrylicBrush}"
-                Margin="0,680,0,0"
-                Height="90">
+
+    <Border Name="Body" Padding="0"
+            Margin="0,680,0,0"
+            Height="80" Background="{StaticResource CustomAcrylicBrush}">
+        <Grid>
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="30,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Name="Cover"
+                        Visibility="{x:Bind ViewModel.MusicStateModel.ShowCover, Mode=OneWay}"
+                        Height="60" Width="60" CornerRadius="10"
+                        Background="{x:Bind ViewModel.MusicStateModel.Cover, Mode=OneWay}"
+                        BorderThickness="0"
+                        Margin="0,0,10,0" />
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <RichTextBlock Name="Title" Style="{StaticResource CommonRichTextStyle}"
+                                   HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20"
+                                   Margin="0,0,0,0" FontWeight="Medium" MaxLines="2"
+                                   TextTrimming="CharacterEllipsis">
+                        <Paragraph>
+                            <Run Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.Name, Mode=OneWay}" />
+                        </Paragraph>
+                    </RichTextBlock>
+                    <controls:MetadataControl x:Name="ArtistsMetadata"
+                                              Separator=" / "
+                                              HorizontalAlignment="Left" VerticalAlignment="Top"
+                                              FontFamily="HarmonyOS Sans SC" FontSize="15" Foreground="Black"
+                                              Opacity="0.75" MaxWidth="300" FontWeight="Medium"
+                                              Items="{x:Bind ViewModel.MusicStateModel.ArtistsMetadata, Mode=OneWay}">
+                        <controls:MetadataControl.TextBlockStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                            </Style>
+                        </controls:MetadataControl.TextBlockStyle>
+                    </controls:MetadataControl>
+                </StackPanel>
+                <Button Grid.Column="2" Name="Like" Width="35" Height="35" Command="{x:Bind LikeMusicCommand}"
+                        VerticalAlignment="Center" HorizontalAlignment="Right"
+                        Margin="8,0,0,0"
+                        Padding="0" Background="Transparent" BorderThickness="0">
+                    <FontIcon
+                        Glyph="{x:Bind ViewModel.MusicStateModel.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
+                        FontSize="20" />
+                </Button>
+            </Grid>
             <Grid>
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="30,0,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Border Grid.Column="0" Name="Cover"
-                            Visibility="{x:Bind ViewModel.MusicStateModel.ShowCover, Mode=OneWay}"
-                            Height="70" Width="70" CornerRadius="10"
-                            Background="{x:Bind ViewModel.MusicStateModel.Cover, Mode=OneWay}"
-                            BorderThickness="0"
-                            Margin="0,0,10,0" />
-                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <RichTextBlock Name="Name"
-                                       HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20"
-                                       Margin="0,0,0,0" FontWeight="Medium" MaxWidth="300" MaxLines="1"
-                                       TextTrimming="CharacterEllipsis" FontFamily="HarmonyOS Sans SC">
-                            <Paragraph>
-                                <Run Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.Name, Mode=OneWay}" />
-                            </Paragraph>
-                        </RichTextBlock>
-                        <controls:MetadataControl x:Name="ArtistsMetadata"
-                                                  Separator=" / "
-                                                  HorizontalAlignment="Left" VerticalAlignment="Top"
-                                                  FontFamily="HarmonyOS Sans SC" FontSize="15" Foreground="Black"
-                                                  Opacity="0.75" MaxWidth="300" FontWeight="Medium"
-                                                  Items="{x:Bind ViewModel.MusicStateModel.ArtistsMetadata, Mode=OneWay}">
-                            <controls:MetadataControl.TextBlockStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                                </Style>
-                            </controls:MetadataControl.TextBlockStyle>
-                        </controls:MetadataControl>
-                    </StackPanel>
-                    <Button Grid.Column="2" Name="Like" Width="35" Height="35" Command="{x:Bind LikeMusicCommand}"
-                            VerticalAlignment="Center" HorizontalAlignment="Right"
-                            Margin="8,0,0,0"
-                            Padding="0" Background="Transparent" BorderThickness="0">
+                <StackPanel Margin="-20,15,0,0" Orientation="Horizontal" HorizontalAlignment="Center"
+                            VerticalAlignment="Top">
+                    <Button Name="ShuffleSwitcher" Width="35" Height="35" Margin="0,0,10,0"
+                            VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent"
+
+                            BorderThickness="0" Padding="0"
+                            Command="{x:Bind ViewModel.SwitchShuffleCommand}">
+                        <Grid>
+                            <FontIcon FontSize="20" Glyph="&#xe8b1;" />
+                            <Line Margin="0,0,0,-4" StrokeThickness="2" X1="0" X2="10" VerticalAlignment="Bottom"
+                                  HorizontalAlignment="Center"
+                                  Visibility="{x:Bind ViewModel.PlayerService.IsShuffle, Converter={StaticResource ShuffleIconConverter}, Mode=OneWay}"
+                                  Stroke="#0067c0" />
+                        </Grid>
+
+                    </Button>
+                    <Button Name="PreviousMusic" Width="35" Height="35" Margin="0,0,10,0"
+                            VerticalAlignment="Center"
+                            Command="{x:Bind ViewModel.PlayerService.PreviousMusicCommand}"
+                            HorizontalAlignment="Center" Background="Transparent" BorderThickness="0"
+                            Padding="0,0,0,0">
+                        <FontIcon Glyph="&#xf8ac;" FontSize="20" />
+                    </Button>
+                    <Button Name="Play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
+                            HorizontalAlignment="Center" Background="Transparent" BorderThickness="0"
+                            Padding="0,0,0,0"
+                            Command="{x:Bind ViewModel.PlayerService.PlayCommand}">
                         <FontIcon
-                            Glyph="{x:Bind ViewModel.MusicStateModel.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
+                            Glyph="{x:Bind ViewModel.MusicStateModel.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
                             FontSize="20" />
                     </Button>
-                </Grid>
-                <Grid>
-                    <StackPanel Margin="-20,15,0,0" Orientation="Horizontal" HorizontalAlignment="Center"
-                                VerticalAlignment="Top">
-                        <Button Name="ShuffleSwitcher" Width="35" Height="35" Margin="0,0,10,0"
-                                VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent"
-
-                                BorderThickness="0" Padding="0"
-                                Command="{x:Bind ViewModel.SwitchShuffleCommand}">
-                            <Grid>
-                                <FontIcon FontSize="20" Glyph="&#xe8b1;" />
-                                <Line Margin="0,0,0,-4" StrokeThickness="2" X1="0" X2="10" VerticalAlignment="Bottom"
-                                      HorizontalAlignment="Center"
-                                      Visibility="{x:Bind ViewModel.PlayerService.IsShuffle, Converter={StaticResource ShuffleIconConverter}, Mode=OneWay}"
-                                      Stroke="#0067c0" />
-                            </Grid>
-
-                        </Button>
-                        <Button Name="PreviousMusic" Width="35" Height="35" Margin="0,0,10,0"
-                                VerticalAlignment="Center"
-                                Command="{x:Bind ViewModel.PlayerService.PreviousMusicCommand}"
-                                HorizontalAlignment="Center" Background="Transparent" BorderThickness="0"
-                                Padding="0,0,0,0">
-                            <FontIcon Glyph="&#xf8ac;" FontSize="20" />
-                        </Button>
-                        <Button Name="Play" Width="35" Height="35" Margin="0,0,10,0" VerticalAlignment="Center"
-                                HorizontalAlignment="Center" Background="Transparent" BorderThickness="0"
-                                Padding="0,0,0,0"
-                                Command="{x:Bind ViewModel.PlayerService.PlayCommand}">
-                            <FontIcon
-                                Glyph="{x:Bind ViewModel.MusicStateModel.IsPlaying, Converter={StaticResource PlayerIconConverter} ,Mode=OneWay}"
-                                FontSize="20" />
-                        </Button>
-                        <Button Name="NextMusic" Width="35" Height="35" VerticalAlignment="Center" Margin="0,0,10,0"
-                                Command="{x:Bind ViewModel.PlayerService.NextMusicCommand}"
-                                HorizontalAlignment="Center" Background="Transparent" BorderThickness="0"
-                                Padding="0,0,0,0">
-                            <FontIcon Glyph="&#xf8ad;" FontSize="20" />
-                        </Button>
-                        <Button Name="PlayModeSwitcher" Width="35" Height="35"
-                                VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent"
-                                BorderThickness="0" Padding="0"
-                                Command="{x:Bind ViewModel.SwitchPlayModeCommand}">
-                            <FontIcon FontSize="20"
-                                      Glyph="{x:Bind ViewModel.PlayerService.CurrentPlayMode, Converter={StaticResource PlayModeIconConverter}, Mode=OneWay}" />
-                        </Button>
-                    </StackPanel>
-                    <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center"
-                                VerticalAlignment="Bottom">
-                        <TextBlock Name="CurrentTimeTextBlock"
-                                   Text="{x:Bind ViewModel.MusicStateModel.PositionString ,Mode=OneWay}"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource CommonTextColor}"
-                                   FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
-                                   Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
-                        <Border VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <Slider x:Name="CurrentTimeSlider" Width="450" Margin="-5,0,-5,0"
-                                    ManipulationMode="TranslateX"
-                                    ManipulationCompleted="CurrentTimeSlider_OnManipulationCompleted"
-                                    ManipulationStarting="CurrentTimeSlider_OnManipulationStarting"
-                                    ManipulationStarted="CurrentTimeSlider_OnManipulationStarted"
-                                    ThumbToolTipValueConverter="{StaticResource ThumbConverter}"
-                                    Maximum="{x:Bind ViewModel.MusicStateModel.Duration.TotalSeconds, Mode=OneWay}">
-
-                            </Slider>
-                        </Border>
-                        <TextBlock Name="DurationTime"
-                                   Foreground="{StaticResource CommonTextColor}"
-                                   Text="{x:Bind ViewModel.MusicStateModel.DurationString, Mode=OneWay}"
-                                   FontWeight="Bold" FontFamily="JetBrains Mono"
-                                   Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0"
-                                   HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
-                    </StackPanel>
-                </Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
-                            Margin="0,0,30,0">
-                    <Button Name="Lyric" Command="{x:Bind OpenLyricCommand}"
-                            Height="25" Width="25" Padding="0"
-                            Background="Transparent" BorderThickness="0">
-                        <TextBlock Text="词"
-                                   Style="{StaticResource CommonTextStyle}"
-                                   Opacity="0.9" FontWeight="Medium" Padding="0"
-                                   Margin="0,0,0,0.5" />
-                        <!-- 
-                        TODO: 把Lyric界面做成类似于PlayQueue样式的版本
-                        -->
+                    <Button Name="NextMusic" Width="35" Height="35" VerticalAlignment="Center" Margin="0,0,10,0"
+                            Command="{x:Bind ViewModel.PlayerService.NextMusicCommand}"
+                            HorizontalAlignment="Center" Background="Transparent" BorderThickness="0"
+                            Padding="0,0,0,0">
+                        <FontIcon Glyph="&#xf8ad;" FontSize="20" />
                     </Button>
-                    <Button Name="PlayQueue" Command="{x:Bind OpenPlayQueueBarCommand}"
-                            Width="25" Height="25" Margin="0" Background="Transparent"
-                            BorderThickness="0" Padding="0">
-                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf168;" FontSize="17"
-                                  Margin="0,0,0,0" />
+                    <Button Name="PlayModeSwitcher" Width="35" Height="35"
+                            VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent"
+                            BorderThickness="0" Padding="0"
+                            Command="{x:Bind ViewModel.SwitchPlayModeCommand}">
+                        <FontIcon FontSize="20"
+                                  Glyph="{x:Bind ViewModel.PlayerService.CurrentPlayMode, Converter={StaticResource PlayModeIconConverter}, Mode=OneWay}" />
                     </Button>
-                    <Button Name="VolumeButton" Width="25" Height="25" Margin="0" Background="Transparent"
-                            BorderThickness="0,0,0,0" Padding="0"
-                            Command="{x:Bind ViewModel.PlayerService.MuteCommand}">
-                        <FontIcon FontFamily="Segoe Fluent Icons" FontSize="20"
-                                  Glyph="{x:Bind ViewModel.MusicStateModel.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
-                    </Button>
-                    <Slider Name="VolumeSlider" IsThumbToolTipEnabled="True"
-                            Margin="5,0,0,0"
-                            Value="{x:Bind ViewModel.MusicStateModel.Volume, Mode=TwoWay}" Width="100"
-                            HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
+                </StackPanel>
+                <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom">
+                    <TextBlock Name="CurrentTimeTextBlock"
+                               Text="{x:Bind ViewModel.MusicStateModel.PositionString ,Mode=OneWay}"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource CommonTextColor}"
+                               FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
+                               Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
+                    <Border VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Slider x:Name="CurrentTimeSlider" Width="450" Margin="-5,0,-5,0"
+                                ManipulationMode="TranslateX"
+                                ManipulationCompleted="CurrentTimeSlider_OnManipulationCompleted"
+                                ManipulationStarting="CurrentTimeSlider_OnManipulationStarting"
+                                ManipulationStarted="CurrentTimeSlider_OnManipulationStarted"
+                                ThumbToolTipValueConverter="{StaticResource ThumbConverter}"
+                                Maximum="{x:Bind ViewModel.MusicStateModel.Duration.TotalSeconds, Mode=OneWay}">
+
+                        </Slider>
+                    </Border>
+                    <TextBlock Name="DurationTime"
+                               Foreground="{StaticResource CommonTextColor}"
+                               Text="{x:Bind ViewModel.MusicStateModel.DurationString, Mode=OneWay}"
+                               FontWeight="Bold" FontFamily="JetBrains Mono"
+                               Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0"
+                               HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
                 </StackPanel>
             </Grid>
-        </Border>
-    </Grid>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Margin="0,0,30,0">
+                <Button Name="Lyric" Command="{x:Bind OpenLyricCommand}"
+                        Height="25" Width="25" Padding="0"
+                        Background="Transparent" BorderThickness="0">
+                    <TextBlock Text="词"
+                               Style="{StaticResource CommonTextStyle}"
+                               Opacity="0.9" FontWeight="Medium" Padding="0"
+                               Margin="0,0,0,0.5" />
+                    <!-- 
+                        TODO: 把Lyric界面做成类似于PlayQueue样式的版本
+                        -->
+                </Button>
+                <Button Name="PlayQueue" Command="{x:Bind OpenPlayQueueBarCommand}"
+                        Width="25" Height="25" Margin="0" Background="Transparent"
+                        BorderThickness="0" Padding="0">
+                    <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xf168;" FontSize="17"
+                              Margin="0,0,0,0" />
+                </Button>
+                <Button Name="VolumeButton" Width="25" Height="25" Margin="0" Background="Transparent"
+                        BorderThickness="0,0,0,0" Padding="0"
+                        Command="{x:Bind ViewModel.PlayerService.MuteCommand}">
+                    <FontIcon FontFamily="Segoe Fluent Icons" FontSize="20"
+                              Glyph="{x:Bind ViewModel.MusicStateModel.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />
+                </Button>
+                <Slider Name="VolumeSlider" IsThumbToolTipEnabled="True"
+                        Margin="5,0,0,0"
+                        Value="{x:Bind ViewModel.MusicStateModel.Volume, Mode=TwoWay}" Width="100"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
+            </StackPanel>
+        </Grid>
+    </Border>
 </UserControl>

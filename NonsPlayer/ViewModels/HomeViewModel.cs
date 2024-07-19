@@ -14,6 +14,7 @@ using NonsPlayer.Core.Nons;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
+using NonsPlayer.Models;
 using SharpCompress.Common;
 using static NonsPlayer.Core.Services.ControlFactory;
 
@@ -22,6 +23,8 @@ namespace NonsPlayer.ViewModels;
 public partial class HomeViewModel : ObservableRecipient
 {
     public INavigationService NavigationService;
+    [ObservableProperty] private ObservableCollection<PlaylistModel> recommendedPlaylist = new();
+
 
     public HomeViewModel(INavigationService navigationService)
     {
@@ -37,20 +40,21 @@ public partial class HomeViewModel : ObservableRecipient
 
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
     {
-
-        // var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
-        // List<IPlaylist> recommendedPlaylist = new();
-        // foreach (var item in adapters)
-        // {
-        //     recommendedPlaylist.AddRange(await item.Common.GetRecommendedPlaylistAsync(null, 6));
-        // }
-        // ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        // {
-        //     foreach (var item in recommendedPlaylist)
-        //     {
-        //         RecommendedPlaylist.Add(item);
-        //     }
-        // });
+        var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
+        List<IPlaylist> recommendedPlaylist = new();
+        foreach (var item in adapters)
+        {
+            recommendedPlaylist.AddRange(await item.Common.GetRecommendedPlaylistAsync(null, 20));
+        }
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            foreach (var item in recommendedPlaylist)
+            {
+                RecommendedPlaylist.Add(new PlaylistModel
+                {
+                    Playlist = item
+                });
+            }
+        });
     }
-
 }

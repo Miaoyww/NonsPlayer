@@ -21,7 +21,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="#" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
-            <TextBlock Grid.Column="1" Margin="30,0,0,0" x:Uid="MusicListBar_Title" FontFamily="HarmonyOS Sans SC"
+            <TextBlock Grid.Column="1" Margin="100,0,0,0" x:Uid="MusicListBar_Title" FontFamily="HarmonyOS Sans SC"
                        FontWeight="Bold" />
             <TextBlock Grid.Column="2" x:Uid="MusicListBar_Album" FontFamily="HarmonyOS Sans SC" FontWeight="Bold"
                        Margin="40,0,0,0" />

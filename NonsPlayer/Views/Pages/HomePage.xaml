@@ -6,50 +6,62 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     xmlns:views="using:NonsPlayer.Components.Views"
-
+    xmlns:music="using:NonsPlayer.Core.Contracts.Models.Music"
+    xmlns:models="using:NonsPlayer.Models"
     Loaded="{x:Bind ViewModel.HomePage_OnLoaded}">
-    <Grid Margin="{StaticResource PageCommonMargin}">
-            <Grid Margin="30,30,30,30">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />   
-                        <ColumnDefinition Width="1.2*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <views:RecentlyPlayCard Margin="0,0,10,0" Name="RecentPlayBorder" />
-                <Grid Grid.Column="1"  Margin="10,0,10,0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0" Margin="0,0,0,20">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                        <views:GreetingsCard Margin="0,0,10,0" Grid.Column="0" Name="Greetings" />
-                        <views:TotalListenCard Margin="10,0,0,0" Grid.Column="1" Name="TotalListen" />
+    <Grid>
+        <ScrollViewer>
+            <Grid Margin="{StaticResource PageCommonMargin}">
+                <Grid Margin="{StaticResource PageContentCommonMargin}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="1.2*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <views:RecentlyPlayCard Margin="0,0,10,0" Name="RecentPlayBorder" />
+                        <Grid Grid.Column="1" Margin="10,0,10,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <views:GreetingsCard Margin="0,0,10,0" Grid.Column="0" Name="Greetings" />
+                                <views:TotalListenCard Margin="10,0,0,0" Grid.Column="1" Name="TotalListen" />
+                            </Grid>
+                            <views:HitokotoCard Grid.Row="1" Margin="0,0,0,0" Name="Hitokoto" />
                         </Grid>
-                    <views:HitokotoCard  Grid.Row="1" Margin="0,0,0,0" Name="Hitokoto" />
-                    </Grid>
-                <views:TodayDurationCard Grid.Column="2" Margin="10,0,0,0" Name="TodayDuration" />
+                        <views:TodayDurationCard Grid.Column="2" Margin="10,0,0,0" Name="TodayDuration" />
 
-                </Grid>
-                <Grid Grid.Row="1" Margin="0,40,0,0">
-                    <StackPanel>
-                        <TextBlock FontWeight="Bold" FontSize="35" Text="最近歌单"
-                                   Foreground="{StaticResource CommonTextColor}" />
-                        <Grid Margin="0,20,0,0">
-                            <TextBox x:Name="Textaa" />
-                            <Button Content="测试" Command="{x:Bind ViewModel.TestCommand}"
-                                    CommandParameter="{x:Bind Textaa.Text, Mode=OneWay}" />
-                        </Grid>
-                    </StackPanel>
+                    </Grid>
+                    <Grid Grid.Row="1" Margin="0,40,0,0">
+                        <StackPanel>
+                            <TextBlock x:Uid="RecommendedPlaylist" FontWeight="Bold" FontSize="35"
+                                       Foreground="{StaticResource CommonTextColor}" />
+                            <GridView Name="RecommendPlaylistView"
+                                      ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
+                                      SelectionMode="None"
+                                      HorizontalAlignment="Left" Margin="0,0,0,0">
+                                <GridView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:PlaylistModel">
+                                        <views:PlaylistCard PlaylistItem="{x:Bind Playlist}" />
+                                    </DataTemplate>
+                                </GridView.ItemTemplate>
+                            </GridView>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
             </Grid>
+
+        </ScrollViewer>
+
     </Grid>
 </Page>

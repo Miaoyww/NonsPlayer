@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 using WinUIEx.Messaging;

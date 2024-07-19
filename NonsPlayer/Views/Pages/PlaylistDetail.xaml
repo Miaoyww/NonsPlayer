@@ -13,13 +13,13 @@
     </Page.Resources>
     <Grid>
         <ScrollViewer ViewChanged="{x:Bind ViewModel.OnScrollViewerViewChanged}">
-            <Grid Margin="{StaticResource PlaylistDetailMargin}">
+            <Grid Margin="{StaticResource PageContentCommonMargin}" >
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Top" Height="250">
+                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Top" Height="250" Margin="20,50,0,0">
                     <Border Name="Cover" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left"
                             VerticalAlignment="Top" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
                             CornerRadius="10,10,10,10">
@@ -77,26 +77,24 @@
                         </Grid>
                         <Grid Grid.Row="4" VerticalAlignment="Bottom">
                             <StackPanel Orientation="Horizontal">
-                                <Button x:Uid="PlaylistTips_PlayAll" Name="PlayAllButton" Command="{x:Bind ViewModel.PlayAllCommand}"
+                                <Button FontWeight="Bold" Name="PlayAllButton" Command="{x:Bind ViewModel.PlayAllCommand}"
                                         Width="120" Height="50" CornerRadius="10" Padding="0"
                                         Margin="0,0,10,0">
                                     <StackPanel Orientation="Horizontal">
-                                        <FontIcon FontFamily="Segoe Fluent Icons"
-                                                  VerticalAlignment="Center" HorizontalAlignment="Left"
+                                        <FontIcon VerticalAlignment="Center"
                                                   Margin="0,0,5,0"
                                                   Glyph="&#xF5B0;"
                                                   FontSize="16" />
-                                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Right"
-                                                   FontFamily="HarmonyOS Sans SC" FontWeight="Medium" FontSize="16" />
+                                        <TextBlock VerticalAlignment="Center" x:Uid="PlaylistTips_PlayAll"
+                                                   FontWeight="Bold" FontSize="16" />
                                     </StackPanel>
                                 </Button>
                                 <Button Name="Like"
                                         Width="50" Height="50" CornerRadius="180" Padding="0"
                                         Command="{x:Bind ViewModel.LikeCommand}"
-                                        FontFamily="HarmonyOS Sans SC" FontWeight="Medium" FontSize="16"
+                                        FontWeight="Bold" FontSize="16"
                                         Margin="0,0,10,0">
-                                    <FontIcon FontFamily="Segoe Fluent Icons"
-                                              VerticalAlignment="Center" HorizontalAlignment="Left"
+                                    <FontIcon VerticalAlignment="Center" HorizontalAlignment="Left"
                                               Glyph="{x:Bind ViewModel.IsLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
                                               FontSize="18" />
                                 </Button>
@@ -104,8 +102,7 @@
                                         Width="50" Height="50" CornerRadius="180"
                                         Padding="0"
                                         FontFamily="HarmonyOS Sans SC" FontWeight="Medium" FontSize="16">
-                                    <FontIcon FontFamily="Segoe Fluent Icons"
-                                              VerticalAlignment="Center" HorizontalAlignment="Center"
+                                    <FontIcon VerticalAlignment="Center" HorizontalAlignment="Center"
                                               Glyph="&#xE712;"
                                               FontSize="20" />
                                     <Button.Flyout>
@@ -121,7 +118,7 @@
                         </Grid>
                     </Grid>
                 </StackPanel>
-                <views:MusicListBar Grid.Row="1" Margin="20,20,40,10"
+                <views:MusicListBar Grid.Row="1" Margin="0,40,0,0"
                                     MusicItems="{x:Bind ViewModel.MusicItems, Mode=OneWay}" />
             </Grid>
         </ScrollViewer>

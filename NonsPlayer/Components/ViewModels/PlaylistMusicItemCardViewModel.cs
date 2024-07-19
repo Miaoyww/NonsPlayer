@@ -68,7 +68,7 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
             TransVisibility = Visibility.Visible;
 
         // Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
-        // InitCover().ConfigureAwait(false);
+        InitCover().ConfigureAwait(false);
         // FavoritePlaylistService.Instance.LikeSongsChanged += () =>
         // {
         //     ServiceHelper.DispatcherQueue.TryEnqueue(() =>

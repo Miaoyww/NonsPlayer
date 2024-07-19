@@ -39,12 +39,8 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     {
         PlayListObject = (IPlaylist)parameter;
         CurrentId = PlayListObject.Id;
-        // UserPlaylistService.Instance.PlaylistUpdated += OnPlaylistUpdated;
-            // PlayListObject = await PlayListObject.Adapter.Playlist.GetPlaylistAsync(CurrentId)
-            //     .ConfigureAwait(false);
-            // PlayListObject.IsCardMode = false;
+        if (!PlayListObject.IsInitialized) await PlayListObject.InitializePlaylist();
         LoadPlaylistDetail();
-
         await InitMusicsAsync().ConfigureAwait(false);
     }
 
@@ -64,7 +60,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     private async Task InitMusicsAsync()
     {
-        if (PlayListObject.Musics == null) PlayListObject.InitializeMusics();
+        if (PlayListObject.Musics == null) await PlayListObject.InitializeMusics();
 
         for (var i = 0; i < PlayListObject.Musics.Count; i++)
         {

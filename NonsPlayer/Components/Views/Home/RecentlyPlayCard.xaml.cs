@@ -40,7 +40,7 @@ public sealed partial class RecentlyPlayCard : UserControl
                 var music = lastFourElements[i];
                 CardPanel.Children.Add(new RecentlyPlayItemCard
                 {
-                    Margin = new(10, 0, 10, 0),
+                    Margin = new(8, 0, 8, 0),
                     Music = music
                 });
             }
