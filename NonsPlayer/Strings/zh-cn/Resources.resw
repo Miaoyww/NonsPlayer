@@ -423,4 +423,7 @@
   <data name="TotalListenCard.Text" xml:space="preserve">
     <value>累计已听</value>
   </data>
+  <data name="DailyRecommendedPlaylist.Text" xml:space="preserve">
+    <value>每日歌曲推荐</value>
+  </data>
 </root>

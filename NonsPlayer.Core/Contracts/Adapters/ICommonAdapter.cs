@@ -6,6 +6,6 @@ namespace NonsPlayer.Core.Contracts.Adapters;
 
 public interface ICommonAdapter: ISubAdapter
 {
-    Task<IPlaylist[]> GetRecommendedPlaylistAsync(object content, int count);
+    Task<IPlaylist[]> GetRecommendedPlaylistAsync(int count);
     
 }
