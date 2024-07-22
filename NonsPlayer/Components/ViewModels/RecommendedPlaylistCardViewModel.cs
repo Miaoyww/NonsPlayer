@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using Windows.UI;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.UI.Controls;
@@ -18,17 +19,22 @@ namespace NonsPlayer.Components.ViewModels;
 public partial class RecommendedPlaylistCardViewModel : ObservableObject
 {
     [ObservableProperty] private ImageSource cover;
+    [ObservableProperty] private Brush fontColor;
+    [ObservableProperty] private Visibility tipVisibility = Visibility.Collapsed;
 
-    public RecommendedPlaylistCardViewModel()
+    public async void Init(IMusic[] music)
     {
+        if (music != null)
+        {
+            var firstMusic = music[0];
+            Cover = (await CacheHelper.GetImageBrushAsync(firstMusic.CacheAvatarId,
+                firstMusic.GetCoverUrl())).ImageSource;
+            TipVisibility = Visibility.Collapsed;
+            FontColor = App.Current.Resources["LightTextColor"] as SolidColorBrush;
+            return;
+        }
 
-    }
-
-    public async void Init(IPlaylist playList)
-    {
-        if (!playList.IsInitialized) await playList.InitializeMusics();
-        var firstMusic = playList.Musics[0];
-        Cover = (await CacheHelper.GetImageBrushAsync(firstMusic.CacheAvatarId,
-            firstMusic.GetCoverUrl())).ImageSource;
+        TipVisibility = Visibility.Visible;
+        FontColor = App.Current.Resources["CommonTextColor"] as SolidColorBrush;
     }
 }

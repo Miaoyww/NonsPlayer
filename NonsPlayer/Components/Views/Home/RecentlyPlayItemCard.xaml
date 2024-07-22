@@ -6,8 +6,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:winUi="using:CommunityToolkit.WinUI"
     mc:Ignorable="d">
-    <Border x:Name="BodyBorder"
-            PointerPressed="BodyBorder_OnPointerPressed"
-            Width="100" Height="100" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
-            CornerRadius="20" />
+    <Border
+        x:Name="BodyBorder"
+        PointerPressed="BodyBorder_OnPointerPressed"
+        Width="100" Height="100" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
+        CornerRadius="20" />
 </UserControl>

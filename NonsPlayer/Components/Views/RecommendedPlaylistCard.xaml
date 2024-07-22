@@ -5,7 +5,9 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
-    <Border CornerRadius="20" Width="500" Height="200">
+    <Border
+        Background="{StaticResource ComponentsCardBackground}"
+        CornerRadius="20" Width="500" Height="200">
         <Grid>
             <Grid.Resources>
                 <Storyboard x:Name="AvatarAnimation">
@@ -17,6 +19,7 @@
                     </DoubleAnimation>
                 </Storyboard>
             </Grid.Resources>
+
             <Viewbox Stretch="UniformToFill">
                 <Image Name="Cover" Source="{x:Bind ViewModel.Cover, Mode=OneWay}">
                     <Image.RenderTransform>
@@ -24,11 +27,17 @@
                     </Image.RenderTransform>
                 </Image>
             </Viewbox>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Orientation="Vertical">
+                <TextBlock x:Uid="DailyRecommendedPlaylist"
+                           Margin="20,10,0,0"
+                           Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="24"
+                           FontWeight="Bold" CharacterSpacing="300" />
 
-            <TextBlock x:Uid="DailyRecommendedPlaylist" Margin="20,10,0,0"
-                       FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="24"
-                       FontWeight="Bold" CharacterSpacing="300"
-                       VerticalAlignment="Top" HorizontalAlignment="Center" />
+                <TextBlock Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="24"
+                           FontWeight="Bold" Text="³¢ÊÔµÇÂ¼ºó¿ÉÓÃ" Visibility="{x:Bind ViewModel.TipVisibility, Mode=OneWay}" />
+            </StackPanel>
+
         </Grid>
     </Border>
 </UserControl>
