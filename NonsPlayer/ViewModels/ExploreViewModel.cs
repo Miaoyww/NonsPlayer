@@ -8,17 +8,19 @@ namespace NonsPlayer.ViewModels;
 
 public partial class ExploreViewModel : ObservableRecipient, INavigationAware
 {
-    [ObservableProperty] private IPlaylist dailyRecommendedPlaylist;
-    public ExploreViewModel()
-    {
-    }
+    [ObservableProperty] private IMusic[] dailyRecommendedPlaylist;
 
-    public void OnNavigatedTo(object parameter)
+    public async void OnNavigatedTo(object parameter)
     {
         var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
         foreach (var item in adapters)
         {
-            item.Common.GetRecommendedPlaylistAsync(10);
+            var music = await item.Common.GetDailyRecommended();
+            if (music != null)
+            {
+                DailyRecommendedPlaylist = music;
+                break;
+            }
         }
     }
 
