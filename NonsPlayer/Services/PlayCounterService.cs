@@ -5,7 +5,7 @@ namespace NonsPlayer.Core.Services;
 
 public class PlayCounterService
 {
-    public List<IMusic> RecentlyMusic;
+    public List<IMusic> RecentlyMusic = new();
     public Dictionary<IMusic, int> Data;
     public int TotalPlayCount => Data.Values.Sum();
 

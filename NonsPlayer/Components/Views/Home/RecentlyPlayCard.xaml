@@ -7,7 +7,7 @@
     xmlns:winUi="using:CommunityToolkit.WinUI"
     xmlns:views="using:NonsPlayer.Components.Views"
     mc:Ignorable="d">
-    <Border Background="#F5F3F2"
+    <Border Background="{StaticResource ComponentsCardBackground}"
             CornerRadius="20">
         <Grid Margin="20,20,20,20">
             <Grid.RowDefinitions>

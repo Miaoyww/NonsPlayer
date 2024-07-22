@@ -19,6 +19,7 @@ public sealed partial class RecentlyPlayCard : UserControl
         InitializeComponent();
         PlayCounterService = App.GetService<PlayCounterService>();
         PlayCounterService.CounterChanged += OnCounterChanged;
+        RefreshInfo();
     }
 
     public RecentlyPlayCardViewModel ViewModel { get; }
@@ -27,13 +28,17 @@ public sealed partial class RecentlyPlayCard : UserControl
 
     private void OnCounterChanged()
     {
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            CardPanel.Children.Clear();
-            // 取最近播放的四首歌
-            var lastFourElements = PlayCounterService.RecentlyMusic
-                .Skip(Math.Max(0, PlayCounterService.RecentlyMusic.Count - 10)).ToList();
+        DispatcherQueue.TryEnqueue(() => { RefreshInfo(); });
+    }
 
+    private void RefreshInfo()
+    {
+        CardPanel.Children.Clear();
+        // 取最近播放的四首歌
+        var lastFourElements = PlayCounterService.RecentlyMusic
+            .Skip(Math.Max(0, PlayCounterService.RecentlyMusic.Count - 10)).ToList();
+        if (lastFourElements != null)
+        {
             lastFourElements.Reverse();
             for (int i = 0; i < lastFourElements.Count; i++)
             {
@@ -44,6 +49,7 @@ public sealed partial class RecentlyPlayCard : UserControl
                     Music = music
                 });
             }
-        });
+        }
+
     }
 }
