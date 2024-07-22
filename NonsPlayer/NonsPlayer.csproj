@@ -61,6 +61,10 @@
         <None Update="appsettings.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <Page Update="Components\Views\RadioCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+          <SubType>Designer</SubType>
+        </Page>
         <Page Update="Components\Views\RecommendedPlaylistCard.xaml">
           <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
           <SubType>Designer</SubType>
@@ -172,6 +176,7 @@
         <None Remove="Components\Views\Home\RecentlyPlayItemCard.xaml" />
         <None Remove="Components\Views\Home\TodayDurationCard.xaml" />
         <None Remove="Components\Views\Home\TotalListenCard.xaml" />
+        <None Remove="Components\Views\RadioCard.xaml" />
         <Content Include="Segoe Fluent Icons.ttf" />
     </ItemGroup>
 

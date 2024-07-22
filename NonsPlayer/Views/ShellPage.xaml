@@ -79,9 +79,10 @@
                 <Grid Grid.Column="3" Margin="10,0,140,0" HorizontalAlignment="Right">
                     <StackPanel Orientation="Horizontal">
                         <Button Name="SettingsButton"
-                            Width="30" Height="30" Padding="0" Margin="5,0,0,0"
+                            Width="20" Height="20" 
+                            Padding="0" Margin="10,0,0,20"
                                 BorderThickness="0" Background="Transparent">
-                            <FontIcon Glyph="&#xE713;" FontSize="18" />
+                            <FontIcon Glyph="&#xE713;" FontSize="14" />
                         </Button>
                     </StackPanel>
                 </Grid>

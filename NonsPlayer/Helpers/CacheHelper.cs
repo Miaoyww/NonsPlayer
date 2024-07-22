@@ -112,18 +112,18 @@ public static class CacheHelper
         })).Data;
     }
 
-    // public static async Task<Playlist> GetPlaylistAsync(string cacheId, string id)
+    // public static async Task<Music> GetPlaylistAsync(string cacheId, string id)
     // {
     //     return (await GetCacheItemAsync(cacheId, async () =>
     //         await PlaylistAdaptes.CreateById(long.Parse(id)))).Data;
     // }
     //
-    // public static Playlist GetPlaylistCard(string cacheId, JObject item)
+    // public static Music GetPlaylistCard(string cacheId, JObject item)
     // {
     //     return GetCacheItem(cacheId, () => PlaylistAdaptes.CreateFromRecommend(item)).Data;
     // }
     //
-    // public static async Task<Playlist> UpdatePlaylistAsync(string cacheId, string id)
+    // public static async Task<Music> UpdatePlaylistAsync(string cacheId, string id)
     // {
     //     var playlist = (await UpdateCacheItem(cacheId, async () =>
     //         await PlaylistAdaptes.CreateById(long.Parse(id)))).Data;
@@ -131,7 +131,7 @@ public static class CacheHelper
     //     return playlist;
     // }
     //
-    // public static Playlist GetPlaylist(string cacheId, string id)
+    // public static Music GetPlaylist(string cacheId, string id)
     // {
     //     return GetCacheItemAsync(cacheId, async () =>
     //         await PlaylistAdaptes.CreateById(long.Parse(id))).Result.Data;

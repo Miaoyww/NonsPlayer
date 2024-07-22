@@ -53,6 +53,7 @@ public partial class App : Application
                 services.AddSingleton<ControlService>();
                 services.AddSingleton<PlayCounterService>();
                 services.AddSingleton<SMTCService>();
+                services.AddSingleton<RadioService>();
 
                 // Core Services
                 services.AddSingleton<IFileService, FileService>();
@@ -109,6 +110,9 @@ public partial class App : Application
                 services.AddTransient<TodayDurationCardViewModel>();
                 services.AddTransient<TotalListenCardViewModel>();
                 services.AddTransient<RecentlyPlayItemCardViewModel>();
+                services.AddTransient<RecommendedPlaylistCardViewModel>();
+                services.AddTransient<RadioCardViewModel>();
+
                 #endregion
 
 
@@ -158,7 +162,6 @@ public partial class App : Application
         base.OnLaunched(args);
         // App.GetService<IAppNotificationService>().Show(string.Format("AppNotificationSamplePayload".GetLocalized(), AppContext.BaseDirectory));
         await GetService<IActivationService>().ActivateAsync(args);
-        
     }
 }
 
