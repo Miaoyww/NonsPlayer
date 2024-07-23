@@ -12,14 +12,28 @@ public partial class ExploreViewModel : ObservableRecipient, INavigationAware
 
     public async void OnNavigatedTo(object parameter)
     {
-        var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
-        foreach (var item in adapters)
+        if (!string.IsNullOrEmpty(ConfigManager.Instance.Settings.DefaultAdapter))
         {
-            var music = await item.Common.GetDailyRecommended();
+            var adapter = AdapterService.Instance.GetAdapter(ConfigManager.Instance.Settings.DefaultAdapter);
+            if (adapter != null)
+            {
+                var music = await adapter.Common.GetDailyRecommended();
+                if (music != null)
+                {
+                    DailyRecommendedPlaylist = music;
+                    return;
+                }
+            }
+        }
+
+        var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
+        if (adapters != null)
+        {
+            ConfigManager.Instance.Settings.DefaultAdapter = adapters[0].GetMetadata().Name;
+            var music = await adapters[0].Common.GetDailyRecommended();
             if (music != null)
             {
                 DailyRecommendedPlaylist = music;
-                break;
             }
         }
     }

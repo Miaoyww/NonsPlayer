@@ -19,28 +19,45 @@ public sealed partial class SettingsPage : Page
             ImageSource = new BitmapImage(new Uri("ms-appx:///Assets/NonsPlayer.png"))
         };
         InitializeComponent();
-
+        RefreshAdapterInfo();
     }
 
     public SettingsViewModel ViewModel { get; }
     public ImageBrush NonsPlayerIco;
     private ControlService _controlService = App.GetService<ControlService>();
 
-    [RelayCommand]
-    private async void Test()
+    private void RefreshAdapterInfo()
     {
-        var dialog = new ContentDialog();
+        AdaptersItems.Items.Clear();
+        if (!string.IsNullOrEmpty(ConfigManager.Instance.Settings.DefaultAdapter))
+        {
+            var defaultAdapter =
+                AdapterService.Instance.GetAdapter(ConfigManager.Instance.Settings.DefaultAdapter);
+            if (defaultAdapter != null)
+            {
+                AdapterDrop.Content = defaultAdapter.GetMetadata().DisplayPlatform;
+            }
+        }
 
-        // XamlRoot must be set in the case of a ContentDialog running in a Desktop app
-        dialog.XamlRoot = XamlRoot;
-        dialog.Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style;
-        dialog.Title = "Test";
-        dialog.PrimaryButtonText = "Got it";
-        dialog.CloseButtonText = "Cancel";
-        dialog.DefaultButton = ContentDialogButton.Primary;
-        dialog.Content = "test";
+        var adapters = AdapterService.Instance.GetLoadedAdapters();
+        foreach (var adapter in adapters)
+        {
+            AdaptersItems.Items.Add(new MenuFlyoutItem
+            {
+                Text = adapter.GetMetadata().DisplayPlatform,
+                Tag = adapter.GetMetadata().Name,
+                Command = SetAdapterCommand,
+                CommandParameter = adapter.GetMetadata().Name,
+            });
+        }
+    }
 
-        var result = await dialog.ShowAsync();
+    [RelayCommand]
+    private void SetAdapter(string name)
+    {
+        ConfigManager.Instance.Settings.DefaultAdapter = name;
+        ConfigManager.Instance.SaveConfig();
+        RefreshAdapterInfo();
     }
 
     private async void ApiSwitch(object sender, RoutedEventArgs e)

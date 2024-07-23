@@ -27,6 +27,18 @@ public sealed partial class RecommendedPlaylistCard : UserControl
 
     public IMusic[] Music
     {
-        set => ViewModel.Init(value);
+        set
+        {
+            BeginAnimation();
+            AvatarAnimation.Completed += (sender, o) => { BeginAnimation(); };
+            ViewModel.Init(value);
+        }
+    }
+
+    private async void BeginAnimation()
+    {
+        AvatarAnimation.Children[0].SetValue(DoubleAnimation.FromProperty, AvatarTransform.Y);
+        AvatarAnimation.Children[0].SetValue(DoubleAnimation.ToProperty, AvatarTransform.Y <= -300 ? 0 : -300);
+        AvatarAnimation.Begin();
     }
 }

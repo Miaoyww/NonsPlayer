@@ -70,15 +70,13 @@ public class PlayQueue
                 Player.Instance.LoadNextTrack();
                 return;
             }
-
-            ;
             if (PlayMode == PlayModeEnum.ListLoop)
                 if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic &&
                     PlayMode != PlayModeEnum.SingleLoop)
                 {
                     if (_isUserPressed) return;
                     if (CurrentMusic is null) return;
-                    if (CurrentMusic.Duration.TotalSeconds - Player.Instance.Position.TotalSeconds > 1) return;
+                    if (CurrentMusic.Duration.TotalSeconds - Player.Instance.Position.TotalSeconds > 2) return;
                     if (Player.Instance.IsMixed)
                     {
                         return;

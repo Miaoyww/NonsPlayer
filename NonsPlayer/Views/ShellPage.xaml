@@ -58,27 +58,27 @@
                             VerticalAlignment="Center"
                             Height="30" Margin="-110,0,0,0">
                     <Button x:Uid="ShellMenu_Home" BorderThickness="0" Width="50" Height="25"
-                            FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            Background="Transparent" FontSize="18"
                             FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
                             Foreground="#2d2d2d" Margin="5,0,5,0"
                             Command="{x:Bind ViewModel.OpenMenuHomeCommand}" />
                     <Button x:Uid="ShellMenu_Explore" BorderThickness="0" Width="50" Height="25"
-                            FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center" 
+                            Background="Transparent" FontSize="18"
                             FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
                             Foreground="#2d2d2d" Margin="5,0,5,0"
                             Command="{x:Bind ViewModel.OpenMenuExploreCommand}" />
                     <Button x:Uid="ShellMenu_Own" BorderThickness="0" Width="50" Height="25"
-                            FontFamily="HarmonyOS Sans SC" HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center" Background="Transparent" FontSize="18"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            Background="Transparent" FontSize="18"
                             FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
                             Foreground="#2d2d2d" Margin="5,0,5,0"
                             Command="{x:Bind ViewModel.OpenMenuPersonalCenterCommand}" />
                 </StackPanel>
                 <Grid Grid.Column="3" Margin="10,0,140,0" HorizontalAlignment="Right">
                     <StackPanel Orientation="Horizontal">
-                        <Button Name="SettingsButton"
+                        <Button Name="SettingsButton" Command="{x:Bind ViewModel.OpenMenuSettingsCommand}"
                             Width="20" Height="20" 
                             Padding="0" Margin="10,0,0,20"
                                 BorderThickness="0" Background="Transparent">

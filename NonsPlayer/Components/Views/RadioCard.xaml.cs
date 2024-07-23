@@ -25,4 +25,6 @@ public sealed partial class RadioCard : UserControl
     }
 
     public RadioCardViewModel ViewModel { get; }
+
+
 }

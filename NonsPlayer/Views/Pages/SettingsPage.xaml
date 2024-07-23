@@ -8,134 +8,157 @@
     xmlns:ui="using:CommunityToolkit.WinUI"
 
     mc:Ignorable="d">
-    <Grid Margin="{StaticResource PageCommonMargin}">
+    <Grid>
         <ScrollViewer>
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <TextBlock x:Uid="Settings_Settings" FontWeight="Bold" FontSize="30"
-                           Margin="20,20,0,0" />
-                <StackPanel Grid.Row="1" Margin="20">
-                    <toolkit:SettingsExpander
-                        x:Uid="Settings_Personalize"
-                        HeaderIcon="{ui:FontIcon Glyph=&#xE771;}">
-                        <toolkit:SettingsExpander.Items>
-                            <toolkit:SettingsCard x:Uid="Settings_Personalize_Theme"
-                                                  Description="Incomplete">
-                                <ComboBox SelectedIndex="0">
-                                    <ComboBox.Items>
-                                        <TextBlock x:Uid="Settings_Personalize_Theme_FollowSystem" />
-                                        <TextBlock x:Uid="Settings_Personalize_Theme_Light" />
-                                        <TextBlock x:Uid="Settings_Personalize_Theme_Dark" />
-                                    </ComboBox.Items>
-                                </ComboBox>
-                            </toolkit:SettingsCard>
-                        </toolkit:SettingsExpander.Items>
+            <Grid Margin="{StaticResource PageCommonMargin}">
+                <Grid Margin="{StaticResource PageContentCommonMargin}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Uid="Settings_Settings" FontWeight="Bold" FontSize="30"
+                               Margin="20,20,0,0" />
+                    <StackPanel Grid.Row="1" Margin="20">
+                        <toolkit:SettingsExpander Margin="0,0,0,20"
+                                                  x:Uid="Settings_Personalize"
+                                                  HeaderIcon="{ui:FontIcon Glyph=&#xE771;}">
+                            <toolkit:SettingsExpander.Items>
+                                <toolkit:SettingsCard x:Uid="Settings_Personalize_Theme"
+                                                      Description="Incomplete">
+                                    <ComboBox SelectedIndex="0">
+                                        <ComboBox.Items>
+                                            <TextBlock x:Uid="Settings_Personalize_Theme_FollowSystem" />
+                                            <TextBlock x:Uid="Settings_Personalize_Theme_Light" />
+                                            <TextBlock x:Uid="Settings_Personalize_Theme_Dark" />
+                                        </ComboBox.Items>
+                                    </ComboBox>
+                                </toolkit:SettingsCard>
+                            </toolkit:SettingsExpander.Items>
 
-                    </toolkit:SettingsExpander>
-                    <toolkit:SettingsExpander
-                        x:Uid="Settings_Apis"
-                        HeaderIcon="{ui:FontIcon Glyph=&#xEDA3;}">
-                        <toolkit:SettingsExpander.Items>
-                            <toolkit:SettingsCard x:Uid="Settings_Apis_Switcher">
-                                <ToggleSwitch Toggled="ApiSwitch" />
-                            </toolkit:SettingsCard>
-                            <toolkit:SettingsCard x:Uid="Settings_Apis_TurnOnWhen"
-                                                  Description="Incomplete">
-                                <ToggleSwitch />
-                            </toolkit:SettingsCard>
-                            <toolkit:SettingsCard Header="Settings_Apis_SetPort"
-                                                  Description="Incomplete">
-                                <TextBox Text="8080" />
-                            </toolkit:SettingsCard>
-                        </toolkit:SettingsExpander.Items>
-                    </toolkit:SettingsExpander>
-                    <toolkit:SettingsExpander
-                        x:Uid="Settings_OtherSettings"
-                        HeaderIcon="{ui:FontIcon Glyph=&#xEE40;}">
-                        <toolkit:SettingsExpander.Items>
-                            <toolkit:SettingsCard x:Uid="Settings_OtherSettings_RecommendedCount"
-                                                  Description="Incomplete">
-                                <TextBox Text="30" />
-                            </toolkit:SettingsCard>
-                            <toolkit:SettingsCard x:Uid="Settings_OtherSettings_HomeCount"
-                                                  Description="Incomplete">
-                                <TextBox Text="20" />
-                            </toolkit:SettingsCard>
-                            <toolkit:SettingsCard x:Uid="Settings_OtherSettings_VolumeStep"
-                                                  Description="Incomplete">
-                                <TextBox Text="10" />
-                            </toolkit:SettingsCard>
-                            <toolkit:SettingsCard x:Uid="Settings_OtherSettings_Offset"
-                                                  Description="Incomplete">
-                                <TextBox Text="500" />
-                            </toolkit:SettingsCard>
-                            <toolkit:SettingsCard x:Uid="Settings_OtherSettings_MediaControl"
-                                                  Description="Incomplete">
-                                <TextBox Text="500" />
-                            </toolkit:SettingsCard>
+                        </toolkit:SettingsExpander>
+                        <toolkit:SettingsExpander Margin="0,0,0,20"
+                                                  x:Uid="SettingsPage_Adapter"
+                                                  Header="适配器"
+                                                  HeaderIcon="{ui:FontIcon Glyph=&#xED35;}">
+                            <toolkit:SettingsExpander.Items>
+                                <toolkit:SettingsCard Header="打开适配器设置页面">
+                                    <Button Content="打开" Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard Header="默认适配器"
+                                                      Description="发现页面每日歌单推荐、电台等等的默认来源">
+                                    <DropDownButton x:Name="AdapterDrop">
+                                        <DropDownButton.Flyout>
+                                            <MenuFlyout x:Name="AdaptersItems" />
+                                        </DropDownButton.Flyout>
+                                    </DropDownButton>
+                                </toolkit:SettingsCard>
+                            </toolkit:SettingsExpander.Items>
+                        </toolkit:SettingsExpander>
+                        <toolkit:SettingsExpander Margin="0,0,0,20"
+                                                  x:Uid="Settings_Apis"
+                                                  HeaderIcon="{ui:FontIcon Glyph=&#xEDA3;}">
+                            <toolkit:SettingsExpander.Items>
+                                <toolkit:SettingsCard x:Uid="Settings_Apis_Switcher">
+                                    <ToggleSwitch Toggled="ApiSwitch" />
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Uid="Settings_Apis_TurnOnWhen"
+                                                      Description="Incomplete">
+                                    <ToggleSwitch />
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard Header="Settings_Apis_SetPort"
+                                                      Description="Incomplete">
+                                    <TextBox Text="8080" />
+                                </toolkit:SettingsCard>
+                            </toolkit:SettingsExpander.Items>
+                        </toolkit:SettingsExpander>
+                        <toolkit:SettingsExpander Margin="0,0,0,20"
+                                                  x:Uid="Settings_OtherSettings"
+                                                  HeaderIcon="{ui:FontIcon Glyph=&#xEE40;}">
+                            <toolkit:SettingsExpander.Items>
+                                <toolkit:SettingsCard x:Uid="Settings_OtherSettings_RecommendedCount"
+                                                      Description="Incomplete">
+                                    <TextBox Text="30" />
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Uid="Settings_OtherSettings_HomeCount"
+                                                      Description="Incomplete">
+                                    <TextBox Text="20" />
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Uid="Settings_OtherSettings_VolumeStep"
+                                                      Description="Incomplete">
+                                    <TextBox Text="10" />
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Uid="Settings_OtherSettings_Offset"
+                                                      Description="Incomplete">
+                                    <TextBox Text="500" />
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Uid="Settings_OtherSettings_MediaControl"
+                                                      Description="Incomplete">
+                                    <TextBox Text="500" />
+                                </toolkit:SettingsCard>
 
-                        </toolkit:SettingsExpander.Items>
-                    </toolkit:SettingsExpander>
-                    <toolkit:SettingsExpander
-                        Header="NonsPlayer"
-                        HeaderIcon="{ui:BitmapIcon Source=ms-appx:///Assets/NonsPlayer.png}">
-                        <toolkit:SettingsExpander.Items>
-                            <toolkit:SettingsCard x:Uid="Settings_Version">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}"
-                                               FontWeight="Normal"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" />
-                                    <Button Margin="10,0,0,0" Command="{x:Bind ViewModel.CheckUpdateCommand}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <FontIcon Glyph="&#xE752;" FontSize="16" Margin="0,0,5,0" />
-                                            <TextBlock x:Uid="Settings_Version_CheckUpdate" />
-                                        </StackPanel>
+                            </toolkit:SettingsExpander.Items>
+                        </toolkit:SettingsExpander>
+                        <toolkit:SettingsExpander Margin="0,0,0,20"
+                                                  Header="NonsPlayer"
+                                                  HeaderIcon="{ui:BitmapIcon Source=ms-appx:///Assets/NonsPlayer.png}">
+                            <toolkit:SettingsExpander.Items>
+                                <toolkit:SettingsCard x:Uid="Settings_Version">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}"
+                                                   FontWeight="Normal"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   FontSize="16" />
+                                        <Button Margin="10,0,0,0" Command="{x:Bind ViewModel.CheckUpdateCommand}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <FontIcon Glyph="&#xE752;" FontSize="16" Margin="0,0,5,0" />
+                                                <TextBlock x:Uid="Settings_Version_CheckUpdate" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Uid="Settings_Version_Test">
+                                    <Button Margin="10,0,0,0" x:Uid="Settings_Version_TestButton"
+                                            Command="{x:Bind ViewModel.TestCommand}">
+
                                     </Button>
-                                </StackPanel>
-                            </toolkit:SettingsCard>
-                            <toolkit:SettingsCard x:Uid="Settings_Version_Test">
-                                <Button Margin="10,0,0,0" x:Uid="Settings_Version_TestButton"
-                                        Command="{x:Bind ViewModel.TestCommand}">
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard>
+                                    <toolkit:SettingsCard.Header>
+                                        <HyperlinkButton x:Uid="SettingsPage_GithubLink" />
+                                    </toolkit:SettingsCard.Header>
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard>
+                                    <toolkit:SettingsCard.Header>
+                                        <HyperlinkButton x:Uid="SettingsPage_BilibiliLink" />
+                                    </toolkit:SettingsCard.Header>
+                                </toolkit:SettingsCard>
+                            </toolkit:SettingsExpander.Items>
+                        </toolkit:SettingsExpander>
 
-                                </Button>
-                            </toolkit:SettingsCard>
-                            <toolkit:SettingsCard>
-                                <toolkit:SettingsCard.Header>
+                    </StackPanel>
+                    <Grid Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,20">
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"
+                                           Text="MADE BY MIAOYWW"
+                                           VerticalAlignment="Center" Style="{StaticResource CommonTextStyle}" />
+
+                                <TextBlock Text="Copyright Miaoyww 2022-2024." HorizontalTextAlignment="Center" />
+                                <TextBlock Text="Distributed under the terms of the GPL-3.0 license."
+                                           HorizontalTextAlignment="Center" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                            VerticalAlignment="Center">
                                     <HyperlinkButton x:Uid="SettingsPage_GithubLink" />
-                                </toolkit:SettingsCard.Header>
-                            </toolkit:SettingsCard>
-                            <toolkit:SettingsCard>
-                                <toolkit:SettingsCard.Header>
                                     <HyperlinkButton x:Uid="SettingsPage_BilibiliLink" />
-                                </toolkit:SettingsCard.Header>
-                            </toolkit:SettingsCard>
-                        </toolkit:SettingsExpander.Items>
-                    </toolkit:SettingsExpander>
-                </StackPanel>
-                <Grid Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,20">
-                    <Grid>
-                        <StackPanel>
-                            <TextBlock FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"
-                                       Text="MADE BY MIAOYWW"
-                                       VerticalAlignment="Center" Style="{StaticResource CommonTextStyle}" />
-
-                            <TextBlock Text="Copyright Miaoyww 2022-2024." HorizontalTextAlignment="Center" />
-                            <TextBlock Text="Distributed under the terms of the GPL-3.0 license."
-                                       HorizontalTextAlignment="Center" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                        VerticalAlignment="Center">
-                                <HyperlinkButton x:Uid="SettingsPage_GithubLink" />
-                                <HyperlinkButton x:Uid="SettingsPage_BilibiliLink" />
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
 
+                        </Grid>
                     </Grid>
                 </Grid>
             </Grid>
+
         </ScrollViewer>
     </Grid>
 
