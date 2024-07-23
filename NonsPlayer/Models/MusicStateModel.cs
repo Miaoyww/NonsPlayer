@@ -35,6 +35,7 @@ public partial class MusicStateModel
     private MusicStateModel()
     {
         CurrentMusic = null;
+        Volume = ConfigManager.Instance.Settings.Volume;
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
     }
 
@@ -129,7 +130,7 @@ public partial class MusicStateModel
     partial void OnVolumeChanging(double value)
     {
         currentVolume = value;
-        // RegHelper.Instance.Set(RegHelper.Regs.Volume, value.ToString());
+        ConfigManager.Instance.Settings.Volume = value;
         if (Player.Instance.OutputDevice != null) Player.Instance.Volume = (float)value / 100;
     }
 }
