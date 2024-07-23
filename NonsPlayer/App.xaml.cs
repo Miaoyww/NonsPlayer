@@ -1,9 +1,11 @@
 ﻿using System.Runtime.InteropServices;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+
 using NonsPlayer.Activation;
 using NonsPlayer.AMLL.Components.ViewModels;
 using NonsPlayer.AMLL.ViewModels;
@@ -18,8 +20,10 @@ using NonsPlayer.Updater.Update;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
-using WinRT;
+
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
+
+using WinRT;
 
 namespace NonsPlayer;
 

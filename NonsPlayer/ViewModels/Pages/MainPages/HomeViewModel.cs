@@ -38,6 +38,11 @@ public partial class HomeViewModel : ObservableRecipient
         PlayQueue.Instance.Play(music);
     }
 
+    [RelayCommand]
+    public void NativeToExplore()
+    {
+        NavigationService.NavigateTo(typeof(ExploreViewModel)?.FullName);
+    }
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
     {
         var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);

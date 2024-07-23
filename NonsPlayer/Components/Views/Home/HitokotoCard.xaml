@@ -22,10 +22,13 @@
                            FontWeight="Bold" FontSize="20"
                            VerticalAlignment="Center" />
             </StackPanel>
-            <TextBlock Grid.Column="1" Margin="30,0,0,0" VerticalAlignment="Center" Width="400"
+            <RichTextBlock Grid.Column="1" Margin="30,0,0,0" VerticalAlignment="Center" Width="400"
                        FontSize="18" FontWeight="Bold" TextWrapping="WrapWholeWords" MaxLines="2"
-                       Foreground="{StaticResource CommonTextColor}"
-                       Text="{x:Bind ViewModel.Hitokoto, Mode=OneWay}" />
+                       Foreground="{StaticResource CommonTextColor}">
+                <Paragraph>
+                    <Run Text="{x:Bind ViewModel.Hitokoto, Mode=OneWay}" />
+                </Paragraph>
+            </RichTextBlock>
         </Grid>
     </Border>
 </UserControl>

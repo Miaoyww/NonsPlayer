@@ -44,12 +44,19 @@
                     </Grid>
                     <Grid Grid.Row="1" Margin="0,40,0,0">
                         <StackPanel>
-                            <TextBlock x:Uid="RecommendedPlaylist" FontWeight="Bold" FontSize="35"
-                                       Foreground="{StaticResource CommonTextColor}" />
+                            <Button BorderThickness="0" Background="Transparent"
+                                    Command="{x:Bind ViewModel.NativeToExploreCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Uid="RecommendedPlaylist" FontWeight="Bold" FontSize="35"
+                                               Foreground="{StaticResource CommonTextColor}" />
+                                    <FontIcon Glyph="&#xE970;" Margin="10,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+
                             <GridView Name="RecommendPlaylistView"
                                       ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
                                       SelectionMode="None"
-                                      HorizontalAlignment="Left" Margin="0,0,0,0">
+                                      HorizontalAlignment="Center" Margin="0,0,0,0">
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="models:PlaylistModel">
                                         <views:PlaylistCard PlaylistItem="{x:Bind Playlist}" />

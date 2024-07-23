@@ -225,4 +225,9 @@
       <PRIResource Remove="BundleArtifacts\**" />
       <PRIResource Remove="Properties\**" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Views\Music\" />
+      <Folder Include="Views\Pages\MainPages\" />
+    </ItemGroup>
 </Project>

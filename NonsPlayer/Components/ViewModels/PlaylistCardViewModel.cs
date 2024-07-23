@@ -41,15 +41,12 @@ public partial class PlaylistCardViewModel
     [RelayCommand]
     public async void PlayNext()
     {
-        // if (CurrentPlaylist.IsCardMode)
-        // {
-        //     // var elapsed = await Tools.MeasureExecutionTimeAsync(CurrentPlaylist.LoadAsync(CurrentPlaylist.Id))
-        //         // .ConfigureAwait(false);
-        //     // Debug.WriteLine($"获取歌单Api耗时{elapsed.TotalMilliseconds}ms");
-        //     CurrentPlaylist.IsCardMode = false;
-        // }
+        if (CurrentPlaylist.MusicTrackIds == null)
+        {
+            await CurrentPlaylist.InitializePlaylist();
+        }
 
-        CurrentPlaylist.InitializeMusics();
+        await CurrentPlaylist.InitializeMusics();
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
             PlayQueue.Instance.AddNext(CurrentPlaylist.Musics.ToArray());

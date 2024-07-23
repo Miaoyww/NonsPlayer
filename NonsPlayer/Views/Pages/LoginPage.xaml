@@ -7,21 +7,19 @@
     mc:Ignorable="d">
 
     <Grid>
-        <!-- <Border Height="350" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center" -->
-        <!--         Margin="{StaticResource PageCommonMargin}" -->
-        <!--         Padding="0,40,0,0"> -->
-        <!--     <Grid> -->
-        <!--         <Grid.RowDefinitions> -->
-        <!--             <RowDefinition Height="Auto" /> -->
-        <!--             <RowDefinition Height="Auto" /> -->
-        <!--         </Grid.RowDefinitions> -->
-        <!--         <Border Grid.Row="0" Name="QrCode" Width="250" Height="250" -->
-        <!--                 Background="{x:Bind ViewModel.QrCode, Mode=OneWay}" /> -->
-        <!--         <TextBlock Grid.Row="1" Text="{x:Bind ViewModel.Text, Mode=OneWay}" HorizontalAlignment="Center" -->
-        <!--                    FontFamily="HarmonyOS Sans SC" FontWeight="Bold" FontSize="20" /> -->
-        <!--     </Grid> -->
-        <!-- </Border> -->
-        <!-- -->
-
+        <Border Height="350" Width="300" VerticalAlignment="Center" HorizontalAlignment="Center"
+                Margin="{StaticResource PageCommonMargin}"
+                Padding="0,40,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Name="QrCode" Width="250" Height="250"
+                        Background="{x:Bind ViewModel.QrCode, Mode=OneWay}" />
+                <TextBlock Grid.Row="1" Text="{x:Bind ViewModel.Text, Mode=OneWay}" HorizontalAlignment="Center"
+                           FontFamily="HarmonyOS Sans SC" FontWeight="Bold" FontSize="20" />
+            </Grid>
+        </Border>
     </Grid>
 </Page>
