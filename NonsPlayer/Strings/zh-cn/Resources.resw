@@ -426,4 +426,7 @@
   <data name="DailyRecommendedPlaylist.Text" xml:space="preserve">
     <value>每日歌曲推荐</value>
   </data>
+  <data name="RecommendedPlaylistCardTip.Text" xml:space="preserve">
+    <value>尝试登录后可用</value>
+  </data>
 </root>

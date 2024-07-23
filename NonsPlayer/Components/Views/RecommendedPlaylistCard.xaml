@@ -34,8 +34,9 @@
                            Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="24"
                            FontWeight="Bold" CharacterSpacing="300" />
 
-                <TextBlock Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="24"
-                           FontWeight="Bold" Text="³¢ÊÔµÇÂ¼ºó¿ÉÓÃ" Visibility="{x:Bind ViewModel.TipVisibility, Mode=OneWay}" />
+                <TextBlock x:Uid="RecommendedPlaylistCardTip"
+                           Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="24"
+                           FontWeight="Bold" Visibility="{x:Bind ViewModel.TipVisibility, Mode=OneWay}" />
             </StackPanel>
 
         </Grid>
