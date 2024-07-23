@@ -39,11 +39,11 @@ public class AdapterService
         }
     }
 
-    public bool DisableAdapter(string platformName)
+    public bool DisableAdapter(string name)
     {
-        if (!_adapters.ContainsKey(platformName)) return false;
-        if (_disabledAdaptersStrings.Contains(platformName)) return false;
-        _disabledAdaptersStrings.Add(platformName);
+        if (!_adapters.ContainsKey(name)) return false;
+        if (_disabledAdaptersStrings.Contains(name)) return false;
+        _disabledAdaptersStrings.Add(name);
         ConfigManager.Instance.Settings.DisabledAdapters = string.Join(";;", _disabledAdaptersStrings);
         return true;
     }
@@ -64,7 +64,7 @@ public class AdapterService
                 if (item.FullName.Contains("Adapters.Adapter"))
                 {
                     adapter = (IAdapter)Activator.CreateInstance(item);
-                    return new Tuple<string, IAdapter>(adapter.GetMetadata().Platform, adapter);
+                    return new Tuple<string, IAdapter>(adapter.GetMetadata().Name, adapter);
                 }
             }
 
@@ -77,9 +77,9 @@ public class AdapterService
         }
     }
 
-    public IAdapter? GetAdapter(string platformName)
+    public IAdapter? GetAdapter(string name)
     {
-        return _adapters.GetValueOrDefault(platformName);
+        return _adapters.GetValueOrDefault(name);
     }
 
     public IAdapter[] GetAdaptersByType(ISubAdapterEnum type)
