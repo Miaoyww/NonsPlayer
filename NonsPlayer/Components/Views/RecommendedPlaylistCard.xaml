@@ -31,13 +31,14 @@
                         Orientation="Vertical">
                 <TextBlock x:Uid="DailyRecommendedPlaylist"
                            Margin="20,10,0,0"
-                           Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="40"
-                           FontWeight="Bold" CharacterSpacing="300" />
+                           Style="{StaticResource CommonTextStyle}"
+                           Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="40" CharacterSpacing="300" />
 
                 <TextBlock x:Uid="RecommendedPlaylistCardTip"
+                           Style="{StaticResource EnglishTextStyle}"
                            Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="24"
                            VerticalAlignment="Center" HorizontalAlignment="Center"
-                           FontWeight="Bold" Visibility="{x:Bind ViewModel.TipVisibility, Mode=OneWay}" />
+                           Visibility="{x:Bind ViewModel.TipVisibility, Mode=OneWay}" />
             </StackPanel>
 
         </Grid>

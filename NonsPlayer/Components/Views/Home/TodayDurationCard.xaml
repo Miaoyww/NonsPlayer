@@ -10,8 +10,9 @@
             CornerRadius="20">
         <Grid Margin="20">
             <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center">
-                <TextBlock x:Uid="TodayDurationCard" FontSize="25" FontWeight="Bold"
-                           Foreground="{StaticResource CommonTextColor}"
+                <TextBlock x:Uid="TodayDurationCard" FontSize="25"
+                           FontWeight="Medium"
+                           Style="{StaticResource CommonTextStyle}"
                            HorizontalAlignment="Center" />
                 <TextBlock Style="{StaticResource EnglishTextStyle}"
                            FontSize="16">
@@ -19,7 +20,8 @@
                     <Run Text="DURATION" />
                 </TextBlock>
             </StackPanel>
-            <TextBlock Text="00H" FontSize="48" FontWeight="Bold" Foreground="#3662EC"
+            <TextBlock Style="{StaticResource CommonTextStyle}"
+                       Text="00H" FontSize="40" FontWeight="Bold" Foreground="#3662EC"
                        HorizontalAlignment="Center" VerticalAlignment="Bottom"
                        Margin="0,20,0,20" />
         </Grid>

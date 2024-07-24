@@ -9,12 +9,13 @@
     <Border Background="{StaticResource ComponentsCardBackground}"
             CornerRadius="20">
         <Grid Grid.Row="0" Margin="20">
-            <TextBlock FontWeight="Bold" FontSize="30"
+            <TextBlock FontSize="30"
                        Text="{x:Bind ViewModel.Greetings, Mode=OneWay}"
-                       Foreground="{StaticResource CommonTextColor}"
+                       Style="{StaticResource CommonTextStyle}" FontWeight="Medium"
                        VerticalAlignment="Center" HorizontalAlignment="Left" />
             <TextBlock Text="{x:Bind ViewModel.TimeString, Mode=OneWay}"
-                       FontWeight="Bold" FontSize="48" Foreground="#3662EC"
+                       Style="{StaticResource CommonTextStyle}"
+                       FontWeight="Bold" FontSize="30" Foreground="#3662EC"
                        VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,10,0" />
         </Grid>
     </Border>

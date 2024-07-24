@@ -22,18 +22,10 @@
             <FontIcon Glyph="&#xE96F;" FontSize="18"/>
         </Button>
         <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            <TextBlock Name="AdapterPlatForm" 
-                       VerticalAlignment="Top" HorizontalAlignment="Center"
-                       Style="{StaticResource CommonTextStyle}"
-                       Text="{x:Bind ViewModel.PlatForm, Mode=OneWay}"
-                       FontWeight="Bold" Margin="0,0,0,20" FontSize="24"/>
-            <FlipView Grid.Row="1" x:Name="LoginCardView" 
+            <FlipView x:Name="LoginCardView" 
                       Style="{StaticResource CustomFlipView}"
-                      Background="{StaticResource ComponentsCardBackground}" Margin="40"
+                      Background="{StaticResource ComponentsCardBackground}" 
+                      Margin="30,60,30,60"
                       CornerRadius="{StaticResource CustomCornerRadius}"
                       CanBeScrollAnchor="False"
                       SelectionChanged="LoginCardView_OnSelectionChanged">

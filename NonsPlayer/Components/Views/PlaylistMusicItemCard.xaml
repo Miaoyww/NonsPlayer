@@ -15,8 +15,9 @@
             <MenuFlyout>
                 <MenuFlyoutItem x:Uid="PlayNext" Icon="Play"
                                 Command="{x:Bind ViewModel.PlayNextCommand}" />
-                <MenuFlyoutSubItem x:Uid="CheckArtist" x:Name="CheckArtists" Icon="Contact" />
-
+                <MenuFlyoutSubItem x:Uid="CheckArtist"
+                                   x:Name="CheckArtists"
+                                   Icon="Contact" />
                 <MenuFlyoutItem x:Uid="CheckAlbum"
                                 Command="{x:Bind ViewModel.CheckAlbumCommand}">
                     <MenuFlyoutItem.Icon>
@@ -41,9 +42,11 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Name="IndexTextblock" Grid.Column="0" Text="{x:Bind ViewModel.Index, Mode=OneWay}"
+                <TextBlock Name="IndexTextBlock" Grid.Column="0" Text="{x:Bind ViewModel.Index, Mode=OneWay}"
+                           Style="{StaticResource CommonTextStyle}"
                            HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,20,0"
-                           FontFamily="HarmonyOS Sans SC" FontWeight="Light" />
+                           Padding="0"
+                           FontWeight="Light" />
 
                 <Border Grid.Column="1" Name="CoverBorder" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
                         HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2"
@@ -57,20 +60,22 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Name="NameTextBlock" Text="{x:Bind ViewModel.Name, Mode=OneWay}"
+                                   Style="{StaticResource CommonTextStyle}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top"
-                                   FontWeight="Black" FontSize="15" FontFamily="HarmonyOS Sans SC" MaxLines="2"
+                                   FontWeight="Medium" FontSize="15" MaxLines="2"
                                    TextTrimming="WordEllipsis" TextWrapping="Wrap" />
                         <TextBlock Grid.Column="1" Name="TransTextBlock" Text="{x:Bind ViewModel.Trans, Mode=OneWay}"
+                                   Style="{StaticResource CommonTextStyle}"
                                    Visibility="{x:Bind ViewModel.TransVisibility, Mode=OneWay}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4,0,0,0"
-                                   FontWeight="Bold" FontSize="12" FontFamily="HarmonyOS Sans SC" MaxLines="1"
+                                   FontWeight="Bold" FontSize="12" MaxLines="1"
                                    TextAlignment="Left" Opacity="0.8"
                                    TextTrimming="WordEllipsis" TextWrapping="Wrap" />
                     </Grid>
                     <controls:MetadataControl x:Name="ArtistsMetadata"
                                               Separator=" / "
                                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                                              FontFamily="HarmonyOS Sans SC" FontSize="14" FontWeight="Medium"
+                                              FontFamily="MiSans" FontSize="14" Padding="0"
                                               Items="{x:Bind ViewModel.ArtistsMetadata, Mode=OneWay}">
                         <controls:MetadataControl.TextBlockStyle>
                             <Style TargetType="TextBlock">
@@ -82,9 +87,8 @@
                 <HyperlinkButton Grid.Column="3"
                                  x:Name="AlbumMetadata"
                                  HorizontalAlignment="Center" VerticalAlignment="Center"
-                                 FontFamily="HarmonyOS Sans SC" FontSize="14" FontWeight="Medium"
-                                 MaxWidth="200" Margin="0,0,0,0"
-                                 Foreground="Black"
+                                 FontFamily="MiSans" FontSize="14" FontWeight="Normal"
+                                 MaxWidth="300" Foreground="Black" Padding="0"
                                  Content="{x:Bind ViewModel.Album, Mode=OneWay}"
                                  Command="{x:Bind ViewModel.ForwardAlbumCommand}" />
                 <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -96,7 +100,8 @@
                             FontSize="16" />
                     </Button>
                     <TextBlock Name="TimeTextBlock" Text="{x:Bind ViewModel.Time, Mode=OneWay}"
-                               Margin="0,3,0,0"
+                               Style="{StaticResource CommonTextStyle}"
+                               Margin="0,3,0,0" Padding="0"
                                FontSize="14" />
                 </StackPanel>
 

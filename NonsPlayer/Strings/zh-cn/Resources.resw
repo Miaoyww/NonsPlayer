@@ -162,21 +162,17 @@
     <value>Explore</value>
     <comment>Page title for ExplorePage</comment>
   </data>
-  <data name="ShellMenu_Explore.Content" xml:space="preserve">
+  <data name="ShellMenu_Explore.Text" xml:space="preserve">
     <value>发现</value>
     <comment>发现按钮的文本</comment>
   </data>
-  <data name="ShellMenu_Home.Content" xml:space="preserve">
+  <data name="ShellMenu_Home.Text" xml:space="preserve">
     <value>首页</value>
     <comment>首页按钮的文本</comment>
   </data>
-  <data name="ShellMenu_Own.Content" xml:space="preserve">
+  <data name="ShellMenu_Own.Text" xml:space="preserve">
     <value>我的</value>
     <comment>我的按钮的文本</comment>
-  </data>
-  <data name="ShellMenu_Adapter.Content" xml:space="preserve">
-    <value>适配器</value>
-    <comment>适配器按钮的文本</comment>
   </data>
   <data name="SettingsPage_BilibiliLink.Content" xml:space="preserve">
     <value>Bilibili</value>
@@ -357,7 +353,7 @@
   <data name="Settings_Version_Test.Header" xml:space="preserve">
     <value>测试</value>
   </data>
-  <data name="Settings_Version_TestButton.Content" xml:space="preserve">
+  <data name="Settings_Version_TestButton.Text" xml:space="preserve">
     <value>测试按钮</value>
   </data>
   <data name="Share.Text" xml:space="preserve">

@@ -15,15 +15,15 @@
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0" Orientation="Vertical">
                 <TextBlock x:Uid="TotalListenCard"
-                           FontWeight="Bold" FontSize="25"
-                           Foreground="{StaticResource CommonTextColor}"
+                           FontSize="25" FontWeight="Medium"
+                           Style="{StaticResource CommonTextStyle}"
                            VerticalAlignment="Center" />
                 <TextBlock Text="TOTAL LISTEN"
-                           Style="{StaticResource EnglishTextStyle}"
-                           FontWeight="Bold" FontSize="20"
+                           Style="{StaticResource EnglishTextStyle}" FontSize="20"
                            VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.TotalListen, Mode=OneWay}"
+                       Style="{StaticResource CommonTextStyle}"
                        FontWeight="Bold" FontSize="38" Foreground="#3662EC"
                        VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20,0,0,0" />
         </Grid>

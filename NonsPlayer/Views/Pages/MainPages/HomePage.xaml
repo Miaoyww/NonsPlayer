@@ -42,13 +42,13 @@
                         <views:TodayDurationCard Grid.Column="2" Margin="10,0,0,0" Name="TodayDuration" />
 
                     </Grid>
-                    <Grid Grid.Row="1" Margin="0,40,0,0">
+                    <Grid Grid.Row="1" Margin="-12,40,0,0">
                         <StackPanel>
                             <Button BorderThickness="0" Background="Transparent"
                                     Command="{x:Bind ViewModel.NativeToExploreCommand}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Uid="RecommendedPlaylist" FontWeight="Bold" FontSize="35"
-                                               Foreground="{StaticResource CommonTextColor}" />
+                                    <TextBlock x:Uid="RecommendedPlaylist" FontWeight="Medium" FontSize="35"
+                                               Style="{StaticResource CommonTextStyle}"/>
                                     <FontIcon Glyph="&#xE970;" Margin="10,0,0,0"/>
                                 </StackPanel>
                             </Button>

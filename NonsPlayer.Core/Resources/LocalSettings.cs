@@ -36,7 +36,7 @@ namespace NonsPlayer.Core.Resources
 
         public LocalSettings()
         {
-            DataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/NonsPlayer";
+            DataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/NonsPlayer";
             ConfigFilePath = DataPath + "/config.json";
             AdapterPath = DataPath + "/Adapters";
             PluginPath = DataPath + "/Plugins";

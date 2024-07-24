@@ -22,18 +22,13 @@
             </Grid.RowDefinitions>
             <Border Grid.Row="0" Name="Cover"
                     Background="{x:Bind ViewModel.Cover,Mode=OneWay}"
-                    Width="230" Height="230"
+                    Width="220" Height="220"
                     Margin="8" CornerRadius="10" HorizontalAlignment="Center" />
             <TextBlock Grid.Row="1" Name="Title"
                        Text="{x:Bind ViewModel.Title,Mode=OneWay}"
-                       TextAlignment="Left" TextWrapping="WrapWholeWords"
-                       TextTrimming="CharacterEllipsis"
-                       FontWeight="Bold" FontSize="16"
+                       Style="{StaticResource CommonTextStyle}"
+                       TextAlignment="Left" FontSize="17" FontWeight="Medium"
                        Width="224" Height="58" />
-            <TextBlock Grid.Row="2" Name="Creator"
-                       Text="{x:Bind ViewModel.Creator, Mode=OneWay}"
-                       TextAlignment="Left" TextWrapping="WrapWholeWords" TextTrimming="CharacterEllipsis"
-                       FontWeight="Bold" Foreground="#818181" />
         </Grid>
     </Border>
 </UserControl>

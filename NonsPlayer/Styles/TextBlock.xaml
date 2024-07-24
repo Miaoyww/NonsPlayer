@@ -1,33 +1,50 @@
 ﻿<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:controls1="using:CommunityToolkit.WinUI.Controls">
 
     <Style x:Key="CommonTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="18" />
-        <Setter Property="FontFamily" Value="HarmonyOS Sans SC" />
+        <Setter Property="FontFamily" Value="MiSans" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextWrapping" Value="WrapWholeWords" />
+        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}" />
         <Setter Property="FontWeight" Value="Normal" />
-    </Style>    
+    </Style>
 
     <Style x:Key="CommonRichTextStyle" TargetType="RichTextBlock">
         <Setter Property="FontSize" Value="18" />
-        <Setter Property="FontFamily" Value="HarmonyOS Sans SC" />
+        <Setter Property="FontFamily" Value="MiSans" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextWrapping" Value="WrapWholeWords" />
+        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}" />
         <Setter Property="FontWeight" Value="Normal" />
     </Style>
 
     <Style x:Key="BodyTextStyle" TargetType="TextBlock">
         <Setter Property="FontWeight" Value="Normal" />
-        <Setter Property="FontSize" Value="{StaticResource MediumFontSize}" />
+        <Setter Property="FontFamily" Value="MiSans" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+    <Style x:Key="CustomMetaDataControl" TargetType="controls:MetadataControl">
+        <Setter Property="Separator" Value=" / " />
+    </Style>
+    <Style x:Key="CustomSettingsExpander" TargetType="controls1:SettingsExpander">
+        <Setter Property="FontWeight" Value="Normal" />
+    </Style>
+    <Style x:Key="CustomSettingsCard" TargetType="controls1:SettingsCard">
+        <Setter Property="FontWeight" Value="Normal" />
+    </Style>
+    <Style x:Key="CustomSelectorBarItem" TargetType="SelectorBarItem">
+        <Setter Property="FontFamily" Value="MiSans" />
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontSize" Value="18"/>
+    </Style>
 
     <Style x:Key="EnglishTextStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="Novecento wide"/>
-        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}"/>
-        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontFamily" Value="Novecento" />
+        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}" />
     </Style>
 </ResourceDictionary>

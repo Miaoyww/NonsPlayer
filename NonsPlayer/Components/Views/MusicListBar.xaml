@@ -20,12 +20,19 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="#" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
-            <TextBlock Grid.Column="1" Margin="100,0,0,0" x:Uid="MusicListBar_Title" FontFamily="HarmonyOS Sans SC"
-                       FontWeight="Bold" />
-            <TextBlock Grid.Column="2" x:Uid="MusicListBar_Album" FontFamily="HarmonyOS Sans SC" FontWeight="Bold"
+            <TextBlock Grid.Column="0" Text="#" 
+                       Style="{StaticResource CommonTextStyle}" 
+                       FontSize="15" FontWeight="Medium"/>
+            <TextBlock Grid.Column="1" Margin="100,0,0,0" x:Uid="MusicListBar_Title" 
+                       Style="{StaticResource CommonTextStyle}" 
+                       FontSize="15" FontWeight="Medium"/>
+            <TextBlock Grid.Column="2" x:Uid="MusicListBar_Album"  
+                       Style="{StaticResource CommonTextStyle}" 
+                       FontSize="15"
                        Margin="40,0,0,0" />
-            <TextBlock Grid.Column="3" x:Uid="MusicListBar_Duration" FontFamily="HarmonyOS Sans SC" FontWeight="Bold" />
+            <TextBlock Grid.Column="3" x:Uid="MusicListBar_Duration"  
+                       Style="{StaticResource CommonTextStyle}" 
+                       FontSize="15" FontWeight="Medium"/>
         </Grid>
         <ListView Grid.Row="2"
                   Padding="0,5,0,0"

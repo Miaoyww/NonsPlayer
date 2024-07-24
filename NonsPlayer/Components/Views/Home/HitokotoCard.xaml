@@ -15,16 +15,17 @@
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0">
                 <TextBlock x:Uid="HitokotoCard"
+                           Style="{StaticResource CommonTextStyle}"
                            Foreground="{StaticResource CommonTextColor}"
-                           FontWeight="Bold" FontSize="25"
+                           FontWeight="Medium" FontSize="25"
                            VerticalAlignment="Center" />
-                <TextBlock Text="HITOKOTO" Style="{StaticResource EnglishTextStyle}"
-                           FontWeight="Bold" FontSize="20"
+                <TextBlock Text="HITOKOTO" FontSize="20"
+                           Style="{StaticResource EnglishTextStyle}" 
                            VerticalAlignment="Center" />
             </StackPanel>
             <RichTextBlock Grid.Column="1" Margin="30,0,0,0" VerticalAlignment="Center" Width="400"
-                       FontSize="18" FontWeight="Bold" TextWrapping="WrapWholeWords" MaxLines="2"
-                       Foreground="{StaticResource CommonTextColor}">
+                           Style="{StaticResource CommonRichTextStyle}" MaxLines="2"
+                           Foreground="{StaticResource CommonTextColor}">
                 <Paragraph>
                     <Run Text="{x:Bind ViewModel.Hitokoto, Mode=OneWay}" />
                 </Paragraph>

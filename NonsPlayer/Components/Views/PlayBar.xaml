@@ -78,7 +78,6 @@
                                   Visibility="{x:Bind ViewModel.PlayerService.IsShuffle, Converter={StaticResource ShuffleIconConverter}, Mode=OneWay}"
                                   Stroke="#0067c0" />
                         </Grid>
-
                     </Button>
                     <Button Name="PreviousMusic" Width="35" Height="35" Margin="0,0,10,0"
                             VerticalAlignment="Center"
@@ -143,6 +142,7 @@
                         Background="Transparent" BorderThickness="0">
                     <TextBlock Text="词"
                                Style="{StaticResource CommonTextStyle}"
+                               Foreground="{ThemeResource  SystemBaseMediumHighColor}"
                                Opacity="0.9" FontWeight="Medium" Padding="0"
                                Margin="0,0,0,0.5" />
                     <!-- 
@@ -156,7 +156,7 @@
                               Margin="0,0,0,0" />
                 </Button>
                 <Button Name="VolumeButton" Width="25" Height="25" Margin="0" Background="Transparent"
-                        BorderThickness="0,0,0,0" Padding="0"
+                        BorderThickness="0,0,0,0" Padding="0,0,0,1"
                         Command="{x:Bind ViewModel.PlayerService.MuteCommand}">
                     <FontIcon FontFamily="Segoe Fluent Icons" FontSize="20"
                               Glyph="{x:Bind ViewModel.MusicStateModel.Volume, Mode=OneWay, Converter={StaticResource VolumeIconConverter}}" />

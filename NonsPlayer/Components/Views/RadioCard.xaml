@@ -33,20 +33,14 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Name="Title" Style="{StaticResource CommonTextStyle}"
-                               FontSize="25" FontWeight="Bold" MaxLines="2"
+                               FontSize="25" FontWeight="Medium" MaxLines="2"
                                HorizontalAlignment="Left" 
                                Text="{x:Bind ViewModel.Title, Mode=OneWay}" />
-                    <controls:MetadataControl Grid.Row="1" x:Name="ArtistsMetadata"
-                                              Separator=" / " Margin="0,10,0,0" Width="280"
-                                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                                              FontFamily="HarmonyOS Sans SC" FontSize="14" FontWeight="Medium"
-                                              Items="{x:Bind ViewModel.ArtistsMetadata, Mode=OneWay}">
-                        <controls:MetadataControl.TextBlockStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="TextWrapping" Value="WrapWholeWords" />
-                            </Style>
-                        </controls:MetadataControl.TextBlockStyle>
-                    </controls:MetadataControl>
+                    <controls:MetadataControl Grid.Row="1" x:Name="ArtistsMetadata" 
+                                              Style="{StaticResource CustomMetaDataControl}"
+                                              Margin="0,10,0,0" Width="280"
+                                              HorizontalAlignment="Left" VerticalAlignment="Bottom" 
+                                              Items="{x:Bind ViewModel.ArtistsMetadata, Mode=OneWay}"/>
                 </Grid>
 
                 <Button Grid.Row="1" Width="40" Height="40"

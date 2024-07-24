@@ -15,11 +15,10 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <StackPanel Grid.Row="0" Orientation="Vertical">
-                <TextBlock x:Uid="RecentlyPlayCard" FontSize="25" FontWeight="Bold"
-                           Foreground="{StaticResource CommonTextColor}" />
+                <TextBlock x:Uid="RecentlyPlayCard" FontSize="25"
+                           Style="{StaticResource CommonTextStyle}" FontWeight="Medium" />
                 <TextBlock Style="{StaticResource EnglishTextStyle}"
-                           FontSize="16"
-                           Text="RECENT PLAY" />
+                           FontSize="16" Text="RECENT PLAY" />
             </StackPanel>
             <StackPanel x:Name="CardPanel" Grid.Row="1" Orientation="Horizontal">
 

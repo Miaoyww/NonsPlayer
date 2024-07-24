@@ -1,4 +1,5 @@
 ﻿using Microsoft.UI.Text;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
 using NonsPlayer.Contracts.ViewModels;
@@ -33,15 +34,15 @@ public sealed partial class PersonalCenterPage : Page
                 {
                     Text = metaData.DisplayPlatform,
                     Tag = adapter,
-                    FontSize = 20,
-                    FontWeight = FontWeights.Bold
+                    Style = App.Current.Resources["CustomSelectorBarItem"] as Style,
                 });
         }
 
         SelectorBar.Items.Add(new()
         {
             Text = "SettingsText".GetLocalized(),
-            Tag = "setting"
+            Tag = "setting",
+            Style = App.Current.Resources["CustomSelectorBarItem"] as Style,
         });
     }
 
