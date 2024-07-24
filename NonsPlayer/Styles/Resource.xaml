@@ -9,5 +9,5 @@
     <Thickness x:Key="PlaylistDetailMargin">45,80,45,100</Thickness>
     <SolidColorBrush x:Key="CommonTextColor">#3D3D3D</SolidColorBrush>
     <SolidColorBrush x:Key="LightTextColor">#FFFFFF</SolidColorBrush>
-    <SolidColorBrush x:Key="ComponentsCardBackground">#F5F3F2</SolidColorBrush>
+    <SolidColorBrush x:Key="ComponentsCardBackground">#F1F1F1</SolidColorBrush>
 </ResourceDictionary>

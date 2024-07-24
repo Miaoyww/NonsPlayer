@@ -61,6 +61,14 @@
         <None Update="appsettings.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <Page Update="Components\Views\Login\LoginTokenCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+          <SubType>Designer</SubType>
+        </Page>
+        <Page Update="Components\Views\Login\LoginQrCard.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+          <SubType>Designer</SubType>
+        </Page>
         <Page Update="Components\Views\RadioCard.xaml">
           <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
           <SubType>Designer</SubType>
@@ -176,7 +184,10 @@
         <None Remove="Components\Views\Home\RecentlyPlayItemCard.xaml" />
         <None Remove="Components\Views\Home\TodayDurationCard.xaml" />
         <None Remove="Components\Views\Home\TotalListenCard.xaml" />
+        <None Remove="Components\Views\LoginCard.xaml" />
+        <None Remove="Components\Views\Login\LoginTokenCard.xaml" />
         <None Remove="Components\Views\RadioCard.xaml" />
+        <None Remove="Styles\FlipView.xaml" />
         <Content Include="Segoe Fluent Icons.ttf" />
     </ItemGroup>
 
@@ -209,6 +220,9 @@
             <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
             <Generator>MSBuild:Compile</Generator>
         </Page>
+        <Page Update="Styles\FlipView.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        </Page>
     </ItemGroup>
 
     <ItemGroup>
@@ -229,5 +243,6 @@
     <ItemGroup>
       <Folder Include="Views\Music\" />
       <Folder Include="Views\Pages\MainPages\" />
+      <Folder Include="Views\Pages\PersonalPages\" />
     </ItemGroup>
 </Project>

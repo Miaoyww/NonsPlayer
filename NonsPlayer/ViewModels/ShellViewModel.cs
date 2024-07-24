@@ -28,8 +28,6 @@ public partial class ShellViewModel : ObservableRecipient
         NavigationService.Navigated += OnNavigated;
     }
 
-    public AccountStateModel AccountStateModel => AccountStateModel.Instance;
-
     public bool IsBackEnabled
     {
         get => _isBackEnabled;

@@ -11,16 +11,12 @@ public interface IAccountAdapter : ISubAdapter
     List<IPlaylist> CreatedPlaylists { get; set; }
     List<IPlaylist> SavedPlaylists { get; set; }
 
-    string Key { get; set; }
-    Task<Uri> GetQrCodeUrlAsync();
+    Task<Tuple<Uri, string>> GetQrCodeUrlAsync();
     Task<QrCodeResult> CheckLoginAsync(string key);
-
-    Task<IAccount> GetAccountAsync(string token);
-
+    IAccount GetAccount();
     Task<string> GetTokenAsync(string response);
-
-    Task GetUserPlaylists();
-    Task GetFavoritePlaylist();
+    Task<bool> GetUserPlaylists();
+    Task<bool> GetFavoritePlaylist();
 }
 
 public class QrCodeResult

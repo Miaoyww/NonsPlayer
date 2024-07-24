@@ -135,8 +135,8 @@
     <value>https://github.com/Miaoyww/NonsPlayer</value>
     <comment>设置页面 超链接文本 Github链接</comment>
   </data>
-  <data name="Settings_Title.Text" xml:space="preserve">
-    <value>Settings</value>
+  <data name="SettingsText" xml:space="preserve">
+    <value>设置</value>
     <comment>Page title for SettingsPage</comment>
   </data>
   <data name="AppNotificationSamplePayload" xml:space="preserve">
@@ -428,5 +428,17 @@
   </data>
   <data name="RecommendedPlaylistCardTip.Text" xml:space="preserve">
     <value>尝试登录后可用</value>
+  </data>
+  <data name="QrCodeState_Done" xml:space="preserve">
+    <value>登录成功</value>
+  </data>
+  <data name="QrCodeState_Scanned" xml:space="preserve">
+    <value>请在手机上确认登录</value>
+  </data>
+  <data name="QrCodeState_Waiting" xml:space="preserve">
+    <value>扫描二维码登录</value>
+  </data>
+  <data name="LoginTokenTip.Text" xml:space="preserve">
+    <value>输入Token以登录</value>
   </data>
 </root>

@@ -28,6 +28,8 @@ public class PageService : IPageService
         Configure<LocalViewModel, LocalPage>();
         Configure<TestViewModel, TestPage>();
         Configure<AdapterManagerViewModel, AdapterManagerPage>();
+        Configure<PersonalLibaryViewModel, PersonalLibaryPage>();
+        Configure<LoginViewModel, LoginPage>();
     }
 
     public Type GetPageType(string key)

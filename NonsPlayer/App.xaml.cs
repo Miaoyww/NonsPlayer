@@ -74,6 +74,8 @@ public partial class App : Application
                 services.AddTransient<ShellViewModel>();
                 services.AddTransient<PersonalCenterPage>();
                 services.AddTransient<PersonalCenterViewModel>();
+                services.AddTransient<PersonalLibaryPage>();
+                services.AddTransient<PersonalLibaryViewModel>();
                 services.AddTransient<LoginViewModel>();
                 services.AddTransient<LoginPage>();
                 services.AddTransient<SearchViewModel>();
@@ -131,6 +133,14 @@ public partial class App : Application
         ConfigManager.Instance.LoadConfig();
         AdapterService.Instance.AdapterLoadFailed += OnAdapterLoadFailed;
         AdapterService.Instance.Init();
+        foreach (var key in ConfigManager.Instance.Settings.AdapterAccountTokens.Keys)
+        {
+            var adapter = AdapterService.Instance.GetAdapter(key);
+            if (adapter != null)
+            {
+                adapter.Account.GetAccount().LoginByToken(ConfigManager.Instance.Settings.AdapterAccountTokens[key]);
+            }
+        }
         UnhandledException += App_UnhandledException;
         GetService<PlayCounterService>().Init();
         GetService<SMTCService>().Init();

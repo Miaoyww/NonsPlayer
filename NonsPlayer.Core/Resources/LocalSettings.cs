@@ -10,35 +10,29 @@ namespace NonsPlayer.Core.Resources
 {
     public class LocalSettings
     {
-        [JsonIgnore]
-        public string DataPath { get; set; }
+        [JsonIgnore] public string DataPath { get; set; }
 
-        [JsonIgnore] 
-        public string ConfigFilePath;
+        [JsonIgnore] public string ConfigFilePath;
 
-        [JsonPropertyName("adapter_path")]
-        public string AdapterPath { get; set; }
+        [JsonPropertyName("adapter_path")] public string AdapterPath { get; set; }
 
-        [JsonPropertyName("plugin_path")]
-        public string PluginPath { get; set; }
+        [JsonPropertyName("plugin_path")] public string PluginPath { get; set; }
 
-        [JsonPropertyName("data_path")]
-        public string Data { get; set; }
+        [JsonPropertyName("data_path")] public string Data { get; set; }
 
-        [JsonPropertyName("theme")]
-        public string Theme { get; set; }
+        [JsonPropertyName("theme")] public string Theme { get; set; }
 
-        [JsonPropertyName("volume")]
-        public double Volume { get; set; }
+        [JsonPropertyName("volume")] public double Volume { get; set; }
 
-        [JsonPropertyName("default_adapter")]
-        public string DefaultAdapter { get; set; }
+        [JsonPropertyName("adapter_account_tokens")]
+        public Dictionary<string, string> AdapterAccountTokens { get; set; }
+
+        [JsonPropertyName("default_adapter")] public string DefaultAdapter { get; set; }
 
         [JsonPropertyName("disabled_adapters")]
         public string DisabledAdapters { get; set; }
 
-        [JsonPropertyName("disabled_plugins")]
-        public string DisabledPlugins { get; set; }
+        [JsonPropertyName("disabled_plugins")] public string DisabledPlugins { get; set; }
 
         public LocalSettings()
         {
@@ -49,10 +43,10 @@ namespace NonsPlayer.Core.Resources
             Data = DataPath + "/Data";
             Theme = "Light";
             Volume = 50;
+            AdapterAccountTokens = new Dictionary<string, string>();
             DefaultAdapter = string.Empty;
             DisabledAdapters = string.Empty;
             DisabledPlugins = string.Empty;
         }
-
     }
 }
