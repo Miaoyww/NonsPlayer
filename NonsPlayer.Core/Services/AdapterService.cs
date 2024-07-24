@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Services;
 using NonsPlayer.Core.Models;
@@ -12,7 +13,8 @@ public class AdapterService
     private Dictionary<string, IAdapter> _disabledAdapters = new();
     private List<string> _disabledAdaptersStrings = new();
     public static AdapterService Instance { get; } = new();
-
+    public delegate void AdapterEventHandler(string name);
+    public event AdapterEventHandler? AdapterLoadFailed;
 
     public void Init()
     {
@@ -28,14 +30,24 @@ public class AdapterService
 
         foreach (var file in dllFiles)
         {
-            var (name, assembly) = LoadSingleAdapter(file);
-            if (_disabledAdaptersStrings.Contains(assembly.GetMetadata().Platform))
-            {
-                _disabledAdapters.Add(name, assembly);
-                continue;
-            }
 
-            _adapters.Add(name, assembly);
+            try
+            {
+                var (name, assembly) = LoadSingleAdapter(file);
+                if (name == null) continue;
+                if (assembly == null) continue;
+               
+                if (_disabledAdaptersStrings.Contains(assembly.GetMetadata().Platform))
+                {
+                    _disabledAdapters.Add(name, assembly);
+                    continue;
+                }
+
+                _adapters.Add(name, assembly);
+            }
+            catch(NullReferenceException ex)
+            {
+            }
         }
     }
 
@@ -53,7 +65,7 @@ public class AdapterService
         return DisableAdapter(metadata.Platform);
     }
 
-    public Tuple<string, IAdapter>? LoadSingleAdapter(string file)
+    public Tuple<string?, IAdapter?>? LoadSingleAdapter(string file)
     {
         try
         {
@@ -67,13 +79,14 @@ public class AdapterService
                     return new Tuple<string, IAdapter>(adapter.GetMetadata().Name, adapter);
                 }
             }
+            AdapterLoadFailed?.Invoke(file);
+            return new Tuple<string?, IAdapter?>(null, null);
 
-            return null;
         }
         catch (Exception ex)
         {
-            ExceptionService.Instance.Throw(ex, $"Error loading plugin from '{file}': {ex.Message}");
-            return null;
+            AdapterLoadFailed?.Invoke(file);
+            return new Tuple<string?, IAdapter?>(null, null);
         }
     }
 

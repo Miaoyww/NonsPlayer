@@ -50,6 +50,7 @@ public partial class App : Application
                 services.AddSingleton<IActivationService, ActivationService>();
                 services.AddSingleton<IPageService, PageService>();
                 services.AddSingleton<INavigationService, NavigationService>();
+                services.AddSingleton<IFileService, FileService>();
                 services.AddSingleton<VersionService>();
                 services.AddSingleton<UpdateService>();
                 services.AddSingleton<UpdateClient>();
@@ -58,9 +59,6 @@ public partial class App : Application
                 services.AddSingleton<PlayCounterService>();
                 services.AddSingleton<SMTCService>();
                 services.AddSingleton<RadioService>();
-
-                // Core Services
-                services.AddSingleton<IFileService, FileService>();
 
                 #region Views and ViewModels
 
@@ -116,7 +114,7 @@ public partial class App : Application
                 services.AddTransient<RecentlyPlayItemCardViewModel>();
                 services.AddTransient<RecommendedPlaylistCardViewModel>();
                 services.AddTransient<RadioCardViewModel>();
-
+                services.AddTransient<LoginCardViewModel>();
                 #endregion
 
 
@@ -131,10 +129,16 @@ public partial class App : Application
 
         GetService<IAppNotificationService>().Initialize();
         ConfigManager.Instance.LoadConfig();
+        AdapterService.Instance.AdapterLoadFailed += OnAdapterLoadFailed;
         AdapterService.Instance.Init();
         UnhandledException += App_UnhandledException;
         GetService<PlayCounterService>().Init();
         GetService<SMTCService>().Init();
+    }
+
+    private void OnAdapterLoadFailed(string name)
+    {
+        ExceptionService.Instance.Throw($"Failed load adapter: {name}");
     }
 
     // The .NET Generic Host provides dependency injection, configuration, logging, and other services.
