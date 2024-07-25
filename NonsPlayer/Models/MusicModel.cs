@@ -11,10 +11,4 @@ public class MusicModel
 
     public Tuple<string, string, byte[]> Cover =>
         Tuple.Create(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl, Music.LocalCover);
-
-    public string Name => Music.Name;
-    public string Artists => Music.ArtistsName;
-    public string Time => Music.TotalTimeString;
-
-    public string Id => Music.Id;
 }

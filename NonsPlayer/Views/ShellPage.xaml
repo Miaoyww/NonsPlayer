@@ -34,7 +34,7 @@
                                Width="30" Height="30"
                                VerticalAlignment="Center" HorizontalAlignment="Center" />
                         <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
-                                   Margin="10,0,0,0"
+                                   Margin="10,0,0,2"
                                    Style="{StaticResource CommonTextStyle}" FontWeight="Bold"
                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </StackPanel>
@@ -59,7 +59,7 @@
                     <Button x:Uid="MenuHome" BorderThickness="0" Width="50" Height="25"
                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                             Background="Transparent"
-                             Padding="0,0,0,0" Opacity="0.9"
+                            Padding="0,0,0,2" Opacity="0.9"
                             Foreground="#2d2d2d" Margin="5,0,5,0"
                             Command="{x:Bind ViewModel.OpenMenuHomeCommand}">
                         <TextBlock x:Uid="ShellMenu_Home" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
@@ -67,7 +67,7 @@
                     <Button x:Uid="MenuExplore" BorderThickness="0" Width="50" Height="25"
                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                             Background="Transparent"
-                            FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                            FontWeight="Bold" Padding="0,0,0,2" Opacity="0.9"
                             Margin="5,0,5,0"
                             Command="{x:Bind ViewModel.OpenMenuExploreCommand}">
                         <TextBlock x:Uid="ShellMenu_Explore" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
@@ -75,7 +75,7 @@
                     <Button x:Uid="MenuOwn" BorderThickness="0" Width="50" Height="25"
                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                             Background="Transparent"
-                            FontWeight="Bold" Padding="0,0,0,0" Opacity="0.9"
+                            FontWeight="Bold" Padding="0,0,0,2" Opacity="0.9"
                             Foreground="#2d2d2d" Margin="5,0,5,0"
                             Command="{x:Bind ViewModel.OpenMenuPersonalCenterCommand}">
                         <TextBlock x:Uid="ShellMenu_Own" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
@@ -116,6 +116,7 @@
                                     <TextBlock
                                         Text="{x:Bind PlayQueueBarViewModel.Count, Mode=OneWay}"
                                         FontSize="16" Style="{StaticResource CommonTextStyle}"
+                                        FontWeight="Medium"
                                         HorizontalAlignment="Left" Margin="2,10,0,0" />
                                 </StackPanel>
                             </Grid>
@@ -124,11 +125,7 @@
                             <DataTemplate x:DataType="models:MusicModel">
                                 <views:PlayQueueItemCard
                                     Music="{x:Bind Music}"
-                                    CoverUrl="{x:Bind Cover}"
-                                    Name="{x:Bind Name}"
-                                    Artists="{x:Bind Artists}"
-                                    Id="{x:Bind Id}"
-                                    Time="{x:Bind Time}" />
+                                    CoverUrl="{x:Bind Cover}"/>
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>
