@@ -19,7 +19,7 @@
                            Style="{StaticResource CommonTextStyle}"
                            VerticalAlignment="Center" />
                 <TextBlock Text="TOTAL LISTEN"
-                           Style="{StaticResource EnglishTextStyle}" FontSize="20"
+                           Style="{StaticResource EnglishTextStyle}" FontSize="16"
                            VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.TotalListen, Mode=OneWay}"

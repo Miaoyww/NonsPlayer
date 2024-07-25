@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Services;
 
 namespace NonsPlayer.Core.Resources
@@ -34,6 +35,10 @@ namespace NonsPlayer.Core.Resources
 
         [JsonPropertyName("disabled_plugins")] public string DisabledPlugins { get; set; }
 
+        [JsonPropertyName("total_play_count")] public int TotalPlayCount { get; set; }
+
+        [JsonPropertyName("today_play_duration")] public Tuple<DateTime, TimeSpan> TodayPlayDuration { get; set; }
+
         public LocalSettings()
         {
             DataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/NonsPlayer";
@@ -43,6 +48,7 @@ namespace NonsPlayer.Core.Resources
             Data = DataPath + "/Data";
             Theme = "Light";
             Volume = 50;
+            TotalPlayCount = 0;
             AdapterAccountTokens = new Dictionary<string, string>();
             DefaultAdapter = string.Empty;
             DisabledAdapters = string.Empty;

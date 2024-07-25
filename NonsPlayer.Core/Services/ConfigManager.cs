@@ -14,7 +14,7 @@ public class ConfigManager
     {
         Settings = new();
     }
-    public void LoadConfig()
+    public void Load()
     {
         if (File.Exists(Settings.ConfigFilePath))
         {
@@ -39,7 +39,7 @@ public class ConfigManager
         }
     }
 
-    public void SaveConfig()
+    public void Save()
     {
         if (!File.Exists(Settings.ConfigFilePath))
         {

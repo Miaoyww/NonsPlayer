@@ -21,7 +21,7 @@
                 </TextBlock>
             </StackPanel>
             <TextBlock Style="{StaticResource CommonTextStyle}"
-                       Text="00H" FontSize="40" FontWeight="Bold" Foreground="#3662EC"
+                       Text="{x:Bind ViewModel.Duration, Mode=OneWay}" FontSize="40" FontWeight="Bold" Foreground="#3662EC"
                        HorizontalAlignment="Center" VerticalAlignment="Bottom"
                        Margin="0,20,0,20" />
         </Grid>

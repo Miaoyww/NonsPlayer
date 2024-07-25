@@ -1,11 +1,9 @@
 ﻿using System.Runtime.InteropServices;
-
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
-
 using NonsPlayer.Activation;
 using NonsPlayer.AMLL.Components.ViewModels;
 using NonsPlayer.AMLL.ViewModels;
@@ -20,9 +18,7 @@ using NonsPlayer.Updater.Update;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
-
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
-
 using WinRT;
 
 namespace NonsPlayer;
@@ -117,6 +113,7 @@ public partial class App : Application
                 services.AddTransient<RecommendedPlaylistCardViewModel>();
                 services.AddTransient<RadioCardViewModel>();
                 services.AddTransient<LoginCardViewModel>();
+
                 #endregion
 
 
@@ -130,7 +127,7 @@ public partial class App : Application
             }).Build();
 
         GetService<IAppNotificationService>().Initialize();
-        ConfigManager.Instance.LoadConfig();
+        ConfigManager.Instance.Load();
         AdapterService.Instance.AdapterLoadFailed += OnAdapterLoadFailed;
         AdapterService.Instance.Init();
         foreach (var key in ConfigManager.Instance.Settings.AdapterAccountTokens.Keys)
@@ -141,8 +138,10 @@ public partial class App : Application
                 adapter.Account.GetAccount().LoginByToken(ConfigManager.Instance.Settings.AdapterAccountTokens[key]);
             }
         }
+
         UnhandledException += App_UnhandledException;
-        GetService<PlayCounterService>().Init();
+        GetService<PlayCounterService>().Init(ConfigManager.Instance.Settings.TotalPlayCount,
+            ConfigManager.Instance.Settings.TodayPlayDuration);
         GetService<SMTCService>().Init();
     }
 
