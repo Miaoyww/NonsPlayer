@@ -7,8 +7,7 @@
     xmlns:models="using:NonsPlayer.Models"
     xmlns:views="using:NonsPlayer.Components.Views"
     mc:Ignorable="d">
-    <Grid Margin="{StaticResource PageContentCommonMargin}"
-          Width="500" Height="500" Background="{x:Bind ViewModel.Avatar, Mode=OneWay}">
+    <Grid Width="500" Height="500" Background="{x:Bind ViewModel.Avatar, Mode=OneWay}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />

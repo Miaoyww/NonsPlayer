@@ -13,7 +13,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <SelectorBar Grid.Row="0" x:Name="SelectorBar" SelectionChanged="SelectorBar_OnSelectionChanged" />
+            <SelectorBar Grid.Row="0" x:Name="CustomSelectorBar" SelectionChanged="SelectorBar_OnSelectionChanged" />
             <Frame Grid.Row="1" x:Name="ContentFrame" IsNavigationStackEnabled="False" />
         </Grid>
     </Grid>

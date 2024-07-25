@@ -1,4 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -9,6 +11,8 @@ using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
+using NonsPlayer.ViewModels;
+using System.Collections.ObjectModel;
 
 namespace NonsPlayer.Components.Views;
 
@@ -29,6 +33,7 @@ public sealed partial class PlayQueueItemCard : UserControl
     [ObservableProperty] private IMusic music;
     [ObservableProperty] private string name;
     [ObservableProperty] private string time;
+    public ObservableCollection<MetadataItem> ArtistMetadata = new();
 
     public PlayQueueItemCard()
     {
@@ -37,7 +42,27 @@ public sealed partial class PlayQueueItemCard : UserControl
         InitializeComponent();
     }
 
+    [RelayCommand]
+    private void ForwardArtist(IArtist artist)
+    {
+        ServiceHelper.NavigationService.NavigateTo(typeof(ArtistViewModel)?.FullName, artist);
+    }
+
     public PlayQueueItemCardViewModel ViewModel { get; }
+
+    partial void OnMusicChanged(IMusic value)
+    {
+        Name = value.Name;
+        Time = value.TotalTimeString;
+        Id = value.Id;
+        foreach (var artist in music.Artists)
+        {
+            ArtistMetadata.Add(new MetadataItem
+            {
+                Label = artist.Name, Command = ForwardArtistCommand, CommandParameter = artist
+            });
+        }
+    }
 
     async partial void OnCoverUrlChanged(Tuple<string, string, byte[]> value)
     {

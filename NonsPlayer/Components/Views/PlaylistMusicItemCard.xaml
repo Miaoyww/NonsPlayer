@@ -14,20 +14,26 @@
         <Grid.ContextFlyout>
             <MenuFlyout>
                 <MenuFlyoutItem x:Uid="PlayNext" Icon="Play"
+                                Style="{StaticResource CustomMenuFlyoutItem}"
                                 Command="{x:Bind ViewModel.PlayNextCommand}" />
                 <MenuFlyoutSubItem x:Uid="CheckArtist"
                                    x:Name="CheckArtists"
+                                   Style="{StaticResource CustomMenuFlyoutSubItem}"
                                    Icon="Contact" />
                 <MenuFlyoutItem x:Uid="CheckAlbum"
+                                Style="{StaticResource CustomMenuFlyoutItem}"
                                 Command="{x:Bind ViewModel.CheckAlbumCommand}">
                     <MenuFlyoutItem.Icon>
                         <FontIcon Glyph="&#xE93C;" />
                     </MenuFlyoutItem.Icon>
                 </MenuFlyoutItem>
-                <MenuFlyoutSubItem x:Uid="Share" Icon="Share">
+                <MenuFlyoutSubItem x:Uid="Share" Icon="Share"
+                                   Style="{StaticResource CustomMenuFlyoutSubItem}">
                     <MenuFlyoutItem x:Uid="CopyLink" Icon="Link"
+                                    Style="{StaticResource CustomMenuFlyoutItem}"
                                     Command="{x:Bind ViewModel.CopyShareUrlCommand}" />
                     <MenuFlyoutItem x:Uid="CopyInfo" Icon="MusicInfo"
+                                    Style="{StaticResource CustomMenuFlyoutItem}"
                                     Command="{x:Bind ViewModel.CopyMusicInfoCommand}" />
                 </MenuFlyoutSubItem>
             </MenuFlyout>
@@ -56,26 +62,23 @@
                             Margin="20,2,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="NameTextBlock" Text="{x:Bind ViewModel.Name, Mode=OneWay}"
+                        <TextBlock Grid.Column="0" Name="TitleTextBlock" 
                                    Style="{StaticResource CommonTextStyle}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top"
                                    FontWeight="Medium" FontSize="15" MaxLines="2"
-                                   TextTrimming="WordEllipsis" TextWrapping="Wrap" />
-                        <TextBlock Grid.Column="1" Name="TransTextBlock" Text="{x:Bind ViewModel.Trans, Mode=OneWay}"
-                                   Style="{StaticResource CommonTextStyle}"
-                                   Visibility="{x:Bind ViewModel.TransVisibility, Mode=OneWay}"
-                                   HorizontalAlignment="Left" VerticalAlignment="Top" Margin="4,0,0,0"
-                                   FontWeight="Bold" FontSize="12" MaxLines="1"
-                                   TextAlignment="Left" Opacity="0.8"
-                                   TextTrimming="WordEllipsis" TextWrapping="Wrap" />
+                                   TextTrimming="WordEllipsis" TextWrapping="Wrap" >
+                            <Run Text="{x:Bind ViewModel.Name, Mode=OneWay}"/>
+                            <Run Text="{x:Bind ViewModel.Trans, Mode=OneWay}" 
+                                 FontWeight="Bold" FontSize="12" />
+                        </TextBlock>
                     </Grid>
                     <controls:MetadataControl x:Name="ArtistsMetadata"
-                                              Separator=" / "
+                                              Style="{StaticResource CustomMetaDataControl}"
                                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                                              FontFamily="MiSans" FontSize="14" Padding="0"
+                                              FontSize="14" Padding="0" FontWeight="Medium"
                                               Items="{x:Bind ViewModel.ArtistsMetadata, Mode=OneWay}">
                         <controls:MetadataControl.TextBlockStyle>
                             <Style TargetType="TextBlock">
@@ -87,8 +90,8 @@
                 <HyperlinkButton Grid.Column="3"
                                  x:Name="AlbumMetadata"
                                  HorizontalAlignment="Center" VerticalAlignment="Center"
-                                 FontFamily="MiSans" FontSize="14" FontWeight="Normal"
-                                 MaxWidth="300" Foreground="Black" Padding="0"
+                                 FontFamily="HarmonyOS Sans SC" FontSize="14" FontWeight="Normal"
+                                 Foreground="Black" Padding="0"
                                  Content="{x:Bind ViewModel.Album, Mode=OneWay}"
                                  Command="{x:Bind ViewModel.ForwardAlbumCommand}" />
                 <StackPanel Grid.Column="4" HorizontalAlignment="Right" VerticalAlignment="Center"

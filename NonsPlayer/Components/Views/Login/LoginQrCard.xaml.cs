@@ -107,7 +107,7 @@ public sealed partial class LoginQrCard : UserControl
                     DispatcherQueue.TryEnqueue(() => { QrCodeState = "QrCodeState_Done".GetLocalized(); });
                     account = result.Account;
                     ConfigManager.Instance.Settings.AdapterAccountTokens.Add(adapter.GetMetadata().Name, account.Token);
-                    ConfigManager.Instance.SaveConfig();
+                    ConfigManager.Instance.Save();
                     break;
                 }
         

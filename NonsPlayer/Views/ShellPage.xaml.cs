@@ -111,7 +111,7 @@ public sealed partial class ShellPage : Page
         Hook.GlobalEvents().Dispose();
         App.GetService<ControlService>().Stop();
         Player.Instance.Dispose();
-        ConfigManager.Instance.SaveConfig();
+        ConfigManager.Instance.Save();
     }
 
     private static KeyboardAccelerator BuildKeyboardAccelerator(VirtualKey key, VirtualKeyModifiers? modifiers = null)

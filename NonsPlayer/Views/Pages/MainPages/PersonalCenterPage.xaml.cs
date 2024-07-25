@@ -24,24 +24,27 @@ public sealed partial class PersonalCenterPage : Page
 
     private void RefreshInfo()
     {
-        SelectorBar.Items.Clear();
+        CustomSelectorBar.Items.Clear();
         var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Account);
         foreach (var adapter in adapters)
         {
             var metaData = adapter.GetMetadata();
-            SelectorBar.Items.Add(
+            CustomSelectorBar.Items.Add(
                 new SelectorBarItem
                 {
                     Text = metaData.DisplayPlatform,
                     Tag = adapter,
+                    Padding = new Thickness(0),
+                    Margin = new Thickness(0,0,20,0),
                     Style = App.Current.Resources["CustomSelectorBarItem"] as Style,
                 });
         }
 
-        SelectorBar.Items.Add(new()
+        CustomSelectorBar.Items.Add(new()
         {
             Text = "SettingsText".GetLocalized(),
             Tag = "setting",
+            Padding = new Thickness(0),
             Style = App.Current.Resources["CustomSelectorBarItem"] as Style,
         });
     }

@@ -9,7 +9,6 @@
     mc:Ignorable="d">
     <Page.Resources>
         <helpers:LikeIconConverter x:Key="LikeIconConverter" />
-
     </Page.Resources>
     <Grid>
         <ScrollViewer ViewChanged="{x:Bind ViewModel.OnScrollViewerViewChanged}">
@@ -27,8 +26,10 @@
                         <Border.ContextFlyout>
                             <MenuBarItemFlyout Placement="Right" x:Name="CoverFlyout">
                                 <MenuFlyoutItem x:Uid="PlaylistTips_Copy" Icon="Copy"
+                                                Style="{StaticResource CustomMenuFlyoutItem}"
                                                 Command="{x:Bind CopyCoverCommand}" />
                                 <MenuFlyoutItem x:Uid="PlaylistTips_Save" Icon="Save"
+                                                Style="{StaticResource CustomMenuFlyoutItem}"
                                                 Command="{x:Bind SaveCoverCommand}" />
                             </MenuBarItemFlyout>
                         </Border.ContextFlyout>
@@ -74,7 +75,7 @@
                             <RichTextBlock Name="Description"
                                            Style="{StaticResource CommonRichTextStyle}"
                                            VerticalAlignment="Top"
-                                           TextWrapping="Wrap" FontSize="13">
+                                           TextWrapping="Wrap" FontSize="15">
                                 <Paragraph>
                                     <Run Text="{x:Bind ViewModel.Description, Mode=OneWay}" />
                                 </Paragraph>
@@ -115,10 +116,13 @@
                                     <Button.Flyout>
                                         <MenuFlyout Placement="Right">
                                             <MenuFlyoutItem x:Uid="PlaylistTips_CopyLink"
+                                                            Style="{StaticResource CustomMenuFlyoutItem}"
                                                             Command="{x:Bind CopyLinkCommand}" />
                                             <MenuFlyoutItem x:Uid="PlaylistTips_CopyId"
+                                                            Style="{StaticResource CustomMenuFlyoutItem}"
                                                             Command="{x:Bind CopyIdCommand}" />
                                             <MenuFlyoutItem x:Uid="PlaylistTips_CopyInfo"
+                                                            Style="{StaticResource CustomMenuFlyoutItem}"
                                                             Command="{x:Bind CopyCreatorCommand}" />
                                         </MenuFlyout>
                                     </Button.Flyout>

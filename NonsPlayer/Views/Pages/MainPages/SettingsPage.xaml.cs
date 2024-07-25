@@ -56,7 +56,7 @@ public sealed partial class SettingsPage : Page
     private void SetAdapter(string name)
     {
         ConfigManager.Instance.Settings.DefaultAdapter = name;
-        ConfigManager.Instance.SaveConfig();
+        ConfigManager.Instance.Save();
         RefreshAdapterInfo();
     }
 

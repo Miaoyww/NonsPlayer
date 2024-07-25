@@ -20,7 +20,7 @@
             Margin="0,680,0,0"
             Height="80" Background="{StaticResource CustomAcrylicBrush}">
         <Grid>
-            <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="30,0,0,0">
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="30,0,0,0" Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
@@ -32,8 +32,12 @@
                         Background="{x:Bind ViewModel.MusicStateModel.Cover, Mode=OneWay}"
                         BorderThickness="0"
                         Margin="0,0,10,0" />
-                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <RichTextBlock Name="Title" Style="{StaticResource CommonRichTextStyle}"
+                <Grid Grid.Column="1" VerticalAlignment="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <RichTextBlock Grid.Row="0" Name="Title" Style="{StaticResource CommonRichTextStyle}"
                                    HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20"
                                    Margin="0,0,0,0" FontWeight="Medium" MaxLines="2"
                                    TextTrimming="CharacterEllipsis">
@@ -42,7 +46,7 @@
                         </Paragraph>
                     </RichTextBlock>
                     <controls:MetadataControl x:Name="ArtistsMetadata"
-                                              Separator=" / "
+                                              Grid.Row="1" Separator=" / "
                                               HorizontalAlignment="Left" VerticalAlignment="Top"
                                               FontFamily="HarmonyOS Sans SC" FontSize="15" Foreground="Black"
                                               Opacity="0.75" MaxWidth="300" FontWeight="Medium"
@@ -53,18 +57,18 @@
                             </Style>
                         </controls:MetadataControl.TextBlockStyle>
                     </controls:MetadataControl>
-                </StackPanel>
+                </Grid>
                 <Button Grid.Column="2" Name="Like" Width="35" Height="35" Command="{x:Bind LikeMusicCommand}"
                         VerticalAlignment="Center" HorizontalAlignment="Right"
                         Margin="8,0,0,0"
                         Padding="0" Background="Transparent" BorderThickness="0">
                     <FontIcon
                         Glyph="{x:Bind ViewModel.MusicStateModel.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
-                        FontSize="20" />
+                        FontSize="21" />
                 </Button>
             </Grid>
             <Grid>
-                <StackPanel Margin="-20,15,0,0" Orientation="Horizontal" HorizontalAlignment="Center"
+                <StackPanel Margin="-20,12,0,0" Orientation="Horizontal" HorizontalAlignment="Center"
                             VerticalAlignment="Top">
                     <Button Name="ShuffleSwitcher" Width="35" Height="35" Margin="0,0,10,0"
                             VerticalAlignment="Center" HorizontalAlignment="Center" Background="Transparent"
@@ -108,13 +112,13 @@
                                   Glyph="{x:Bind ViewModel.PlayerService.CurrentPlayMode, Converter={StaticResource PlayModeIconConverter}, Mode=OneWay}" />
                     </Button>
                 </StackPanel>
-                <StackPanel Margin="0, 5" Orientation="Horizontal" HorizontalAlignment="Center"
+                <StackPanel Margin="0,0,0,8" Orientation="Horizontal" HorizontalAlignment="Center"
                             VerticalAlignment="Bottom">
                     <TextBlock Name="CurrentTimeTextBlock"
                                Text="{x:Bind ViewModel.MusicStateModel.PositionString ,Mode=OneWay}"
-                               FontWeight="Bold"
-                               Foreground="{StaticResource CommonTextColor}"
-                               FontFamily="JetBrains Mono" Margin="10,0" VerticalAlignment="Center" Height="20"
+                               FontWeight="Bold" Style="{StaticResource CommonTextStyle}"
+                               Foreground="{StaticResource CommonTextColor}" 
+                               Margin="10,0" VerticalAlignment="Center" Height="20"
                                Padding="0,2,0,0" HorizontalAlignment="Left" FontSize="12" />
                     <Border VerticalAlignment="Center" HorizontalAlignment="Center">
                         <Slider x:Name="CurrentTimeSlider" Width="450" Margin="-5,0,-5,0"
@@ -130,7 +134,7 @@
                     <TextBlock Name="DurationTime"
                                Foreground="{StaticResource CommonTextColor}"
                                Text="{x:Bind ViewModel.MusicStateModel.DurationString, Mode=OneWay}"
-                               FontWeight="Bold" FontFamily="JetBrains Mono"
+                               FontWeight="Bold" Style="{StaticResource CommonTextStyle}"
                                Margin="10,0" VerticalAlignment="Center" Height="20" Padding="0,2,0,0"
                                HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
                 </StackPanel>

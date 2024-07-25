@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Helpers;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
@@ -18,15 +19,27 @@ public partial class PlayerBarViewModel : ObservableObject
     [ObservableProperty] private bool isDragging;
     [ObservableProperty] private TimeSpan lastPosition;
     [ObservableProperty] private TimeSpan newPosition;
+    [ObservableProperty] private Visibility infoVisibility;
     private TimeSpan newPostion;
 
     public PlayerBarViewModel()
     {
-        //TODO: 音量由本地config提供
-        // MusicStateModel.Instance.Volume = double.Parse(RegHelper.Instance.Get(RegHelper.Regs.Volume, 100.0).ToString());
-        // FavoritePlaylistService.Instance.LikeSongsChanged += UpdateLike;
+        Player.Instance.MusicChangedHandle += MusicChangedHandle;
+        ChangeVisibility(null);
     }
 
+    private void MusicChangedHandle(IMusic currentmusic)
+    {
+        ChangeVisibility(currentmusic);
+    }
+
+    private void ChangeVisibility(IMusic currentmusic)
+    {
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            InfoVisibility = currentmusic == null ? Visibility.Collapsed : Visibility.Visible;
+        });
+    }
     public PlayerService PlayerService => PlayerService.Instance;
     public MusicStateModel MusicStateModel => MusicStateModel.Instance;
 

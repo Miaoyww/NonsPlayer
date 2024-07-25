@@ -38,6 +38,7 @@ public sealed partial class PlaylistMusicItemCard : UserControl
             {
                 Text = Music.Artists[i].Name,
                 Command = CheckArtistCommand,
+                Style = App.Current.Resources["CustomMenuFlyoutItem"] as Style,
                 CommandParameter = Music.Artists[i]
             });
     }

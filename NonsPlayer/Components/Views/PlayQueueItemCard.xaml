@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     mc:Ignorable="d"
     Loaded="PlayQueueItemCard_OnLoaded">
     <Grid Background="Transparent" DoubleTapped="Play">
@@ -21,17 +22,22 @@
                         BorderThickness="0" CornerRadius="5" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch"
                             Margin="20,2,0,0">
-                    <Grid>
-                        <TextBlock Name="NameTextBlock" Text="{x:Bind Name, Mode=OneWay}"
-                                   Foreground="{x:Bind FontBrush, Mode=OneWay}"
-                                   HorizontalAlignment="Left" VerticalAlignment="Top"
-                                   FontWeight="Black" FontSize="15" FontFamily="HarmonyOS Sans SC" MaxLines="2"
-                                   TextAlignment="Left"
-                                   TextTrimming="WordEllipsis" TextWrapping="Wrap" />
-                    </Grid>
-                    <TextBlock x:Name="ArtistsTextBlock" Text="{x:Bind Artists, Mode=OneWay}"
-                               HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                               FontSize="14" FontFamily="HarmonyOS Sans SC" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Name="NameTextBlock" Text="{x:Bind Name, Mode=OneWay}"
+                               Foreground="{x:Bind FontBrush, Mode=OneWay}"
+                               Style="{StaticResource CommonTextStyle}"
+                               HorizontalAlignment="Left" VerticalAlignment="Top"
+                               FontWeight="Black" FontSize="15" MaxLines="2"
+                               TextAlignment="Left" TextTrimming="WordEllipsis" TextWrapping="Wrap" />
+                    <controls:MetadataControl Separator=" / " HorizontalAlignment="Left" VerticalAlignment="Top"
+                                              FontFamily="HarmonyOS Sans SC" FontSize="15" Foreground="Black"
+                                              Opacity="0.75" MaxWidth="300" FontWeight="Medium"
+                                              Items="{x:Bind ArtistMetadata, Mode=OneWay}">
+                        <controls:MetadataControl.TextBlockStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                            </Style>
+                        </controls:MetadataControl.TextBlockStyle>
+                    </controls:MetadataControl>
                 </StackPanel>
                 <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Margin="40,0,0,0" Orientation="Horizontal">
