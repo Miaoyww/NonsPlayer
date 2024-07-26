@@ -41,11 +41,13 @@ namespace NonsPlayer.Core.Resources
 
         public LocalSettings()
         {
-            DataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/NonsPlayer";
-            ConfigFilePath = DataPath + "/config.json";
-            AdapterPath = DataPath + "/Adapters";
-            PluginPath = DataPath + "/Plugins";
-            Data = DataPath + "/Data";
+            
+            DataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/NonsPlayer");
+            ConfigFilePath = Path.Combine(DataPath + "/config.json");
+            AdapterPath = Path.Combine(DataPath + "/Adapters");
+            PluginPath = Path.Combine(DataPath + "/Plugins");
+            Data = Path.Combine(DataPath + "/Data");
+            
             Theme = "Light";
             Volume = 50;
             TotalPlayCount = 0;

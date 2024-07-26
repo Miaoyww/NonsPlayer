@@ -50,6 +50,9 @@ public partial class RadioCardViewModel : ObservableObject
             SavedSongs = (await item.Common.GetRadioSong()).ToList();
             break;
         }
+
+        if (SavedSongs == null) return;
+        
         var firstSong = SavedSongs[0];
         await RefreshInfo(firstSong);
 

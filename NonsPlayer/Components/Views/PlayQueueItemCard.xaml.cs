@@ -52,6 +52,7 @@ public sealed partial class PlayQueueItemCard : UserControl
 
     partial void OnMusicChanged(IMusic value)
     {
+        ArtistMetadata.Clear();
         Name = value.Name;
         Time = value.TotalTimeString;
         Id = value.Id;
@@ -68,7 +69,7 @@ public sealed partial class PlayQueueItemCard : UserControl
     {
         if (value.Item3 != null)
         {
-            Cover = await CacheHelper.GetImageBrush(value.Item1, value.Item3);
+            Cover = await CacheHelper.GetImageBrushAsync(value.Item1, value.Item3);
         }
 
 

@@ -13,7 +13,7 @@ public interface IAccount : INonsModel
     string CacheMiddleAvatarId => CacheAvatarId + "_middle";
     string Key { get; set; }
 
-    Task<bool> LoginByToken(string token);
-    Task<string> GetAvatarUrl();
-    Task<bool> Refresh();
+    Task<bool> LoginByTokenAsync(string token);
+    Task<string> GetAvatarUrlAsync();
+    Task<bool> RefreshAsync();
 }

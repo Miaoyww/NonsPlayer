@@ -29,11 +29,14 @@ public partial class ExploreViewModel : ObservableRecipient, INavigationAware
         var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);
         if (adapters != null)
         {
-            ConfigManager.Instance.Settings.DefaultAdapter = adapters[0].GetMetadata().Name;
-            var music = await adapters[0].Common.GetDailyRecommended();
-            if (music != null)
+            if (adapters.Length != 0)
             {
-                DailyRecommendedPlaylist = music;
+                ConfigManager.Instance.Settings.DefaultAdapter = adapters[0].GetMetadata().Name;
+                var music = await adapters[0].Common.GetDailyRecommended();
+                if (music != null)
+                {
+                    DailyRecommendedPlaylist = music;
+                }
             }
         }
     }

@@ -75,7 +75,7 @@ public static class CacheHelper
         }).Result.Data;
     }
     
-    public static async Task<ImageBrush>? GetImageBrush(string cacheId, byte[] cover)
+    public static async Task<ImageBrush>? GetImageBrushAsync(string cacheId, byte[] cover)
     {
         using (var stream = new InMemoryRandomAccessStream())
         {
@@ -100,7 +100,7 @@ public static class CacheHelper
     {
         return (await GetCacheItemAsync(cacheId, async () => new ImageBrush
         {
-            ImageSource = await GetBitmapImageFromServer(url)
+            ImageSource = new BitmapImage(new Uri(url))
         })).Data;
     }
 

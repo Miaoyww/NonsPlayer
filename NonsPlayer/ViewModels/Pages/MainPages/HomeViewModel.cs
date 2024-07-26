@@ -34,7 +34,7 @@ public partial class HomeViewModel : ObservableRecipient
     [RelayCommand]
     public async void Test(string id)
     {
-        var music = await AdapterService.Instance.GetAdapter("ncm").Music.GetMusicAsyncById(id);
+        var music = await AdapterService.Instance.GetAdapter("ncm").Music.GetMusicByIdAsync(id);
         PlayQueue.Instance.Play(music);
     }
 

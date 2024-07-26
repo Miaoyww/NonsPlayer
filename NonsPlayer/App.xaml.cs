@@ -135,7 +135,7 @@ public partial class App : Application
             var adapter = AdapterService.Instance.GetAdapter(key);
             if (adapter != null)
             {
-                adapter.Account.GetAccount().LoginByToken(ConfigManager.Instance.Settings.AdapterAccountTokens[key]);
+                adapter.Account.GetAccount().LoginByTokenAsync(ConfigManager.Instance.Settings.AdapterAccountTokens[key]);
             }
         }
 

@@ -31,7 +31,7 @@ public partial class LoginViewModel : ObservableObject, INavigationAware
             PlatForm = Adapter.GetMetadata().DisplayPlatform;
             Avatar = await CacheHelper.GetImageBrushAsync(
                 Adapter.Account.GetAccount().CacheAvatarId, 
-                await Adapter.Account.GetAccount().GetAvatarUrl());
+                await Adapter.Account.GetAccount().GetAvatarUrlAsync());
         }
     }
 

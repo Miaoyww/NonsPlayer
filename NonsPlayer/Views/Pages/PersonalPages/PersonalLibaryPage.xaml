@@ -16,17 +16,20 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <PersonPicture Grid.Column="0" Grid.Row="0" Name="Avatar" Width="40" Height="40" Background="Black" />
+            <Border Grid.Column="0" Grid.Row="0" Name="Avatar"
+                           Width="40" Height="40" CornerRadius="100"
+                           Background="{x:Bind ViewModel.Avatar, Mode=OneWay}" />
             <TextBlock Grid.Column="1" Style="{StaticResource CommonTextStyle}"
                        VerticalAlignment="Center" Margin="10,0,0,0"
-                       Text="Miaoyww" />
+                       Text="{x:Bind ViewModel.UserName, Mode=OneWay}" />
         </Grid>
         <Grid Grid.Row="1" Margin="0,20,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Border Width="400" Height="250" Background="{StaticResource ComponentsCardBackground}"
+            <Border Width="400" Height="250"
+                    Background="{StaticResource ComponentsCardBackground}"
                     CornerRadius="{StaticResource CustomCornerRadius}">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -62,21 +65,23 @@
                                        Text="Liked Songs" />
                             <TextBlock Grid.Row="1"
                                        Margin="0,10,0,0"
-                                       Style="{StaticResource CommonTextStyle}"
-                                       Text="2826 Tracks" />
+                                       Style="{StaticResource CommonTextStyle}">
+                                <Run Text="{x:Bind ViewModel.FavoriteCount, Mode=OneWay}" />
+                                <Run Text=" Tracks" />
+                            </TextBlock>
                         </Grid>
                         <Button Grid.Column="1"
                                 Margin="20" CornerRadius="100"
                                 BorderThickness="0" Background="#3662EC"
-                                Width="50" Height="50">
+                                Width="50" Height="50" Command="{x:Bind ViewModel.PlayFavoriteCommand}">
                             <FontIcon Glyph="&#xF5B0;" Foreground="White" />
                         </Button>
                     </Grid>
                 </Grid>
             </Border>
             <GridView Grid.Column="1" Margin="20,0,20,0"
-                      Background="Black" >
-                <Border />  
+                      Background="Black">
+                <Border />
             </GridView>
         </Grid>
     </Grid>
