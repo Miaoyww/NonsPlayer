@@ -192,12 +192,6 @@ public class Player
                 {
                     CurrentReader.Dispose();
                 }
-
-                if (OutputDevice.PlaybackState == PlaybackState.Playing)
-                {
-                    OutputDevice.Stop();
-                }
-
                 var nextTrack = _queue.Dequeue();
                 if (nextTrack.IsMixed || _jointlessTimes == null)
                 {
@@ -228,7 +222,8 @@ public class Player
                 {
                     if (nextTrack.Music != null) CurrentMusic = nextTrack.Music[0];
                 }
-
+                
+                OutputDevice.Stop();
                 CurrentMusic = nextTrack.Music[0];
                 CurrentReader = nextTrack.Reader[0];
                 VolumeProvider = new VolumeSampleProvider(nextTrack.Wave)
