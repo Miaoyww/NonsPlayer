@@ -17,13 +17,16 @@
     </UserControl.Resources>
 
     <Border Name="Body" Padding="0"
-            Margin="0,680,0,0"
+            Margin="0,680,0,0" 
+            Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}"
             Height="80" Background="{StaticResource CustomAcrylicBrush}">
         <Grid>
-            <Grid HorizontalAlignment="Left" VerticalAlignment="Center" Margin="30,0,0,0" Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}">
+            <Grid  HorizontalAlignment="Left" VerticalAlignment="Center" 
+                   Margin="30,0,0,0" 
+                   MaxWidth="400">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Name="Cover"
@@ -38,7 +41,8 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <RichTextBlock Grid.Row="0" Name="Title" Style="{StaticResource CommonRichTextStyle}"
-                                   HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="20"
+                                   HorizontalAlignment="Left" VerticalAlignment="Center" 
+                                   FontSize="17"
                                    Margin="0,0,0,0" FontWeight="Medium" MaxLines="2"
                                    TextTrimming="CharacterEllipsis">
                         <Paragraph>
@@ -67,7 +71,7 @@
                         FontSize="21" />
                 </Button>
             </Grid>
-            <Grid>
+            <Grid HorizontalAlignment="Center">
                 <StackPanel Margin="-20,12,0,0" Orientation="Horizontal" HorizontalAlignment="Center"
                             VerticalAlignment="Top">
                     <Button Name="ShuffleSwitcher" Width="35" Height="35" Margin="0,0,10,0"
@@ -139,7 +143,7 @@
                                HorizontalAlignment="Right" FontSize="12" FlowDirection="RightToLeft" />
                 </StackPanel>
             </Grid>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" VerticalAlignment="Center"
                         Margin="0,0,30,0">
                 <Button Name="Lyric" Command="{x:Bind OpenLyricCommand}"
                         Height="25" Width="25" Padding="0"
