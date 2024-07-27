@@ -4,6 +4,7 @@ using NonsPlayer.Core.AMLL.Models;
 using NonsPlayer.Core.AMLL.Parsers;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models;
+using NonsPlayer.Core.Contracts.Models.Nons;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Exceptions;
 using NonsPlayer.Core.Nons;
@@ -23,6 +24,7 @@ public interface IMusic : IMusicModel
     [JsonIgnore] string AlbumName => Album?.Name;
     [JsonIgnore] string TotalTimeString => Duration.ToString(@"m\:ss");
     [JsonIgnore] string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
+    [JsonIgnore] IAdapter Adapter { get; set; }
 
     /// <summary>
     /// 是否已收藏
@@ -53,4 +55,16 @@ public interface IMusic : IMusicModel
     /// <param name="param">可选参数</param>
     /// <returns></returns>
     string GetCoverUrl(string param = "");
+
+    /// <summary>
+    /// 收藏歌曲
+    /// </summary>
+    /// <returns>成功状态</returns>
+    Task<bool> Like(bool like);
+
+    /// <summary>
+    /// 获取收藏状态
+    /// </summary>
+    /// <returns>收藏状态</returns>
+    Task<bool> GetLikeState();
 }

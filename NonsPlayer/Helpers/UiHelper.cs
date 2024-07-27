@@ -130,21 +130,6 @@ internal class TitleBarHelper
     }
 }
 
-public class LikeIconConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language)
-    {
-        if ((bool)value) return "\uEB52";
-
-        return "\uEB51";
-    }
-
-    public object? ConvertBack(object value, Type targetType, object parameter, string language)
-    {
-        return null;
-    }
-}
-
 public class UiHelper
 {
     public static UiHelper Instance { get; } = new();

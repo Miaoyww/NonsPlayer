@@ -3,7 +3,9 @@ using System.Text.Json.Serialization;
 using IF.Lastfm.Core.Api;
 using IF.Lastfm.Core.Objects;
 using NonsPlayer.Core.AMLL.Models;
+using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
+using NonsPlayer.Core.Contracts.Models.Nons;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Services;
 
@@ -38,19 +40,10 @@ public class LocalMusic : IMusic
         Md5 = File.GetHashCode().ToString();
         Id = $"{Name}_{Md5}";
         Url = file.Name;
-        Album = new LocalAlbum()
-        {
-            Name = File.Tag.Album,
-            Id = $"{File.Tag.Album}_{Md5}",
-            AvatarUrl = Url,
-        };
+        Album = new LocalAlbum() { Name = File.Tag.Album, Id = $"{File.Tag.Album}_{Md5}", AvatarUrl = Url, };
         Artists =
         [
-            new LocalArtist()
-            {
-                Name = File.Tag.FirstPerformer,
-                Id = $"{File.Tag.FirstPerformer}_{Md5}"
-            }
+            new LocalArtist() { Name = File.Tag.FirstPerformer, Id = $"{File.Tag.FirstPerformer}_{Md5}" }
         ];
         Duration = File.Properties.Duration;
     }
@@ -97,6 +90,7 @@ public class LocalMusic : IMusic
     public string Url { get; set; }
     public Lyric Lyric { get; set; }
     public byte[]? LocalCover { get; set; }
+    public IAdapter Adapter { get; set; }
     public bool IsLiked { get; set; }
     public MusicQualityLevel[] QualityLevels { get; set; }
     public string? Trans { get; set; }
@@ -112,6 +106,16 @@ public class LocalMusic : IMusic
     }
 
     public string GetCoverUrl(string param = "")
+    {
+        return null;
+    }
+
+    public Task<bool> Like(bool like)
+    {
+        return null;
+    }
+
+    public Task<bool> GetLikeState()
     {
         return null;
     }

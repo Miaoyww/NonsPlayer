@@ -1,4 +1,5 @@
 ﻿using NAudio.Wave;
+using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
@@ -200,8 +201,6 @@ public class PlayQueue
     {
         if (MusicList.Contains(music))
         {
-            var c = GetCurrentIndex();
-            var name = music.Name;
             Remove(music);
             Insert(GetCurrentIndex() + 1, music);
             return;
@@ -227,7 +226,7 @@ public class PlayQueue
 
     private void RemoveMusic(IMusic music)
     {
-        MusicList.Remove(music);
+        // 删除歌曲
         if (IsShuffle) _randomMusicList.Remove(music);
     }
 

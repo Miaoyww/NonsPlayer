@@ -62,35 +62,15 @@ public sealed partial class PlaylistMusicItemCard : UserControl
     [RelayCommand]
     private async void Like()
     {
-        //TODO: Implement
-        // var code = await FavoritePlaylistService.Instance.LikeAsync(Music.Id);
-        // if (code != 200)
-        // {
-        //     string content;
-        //     switch (code)
-        //     {
-        //         case 301:
-        //             content = "请登录后再试";
-        //             break;
-        //         case 400:
-        //             content = "请检查网络后再试";
-        //             break;
-        //         default:
-        //             content = $"出现了错误 {code}";
-        //             break;
-        //     }
-        //
-        //     var dialog = new ContentDialog
-        //     {
-        //         XamlRoot = XamlRoot,
-        //         Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-        //         Title = "错误",
-        //         PrimaryButtonText = "知道了",
-        //         CloseButtonText = "取消",
-        //         DefaultButton = ContentDialogButton.Primary,
-        //         Content = content
-        //     };
-        //     await dialog.ShowAsync();
-        // }
+        await Music.Like(!Music.IsLiked);
+        if (MusicStateModel.Instance.CurrentMusic.Id.Equals(music.Id))
+        {
+            var state = await music.GetLikeState();
+            Music.IsLiked = state;
+            MusicStateModel.Instance.CurrentSongLiked = state;
+        }
+        
+        ViewModel.Liked = await Music.GetLikeState();
+
     }
 }

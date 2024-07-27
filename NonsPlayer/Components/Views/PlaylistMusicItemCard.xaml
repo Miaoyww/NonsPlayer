@@ -6,9 +6,10 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:helpers="using:NonsPlayer.Helpers"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:converters="using:NonsPlayer.Converters"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <helpers:LikeIconConverter x:Key="LikeIconConverter" />
+        <converters:LikeIconConverter x:Key="LikeIconConverter" />
     </UserControl.Resources>
     <Grid Background="Transparent" DoubleTapped="{x:Bind ViewModel.Play}">
         <Grid.ContextFlyout>
@@ -50,9 +51,10 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Name="IndexTextBlock" Grid.Column="0" Text="{x:Bind ViewModel.Index, Mode=OneWay}"
                            Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
                            HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,20,0"
                            Padding="0"
-                           FontWeight="Light" />
+                           FontWeight="Medium" />
 
                 <Border Grid.Column="1" Name="CoverBorder" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
                         HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2"
@@ -99,7 +101,8 @@
                     <Button Margin="0,0,30,0" Height="30" Width="30" Padding="0" Background="Transparent"
                             BorderThickness="0" Command="{x:Bind LikeCommand}">
                         <FontIcon
-                            Glyph="{x:Bind ViewModel.Liked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
+                            Glyph="&#xEB52;"
+                            Foreground="{x:Bind ViewModel.Liked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
                             FontSize="16" />
                     </Button>
                     <TextBlock Name="TimeTextBlock" Text="{x:Bind ViewModel.Time, Mode=OneWay}"

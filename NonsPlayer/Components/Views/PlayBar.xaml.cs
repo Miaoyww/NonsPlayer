@@ -25,7 +25,7 @@ public sealed partial class PlayBar : UserControl
     private ManipulationStartedRoutedEventArgs? _slidingEventArgs = null;
     private TimeSpan StartingTimeSpan = TimeSpan.Zero;
     private bool _isSliding = false;
-
+    
     public PlayerBarViewModel ViewModel { get; }
 
     public event EventHandler OnPlayQueueBarOpenHandler;
@@ -48,27 +48,24 @@ public sealed partial class PlayBar : UserControl
     }
 
     [RelayCommand]
-    private async void LikeMusic()
+    private async Task LikeMusic()
     {
         if (MusicStateModel.Instance.CurrentMusic == null) return;
 
         if (MusicStateModel.Instance.CurrentMusic.IsEmpty) return;
-        // var code = await FavoritePlaylistService.Instance.LikeAsync(MusicStateModel.Instance.CurrentMusic.Id);
-        // if (code != 200)
-        // {
-        //     string content;
-        //     switch (code)
-        //     {
-        //         case 301:
-        //             content = "请登录后再试";
-        //             break;
-        //         case 400:
-        //             content = "请检查网络后再试";
-        //             break;
-        //         default:
-        //             content = $"出现了错误 {code}";
-        //             break;
-        //     }
+
+        if (MusicStateModel.Instance.CurrentMusic.Adapter == null) return;
+
+        var accountAdapter = MusicStateModel.Instance.CurrentMusic.Adapter.Account;
+        if (!MusicStateModel.Instance.CurrentMusic.Adapter.Account.GetAccount().IsLoggedIn) return;
+        var account = accountAdapter.GetAccount();
+
+        var currentState = await accountAdapter.IsLikedSong(MusicStateModel.Instance.CurrentMusic.Id);
+        await MusicStateModel.Instance.CurrentMusic.Like(!currentState);
+        var state = await accountAdapter.IsLikedSong(MusicStateModel.Instance.CurrentMusic.Id);
+        MusicStateModel.Instance.CurrentMusic.IsLiked = state;
+        MusicStateModel.Instance.CurrentSongLiked = state;
+        
         //
         //     var dialog = new ContentDialog
         //     {

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Newtonsoft.Json.Linq;
+using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Core.Utils;
@@ -60,5 +61,14 @@ public partial class HitokotoCardViewModel
         }
 
         ServiceHelper.DispatcherQueue.TryEnqueue(() => Hitokoto = text);
+    }
+
+    public void OnNavigatedTo(object parameter)
+    {
+    }
+
+    public void OnNavigatedFrom()
+    {
+        timer.Stop();
     }
 }

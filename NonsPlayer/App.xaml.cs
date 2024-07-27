@@ -113,7 +113,7 @@ public partial class App : Application
                 services.AddTransient<RecommendedPlaylistCardViewModel>();
                 services.AddTransient<RadioCardViewModel>();
                 services.AddTransient<LoginCardViewModel>();
-
+                services.AddTransient<FavoriteSongCardViewModel>();
                 #endregion
 
 

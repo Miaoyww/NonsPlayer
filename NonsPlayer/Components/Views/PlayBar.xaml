@@ -67,7 +67,8 @@
                         Margin="8,0,0,0"
                         Padding="0" Background="Transparent" BorderThickness="0">
                     <FontIcon
-                        Glyph="{x:Bind ViewModel.MusicStateModel.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
+                        Glyph="&#xEB52;"
+                        Foreground="{x:Bind ViewModel.MusicStateModel.CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
                         FontSize="21" />
                 </Button>
             </Grid>

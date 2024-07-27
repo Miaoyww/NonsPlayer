@@ -1,4 +1,5 @@
-﻿using NonsPlayer.Core.Contracts.Models.Music;
+﻿using NonsPlayer.Core.Contracts.Adapters;
+using NonsPlayer.Core.Contracts.Models.Music;
 
 namespace NonsPlayer.Core.Models;
 
@@ -15,4 +16,5 @@ public class LocalAlbum: IAlbum
     public IArtist[] Artists { get; set; }
     public int CollectionCount { get; set; }
     public int TrackCount { get; set; }
+    public IAdapter Adapter { get; set; }
 }

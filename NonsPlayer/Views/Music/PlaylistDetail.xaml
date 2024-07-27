@@ -6,9 +6,10 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:NonsPlayer.Components.Views"
     xmlns:helpers="using:NonsPlayer.Helpers"
+    xmlns:converters="using:NonsPlayer.Converters"
     mc:Ignorable="d">
     <Page.Resources>
-        <helpers:LikeIconConverter x:Key="LikeIconConverter" />
+        <converters:LikeIconConverter x:Key="LikeIconConverter" />
     </Page.Resources>
     <Grid>
         <ScrollViewer ViewChanged="{x:Bind ViewModel.OnScrollViewerViewChanged}">
@@ -103,7 +104,8 @@
                                         FontWeight="Bold" FontSize="16"
                                         Margin="0,0,10,0">
                                     <FontIcon VerticalAlignment="Center" HorizontalAlignment="Left"
-                                              Glyph="{x:Bind ViewModel.IsLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
+                                              Glyph="&#xEB52;"
+                                              Foreground="{x:Bind ViewModel.IsLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
                                               FontSize="18" />
                                 </Button>
                                 <Button Name="More"

@@ -4,6 +4,7 @@ using System.Timers;
 using NAudio.Utils;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
+using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Exceptions;
@@ -34,7 +35,7 @@ public class Player
     public MediaFoundationReader? CurrentReader;
     public VolumeSampleProvider? VolumeProvider;
     public WaveOutEvent OutputDevice;
-
+    
     public IMusic CurrentMusic;
     private float _volume;
     private TimeSpan _position;
@@ -142,25 +143,25 @@ public class Player
     }
 
     // 使用ConcatenatingSampleProvider做到无缝切换
-    public void EnqueueTrack(IMusic[] music)
+    public void EnqueueTrack(IMusic[] song)
     {
         MusicMixer mixer;
-        if (music.Length != 0)
+        if (song.Length != 0)
         {
-            var readers = new MediaFoundationReader[music.Length];
-            var providers = new ISampleProvider[music.Length];
-            for (int i = 0; i < music.Length; i++)
+            var readers = new MediaFoundationReader[song.Length];
+            var providers = new ISampleProvider[song.Length];
+            for (int i = 0; i < song.Length; i++)
             {
-                readers[i] = new MediaFoundationReader(music[i].Url);
+                readers[i] = new MediaFoundationReader(song[i].Url);
                 providers[i] = readers[i].ToSampleProvider();
             }
 
             var concatenating = new ConcatenatingSampleProvider(providers);
-            mixer = new MusicMixer(music, concatenating, readers);
+            mixer = new MusicMixer(song,concatenating, readers);
         }
         else
         {
-            var reader = new MediaFoundationReader(music[0].Url);
+            var reader = new MediaFoundationReader(song[0].Url);
             mixer = new MusicMixer(reader.ToSampleProvider(), [reader]);
         }
 

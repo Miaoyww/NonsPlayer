@@ -55,7 +55,7 @@
 
                             <GridView Name="RecommendPlaylistView"
                                       ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
-                                      SelectionMode="None"
+                                      SelectionMode="None" 
                                       HorizontalAlignment="Center" Margin="0,0,0,0">
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="models:PlaylistModel">

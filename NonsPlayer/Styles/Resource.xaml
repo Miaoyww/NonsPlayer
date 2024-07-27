@@ -3,11 +3,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
 
-    <CornerRadius x:Key="CustomCornerRadius">20</CornerRadius>
     <Thickness x:Key="PageCommonMargin">0,54,0,80</Thickness>
     <Thickness x:Key="PageContentCommonMargin">60,20,60,20</Thickness>
     <Thickness x:Key="PlaylistDetailMargin">45,80,45,100</Thickness>
-    <SolidColorBrush x:Key="CommonTextColor">#3D3D3D</SolidColorBrush>
-    <SolidColorBrush x:Key="LightTextColor">#FFFFFF</SolidColorBrush>
-    <SolidColorBrush x:Key="ComponentsCardBackground">#F1F1F1</SolidColorBrush>
+    <StackLayout x:Name="HorizontalStackLayout" Orientation="Horizontal" Spacing="8"/>
 </ResourceDictionary>

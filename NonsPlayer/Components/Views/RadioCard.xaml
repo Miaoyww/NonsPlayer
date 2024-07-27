@@ -9,6 +9,7 @@
     mc:Ignorable="d">
     <UserControl.Resources>
         <converters:RadioPlayIconConverter x:Key="RadioPlayIconConverter" />
+        <converters:LikeIconConverter x:Key="LikeIconConverter" />
     </UserControl.Resources>
     <Border CornerRadius="{StaticResource CustomCornerRadius}" Background="{StaticResource ComponentsCardBackground}"
             Width="500" Height="200">
@@ -17,11 +18,10 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Border Name="Cover" Width="160" Height="160" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
+            <Border Name="CoverCard" Width="160" Height="160" Background="{x:Bind Cover, Mode=OneWay}"
                     CornerRadius="{StaticResource CustomCornerRadius}"
                     Margin="20" />
             <Grid Grid.Column="1"
-                  VerticalAlignment="Top" HorizontalAlignment="Center"
                   Margin="20">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
@@ -32,28 +32,43 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Name="Title" Style="{StaticResource CommonTextStyle}"
+                    <TextBlock Grid.Row="0" Name="TitleCard" Style="{StaticResource CommonTextStyle}"
                                FontSize="25" FontWeight="Medium" MaxLines="2"
-                               HorizontalAlignment="Left" 
-                               Text="{x:Bind ViewModel.Title, Mode=OneWay}" />
-                    <controls:MetadataControl Grid.Row="1" x:Name="ArtistsMetadata" 
+                               HorizontalAlignment="Left"
+                               Text="{x:Bind Title, Mode=OneWay}" />
+                    <controls:MetadataControl Grid.Row="1" x:Name="ArtistsMetadata"
                                               Style="{StaticResource CustomMetaDataControl}"
                                               Margin="0,10,0,0" Width="280"
-                                              HorizontalAlignment="Left" VerticalAlignment="Bottom" 
-                                              Items="{x:Bind ViewModel.ArtistsMetadata, Mode=OneWay}"/>
+                                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                              Items="{x:Bind Artists, Mode=OneWay}" />
                 </Grid>
 
-                <Button Grid.Row="1" Width="40" Height="40"
-                        Margin="0,0,0,0"
-                        VerticalContentAlignment="Bottom"
-                        BorderThickness="0" VerticalAlignment="Bottom"
-                        Command="{x:Bind ViewModel.PlayCommand}"
-                        Background="{StaticResource CustomAcrylicBrush}"
-                        CornerRadius="{StaticResource CustomCornerRadius}">
-                    <FontIcon
-                        Glyph="{x:Bind ViewModel.MusicStateModel.IsPlaying, Converter={StaticResource RadioPlayIconConverter} ,Mode=OneWay}"
-                        FontSize="18" />
-                </Button>
+                <Grid Grid.Row="1" Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Width="40" Height="40"
+                            
+                            BorderThickness="0" 
+                            Command="{x:Bind PlayCommand}"
+                            Background="{StaticResource CustomAcrylicBrush}"
+                            CornerRadius="{StaticResource CustomCornerRadius}">
+                        <FontIcon
+                            Glyph="{x:Bind MusicStateModel.IsPlaying, Converter={StaticResource RadioPlayIconConverter} ,Mode=OneWay}"
+                            FontSize="18" />
+                    </Button>
+
+                    <Button Grid.Column="2" Name="LikeButton" Width="35" Height="35" Command="{x:Bind LikeCommand}"
+                            VerticalAlignment="Center" HorizontalAlignment="Right"
+                            Margin="8,0,0,0"
+                            Padding="0" Background="Transparent" BorderThickness="0">
+                        <FontIcon
+                            Glyph="&#xEB52;"
+                            FontSize="21" 
+                            Foreground="{x:Bind CurrentSongLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"/>
+                    </Button>
+                </Grid>
             </Grid>
 
         </Grid>

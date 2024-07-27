@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using NonsPlayer.Core.Contracts.Adapters;
+using System.Text.Json.Serialization;
 using NonsPlayer.Core.Contracts.Models;
 
 namespace NonsPlayer.Core.Contracts.Models.Music;
@@ -12,4 +13,5 @@ public interface IAlbum : IMusicModel
     [JsonIgnore] public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
     [JsonPropertyName("collection_count")] public int CollectionCount { set; get; }
     [JsonPropertyName("track_count")] public int TrackCount { get; set; }
+    [JsonIgnore] IAdapter Adapter { get; set; }
 }

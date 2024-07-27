@@ -121,6 +121,9 @@
         <Page Update="Components\Views\AdapterCard.xaml">
           <SubType>Designer</SubType>
         </Page>
+        <Page Update="Components\Views\FavoriteSongCard.xaml">
+          <SubType>Designer</SubType>
+        </Page>
     </ItemGroup>
 
     <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
@@ -187,6 +190,7 @@
         <None Remove="Components\Views\LoginCard.xaml" />
         <None Remove="Components\Views\Login\LoginTokenCard.xaml" />
         <None Remove="Components\Views\RadioCard.xaml" />
+        <None Remove="Styles\Colors.xaml" />
         <None Remove="Styles\FlipView.xaml" />
         <Content Include="Segoe Fluent Icons.ttf" />
     </ItemGroup>
@@ -221,6 +225,9 @@
             <Generator>MSBuild:Compile</Generator>
         </Page>
         <Page Update="Styles\FlipView.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        </Page>
+        <Page Update="Styles\Colors.xaml">
           <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         </Page>
     </ItemGroup>

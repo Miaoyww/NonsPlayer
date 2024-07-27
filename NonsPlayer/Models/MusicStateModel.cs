@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.UI.Xaml.Media;
+using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Helpers;
@@ -17,6 +18,10 @@ namespace NonsPlayer.ViewModels;
 [INotifyPropertyChanged]
 public partial class MusicStateModel
 {
+    public delegate void CurrentSongLikedChangedEventHandler(bool value);
+
+    public event CurrentSongLikedChangedEventHandler? CurrentSongLikedChanged;
+
     [ObservableProperty] private Brush cover;
     [ObservableProperty] private IMusic? currentMusic;
     [ObservableProperty] private bool currentSongLiked;
@@ -27,8 +32,6 @@ public partial class MusicStateModel
     [ObservableProperty] private bool showCover = false;
     public ObservableCollection<MetadataItem> ArtistsMetadata = new();
     private double position;
-
-
     [ObservableProperty] private double previousVolume;
     [ObservableProperty] private double volume;
 
@@ -38,8 +41,18 @@ public partial class MusicStateModel
         Volume = ConfigManager.Instance.Settings.Volume;
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
     }
+    
 
     public static MusicStateModel Instance { get; } = new();
+
+    partial void OnCurrentSongLikedChanged(bool value)
+    {
+        CurrentSongLikedChanged?.Invoke(value);
+        if (CurrentMusic != null)
+        {
+            CurrentMusic.IsLiked = value;
+        }
+    }
 
     public double Position
     {
@@ -109,12 +122,11 @@ public partial class MusicStateModel
         {
             ArtistsMetadata.Add(new MetadataItem
             {
-                Label = artist.Name,
-                Command = ForwardArtistCommand,
-                CommandParameter = artist
+                Label = artist.Name, Command = ForwardArtistCommand, CommandParameter = artist
             });
         }
 
+        CurrentSongLiked = value.IsLiked;
         OnPropertyChanged(nameof(Cover));
         OnPropertyChanged(nameof(Duration));
         OnPropertyChanged(nameof(DurationString));

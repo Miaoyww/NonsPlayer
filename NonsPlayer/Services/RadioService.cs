@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 
@@ -17,11 +18,11 @@ public partial class RadioService : ObservableObject
 
     #endregion
 
-    public ICommonAdapter CurrentAdapter;
+    public IAdapter CurrentAdapter;
     public List<IMusic> RadioSongs = new();
     public bool IsStarted = false;
 
-    public void Start(IMusic[] music, ICommonAdapter adapter)
+    public void Start(IMusic[] music, IAdapter adapter)
     {
         CurrentAdapter = adapter;
         RadioSongs.AddRange(music);
@@ -79,7 +80,7 @@ public partial class RadioService : ObservableObject
 
     public async Task<IMusic[]> GetRadioSong()
     {
-        var songs = await CurrentAdapter.GetRadioSong();
+        var songs = await CurrentAdapter.Common.GetRadioSong();
         RadioSongs.AddRange(songs);
         return songs;
     }

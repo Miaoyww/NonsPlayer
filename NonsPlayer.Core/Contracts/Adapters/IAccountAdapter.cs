@@ -10,6 +10,7 @@ public interface IAccountAdapter : ISubAdapter
     IPlaylist FavoritePlaylist { get; set; }
     List<IPlaylist> CreatedPlaylists { get; set; }
     List<IPlaylist> SavedPlaylists { get; set; }
+    List<string> LikedSongs { get; set; }
 
     Task<Tuple<Uri, string>> GetQrCodeUrlAsync();
     Task<QrCodeResult> CheckLoginAsync(string key);
@@ -17,6 +18,15 @@ public interface IAccountAdapter : ISubAdapter
     Task<string> GetTokenAsync(string response);
     Task<bool> GetUserPlaylists();
     Task<bool> GetFavoritePlaylist();
+
+    /// <summary>
+    /// 获取是否收藏歌曲
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns>收藏状态</returns>
+    Task<bool> IsLikedSong(string id);
+
+    Task UpdateLikeList();
 }
 
 public class QrCodeResult

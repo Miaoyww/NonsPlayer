@@ -35,14 +35,15 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
     private void ForwardArtist(IArtist artist)
     {
         ServiceHelper.NavigationService.NavigateTo(typeof(ArtistViewModel)?.FullName, artist);
-    }    
+    }
+
     [RelayCommand]
     private void ForwardAlbum()
     {
         ServiceHelper.NavigationService.NavigateTo(typeof(AlbumViewModel)?.FullName, Music.Album);
     }
 
-    public void Init(IMusic music)
+    public async void Init(IMusic music)
     {
         Music = music;
         Name = Music.Name;
@@ -52,9 +53,7 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         {
             ArtistsMetadata.Add(new MetadataItem
             {
-                Label = artist.Name,
-                Command = ForwardArtistCommand,
-                CommandParameter = artist
+                Label = artist.Name, Command = ForwardArtistCommand, CommandParameter = artist
             });
         }
 
@@ -67,16 +66,18 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         else
             TransVisibility = Visibility.Visible;
 
-        // Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
+        Liked = await Music.GetLikeState();
+        Music.IsLiked = Liked;
         InitCover().ConfigureAwait(false);
-        // FavoritePlaylistService.Instance.LikeSongsChanged += () =>
-        // {
-        //     ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        //     {
-        //         if (Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id)) return;
-        //         Liked = FavoritePlaylistService.Instance.IsLiked(Music.Id);
-        //     });
-        // };
+        MusicStateModel.Instance.CurrentSongLikedChanged += InstanceOnCurrentSongLikedChanged;
+    }
+
+    private void InstanceOnCurrentSongLikedChanged(bool value)
+    {
+        if (MusicStateModel.Instance.CurrentMusic.Id.Equals(Music.Id))
+        {
+            Liked = value;
+        }
     }
 
     [RelayCommand]

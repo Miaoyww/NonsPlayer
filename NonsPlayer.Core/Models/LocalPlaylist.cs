@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -17,6 +18,7 @@ public class LocalPlaylist : IPlaylist
     public string Description { get; set; }
     public string[] MusicTrackIds { get; set; }
     public string[] Tags { get; set; }
+    public IAdapter Adapter { get; set; }
 
     public string Id { get; set; }
     public string Md5 { get; set; }
@@ -51,9 +53,9 @@ public class LocalPlaylist : IPlaylist
         return null;
     }
 
-    [JsonPropertyName("musics")] public List<LocalMusic> Musics { get; set; }
+    [JsonPropertyName("songs")] public List<LocalMusic> Songs { get; set; }
 
-    [JsonPropertyName("music_count")] public int MusicCount => Musics.Count;
+    [JsonPropertyName("song_count")] public int SongCount => Songs.Count;
 
     // 无缝播放模式
     [JsonPropertyName("mix_enable")] public bool MixEnable { get; set; }
@@ -63,7 +65,7 @@ public class LocalPlaylist : IPlaylist
         Name = name;
         Path = path;
         Id = $"{Name}_{Path}";
-        Musics = new List<LocalMusic>();
+        Songs = new List<LocalMusic>();
     }
 
     public static LocalPlaylist Load(string path)

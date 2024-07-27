@@ -42,16 +42,7 @@ public partial class PlayerBarViewModel : ObservableObject
     }
     public PlayerService PlayerService => PlayerService.Instance;
     public MusicStateModel MusicStateModel => MusicStateModel.Instance;
-
-    public void UpdateLike()
-    {
-        // ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        // {
-        //     MusicStateModel.Instance.CurrentSongLiked =
-        //         FavoritePlaylistService.Instance.IsLiked(MusicStateModel.Instance.CurrentMusic.Id);
-        // });
-    }
-
+    
     [RelayCommand]
     public void SwitchPlayMode()
     {
@@ -62,33 +53,5 @@ public partial class PlayerBarViewModel : ObservableObject
     public void SwitchShuffle()
     {
         PlayQueue.Instance.SwitchShuffle();
-    }
-
-    public void CurrentTimeSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
-    {
-        if (MusicStateModel.Instance.OnDrag)
-        {
-            // Player.Instance.Position = TimeSpan.FromSeconds(e.NewValue);
-        }
-    }
-
-    public void CurrentTimeSlider_PointerEntered(object sender, RoutedEventArgs e)
-    {
-        MusicStateModel.Instance.OnDrag = true;
-        IsDragging = true;
-    }
-
-    public void CurrentTimeSlider_PointerExited(object sender, RoutedEventArgs e)
-    {
-        MusicStateModel.Instance.OnDrag = false;
-        IsDragging = false;
-    }
-
-    partial void OnIsDraggingChanged(bool value)
-    {
-        if (value == false)
-        {
-            // Player.Instance.Position = NewPosition;
-        }
     }
 }

@@ -57,7 +57,7 @@ public partial class LocalViewModel : ObservableObject
         openPicker.FileTypeFilter.Add("*");
         StorageFolder folder = await openPicker.PickSingleFolderAsync();
         LocalPlaylist = new LocalPlaylist(folder.Path, name);
-        LocalPlaylist.Musics = await ScanMusic(await folder.GetItemsAsync());
+        LocalPlaylist.Songs = await ScanMusic(await folder.GetItemsAsync());
         LocalPlaylist.Save();
     }
 
@@ -92,15 +92,15 @@ public partial class LocalViewModel : ObservableObject
     [RelayCommand]
     public async Task GetInfo()
     {
-        var tasks = LocalPlaylist.Musics.Select(async x => await x.TryGetInfo());
+        var tasks = LocalPlaylist.Songs.Select(async x => await x.TryGetInfo());
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
     [RelayCommand]
     public async Task MixMode()
     {
-        Player.Instance.EnqueueTrack(LocalPlaylist.Musics.ToArray());
+        Player.Instance.EnqueueTrack(LocalPlaylist.Songs.ToArray());
         
-        PlayQueue.Instance.AddMusicList(LocalPlaylist.Musics.ToArray());
+        PlayQueue.Instance.AddMusicList(LocalPlaylist.Songs.ToArray());
     }
 }
