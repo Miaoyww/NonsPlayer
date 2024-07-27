@@ -4,6 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:NonsPlayer.Components.Models"
+    xmlns:views="using:NonsPlayer.Components.Views"
     mc:Ignorable="d">
 
     <Grid>
@@ -17,8 +19,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <Border Grid.Column="0" Grid.Row="0" Name="Avatar"
-                           Width="40" Height="40" CornerRadius="100"
-                           Background="{x:Bind ViewModel.Avatar, Mode=OneWay}" />
+                    Width="40" Height="40" CornerRadius="100"
+                    Background="{x:Bind ViewModel.Avatar, Mode=OneWay}" />
             <TextBlock Grid.Column="1" Style="{StaticResource CommonTextStyle}"
                        VerticalAlignment="Center" Margin="10,0,0,0"
                        Text="{x:Bind ViewModel.UserName, Mode=OneWay}" />
@@ -79,10 +81,10 @@
                     </Grid>
                 </Grid>
             </Border>
-            <GridView Grid.Column="1" Margin="20,0,20,0"
-                      Background="Black">
-                <Border />
-            </GridView>
+            <views:RadioCard
+                Grid.Column="1"
+                Margin="20,0,20,0"
+                Adapter="{x:Bind ViewModel.Adapter, Mode=OneWay}" />
         </Grid>
     </Grid>
 </Page>
