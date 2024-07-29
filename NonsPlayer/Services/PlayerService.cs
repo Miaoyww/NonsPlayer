@@ -50,7 +50,10 @@ public partial class PlayerService : ObservableRecipient
 
     public void OnMusicChanged(IMusic music)
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() => { MusicStateModel.Instance.CurrentMusic = music; });
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            MusicStateModel.Instance.CurrentMusic = music;
+        });
     }
 
     [RelayCommand]

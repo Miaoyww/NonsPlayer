@@ -94,7 +94,7 @@ public partial class MusicStateModel
     async partial void OnCurrentMusicChanged(IMusic value)
     {
         if (value.IsEmpty) return;
-
+        CurrentSongLiked = await value.GetLikeState().ConfigureAwait(false);
         try
         {
             if (value is LocalMusic)
