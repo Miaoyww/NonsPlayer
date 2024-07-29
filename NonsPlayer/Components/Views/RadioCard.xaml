@@ -11,8 +11,7 @@
         <converters:RadioPlayIconConverter x:Key="RadioPlayIconConverter" />
         <converters:LikeIconConverter x:Key="LikeIconConverter" />
     </UserControl.Resources>
-    <Border CornerRadius="{StaticResource CustomCornerRadius}" Background="{StaticResource ComponentsCardBackground}"
-            Width="500" Height="200">
+    <Border CornerRadius="{StaticResource CustomCornerRadius}" Background="{StaticResource ComponentsCardBackground}">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />

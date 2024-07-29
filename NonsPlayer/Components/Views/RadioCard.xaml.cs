@@ -99,17 +99,24 @@ public sealed partial class RadioCard : UserControl
     private async Task RefreshInfo(IMusic music)
     {
         CurrentSong = music;
-        Title = CurrentSong.Name;
-        Cover = (await CacheHelper.GetImageBrushAsync(CurrentSong.CacheAvatarId,
+        var cover = (await CacheHelper.GetImageBrushAsync(CurrentSong.CacheAvatarId,
             CurrentSong.GetCoverUrl("?param=200x200")));
-        Artists.Clear();
-        foreach (var artist in CurrentSong.Artists)
+        DispatcherQueue.TryEnqueue(() =>
         {
-            Artists.Add(new MetadataItem
+            Title = CurrentSong.Name;
+            Cover = cover;
+            Artists.Clear();
+            foreach (var artist in CurrentSong.Artists)
             {
-                Label = artist.Name, Command = ForwardArtistCommand, CommandParameter = artist
-            });
-        }
+                Artists.Add(new MetadataItem
+                {
+                    Label = artist.Name,
+                    Command = ForwardArtistCommand,
+                    CommandParameter = artist
+                });
+            }
+        });
+
     }
 
 

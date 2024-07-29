@@ -7,7 +7,8 @@
     mc:Ignorable="d">
 
     <Border CornerRadius="10"
-            DoubleTapped="{x:Bind ViewModel.OpenMusicListDetail}">
+            Margin="10,0,0,0"
+            Tapped="{x:Bind ViewModel.UIElement_OnTapped}">
         <Border.ContextFlyout>
             <MenuFlyout>
                 <MenuFlyoutItem x:Uid="Share" Icon="Share" Command="{x:Bind ViewModel.CopyShareUrlCommand}" />
@@ -23,10 +24,12 @@
             <Border Grid.Row="0" Name="Cover"
                     Background="{x:Bind ViewModel.Cover,Mode=OneWay}"
                     Width="220" Height="220"
-                    Margin="8" CornerRadius="10" HorizontalAlignment="Center" />
+                    Margin="0,0,0,0" CornerRadius="10" HorizontalAlignment="Center" />
             <TextBlock Grid.Row="1" Name="Title"
+                       Margin="0,5,0,0"
                        Text="{x:Bind ViewModel.Title,Mode=OneWay}"
                        Style="{StaticResource CommonTextStyle}"
+                       VerticalAlignment="Center"
                        TextAlignment="Left" FontSize="17" FontWeight="Medium"
                        Width="224" Height="58" />
         </Grid>
