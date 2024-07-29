@@ -39,15 +39,13 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     {
         PlayListObject = (IPlaylist)parameter;
         CurrentId = PlayListObject.Id;
-        if (!PlayListObject.IsInitialized) await PlayListObject.InitializePlaylist();
+        if (!PlayListObject.IsInitialized) await Task.Run(PlayListObject.InitializePlaylist);
         LoadPlaylistDetail();
-        await InitMusicsAsync().ConfigureAwait(false);
+        await Task.Run(InitMusicsAsync);
     }
 
     private void LoadPlaylistDetail()
     {
-        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-        {
             Name = PlayListObject.Name;
             Creator = "made by " + PlayListObject.Creator;
             CreateTime = $"· {PlayListObject.CreateTime.ToString().Split(" ")[0]}";
@@ -55,7 +53,6 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             MusicsCount = PlayListObject.MusicsCount + " Tracks";
             Cover = CacheHelper.GetImageBrush(PlayListObject.CacheAvatarId, PlayListObject.AvatarUrl);
             // IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
-        });
     }
 
     private async Task InitMusicsAsync()
