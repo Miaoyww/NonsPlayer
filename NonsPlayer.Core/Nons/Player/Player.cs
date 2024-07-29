@@ -194,7 +194,7 @@ public class Player
                     CurrentReader.Dispose();
                 }
                 var nextTrack = _queue.Dequeue();
-                if (nextTrack.IsMixed || _jointlessTimes == null)
+                if (nextTrack.IsMixed && _jointlessTimes == null)
                 {
                     _jointlessTimes = new();
                     for (int i = 0; i < nextTrack.Music.Length; i++)
