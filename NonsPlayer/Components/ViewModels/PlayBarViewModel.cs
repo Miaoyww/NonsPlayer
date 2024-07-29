@@ -20,6 +20,7 @@ public partial class PlayerBarViewModel : ObservableObject
     [ObservableProperty] private TimeSpan lastPosition;
     [ObservableProperty] private TimeSpan newPosition;
     [ObservableProperty] private Visibility infoVisibility;
+    [ObservableProperty] private Visibility artistVisibility = Visibility.Collapsed;
     private TimeSpan newPostion;
 
     public PlayerBarViewModel()
@@ -28,8 +29,10 @@ public partial class PlayerBarViewModel : ObservableObject
         ChangeVisibility(null);
     }
 
-    private void MusicChangedHandle(IMusic currentmusic)
+    private async void MusicChangedHandle(IMusic currentmusic)
     {
+        var state = await currentmusic.GetLikeState();
+        MusicStateModel.Instance.CurrentSongLiked = state;
         ChangeVisibility(currentmusic);
     }
 
@@ -38,7 +41,15 @@ public partial class PlayerBarViewModel : ObservableObject
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
             InfoVisibility = currentmusic == null ? Visibility.Collapsed : Visibility.Visible;
-        });
+            if (currentmusic!=null)
+            {
+                ArtistVisibility = Visibility.Visible;
+                if (currentmusic.Artists == null) ArtistVisibility = Visibility.Collapsed;
+                if (currentmusic.Artists.Length == 0) ArtistVisibility = Visibility.Collapsed;
+                if (string.IsNullOrEmpty(currentmusic.Artists[0].Name)) ArtistVisibility = Visibility.Collapsed;
+            }
+
+        }); 
     }
     public PlayerService PlayerService => PlayerService.Instance;
     public MusicStateModel MusicStateModel => MusicStateModel.Instance;

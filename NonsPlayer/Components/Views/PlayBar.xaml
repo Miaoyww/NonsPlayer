@@ -54,6 +54,7 @@
                                               HorizontalAlignment="Left" VerticalAlignment="Top"
                                               FontFamily="HarmonyOS Sans SC" FontSize="15" Foreground="Black"
                                               Opacity="0.75" MaxWidth="300" FontWeight="Medium"
+                                              Visibility="{x:Bind ViewModel.ArtistVisibility, Mode=OneWay}"
                                               Items="{x:Bind ViewModel.MusicStateModel.ArtistsMetadata, Mode=OneWay}">
                         <controls:MetadataControl.TextBlockStyle>
                             <Style TargetType="TextBlock">
