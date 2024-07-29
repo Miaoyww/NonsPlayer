@@ -59,7 +59,7 @@
                                       HorizontalAlignment="Center" Margin="0,0,0,0">
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="models:PlaylistModel">
-                                        <views:PlaylistCard PlaylistItem="{x:Bind Playlist}" />
+                                        <views:PlaylistCard Playlist="{x:Bind Playlist}" />
                                     </DataTemplate>
                                 </GridView.ItemTemplate>
                             </GridView>

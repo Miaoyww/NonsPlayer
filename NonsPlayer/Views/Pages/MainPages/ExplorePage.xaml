@@ -20,7 +20,6 @@
                 </Grid.ColumnDefinitions>
                 <views:RecommendedPlaylistCard Grid.Column="0"
                                                Music="{x:Bind ViewModel.DailyRecommendedPlaylist, Mode=OneWay}" />
-                <views:RadioCard Grid.Column="1" />
             </Grid>
             <Grid Grid.Row="1">
 

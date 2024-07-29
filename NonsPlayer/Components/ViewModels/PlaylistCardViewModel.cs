@@ -53,8 +53,7 @@ public partial class PlaylistCardViewModel
         });
     }
 
-
-    public void OpenMusicListDetail(object sender, DoubleTappedRoutedEventArgs e)
+    public void UIElement_OnTapped(object sender, TappedRoutedEventArgs e)
     {
         PlaylistHelper.OpenMusicListDetail(CurrentPlaylist, ServiceHelper.NavigationService);
     }

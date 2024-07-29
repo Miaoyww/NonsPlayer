@@ -7,14 +7,16 @@
     mc:Ignorable="d"
     Loaded="{x:Bind ViewModel.PersonalCenterPage_OnLoaded}">
 
-    <Grid Margin="{StaticResource PageCommonMargin}">
-        <Grid Margin="{StaticResource PageContentCommonMargin}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-            <SelectorBar Grid.Row="0" x:Name="CustomSelectorBar" SelectionChanged="SelectorBar_OnSelectionChanged" />
-            <Frame Grid.Row="1" x:Name="ContentFrame" IsNavigationStackEnabled="False" />
+    <ScrollViewer>
+        <Grid Margin="{StaticResource PageCommonMargin}">
+            <Grid Margin="{StaticResource PageContentCommonMargin}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <SelectorBar Grid.Row="0" x:Name="CustomSelectorBar" SelectionChanged="SelectorBar_OnSelectionChanged" />
+                <Frame Grid.Row="1" x:Name="ContentFrame" IsNavigationStackEnabled="False" />
+            </Grid>
         </Grid>
-    </Grid>
+    </ScrollViewer>
 </Page>

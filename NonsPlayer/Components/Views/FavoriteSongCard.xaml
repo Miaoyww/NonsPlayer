@@ -1,0 +1,33 @@
+<UserControl
+    x:Class="NonsPlayer.Components.Views.FavoriteSongCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    mc:Ignorable="d">
+    <Border Width="200" Height="60">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0"
+                    Name="Cover" CornerRadius="13"
+                    Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
+                    Width="50"
+                    Height="50"/>
+
+            <Grid Grid.Column="1" VerticalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Style="{StaticResource CommonTextStyle}"
+                           FontSize="15"
+                           FontWeight="Medium" MaxLines="2"
+                           Text="{x:Bind ViewModel.Title, Mode=OneWay}" />
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

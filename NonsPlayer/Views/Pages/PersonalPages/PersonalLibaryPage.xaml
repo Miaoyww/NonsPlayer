@@ -6,13 +6,15 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:NonsPlayer.Components.Models"
     xmlns:views="using:NonsPlayer.Components.Views"
+    xmlns:models1="using:NonsPlayer.Models"
     mc:Ignorable="d">
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
+
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -27,12 +29,12 @@
         </Grid>
         <Grid Grid.Row="1" Margin="0,20,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Border Width="400" Height="250"
-                    Background="{StaticResource ComponentsCardBackground}"
-                    CornerRadius="{StaticResource CustomCornerRadius}">
+            <Border
+                Background="{StaticResource ComponentsCardBackground}"
+                CornerRadius="{StaticResource CustomCornerRadius}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
@@ -83,8 +85,42 @@
             </Border>
             <views:RadioCard
                 Grid.Column="1"
-                Margin="20,0,20,0"
+                Margin="20,0,0,0"
                 Adapter="{x:Bind ViewModel.Adapter, Mode=OneWay}" />
+        </Grid>
+
+        <Grid Grid.Row="2" Margin="0,40,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <DropDownButton Grid.Row="0" Content="{x:Bind ViewModel.Selected, Mode=OneWay}">
+                <DropDownButton.Flyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="All Playlists"
+                                        Command="{x:Bind ViewModel.SwitchPlaylistCommand}"
+                                        CommandParameter="all" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Saved Playlists"
+                                        Command="{x:Bind ViewModel.SwitchPlaylistCommand}"
+                                        CommandParameter="saved" />
+                        <MenuFlyoutItem Text="Created Playlists"
+                                        Command="{x:Bind ViewModel.SwitchPlaylistCommand}"
+                                        CommandParameter="created" />
+                    </MenuFlyout>
+                </DropDownButton.Flyout>
+            </DropDownButton>
+            <GridView Grid.Row="1"
+                      Margin="0,20,0,0"
+                      ItemsSource="{x:Bind ViewModel.Playlists, Mode=OneWay}"
+HorizontalAlignment="Center"          
+                      SelectionMode="None">
+                <GridView.ItemTemplate>
+                    <DataTemplate x:DataType="models1:PlaylistModel">
+                        <views:PlaylistCard Playlist="{x:Bind Playlist,Mode=OneWay}" />
+                    </DataTemplate>
+                </GridView.ItemTemplate>
+            </GridView>
         </Grid>
     </Grid>
 </Page>
