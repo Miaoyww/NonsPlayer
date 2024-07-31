@@ -3,6 +3,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <CornerRadius x:Key="CustomCornerRadius">20</CornerRadius>
+    <Thickness x:Key="PageCommonMargin">0,54,0,0</Thickness>
+    <Thickness x:Key="PageContentCommonMargin">60,20,60,0</Thickness>
+    <Thickness x:Key="ScrollViewerMargin">0,0,0,100</Thickness>
+    <Thickness x:Key="PlaylistDetailMargin">45,80,45,100</Thickness>
 
     <Thickness x:Key="LargeTopMargin">0,36,0,0</Thickness>
     <Thickness x:Key="LargeTopBottomMargin">0,36,0,36</Thickness>

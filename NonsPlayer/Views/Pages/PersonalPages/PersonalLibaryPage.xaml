@@ -111,9 +111,9 @@
                 </DropDownButton.Flyout>
             </DropDownButton>
             <GridView Grid.Row="1"
-                      Margin="0,20,0,0"
+                      Margin="0,20,0,100"
                       ItemsSource="{x:Bind ViewModel.Playlists, Mode=OneWay}"
-HorizontalAlignment="Center"          
+                      HorizontalAlignment="Center"
                       SelectionMode="None">
                 <GridView.ItemTemplate>
                     <DataTemplate x:DataType="models1:PlaylistModel">

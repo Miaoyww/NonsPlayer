@@ -133,7 +133,7 @@
                         </Grid>
                     </Grid>
                 </StackPanel>
-                <views:MusicListBar Grid.Row="1" Margin="0,40,0,0"
+                <views:MusicListBar Grid.Row="1" Margin="0,40,0,100"
                                     MusicItems="{x:Bind ViewModel.MusicItems, Mode=OneWay}" />
             </Grid>
         </ScrollViewer>
