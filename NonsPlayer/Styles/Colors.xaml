@@ -4,7 +4,7 @@
 
     <SolidColorBrush x:Key="CommonTextColor">#3D3D3D</SolidColorBrush>
     <SolidColorBrush x:Key="LightTextColor">#FFFFFF</SolidColorBrush>
-    <SolidColorBrush x:Key="ComponentsCardBackground">#F1F1F1</SolidColorBrush>
+    <SolidColorBrush x:Key="ComponentsCardBackground">#F7F7F7</SolidColorBrush>
     <SolidColorBrush x:Key="IconCommonColor">#3D3D3D</SolidColorBrush>
     <SolidColorBrush x:Key="IconActiveColor">#3662EC</SolidColorBrush>
 </ResourceDictionary>
