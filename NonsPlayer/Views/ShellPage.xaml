@@ -13,16 +13,16 @@
         <Grid>
             <Frame x:Name="NavigationFrame" Margin="0,0,0,0" />
         </Grid>
-
         <Grid VerticalAlignment="Top"
               Background="{StaticResource  CustomAcrylicBrush}"
-              Height="50">
+              Height="48"
+              Margin="0,-1,0,0">
             <Grid Margin="20,0,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid x:Name="AppTitleBar" VerticalAlignment="Center" Margin="20,0,0,0">
                     <Grid.ColumnDefinitions>
@@ -46,52 +46,53 @@
                                 Command="{x:Bind ViewModel.GoBackCommand, Mode=OneWay}">
                             <FontIcon Glyph="&#xE973;" />
                         </Button>
-                        <Button Name="Search" Width="30" Height="30" Padding="0"
-                                Margin="5,0,0,0"
+
+                        <AutoSuggestBox QueryIcon="Find"
+                                        Height="32"
+                                        Width="200"
+                                        QuerySubmitted="{x:Bind ViewModel.SearchBox_Query}"
+                                        />
+                    </StackPanel>
+                </Grid>
+                <Grid Grid.Column="3" Margin="10,0,140,0" HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Name="SettingsButton" Command="{x:Bind ViewModel.OpenMenuSettingsCommand}"
+                                Width="30" Height="30"
+                                Padding="0" Margin="0,0,7,0"
                                 BorderThickness="0" Background="Transparent">
-                            <FontIcon Glyph="&#xF78B;"/>
+                            <FontIcon Glyph="&#xE713;" FontSize="16"/>
                         </Button>
                     </StackPanel>
                 </Grid>
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center"
+            </Grid>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
                             VerticalAlignment="Center"
-                            Height="30" Margin="-110,0,0,0">
-                    <Button x:Uid="MenuHome" BorderThickness="0" Width="50" Height="25"
+                            Height="30" Margin="0,0,0,0">
+                <Button x:Uid="MenuHome" BorderThickness="0" Width="50" Height="25"
                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                             Background="Transparent"
                             Padding="0,0,0,2" Opacity="0.9"
                             Foreground="#2d2d2d" Margin="5,0,5,0"
                             Command="{x:Bind ViewModel.OpenMenuHomeCommand}">
-                        <TextBlock x:Uid="ShellMenu_Home" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
-                    </Button>
-                    <Button x:Uid="MenuExplore" BorderThickness="0" Width="50" Height="25"
+                    <TextBlock x:Uid="ShellMenu_Home" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                </Button>
+                <Button x:Uid="MenuExplore" BorderThickness="0" Width="50" Height="25"
                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                             Background="Transparent"
                             FontWeight="Bold" Padding="0,0,0,2" Opacity="0.9"
                             Margin="5,0,5,0"
                             Command="{x:Bind ViewModel.OpenMenuExploreCommand}">
-                        <TextBlock x:Uid="ShellMenu_Explore" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
-                    </Button>
-                    <Button x:Uid="MenuOwn" BorderThickness="0" Width="50" Height="25"
+                    <TextBlock x:Uid="ShellMenu_Explore" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                </Button>
+                <Button x:Uid="MenuOwn" BorderThickness="0" Width="50" Height="25"
                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                             Background="Transparent"
                             FontWeight="Bold" Padding="0,0,0,2" Opacity="0.9"
                             Foreground="#2d2d2d" Margin="5,0,5,0"
                             Command="{x:Bind ViewModel.OpenMenuPersonalCenterCommand}">
-                        <TextBlock x:Uid="ShellMenu_Own" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
-                    </Button>
-                </StackPanel>
-                <Grid Grid.Column="3" Margin="10,0,140,0" HorizontalAlignment="Right">
-                    <StackPanel Orientation="Horizontal">
-                        <Button Name="SettingsButton" Command="{x:Bind ViewModel.OpenMenuSettingsCommand}"
-                                Width="20" Height="20"
-                                Padding="0" Margin="10,0,0,20"
-                                BorderThickness="0" Background="Transparent">
-                            <FontIcon Glyph="&#xE713;" FontSize="14" FontWeight="Medium"/>
-                        </Button>
-                    </StackPanel>
-                </Grid>
-            </Grid>
+                    <TextBlock x:Uid="ShellMenu_Own" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                </Button>
+            </StackPanel>
         </Grid>
         <views:PlayBar x:Name="PlayerBar"
                        VerticalAlignment="Bottom" />
