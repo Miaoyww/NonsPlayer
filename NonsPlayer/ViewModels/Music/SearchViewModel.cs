@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
+using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
@@ -18,45 +19,71 @@ namespace NonsPlayer.ViewModels;
 
 public partial class SearchViewModel : ObservableRecipient, INavigationAware, INotifyPropertyChanged
 {
-    [ObservableProperty] private IArtist[]? artists;
-    public ObservableCollection<MusicModel> MusicItems = new();
-    [ObservableProperty] private IPlaylist[]? playlists;
-    private string queryKey;
+    public ObservableCollection<MusicModel> MusicModels = new();
+    public ObservableCollection<IMusic> Songs = new();
+    public ObservableCollection<IArtist> Artists = new();
+    [ObservableProperty] private List<IPlaylist> playlists = new();
 
-    public void OnNavigatedTo(object parameter)
+    [ObservableProperty] private IMusic firstMusic;
+    [ObservableProperty] private IArtist firstArtist;
+
+    public async void OnNavigatedTo(object parameter)
     {
-        queryKey = (parameter as string).ToLower();
-        Search(queryKey).ConfigureAwait(false);
+        await Search((string)parameter);
     }
 
     public void OnNavigatedFrom()
     {
     }
 
-    public void DoubleClick(object sender, DoubleTappedRoutedEventArgs e)
-    {
-        var listView = sender as ListView;
-        if (listView.SelectedItem is MusicModel item) PlayQueue.Instance.Play(item.Music);
-    }
 
-    public async Task Search(string keywords)
+    private async Task Search(string keywords)
     {
-        var source = await AdapterService.Instance.GetAdapter("ncm").Search.SearchAsync(keywords);
-        SearchHelper.Instance.BestMusicResult = source.Musics[0];
-        Artists = source.Artists;
-        Playlists = source.Playlists;
-        for (var i = 0; i < source.Musics.Count(); i++)
+        var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Search);
+        List<SearchResult> resuts = new();
+        foreach (IAdapter adapter in adapters)
         {
-            var index = i;
-            if (index < AppConfig.PlaylistTrackShowCount)
-                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-                {
-                    MusicItems.Add(new MusicModel
-                    {
-                        Music = source.Musics[index],
-                        Index = (index + 1).ToString("D2")
-                    });
-                });
+            var result = await adapter.Search.SearchAsync(keywords);
+            resuts.Add(result);
+        }
+
+        foreach (SearchResult searchResult in resuts)
+        {
+            foreach (IMusic resultMusic in searchResult.Musics)
+            {
+                Songs.Add(resultMusic);
+            }
+        }
+
+        foreach (SearchResult result in resuts)
+        {
+            foreach (var artist in result.Artists)
+            {
+                Artists.Add(artist);
+            }
+        }
+
+        foreach (SearchResult searchResult in resuts)
+        {
+            foreach (IPlaylist searchResultPlaylist in searchResult.Playlists)
+            {
+                Playlists.Add(searchResultPlaylist);
+            }
+        }
+
+        if (Songs.Count != 0)
+        {
+            FirstMusic = Songs[0];
+        }
+
+        if (Artists.Count != 0)
+        {
+            FirstArtist = Artists[0];
+        }
+
+        for (var i = 0; i < Songs.Count; i++)
+        {
+            MusicModels.Add(new MusicModel { Music = Songs[i], Index = i.ToString("D2") });
         }
     }
 

@@ -15,10 +15,12 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <Grid VerticalAlignment="Top">
-                    <views:BestMusicCard HorizontalAlignment="Left" />
-                    <views:BestArtistCard HorizontalAlignment="Right" />
+                    <views:BestMusicCard HorizontalAlignment="Left"
+                                         Music="{x:Bind ViewModel.FirstMusic, Mode=OneWay}" />
+                    <views:BestArtistCard HorizontalAlignment="Right"
+                                          Artist="{x:Bind ViewModel.FirstArtist, Mode=OneWay}" />
                 </Grid>
-                <views:MusicListBar Grid.Row="1" MusicItems="{x:Bind ViewModel.MusicItems, Mode=OneWay}" />
+                <views:MusicListBar Grid.Row="1" MusicItems="{x:Bind ViewModel.MusicModels, Mode=OneWay}" />
             </Grid>
         </ScrollViewer>
     </Grid>

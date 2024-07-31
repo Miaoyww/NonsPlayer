@@ -224,6 +224,11 @@
             <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
             <Generator>MSBuild:Compile</Generator>
         </Page>
+        <Page Update="Styles\AutoSuggestBox.xaml">
+          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+          <SubType>Designer</SubType>
+          <Generator>MSBuild:Compile</Generator>
+        </Page>
         <Page Update="Styles\FlipView.xaml">
           <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         </Page>

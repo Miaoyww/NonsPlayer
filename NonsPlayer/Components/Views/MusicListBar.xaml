@@ -23,7 +23,7 @@
             <TextBlock Grid.Column="0" Text="#" 
                        Style="{StaticResource CommonTextStyle}" 
                        FontSize="15" FontWeight="Medium"/>
-            <TextBlock Grid.Column="1" Margin="100,0,0,0" x:Uid="MusicListBar_Title" 
+            <TextBlock Grid.Column="1" Margin="114,0,0,0" x:Uid="MusicListBar_Title" 
                        Style="{StaticResource CommonTextStyle}" 
                        FontSize="15" FontWeight="Medium"/>
             <TextBlock Grid.Column="2" x:Uid="MusicListBar_Album"  

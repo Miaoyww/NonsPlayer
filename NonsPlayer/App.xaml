@@ -15,6 +15,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <ResourceDictionary Source="/Styles/Resource.xaml" />
+                <ResourceDictionary Source="/Styles/AutoSuggestBox.xaml" />
                 <ResourceDictionary Source="/Styles/Thickness.xaml" />
                 <ResourceDictionary Source="/Styles/Colors.xaml" />
                 <ResourceDictionary Source="/Styles/TextBlock.xaml" />

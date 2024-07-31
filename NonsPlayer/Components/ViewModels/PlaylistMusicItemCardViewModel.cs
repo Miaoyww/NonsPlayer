@@ -74,9 +74,12 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
 
     private void InstanceOnCurrentSongLikedChanged(bool value)
     {
-        if (MusicStateModel.Instance.CurrentMusic.Id.Equals(Music.Id))
+        if (MusicStateModel.Instance.CurrentMusic != null)
         {
-            Liked = value;
+            if (MusicStateModel.Instance.CurrentMusic.Id.Equals(Music.Id))
+            {
+                Liked = value;
+            }
         }
     }
 

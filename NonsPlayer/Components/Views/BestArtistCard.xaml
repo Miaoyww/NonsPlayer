@@ -5,36 +5,42 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
-    <Grid>
-        <Border CornerRadius="20" Width="500" Height="200">
-            <Grid>
-                <Grid.Resources>
-                    <Storyboard x:Name="AvatarAnimation">
-                        <DoubleAnimation Storyboard.TargetName="AvatarTransform" Storyboard.TargetProperty="Y"
-                                         Duration="0:0:10">
-                            <DoubleAnimation.EasingFunction>
-                                <ExponentialEase Exponent="1" EasingMode="EaseInOut" />
-                            </DoubleAnimation.EasingFunction>
-                        </DoubleAnimation>
-                    </Storyboard>
-                </Grid.Resources>
-                <Viewbox Stretch="UniformToFill">
-                    <Image Name="Avater" Source="{x:Bind Cover, Mode=OneWay}">
-                        <Image.RenderTransform>
-                            <TranslateTransform x:Name="AvatarTransform" />
-                        </Image.RenderTransform>
-                    </Image>
-                </Viewbox>
+    <Border CornerRadius="{StaticResource CustomCornerRadius}"
+            Width="500"
+            Height="200"
+            Tapped="UIElement_OnTapped">
+        <Grid>
+            <Grid.Resources>
+                <Storyboard x:Name="AvatarAnimation">
+                    <DoubleAnimation Storyboard.TargetName="AvatarTransform" Storyboard.TargetProperty="Y"
+                                     Duration="0:0:10">
+                        <DoubleAnimation.EasingFunction>
+                            <ExponentialEase Exponent="1" EasingMode="EaseInOut" />
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                </Storyboard>
+            </Grid.Resources>
+            <Viewbox Stretch="UniformToFill">
+                <Image Name="Avater" Source="{x:Bind Cover, Mode=OneWay}">
+                    <Image.RenderTransform>
+                        <TranslateTransform x:Name="AvatarTransform" />
+                    </Image.RenderTransform>
+                </Image>
+            </Viewbox>
 
-                <TextBlock x:Uid="BestArtist_Content" Margin="20,10,0,0"
-                           FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="24"
-                           FontWeight="Bold" CharacterSpacing="300"
-                           VerticalAlignment="Top" HorizontalAlignment="Center" />
-                <TextBlock Text="{x:Bind Name, Mode=OneWay}"
-                           FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="36"
-                           FontWeight="Bold" CharacterSpacing="300"
-                           VerticalAlignment="Center" HorizontalAlignment="Center" />
-            </Grid>
-        </Border>
-    </Grid>
+            <TextBlock x:Uid="BestArtist_Content" Margin="20,10,0,0"
+                       FontFamily="HarmonyOS Sans SC" Foreground="#FFFFFF" FontSize="24"
+                       FontWeight="Bold" CharacterSpacing="300"
+                       VerticalAlignment="Top" HorizontalAlignment="Center" />
+            <TextBlock Text="{x:Bind Name, Mode=OneWay}"
+                       Style="{StaticResource CommonTextStyle}"
+                       TextAlignment="Center"
+                       Foreground="#FFFFFF" 
+                       FontSize="36"
+                       FontWeight="Bold" 
+                       CharacterSpacing="300"
+                       VerticalAlignment="Center" 
+                       HorizontalAlignment="Center" />
+        </Grid>
+    </Border>
 </UserControl>
