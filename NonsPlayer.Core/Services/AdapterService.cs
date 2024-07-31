@@ -11,7 +11,7 @@ public class AdapterService
 {
     #region 事件注册
 
-    public delegate void AdapterEventHandler(string param);
+    public delegate void AdapterEventHandler(string file, Exception? param = null);
 
     public event AdapterEventHandler? AdapterLoadFailed;
     public event AdapterEventHandler? AdapterLoading;
@@ -88,12 +88,12 @@ public class AdapterService
                 }
             }
 
-            AdapterLoadFailed?.Invoke(file);
+            AdapterLoadFailed?.Invoke(file, new Exception("not found any"));
             return new Tuple<string?, IAdapter?>(null, null);
         }
         catch (Exception ex)
         {
-            AdapterLoadFailed?.Invoke(file);
+            AdapterLoadFailed?.Invoke(file, ex);
             return new Tuple<string?, IAdapter?>(null, null);
         }
     }

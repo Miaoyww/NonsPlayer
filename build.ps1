@@ -7,10 +7,10 @@
 $ErrorActionPreference = "Stop";
 
 if ($Dev) {
-    dotnet publish NonsPlayer -c Release -r "win10-$Architecture" -o "build/NonsPlayer/app-$Version" -p:Platform=$Architecture -p:DefineConstants=DEV -p:PublishReadyToRun=true -p:PublishTrimmed=true -p:TrimMode=partial -p:Version=$Version  -p:UseRidGraph=true;
+    dotnet publish NonsPlayer -c Release -r "win10-$Architecture" -o "build/NonsPlayer/app-$Version" -p:Platform=$Architecture -p:DefineConstants=DEV -p:PublishReadyToRun=true -p:Version=$Version  -p:UseRidGraph=true;
 }
 else {
-    dotnet publish NonsPlayer -c Release -r "win10-$Architecture" -o "build/NonsPlayer/app-$Version" -p:Platform=$Architecture -p:PublishReadyToRun=true -p:PublishTrimmed=true -p:TrimMode=partial -p:Version=$Version -p:UseRidGraph=true;
+    dotnet publish NonsPlayer -c Release -r "win10-$Architecture" -o "build/NonsPlayer/app-$Version" -p:Platform=$Architecture -p:PublishReadyToRun=true -p:Version=$Version -p:UseRidGraph=true;
 }
 
 $env:Path += ';C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\';

@@ -39,6 +39,7 @@ public partial class App : Application
                         path: ConfigManager.Instance.Settings.Log,
                         outputTemplate:
                         "[{Timestamp:HH:mm:ss.fff}] [{Level:u4}] [{SourceContext}]: {Message}{Exception}{NewLine}")
+        
                     .Enrich.FromLogContext()
                     .CreateLogger();
                 Log.Information($"System: {Environment.OSVersion}");
@@ -166,15 +167,15 @@ public partial class App : Application
         GetService<SMTCService>().Init();
     }
 
-    private void OnAdapterLoading(string param)
+    private void OnAdapterLoading(string param, Exception? exception)
     {
         Log.Information("Loading adapter from {path}", param);
     }
 
-    private void OnAdapterLoadFailed(string name)
+    private void OnAdapterLoadFailed(string name, Exception? exception)
     {
-        Log.Error($"Failed loading adapter {name}");
-        ExceptionService.Instance.Throw($"Failed load adapter: {name}");
+        Log.Error($"Failed loading adapter {name}: {exception}");
+        ExceptionService.Instance.Throw($"Failed load adapter {name}: {exception}");
     }
 
     // The .NET Generic Host provides dependency injection, configuration, logging, and other services.
