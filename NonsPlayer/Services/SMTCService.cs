@@ -1,4 +1,5 @@
-﻿using System.Timers;
+﻿using Microsoft.Extensions.Logging;
+using System.Timers;
 using Windows.Media;
 using Windows.Media.Playback;
 using Windows.Storage.Streams;
@@ -17,6 +18,7 @@ public class SMTCService
     private SystemMediaTransportControls _smtc;
     private SMTCUpdater _updater;
     private IMusic _currentMusic;
+    private ILogger logger = App.GetLogger<SMTCService>();
 
     public SMTCService()
     {
@@ -39,6 +41,7 @@ public class SMTCService
 
     public void Dispose()
     {
+        logger.LogInformation("Disposed");
         _smtc.IsEnabled = false;
     }
 
@@ -85,6 +88,7 @@ public class SMTCService
 
     public void Init()
     {
+        logger.LogInformation("Init finished");
     }
 }
 

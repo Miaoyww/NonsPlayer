@@ -3,6 +3,7 @@ using Windows.UI;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.UI.Controls;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models;
@@ -35,13 +36,15 @@ public partial class MusicStateModel
     [ObservableProperty] private double previousVolume;
     [ObservableProperty] private double volume;
 
+    private ILogger logger = App.GetLogger<MusicStateModel>();
+
     private MusicStateModel()
     {
         CurrentMusic = null;
         Volume = ConfigManager.Instance.Settings.Volume;
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
     }
-    
+
 
     public static MusicStateModel Instance { get; } = new();
 
@@ -127,6 +130,8 @@ public partial class MusicStateModel
 
         CurrentSongLiked = value.IsLiked;
 
+        logger.LogInformation(
+            $"Play new song: [{value.Id}] {value.Name} - {value.ArtistsName} from adapter: {value.Adapter.GetMetadata().DisplayPlatform}");
         OnPropertyChanged(nameof(Cover));
         OnPropertyChanged(nameof(Duration));
         OnPropertyChanged(nameof(DurationString));

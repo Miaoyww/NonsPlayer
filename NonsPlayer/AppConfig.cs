@@ -36,13 +36,8 @@ internal static class AppConfig
 
     private static void Initialize()
     {
-#if DEBUG
-        AppVersion = "0.4.1";
-#else
         AppVersion = typeof(AppConfig).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion;
-#endif
-        AppVersion = "0.4.1";
     }
 
     #region Player Settings

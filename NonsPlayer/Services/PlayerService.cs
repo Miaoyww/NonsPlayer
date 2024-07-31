@@ -1,11 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
+using Serilog.Core;
 
 namespace NonsPlayer.Services;
 
@@ -19,6 +21,7 @@ public partial class PlayerService : ObservableRecipient
     public static bool LockSeeking = false;
     public static int CurrentRunningSeekingHandler = 0;
 
+    private ILogger logger = App.GetLogger<PlayerService>();
     public static TimeSpan RunningTimeSpan = TimeSpan.Zero;
 
     private PlayerService()
@@ -79,12 +82,15 @@ public partial class PlayerService : ObservableRecipient
     [RelayCommand]
     private void PreviousMusic()
     {
+        logger.LogInformation("Play previous music");
+
         PlayQueue.Instance.PlayPrevious(true);
     }
 
     [RelayCommand]
     private void NextMusic()
     {
+        logger.LogInformation("Play next music");
         PlayQueue.Instance.PlayNext(true);
     }
 

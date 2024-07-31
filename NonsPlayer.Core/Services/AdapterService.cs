@@ -9,12 +9,20 @@ namespace NonsPlayer.Core.Services;
 
 public class AdapterService
 {
+    #region 事件注册
+
+    public delegate void AdapterEventHandler(string param);
+
+    public event AdapterEventHandler? AdapterLoadFailed;
+    public event AdapterEventHandler? AdapterLoading;
+
+    #endregion
+
     private Dictionary<string, IAdapter> _adapters = new();
     private Dictionary<string, IAdapter> _disabledAdapters = new();
     private List<string> _disabledAdaptersStrings = new();
     public static AdapterService Instance { get; } = new();
-    public delegate void AdapterEventHandler(string name);
-    public event AdapterEventHandler? AdapterLoadFailed;
+
 
     public void Init()
     {
@@ -30,13 +38,12 @@ public class AdapterService
 
         foreach (var file in dllFiles)
         {
-
             try
             {
                 var (name, assembly) = LoadSingleAdapter(file);
                 if (name == null) continue;
                 if (assembly == null) continue;
-               
+
                 if (_disabledAdaptersStrings.Contains(assembly.GetMetadata().Platform))
                 {
                     _disabledAdapters.Add(name, assembly);
@@ -45,7 +52,7 @@ public class AdapterService
 
                 _adapters.Add(name, assembly);
             }
-            catch(NullReferenceException ex)
+            catch (NullReferenceException ex)
             {
             }
         }
@@ -69,6 +76,7 @@ public class AdapterService
     {
         try
         {
+            AdapterLoading?.Invoke(file);
             var assembly = Assembly.LoadFrom(file);
             IAdapter adapter;
             foreach (var item in assembly.GetTypes())
@@ -79,9 +87,9 @@ public class AdapterService
                     return new Tuple<string, IAdapter>(adapter.GetMetadata().Name, adapter);
                 }
             }
+
             AdapterLoadFailed?.Invoke(file);
             return new Tuple<string?, IAdapter?>(null, null);
-
         }
         catch (Exception ex)
         {

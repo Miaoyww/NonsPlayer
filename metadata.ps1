@@ -27,7 +27,7 @@ if (!(Get-Module -Name 7Zip4Powershell -ListAvailable)) {
     Install-Module -Name 7Zip4Powershell -Force;
 }
 
-$portableName = "NonsPlayer_Portable_$($Version)_$($Architecture).7z";
+$portableName = "NonsPlayer_$($Version)_$($Architecture).7z";
 $portableFile = "$package/$portableName";
 
 if (!(Test-Path $portableFile)) {

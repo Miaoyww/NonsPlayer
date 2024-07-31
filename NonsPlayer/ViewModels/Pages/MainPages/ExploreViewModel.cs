@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.Logging;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
@@ -9,12 +10,14 @@ namespace NonsPlayer.ViewModels;
 public partial class ExploreViewModel : ObservableRecipient, INavigationAware
 {
     [ObservableProperty] private IMusic[] dailyRecommendedPlaylist;
+    private ILogger logger = App.GetLogger<ExploreViewModel>();
 
     public async void OnNavigatedTo(object parameter)
     {
         if (!string.IsNullOrEmpty(ConfigManager.Instance.Settings.DefaultAdapter))
         {
             var adapter = AdapterService.Instance.GetAdapter(ConfigManager.Instance.Settings.DefaultAdapter);
+            logger.LogInformation($"Explore got adapter {adapter.GetMetadata().DisplayPlatform}");
             if (adapter != null)
             {
                 var music = await adapter.Common.GetDailyRecommended();
@@ -31,6 +34,7 @@ public partial class ExploreViewModel : ObservableRecipient, INavigationAware
         {
             if (adapters.Length != 0)
             {
+                logger.LogInformation($"Explore got adapter {adapters[0].GetMetadata().DisplayPlatform}");
                 ConfigManager.Instance.Settings.DefaultAdapter = adapters[0].GetMetadata().Name;
                 var music = await adapters[0].Common.GetDailyRecommended();
                 if (music != null)

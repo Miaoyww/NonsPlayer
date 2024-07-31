@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -18,6 +19,7 @@ using NonsPlayer.Updater.Update;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
+using Serilog;
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
 using WinRT;
 
@@ -33,6 +35,15 @@ public partial class App : Application
         Host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().UseContentRoot(AppContext.BaseDirectory)
             .ConfigureServices((context, services) =>
             {
+                Log.Logger = new LoggerConfiguration().WriteTo.File(
+                        path: ConfigManager.Instance.Settings.Log,
+                        outputTemplate:
+                        "[{Timestamp:HH:mm:ss.fff}] [{Level:u4}] [{SourceContext}]: {Message}{Exception}{NewLine}")
+                    .Enrich.FromLogContext()
+                    .CreateLogger();
+                Log.Information($"System: {Environment.OSVersion}");
+                Log.Information($"Command Line: {Environment.CommandLine}");
+                services.AddLogging(c => c.AddSerilog(Log.Logger));
                 // Default Activation Handler
                 services.AddTransient<ActivationHandler<LaunchActivatedEventArgs>, DefaultActivationHandler>();
 
@@ -114,6 +125,7 @@ public partial class App : Application
                 services.AddTransient<RadioCardViewModel>();
                 services.AddTransient<LoginCardViewModel>();
                 services.AddTransient<FavoriteSongCardViewModel>();
+
                 #endregion
 
 
@@ -127,26 +139,41 @@ public partial class App : Application
             }).Build();
 
         GetService<IAppNotificationService>().Initialize();
+        Log.Information($"Start loading config, current config path:{ConfigManager.Instance.Settings.ConfigFilePath}");
         ConfigManager.Instance.Load();
         AdapterService.Instance.AdapterLoadFailed += OnAdapterLoadFailed;
+        AdapterService.Instance.AdapterLoading += OnAdapterLoading;
+        Log.Information($"Start loading adapters, current adapter path:{ConfigManager.Instance.Settings.AdapterPath}");
         AdapterService.Instance.Init();
+        Log.Information("Try log in adapter");
         foreach (var key in ConfigManager.Instance.Settings.AdapterAccountTokens.Keys)
         {
+            Log.Information($"{key} try to log in");
             var adapter = AdapterService.Instance.GetAdapter(key);
             if (adapter != null)
             {
-                adapter.Account.GetAccount().LoginByTokenAsync(ConfigManager.Instance.Settings.AdapterAccountTokens[key]);
+                adapter.Account.GetAccount()
+                    .LoginByTokenAsync(ConfigManager.Instance.Settings.AdapterAccountTokens[key]);
+                Log.Information($"{key} log in successfully");
             }
         }
 
         UnhandledException += App_UnhandledException;
+        Log.Information($"Start loading player counter");
         GetService<PlayCounterService>().Init(ConfigManager.Instance.Settings.TotalPlayCount,
             ConfigManager.Instance.Settings.TodayPlayDuration);
+        Log.Information($"Start loading SMTC service");
         GetService<SMTCService>().Init();
+    }
+
+    private void OnAdapterLoading(string param)
+    {
+        Log.Information("Loading adapter from {path}", param);
     }
 
     private void OnAdapterLoadFailed(string name)
     {
+        Log.Error($"Failed loading adapter {name}");
         ExceptionService.Instance.Throw($"Failed load adapter: {name}");
     }
 
@@ -170,9 +197,13 @@ public partial class App : Application
 
     private void App_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
+        Log.Error($"Exception threw: {e.Exception}");
         ExceptionService.Instance.Throw(e.Exception);
-        // TODO: Log and handle exceptions as appropriate.
-        // https://docs.microsoft.com/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.application.unhandledexception.
+    }
+
+    public static ILogger<T> GetLogger<T>()
+    {
+        return GetService<ILogger<T>>();
     }
 
     protected override async void OnLaunched(LaunchActivatedEventArgs args)

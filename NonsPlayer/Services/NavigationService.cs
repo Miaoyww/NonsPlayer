@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using NonsPlayer.Contracts.Services;
@@ -15,6 +16,7 @@ public class NavigationService : INavigationService
     private Frame? _frame;
     private object? _lastParameter;
     private object? _lastParameterUsed;
+    private ILogger logger = App.GetLogger<NavigationService>();
 
     public NavigationService(IPageService pageService)
     {
@@ -56,7 +58,7 @@ public class NavigationService : INavigationService
             var vmBeforeNavigation = _frame.GetPageViewModel();
             _frame.GoBack();
             if (vmBeforeNavigation is INavigationAware navigationAware) navigationAware.OnNavigatedFrom();
-
+            logger.LogInformation("Page goes back");
             return true;
         }
 
@@ -79,6 +81,7 @@ public class NavigationService : INavigationService
                 if (vmBeforeNavigation is INavigationAware navigationAware) navigationAware.OnNavigatedFrom();
             }
 
+            logger.LogInformation("Navigate to {pageKey}", pageKey);
             return navigated;
         }
 

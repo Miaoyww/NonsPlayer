@@ -13,15 +13,15 @@ jobs:
 
   version:
     runs-on: windows-latest
-    outputs: 
+    outputs:
       version: ${{ steps.generate_version.outputs.version }}
     steps:
-    - name: Generate Version
-      id: generate_version
-      run: |
-        $id = (Get-Date).ToString('yyMMddHHmm')
-        $version = "0.0.1-dev.$id"
-        echo "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Generate Version
+        id: generate_version
+        run: |
+          $id = (Get-Date).ToString('yyMMddHHmm')
+          $version = "0.0.1-dev.$id"
+          echo "version=$version" >> $env:GITHUB_OUTPUT
 
 
   build:
@@ -37,28 +37,28 @@ jobs:
       Version: ${{ needs.version.outputs.version }}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Install .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 7.0.x
+      - name: Install .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1.3.1
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.3.1
 
-    - name: Build
-      run: ./build.ps1 -Architecture $env:Platform -Version $env:Version -Dev
+      - name: Build
+        run: ./build.ps1 -Architecture $env:Platform -Version $env:Version -Dev
 
-    - name: Metadata
-      run: ./metadata.ps1 -Architecture $env:Platform -Version $env:Version -Dev
+      - name: Metadata
+        run: ./metadata.ps1 -Architecture $env:Platform -Version $env:Version -Dev
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3.1.2
-      with:
-        name: metadata_${{ matrix.platform }}
-        path: build/metadata/
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: metadata_${{ matrix.platform }}
+          path: build/metadata/
 
 
   metadata:
@@ -66,26 +66,26 @@ jobs:
     needs: build
 
     steps:
-    - name: Checkout Metadata
-      uses: actions/checkout@v3
-      with:
-        ref: metadata
+      - name: Checkout Metadata
+        uses: actions/checkout@v3
+        with:
+          ref: metadata
 
-    - name: Download Artifact x64
-      uses: actions/download-artifact@v3.0.2
-      with:
-        name: metadata_x64
+      - name: Download Artifact x64
+        uses: actions/download-artifact@v3.0.2
+        with:
+          name: metadata_x64
 
-    - name: Download Artifact arm64
-      uses: actions/download-artifact@v3.0.2
-      with:
-        name: metadata_arm64
+      - name: Download Artifact arm64
+        uses: actions/download-artifact@v3.0.2
+        with:
+          name: metadata_arm64
 
-    - name: Push Metadata
-      shell: pwsh
-      run: |
-        $shortSha = "${{ github.sha }}".Substring(0, 7)
-        git config --global user.name '${{ github.actor }}'
-        git config --global user.email '${{ github.actor }}@users.noreply.github.com'
-        git commit -am "update metadata ${{ needs.build.outputs.version }} ($shortSha)"
-        git push
+      - name: Push Metadata
+        shell: pwsh
+        run: |
+          $shortSha = "${{ github.sha }}".Substring(0, 7)
+          git config --global user.name '${{ github.actor }}'
+          git config --global user.email '${{ github.actor }}@users.noreply.github.com'
+          git commit -am "update metadata ${{ needs.build.outputs.version }} ($shortSha)"
+          git push

@@ -49,7 +49,10 @@
         <PackageReference Include="NuGet.Versioning" Version="6.9.1" />
         <PackageReference Include="QRCoder" Version="1.4.3" />
         <PackageReference Include="RestSharp" Version="106.15.0" />
-        <PackageReference Include="Serilog" Version="3.1.2-dev-02097" />
+        <PackageReference Include="Serilog" Version="4.0.1" />
+        <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
         <PackageReference Include="WinUIEx" Version="2.3.4" />
     </ItemGroup>
 
@@ -161,13 +164,17 @@
     </Target>
 
     <ItemGroup>
-        <Content Include="Assets\NonsPlayer.altform-lightunplated_targetsize-24.png" />
-        <Content Include="Assets\NonsPlayer.altform-unplated_targetsize-24.png" />
+        <Content Include="Assets\NonsPlayer.altform-lightunplated_targetsize-24.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="Assets\NonsPlayer.altform-unplated_targetsize-24.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
         <Content Include="Assets\NonsPlayer.png">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Include="Assets\NonsPlayer.scale-125.png">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Include="Assets\NonsPlayer.targetsize-24.png" />
         <Content Include="Assets\SplashScreen.png" />
@@ -193,19 +200,30 @@
         <None Remove="Styles\Colors.xaml" />
         <None Remove="Styles\FlipView.xaml" />
         <Content Include="Segoe Fluent Icons.ttf" />
+        <Content Update="Assets\NonsPlayer-High-Quaility.png">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>
-      <Resource Include="Assets\NonsPlayer.targetsize-24.png" />
-      <Resource Include="Assets\SplashScreen.png" />
-      <Resource Include="Assets\SplashScreen.scale-100.png" />
-      <Resource Include="Assets\SplashScreen.scale-400.png" />
-      <Resource Include="Assets\UnknowResource.png">
-        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-      </Resource>
-      <Resource Include="Assets\WindowIcon.ico">
-        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-      </Resource>
+      <Content Include="Assets\NonsPlayer.targetsize-24.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="Assets\SplashScreen.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="Assets\SplashScreen.scale-100.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="Assets\SplashScreen.scale-400.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="Assets\UnknowResource.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="Assets\WindowIcon.ico">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
       <Resource Remove="BundleArtifacts\**" />
       <Resource Remove="Properties\**" />
     </ItemGroup>
@@ -215,7 +233,7 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
       <Content Update="Assets\NonsPlayer-Icon-Miaoyww.svg">
-        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
 

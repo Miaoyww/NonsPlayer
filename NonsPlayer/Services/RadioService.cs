@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.Logging;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
@@ -21,9 +22,11 @@ public partial class RadioService : ObservableObject
     public IAdapter CurrentAdapter;
     public List<IMusic> RadioSongs = new();
     public bool IsStarted = false;
+    private ILogger logger = App.GetLogger<RadioService>();
 
     public void Start(IMusic[] music, IAdapter adapter)
     {
+        logger.LogInformation($"RadioService started, available adapter: {adapter.GetMetadata().DisplayPlatform}");
         CurrentAdapter = adapter;
         RadioSongs.AddRange(music);
         PlayQueue.Instance.AddMusicList(music);
@@ -57,6 +60,7 @@ public partial class RadioService : ObservableObject
 
     public void Stop()
     {
+        logger.LogInformation("RadioService stopped");
         PlayQueue.Instance.IsRadioMode = false;
         PlayQueue.Instance.RadioWatting -= OnRadioWatting;
         PlayQueue.Instance.MusicAdded -= PlayQueueOnMusicAdded;
@@ -65,6 +69,7 @@ public partial class RadioService : ObservableObject
 
     private async void OnRadioWatting()
     {
+        logger.LogInformation("RadioService now on waiting");
         PlayQueue.Instance.AddMusicList(await GetRadioSong());
         PlayQueue.Instance.PlayNext();
     }
@@ -80,6 +85,7 @@ public partial class RadioService : ObservableObject
 
     public async Task<IMusic[]> GetRadioSong()
     {
+        logger.LogInformation("GetRadioSong Handled");
         var songs = await CurrentAdapter.Common.GetRadioSong();
         RadioSongs.AddRange(songs);
         return songs;

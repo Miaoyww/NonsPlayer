@@ -37,17 +37,20 @@ namespace NonsPlayer.Core.Resources
 
         [JsonPropertyName("total_play_count")] public int TotalPlayCount { get; set; }
 
+        [JsonPropertyName("log")] public string Log { get; set; }
+
         [JsonPropertyName("today_play_duration")]
         public Tuple<DateTime, TimeSpan> TodayPlayDuration { get; set; }
 
         public LocalSettings()
         {
-            DataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            DataPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "NonsPlayer");
-            ConfigFilePath = Path.Combine(DataPath, "config.json");
-            AdapterPath = Path.Combine(DataPath, "Adapters");
-            PluginPath = Path.Combine(DataPath, "Plugins");
-            Data = Path.Combine(DataPath, "Data");
+            ConfigFilePath = Path.Join(DataPath, "config.json");
+            AdapterPath = Path.Join(DataPath, "adapters");
+            PluginPath = Path.Join(DataPath, "plugins");
+            Data = Path.Join(DataPath, "Data");
+            Log = Path.Combine(DataPath, "logs", $"NonsPlayer_{DateTime.Now:yyMMdd_HHmmss}.log");
 
             Theme = "Light";
             Volume = 50;

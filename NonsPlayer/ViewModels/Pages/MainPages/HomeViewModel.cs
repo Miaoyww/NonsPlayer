@@ -3,6 +3,7 @@ using System.Drawing.Text;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Newtonsoft.Json.Linq;
@@ -24,7 +25,7 @@ public partial class HomeViewModel : ObservableRecipient
 {
     public INavigationService NavigationService;
     [ObservableProperty] private ObservableCollection<PlaylistModel> recommendedPlaylist = new();
-
+    private ILogger logger = App.GetLogger<HomeViewModel>();
 
     public HomeViewModel(INavigationService navigationService)
     {

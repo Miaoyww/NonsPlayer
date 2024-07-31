@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Components.Models;
@@ -22,6 +23,7 @@ public partial class PersonalLibaryViewModel : ObservableRecipient, INavigationA
     [ObservableProperty] private ImageBrush avatar;
     [ObservableProperty] private string selected;
 
+    private ILogger logger = App.GetLogger<PersonalLibaryViewModel>();
     public ObservableCollection<PlaylistModel> Playlists = new();
     private PlaylistModel[] SavedPlaylists;
     private PlaylistModel[] CreatedPlaylists;
