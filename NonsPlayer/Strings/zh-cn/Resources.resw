@@ -455,4 +455,28 @@
   <data name="ShellMenu_Local.Text" xml:space="preserve">
     <value>本地</value>
   </data>
+  <data name="LocalCard_MusicLib_Desc.Text" xml:space="preserve">
+    <value>浏览和管理本地音乐</value>
+  </data>
+  <data name="LocalCard_MusicLib_Header.Text" xml:space="preserve">
+    <value>本地音乐</value>
+  </data>
+  <data name="LocalCard_NewFolder_Desc.Text" xml:space="preserve">
+    <value>点击添加新的文件夹</value>
+  </data>
+  <data name="LocalCard_NewFolder_Header.Text" xml:space="preserve">
+    <value>添加文件夹</value>
+  </data>
+  <data name="LocalCard_Queue_Desc.Text" xml:space="preserve">
+    <value>查看和管理本地播放列表</value>
+  </data>
+  <data name="LocalCard_Queue_Header.Text" xml:space="preserve">
+    <value>本地播放列表</value>
+  </data>
+  <data name="Settings_Adapter_OpenLocalCard.Header" xml:space="preserve">
+    <value>打开文件夹</value>
+  </data>
+  <data name="Settings_Adapter_OpenLocalCard_Button.Content" xml:space="preserve">
+    <value>打开</value>
+  </data>
 </root>

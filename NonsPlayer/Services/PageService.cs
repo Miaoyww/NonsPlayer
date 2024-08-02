@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
+using NonsPlayer.Views.Local;
 using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.Services;
@@ -30,6 +31,8 @@ public class PageService : IPageService
         Configure<AdapterManagerViewModel, AdapterManagerPage>();
         Configure<PersonalLibaryViewModel, PersonalLibaryPage>();
         Configure<LoginViewModel, LoginPage>();
+        Configure<LocalMusicLibViewModel, LocalMusicLibPage>();
+        Configure<LocalQueueViewModel, LocalQueuePage>();
     }
 
     public Type GetPageType(string key)

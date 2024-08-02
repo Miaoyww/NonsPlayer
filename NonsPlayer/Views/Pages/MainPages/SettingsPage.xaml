@@ -48,6 +48,11 @@
                                                       Style="{StaticResource CustomSettingsCard}">
                                     <Button x:Uid="Settings_Adapter_OpenCard_Button" Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
                                 </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Uid="Settings_Adapter_OpenLocalCard"
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <Button x:Uid="Settings_Adapter_OpenLocalCard_Button" 
+                                            Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
+                                </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_Adapter_Default"
                                                       Style="{StaticResource CustomSettingsCard}">
                                     <DropDownButton x:Name="AdapterDrop">

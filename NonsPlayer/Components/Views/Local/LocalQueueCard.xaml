@@ -1,0 +1,35 @@
+<UserControl
+    x:Class="NonsPlayer.Components.Views.LocalQueueCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Tapped="UIElement_OnTapped">
+    <Border Name="OpenQueueCard"
+            CornerRadius="{StaticResource CustomCornerRadius}"
+            Background="{StaticResource ComponentsCardBackground}">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <ImageIcon Grid.Row="0"
+                       HorizontalAlignment="Left"
+                       Source="ms-appx:///Assets/Icons/queue-music.svg"
+                       Width="45" />
+            <StackPanel Grid.Row="1">
+                <TextBlock
+                    Style="{StaticResource CommonTextStyle}"
+                    x:Uid="LocalCard_Queue_Header"
+                    FontWeight="Bold"
+                    Margin="0,0,0,10" />
+                <TextBlock
+                    Style="{StaticResource CommonTextStyle}"
+                    x:Uid="LocalCard_Queue_Desc"
+                    Opacity="0.8" />
+            </StackPanel>
+
+        </Grid>
+    </Border>
+</UserControl>

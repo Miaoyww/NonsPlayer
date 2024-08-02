@@ -11,6 +11,7 @@ using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 using NonsPlayer.Updater.Update;
+using System.Diagnostics;
 
 namespace NonsPlayer.ViewModels;
 
@@ -24,7 +25,6 @@ public partial class SettingsViewModel : ObservableRecipient
     public SettingsViewModel(IThemeSelectorService themeSelectorService)
     {
         VersionDescription = _versionService.CurrentVersionDescription;
-        
     }
 
     [RelayCommand]
@@ -45,5 +45,11 @@ public partial class SettingsViewModel : ObservableRecipient
     public void OpenAdapterSetting()
     {
         ServiceHelper.NavigationService.NavigateTo(typeof(AdapterManagerViewModel)?.FullName);
+    }
+
+    [RelayCommand]
+    public void OpenAdapterFolder()
+    {
+        Process.Start("explorer.exe", ConfigManager.Instance.Settings.ConfigFilePath);
     }
 }

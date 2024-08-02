@@ -1,0 +1,41 @@
+<UserControl
+    x:Class="NonsPlayer.Components.Views.LocalFolderItem"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    DoubleTapped="LocalFolderItem_OnDoubleTapped">
+    <Grid Margin="0,20,20,20" Background="Transparent">
+        <Grid.ContextFlyout>
+            <MenuFlyout>
+                <MenuFlyoutItem Text="´ò¿ª" Icon="Folder" Command="{x:Bind ViewModel.OpenFolderCommand}"/>
+                <MenuFlyoutItem Text="±à¼­" Icon="Edit">
+                </MenuFlyoutItem>
+                <MenuFlyoutItem Text="É¾³ý" Icon="Delete"/>
+            </MenuFlyout>
+        </Grid.ContextFlyout>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Style="{StaticResource CommonTextStyle}"
+                   Text="{x:Bind ViewModel.Index, Mode=OneWay}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1"
+                   Style="{StaticResource CommonTextStyle}"
+                   Margin="20,0,0,0"
+                   HorizontalAlignment="Left" VerticalAlignment="Center"
+                   Text="{x:Bind ViewModel.Name, Mode=OneWay}" />
+        <TextBlock Grid.Column="2" Style="{StaticResource CommonTextStyle}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Margin="00,0,0,0"
+                   Text="{x:Bind ViewModel.Path, Mode=OneWay}" />
+        <TextBlock Grid.Column="3" Style="{StaticResource CommonTextStyle}"
+                   HorizontalAlignment="Right" VerticalAlignment="Center"
+                   Text="{x:Bind ViewModel.Count,Mode=OneWay}"
+                   Margin="0,0,12,0"/>
+    </Grid>
+</UserControl>

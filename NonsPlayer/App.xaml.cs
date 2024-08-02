@@ -18,6 +18,7 @@ using NonsPlayer.Services;
 using NonsPlayer.Updater.Update;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
+using NonsPlayer.Views.Local;
 using NonsPlayer.Views.Pages;
 using Serilog;
 using Windows.Graphics.Display;
@@ -100,12 +101,14 @@ public partial class App : Application
                 services.AddTransient<LocalViewModel>();
                 services.AddTransient<TestPage>();
                 services.AddTransient<TestViewModel>();
-                services.AddTransient<AdapterManagerPage>();
                 services.AddTransient<AdapterManagerViewModel>();
-
+                services.AddTransient<LocalQueuePage>();
+                services.AddTransient<LocalQueueViewModel>();
+                services.AddTransient<LocalMusicLibPage>();
+                services.AddTransient<LocalMusicLibViewModel>();
                 #endregion
 
-                #region Components Views and ViewModels
+                #region Components ViewModels
 
                 services.AddTransient<PlaylistMusicItemCardViewModel>();
                 services.AddTransient<PlaylistCardViewModel>();
@@ -126,7 +129,10 @@ public partial class App : Application
                 services.AddTransient<RadioCardViewModel>();
                 services.AddTransient<LoginCardViewModel>();
                 services.AddTransient<FavoriteSongCardViewModel>();
-
+                services.AddTransient<LocalMusicCardViewModel>();
+                services.AddTransient<LocalQueueCardViewModel>();
+                services.AddTransient<LocalNewFolderCardViewModel>();
+                services.AddTransient<LocalFolderItemViewModel>();
                 #endregion
 
 

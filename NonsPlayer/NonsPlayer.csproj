@@ -61,4 +61,46 @@
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
+    <ItemGroup>
+      <None Remove="Assets\Icons\create_new_folder.svg" />
+      <None Remove="Assets\Icons\library-music.svg" />
+      <None Remove="Assets\Icons\queue-music.svg" />
+      <None Remove="Components\Views\LocalCa.xaml" />
+      <None Remove="Components\Views\Local\LocalFolderItem.xaml" />
+      <None Remove="Components\Views\Local\LocalMusicCard.xaml" />
+      <None Remove="Components\Views\Local\LocalQueueCard.xaml" />
+      <None Remove="Views\Local\LocalMusicLibPage.xaml" />
+      <None Remove="Views\Local\LocalQueuePage.xaml" />
+    </ItemGroup>
+    <ItemGroup>
+      <Page Update="Components\Views\Local\LocalFolderItem.xaml">
+        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
+      <Page Update="Views\Local\LocalQueuePage.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </Page>
+    </ItemGroup>
+    <ItemGroup>
+      <Page Update="Components\Views\LocalCa.xaml">
+        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      </Page>
+      <Page Update="Components\Views\Local\LocalMusicCard.xaml">
+        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
+      <Page Update="Components\Views\Local\LocalQueueCard.xaml">
+        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      </Page>
+      <Page Update="Styles\CustomComponents.xaml">
+        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        <SubType>Designer</SubType>
+        <Generator>MSBuild:Compile</Generator>
+      </Page>
+    </ItemGroup>
+    <ItemGroup>
+      <Page Update="Views\Local\LocalMusicLibPage.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </Page>
+    </ItemGroup>
 </Project>

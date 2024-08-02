@@ -1,5 +1,7 @@
-﻿using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Input;
+using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.ViewModels;
+using Windows.UI.Core;
 
 namespace NonsPlayer.Views.Pages;
 

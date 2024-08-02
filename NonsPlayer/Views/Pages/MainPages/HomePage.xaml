@@ -48,12 +48,13 @@
                             <Button BorderThickness="0" Background="Transparent"
                                     Command="{x:Bind ViewModel.NativeToExploreCommand}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Uid="RecommendedPlaylist" FontWeight="Medium" FontSize="35"
+                                    <TextBlock x:Uid="RecommendedPlaylist" FontWeight="Medium" FontSize="30"
                                                Style="{StaticResource CommonTextStyle}"/>
-                                    <FontIcon Glyph="&#xE970;" Margin="10,0,0,0"/>
+                                    <FontIcon Glyph="&#xE970;" 
+                                              Foreground="{StaticResource IconCommonColor}"
+                                              Margin="10,0,0,0"/>
                                 </StackPanel>
                             </Button>
-
                             <GridView Name="RecommendPlaylistView"
                                       ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
                                       SelectionMode="None" 
@@ -69,7 +70,6 @@
                     </Grid>
                 </Grid>
             </Grid>
-
         </ScrollViewer>
 
     </Grid>

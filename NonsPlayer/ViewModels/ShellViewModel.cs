@@ -1,11 +1,8 @@
 ﻿using System.Collections.ObjectModel;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
-
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Models;
@@ -34,7 +31,7 @@ public partial class ShellViewModel : ObservableRecipient
         set => SetProperty(ref _isBackEnabled, value);
     }
 
- 
+
     #region 接口实现
 
     public INavigationService NavigationService { get; }
@@ -63,33 +60,30 @@ public partial class ShellViewModel : ObservableRecipient
     }
 
     [RelayCommand]
-    private void OpenMenuHome()
+    private void OpenPage(string param)
     {
-        NavigationService.NavigateTo(typeof(HomeViewModel).FullName!);
+        switch (param)
+        {
+            case "home":
+                NavigationService.NavigateTo(typeof(HomeViewModel).FullName!);
+                break;
+            case "explore":
+                NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
+                break;
+            case "own":
+                NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName!);
+                break;
+            case "local":
+                NavigationService.NavigateTo(typeof(LocalViewModel).FullName!);
+                break;
+            case "settings":
+                NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
+                break;
+            default:
+                break;
+        }
     }
 
-    [RelayCommand]
-    private void OpenMenuExplore()
-    {
-        NavigationService.NavigateTo(typeof(ExploreViewModel).FullName!);
-    }
-
-    [RelayCommand]
-    private void OpenMenuPersonalCenter()
-    {
-        NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName!);
-    }
-
-    [RelayCommand]
-    private void OpenMenuSettings()
-    {
-        NavigationService.NavigateTo(typeof(SettingsViewModel).FullName!);
-    }
-    [RelayCommand]
-    private void OpenAdapterManagerPage()
-    {
-        NavigationService.NavigateTo(typeof(AdapterManagerViewModel).FullName!);
-    }
     [RelayCommand]
     private void GoBack()
     {
@@ -117,10 +111,7 @@ public partial class PlayQueueBarViewModel
         MusicItems.Clear();
         PlayQueue.Instance.MusicList.ForEach(item =>
         {
-            MusicItems.Add(new MusicModel
-            {
-                Music = item
-            });
+            MusicItems.Add(new MusicModel { Music = item });
         });
     }
 
