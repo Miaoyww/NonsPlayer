@@ -13,6 +13,14 @@ namespace NonsPlayer.Services;
 
 public partial class PlayerService : ObservableRecipient
 {
+
+    #region 事件注册
+
+    public delegate void MusicChangeEventHandler(IMusic value);
+
+    public event MusicChangeEventHandler CurrentMusicChanged;
+
+    #endregion
     [ObservableProperty] private PlayQueue.PlayModeEnum currentPlayMode;
     [ObservableProperty] private bool isShuffle;
     public static List<TimeSpan> TargetSeekingTimeSpans = new List<TimeSpan>();
@@ -56,6 +64,7 @@ public partial class PlayerService : ObservableRecipient
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
             MusicStateModel.Instance.CurrentMusic = music;
+            CurrentMusicChanged?.Invoke(music);
         });
     }
 

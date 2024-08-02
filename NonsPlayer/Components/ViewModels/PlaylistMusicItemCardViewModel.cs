@@ -58,8 +58,6 @@ public partial class PlaylistMusicItemCardViewModel : ObservableObject
         }
 
         Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
-
-
         Trans = string.IsNullOrEmpty(Music.Trans) ? "" : $"({Music.Trans})";
         if (Music.Trans.Equals(string.Empty))
             TransVisibility = Visibility.Collapsed;

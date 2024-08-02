@@ -45,7 +45,6 @@ public partial class MusicStateModel
         Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
     }
 
-
     public static MusicStateModel Instance { get; } = new();
 
     partial void OnCurrentSongLikedChanged(bool value)

@@ -25,7 +25,7 @@ public partial class PlayerBarViewModel : ObservableObject
 
     public PlayerBarViewModel()
     {
-        Player.Instance.MusicChangedHandle += MusicChangedHandle;
+        PlayerService.CurrentMusicChanged += MusicChangedHandle;
         ChangeVisibility(null);
     }
 
