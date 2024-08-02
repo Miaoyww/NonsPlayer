@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Activation;
 using NonsPlayer.AMLL.Components.ViewModels;
@@ -21,6 +20,7 @@ using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
 using Serilog;
+using Windows.Graphics.Display;
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
 using WinRT;
 
@@ -40,7 +40,6 @@ public partial class App : Application
                         path: ConfigManager.Instance.Settings.Log,
                         outputTemplate:
                         "[{Timestamp:HH:mm:ss.fff}] [{Level:u4}] [{SourceContext}]: {Message}{Exception}{NewLine}")
-        
                     .Enrich.FromLogContext()
                     .CreateLogger();
                 Log.Information($"System: {Environment.OSVersion}");

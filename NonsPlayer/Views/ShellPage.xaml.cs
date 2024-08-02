@@ -6,21 +6,17 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Contracts.Services;
-using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
-using NonsPlayer.Core.Exceptions;
-using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Nons;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using Microsoft.UI.Windowing;
+using Windows.Graphics;
 using Windows.UI.WindowManagement;
 using Windows.Win32;
 using Windows.Win32.Foundation;
-using Windows.Win32.UI.WindowsAndMessaging;
+using AppWindowTitleBar = Microsoft.UI.Windowing.AppWindowTitleBar;
 
 namespace NonsPlayer.Views;
 
@@ -28,12 +24,17 @@ public sealed partial class ShellPage : Page
 {
     public delegate void ShellViewDialogShowEventHandler();
 
+    public IntPtr WindowHandle { get; private init; }
+
+    public double UIScale => PInvoke.GetDpiForWindow((HWND)WindowHandle) / 96d;
+
     public ShellPage(ShellViewModel viewModel)
     {
         ViewModel = viewModel;
         InitializeComponent();
         PlayQueueBarViewModel = App.GetService<PlayQueueBarViewModel>();
         ViewModel.NavigationService.Frame = NavigationFrame;
+        WindowHandle = (IntPtr)App.MainWindow.AppWindow.Id.Value;
 
         // TODO: Set the title bar icon by updating /Assets/WindowIcon.ico.
         // A custom title bar is required for full window theme and Mica support.
@@ -41,11 +42,20 @@ public sealed partial class ShellPage : Page
         App.MainWindow.ExtendsContentIntoTitleBar = true;
         App.MainWindow.SetTitleBar(AppTitleBar);
         App.MainWindow.Activated += MainWindow_Activated;
+        SetDragRectangles(new RectInt32(0, 0, 100000, (int)(48 * UIScale)));
         AppTitleBarText.Text = "AppDisplayName".GetLocalized();
         App.MainWindow.AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
         App.MainWindow.AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
         ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
+    }
+
+    public void SetDragRectangles(params RectInt32[] value)
+    {
+        if (AppWindowTitleBar.IsCustomizationSupported() && App.MainWindow.AppWindow.TitleBar.ExtendsContentIntoTitleBar == true)
+        {
+            App.MainWindow.AppWindow.TitleBar.SetDragRectangles(value);
+        }
     }
 
     public ShellViewModel ViewModel { get; }

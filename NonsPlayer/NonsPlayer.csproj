@@ -1,16 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+        <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
         <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
         <RootNamespace>NonsPlayer</RootNamespace>
-        <Platforms>x64;arm64;x86</Platforms>
-        <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-        <PublishProfile>Properties\PublishProfiles\win10-$(Platform).pubxml</PublishProfile>
-        <ImplicitUsings>enable</ImplicitUsings>
+		<Platforms>x86;x64;ARM64</Platforms>        
+		<RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>        
+		<PublishProfile>win10-$(Platform).pubxml</PublishProfile>        
+		<ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UseWinUI>true</UseWinUI>
-        <UseRidGraph>false</UseRidGraph>
+        <UseRidGraph>true</UseRidGraph>
         <EnableMsixTooling>true</EnableMsixTooling>
         <WindowsPackageType>None</WindowsPackageType>
         <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
@@ -22,12 +22,8 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
         <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
-
+        <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
-
-    <ItemGroup>
-        <Manifest Include="$(ApplicationManifest)" />
-    </ItemGroup>
     
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
@@ -54,225 +50,15 @@
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
         <PackageReference Include="WinUIEx" Version="2.3.4" />
+        <Manifest Include="$(ApplicationManifest)" />
     </ItemGroup>
-
     <ItemGroup>
         <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj" />
         <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <None Update="appsettings.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <Page Update="Components\Views\Login\LoginTokenCard.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-          <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\Login\LoginQrCard.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-          <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\RadioCard.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-          <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\RecommendedPlaylistCard.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-          <SubType>Designer</SubType>
-          <Generator>MSBuild:Compile</Generator>
-        </Page>
-        <Page Update="Components\Views\Home\RecentlyPlayItemCard.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        </Page>
-        <Page Update="Components\Views\Home\TotalListenCard.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-          <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\Home\GreetingsCard.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-          <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\Home\TodayDurationCard.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-          <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\Home\HitokotoCard.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        </Page>
-        <Page Update="Components\Views\Recent.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-          <SubType>Designer</SubType>
-          <Generator>MSBuild:Compile</Generator>
-        </Page>
-        <Page Update="Components\Views\BestArtistCard.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-            <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\BestMusicCard.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        </Page>
-        <Page Update="Components\Views\PlayBar.xaml">
-            <Generator>MSBuild:Compile</Generator>
-        </Page>
-        <Page Update="Components\Views\MusicListBar.xaml">
-            <SubType>Designer</SubType>
-        </Page>
-        <Page Remove="BundleArtifacts\**" />
-        <None Remove="BundleArtifacts\**" />
-        <Page Remove="Properties\**" />
-        <None Remove="Properties\**" />
-        <Page Update="Components\Views\AdapterCard.xaml">
-          <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\FavoriteSongCard.xaml">
-          <SubType>Designer</SubType>
-        </Page>
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-        <ProjectCapability Include="Msix" />
-    </ItemGroup>
-
-    <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-        <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-        <Optimize>False</Optimize>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm64'">
-        <Optimize>False</Optimize>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-        <Optimize>False</Optimize>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-        <Optimize>False</Optimize>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm64'">
-        <Optimize>False</Optimize>
-    </PropertyGroup>
-
-    <Target Name="_RemoveFrameworkReferences" BeforeTargets="_ConvertItems;_CalculateInputsForGenerateCurrentProjectAppxManifest">
-        <ItemGroup>
-            <FrameworkSdkReference Remove="@(FrameworkSdkReference)" Condition="$([System.String]::Copy('%(FrameworkSdkReference.SDKName)').StartsWith('Microsoft.WindowsAppRuntime.'))" />
-        </ItemGroup>
-    </Target>
-
-    <ItemGroup>
-        <Content Include="Assets\NonsPlayer.altform-lightunplated_targetsize-24.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="Assets\NonsPlayer.altform-unplated_targetsize-24.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="Assets\NonsPlayer.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="Assets\NonsPlayer.scale-125.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="Assets\NonsPlayer.targetsize-24.png" />
-        <Content Include="Assets\SplashScreen.png" />
-        <Content Include="Assets\SplashScreen.scale-100.png" />
-        <Content Include="Assets\SplashScreen.scale-400.png" />
-        <Content Include="Assets\UnknowResource.png" />
-        <Content Include="Assets\WindowIcon.ico" />
-        <Content Include="Assets\NonsPlayer-Icon-Miaoyww.svg">
+        <Content Include="Assets\**">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <None Remove="Assets\Fonts\NOVECENTO-WIDE-BOLD.OTF" />
-        <None Remove="Assets\Icons\github-mark.svg" />
-        <None Remove="Assets\SplashScreen.scale-100.png" />
-        <None Remove="Assets\SplashScreen.scale-400.png" />
-        <None Remove="Components\Views\Home\GreetingsCard.xaml" />
-        <None Remove="Components\Views\Home\HitokotoCard.xaml" />
-        <None Remove="Components\Views\Home\RecentlyPlayItemCard.xaml" />
-        <None Remove="Components\Views\Home\TodayDurationCard.xaml" />
-        <None Remove="Components\Views\Home\TotalListenCard.xaml" />
-        <None Remove="Components\Views\LoginCard.xaml" />
-        <None Remove="Components\Views\Login\LoginTokenCard.xaml" />
-        <None Remove="Components\Views\RadioCard.xaml" />
-        <None Remove="Styles\Colors.xaml" />
-        <None Remove="Styles\FlipView.xaml" />
-        <Content Include="Segoe Fluent Icons.ttf" />
-        <Content Update="Assets\NonsPlayer-High-Quaility.png">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Content Include="Assets\NonsPlayer.targetsize-24.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Include="Assets\SplashScreen.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Include="Assets\SplashScreen.scale-100.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Include="Assets\SplashScreen.scale-400.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Include="Assets\UnknowResource.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Include="Assets\WindowIcon.ico">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Resource Remove="BundleArtifacts\**" />
-      <Resource Remove="Properties\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Content Update="Assets\Fonts\NOVECENTO-WIDE-BOLD.OTF">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Update="Assets\NonsPlayer-Icon-Miaoyww.svg">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Page Update="Components\MusicListDetail.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-            <Generator>MSBuild:Compile</Generator>
-        </Page>
-        <Page Update="Styles\AutoSuggestBox.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-          <SubType>Designer</SubType>
-          <Generator>MSBuild:Compile</Generator>
-        </Page>
-        <Page Update="Styles\FlipView.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        </Page>
-        <Page Update="Styles\Colors.xaml">
-          <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        </Page>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Remove="BundleArtifacts\**" />
-      <Compile Remove="Properties\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <EmbeddedResource Remove="BundleArtifacts\**" />
-      <EmbeddedResource Remove="Properties\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <PRIResource Remove="BundleArtifacts\**" />
-      <PRIResource Remove="Properties\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Views\Music\" />
-      <Folder Include="Views\Pages\MainPages\" />
-      <Folder Include="Views\Pages\PersonalPages\" />
     </ItemGroup>
 </Project>
