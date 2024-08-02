@@ -8,7 +8,35 @@
     mc:Ignorable="d">
     <Border
         x:Name="BodyBorder"
-        PointerPressed="BodyBorder_OnPointerPressed"
+        Tapped="BodyBorder_OnTapped"
         Width="100" Height="100" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
-        CornerRadius="20" />
+        CornerRadius="20">
+        <Border.ContextFlyout>
+            <MenuFlyout>
+                <MenuFlyoutItem x:Uid="PlayNext" Icon="Play"
+                                Style="{StaticResource CustomMenuFlyoutItem}"
+                                Command="{x:Bind ViewModel.PlayNextCommand}" />
+                <MenuFlyoutSubItem x:Uid="CheckArtist"
+                                   x:Name="CheckArtists"
+                                   Style="{StaticResource CustomMenuFlyoutSubItem}"
+                                   Icon="Contact" />
+                <MenuFlyoutItem x:Uid="CheckAlbum"
+                                Style="{StaticResource CustomMenuFlyoutItem}"
+                                Command="{x:Bind ViewModel.CheckAlbumCommand}">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE93C;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutSubItem x:Uid="Share" Icon="Share"
+                                   Style="{StaticResource CustomMenuFlyoutSubItem}">
+                    <MenuFlyoutItem x:Uid="CopyLink" Icon="Link"
+                                    Style="{StaticResource CustomMenuFlyoutItem}"
+                                    Command="{x:Bind ViewModel.CopyShareUrlCommand}" />
+                    <MenuFlyoutItem x:Uid="CopyInfo" Icon="MusicInfo"
+                                    Style="{StaticResource CustomMenuFlyoutItem}"
+                                    Command="{x:Bind ViewModel.CopyMusicInfoCommand}" />
+                </MenuFlyoutSubItem>
+            </MenuFlyout>
+        </Border.ContextFlyout>
+    </Border>
 </UserControl>
