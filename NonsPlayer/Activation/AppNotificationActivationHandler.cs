@@ -27,7 +27,7 @@ public class AppNotificationActivationHandler : ActivationHandler<LaunchActivate
         // TODO: Handle notification activations.
 
         //// // Access the AppNotificationActivatedEventArgs.
-        //// var activatedEventArgs = (AppNotificationActivatedEventArgs)AppInstance.GetCurrent().GetActivatedEventArgs().Data;
+        //// var activatedEventArgs = (AppNotificationActivatedEventArgs)AppInstance.GetCurrent().GetActivatedEventArgs().Value;
 
         //// // Navigate to a specific page based on the notification arguments.
         //// if (_notificationService.ParseArguments(activatedEventArgs.Argument)["action"] == "Settings")
