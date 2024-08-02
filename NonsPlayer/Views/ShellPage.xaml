@@ -30,12 +30,14 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal">
-                        <Image Source="ms-appx:///Assets/NonsPlayer-High-Quaility.png"
-                               Width="30" Height="30"
+                        <ImageIcon Source="ms-appx:///Assets/NonsPlayer-Icon-Miaoyww.svg"
+                               Width="30"
                                VerticalAlignment="Center" HorizontalAlignment="Center" />
                         <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
                                    Margin="10,0,0,2"
-                                   Style="{StaticResource CommonTextStyle}" FontWeight="Bold"
+                                   Style="{StaticResource CommonTextStyle}" 
+                                   FontWeight="Bold"
+                                   FontSize="16"
                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </StackPanel>
                 </Grid>
@@ -50,48 +52,46 @@
                         <AutoSuggestBox QueryIcon="Find"
                                         Height="32"
                                         Width="200"
-                                        QuerySubmitted="{x:Bind ViewModel.SearchBox_Query}"
-                                        />
+                                        QuerySubmitted="{x:Bind ViewModel.SearchBox_Query}" />
                     </StackPanel>
                 </Grid>
                 <Grid Grid.Column="3" Margin="10,0,140,0" HorizontalAlignment="Right">
                     <StackPanel Orientation="Horizontal">
-                        <Button Name="SettingsButton" Command="{x:Bind ViewModel.OpenMenuSettingsCommand}"
+                        <Button Name="SettingsButton"
+                                Command="{x:Bind ViewModel.OpenPageCommand}"
+                                CommandParameter="settings"
                                 Width="30" Height="30"
                                 Padding="0" Margin="0,0,7,0"
                                 BorderThickness="0" Background="Transparent">
-                            <FontIcon Glyph="&#xE713;" FontSize="16"/>
+                            <FontIcon Glyph="&#xE713;" FontSize="16" />
                         </Button>
                     </StackPanel>
                 </Grid>
             </Grid>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Height="30" Margin="0,0,0,0">
-                <Button x:Uid="MenuHome" BorderThickness="0" Width="50" Height="25"
-                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                            Background="Transparent"
-                            Padding="0,0,0,2" Opacity="0.9"
-                            Foreground="#2d2d2d" Margin="5,0,5,0"
-                            Command="{x:Bind ViewModel.OpenMenuHomeCommand}">
+                        VerticalAlignment="Center"
+                        Height="30" Margin="0,0,0,0">
+                <Button Name="NativeHome" Style="{StaticResource NativeButton}"
+                        Command="{x:Bind ViewModel.OpenPageCommand}"
+                        CommandParameter="home">
                     <TextBlock x:Uid="ShellMenu_Home" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
                 </Button>
-                <Button x:Uid="MenuExplore" BorderThickness="0" Width="50" Height="25"
-                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                            Background="Transparent"
-                            FontWeight="Bold" Padding="0,0,0,2" Opacity="0.9"
-                            Margin="5,0,5,0"
-                            Command="{x:Bind ViewModel.OpenMenuExploreCommand}">
+                <Button Name="NativeExplore" Style="{StaticResource NativeButton}"
+                        Command="{x:Bind ViewModel.OpenPageCommand}"
+                        CommandParameter="explore">
                     <TextBlock x:Uid="ShellMenu_Explore" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
                 </Button>
-                <Button x:Uid="MenuOwn" BorderThickness="0" Width="50" Height="25"
-                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                            Background="Transparent"
-                            FontWeight="Bold" Padding="0,0,0,2" Opacity="0.9"
-                            Foreground="#2d2d2d" Margin="5,0,5,0"
-                            Command="{x:Bind ViewModel.OpenMenuPersonalCenterCommand}">
+                <Button Name="NativeLocal" Style="{StaticResource NativeButton}"
+                        Command="{x:Bind ViewModel.OpenPageCommand}"
+                        CommandParameter="local">
+                    <TextBlock x:Uid="ShellMenu_Local" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                </Button>
+                <Button Name="NativeOwn" Style="{StaticResource NativeButton}"
+                        Command="{x:Bind ViewModel.OpenPageCommand}"
+                        CommandParameter="own">
                     <TextBlock x:Uid="ShellMenu_Own" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
                 </Button>
+
             </StackPanel>
         </Grid>
         <views:PlayBar x:Name="PlayerBar"
@@ -126,7 +126,7 @@
                             <DataTemplate x:DataType="models:MusicModel">
                                 <views:PlayQueueItemCard
                                     Music="{x:Bind Music}"
-                                    CoverUrl="{x:Bind Cover}"/>
+                                    CoverUrl="{x:Bind Cover}" />
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>

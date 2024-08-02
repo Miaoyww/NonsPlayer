@@ -437,4 +437,22 @@
   <data name="LoginTokenTip.Text" xml:space="preserve">
     <value>输入Token以登录</value>
   </data>
+  <data name="Settings_Adapter.Header" xml:space="preserve">
+    <value>适配器</value>
+  </data>
+  <data name="Settings_Adapter_Default.Description" xml:space="preserve">
+    <value>发现页面每日歌单推荐、电台等等的默认来源</value>
+  </data>
+  <data name="Settings_Adapter_Default.Header" xml:space="preserve">
+    <value>默认适配器</value>
+  </data>
+  <data name="Settings_Adapter_OpenCard.Header" xml:space="preserve">
+    <value>打开适配器设置页面</value>
+  </data>
+  <data name="Settings_Adapter_OpenCard_Button.Content" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="ShellMenu_Local.Text" xml:space="preserve">
+    <value>本地</value>
+  </data>
 </root>

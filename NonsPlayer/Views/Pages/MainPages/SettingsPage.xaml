@@ -42,16 +42,14 @@
                         <toolkit:SettingsExpander Margin="0,0,0,5"
                                                   x:Uid="SettingsPage_Adapter"
                                                   Style="{StaticResource CustomSettingsExpander}"
-                                                  Header="适配器"
                                                   HeaderIcon="{ui:FontIcon Glyph=&#xED35;}">
                             <toolkit:SettingsExpander.Items>
-                                <toolkit:SettingsCard Header="打开适配器设置页面"
+                                <toolkit:SettingsCard x:Uid="Settings_Adapter_OpenCard"
                                                       Style="{StaticResource CustomSettingsCard}">
-                                    <Button Content="打开" Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
+                                    <Button x:Uid="Settings_Adapter_OpenCard_Button" Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
                                 </toolkit:SettingsCard>
-                                <toolkit:SettingsCard Header="默认适配器"
-                                                      Style="{StaticResource CustomSettingsCard}"
-                                                      Description="发现页面每日歌单推荐、电台等等的默认来源">
+                                <toolkit:SettingsCard x:Uid="Settings_Adapter_Default"
+                                                      Style="{StaticResource CustomSettingsCard}">
                                     <DropDownButton x:Name="AdapterDrop">
                                         <DropDownButton.Flyout>
                                             <MenuFlyout x:Name="AdaptersItems" />
