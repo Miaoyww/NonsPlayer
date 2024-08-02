@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml;
 using NonsPlayer.Activation;
 using NonsPlayer.AMLL.Components.ViewModels;
 using NonsPlayer.AMLL.ViewModels;
+using NonsPlayer.Cache;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Services;
@@ -53,7 +54,6 @@ public partial class App : Application
 
                 // Services
                 services.AddSingleton<IAppNotificationService, AppNotificationService>();
-                services.AddSingleton<ILocalSettingsService, LocalSettingsService>();
                 services.AddSingleton<IThemeSelectorService, ThemeSelectorService>();
                 services.AddSingleton<IActivationService, ActivationService>();
                 services.AddSingleton<IPageService, PageService>();
@@ -67,6 +67,7 @@ public partial class App : Application
                 services.AddSingleton<PlayCounterService>();
                 services.AddSingleton<SMTCService>();
                 services.AddSingleton<RadioService>();
+                services.AddSingleton<CacheService>();
 
                 #region Views and ViewModels
 
@@ -133,10 +134,6 @@ public partial class App : Application
                 // AMLL
                 services.AddTransient<AMLLViewModel>();
                 services.AddTransient<LyricCardViewModel>();
-
-                // Configuration
-                services.Configure<LocalSettingsOptions>(
-                    context.Configuration.GetSection(nameof(LocalSettingsOptions)));
             }).Build();
 
         GetService<IAppNotificationService>().Initialize();

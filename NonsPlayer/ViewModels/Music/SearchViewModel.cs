@@ -5,6 +5,7 @@ using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using NonsPlayer.Cache;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
@@ -23,9 +24,10 @@ public partial class SearchViewModel : ObservableRecipient, INavigationAware, IN
     public ObservableCollection<IMusic> Songs = new();
     public ObservableCollection<IArtist> Artists = new();
     [ObservableProperty] private List<IPlaylist> playlists = new();
-
     [ObservableProperty] private IMusic firstMusic;
     [ObservableProperty] private IArtist firstArtist;
+
+    private CacheService cacheService = App.GetService<CacheService>();
 
     public async void OnNavigatedTo(object parameter)
     {
@@ -39,12 +41,23 @@ public partial class SearchViewModel : ObservableRecipient, INavigationAware, IN
 
     private async Task Search(string keywords)
     {
-        var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Search);
+        var cacheId = $"search_result_{keywords}";
+        var cache = CacheHelper.GetSearchResult(cacheId);
         List<SearchResult> resuts = new();
-        foreach (IAdapter adapter in adapters)
+        if (cache != null)
         {
-            var result = await adapter.Search.SearchAsync(keywords);
-            resuts.Add(result);
+            resuts = cache;
+        }
+        else
+        {
+            var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Search);
+            foreach (IAdapter adapter in adapters)
+            {
+                var result = await adapter.Search.SearchAsync(keywords);
+                resuts.Add(result);
+            }
+
+            cacheService.AddOrUpdate(cacheId, resuts);
         }
 
         foreach (SearchResult searchResult in resuts)

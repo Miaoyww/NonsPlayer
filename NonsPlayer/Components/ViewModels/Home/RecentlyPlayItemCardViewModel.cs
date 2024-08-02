@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -18,17 +19,6 @@ public partial class RecentlyPlayItemCardViewModel
     public void Init(IMusic music)
     {
         Music = music;
-        cover = new ImageBrush
-        {
-            ImageSource = new BitmapImage(new Uri(music.GetCoverUrl("?param=200x200")))
-        };
-    }
-
-    public void Init(string url)
-    {
-        cover = new ImageBrush
-        {
-            ImageSource = new BitmapImage(new Uri(url))
-        };
+        Cover = CacheHelper.GetImageBrush(music.Album.CacheAvatarId, music.GetCoverUrl("?param=200x200"));
     }
 }

@@ -8,7 +8,8 @@
     xmlns:views="using:NonsPlayer.Components.Views"
     xmlns:music="using:NonsPlayer.Core.Contracts.Models.Music"
     xmlns:models="using:NonsPlayer.Models"
-    Loaded="{x:Bind ViewModel.HomePage_OnLoaded}">
+    Loaded="{x:Bind ViewModel.HomePage_OnLoaded}"
+    Unloaded="{x:Bind ViewModel.HomePage_OnUnloaded}">
     <Grid>
         <ScrollViewer>
             <Grid Margin="{StaticResource PageCommonMargin}">

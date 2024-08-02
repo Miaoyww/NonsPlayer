@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
@@ -15,13 +16,4 @@ public sealed partial class HomePage : Page
 
     public HomeViewModel ViewModel { get; }
 
-    private void CardHide(object sender, PointerRoutedEventArgs e)
-    {
-        AnimationHelper.CardHide(sender, e);
-    }
-
-    private void CardShow(object sender, PointerRoutedEventArgs e)
-    {
-        AnimationHelper.CardShow(sender, e);
-    }
 }

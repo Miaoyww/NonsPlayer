@@ -63,11 +63,8 @@ public partial class HitokotoCardViewModel
         ServiceHelper.DispatcherQueue.TryEnqueue(() => Hitokoto = text);
     }
 
-    public void OnNavigatedTo(object parameter)
-    {
-    }
 
-    public void OnNavigatedFrom()
+    public void HitokotoCard_OnUnloaded(object sender, RoutedEventArgs e)
     {
         timer.Stop();
     }

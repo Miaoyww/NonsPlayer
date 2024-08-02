@@ -8,12 +8,6 @@ public class ThemeSelectorService : IThemeSelectorService
 {
     private const string SettingsKey = "AppBackgroundRequestedTheme";
 
-    private readonly ILocalSettingsService _localSettingsService;
-
-    public ThemeSelectorService(ILocalSettingsService localSettingsService)
-    {
-        _localSettingsService = localSettingsService;
-    }
 
     public ElementTheme Theme { get; set; } = ElementTheme.Default;
 
@@ -42,15 +36,15 @@ public class ThemeSelectorService : IThemeSelectorService
 
     private async Task<ElementTheme> LoadThemeFromSettingsAsync()
     {
-        var themeName = await _localSettingsService.ReadSettingAsync<string>(SettingsKey);
-
-        if (Enum.TryParse(themeName, out ElementTheme cacheTheme)) return cacheTheme;
-
+        // var themeName = await _localSettingsService.ReadSettingAsync<string>(SettingsKey);
+        //
+        // if (Enum.TryParse(themeName, out ElementTheme cacheTheme)) return cacheTheme;
+        //
         return ElementTheme.Default;
     }
 
     private async Task SaveThemeInSettingsAsync(ElementTheme theme)
     {
-        await _localSettingsService.SaveSettingAsync(SettingsKey, theme.ToString());
+        // await _localSettingsService.SaveSettingAsync(SettingsKey, theme.ToString());
     }
 }

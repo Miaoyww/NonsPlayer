@@ -56,4 +56,9 @@ public partial class GreetingsCardViewModel
             TimeString = DateTime.Now.ToString("HH:mm");
         });
     }
+
+    public void GreetingsCard_OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        timer.Stop();
+    }
 }

@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using NonsPlayer.Helpers;
+using NonsPlayer.Utils;
 using NonsPlayer.ViewModels;
 using WinRT.Interop;
 
@@ -47,15 +48,15 @@ public sealed partial class PlaylistDetailPage : Page
             {
                 using (var tw = new StreamWriter(stream))
                 {
-                    var content = (await CacheHelper.GetImageStreamFromServer(ViewModel.PlayListObject.AvatarUrl))
+                    var content = (await ImageUtils.GetImageStreamFromServer(ViewModel.PlayListObject.AvatarUrl))
                         .AsStream();
-                    var btArray = new byte[512]; // 定义一个字节数据,用来向readStream读取内容和向writeStream写入内容
-                    var contentSize = await content.ReadAsync(btArray, 0, btArray.Length); // 向远程文件读第一次
+                    var btArray = new byte[512];
+                    var contentSize = await content.ReadAsync(btArray, 0, btArray.Length);
 
-                    while (contentSize > 0) // 如果读取长度大于零则继续读
+                    while (contentSize > 0)
                     {
-                        stream.Write(btArray, 0, contentSize); // 写入本地文件
-                        contentSize = await content.ReadAsync(btArray, 0, btArray.Length); // 继续向远程文件读取
+                        stream.Write(btArray, 0, contentSize);
+                        contentSize = await content.ReadAsync(btArray, 0, btArray.Length);
                     }
                 }
             }

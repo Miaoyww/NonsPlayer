@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Contracts.Adapters;
@@ -15,5 +16,6 @@ public sealed partial class TodayDurationCard : UserControl
         InitializeComponent();
     }
     public TodayDurationCardViewModel ViewModel { get; }
+
 
 }

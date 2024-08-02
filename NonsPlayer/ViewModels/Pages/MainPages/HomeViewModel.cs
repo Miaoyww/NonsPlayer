@@ -44,6 +44,12 @@ public partial class HomeViewModel : ObservableRecipient
     {
         NavigationService.NavigateTo(typeof(ExploreViewModel)?.FullName);
     }
+
+    public void HomePage_OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        RecommendedPlaylist.Clear();
+    }
+
     public async void HomePage_OnLoaded(object sender, RoutedEventArgs e)
     {
         var adapters = AdapterService.Instance.GetAdaptersByType(ISubAdapterEnum.Common);

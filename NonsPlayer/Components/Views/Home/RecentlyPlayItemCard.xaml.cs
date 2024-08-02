@@ -29,11 +29,6 @@ public sealed partial class RecentlyPlayItemCard : UserControl
         set => ViewModel.Init(value);
     }
 
-    public string Url
-    {
-        set => ViewModel.Init(value);
-    }
-
     private void BodyBorder_OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {
         PlayQueue.Instance.Play(ViewModel.Music);

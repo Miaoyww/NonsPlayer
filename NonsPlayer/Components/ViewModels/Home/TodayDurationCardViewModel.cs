@@ -32,4 +32,16 @@ public partial class TodayDurationCardViewModel
     {
         Duration = PlayCounterService.TodayPlayDuration.ToString(@"mm") + "M";
     }
+
+    public void TodayDurationCard_OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Player.Instance.PositionChangedHandle -= PositionChangedHandle;
+        }
+        catch
+        {
+            // ignore
+        }
+    }
 }
