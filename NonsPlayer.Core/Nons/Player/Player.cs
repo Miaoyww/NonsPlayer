@@ -19,15 +19,15 @@ public class Player
 {
     #region 事件
 
-    public delegate void MusicChanged(IMusic currentMusic);
+    public delegate void MusicChangedHandler(IMusic currentMusic);
 
-    public delegate void PlayStateChanged(bool isPlaying);
+    public delegate void PlayStateChangedHandler(bool isPlaying);
 
-    public delegate void PositionChanged(TimeSpan time);
+    public delegate void PositionChangedHandler(TimeSpan time);
 
-    public PlayStateChanged PlayStateChangedHandle;
-    public PositionChanged PositionChangedHandle;
-    public MusicChanged MusicChangedHandle;
+    public PlayStateChangedHandler PlayStateChanged;
+    public PositionChangedHandler PositionChanged;
+    public MusicChangedHandler MusicChanged;
 
     #endregion
 
@@ -35,7 +35,7 @@ public class Player
     public MediaFoundationReader? CurrentReader;
     public VolumeSampleProvider? VolumeProvider;
     public WaveOutEvent OutputDevice;
-    
+
     public IMusic CurrentMusic;
     private float _volume;
     private TimeSpan _position;
@@ -107,13 +107,8 @@ public class Player
         {
             if (rePlay)
             {
-                OutputDevice.Pause();
-                OutputDevice.Stop();
-                SetPosition(TimeSpan.Zero);
-                PositionChangedHandle(TimeSpan.Zero);
-                await Task.Delay(500);
-                OutputDevice.Play();
-                PlayStateChangedHandle(true);
+                await PlayCore(CurrentMusic);
+                PlayStateChanged?.Invoke(true);
                 return;
             }
 
@@ -121,12 +116,12 @@ public class Player
                 OutputDevice.PlaybackState == PlaybackState.Stopped)
             {
                 OutputDevice.Play();
-                PlayStateChangedHandle(true);
+                PlayStateChanged?.Invoke(true);
             }
             else
             {
                 OutputDevice.Pause();
-                PlayStateChangedHandle(false);
+                PlayStateChanged?.Invoke(false);
             }
         }
         catch (InvalidOperationException e)
@@ -157,7 +152,7 @@ public class Player
             }
 
             var concatenating = new ConcatenatingSampleProvider(providers);
-            mixer = new MusicMixer(song,concatenating, readers);
+            mixer = new MusicMixer(song, concatenating, readers);
         }
         else
         {
@@ -193,6 +188,7 @@ public class Player
                 {
                     CurrentReader.Dispose();
                 }
+
                 var nextTrack = _queue.Dequeue();
                 if (nextTrack.IsMixed && _jointlessTimes == null)
                 {
@@ -223,18 +219,19 @@ public class Player
                 {
                     if (nextTrack.Music != null) CurrentMusic = nextTrack.Music[0];
                 }
-                
+
                 OutputDevice.Stop();
                 CurrentMusic = nextTrack.Music[0];
                 CurrentReader = nextTrack.Reader[0];
-                VolumeProvider = new VolumeSampleProvider(nextTrack.Wave)
-                {
-                    Volume = _volume
-                };
+                VolumeProvider = new VolumeSampleProvider(nextTrack.Wave) { Volume = _volume };
                 OutputDevice.Init(VolumeProvider);
                 OutputDevice.Play();
-                MusicChangedHandle?.Invoke(CurrentMusic);
+                MusicChanged?.Invoke(CurrentMusic);
             }
+        }
+        catch (InvalidOperationException e)
+        {
+            // ignore
         }
         catch (Exception e)
         {
@@ -244,7 +241,7 @@ public class Player
 
     private void GetCurrentInfo(object? sender, ElapsedEventArgs e)
     {
-        if (OutputDevice != null && PlayStateChangedHandle != null)
+        if (OutputDevice != null && PlayStateChanged != null)
         {
             if (CurrentReader != null)
             {
@@ -261,7 +258,7 @@ public class Player
                                 if (CurrentMusic != item.Item1)
                                 {
                                     CurrentMusic = item.Item1;
-                                    MusicChangedHandle?.Invoke(CurrentMusic);
+                                    MusicChanged?.Invoke(CurrentMusic);
                                 }
 
                                 CurrentReader = item.Item4;
@@ -283,13 +280,13 @@ public class Player
 
             if (OutputDevice.PlaybackState == PlaybackState.Playing)
             {
-                PositionChangedHandle(Position);
-                PlayStateChangedHandle(true);
+                PositionChanged?.Invoke(Position);
+                PlayStateChanged?.Invoke(true);
             }
 
             if (OutputDevice.PlaybackState == PlaybackState.Paused ||
                 OutputDevice.PlaybackState == PlaybackState.Stopped)
-                PlayStateChangedHandle(false);
+                PlayStateChanged?.Invoke(false);
         }
     }
 

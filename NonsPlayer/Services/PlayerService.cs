@@ -36,8 +36,8 @@ public partial class PlayerService : ObservableRecipient
     {
         PlayQueue.Instance.PlayModeChanged += OnPlayModeChanged;
         PlayQueue.Instance.ShuffleChanged += OnShuffleChanged;
-        Player.Instance.PlayStateChangedHandle += OnPlaystateChanged;
-        Player.Instance.MusicChangedHandle += OnMusicChanged;
+        Player.Instance.PlayStateChanged += OnPlaystateChanged;
+        Player.Instance.MusicChanged += OnMusicChanged;
         CurrentPlayMode = PlayQueue.PlayModeEnum.ListLoop; //TODO: 播放状态储存
     }
 
@@ -45,6 +45,7 @@ public partial class PlayerService : ObservableRecipient
 
     private void OnPlayModeChanged(PlayQueue.PlayModeEnum mode)
     {
+        logger.LogInformation($"Play mode was changed to {mode.ToString()}");
         CurrentPlayMode = mode;
     }
 

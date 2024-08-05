@@ -81,11 +81,11 @@
                         CommandParameter="explore">
                     <TextBlock x:Uid="ShellMenu_Explore" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
                 </Button>
-                <Button Name="NativeLocal" Style="{StaticResource NativeButton}"
-                        Command="{x:Bind ViewModel.OpenPageCommand}"
-                        CommandParameter="local">
-                    <TextBlock x:Uid="ShellMenu_Local" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
-                </Button>
+                <!-- <Button Name="NativeLocal" Style="{StaticResource NativeButton}" -->
+                <!--         Command="{x:Bind ViewModel.OpenPageCommand}" -->
+                <!--         CommandParameter="local"> -->
+                <!--     <TextBlock x:Uid="ShellMenu_Local" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" /> -->
+                <!-- </Button> -->
                 <Button Name="NativeOwn" Style="{StaticResource NativeButton}"
                         Command="{x:Bind ViewModel.OpenPageCommand}"
                         CommandParameter="own">

@@ -7,7 +7,6 @@
     mc:Ignorable="d">
 
     <Border CornerRadius="10"
-            Margin="10,0,0,0"
             Tapped="{x:Bind ViewModel.UIElement_OnTapped}">
         <Border.ContextFlyout>
             <MenuFlyout>
@@ -23,7 +22,7 @@
             </Grid.RowDefinitions>
             <Border Grid.Row="0" Name="Cover"
                     Background="{x:Bind ViewModel.Cover,Mode=OneWay}"
-                    Width="220" Height="220"
+                    Width="230" Height="230"
                     Margin="0,0,0,0" CornerRadius="10" HorizontalAlignment="Center" />
             <TextBlock Grid.Row="1" Name="Title"
                        Margin="0,5,0,0"

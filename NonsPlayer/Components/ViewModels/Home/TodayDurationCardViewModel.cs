@@ -17,10 +17,10 @@ public partial class TodayDurationCardViewModel
     public TodayDurationCardViewModel()
     {
         ChangeTime();
-        Player.Instance.PositionChangedHandle += PositionChangedHandle;
+        Player.Instance.PositionChanged += OnPositionChanged;
     }
 
-    private void PositionChangedHandle(TimeSpan time)
+    private void OnPositionChanged(TimeSpan time)
     {
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
@@ -37,7 +37,7 @@ public partial class TodayDurationCardViewModel
     {
         try
         {
-            Player.Instance.PositionChangedHandle -= PositionChangedHandle;
+            Player.Instance.PositionChanged -= OnPositionChanged;
         }
         catch
         {

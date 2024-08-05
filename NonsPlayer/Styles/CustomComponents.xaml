@@ -3,17 +3,22 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style x:Key="NativeButton" TargetType="Button">
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Width" Value="50"/>
-        <Setter Property="Height" Value="26"/>
-        <Setter Property="HorizontalContentAlignment" Value="Center"/>
-        <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Padding" Value="0,0,0,2"/>
-        <Setter Property="Opacity" Value="0.9"/>
-        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}"/>
-        <Setter Property="Margin" Value="5,0,5,0"/>
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Width" Value="50" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Padding" Value="0,0,0,2" />
+        <Setter Property="Opacity" Value="0.9" />
+        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}" />
+        <Setter Property="Margin" Value="5,0,5,0" />
+    </Style>
+    <Style x:Key="CustomPivotItem" TargetType="PivotItem">
+        <Setter Property="FontFamily" Value="HarmonyOS Sans SC"/>
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="Medium"/>
     </Style>
     <Style x:Key="CustomAutoSuggestBox" TargetType="AutoSuggestBox">
         <Setter Property="Template">
@@ -26,7 +31,8 @@
                                 <VisualState x:Name="PointerOver" />
                                 <VisualState x:Name="Focused">
                                     <Storyboard>
-                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BorderElement" Storyboard.TargetProperty="Background">
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="BorderElement"
+                                                                       Storyboard.TargetProperty="Background">
                                             <DiscreteObjectKeyFrame KeyTime="0" Value="Transparent" />
                                         </ObjectAnimationUsingKeyFrames>
                                     </Storyboard>
@@ -34,11 +40,22 @@
                                 <VisualState x:Name="Disabled" />
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
-                        <Border x:Name="BorderElement" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" />
-                        <ScrollViewer x:Name="ContentElement" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" HorizontalScrollMode="Disabled" VerticalScrollMode="Disabled" IsTabStop="False" AutomationProperties.AccessibilityView="Raw" />
-                        <ContentControl x:Name="QueryIcon" Content="{TemplateBinding QueryIcon}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" />
-                        <TextBox x:Name="TextBox" Margin="0" BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-                        <ContentPresenter x:Name="PlaceholderTextContentPresenter" Content="{TemplateBinding PlaceholderText}" Foreground="{TemplateBinding PlaceholderTextForeground}" Margin="2,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" />
+                        <Border x:Name="BorderElement" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" />
+                        <ScrollViewer x:Name="ContentElement" HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden" HorizontalScrollMode="Disabled"
+                                      VerticalScrollMode="Disabled" IsTabStop="False"
+                                      AutomationProperties.AccessibilityView="Raw" />
+                        <ContentControl x:Name="QueryIcon" Content="{TemplateBinding QueryIcon}"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" />
+                        <TextBox x:Name="TextBox" Margin="0" BorderThickness="0" Background="Transparent"
+                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                        <ContentPresenter x:Name="PlaceholderTextContentPresenter"
+                                          Content="{TemplateBinding PlaceholderText}"
+                                          Foreground="{TemplateBinding PlaceholderTextForeground}" Margin="2,0,0,0"
+                                          HorizontalAlignment="Left" VerticalAlignment="Center"
+                                          IsHitTestVisible="False" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

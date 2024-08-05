@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <Page
     x:Class="NonsPlayer.Views.Local.LocalMusicLibPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -6,9 +7,95 @@
     xmlns:local="using:NonsPlayer.Views.Local"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="using:NonsPlayer.Components.Views"
     mc:Ignorable="d">
+    <Page.Resources>
+        <DataTemplate x:Key="ZoomedInGroupHeaderTemplate">
+            <TextBlock
+                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
+                Style="{StaticResource SubtitleTextBlockStyle}"
+                Text="text" />
+        </DataTemplate>
 
-    <Grid>
+        <DataTemplate x:Key="ZoomedInTemplate">
+            <StackPanel MinWidth="200" Margin="12,6,12,6">
+                <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="TEXX" />
+                <TextBlock
+                    Width="300"
+                    HorizontalAlignment="Left"
+                    Style="{StaticResource BodyTextBlockStyle}"
+                    Text="Text22"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+    <ScrollViewer>
+        <Grid Margin="{StaticResource PageCommonMargin}">
+            <Grid Margin="{StaticResource PageContentCommonMargin}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="本地音乐库"
+                               Style="{StaticResource CommonTextStyle}"
+                               FontSize="30" />
+                    <SelectorBar Grid.Column="1"
+                                 VerticalAlignment="Center"
+                                 Margin="20,-4,0,0">
+                        <SelectorBarItem x:Name="SelectorMusic"
+                                         Margin="0,0,10,0"
+                                         IsSelected="True">
+                            <TextBlock Text="音乐"
+                                       Margin="5"
+                                       FontSize="20"
+                                       Style="{StaticResource CommonTextStyle}" />
+                        </SelectorBarItem>
+                        <SelectorBarItem x:Name="SelectorAlbum"
+                                         Margin="0,0,10,0">
+                            <TextBlock Text="专辑"
+                                       Margin="5"
+                                       FontSize="20"
+                                       Style="{StaticResource CommonTextStyle}" />
+                        </SelectorBarItem>
+                        <SelectorBarItem x:Name="SelectorArtist"
+                                         Margin="0,0,10,0">
+                            <TextBlock Text="艺术家"
+                                       Margin="5"
+                                       FontSize="20"
+                                       Style="{StaticResource CommonTextStyle}" />
+                        </SelectorBarItem>
+                    </SelectorBar>
+                </Grid>
+                <Grid Grid.Row="1">
+                    <SemanticZoom Height="500">
+                        <SemanticZoom.ZoomedInView>
+                            <GridView ItemTemplate="{StaticResource ZoomedInTemplate}"
+                                      ScrollViewer.IsHorizontalScrollChainingEnabled="False"
+                                      SelectionMode="None">
+                                <GridView.GroupStyle>
+                                    <GroupStyle HeaderTemplate="{StaticResource ZoomedInGroupHeaderTemplate}" />
+                                </GridView.GroupStyle>
+                                <TextBlock Text="ABSD" />
+                            </GridView>
+                        </SemanticZoom.ZoomedInView>
 
-    </Grid>
+                        <SemanticZoom.ZoomedOutView>
+                            <ListView HorizontalAlignment="Stretch"
+                                      SelectionMode="None">
+                                <TextBlock Text="ABC" />
+                            </ListView>
+                        </SemanticZoom.ZoomedOutView>
+                    </SemanticZoom>
+                </Grid>
+            </Grid>
+
+        </Grid>
+    </ScrollViewer>
+
 </Page>

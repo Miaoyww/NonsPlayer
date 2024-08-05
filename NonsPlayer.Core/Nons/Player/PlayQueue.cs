@@ -37,7 +37,7 @@ public class PlayQueue
 
     public event ShuffleChangedEventHandler ShuffleChanged;
 
-    public event RadioWaitEventHandler RadioWatting;
+    public event RadioWaitEventHandler RadioWaiting;
 
     #endregion
 
@@ -71,20 +71,32 @@ public class PlayQueue
                 Player.Instance.LoadNextTrack();
                 return;
             }
-            if (PlayMode == PlayModeEnum.ListLoop)
-                if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic &&
-                    PlayMode != PlayModeEnum.SingleLoop)
-                {
-                    if (_isUserPressed) return;
-                    if (CurrentMusic is null) return;
-                    if (CurrentMusic.Duration.TotalSeconds - Player.Instance.Position.TotalSeconds > 2) return;
-                    if (Player.Instance.IsMixed)
+
+            if (CurrentMusic is null) return;
+            if (_isUserPressed) return;
+            if (CurrentMusic.Duration.TotalSeconds - Player.Instance.Position.TotalSeconds > 2) return;
+            if (Player.Instance.IsMixed)
+            {
+                return;
+            }
+
+            switch (PlayMode)
+            {
+                case PlayModeEnum.ListLoop:
+                    if (Player.Instance.CurrentMusic != Player.Instance.PreviousMusic &&
+                        PlayMode != PlayModeEnum.SingleLoop)
                     {
-                        return;
+                        if (_isUserPressed) return;
+
+
+                        PlayNext();
                     }
 
-                    PlayNext();
-                }
+                    break;
+                case PlayModeEnum.SingleLoop:
+                    Play(CurrentMusic);
+                    break;
+            }
         }
         catch (Exception exception)
         {
@@ -261,23 +273,26 @@ public class PlayQueue
         CurrentQueueChanged?.Invoke();
     }
 
-    public void Play(IMusic music)
+    public async void Play(IMusic music)
     {
         if (GetCurrentIndex() == MusicList.Count - 1)
         {
             if (IsRadioMode)
             {
-                RadioWatting?.Invoke();
+                RadioWaiting?.Invoke();
                 return;
             }
         }
 
         if (CurrentMusic != null)
+        {
             if (music.Id == CurrentMusic.Id)
             {
-                Player.Instance.Play(true);
+                await Player.Instance.Play(true);
                 return;
             }
+        }
+
 
         if (!MusicList.Contains(music)) AddNext(music);
 
@@ -289,36 +304,33 @@ public class PlayQueue
     public void PlayNext(bool isUserPressed = false)
     {
         _isUserPressed = isUserPressed;
+        PlayModeEnum playMode = PlayMode;
 
+        if (isUserPressed)
+        {
+            playMode = PlayModeEnum.ListLoop;
+        }
+        
         var list = IsShuffle ? _randomMusicList : MusicList;
         if (list.Count == 0) return;
-        if (PlayMode is PlayModeEnum.SingleLoop)
-        {
-            Play(CurrentMusic);
-            return;
-        }
-
         var index = list.IndexOf(CurrentMusic) + 1;
-        if (PlayMode is PlayModeEnum.Sequential)
+
+        switch (playMode)
         {
-            if (index >= list.Count) return;
-
-            Play(list[index]);
-            return;
-        }
-
-        if (PlayMode is PlayModeEnum.ListLoop)
-        {
-            if (list.Count == 0) return;
-
-            index = index >= list.Count ? 0 : index;
-            Play(list[index]);
-        }
-
-        //TODO: 长期任务: 完成Recommend模式
-        if (PlayMode is PlayModeEnum.Recommend)
-        {
-            Play(CurrentMusic);
+            case PlayModeEnum.SingleLoop:
+                Play(CurrentMusic);
+                break;
+            case PlayModeEnum.Sequential:
+                if (index >= list.Count) return;
+                Play(list[index]);
+                break;
+            case PlayModeEnum.ListLoop:
+                if (list.Count == 0) return;
+                index = index >= list.Count ? 0 : index;
+                Play(list[index]);
+                break;
+            case PlayModeEnum.Recommend:
+                break;
         }
     }
 

@@ -67,11 +67,11 @@ public class KeyHookService
 
     private void Next()
     {
-        PlayQueue.Instance.PlayNext();
+        PlayQueue.Instance.PlayNext(true);
     }
 
-    private void Like()
+    private async void Like()
     {
-        // TODO
+        await MusicStateModel.Instance.CurrentMusic.Like(!MusicStateModel.Instance.CurrentSongLiked);
     }
 }

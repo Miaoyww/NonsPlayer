@@ -40,19 +40,10 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <RichTextBlock
-                        Style="{StaticResource CommonRichTextStyle}"
-                        Margin="20">
-                        <Paragraph>
-                            The way you left
-                        </Paragraph>
-                        <Paragraph>
-                            But I'm glad you did
-                        </Paragraph>
-                        <Paragraph>
-                            It was for the best
-                        </Paragraph>
-                    </RichTextBlock>
+                    <TextBlock
+                        Style="{StaticResource CommonTextStyle}"
+                        Margin="20"
+                        Text="{x:Bind ViewModel.Lyric, Mode=OneWay}" />
                     <Grid Grid.Row="1" Margin="20,0,20,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -113,7 +104,7 @@
             <GridView Grid.Row="1"
                       Margin="0,20,0,100"
                       ItemsSource="{x:Bind ViewModel.Playlists, Mode=OneWay}"
-                      HorizontalAlignment="Center"
+                      HorizontalAlignment="Left"
                       SelectionMode="None">
                 <GridView.ItemTemplate>
                     <DataTemplate x:DataType="models1:PlaylistModel">

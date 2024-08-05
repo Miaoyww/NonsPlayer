@@ -41,7 +41,6 @@
                             <views:HitokotoCard Grid.Row="1" Margin="0,0,0,0" Name="Hitokoto" />
                         </Grid>
                         <views:TodayDurationCard Grid.Column="2" Margin="10,0,0,0" Name="TodayDuration" />
-
                     </Grid>
                     <Grid Grid.Row="1" Margin="-12,40,0,0">
                         <StackPanel>
@@ -49,20 +48,20 @@
                                     Command="{x:Bind ViewModel.NativeToExploreCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Uid="RecommendedPlaylist" FontWeight="Medium" FontSize="30"
-                                               Style="{StaticResource CommonTextStyle}"/>
-                                    <FontIcon Glyph="&#xE970;" 
+                                               Style="{StaticResource CommonTextStyle}" />
+                                    <FontIcon Glyph="&#xE970;"
                                               Foreground="{StaticResource IconCommonColor}"
-                                              Margin="10,0,0,0"/>
+                                              Margin="10,0,0,0" />
                                 </StackPanel>
                             </Button>
                             <GridView Name="RecommendPlaylistView"
                                       ItemsSource="{x:Bind ViewModel.RecommendedPlaylist, Mode=OneWay}"
-                                      SelectionMode="None" 
-                                      HorizontalAlignment="Center" 
-                                      Margin="0,0,0,100">
+                                      SelectionMode="None"
+                                      HorizontalAlignment="Left"
+                                      Margin="12,0,0,100">
                                 <GridView.ItemTemplate>
                                     <DataTemplate x:DataType="models:PlaylistModel">
-                                        <views:PlaylistCard Playlist="{x:Bind Playlist}" />
+                                        <views:PlaylistCard Playlist="{x:Bind Playlist}" Margin="0,0,8,0" />
                                     </DataTemplate>
                                 </GridView.ItemTemplate>
                             </GridView>

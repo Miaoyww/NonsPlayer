@@ -22,7 +22,7 @@ public class SMTCService
 
     public SMTCService()
     {
-        Player.Instance.MusicChangedHandle += MusicChangedHandle;
+        Player.Instance.MusicChanged += MusicChangedHandle;
 
         _player.CommandManager.IsEnabled = false;
         //直接创建SystemMediaTransportControls对象被平台限制，神奇的是MediaPlayer对象可以创建该NativeObject

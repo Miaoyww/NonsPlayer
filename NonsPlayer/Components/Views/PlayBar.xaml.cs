@@ -19,7 +19,7 @@ public sealed partial class PlayBar : UserControl
     {
         ViewModel = App.GetService<PlayerBarViewModel>();
         InitializeComponent();
-        Player.Instance.PositionChangedHandle += OnPositionChanged;
+        Player.Instance.PositionChanged += OnPositionChanged;
     }
 
     private ManipulationStartedRoutedEventArgs? _slidingEventArgs = null;

@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
@@ -30,7 +31,7 @@ public partial class MusicStateModel
     [ObservableProperty] private TimeSpan duration = TimeSpan.Zero;
     [ObservableProperty] private bool isPlaying;
     [ObservableProperty] private bool onDrag;
-    [ObservableProperty] private bool showCover = false;
+    [ObservableProperty] private bool showCover;
     public ObservableCollection<MetadataItem> ArtistsMetadata = new();
     private double position;
     [ObservableProperty] private double previousVolume;
@@ -42,7 +43,7 @@ public partial class MusicStateModel
     {
         CurrentMusic = null;
         Volume = ConfigManager.Instance.Settings.Volume;
-        Cover = new SolidColorBrush(Color.FromArgb(230, 230, 230, 230));
+        ShowCover = false;
     }
 
     public static MusicStateModel Instance { get; } = new();
@@ -104,7 +105,8 @@ public partial class MusicStateModel
             }
             else
             {
-                Cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.GetCoverUrl("?param=100x100"));
+                // Cover = new ImageBrush { ImageSource = new BitmapImage(new Uri(value.GetCoverUrl("?param=50x50"))) };
+                Cover = CacheHelper.GetImageBrush(value.Album.CacheAvatarId, value.GetCoverUrl("?param=50x50"));
             }
 
             ShowCover = true;
@@ -115,9 +117,7 @@ public partial class MusicStateModel
             ShowCover = false;
         }
 
-
         Duration = value.Duration;
-        // CurrentSongLiked = FavoritePlaylistService.Instance.IsLiked(value.Id);
         ArtistsMetadata.Clear();
         foreach (var artist in value.Artists)
         {
@@ -131,7 +131,6 @@ public partial class MusicStateModel
 
         logger.LogInformation(
             $"Play new song: [{value.Id}] {value.Name} - {value.ArtistsName} from adapter: {value.Adapter.GetMetadata().DisplayPlatform}");
-        OnPropertyChanged(nameof(Cover));
         OnPropertyChanged(nameof(Duration));
         OnPropertyChanged(nameof(DurationString));
     }

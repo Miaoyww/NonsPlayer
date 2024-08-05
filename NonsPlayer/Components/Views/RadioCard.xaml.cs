@@ -143,6 +143,7 @@ public sealed partial class RadioCard : UserControl
     [RelayCommand]
     public async void Play()
     {
+        if (SavedSongs == null) return;
         if (radioService.IsStarted)
         {
             await Player.Instance.Play();

@@ -23,6 +23,7 @@ public static class ImageUtils
             return new ImageBrush { ImageSource = bitmapImage };
         }
     }
+
     public static async Task<BitmapImage?> GetBitmapImageFromServer(string imageUrl)
     {
         using (var httpClient = new HttpClient())

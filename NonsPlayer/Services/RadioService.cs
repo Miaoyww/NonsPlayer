@@ -32,7 +32,7 @@ public partial class RadioService : ObservableObject
         PlayQueue.Instance.AddMusicList(music);
         PlayQueue.Instance.Play(music[0]);
         PlayQueue.Instance.IsRadioMode = true;
-        PlayQueue.Instance.RadioWatting += OnRadioWatting;
+        PlayQueue.Instance.RadioWaiting += OnRadioWaiting;
         PlayQueue.Instance.MusicAdded += PlayQueueOnMusicAdded;
         PlayQueue.Instance.CurrentMusicChanged += PlayQueueCurrentMusicChanged;
         IsStarted = true;
@@ -62,12 +62,12 @@ public partial class RadioService : ObservableObject
     {
         logger.LogInformation("RadioService stopped");
         PlayQueue.Instance.IsRadioMode = false;
-        PlayQueue.Instance.RadioWatting -= OnRadioWatting;
+        PlayQueue.Instance.RadioWaiting -= OnRadioWaiting;
         PlayQueue.Instance.MusicAdded -= PlayQueueOnMusicAdded;
         IsStarted = false;
     }
 
-    private async void OnRadioWatting()
+    private async void OnRadioWaiting()
     {
         logger.LogInformation("RadioService now on waiting");
         PlayQueue.Instance.AddMusicList(await GetRadioSong());

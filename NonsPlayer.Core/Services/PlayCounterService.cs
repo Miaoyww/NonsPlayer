@@ -18,8 +18,8 @@ public class PlayCounterService
     public void Init(int totalPlayCount, Tuple<DateTime, TimeSpan> todayPlayDuration)
     {
         Data = new();
-        Player.Instance.MusicChangedHandle += OnMusicChanged;
-        Player.Instance.PositionChangedHandle += PositionChangedHandle;
+        Player.Instance.MusicChanged += OnMusicChanged;
+        Player.Instance.PositionChanged += PositionChangedHandle;
         RecentlyMusic = new List<IMusic>();
         TotalPlayCount = totalPlayCount;
         if (todayPlayDuration != null)

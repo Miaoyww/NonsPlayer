@@ -59,8 +59,8 @@ public sealed partial class LyricPage : Page
     {
         ViewModel = App.GetService<LyricViewModel>();
         InitializeComponent();
-        // Player.Instance.PositionChangedHandle += OnPositionChanged;
-        Player.Instance.MusicChangedHandle += OnMusicChanged;
+        // Player.Instance.PositionChangedHandler += OnPositionChanged;
+        Player.Instance.MusicChanged += OnMusicChanged;
     }
 
     private ColorThief colorThief = new();

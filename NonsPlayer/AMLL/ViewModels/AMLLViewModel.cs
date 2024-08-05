@@ -33,7 +33,7 @@ public partial class AMLLViewModel : ObservableRecipient
     public AMLLViewModel()
     {
         // LyricPositionGetter += OnLyricPositionGetter;
-        Player.Instance.MusicChangedHandle += OnMusicChanged;
+        Player.Instance.MusicChanged += OnMusicChanged;
     }
 
     private async void OnMusicChanged(IMusic value)
