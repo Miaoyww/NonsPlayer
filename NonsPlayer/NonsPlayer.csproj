@@ -67,6 +67,7 @@
       <None Remove="Assets\Icons\library-music.svg" />
       <None Remove="Assets\Icons\queue-music.svg" />
       <None Remove="Components\Views\LocalCa.xaml" />
+      <None Remove="Components\Views\Local\AddFolderDialog.xaml" />
       <None Remove="Components\Views\Local\LocalFolderItem.xaml" />
       <None Remove="Components\Views\Local\LocalMusicCard.xaml" />
       <None Remove="Components\Views\Local\LocalQueueCard.xaml" />
@@ -77,6 +78,9 @@
       <Page Update="Components\Views\Local\LocalFolderItem.xaml">
         <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         <SubType>Designer</SubType>
+      </Page>
+      <Page Update="Components\Views\Local\AddFolderDialog.xaml">
+        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       </Page>
       <Page Update="Views\Local\LocalQueuePage.xaml">
         <Generator>MSBuild:Compile</Generator>

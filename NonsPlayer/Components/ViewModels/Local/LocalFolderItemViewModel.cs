@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Services;
 using System.Diagnostics;
 using Windows.Storage;
 using Windows.Storage.Pickers;
@@ -15,7 +16,7 @@ public partial class LocalFolderItemViewModel
     [ObservableProperty] private string name;
     [ObservableProperty] private string path;
     [ObservableProperty] private string count;
-
+    private LocalService localService = App.GetService<LocalService>();
     async partial void OnPathChanged(string value)
     {
         var result = await ScanMusic(value);
@@ -26,6 +27,12 @@ public partial class LocalFolderItemViewModel
     public void OpenFolder()
     {
         Process.Start("explorer.exe",Path);
+    }
+
+    [RelayCommand]
+    public void DelFolder()
+    {
+        localService.TryDelDirection(name);
     }
 
     private async Task<List<LocalMusic>> ScanMusic(string folderPath)

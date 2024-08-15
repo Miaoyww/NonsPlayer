@@ -15,7 +15,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <StackPanel Grid.Row="0" Orientation="Vertical">
-                <TextBlock x:Uid="RecentlyPlayCard" FontSize="25"
+                <TextBlock x:Name="RecentlyPlayTextBlock" FontSize="25"
                            Style="{StaticResource CommonTextStyle}" FontWeight="Medium" />
                 <TextBlock Style="{StaticResource EnglishTextStyle}"
                            FontSize="16" Text="RECENT PLAY" />

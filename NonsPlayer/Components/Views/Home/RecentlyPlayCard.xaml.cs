@@ -17,6 +17,7 @@ public sealed partial class RecentlyPlayCard : UserControl
     {
         ViewModel = App.GetService<RecentlyPlayCardViewModel>();
         InitializeComponent();
+        RecentlyPlayTextBlock.Text = "RecentlyPlay".GetLocalized();
         PlayCounterService = App.GetService<PlayCounterService>();
         PlayCounterService.CounterChanged += OnCounterChanged;
         RefreshInfo();

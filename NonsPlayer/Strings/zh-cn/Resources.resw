@@ -410,7 +410,7 @@
   <data name="HitokotoCard.Text" xml:space="preserve">
     <value>每日一言</value>
   </data>
-  <data name="RecentlyPlayCard.Text" xml:space="preserve">
+  <data name="RecentlyPlay" xml:space="preserve">
     <value>最近播放</value>
   </data>
   <data name="TodayDurationCard.Text" xml:space="preserve">
@@ -464,7 +464,7 @@
   <data name="LocalCard_NewFolder_Desc.Text" xml:space="preserve">
     <value>点击添加新的文件夹</value>
   </data>
-  <data name="LocalCard_NewFolder_Header.Text" xml:space="preserve">
+  <data name="AddFolder" xml:space="preserve">
     <value>添加文件夹</value>
   </data>
   <data name="LocalCard_Queue_Desc.Text" xml:space="preserve">
@@ -477,6 +477,36 @@
     <value>打开文件夹</value>
   </data>
   <data name="Settings_Adapter_OpenLocalCard_Button.Content" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Count" xml:space="preserve">
+    <value>数量</value>
+  </data>
+  <data name="CurrentFolder.Text" xml:space="preserve">
+    <value>当前文件夹</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="PickFolder" xml:space="preserve">
+    <value>选择文件夹</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="Open" xml:space="preserve">
     <value>打开</value>
   </data>
 </root>

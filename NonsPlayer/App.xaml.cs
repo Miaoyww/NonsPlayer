@@ -68,7 +68,7 @@ public partial class App : Application
                 services.AddSingleton<SMTCService>();
                 services.AddSingleton<RadioService>();
                 services.AddSingleton<CacheService>();
-
+                services.AddSingleton<LocalService>();
                 #region Views and ViewModels
 
                 services.AddTransient<PlaylistDetailViewModel>();
@@ -142,8 +142,18 @@ public partial class App : Application
             }).Build();
 
         GetService<IAppNotificationService>().Initialize();
+        UnhandledException += App_UnhandledException;
+
+        #region Config
+
         Log.Information($"Start loading config, current config path:{ConfigManager.Instance.Settings.ConfigFilePath}");
+        ConfigManager.Instance.ConfigLoadFailed += OnConfigLoadFailed;
         ConfigManager.Instance.Load();
+
+        #endregion
+
+        #region Adapter
+
         AdapterService.Instance.AdapterLoadFailed += OnAdapterLoadFailed;
         AdapterService.Instance.AdapterLoading += OnAdapterLoading;
         Log.Information($"Start loading adapters, current adapter path:{ConfigManager.Instance.Settings.AdapterPath}");
@@ -161,12 +171,35 @@ public partial class App : Application
             }
         }
 
-        UnhandledException += App_UnhandledException;
+
+        #endregion
+
+        #region Local
+
+        Log.Information("Start init local service");
+        GetService<LocalService>().LoadFromFile();
+
+        #endregion
+        #region Counter
+
         Log.Information($"Start loading player counter");
         GetService<PlayCounterService>().Init(ConfigManager.Instance.Settings.TotalPlayCount,
             ConfigManager.Instance.Settings.TodayPlayDuration);
+
+        #endregion
+
+        #region SMTC
+
         Log.Information($"Start loading SMTC service");
         GetService<SMTCService>().Init();
+
+        #endregion
+
+    }
+
+    private void OnConfigLoadFailed(string param)
+    {
+        Log.Error("Config load failed: {param}", param);
     }
 
     private void OnAdapterLoading(string param, Exception? exception)
@@ -200,7 +233,7 @@ public partial class App : Application
 
     private void App_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        Log.Error($"Exception threw: {e.Exception}");
+        Log.Error($"Unhandled exception threw: {e.Exception}");
         ExceptionService.Instance.Throw(e.Exception);
     }
 

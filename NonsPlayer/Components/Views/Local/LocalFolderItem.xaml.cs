@@ -28,6 +28,9 @@ public sealed partial class LocalFolderItem : UserControl
         ViewModel = App.GetService<LocalFolderItemViewModel>();
         ProtectedCursor = InputCursor.CreateFromCoreCursor(new CoreCursor(CoreCursorType.Hand, 0));
         InitializeComponent();
+        OpenFlyOut.Text = "Open".GetLocalized();
+        EditFlyOut.Text = "Edit".GetLocalized();
+        DelFlyOut.Text = "Delete".GetLocalized();
     }
 
 

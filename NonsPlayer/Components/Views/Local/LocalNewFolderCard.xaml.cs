@@ -1,40 +1,74 @@
+
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.WinUI.UI.Controls;
 using Microsoft.UI.Input;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Animation;
 using NonsPlayer.Components.ViewModels;
-using NonsPlayer.Core.Contracts.Models.Music;
-using NonsPlayer.Core.Models;
-using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using NonsPlayer.ViewModels;
-using System.Collections.ObjectModel;
+using NonsPlayer.Services;
+using Windows.Storage;
+using Windows.Storage.AccessCache;
+using Windows.Storage.Pickers;
 using Windows.UI.Core;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace NonsPlayer.Components.Views;
 
 [INotifyPropertyChanged]
 public sealed partial class LocalNewFolderCard : UserControl
 {
-
+    private LocalService localService = App.GetService<LocalService>();
 
     public LocalNewFolderCard()
     {
         ViewModel = App.GetService<LocalNewFolderCardViewModel>();
         ProtectedCursor = InputCursor.CreateFromCoreCursor(new CoreCursor(CoreCursorType.Hand, 0));
         InitializeComponent();
+        AddNewFolderTextBlock.Text = "AddFolder".GetLocalized();
     }
 
     public LocalNewFolderCardViewModel ViewModel { get; }
 
 
-    private void UIElement_OnTapped(object sender, TappedRoutedEventArgs e)
+    private async void UIElement_OnTapped(object sender, TappedRoutedEventArgs e)
     {
+        var path = await PickFolder();
+        if (string.IsNullOrEmpty(path)) return;
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = this.XamlRoot,
+            Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
+            Title = "AddFolder".GetLocalized(),
+            PrimaryButtonText = "Save".GetLocalized(),
+            CloseButtonText = "Cancel".GetLocalized(),
+            DefaultButton = ContentDialogButton.Primary,
+            Content = new AddFolderDialog()
+        };
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            localService.TryAddDirection(((AddFolderDialog)dialog.Content).Tag as string , path);
+        }
+
+    }
+
+    private async Task<string> PickFolder()
+    {
+        var openPicker = new FolderPicker();
+        var window = App.MainWindow;
+        var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+        WinRT.Interop.InitializeWithWindow.Initialize(openPicker, hWnd);
+        openPicker.SuggestedStartLocation = PickerLocationId.Desktop;
+        openPicker.FileTypeFilter.Add("*");
+    
+        // Open the picker for the user to pick a folder
+        StorageFolder folder = await openPicker.PickSingleFolderAsync();
+        if (folder != null)
+        {
+            return folder.Path;
+        }
+
+        return string.Empty;
     }
 }

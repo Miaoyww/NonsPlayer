@@ -12,6 +12,7 @@
         <Grid Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
+                <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <ImageIcon Grid.Row="0"
@@ -21,7 +22,7 @@
             <StackPanel Grid.Row="1">
                 <TextBlock
                     Style="{StaticResource CommonTextStyle}"
-                    x:Uid="LocalCard_NewFolder_Header"
+                    x:Name="AddNewFolderTextBlock"
                     FontWeight="Bold"
                     Margin="0,0,0,10" />
                 <TextBlock

@@ -32,8 +32,7 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <TextBlock Style="{StaticResource CommonTextStyle}"
-                               FontWeight="Bold"
-                               Text="当前文件夹" />
+                               FontWeight="Bold" />
                     <Grid Grid.Row="1" Margin="20,20,40,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -41,28 +40,28 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="#" 
-                                   Style="{StaticResource CommonTextStyle}" 
-                                   FontSize="15" FontWeight="Medium"/>
-                        <TextBlock Grid.Column="1" Margin="30,0,0,0" 
-                                   Text="名称"
-                                   Style="{StaticResource CommonTextStyle}" 
-                                   FontSize="15" FontWeight="Medium"/>
-                        <TextBlock Grid.Column="2" 
-                                   Text="目录"
-                                   Style="{StaticResource CommonTextStyle}" 
+                        <TextBlock Grid.Column="0" Text="#"
+                                   Style="{StaticResource CommonTextStyle}"
+                                   FontSize="15" FontWeight="Medium" />
+                        <TextBlock Grid.Column="1" Margin="30,0,0,0"
+                                   x:Name="NameTextBlock"
+                                   Style="{StaticResource CommonTextStyle}"
+                                   FontSize="15" FontWeight="Medium" />
+                        <TextBlock Grid.Column="2"
+                                   x:Name="PathTextBlock"
+                                   Style="{StaticResource CommonTextStyle}"
                                    FontSize="15"
                                    Margin="0,0,0,0" />
-                        <TextBlock Grid.Column="3" 
-                                   Text="数量"
-                                   Style="{StaticResource CommonTextStyle}" 
-                                   FontSize="15" FontWeight="Medium"/>
+                        <TextBlock Grid.Column="3"
+                                   x:Name="CountTextBlock"
+                                   Style="{StaticResource CommonTextStyle}"
+                                   FontSize="15" FontWeight="Medium" />
                     </Grid>
                     <ListView Grid.Row="2"
                               Padding="0,5,0,0"
                               BorderThickness="0,1,0,0"
                               BorderBrush="#F0F1F2"
-                              ItemsSource="{x:Bind ViewModel.Folders, Mode=OneWay}">
+                              ItemsSource="{x:Bind ViewModel.LocalService.Directories, Mode=OneWay}">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="models:LocalFolderModel">
                                 <views:LocalFolderItem Model="{x:Bind This, Mode=OneWay}" />
@@ -75,9 +74,10 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <TextBlock Style="{StaticResource CommonTextStyle}"
-                               FontWeight="Bold"
-                               Text="最近播放" />
+                    <TextBlock
+                        x:Name="RecentlyPlayTextBlock"
+                        Style="{StaticResource CommonTextStyle}"
+                        FontWeight="Bold" />
 
                 </Grid>
             </Grid>

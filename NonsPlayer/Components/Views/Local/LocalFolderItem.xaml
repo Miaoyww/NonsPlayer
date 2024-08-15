@@ -9,10 +9,9 @@
     <Grid Margin="0,20,20,20" Background="Transparent">
         <Grid.ContextFlyout>
             <MenuFlyout>
-                <MenuFlyoutItem Text="´ò¿ª" Icon="Folder" Command="{x:Bind ViewModel.OpenFolderCommand}"/>
-                <MenuFlyoutItem Text="±à¼­" Icon="Edit">
-                </MenuFlyoutItem>
-                <MenuFlyoutItem Text="É¾³ý" Icon="Delete"/>
+                <MenuFlyoutItem x:Name="OpenFlyOut" Icon="Folder" Command="{x:Bind ViewModel.OpenFolderCommand}"/>
+                <MenuFlyoutItem x:Name="EditFlyOut" Icon="Edit"/>
+                <MenuFlyoutItem x:Name="DelFlyOut" Icon="Delete" Command="{x:Bind ViewModel.DelFolderCommand}"/>
             </MenuFlyout>
         </Grid.ContextFlyout>
         <Grid.ColumnDefinitions>

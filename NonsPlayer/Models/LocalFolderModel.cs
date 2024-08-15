@@ -1,20 +1,21 @@
 ﻿using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
+using System.Text.Json.Serialization;
 
 namespace NonsPlayer.Components.Models;
 
 public class LocalFolderModel
 {
-    public string Index;
+    [JsonIgnore] public string Index;
 
-    public string Name;
+    [JsonPropertyName("name")] public string Name { get; set; }
 
-    public string Path;
+    [JsonPropertyName("path")] public string Path { get; set; }
 
     public LocalFolderModel This;
 
-    public LocalFolderModel(string index, string name, string path)
+    public LocalFolderModel(string name, string path, string index = "")
     {
         Index = index;
         Name = name;

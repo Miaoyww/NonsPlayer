@@ -16,6 +16,7 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
+using NonsPlayer.Services;
 using QRCoder;
 using System.Collections.ObjectModel;
 using FileAttributes = Windows.Storage.FileAttributes;
@@ -23,10 +24,9 @@ using FileAttributes = Windows.Storage.FileAttributes;
 namespace NonsPlayer.ViewModels;
 
 public partial class LocalViewModel : ObservableObject, INavigationAware
-{
-    public ObservableCollection<LocalFolderModel> Folders = new();
+{   
     public LocalPlaylist LocalPlaylist;
-
+    public LocalService LocalService = App.GetService<LocalService>();
     #region test
 
     public async Task Save()
@@ -114,8 +114,6 @@ public partial class LocalViewModel : ObservableObject, INavigationAware
 
     public void OnNavigatedTo(object parameter)
     {
-        Folders.Clear();
-        Folders.Add(new LocalFolderModel("01", "音乐", @"C:\Users\miaom\Music"));
     }
 
     public void OnNavigatedFrom()
