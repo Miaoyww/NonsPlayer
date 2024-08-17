@@ -110,7 +110,7 @@ public partial class App : Application
 
                 #region Components ViewModels
 
-                services.AddTransient<PlaylistMusicItemCardViewModel>();
+                services.AddTransient<MusicListItemViewModel>();
                 services.AddTransient<PlaylistCardViewModel>();
                 services.AddTransient<PlayerBarViewModel>();
                 services.AddTransient<PlayQueueBarViewModel>();

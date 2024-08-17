@@ -40,7 +40,7 @@
 
                         </toolkit:SettingsExpander>
                         <toolkit:SettingsExpander Margin="0,0,0,5"
-                                                  x:Uid="SettingsPage_Adapter"
+                                                  x:Uid="Settings_Adapter"
                                                   Style="{StaticResource CustomSettingsExpander}"
                                                   HeaderIcon="{ui:FontIcon Glyph=&#xED35;}">
                             <toolkit:SettingsExpander.Items>

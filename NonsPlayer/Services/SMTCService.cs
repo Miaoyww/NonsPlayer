@@ -123,6 +123,7 @@ public class SMTCUpdater
 
     public SMTCUpdater SetThumbnail(string ImgUrl)
     {
+        if (string.IsNullOrEmpty(ImgUrl)) return this;
         _updater.Thumbnail = RandomAccessStreamReference.CreateFromUri(new Uri(ImgUrl));
         return this;
     }

@@ -40,7 +40,7 @@
                   ItemsSource="{x:Bind ViewModel.MusicItems, Mode=OneWay}">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:MusicModel">
-                    <views:PlaylistMusicItemCard
+                    <views:MusicListItemCard
                         Music="{x:Bind Music}"
                         Index="{x:Bind Index}" />
                 </DataTemplate>

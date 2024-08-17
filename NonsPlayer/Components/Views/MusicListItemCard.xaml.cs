@@ -13,7 +13,7 @@ using NonsPlayer.ViewModels;
 namespace NonsPlayer.Components.Views;
 
 [INotifyPropertyChanged]
-public sealed partial class PlaylistMusicItemCard : UserControl
+public sealed partial class MusicListItemCard : UserControl
 {
     [ObservableProperty] private string index;
 
@@ -22,13 +22,13 @@ public sealed partial class PlaylistMusicItemCard : UserControl
     [ObservableProperty] private IMusic music;
 
 
-    public PlaylistMusicItemCard()
+    public MusicListItemCard()
     {
-        ViewModel = App.GetService<PlaylistMusicItemCardViewModel>();
+        ViewModel = App.GetService<MusicListItemViewModel>();
         InitializeComponent();
     }
 
-    public PlaylistMusicItemCardViewModel ViewModel { get; }
+    public MusicListItemViewModel ViewModel { get; }
 
     partial void OnMusicChanged(IMusic music)
     {

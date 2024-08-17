@@ -73,25 +73,9 @@
                     </SelectorBar>
                 </Grid>
                 <Grid Grid.Row="1">
-                    <SemanticZoom Height="500">
-                        <SemanticZoom.ZoomedInView>
-                            <GridView ItemTemplate="{StaticResource ZoomedInTemplate}"
-                                      ScrollViewer.IsHorizontalScrollChainingEnabled="False"
-                                      SelectionMode="None">
-                                <GridView.GroupStyle>
-                                    <GroupStyle HeaderTemplate="{StaticResource ZoomedInGroupHeaderTemplate}" />
-                                </GridView.GroupStyle>
-                                <TextBlock Text="ABSD" />
-                            </GridView>
-                        </SemanticZoom.ZoomedInView>
-
-                        <SemanticZoom.ZoomedOutView>
-                            <ListView HorizontalAlignment="Stretch"
-                                      SelectionMode="None">
-                                <TextBlock Text="ABC" />
-                            </ListView>
-                        </SemanticZoom.ZoomedOutView>
-                    </SemanticZoom>
+                    <views:MusicListBar
+                        MusicItems="{x:Bind ViewModel.Models, Mode=OneWay}"
+                        />
                 </Grid>
             </Grid>
 

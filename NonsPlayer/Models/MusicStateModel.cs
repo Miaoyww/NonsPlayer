@@ -101,7 +101,7 @@ public partial class MusicStateModel
         {
             if (value is LocalMusic)
             {
-                Cover = await CacheHelper.GetImageBrushAsync(value.Album.CacheAvatarId, ((LocalMusic)value).LocalCover);
+                Cover = await CacheHelper.GetImageBrushAsync(value.Album.CacheAvatarId, value.LocalCover);
             }
             else
             {
@@ -129,8 +129,16 @@ public partial class MusicStateModel
 
         CurrentSongLiked = value.IsLiked;
 
-        logger.LogInformation(
-            $"Play new song: [{value.Id}] {value.Name} - {value.ArtistsName} from adapter: {value.Adapter.GetMetadata().DisplayPlatform}");
+        if (CurrentMusic is LocalMusic)
+        {
+            logger.LogInformation(
+                $"Play new song: [{value.Id}] {value.Name} - {value.ArtistsName} from local music");
+        }
+        else
+        {
+            logger.LogInformation(
+                $"Play new song: [{value.Id}] {value.Name} - {value.ArtistsName} from adapter: {value.Adapter.GetMetadata().DisplayPlatform}");
+        }
         OnPropertyChanged(nameof(Duration));
         OnPropertyChanged(nameof(DurationString));
     }

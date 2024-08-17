@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Utils;
 using NonsPlayer.Services;
 using System.Diagnostics;
 using Windows.Storage;
@@ -17,16 +18,18 @@ public partial class LocalFolderItemViewModel
     [ObservableProperty] private string path;
     [ObservableProperty] private string count;
     private LocalService localService = App.GetService<LocalService>();
+
     async partial void OnPathChanged(string value)
     {
         var result = await ScanMusic(value);
+        localService.AddSongs(result);
         Count = result.Count.ToString();
     }
 
     [RelayCommand]
     public void OpenFolder()
     {
-        Process.Start("explorer.exe",Path);
+        Process.Start("explorer.exe", Path);
     }
 
     [RelayCommand]
@@ -49,15 +52,9 @@ public partial class LocalFolderItemViewModel
             else if (file.Attributes.HasFlag(FileAttributes.Normal))
             {
                 // 判断是否为音乐文件
-                //TODO: 优化音乐文件判断
-                try
+                if (LocalUtils.IsMusic(file.Path))
                 {
-                    var track = TagLib.File.Create(file.Path);
-                    musics.Add(new LocalMusic(track));
-                }
-                catch (Exception e)
-                {
-                    //igrone
+                    musics.Add(new LocalMusic(file.Path));
                 }
             }
         }
@@ -78,14 +75,9 @@ public partial class LocalFolderItemViewModel
             {
                 // 判断是否为音乐文件
                 //TODO: 优化音乐文件判断
-                try
+                if (LocalUtils.IsMusic(file.Path))
                 {
-                    var track = TagLib.File.Create(file.Path);
-                    musics.Add(new LocalMusic(track));
-                }
-                catch (Exception e)
-                {
-                    //igrone
+                    musics.Add(new LocalMusic(file.Path));
                 }
             }
         }

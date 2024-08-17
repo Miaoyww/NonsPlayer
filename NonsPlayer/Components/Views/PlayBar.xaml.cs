@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Components.ViewModels;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
@@ -53,7 +54,7 @@ public sealed partial class PlayBar : UserControl
         if (MusicStateModel.Instance.CurrentMusic == null) return;
 
         if (MusicStateModel.Instance.CurrentMusic.IsEmpty) return;
-
+        if (MusicStateModel.Instance.CurrentMusic is LocalMusic) return;
         if (MusicStateModel.Instance.CurrentMusic.Adapter == null) return;
 
         var accountAdapter = MusicStateModel.Instance.CurrentMusic.Adapter.Account;

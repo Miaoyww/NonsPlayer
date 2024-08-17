@@ -11,5 +11,4 @@ public interface IArtist : IMusicModel
     [JsonPropertyName("music_count")] public int MusicCount { get; set; }
     [JsonPropertyName("trans")] public string Trans { get; set; }
     [JsonIgnore] IAdapter Adapter { get; set; }
-
 }
