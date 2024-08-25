@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using ATL;
+using System.Text;
 using System.Text.Json.Serialization;
 using IF.Lastfm.Core.Objects;
 using NonsPlayer.Core.AMLL.Models;
@@ -6,14 +7,33 @@ using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Services;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 
 namespace NonsPlayer.Core.Models;
 
 public class LocalMusic : IMusic
 {
-    [JsonIgnore] public TagLib.File? File;
-    public string FilePath;
+    public readonly string FilePath;
     public bool IsInit = false;
+    public string Id { get; set; }
+    public string Md5 { get; set; }
+    public string Name { get; set; }
+    public string ShareUrl { get; set; }
+    public string AvatarUrl { get; set; }
+    public IAlbum Album { get; set; }
+    public IArtist[] Artists { get; set; }
+    public bool IsEmpty { get; set; }
+    public TimeSpan Duration { get; set; }
+    public string Url { get; set; }
+    public Lyric Lyric { get; set; }
+    public byte[]? Cover { get; set; }
+    public IAdapter Adapter { get; set; }
+    public bool IsLiked { get; set; }
+    public MusicQualityLevel[] QualityLevels { get; set; }
+    public string? Trans { get; set; }
+
     public LastAlbum? LastAlbum;
     public List<LastArtist>? LastArtists;
     public LastTrack? LastTrack;
@@ -23,34 +43,48 @@ public class LocalMusic : IMusic
         FilePath = path;
     }
 
-    public LocalMusic(TagLib.File file)
-    {
-        File = file;
-        FilePath = file.Name;
-    }
-    public void ReadMp3Tags(string filePath)
-    {
-    }
     public void Init()
     {
+        if (IsInit) return;
         IsInit = true;
-        if (File == null) File = TagLib.File.Create(FilePath);
-        LocalCover = File.Tag.Pictures.Length > 0 ? File.Tag.Pictures[0].Data.Data : null;
-        Name = File.Tag.Title;
-        if (string.IsNullOrEmpty(Name))
+        var track = new Track(FilePath);
+        foreach (PictureInfo pic in track.EmbeddedPictures)
         {
-            Name = Path.GetFileNameWithoutExtension(File.Name);
+            Cover = CompressAndConvertToByteArray(pic.PictureData, 60, 60);
         }
 
-        Md5 = File.GetHashCode().ToString();
+        Name = track.Title;
+        if (string.IsNullOrEmpty(Name))
+        {
+            Name = Path.GetFileNameWithoutExtension(track.Title);
+        }
+
+        Md5 = track.GetHashCode().ToString();
         Id = $"{Name}_{Md5}";
-        Url = File.Name;
-        Album = new LocalAlbum() { Name = File.Tag.Album, Id = $"{File.Tag.Album}_{Md5}", AvatarUrl = Url, };
+        Url = track.Path;
+        Album = new LocalAlbum() { Name = track.Album, Id = $"{track.Album}_{Md5}", AvatarUrl = Url, };
         Artists =
         [
-            new LocalArtist() { Name = File.Tag.FirstPerformer, Id = $"{File.Tag.FirstPerformer}_{Md5}" }
+            new LocalArtist() { Name = track.Artist, Id = $"{track.Artist}_{Md5}" }
         ];
-        Duration = File.Properties.Duration;
+        Duration = TimeSpan.FromSeconds(track.Duration);
+    }
+
+    private byte[]? CompressAndConvertToByteArray(byte[] imageData, int width, int height)
+    {
+        try
+        {
+            using var ms = new MemoryStream(imageData);
+            Image image = Image.Load(ms);
+            image.Mutate(x => x.Resize(width, height));
+            using var msOutput = new MemoryStream();
+            image.Save(msOutput, new JpegEncoder { Quality = 20 });
+            return msOutput.ToArray();
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -61,10 +95,13 @@ public class LocalMusic : IMusic
     {
         try
         {
-            var artistsTasks = Artists.Select(async x => await LastFMService.Instance.LastfmClient.Artist.GetInfoAsync(x.Name)).ToList();
-            LastAlbum = (await LastFMService.Instance.LastfmClient.Album.GetInfoAsync(Artists.ToString(), Artists[0].Name)).Content;
+            var artistsTasks = Artists
+                .Select(async x => await LastFMService.Instance.LastfmClient.Artist.GetInfoAsync(x.Name)).ToList();
+            LastAlbum = (await LastFMService.Instance.LastfmClient.Album.GetInfoAsync(Artists.ToString(),
+                Artists[0].Name)).Content;
             LastArtists = (await Task.WhenAll(artistsTasks)).Select(x => x.Content).ToList();
-            LastTrack = (await LastFMService.Instance.LastfmClient.Track.GetInfoAsync(Name, Artists.ToString())).Content;
+            LastTrack = (await LastFMService.Instance.LastfmClient.Track.GetInfoAsync(Name, Artists.ToString()))
+                .Content;
         }
         catch (Exception e)
         {
@@ -83,22 +120,6 @@ public class LocalMusic : IMusic
         return to.GetString(toBytes);
     }
 
-    public string Id { get; set; }
-    public string Md5 { get; set; }
-    public string Name { get; set; }
-    public string ShareUrl { get; set; }
-    public string AvatarUrl { get; set; }
-    public IAlbum Album { get; set; }
-    public IArtist[] Artists { get; set; }
-    public bool IsEmpty { get; set; }
-    public TimeSpan Duration { get; set; }
-    public string Url { get; set; }
-    public Lyric Lyric { get; set; }
-    public byte[]? LocalCover { get; set; }
-    public IAdapter Adapter { get; set; }
-    public bool IsLiked { get; set; }
-    public MusicQualityLevel[] QualityLevels { get; set; }
-    public string? Trans { get; set; }
 
     public Task<string> GetUrl(MusicQualityLevel quality = MusicQualityLevel.Standard)
     {

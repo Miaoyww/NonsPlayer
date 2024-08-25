@@ -23,7 +23,7 @@ public sealed partial class PlayQueueItemCard : UserControl
     [ObservableProperty] private ImageBrush cover;
 
     /// <summary>
-    /// Item1: CacheId Item2: Url Item3: LocalCover
+    /// Item1: CacheId Item2: Url Item3: Cover
     /// </summary>
     [ObservableProperty] private Tuple<string, string, byte[]> coverUrl;
 

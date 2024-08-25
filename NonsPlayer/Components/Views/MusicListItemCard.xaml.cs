@@ -32,8 +32,9 @@ public sealed partial class MusicListItemCard : UserControl
 
     partial void OnMusicChanged(IMusic music)
     {
-        ViewModel.Init(music as IMusic);
+        ViewModel.Init(music);
         for (var i = 0; i < Music.Artists.Length; i++)
+        {
             CheckArtists.Items.Add(new MenuFlyoutItem
             {
                 Text = Music.Artists[i].Name,
@@ -41,6 +42,7 @@ public sealed partial class MusicListItemCard : UserControl
                 Style = App.Current.Resources["CustomMenuFlyoutItem"] as Style,
                 CommandParameter = Music.Artists[i]
             });
+        }
     }
 
     [RelayCommand]
@@ -69,8 +71,7 @@ public sealed partial class MusicListItemCard : UserControl
             Music.IsLiked = state;
             MusicStateModel.Instance.CurrentSongLiked = state;
         }
-        
-        ViewModel.Liked = await Music.GetLikeState();
 
+        ViewModel.Liked = await Music.GetLikeState();
     }
 }

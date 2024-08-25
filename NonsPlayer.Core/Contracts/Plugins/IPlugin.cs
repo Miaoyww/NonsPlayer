@@ -1,12 +1,9 @@
-﻿using TagLib.Ogg;
-
-namespace NonsPlayer.Core.Contracts.Plugins;
+﻿namespace NonsPlayer.Core.Contracts.Plugins;
 
 public interface IPlugin
 {
     void Initialize();
     void Uninitialize();
-    Page[] GetPages();
     
     PluginMetadata GetMetadata();
 }

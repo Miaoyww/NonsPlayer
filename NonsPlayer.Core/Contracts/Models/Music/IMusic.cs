@@ -20,7 +20,6 @@ public interface IMusic : IMusicModel
     [JsonPropertyName("duration")] public TimeSpan Duration { get; set; }
     [JsonPropertyName("url")] public string Url { get; set; }
     [JsonPropertyName("lyric")] public Lyric Lyric { get; set; }
-    [JsonIgnore] byte[]? LocalCover { get; set; }
     [JsonIgnore] string AlbumName => Album?.Name;
     [JsonIgnore] string TotalTimeString => Duration.ToString(@"m\:ss");
     [JsonIgnore] string ArtistsName => string.Join("/", Artists.Select(x => x.Name));

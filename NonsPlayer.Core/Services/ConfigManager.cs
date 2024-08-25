@@ -37,17 +37,6 @@ public class ConfigManager
                 Directory.CreateDirectory(Path.GetDirectoryName(Settings.ConfigFilePath));
                 File.Create(Settings.ConfigFilePath).Close();
             }
-
-            if (File.Exists(Settings.OtherConfigFilePath))
-            {
-                var otherJson = File.ReadAllText(Settings.OtherConfigFilePath);
-                otherSettings = JsonSerializer.Deserialize<Dictionary<string, object>>(otherJson);
-            }
-            else
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(Settings.OtherConfigFilePath));
-                File.Create(Settings.OtherConfigFilePath).Close();
-            }
         }
         catch(Exception e)
         {
@@ -64,38 +53,13 @@ public class ConfigManager
             File.Create(Settings.ConfigFilePath).Close();
         }
 
-        if (!File.Exists(Settings.OtherConfigFilePath))
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(Settings.OtherConfigFilePath));
-            File.Create(Settings.OtherConfigFilePath).Close();
-        }
-
         var options = new JsonSerializerOptions
         {
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
         var json = JsonSerializer.Serialize(Settings, options);
-        var otherJson = JsonSerializer.Serialize(otherSettings, options);
         File.WriteAllText(Settings.ConfigFilePath, json, Encoding.UTF8);
-        File.WriteAllText(Settings.OtherConfigFilePath, otherJson, Encoding.UTF8);
-    }
-
-    /// <summary>
-    /// 设置一个新的配置
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="key"></param>
-    /// <param name="value"></param>
-    public void SetConfig<T>(string key, T? value)
-    {
-        if (otherSettings.ContainsKey(key))
-        {
-            otherSettings[key] = value;
-            return;
-        }
-
-        otherSettings.Add(key, value);
     }
 
     public bool TryGetConfig<T>(string key, out T? value) where T : class

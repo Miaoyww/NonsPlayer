@@ -1,4 +1,3 @@
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
@@ -34,23 +33,7 @@ public sealed partial class LocalNewFolderCard : UserControl
     {
         var path = await PickFolder();
         if (string.IsNullOrEmpty(path)) return;
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = this.XamlRoot,
-            Style = Application.Current.Resources["DefaultContentDialogStyle"] as Style,
-            Title = "AddFolder".GetLocalized(),
-            PrimaryButtonText = "Save".GetLocalized(),
-            CloseButtonText = "Cancel".GetLocalized(),
-            DefaultButton = ContentDialogButton.Primary,
-            Content = new AddFolderDialog()
-        };
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
-        {
-            localService.TryAddDirection(((AddFolderDialog)dialog.Content).Tag as string , path);
-        }
-
+        localService.TryAddDirection(path);
     }
 
     private async Task<string> PickFolder()
@@ -61,7 +44,7 @@ public sealed partial class LocalNewFolderCard : UserControl
         WinRT.Interop.InitializeWithWindow.Initialize(openPicker, hWnd);
         openPicker.SuggestedStartLocation = PickerLocationId.Desktop;
         openPicker.FileTypeFilter.Add("*");
-    
+
         // Open the picker for the user to pick a folder
         StorageFolder folder = await openPicker.PickSingleFolderAsync();
         if (folder != null)

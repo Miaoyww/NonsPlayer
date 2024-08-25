@@ -7,7 +7,6 @@ using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
-using TagLib.Id3v2;
 
 namespace NonsPlayer.Views.Pages;
 

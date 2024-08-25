@@ -58,7 +58,7 @@ public partial class App : Application
                 services.AddSingleton<IActivationService, ActivationService>();
                 services.AddSingleton<IPageService, PageService>();
                 services.AddSingleton<INavigationService, NavigationService>();
-                services.AddSingleton<IFileService, FileService>();
+                services.AddSingleton<FileService>();
                 services.AddSingleton<VersionService>();
                 services.AddSingleton<UpdateService>();
                 services.AddSingleton<UpdateClient>();

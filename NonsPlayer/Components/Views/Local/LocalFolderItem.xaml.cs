@@ -40,7 +40,6 @@ public sealed partial class LocalFolderItem : UserControl
     {
         set
         {
-            ViewModel.Name = value.Name;
             ViewModel.Index = value.Index;
             ViewModel.Path = value.Path;
         }

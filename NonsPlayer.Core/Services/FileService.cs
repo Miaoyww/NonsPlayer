@@ -5,20 +5,39 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace NonsPlayer.Core.Services;
 
-public class FileService : IFileService
+public class FileService
 {
-    public static FileService Instance { get; } = new();
-
     public T Read<T>(string folderPath, string fileName)
     {
         var path = Path.Combine(folderPath, fileName);
         if (File.Exists(path))
         {
-            var json = File.ReadAllText(path);
-            return JsonConvert.DeserializeObject<T>(json);
+            var data = File.ReadAllText(path);
+            return JsonConvert.DeserializeObject<T>(data);
         }
 
         return default;
+    }
+
+    public string ReadData(string filename)
+    {
+        var path = Path.Combine(ConfigManager.Instance.Settings.Data, filename);
+        if (!File.Exists(path))
+        {
+            File.Create(path).Dispose();
+            return string.Empty;
+        }
+        using var reader = new StreamReader(path);
+        var json = reader.ReadToEnd();
+        return json;
+    }
+
+    public void SaveData(string fileName, string content)
+    {
+        var path = Path.Combine(ConfigManager.Instance.Settings.Data, fileName);
+
+        if (!Directory.Exists(path)) Directory.CreateDirectory(ConfigManager.Instance.Settings.Data);
+        File.WriteAllText(path, content, Encoding.UTF8);
     }
 
     public void Save<T>(string folderPath, string fileName, T content)
@@ -46,18 +65,5 @@ public class FileService : IFileService
         {
             writer.Write(content);
         }
-    }
-
-    public T ReadData<T>(string filename)
-    {
-        var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, filename);
-        string json;
-        using (var reader = new StreamReader(path))
-        {
-            json = reader.ReadToEnd();
-        }
-
-        var result = JsonSerializer.Deserialize<T>(json);
-        return result;
     }
 }

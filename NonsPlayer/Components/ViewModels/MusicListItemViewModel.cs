@@ -28,7 +28,9 @@ public partial class MusicListItemViewModel : ObservableObject
     [ObservableProperty] private string name;
     [ObservableProperty] private string time;
     [ObservableProperty] private string trans;
-    [ObservableProperty] private Visibility transVisibility;
+    [ObservableProperty] private Visibility transVisibility = Visibility.Collapsed;
+    [ObservableProperty] private Visibility coverVisibility = Visibility.Collapsed;
+    [ObservableProperty] private Visibility likeVisibility = Visibility.Collapsed;
     public ObservableCollection<MetadataItem> ArtistsMetadata = new();
 
     [RelayCommand]
@@ -64,17 +66,12 @@ public partial class MusicListItemViewModel : ObservableObject
 
         Artists = string.IsNullOrEmpty(Music.ArtistsName) ? "未知艺人" : Music.ArtistsName;
         Trans = string.IsNullOrEmpty(Music.Trans) ? "" : $"({Music.Trans})";
-        if (string.IsNullOrEmpty(Trans))
+        if (!string.IsNullOrEmpty(Trans)) TransVisibility = Visibility.Visible;
         {
-            TransVisibility = Visibility.Collapsed;
+            if (Music is not LocalMusic) LikeVisibility = Visibility.Visible;
+            Liked = await Music.GetLikeState();
+            Music.IsLiked = Liked;
         }
-        else
-        {
-            TransVisibility = Visibility.Visible;
-        }
-
-        Liked = await Music.GetLikeState();
-        Music.IsLiked = Liked;
         await InitCover();
         MusicStateModel.Instance.CurrentSongLikedChanged += InstanceOnCurrentSongLikedChanged;
     }
@@ -128,14 +125,21 @@ public partial class MusicListItemViewModel : ObservableObject
         ImageBrush cover;
         if (Music is LocalMusic)
         {
-            cover = await CacheHelper.GetImageBrushAsync(Music.Album.CacheAvatarId, Music.LocalCover);
+            
+            if (((LocalMusic)Music).Cover != null)
+            {
+                cover = await CacheHelper.GetImageBrushAsync(Music.Album.CacheAvatarId, ((LocalMusic)Music).Cover);
+                ServiceHelper.DispatcherQueue.TryEnqueue(() => { Cover = cover; });
+                CoverVisibility = Visibility.Visible;
+
+            }
         }
         else
         {
             cover = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl)
                 .ConfigureAwait(false);
+            ServiceHelper.DispatcherQueue.TryEnqueue(() => { Cover = cover; });
+            CoverVisibility = Visibility.Visible;
         }
-
-        ServiceHelper.DispatcherQueue.TryEnqueue(() => { Cover = cover; });
     }
 }

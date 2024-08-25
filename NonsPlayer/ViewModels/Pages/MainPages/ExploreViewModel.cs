@@ -17,15 +17,19 @@ public partial class ExploreViewModel : ObservableRecipient, INavigationAware
         if (!string.IsNullOrEmpty(ConfigManager.Instance.Settings.DefaultAdapter))
         {
             var adapter = AdapterService.Instance.GetAdapter(ConfigManager.Instance.Settings.DefaultAdapter);
-            logger.LogInformation($"Explore got adapter {adapter.GetMetadata().DisplayPlatform}");
             if (adapter != null)
             {
+                logger.LogInformation($"Explore got adapter {adapter.GetMetadata().DisplayPlatform}");
                 var music = await adapter.Common.GetDailyRecommended();
                 if (music != null)
                 {
                     DailyRecommendedPlaylist = music;
                     return;
                 }
+            }
+            else
+            {
+                logger.LogInformation($"Explore couldn't get an adapter");  
             }
         }
 

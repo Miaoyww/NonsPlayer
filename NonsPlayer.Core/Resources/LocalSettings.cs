@@ -15,7 +15,6 @@ namespace NonsPlayer.Core.Resources
 
         [JsonIgnore] public string ConfigFilePath;
 
-        [JsonIgnore] public string OtherConfigFilePath;
 
         [JsonPropertyName("adapter_path")] public string AdapterPath { get; set; }
 
@@ -49,12 +48,10 @@ namespace NonsPlayer.Core.Resources
             DataPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "NonsPlayer");
             ConfigFilePath = Path.Join(DataPath, "config.json");
-            OtherConfigFilePath = Path.Join(DataPath, "config_other.json");
             AdapterPath = Path.Join(DataPath, "adapters");
             PluginPath = Path.Join(DataPath, "plugins");
             Data = Path.Join(DataPath, "Data");
             Log = Path.Combine(DataPath, "logs", $"NonsPlayer_{DateTime.Now:yyMMdd_HHmmss}.log");
-
             Theme = "Light";
             Volume = 50;
             TotalPlayCount = 0;

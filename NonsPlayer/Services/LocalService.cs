@@ -10,18 +10,16 @@ namespace NonsPlayer.Services;
 
 public class LocalService
 {
-    private const string _configKey = "local_dictionaries";
-    private Dictionary<string, LocalFolderModel> _dictHashMap = new();
+    private const string _dataKey = "local_dictionaries.json";
     public ObservableCollection<LocalFolderModel> Directories = new();
     public HashSet<LocalMusic> Songs = new();
-
-    public bool TryAddDirection(string name, string path)
+    private FileService FileService = App.GetService<FileService>();
+    public bool TryAddDirection(string path)
     {
-        if (_dictHashMap.ContainsKey(name)) return false;
-        if (string.IsNullOrEmpty(name)) return false;
-        var index = _dictHashMap.Count + 1;
-        var model = new LocalFolderModel(name, path, index.ToString("D2"));
-        _dictHashMap.Add(name, model);
+        if (string.IsNullOrEmpty(path)) return false;
+        if (HasDirectory(path)) return false;
+        var index = Directories.Count;
+        var model = new LocalFolderModel(path, index.ToString("D2"));
         Directories.Add(model);
         Save();
         return true;
@@ -33,9 +31,9 @@ public class LocalService
         {
             if (songItem.FilePath.Equals(song.FilePath)) return false;
         }
-        
+
         return Songs.Add(song);
-    }  
+    }
 
     public void AddSongs(IEnumerable<LocalMusic> songs)
     {
@@ -45,45 +43,61 @@ public class LocalService
         }
     }
 
-    public bool TryDelDirection(string name)
+    public bool HasDirectory(string path)
     {
-        if (!_dictHashMap.ContainsKey(name)) return false;
-        Directories.Remove(_dictHashMap[name]);
-        _dictHashMap.Remove(name);
+        return Directories.Any(localFolderModel => localFolderModel.Path.Equals(Path.GetFullPath(path)));
+    }
+
+    public bool TryGetModel(string path, out LocalFolderModel result)
+    {
+        foreach (LocalFolderModel localFolderModel in Directories)
+        {
+            if (localFolderModel.Path.Equals(Path.GetFullPath(path)))
+            {
+                result = localFolderModel;
+                return true;
+            }
+        }
+
+        result = default;
+        return false;
+    }
+
+    public bool TryDelDirection(string path)
+    {
+        if (!HasDirectory(path)) return false;
+        if (!TryGetModel(path, out var result)) return false;
+        Directories.Remove(result);
         Save();
         return true;
     }
 
     public void LoadFromFile()
     {
-        if (ConfigManager.Instance.TryGetConfig(_configKey,
-                out var result))
+        var data = FileService.ReadData(_dataKey);
+        if (!string.IsNullOrEmpty(data))
         {
-            var value = JObject.Parse(result);
-            foreach (KeyValuePair<string, JToken?> keyValuePair in value)
-            {
-                _dictHashMap.Add(keyValuePair.Key, new LocalFolderModel(
-                    ((JObject)keyValuePair.Value)["name"].ToString(),
-                    ((JObject)keyValuePair.Value)["path"].ToString(),
-                    (_dictHashMap.Count + 1).ToString("D2")
+            var value = JArray.Parse(data);
+            Directories.Clear();
+            var index = 0;
+            foreach (var item in value)
+            {   
+                index++;
+                Directories.Add(new LocalFolderModel(
+                    (item)["path"].ToString(),
+                    index.ToString("D2")
                 ));
             }
-
-            Directories.Clear();
-            foreach (KeyValuePair<string, LocalFolderModel> item in _dictHashMap)
-            {
-                Directories.Add(item.Value);
-            }
-        }
-        else
-        {
-            ConfigManager.Instance.SetConfig(_configKey, _dictHashMap);
         }
     }
 
     public void Save()
     {
-        ConfigManager.Instance.SetConfig(_configKey, _dictHashMap);
-        ConfigManager.Instance.Save();
+        var options = new JsonSerializerOptions
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
+        FileService.SaveData(_dataKey, JsonSerializer.Serialize(Directories, options));
     }
 }

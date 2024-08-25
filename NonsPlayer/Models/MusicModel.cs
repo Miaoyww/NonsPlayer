@@ -10,5 +10,5 @@ public class MusicModel
     public IMusic Music;
 
     public Tuple<string, string, byte[]> Cover =>
-        Tuple.Create(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl, Music.LocalCover);
+        Tuple.Create(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl, ((LocalMusic)Music).Cover);
 }

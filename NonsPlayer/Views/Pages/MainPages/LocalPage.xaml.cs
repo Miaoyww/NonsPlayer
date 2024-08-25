@@ -15,7 +15,6 @@ public sealed partial class LocalPage : Page
         RecentlyPlayTextBlock.Text = "RecentlyPlay".GetLocalized();
         CountTextBlock.Text = "Count".GetLocalized();
         PathTextBlock.Text = "Path".GetLocalized();
-        NameTextBlock.Text = "Name".GetLocalized();
     }
 
     public LocalViewModel ViewModel { get; }

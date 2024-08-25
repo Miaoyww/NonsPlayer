@@ -14,7 +14,6 @@ namespace NonsPlayer.Components.ViewModels;
 public partial class LocalFolderItemViewModel
 {
     [ObservableProperty] private string index;
-    [ObservableProperty] private string name;
     [ObservableProperty] private string path;
     [ObservableProperty] private string count;
     private LocalService localService = App.GetService<LocalService>();
@@ -35,7 +34,7 @@ public partial class LocalFolderItemViewModel
     [RelayCommand]
     public void DelFolder()
     {
-        localService.TryDelDirection(name);
+        localService.TryDelDirection(Path);
     }
 
     private async Task<List<LocalMusic>> ScanMusic(string folderPath)
