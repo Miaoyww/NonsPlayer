@@ -10,6 +10,13 @@ namespace NonsPlayer.Services;
 
 public class LocalService
 {
+    #region 事件注册
+
+    public delegate void LocalFolderModelEventHandler();
+    public event LocalFolderModelEventHandler? LocalFolderChanged;
+
+    #endregion
+    
     private const string _dataKey = "local_dictionaries.json";
     public ObservableCollection<LocalFolderModel> Directories = new();
     public HashSet<LocalMusic> Songs = new();
@@ -31,7 +38,7 @@ public class LocalService
         {
             if (songItem.FilePath.Equals(song.FilePath)) return false;
         }
-
+        LocalFolderChanged?.Invoke();
         return Songs.Add(song);
     }
 
@@ -41,6 +48,7 @@ public class LocalService
         {
             TryAddSong(inputSongItem);
         }
+        LocalFolderChanged?.Invoke();
     }
 
     public bool HasDirectory(string path)
@@ -69,6 +77,7 @@ public class LocalService
         if (!TryGetModel(path, out var result)) return false;
         Directories.Remove(result);
         Save();
+        LocalFolderChanged?.Invoke();
         return true;
     }
 
@@ -88,6 +97,7 @@ public class LocalService
                     index.ToString("D2")
                 ));
             }
+            LocalFolderChanged?.Invoke();
         }
     }
 

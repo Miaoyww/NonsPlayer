@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Utils;
+using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 using System.Diagnostics;
 using Windows.Storage;
@@ -22,7 +23,7 @@ public partial class LocalFolderItemViewModel
     {
         var result = await ScanMusic(value);
         localService.AddSongs(result);
-        Count = result.Count.ToString();
+        Count = string.Format("SongCount".GetLocalized(), result.Count);
     }
 
     [RelayCommand]

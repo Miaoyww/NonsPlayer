@@ -12,9 +12,6 @@ public sealed partial class LocalPage : Page
     {
         ViewModel = App.GetService<LocalViewModel>();
         InitializeComponent();
-        RecentlyPlayTextBlock.Text = "RecentlyPlay".GetLocalized();
-        CountTextBlock.Text = "Count".GetLocalized();
-        PathTextBlock.Text = "Path".GetLocalized();
     }
 
     public LocalViewModel ViewModel { get; }

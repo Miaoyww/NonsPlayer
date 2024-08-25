@@ -502,21 +502,26 @@
   </data>
   <data name="Open" xml:space="preserve">
     <value>打开</value>
-  </data> 
-   <data name="Music" xml:space="preserve">
+  </data>
+  <data name="Music" xml:space="preserve">
     <value>音乐</value>
-  </data> 
-    <data name="Album" xml:space="preserve">
+  </data>
+  <data name="Album" xml:space="preserve">
     <value>专辑</value>
-  </data> 
-    <data name="Artist" xml:space="preserve">
+  </data>
+  <data name="Artist" xml:space="preserve">
     <value>艺术家</value>
-  </data> 
-    <data name="Artist" xml:space="preserve">
-    <value>艺术家</value>
-  </data>    
+  </data>
   <data name="RecommendedPlaylist.Text" xml:space="preserve">
     <value>推荐歌单</value>
   </data>
-  
+  <data name="Directories.Text" xml:space="preserve">
+    <value>文件夹</value>
+  </data>
+  <data name="DirectoriesCount" xml:space="preserve">
+    <value>{0}个文件夹</value>
+  </data>
+  <data name="SongCount" xml:space="preserve">
+    <value>共有 {0} 首音乐</value>
+  </data>
 </root>

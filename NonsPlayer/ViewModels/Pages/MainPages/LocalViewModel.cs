@@ -22,11 +22,31 @@ using NonsPlayer.Services;
 namespace NonsPlayer.ViewModels;
 
 public partial class LocalViewModel : ObservableObject, INavigationAware
-{   
+{
     public LocalService LocalService = App.GetService<LocalService>();
+    [ObservableProperty] private string directoriesCount;
+
+    public LocalViewModel()
+    {
+        LocalService.LocalFolderChanged += LocalServiceOnLocalFolderChanged;
+    }
+
+    private void LocalServiceOnLocalFolderChanged()
+    {
+        RefreshInfo();
+    }
+
+    public void RefreshInfo()
+    {
+        ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+        {
+            DirectoriesCount = string.Format("DirectoriesCount".GetLocalized(), LocalService.Directories.Count);
+        });
+    }
 
     public void OnNavigatedTo(object parameter)
     {
+        RefreshInfo();
     }
 
     public void OnNavigatedFrom()

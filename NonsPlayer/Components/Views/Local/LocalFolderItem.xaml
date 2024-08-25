@@ -14,21 +14,22 @@
                 <MenuFlyoutItem x:Name="DelFlyOut" Icon="Delete" Command="{x:Bind ViewModel.DelFolderCommand}"/>
             </MenuFlyout>
         </Grid.ContextFlyout>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-        <TextBlock Style="{StaticResource CommonTextStyle}"
-                   Text="{x:Bind ViewModel.Index, Mode=OneWay}"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <TextBlock Grid.Column="1" Style="{StaticResource CommonTextStyle}"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Margin="00,0,0,0"
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0"
+                   Style="{StaticResource CommonTextStyle}"
+                   HorizontalAlignment="Left" 
+                   VerticalAlignment="Center"
+                   Margin="0,0,0,0"
                    Text="{x:Bind ViewModel.Path, Mode=OneWay}" />
-        <TextBlock Grid.Column="2" Style="{StaticResource CommonTextStyle}"
-                   HorizontalAlignment="Right" VerticalAlignment="Center"
+        <TextBlock Grid.Row="1" 
+                   Style="{StaticResource CommonTextStyle}"
+                   HorizontalAlignment="Left" 
+                   VerticalAlignment="Center"
+                   FontSize="16"
                    Text="{x:Bind ViewModel.Count,Mode=OneWay}"
-                   Margin="0,0,12,0"/>
+                   Margin="0,0,0,0"/>
     </Grid>
 </UserControl>
