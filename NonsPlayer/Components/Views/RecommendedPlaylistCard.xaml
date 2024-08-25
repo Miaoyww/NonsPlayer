@@ -4,7 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Tapped="{x:Bind ViewModel.RecommendedPlaylistCard_OnTapped}">
     <Border
         Background="{StaticResource ComponentsCardBackground}"
         CornerRadius="20" Width="500" Height="200">
@@ -19,7 +20,6 @@
                     </DoubleAnimation>
                 </Storyboard>
             </Grid.Resources>
-
             <Viewbox Stretch="UniformToFill">
                 <Image Name="Cover" Source="{x:Bind ViewModel.Cover, Mode=OneWay}">
                     <Image.RenderTransform>
@@ -29,7 +29,7 @@
             </Viewbox>
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                         Orientation="Vertical">
-                <TextBlock x:Uid="DailyRecommendedPlaylist"
+                <TextBlock x:Name="RecommendedPlaylistTextBlock"
                            Margin="20,10,0,0"
                            Style="{StaticResource CommonTextStyle}"
                            Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="40" CharacterSpacing="300" />

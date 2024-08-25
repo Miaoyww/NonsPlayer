@@ -2,6 +2,7 @@ using System.Windows.Forms;
 using Windows.UI.Core;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Input;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using NonsPlayer.Components.ViewModels;
@@ -23,6 +24,7 @@ public sealed partial class RecommendedPlaylistCard : UserControl
     {
         ViewModel = App.GetService<RecommendedPlaylistCardViewModel>();
         InitializeComponent();
+        RecommendedPlaylistTextBlock.Text = "DailyRecommendedPlaylist".GetLocalized();
     }
 
     public RecommendedPlaylistCardViewModel ViewModel { get; }

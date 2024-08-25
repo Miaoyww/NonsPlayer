@@ -9,26 +9,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:NonsPlayer.Components.Views"
     mc:Ignorable="d">
-    <Page.Resources>
-        <DataTemplate x:Key="ZoomedInGroupHeaderTemplate">
-            <TextBlock
-                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
-                Style="{StaticResource SubtitleTextBlockStyle}"
-                Text="text" />
-        </DataTemplate>
-
-        <DataTemplate x:Key="ZoomedInTemplate">
-            <StackPanel MinWidth="200" Margin="12,6,12,6">
-                <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="TEXX" />
-                <TextBlock
-                    Width="300"
-                    HorizontalAlignment="Left"
-                    Style="{StaticResource BodyTextBlockStyle}"
-                    Text="Text22"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-        </DataTemplate>
-    </Page.Resources>
     <ScrollViewer>
         <Grid Margin="{StaticResource PageCommonMargin}">
             <Grid Margin="{StaticResource PageContentCommonMargin}">
@@ -51,21 +31,21 @@
                         <SelectorBarItem x:Name="SelectorMusic"
                                          Margin="0,0,10,0"
                                          IsSelected="True">
-                            <TextBlock Text="音乐"
+                            <TextBlock x:Name="MusicTextBlock"
                                        Margin="5"
                                        FontSize="20"
                                        Style="{StaticResource CommonTextStyle}" />
                         </SelectorBarItem>
                         <SelectorBarItem x:Name="SelectorAlbum"
                                          Margin="0,0,10,0">
-                            <TextBlock Text="专辑"
+                            <TextBlock x:Name="AlbumTextBlock"
                                        Margin="5"
                                        FontSize="20"
                                        Style="{StaticResource CommonTextStyle}" />
                         </SelectorBarItem>
                         <SelectorBarItem x:Name="SelectorArtist"
                                          Margin="0,0,10,0">
-                            <TextBlock Text="艺术家"
+                            <TextBlock x:Name="ArtistTextBlock"
                                        Margin="5"
                                        FontSize="20"
                                        Style="{StaticResource CommonTextStyle}" />
@@ -74,8 +54,7 @@
                 </Grid>
                 <Grid Grid.Row="1">
                     <views:MusicListBar
-                        MusicItems="{x:Bind ViewModel.Models, Mode=OneWay}"
-                        />
+                        MusicItems="{x:Bind ViewModel.Models, Mode=OneWay}" />
                 </Grid>
             </Grid>
 

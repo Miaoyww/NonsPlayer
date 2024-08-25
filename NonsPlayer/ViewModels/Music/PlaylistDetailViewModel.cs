@@ -3,9 +3,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Components.Models;
+using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Contracts.Models.Music;
@@ -29,7 +31,9 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     public ObservableCollection<MusicModel> MusicItems = new();
     [ObservableProperty] private string musicsCount;
     [ObservableProperty] private string name;
-    [ObservableProperty] private IPlaylist playListObject;
+    [ObservableProperty] private IPlaylist playList;
+
+    [ObservableProperty] private Visibility infoVisibility = Visibility.Visible;
 
     public void OnNavigatedFrom()
     {
@@ -37,29 +41,33 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
     public async void OnNavigatedTo(object parameter)
     {
-        PlayListObject = (IPlaylist)parameter;
-        CurrentId = PlayListObject.Id;
-        if (!PlayListObject.IsInitialized) await Task.Run(PlayListObject.InitializePlaylist);
+        PlayList = (IPlaylist)parameter;
+        if (PlayList is RecommendedPlaylistCardViewModel.RecommendedPlaylist)
+        {
+            InfoVisibility = Visibility.Collapsed;
+        }
+        CurrentId = PlayList.Id;
+        if (!PlayList.IsInitialized) await Task.Run(PlayList.InitializePlaylist);
         LoadPlaylistDetail();
         await Task.Run(InitMusicsAsync);
     }
 
     private void LoadPlaylistDetail()
     {
-            Name = PlayListObject.Name;
-            Creator = "made by " + PlayListObject.Creator;
-            CreateTime = $"· {PlayListObject.CreateTime.ToString().Split(" ")[0]}";
-            Description = PlayListObject.Description;
-            MusicsCount = PlayListObject.MusicsCount + " Tracks";
-            Cover = CacheHelper.GetImageBrush(PlayListObject.CacheAvatarId, PlayListObject.AvatarUrl);
-            // IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
+        Name = PlayList.Name;
+        Creator = "made by " + PlayList.Creator;
+        CreateTime = $"· {PlayList.CreateTime.ToString().Split(" ")[0]}";
+        Description = PlayList.Description;
+        MusicsCount = PlayList.MusicsCount + " Tracks";
+        Cover = CacheHelper.GetImageBrush(PlayList.CacheAvatarId, PlayList.AvatarUrl);
+        // IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
     }
 
     private async Task InitMusicsAsync()
     {
-        if (PlayListObject.Musics == null) await PlayListObject.InitializeMusics();
+        if (PlayList.Musics == null) await PlayList.InitializeMusics();
 
-        for (var i = 0; i < PlayListObject.Musics.Count; i++)
+        for (var i = 0; i < PlayList.Musics.Count; i++)
         {
             var index = i;
             if (index < AppConfig.PlaylistTrackShowCount)
@@ -67,8 +75,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
                 {
                     MusicItems.Add(new MusicModel
                     {
-                        Music = PlayListObject.Musics[index],
-                        Index = (index + 1).ToString("D2")
+                        Music = PlayList.Musics[index], Index = (index + 1).ToString("D2")
                     });
                 });
         }
@@ -86,7 +93,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             var height = scrollViewer.ScrollableHeight;
             if (height - offset <
                 AppConfig.PlaylistTrackShowCount &&
-                currentItemGroupIndex < playListObject.MusicsCount - 1)
+                currentItemGroupIndex < PlayList.MusicsCount - 1)
                 await LoadMusicItemsByGroup();
         }
     }
@@ -99,13 +106,12 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         for (var i = 0; i < AppConfig.PlaylistTrackShowCount; i++)
         {
             var index = currentItemGroupIndex + i;
-            if (index < PlayListObject.MusicsCount)
+            if (index < PlayList.MusicsCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
                     MusicItems.Add(new MusicModel
                     {
-                        Music = PlayListObject.Musics[index],
-                        Index = (index + 1).ToString("D2")
+                        Music = PlayList.Musics[index], Index = (index + 1).ToString("D2")
                     });
                 });
         }
@@ -117,12 +123,12 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     [RelayCommand]
     private async void PlayAll()
     {
-        if (playListObject.Musics.Count != playListObject.MusicTrackIds.Length)
+        if (PlayList.Musics.Count != PlayList.MusicTrackIds.Length)
             // +1到达最后一个歌曲
             // await playListObject.InitTrackByIndexAsync(1000, playListObject.MusicTrackIds.Length + 1);
 
-        PlayQueue.Instance.Clear();
-        PlayQueue.Instance.AddMusicList(playListObject.Musics.ToArray(), true);
+            PlayQueue.Instance.Clear();
+        PlayQueue.Instance.AddMusicList(PlayList.Musics.ToArray(), true);
     }
 
     [RelayCommand]

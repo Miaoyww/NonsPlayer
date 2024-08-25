@@ -125,21 +125,22 @@ public partial class MusicListItemViewModel : ObservableObject
         ImageBrush cover;
         if (Music is LocalMusic)
         {
-            
             if (((LocalMusic)Music).Cover != null)
             {
                 cover = await CacheHelper.GetImageBrushAsync(Music.Album.CacheAvatarId, ((LocalMusic)Music).Cover);
                 ServiceHelper.DispatcherQueue.TryEnqueue(() => { Cover = cover; });
                 CoverVisibility = Visibility.Visible;
-
             }
         }
         else
         {
             cover = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl)
                 .ConfigureAwait(false);
-            ServiceHelper.DispatcherQueue.TryEnqueue(() => { Cover = cover; });
-            CoverVisibility = Visibility.Visible;
+            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+            {
+                Cover = cover;
+                CoverVisibility = Visibility.Visible;
+            });
         }
     }
 }

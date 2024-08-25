@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Logging;
+using Microsoft.UI.Xaml.Input;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;

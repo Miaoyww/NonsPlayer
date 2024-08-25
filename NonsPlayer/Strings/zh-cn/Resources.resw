@@ -197,9 +197,6 @@
   <data name="AdapterStore.Text" xml:space="preserve">
     <value>插件商店</value>
   </data>
-  <data name="BestArtist_Content.Text" xml:space="preserve">
-    <value>艺术家</value>
-  </data>
   <data name="BestMusic_Content.Text" xml:space="preserve">
     <value>最佳音乐结果</value>
   </data>
@@ -283,9 +280,6 @@
   </data>
   <data name="PlayQueue.Text" xml:space="preserve">
     <value>播放列表</value>
-  </data>
-  <data name="RecommendedPlaylist.Text" xml:space="preserve">
-    <value>歌单推荐</value>
   </data>
   <data name="SaveToLocalPlaylist.Content" xml:space="preserve">
     <value>保存至本地歌单</value>
@@ -419,7 +413,7 @@
   <data name="TotalListenCard.Text" xml:space="preserve">
     <value>累计已听</value>
   </data>
-  <data name="DailyRecommendedPlaylist.Text" xml:space="preserve">
+  <data name="DailyRecommendedPlaylist" xml:space="preserve">
     <value>每日歌曲推荐</value>
   </data>
   <data name="RecommendedPlaylistCardTip.Text" xml:space="preserve">
@@ -508,5 +502,21 @@
   </data>
   <data name="Open" xml:space="preserve">
     <value>打开</value>
+  </data> 
+   <data name="Music" xml:space="preserve">
+    <value>音乐</value>
+  </data> 
+    <data name="Album" xml:space="preserve">
+    <value>专辑</value>
+  </data> 
+    <data name="Artist" xml:space="preserve">
+    <value>艺术家</value>
+  </data> 
+    <data name="Artist" xml:space="preserve">
+    <value>艺术家</value>
+  </data>    
+  <data name="RecommendedPlaylist.Text" xml:space="preserve">
+    <value>推荐歌单</value>
   </data>
+  
 </root>

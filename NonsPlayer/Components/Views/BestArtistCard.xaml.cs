@@ -33,6 +33,7 @@ public sealed partial class BestArtistCard : UserControl
         ViewModel = App.GetService<BestArtistCardViewModel>();
         ProtectedCursor = InputCursor.CreateFromCoreCursor(new CoreCursor(CoreCursorType.Hand, 0));
         InitializeComponent();
+        ArtistTextBlock.Text = "Artist".GetLocalized();
     }
 
     public IArtist Artist

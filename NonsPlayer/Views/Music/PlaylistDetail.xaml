@@ -19,10 +19,22 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Top" Height="250"
-                            Margin="20,50,0,0">
-                    <Border Name="Cover" BorderThickness="1" Width="250" Height="250" HorizontalAlignment="Left"
-                            VerticalAlignment="Top" Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
+                <Grid Grid.Row="0"
+                      VerticalAlignment="Top"
+                      Height="250"
+                      Margin="20,50,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0"
+                            Name="Cover"
+                            BorderThickness="1"
+                            Width="250"
+                            Height="250"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
                             CornerRadius="{StaticResource CustomCornerRadius}">
                         <Border.ContextFlyout>
                             <MenuBarItemFlyout Placement="Right" x:Name="CoverFlyout">
@@ -35,7 +47,8 @@
                             </MenuBarItemFlyout>
                         </Border.ContextFlyout>
                     </Border>
-                    <Grid Margin="30,0,0,0">
+                    <Grid Grid.Column="1"
+                          Margin="30,0,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -62,21 +75,31 @@
                                        Style="{StaticResource CommonTextStyle}"
                                        HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13"
                                        Opacity="0.6" />
-                            <TextBlock Grid.Column="1" Name="Creator" Text="{x:Bind ViewModel.Creator, Mode=OneWay}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="13"
-                                       Style="{StaticResource CommonTextStyle}" Opacity="0.6"
-                                       Margin="5,0,0,0" />
+                            <TextBlock Grid.Column="1" Name="Creator"
+                                       Text="{x:Bind ViewModel.Creator, Mode=OneWay}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Top"
+                                       FontSize="13"
+                                       Style="{StaticResource CommonTextStyle}"
+                                       Opacity="0.6"
+                                       Margin="5,0,0,0"
+                                       Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}" />
                             <TextBlock Grid.Column="2" Name="CreateTime"
                                        Text="{x:Bind ViewModel.CreateTime, Mode=OneWay}"
                                        Style="{StaticResource CommonTextStyle}"
-                                       HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="13"
-                                       FontFamily="HarmonyOS Sans SC" Opacity="0.6" />
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Top"
+                                       FontSize="13"
+                                       Opacity="0.6"
+                                       Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}" />
                         </Grid>
                         <Grid Grid.Row="2" Height="80" Margin="0,10,0,0" Width="600" HorizontalAlignment="Left">
                             <RichTextBlock Name="Description"
                                            Style="{StaticResource CommonRichTextStyle}"
                                            VerticalAlignment="Top"
-                                           TextWrapping="Wrap" FontSize="15">
+                                           TextWrapping="Wrap"
+                                           FontSize="15"
+                                           Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}">
                                 <Paragraph>
                                     <Run Text="{x:Bind ViewModel.Description, Mode=OneWay}" />
                                 </Paragraph>
@@ -101,8 +124,10 @@
                                 <Button Name="Like"
                                         Width="50" Height="50" CornerRadius="180" Padding="0"
                                         Command="{x:Bind ViewModel.LikeCommand}"
-                                        FontWeight="Bold" FontSize="16"
-                                        Margin="0,0,10,0">
+                                        FontWeight="Bold"
+                                        FontSize="16"
+                                        Margin="0,0,10,0"
+                                        Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}">
                                     <FontIcon VerticalAlignment="Center" HorizontalAlignment="Left"
                                               Glyph="&#xEB52;"
                                               Foreground="{x:Bind ViewModel.IsLiked, Converter={StaticResource LikeIconConverter}, Mode=OneWay}"
@@ -132,7 +157,7 @@
                             </StackPanel>
                         </Grid>
                     </Grid>
-                </StackPanel>
+                </Grid>
                 <views:MusicListBar Grid.Row="1" Margin="0,40,0,100"
                                     MusicItems="{x:Bind ViewModel.MusicItems, Mode=OneWay}" />
             </Grid>

@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -25,6 +26,9 @@ public sealed partial class LocalMusicLibPage : Page
     {
         InitializeComponent();
         ViewModel = App.GetService<LocalMusicLibViewModel>();
+        ArtistTextBlock.Text = "Artist".GetLocalized();
+        AlbumTextBlock.Text = "Album".GetLocalized();
+        MusicTextBlock.Text = "Music".GetLocalized();
     }
 
     public LocalMusicLibViewModel ViewModel { get; }

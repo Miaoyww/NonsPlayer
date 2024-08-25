@@ -48,7 +48,7 @@ public sealed partial class PlaylistDetailPage : Page
             {
                 using (var tw = new StreamWriter(stream))
                 {
-                    var content = (await ImageUtils.GetImageStreamFromServer(ViewModel.PlayListObject.AvatarUrl))
+                    var content = (await ImageUtils.GetImageStreamFromServer(ViewModel.PlayList.AvatarUrl))
                         .AsStream();
                     var btArray = new byte[512];
                     var contentSize = await content.ReadAsync(btArray, 0, btArray.Length);
@@ -67,7 +67,7 @@ public sealed partial class PlaylistDetailPage : Page
     public void CopyCover()
     {
         var data = new DataPackage();
-        data.SetBitmap(RandomAccessStreamReference.CreateFromUri(new Uri(ViewModel.PlayListObject.AvatarUrl)));
+        data.SetBitmap(RandomAccessStreamReference.CreateFromUri(new Uri(ViewModel.PlayList.AvatarUrl)));
         Clipboard.SetContent(data);
     }
 
@@ -75,7 +75,7 @@ public sealed partial class PlaylistDetailPage : Page
     public void CopyId()
     {
         var data = new DataPackage();
-        data.SetText(ViewModel.PlayListObject.Id.ToString());
+        data.SetText(ViewModel.PlayList.Id.ToString());
         Clipboard.SetContent(data);
     }
 
@@ -84,7 +84,7 @@ public sealed partial class PlaylistDetailPage : Page
     public void CopyLink()
     {
         var data = new DataPackage();
-        data.SetText($"https://music.163.com/playlist?id={ViewModel.PlayListObject.Id}");
+        data.SetText($"https://music.163.com/playlist?id={ViewModel.PlayList.Id}");
         Clipboard.SetContent(data);
     }
 
@@ -93,7 +93,7 @@ public sealed partial class PlaylistDetailPage : Page
     public void CopyCreator()
     {
         var data = new DataPackage();
-        data.SetText(ViewModel.PlayListObject.Creator);
+        data.SetText(ViewModel.PlayList.Creator);
         Clipboard.SetContent(data);
     }
 }

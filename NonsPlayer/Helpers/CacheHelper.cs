@@ -80,11 +80,16 @@ public static class CacheHelper
     {
         return (await GetCacheItemAsync(cacheId,
             async () => new ImageBrush { ImageSource = await ImageUtils.GetBitmapImageFromServer(url) }));
-}
+    }
 
     public static async Task<IPlaylist?> GetPlaylistAsync(string cacheId, Func<Task<IPlaylist>> method)
     {
         return (await GetCacheItemAsync<IPlaylist>(cacheId, method));
+    }
+
+    public static IPlaylist? GetPlaylist(string cacheId, Func<IPlaylist> method)
+    {
+        return (GetCacheItem(cacheId, method));
     }
     //
     // public static Music GetPlaylistCard(string cacheId, JObject item)
