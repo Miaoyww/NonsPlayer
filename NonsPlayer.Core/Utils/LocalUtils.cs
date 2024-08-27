@@ -1,4 +1,8 @@
-﻿namespace NonsPlayer.Core.Utils;
+﻿using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
+
+namespace NonsPlayer.Core.Utils;
 
 public static class LocalUtils
 
@@ -15,5 +19,38 @@ public static class LocalUtils
 
         return false;
     }
-    
+
+    public static byte[]? CompressAndConvertToByteArray(byte[] imageData, int width, int height)
+    {
+        try
+        {
+            using var ms = new MemoryStream(imageData);
+            Image image = Image.Load(ms);
+            image.Mutate(x => x.Resize(width, height));
+            using var msOutput = new MemoryStream();
+            image.Save(msOutput, new JpegEncoder { Quality = 20 });
+            return msOutput.ToArray();
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    public static byte[]? CompressAndConvertToByteArray(Stream stream, int width, int height)
+    {
+        try
+        {
+            using var ms = stream;
+            Image image = Image.Load(ms);
+            image.Mutate(x => x.Resize(width, height));
+            using var msOutput = new MemoryStream();
+            image.Save(msOutput, new JpegEncoder { Quality = 20 });
+            return msOutput.ToArray();
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
+    }
 }

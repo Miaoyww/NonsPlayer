@@ -73,7 +73,7 @@ public static class CacheHelper
 
     public static async Task<ImageBrush?> GetImageBrushAsync(string cacheId, byte[] cover)
     {
-        return await GetCacheItemAsync(cacheId, () => ImageUtils.GetImageBrushAsync(cover));
+        return await GetCacheItemAsync(cacheId, () => ImageUtils.GetImageBrushAsyncFromBytes(cover));
     }
 
     public static async Task<ImageBrush> GetImageBrushAsync(string cacheId, string url)

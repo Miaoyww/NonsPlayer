@@ -8,7 +8,6 @@ public static class HttpUtils
 {
     public static Stream StreamHttpGet(string url)
     {
-        var client = new RestClient();
         var request = new RestRequest(url, Method.GET);
         var stream = new MemoryStream();
         request.ResponseWriter = async responseStream =>

@@ -50,6 +50,7 @@
         <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
         <PackageReference Include="WinUIEx" Version="2.3.4" />
         <PackageReference Include="z440.atl.core" Version="6.1.0" />
         <Manifest Include="$(ApplicationManifest)" />
@@ -68,6 +69,7 @@
       <None Remove="Assets\Icons\library-music.svg" />
       <None Remove="Assets\Icons\queue-music.svg" />
       <None Remove="Components\Views\LocalCa.xaml" />
+      <None Remove="Components\Views\LocalProperties.xaml" />
       <None Remove="Components\Views\Local\AddFolderDialog.xaml" />
       <None Remove="Components\Views\Local\LocalFolderItem.xaml" />
       <None Remove="Components\Views\Local\LocalMusicCard.xaml" />
@@ -82,6 +84,10 @@
       </Page>
       <Page Update="Components\Views\Local\AddFolderDialog.xaml">
         <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      </Page>
+      <Page Update="Components\Views\LocalProperties.xaml">
+        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        <SubType>Designer</SubType>
       </Page>
       <Page Update="Views\Local\LocalQueuePage.xaml">
         <Generator>MSBuild:Compile</Generator>

@@ -13,6 +13,7 @@ using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
+using Microsoft.UI.Xaml.Controls;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -31,6 +32,7 @@ public partial class MusicListItemViewModel : ObservableObject
     [ObservableProperty] private Visibility transVisibility = Visibility.Collapsed;
     [ObservableProperty] private Visibility coverVisibility = Visibility.Collapsed;
     [ObservableProperty] private Visibility likeVisibility = Visibility.Collapsed;
+    [ObservableProperty] private Visibility localVisibility = Visibility.Collapsed;
 
     [ObservableProperty]
     private SolidColorBrush titleColor = Application.Current.Resources["CommonTextColor"] as SolidColorBrush;
@@ -55,11 +57,13 @@ public partial class MusicListItemViewModel : ObservableObject
         if (music is LocalMusic)
         {
             if (!((LocalMusic)music).IsInit) ((LocalMusic)music).Init();
+            LocalVisibility = Visibility.Visible;
         }
 
         Name = Music.Name;
         Time = Music.TotalTimeString;
         Album = Music.AlbumName;
+        ArtistsMetadata.Clear();
         foreach (var artist in music.Artists)
         {
             ArtistsMetadata.Add(new MetadataItem

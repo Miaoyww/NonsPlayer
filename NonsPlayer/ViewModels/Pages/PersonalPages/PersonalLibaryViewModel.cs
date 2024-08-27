@@ -9,6 +9,7 @@ using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Contracts.Models.Nons;
 using NonsPlayer.Core.Nons.Player;
+using NonsPlayer.Core.Utils;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 using System.Collections.ObjectModel;

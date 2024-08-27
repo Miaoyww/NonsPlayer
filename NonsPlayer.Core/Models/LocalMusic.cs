@@ -7,6 +7,7 @@ using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Core.Utils;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
@@ -52,7 +53,7 @@ public class LocalMusic : IMusic
         var track = new Track(FilePath);
         foreach (PictureInfo pic in track.EmbeddedPictures)
         {
-            Cover = CompressAndConvertToByteArray(pic.PictureData, 60, 60);
+            Cover = LocalUtils.CompressAndConvertToByteArray(pic.PictureData, 60, 60);
         }
 
         Name = track.Title;
@@ -70,23 +71,6 @@ public class LocalMusic : IMusic
             new LocalArtist() { Name = track.Artist, Id = $"{track.Artist}_{Md5}" }
         ];
         Duration = TimeSpan.FromSeconds(track.Duration);
-    }
-
-    private byte[]? CompressAndConvertToByteArray(byte[] imageData, int width, int height)
-    {
-        try
-        {
-            using var ms = new MemoryStream(imageData);
-            Image image = Image.Load(ms);
-            image.Mutate(x => x.Resize(width, height));
-            using var msOutput = new MemoryStream();
-            image.Save(msOutput, new JpegEncoder { Quality = 20 });
-            return msOutput.ToArray();
-        }
-        catch (NotSupportedException)
-        {
-            return null;
-        }
     }
 
     /// <summary>
@@ -112,16 +96,7 @@ public class LocalMusic : IMusic
         }
 
         return true;
-        return true;
     }
-
-    private string ConvertEncoding(string str, Encoding from, Encoding to)
-    {
-        byte[] fromBytes = from.GetBytes(str);
-        byte[] toBytes = Encoding.Convert(from, to, fromBytes);
-        return to.GetString(toBytes);
-    }
-
 
     public Task<string> GetUrl(MusicQualityLevel quality = MusicQualityLevel.Standard)
     {

@@ -38,6 +38,11 @@
                                     Style="{StaticResource CustomMenuFlyoutItem}"
                                     Command="{x:Bind ViewModel.CopyMusicInfoCommand}" />
                 </MenuFlyoutSubItem>
+                <MenuFlyoutItem x:Name="PropertiesFlyOut" Icon="Document"
+                                Style="{StaticResource CustomMenuFlyoutItem}"
+                                Visibility="{x:Bind ViewModel.LocalVisibility, Mode=OneWay}"
+                                Command="{x:Bind OpenPropertiesCommand}">
+                </MenuFlyoutItem>
             </MenuFlyout>
         </Grid.ContextFlyout>
         <Border BorderThickness="0" CornerRadius="10"
@@ -56,7 +61,7 @@
                            HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,20,0"
                            Padding="0"
                            FontWeight="Medium" />
-                <Border Grid.Column="1" Name="CoverBorder" 
+                <Border Grid.Column="1" Name="CoverBorder"
                         Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
                         Visibility="{x:Bind ViewModel.CoverVisibility, Mode=OneWay}"
                         HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2"
@@ -69,18 +74,18 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Name="TitleTextBlock" 
+                        <TextBlock Grid.Column="0" Name="TitleTextBlock"
                                    Style="{StaticResource CommonTextStyle}"
-                                   HorizontalAlignment="Left" 
+                                   HorizontalAlignment="Left"
                                    VerticalAlignment="Top"
-                                   FontWeight="Medium" 
-                                   FontSize="15" 
+                                   FontWeight="Medium"
+                                   FontSize="15"
                                    MaxLines="2"
-                                   TextTrimming="WordEllipsis" 
+                                   TextTrimming="WordEllipsis"
                                    Foreground="{x:Bind ViewModel.TitleColor, Mode=OneWay}"
-                                   TextWrapping="Wrap" >
-                            <Run Text="{x:Bind ViewModel.Name, Mode=OneWay}"/>
-                            <Run Text="{x:Bind ViewModel.Trans, Mode=OneWay}" 
+                                   TextWrapping="Wrap">
+                            <Run Text="{x:Bind ViewModel.Name, Mode=OneWay}" />
+                            <Run Text="{x:Bind ViewModel.Trans, Mode=OneWay}"
                                  FontWeight="Bold" FontSize="12" />
                         </TextBlock>
                     </Grid>
@@ -108,9 +113,9 @@
                     <Button Margin="0,0,30,0"
                             Name="LikeButton"
                             Visibility="{x:Bind ViewModel.LikeVisibility, Mode=OneWay}"
-                            Height="30" 
-                            Width="30" 
-                            Padding="0" 
+                            Height="30"
+                            Width="30"
+                            Padding="0"
                             Background="Transparent"
                             BorderThickness="0" Command="{x:Bind LikeCommand}">
                         <FontIcon

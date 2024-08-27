@@ -75,7 +75,7 @@ public sealed partial class BestArtistCard : UserControl
     {
         Id = value.Artists[0].Id;
         Name = value.Artists[0].Name;
-        // value.Artists[0] = await ArtistAdapters.CreateById(value.Artists[0].Id);
+        // value.Artist[0] = await ArtistAdapters.CreateById(value.Artist[0].Id);
         if (value.Artists[0].AvatarUrl == null)
         {
             value.Artists[0] = await AdapterService.Instance.GetAdapter("ncm").Artist

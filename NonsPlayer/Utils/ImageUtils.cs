@@ -6,7 +6,7 @@ namespace NonsPlayer.Utils;
 
 public static class ImageUtils
 {
-    public static async Task<ImageBrush?> GetImageBrushAsync(byte[] cover)
+    public static async Task<ImageBrush?> GetImageBrushAsyncFromBytes(byte[] cover)
     {
         using (var stream = new InMemoryRandomAccessStream())
         {
