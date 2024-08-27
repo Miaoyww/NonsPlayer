@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -20,6 +21,7 @@ using Windows.Foundation.Collections;
 
 namespace NonsPlayer.Views.Local;
 
+[INotifyPropertyChanged]
 public sealed partial class LocalMusicLibPage : Page
 {
     public LocalMusicLibPage()

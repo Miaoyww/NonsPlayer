@@ -71,6 +71,7 @@
       <None Remove="Components\Views\LocalCa.xaml" />
       <None Remove="Components\Views\LocalProperties.xaml" />
       <None Remove="Components\Views\Local\AddFolderDialog.xaml" />
+      <None Remove="Components\Views\Local\LocalArtistItem.xaml" />
       <None Remove="Components\Views\Local\LocalFolderItem.xaml" />
       <None Remove="Components\Views\Local\LocalMusicCard.xaml" />
       <None Remove="Components\Views\Local\LocalQueueCard.xaml" />
@@ -78,6 +79,10 @@
       <None Remove="Views\Local\LocalQueuePage.xaml" />
     </ItemGroup>
     <ItemGroup>
+      <Page Update="Components\Views\Local\LocalArtistItem.xaml">
+        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
       <Page Update="Components\Views\Local\LocalFolderItem.xaml">
         <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
         <SubType>Designer</SubType>

@@ -7,6 +7,7 @@ using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Nons;
 using NonsPlayer.Core.Enums;
 using NonsPlayer.Core.Exceptions;
+using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons;
 
 namespace NonsPlayer.Core.Contracts.Models.Music;

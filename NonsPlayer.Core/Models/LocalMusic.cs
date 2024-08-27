@@ -65,10 +65,20 @@ public class LocalMusic : IMusic
         Md5 = track.GetHashCode().ToString();
         Id = $"{Name}_{Md5}";
         Url = track.Path;
-        Album = new LocalAlbum() { Name = track.Album, Id = $"{track.Album}_{Md5}", AvatarUrl = Url, };
+        Album = new LocalAlbum()
+        {
+            Name = track.Album, 
+            Id = $"{track.Album}_{Md5}", 
+            AvatarUrl = Url,
+            Songs = [this]
+        };
         Artists =
         [
-            new LocalArtist() { Name = track.Artist, Id = $"{track.Artist}_{Md5}" }
+            new LocalArtist()
+            {
+                Name = track.Artist, Id = $"{track.Artist}_{Md5}",
+                Songs = [this]
+            }
         ];
         Duration = TimeSpan.FromSeconds(track.Duration);
     }

@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using NonsPlayer.Components.Models;
+using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
 using System.Collections.ObjectModel;
@@ -13,14 +14,19 @@ public class LocalService
     #region 事件注册
 
     public delegate void LocalFolderModelEventHandler();
+
     public event LocalFolderModelEventHandler? LocalFolderChanged;
 
     #endregion
-    
+
     private const string _dataKey = "local_dictionaries.json";
     public ObservableCollection<LocalFolderModel> Directories = new();
     public HashSet<LocalMusic> Songs = new();
+    public HashSet<LocalArtist> Artists = new();
+    public HashSet<LocalAlbum> Albums = new();
+
     private FileService FileService = App.GetService<FileService>();
+
     public bool TryAddDirection(string path)
     {
         if (string.IsNullOrEmpty(path)) return false;
@@ -38,8 +44,10 @@ public class LocalService
         {
             if (songItem.FilePath.Equals(song.FilePath)) return false;
         }
+
         LocalFolderChanged?.Invoke();
-        return Songs.Add(song);
+        var result = Songs.Add(song);
+        return result;
     }
 
     public void AddSongs(IEnumerable<LocalMusic> songs)
@@ -48,6 +56,7 @@ public class LocalService
         {
             TryAddSong(inputSongItem);
         }
+
         LocalFolderChanged?.Invoke();
     }
 
@@ -90,13 +99,14 @@ public class LocalService
             Directories.Clear();
             var index = 0;
             foreach (var item in value)
-            {   
+            {
                 index++;
                 Directories.Add(new LocalFolderModel(
                     (item)["path"].ToString(),
                     index.ToString("D2")
                 ));
             }
+
             LocalFolderChanged?.Invoke();
         }
     }

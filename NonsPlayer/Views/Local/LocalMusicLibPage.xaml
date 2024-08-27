@@ -30,6 +30,7 @@
                                  Margin="20,-4,0,0">
                         <SelectorBarItem x:Name="SelectorMusic"
                                          Margin="0,0,10,0"
+                                         Tag="music"
                                          IsSelected="True">
                             <TextBlock x:Name="MusicTextBlock"
                                        Margin="5"
@@ -37,6 +38,7 @@
                                        Style="{StaticResource CommonTextStyle}" />
                         </SelectorBarItem>
                         <SelectorBarItem x:Name="SelectorAlbum"
+                                         Tag="album"
                                          Margin="0,0,10,0">
                             <TextBlock x:Name="AlbumTextBlock"
                                        Margin="5"
@@ -44,6 +46,7 @@
                                        Style="{StaticResource CommonTextStyle}" />
                         </SelectorBarItem>
                         <SelectorBarItem x:Name="SelectorArtist"
+                                         Tag="artist"
                                          Margin="0,0,10,0">
                             <TextBlock x:Name="ArtistTextBlock"
                                        Margin="5"
@@ -54,7 +57,7 @@
                 </Grid>
                 <Grid Grid.Row="1">
                     <views:MusicListBar
-                        MusicItems="{x:Bind ViewModel.Models, Mode=OneWay}" />
+                        MusicItems="{x:Bind ViewModel.SongModels, Mode=OneWay}" />
                 </Grid>
             </Grid>
 

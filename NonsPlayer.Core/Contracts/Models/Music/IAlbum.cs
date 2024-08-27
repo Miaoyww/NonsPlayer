@@ -8,7 +8,7 @@ public interface IAlbum : IMusicModel
 {
     [JsonPropertyName("create_date")] public DateTime CreateDate { get; set; }
     [JsonPropertyName("description")] public string Description { get; set; }
-    [JsonPropertyName("musics")] public IMusic[] Musics { get; set; }
+    [JsonPropertyName("musics")] public HashSet<IMusic> Songs { get; set; }
     [JsonPropertyName("artists")] public IArtist[] Artists { get; set; }
     [JsonIgnore] public string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
     [JsonPropertyName("collection_count")] public int CollectionCount { set; get; }

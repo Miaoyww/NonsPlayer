@@ -133,6 +133,7 @@ public partial class App : Application
                 services.AddTransient<LocalQueueCardViewModel>();
                 services.AddTransient<LocalNewFolderCardViewModel>();
                 services.AddTransient<LocalFolderItemViewModel>();
+                services.AddTransient<LocalArtistItemViewModel>();
                 #endregion
 
 

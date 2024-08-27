@@ -14,6 +14,7 @@ using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 using Microsoft.UI.Xaml.Controls;
+using NonsPlayer.Services;
 
 namespace NonsPlayer.Components.ViewModels;
 
@@ -33,10 +34,10 @@ public partial class MusicListItemViewModel : ObservableObject
     [ObservableProperty] private Visibility coverVisibility = Visibility.Collapsed;
     [ObservableProperty] private Visibility likeVisibility = Visibility.Collapsed;
     [ObservableProperty] private Visibility localVisibility = Visibility.Collapsed;
-
     [ObservableProperty]
     private SolidColorBrush titleColor = Application.Current.Resources["CommonTextColor"] as SolidColorBrush;
 
+    private LocalService localService = App.GetService<LocalService>();
     public ObservableCollection<MetadataItem> ArtistsMetadata = new();
 
     [RelayCommand]
@@ -58,6 +59,37 @@ public partial class MusicListItemViewModel : ObservableObject
         {
             if (!((LocalMusic)music).IsInit) ((LocalMusic)music).Init();
             LocalVisibility = Visibility.Visible;
+            if (music.Artists != null)
+            {
+                foreach (LocalArtist artist in music.Artists)
+                {
+                    var existingArtist = localService.Artists.FirstOrDefault(a => a.Equals(artist));
+                    if (existingArtist != null)
+                    {
+                        existingArtist.Songs.Add(music);
+                    }
+                    else
+                    {
+                        localService.Artists.Add(artist);
+                    }
+                }
+            }
+
+            if (music.Album != null)
+            {
+                var existingAlbum = localService.Albums.FirstOrDefault(a => a.Equals(music.Album));
+                if (existingAlbum != null)
+                {
+                    existingAlbum.Songs.Add(music);
+                }
+                else
+                {
+                    ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                    {
+                        localService.Albums.Add((LocalAlbum)music.Album);
+                    });
+                }
+            }
         }
 
         Name = Music.Name;
