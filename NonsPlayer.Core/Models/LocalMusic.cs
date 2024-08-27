@@ -28,6 +28,7 @@ public class LocalMusic : IMusic
     public TimeSpan Duration { get; set; }
     public string Url { get; set; }
     public Lyric Lyric { get; set; }
+    public bool Available { get; set; }
     public byte[]? Cover { get; set; }
     public IAdapter Adapter { get; set; }
     public bool IsLiked { get; set; }
@@ -40,6 +41,7 @@ public class LocalMusic : IMusic
 
     public LocalMusic(string path)
     {
+        Available = true;
         FilePath = path;
     }
 
@@ -144,5 +146,10 @@ public class LocalMusic : IMusic
     public Task<bool> GetLikeState()
     {
         return Task.FromResult(false);
+    }
+
+    public Task<bool> GetAvailable()
+    {
+        return Task.FromResult(true);
     }
 }

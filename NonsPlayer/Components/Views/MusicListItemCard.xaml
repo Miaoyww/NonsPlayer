@@ -71,9 +71,14 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Name="TitleTextBlock" 
                                    Style="{StaticResource CommonTextStyle}"
-                                   HorizontalAlignment="Left" VerticalAlignment="Top"
-                                   FontWeight="Medium" FontSize="15" MaxLines="2"
-                                   TextTrimming="WordEllipsis" TextWrapping="Wrap" >
+                                   HorizontalAlignment="Left" 
+                                   VerticalAlignment="Top"
+                                   FontWeight="Medium" 
+                                   FontSize="15" 
+                                   MaxLines="2"
+                                   TextTrimming="WordEllipsis" 
+                                   Foreground="{x:Bind ViewModel.TitleColor, Mode=OneWay}"
+                                   TextWrapping="Wrap" >
                             <Run Text="{x:Bind ViewModel.Name, Mode=OneWay}"/>
                             <Run Text="{x:Bind ViewModel.Trans, Mode=OneWay}" 
                                  FontWeight="Bold" FontSize="12" />

@@ -54,16 +54,14 @@ public partial class PersonalLibaryViewModel : ObservableRecipient, INavigationA
                 Avatar = new ImageBrush { ImageSource = new BitmapImage(new Uri(avatar)) };
                 UserName = account.Name;
             });
-            await CacheHelper.GetPlaylistAsync($"playlist_favorite_{Adapter.GetMetadata().Name}", async () =>
+            FavoriteSongs = await CacheHelper.GetPlaylistAsync($"playlist_favorite_{Adapter.GetMetadata().Name}", async () =>
             {
                 await Adapter.Account.GetFavoritePlaylist();
                 return Adapter.Account.FavoritePlaylist;
             });
 
             await SwitchPlaylist("all").ConfigureAwait(false);
-            FavoriteSongs = Adapter.Account.FavoritePlaylist;
             if (Adapter.Account.FavoritePlaylist == null) return;
-
             Task.WaitAll(FavoriteSongs.InitializeTracks(), FavoriteSongs.InitializeMusics());
             var songs = Adapter.Account.FavoritePlaylist.Musics.Take(20)
                 .Select(music => new MusicModel { Music = music }).ToArray();

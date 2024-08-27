@@ -20,6 +20,7 @@ public interface IMusic : IMusicModel
     [JsonPropertyName("duration")] public TimeSpan Duration { get; set; }
     [JsonPropertyName("url")] public string Url { get; set; }
     [JsonPropertyName("lyric")] public Lyric Lyric { get; set; }
+    [JsonPropertyName("available")] public bool Available { get; set; }
     [JsonIgnore] string AlbumName => Album?.Name;
     [JsonIgnore] string TotalTimeString => Duration.ToString(@"m\:ss");
     [JsonIgnore] string ArtistsName => string.Join("/", Artists.Select(x => x.Name));
@@ -65,5 +66,11 @@ public interface IMusic : IMusicModel
     /// 获取收藏状态
     /// </summary>
     /// <returns>收藏状态</returns>
-    Task<bool> GetLikeState();
+    Task<bool> GetLikeState(); 
+
+    /// <summary>
+    /// 获取可用状态, 调用时会对Available赋值
+    /// </summary>
+    /// <returns>可用状态</returns>
+    Task<bool> GetAvailable();
 }

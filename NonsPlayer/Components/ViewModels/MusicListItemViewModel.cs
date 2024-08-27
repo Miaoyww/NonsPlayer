@@ -31,6 +31,10 @@ public partial class MusicListItemViewModel : ObservableObject
     [ObservableProperty] private Visibility transVisibility = Visibility.Collapsed;
     [ObservableProperty] private Visibility coverVisibility = Visibility.Collapsed;
     [ObservableProperty] private Visibility likeVisibility = Visibility.Collapsed;
+
+    [ObservableProperty]
+    private SolidColorBrush titleColor = Application.Current.Resources["CommonTextColor"] as SolidColorBrush;
+
     public ObservableCollection<MetadataItem> ArtistsMetadata = new();
 
     [RelayCommand]
@@ -72,7 +76,10 @@ public partial class MusicListItemViewModel : ObservableObject
             Liked = await Music.GetLikeState();
             Music.IsLiked = Liked;
         }
-        await InitCover();
+        await Task.WhenAll(Music.GetAvailable(), InitCover());
+        TitleColor = Music.Available
+            ? Application.Current.Resources["CommonTextColor"] as SolidColorBrush
+            : Application.Current.Resources["TextFillColorDisabledBrush"] as SolidColorBrush;
         MusicStateModel.Instance.CurrentSongLikedChanged += InstanceOnCurrentSongLikedChanged;
     }
 

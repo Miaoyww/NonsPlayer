@@ -22,8 +22,7 @@
                         BorderThickness="0" CornerRadius="5" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch"
                             Margin="20,2,0,0">
-                    <TextBlock Name="NameTextBlock" Text="{x:Bind Name, Mode=OneWay}"
-                               Foreground="{x:Bind FontBrush, Mode=OneWay}"
+                    <TextBlock Name="TitleTextBlock" Text="{x:Bind Name, Mode=OneWay}"
                                Style="{StaticResource CommonTextStyle}"
                                HorizontalAlignment="Left" VerticalAlignment="Top"
                                FontWeight="Black" FontSize="15" MaxLines="2"

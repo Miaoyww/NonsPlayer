@@ -23,11 +23,14 @@ public class Player
 
     public delegate void PlayStateChangedHandler(bool isPlaying);
 
+    public delegate void PlayFailedHandler(bool urlNull);
+
     public delegate void PositionChangedHandler(TimeSpan time);
 
     public PlayStateChangedHandler PlayStateChanged;
     public PositionChangedHandler PositionChanged;
     public MusicChangedHandler MusicChanged;
+    public PlayFailedHandler PlayFailed;
 
     #endregion
 
@@ -126,7 +129,7 @@ public class Player
         }
         catch (InvalidOperationException e)
         {
-            Debug.WriteLine(e);
+            ExceptionService.Instance.Throw(e);
         }
     }
 
@@ -178,7 +181,7 @@ public class Player
         }
     }
 
-    public void LoadNextTrack()
+    public async void LoadNextTrack()
     {
         try
         {
@@ -186,7 +189,7 @@ public class Player
             {
                 if (CurrentReader != null)
                 {
-                    CurrentReader.Dispose();
+                    await CurrentReader.DisposeAsync();
                 }
 
                 var nextTrack = _queue.Dequeue();

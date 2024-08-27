@@ -26,8 +26,6 @@ public sealed partial class PlayQueueItemCard : UserControl
     /// Item1: CacheId Item2: Url Item3: Cover
     /// </summary>
     [ObservableProperty] private Tuple<string, string, byte[]> coverUrl;
-
-    [ObservableProperty] private Brush fontBrush = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
     [ObservableProperty] private string id;
     [ObservableProperty] private bool liked; //TODO: Implement this
     [ObservableProperty] private IMusic music;

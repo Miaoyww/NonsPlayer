@@ -9,6 +9,17 @@ public class MusicModel
     public string Index;
     public IMusic Music;
 
-    public Tuple<string, string, byte[]> Cover =>
-        Tuple.Create(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl, ((LocalMusic)Music).Cover);
+    public Tuple<string, string, byte[]> Cover
+    {
+        get
+        {
+            if (Music is LocalMusic)
+            {
+                return Tuple.Create(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl, ((LocalMusic)Music).Cover);
+            }
+
+            return new Tuple<string, string, byte[]>(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl, null);
+
+        }
+    }
 }
