@@ -1,0 +1,220 @@
+<Page
+    x:Class="NonsPlayer.Dialogs.LocalProperties"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
+    xmlns:converters="using:NonsPlayer.Converters"
+    mc:Ignorable="d"
+    Width="500">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" Margin="0,0,0,30">
+            <Grid Margin="0,0,10,0"
+                  HorizontalAlignment="Left">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="TitleTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.9" />
+                <TextBox Grid.Row="1"
+                         Width="220"
+                         FontSize="14"
+                         Text="{x:Bind Title, Mode=TwoWay}" />
+            </Grid>
+            <Grid HorizontalAlignment="Right"
+                  Margin="0,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="ArtistTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.8" />
+                <TextBox Grid.Row="1"
+                         Width="220"
+                         Text="{x:Bind Artist, Mode=TwoWay}" />
+            </Grid>
+        </Grid>
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid Margin="0,0,10,0"
+                  HorizontalAlignment="Left">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="AlbumTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.9" />
+                <TextBox Grid.Row="1"
+                         Width="220"
+                         FontSize="14"
+                         Text="{x:Bind Album, Mode=TwoWay}" />
+            </Grid>
+            <Grid HorizontalAlignment="Right"
+                  Margin="0,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="AlbumArtistsTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.8" />
+                <TextBox Grid.Row="1"
+                         Text="{x:Bind AlbumArtists, Mode=TwoWay}"
+                         Width="220" />
+            </Grid>
+        </Grid>
+        <Grid Grid.Row="2" Margin="0,0,0,10">
+            <Grid Margin="0,0,10,0"
+                  HorizontalAlignment="Left">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="TrackNumberTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.9" />
+                <NumberBox Grid.Row="1"
+                           Width="220"
+                           FontSize="14"
+                           PreviewKeyDown="OnPreviewKeyDown"
+                           Text="{x:Bind TrackNumber, Mode=TwoWay}" />
+            </Grid>
+            <Grid HorizontalAlignment="Right"
+                  Margin="0,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="GenreTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.8" />
+                <TextBox Grid.Row="1"
+                         Text="{x:Bind Genre, Mode=TwoWay}"
+                         Width="220" />
+            </Grid>
+        </Grid>
+        <Grid Grid.Row="3" Margin="0,0,0,10">
+            <Grid Margin="0,0,10,0"
+                  HorizontalAlignment="Left">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="DateTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.9" />
+                <NumberBox Grid.Row="1"
+                           Width="220"
+                           FontSize="14"
+                           PreviewKeyDown="OnPreviewKeyDown"
+                           Text="{x:Bind Date, Mode=TwoWay}" />
+            </Grid>
+            <Grid HorizontalAlignment="Right"
+                  Margin="0,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="DurationTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.8" />
+                <TextBlock Grid.Row="1"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Text="{x:Bind Duration, Mode=OneWay}" 
+                           Width="220" />
+            </Grid>
+        </Grid>
+        <Grid Grid.Row="4" Margin="0,0,0,10">
+            <Grid Margin="0,0,10,0"
+                  HorizontalAlignment="Left">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="BitRateTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.9" />
+                <TextBlock Grid.Row="1"
+                           Style="{StaticResource CommonTextStyle}"
+                           Width="220"
+                           FontSize="14"
+                           Text="{x:Bind BitRate, Mode=OneWay}"  />
+            </Grid>
+            <Grid HorizontalAlignment="Right"
+                  Margin="0,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="CodecTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.8" />
+                <TextBlock Grid.Row="1"
+                           Style="{StaticResource CommonTextStyle}"
+                           Text="{x:Bind Codec, Mode=OneWay}"
+                           FontSize="14"
+                           Width="220" />
+            </Grid>
+        </Grid>
+        <Grid Grid.Row="5" Margin="0,0,0,10">
+            <Grid Margin="0,0,10,0"
+                  HorizontalAlignment="Left">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="FileSizeTextBlock"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14"
+                           Opacity="0.9" />
+                <TextBlock Grid.Row="1"
+                           Style="{StaticResource CommonTextStyle}"
+                           Width="220"
+                           FontSize="14"
+                           Text="{x:Bind FileSize, Mode=OneWay}" />
+            </Grid>
+        </Grid>
+        <Grid Grid.Row="6" Margin="0,20,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0"
+                           x:Name="FilePathTextBlock"
+                           Text="File Path"
+                           Style="{StaticResource CommonTextStyle}"
+                           FontSize="14" />
+                <HyperlinkButton Grid.Row="1"
+                                 Content="{x:Bind FilePath, Mode=OneWay}"
+                                 Padding="0"
+                                 Command="{x:Bind OpenFilePathCommand}"/>
+
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

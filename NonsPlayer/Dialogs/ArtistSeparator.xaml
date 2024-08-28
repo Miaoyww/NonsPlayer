@@ -1,0 +1,55 @@
+<Page
+    x:Class="NonsPlayer.Dialogs.ArtistSeparator"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:dialogs="using:NonsPlayer.Dialogs"
+    mc:Ignorable="d"
+    Width="500">
+    <Page.Resources>
+        <DataTemplate x:Name="SepTemplate" x:DataType="dialogs:SeparatorModel">
+            <Grid Width="150" VerticalAlignment="Center">
+                <TextBox Text="{x:Bind Text, Mode=TwoWay}"
+                         BorderThickness="0"
+                         Margin="0,0,20,0"
+                         FontSize="22"
+                         HorizontalAlignment="Left" />
+                <Button Command="{x:Bind Command}"
+                        CommandParameter="{x:Bind Text, Mode=OneWay}"
+                        HorizontalAlignment="Right"
+                        Padding="10,5,10,5">
+                    <FontIcon Glyph="&#xE738;" FontSize="14" />
+                </Button>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+    <Grid>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid Margin="0,0,10,0"
+                  HorizontalAlignment="Left">
+                <GridView
+                    x:Name="SeparatorViews"
+                    SelectionMode="None"
+                    ItemTemplate="{StaticResource SepTemplate}"
+                    ItemsSource="{x:Bind Models,Mode=OneWay}">
+                    <GridView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid MaximumRowsOrColumns="1"
+                                           Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </GridView.ItemsPanel>
+                </GridView>
+            </Grid>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Button x:Name="AddNewButton"
+                    Command="{x:Bind AddCommand}" />
+        </Grid>
+    </Grid>
+</Page>
