@@ -57,41 +57,8 @@ public partial class MusicListItemViewModel : ObservableObject
         Music = music;
         if (music is LocalMusic)
         {
-            if (!((LocalMusic)music).IsInit) ((LocalMusic)music).Init();
             LocalVisibility = Visibility.Visible;
-            if (music.Artists != null)
-            {
-                foreach (LocalArtist artist in music.Artists)
-                {
-                    var existingArtist = localService.Artists.FirstOrDefault(a => a.Equals(artist));
-                    if (existingArtist != null)
-                    {
-                        existingArtist.Songs.Add(music);
-                    }
-                    else
-                    {
-                        localService.Artists.Add(artist);
-                    }
-                }
-            }
-
-            if (music.Album != null)
-            {
-                var existingAlbum = localService.Albums.FirstOrDefault(a => a.Equals(music.Album));
-                if (existingAlbum != null)
-                {
-                    existingAlbum.Songs.Add(music);
-                }
-                else
-                {
-                    ServiceHelper.DispatcherQueue.TryEnqueue(() =>
-                    {
-                        localService.Albums.Add((LocalAlbum)music.Album);
-                    });
-                }
-            }
         }
-
         Name = Music.Name;
         Time = Music.TotalTimeString;
         Album = Music.AlbumName;

@@ -9,8 +9,10 @@ using NonsPlayer.Components.Models;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
+using NonsPlayer.Utils;
 using NonsPlayer.ViewModels;
 using System.Collections.ObjectModel;
 using Windows.UI.Core;
@@ -23,6 +25,9 @@ namespace NonsPlayer.Components.Views;
 [INotifyPropertyChanged]
 public sealed partial class LocalArtistItem : UserControl
 {
+    [ObservableProperty] private LocalArtist artist;
+    [ObservableProperty] private string index;
+
     public LocalArtistItem()
     {
         ViewModel = App.GetService<LocalArtistItemViewModel>();
@@ -30,10 +35,36 @@ public sealed partial class LocalArtistItem : UserControl
         InitializeComponent();
     }
 
-    public LocalArtist Artist
+    partial void OnIndexChanged(string index)
     {
-        set => ViewModel.Init(value);
+        ViewModel.Index = index;
+    }
+
+    partial void OnArtistChanged(LocalArtist value)
+    {
+        if (value != null)
+        {
+            ViewModel.Artist = value;
+            ViewModel.Name = value.Name;
+            ViewModel.Count = string.Format("SongCount".GetLocalized(), value.Songs.Count);
+            foreach (var music in value.Songs)
+            {
+                DispatcherQueue.TryEnqueue(async () =>
+                {
+                    ViewModel.Cover = await ImageUtils.GetImageBrushAsyncFromBytes(((LocalMusic)music).Cover);
+                });
+
+
+                break;
+            }
+        }
     }
 
     public LocalArtistItemViewModel ViewModel { get; }
+
+    public void OpenArtist(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        ServiceHelper.NavigationService.NavigateTo(typeof(ArtistViewModel)?.FullName, artist);
+    }
+
 }

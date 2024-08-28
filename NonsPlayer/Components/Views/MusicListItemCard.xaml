@@ -8,7 +8,7 @@
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
     xmlns:converters="using:NonsPlayer.Converters"
     mc:Ignorable="d"
-    Height="69">
+    Height="70">
     <UserControl.Resources>
         <converters:LikeIconConverter x:Key="LikeIconConverter" />
     </UserControl.Resources>

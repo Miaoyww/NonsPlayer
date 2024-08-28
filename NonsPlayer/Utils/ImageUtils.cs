@@ -8,6 +8,8 @@ public static class ImageUtils
 {
     public static async Task<ImageBrush?> GetImageBrushAsyncFromBytes(byte[] cover)
     {
+        if (cover == null) return null;
+        
         using (var stream = new InMemoryRandomAccessStream())
         {
             // 使用DataWriter将字节数组写入流

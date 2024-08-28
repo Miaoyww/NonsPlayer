@@ -51,10 +51,6 @@ public class LocalMusic : IMusic
         if (IsInit) return;
         IsInit = true;
         var track = new Track(FilePath);
-        foreach (PictureInfo pic in track.EmbeddedPictures)
-        {
-            Cover = LocalUtils.CompressAndConvertToByteArray(pic.PictureData, 60, 60);
-        }
 
         Name = track.Title;
         if (string.IsNullOrEmpty(Name))
@@ -62,25 +58,37 @@ public class LocalMusic : IMusic
             Name = Path.GetFileNameWithoutExtension(track.Title);
         }
 
+        Cover = LocalUtils.CompressAndConvertToByteArray(GetCover(track), 80, 80);
         Md5 = track.GetHashCode().ToString();
         Id = $"{Name}_{Md5}";
         Url = track.Path;
-        Album = new LocalAlbum()
-        {
-            Name = track.Album, 
-            Id = $"{track.Album}_{Md5}", 
-            AvatarUrl = Url,
-            Songs = [this]
-        };
+        Album = new LocalAlbum() { Name = track.Album, Id = $"{track.Album}_{Md5}", AvatarUrl = Url, Songs = [this] };
         Artists =
         [
-            new LocalArtist()
-            {
-                Name = track.Artist, Id = $"{track.Artist}_{Md5}",
-                Songs = [this]
-            }
+            new LocalArtist() { Name = track.Artist, Id = $"{track.Artist}_{Md5}", Songs = [this] }
         ];
         Duration = TimeSpan.FromSeconds(track.Duration);
+    }
+
+    public byte[] GetCover()
+    {
+        var track = new Track(FilePath);
+        foreach (PictureInfo pic in track.EmbeddedPictures)
+        {
+            return pic.PictureData;
+        }
+
+        return null;
+    }
+
+    public byte[] GetCover(Track track)
+    {
+        foreach (PictureInfo pic in track.EmbeddedPictures)
+        {
+            return pic.PictureData;
+        }
+
+        return null;
     }
 
     /// <summary>

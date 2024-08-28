@@ -24,6 +24,10 @@ namespace NonsPlayer.Views.Local;
 [INotifyPropertyChanged]
 public sealed partial class LocalMusicLibPage : Page
 {
+    [ObservableProperty] private Visibility musicVisibility = Visibility.Visible;
+    [ObservableProperty] private Visibility artistVisibility = Visibility.Collapsed;
+    [ObservableProperty] private Visibility albumVisibility = Visibility.Collapsed;
+
     public LocalMusicLibPage()
     {
         InitializeComponent();
@@ -34,4 +38,27 @@ public sealed partial class LocalMusicLibPage : Page
     }
 
     public LocalMusicLibViewModel ViewModel { get; }
+
+    private void SelectorBar_OnSelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    {
+        var tag = sender.SelectedItem.Tag as string;
+        switch (tag)
+        {
+            case "music":
+                MusicVisibility = Visibility.Visible;
+                ArtistVisibility = Visibility.Collapsed;
+                AlbumVisibility = Visibility.Collapsed;
+                break;
+            case "album":
+                MusicVisibility = Visibility.Collapsed;
+                ArtistVisibility = Visibility.Collapsed;
+                AlbumVisibility = Visibility.Visible;
+                break;
+            case "artist":
+                MusicVisibility = Visibility.Collapsed;
+                ArtistVisibility = Visibility.Visible;
+                AlbumVisibility = Visibility.Collapsed;
+                break;
+        }
+    }
 }

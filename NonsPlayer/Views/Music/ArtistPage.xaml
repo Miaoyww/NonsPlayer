@@ -4,11 +4,98 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="using:NonsPlayer.Components.Views"
     mc:Ignorable="d">
 
-    <Grid Margin="{StaticResource PageCommonMargin}">
-        <TextBlock Text="{x:Bind ViewModel.CurrentArtist.Name, Mode=OneWay}" HorizontalTextAlignment="Center"
-                   VerticalAlignment="Center" />
+    <Grid>
+        <ScrollViewer ViewChanged="{x:Bind ViewModel.OnScrollViewerViewChanged}">
+            <Grid Margin="{StaticResource PageContentCommonMargin}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0"
+                      VerticalAlignment="Top"
+                      Height="250"
+                      Margin="20,50,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0"
+                            Name="Cover"
+                            BorderThickness="1"
+                            Width="250"
+                            Height="250"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Background="{x:Bind ViewModel.Cover, Mode=OneWay}"
+                            CornerRadius="{StaticResource CustomCornerRadius}">
+                        <Border.ContextFlyout>
+                            <MenuBarItemFlyout Placement="Right" x:Name="CoverFlyout">
+                                <MenuFlyoutItem x:Uid="PlaylistTips_Copy" Icon="Copy"
+                                                Style="{StaticResource CustomMenuFlyoutItem}"
+                                                Command="{x:Bind CopyCoverCommand}" />
+                                <MenuFlyoutItem x:Uid="PlaylistTips_Save" Icon="Save"
+                                                Style="{StaticResource CustomMenuFlyoutItem}"
+                                                Command="{x:Bind SaveCoverCommand}" />
+                            </MenuBarItemFlyout>
+                        </Border.ContextFlyout>
+                    </Border>
+                    <Grid Grid.Column="1"
+                          Margin="30,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <RichTextBlock Grid.Row="0" x:Name="Name"
+                                       Style="{StaticResource CommonRichTextStyle}"
+                                       TextTrimming="WordEllipsis" FontSize="35" CanDrag="True"
+                                       HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <Paragraph>
+                                <Run Text="{x:Bind ViewModel.Name, Mode=OneWay}" />
+                            </Paragraph>
+                        </RichTextBlock>
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Name="MusicsCount"
+                                       Text="{x:Bind ViewModel.MusicsCount, Mode=OneWay}"
+                                       Style="{StaticResource CommonTextStyle}"
+                                       HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13"
+                                       Opacity="0.6" />
+                        </Grid>
+                        <Grid Grid.Row="4" VerticalAlignment="Bottom">
+                            <StackPanel Orientation="Horizontal">
+                                <Button FontWeight="Bold" Name="PlayAllButton"
+                                        Command="{x:Bind ViewModel.PlayAllCommand}"
+                                        Width="120" Height="50" CornerRadius="10" Padding="0"
+                                        Margin="0,0,10,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <FontIcon VerticalAlignment="Center"
+                                                  Margin="0,0,5,0"
+                                                  Glyph="&#xF5B0;"
+                                                  FontSize="16" />
+                                        <TextBlock VerticalAlignment="Center" x:Uid="PlaylistTips_PlayAll"
+                                                   Style="{StaticResource CommonTextStyle}"
+                                                   FontSize="14" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Grid>
+                <views:MusicListBar Grid.Row="1" Margin="0,40,0,100"
+                                    MusicItems="{x:Bind ViewModel.MusicItems, Mode=OneWay}" />
+            </Grid>
+        </ScrollViewer>
 
     </Grid>
 </Page>

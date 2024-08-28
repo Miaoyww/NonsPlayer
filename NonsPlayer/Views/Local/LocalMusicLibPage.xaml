@@ -8,6 +8,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="using:NonsPlayer.Components.Views"
+    xmlns:models="using:NonsPlayer.Models"
     mc:Ignorable="d">
     <ScrollViewer>
         <Grid Margin="{StaticResource PageCommonMargin}">
@@ -27,7 +28,8 @@
                                FontSize="30" />
                     <SelectorBar Grid.Column="1"
                                  VerticalAlignment="Center"
-                                 Margin="20,-4,0,0">
+                                 Margin="20,-4,0,0"
+                                 SelectionChanged="SelectorBar_OnSelectionChanged">
                         <SelectorBarItem x:Name="SelectorMusic"
                                          Margin="0,0,10,0"
                                          Tag="music"
@@ -56,8 +58,10 @@
                     </SelectorBar>
                 </Grid>
                 <Grid Grid.Row="1">
-                    <views:MusicListBar
-                        MusicItems="{x:Bind ViewModel.SongModels, Mode=OneWay}" />
+                    <views:MusicListBar Visibility="{x:Bind MusicVisibility, Mode=OneWay}"
+                                        MusicItems="{x:Bind ViewModel.SongModels, Mode=OneWay}" />
+                    <views:LocalArtistListBar Visibility="{x:Bind ArtistVisibility, Mode=OneWay}"
+                                              Models="{x:Bind ViewModel.ArtistModels, Mode=OneWay}" />
                 </Grid>
             </Grid>
 

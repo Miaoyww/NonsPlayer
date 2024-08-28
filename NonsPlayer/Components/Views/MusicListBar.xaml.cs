@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Components.ViewModels;
+using NonsPlayer.Helpers;
 
 namespace NonsPlayer.Components.Views;
 
@@ -11,6 +12,7 @@ public sealed partial class MusicListBar : UserControl
     {
         ViewModel = App.GetService<MusicListBarViewModel>();
         InitializeComponent();
+        TitleTextBlock.Text = "Title".GetLocalized();
     }
 
     public ObservableCollection<MusicModel> MusicItems
