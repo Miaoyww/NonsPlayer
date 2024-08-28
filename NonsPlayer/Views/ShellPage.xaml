@@ -31,11 +31,11 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal">
                         <ImageIcon Source="ms-appx:///Assets/NonsPlayer-Icon-Miaoyww.svg"
-                               Width="30"
-                               VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                   Width="30"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center" />
                         <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
                                    Margin="10,0,0,2"
-                                   Style="{StaticResource CommonTextStyle}" 
+                                   Style="{StaticResource CommonTextStyle}"
                                    FontWeight="Bold"
                                    FontSize="16"
                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
@@ -94,6 +94,7 @@
 
             </StackPanel>
         </Grid>
+        
         <views:PlayBar x:Name="PlayerBar"
                        VerticalAlignment="Bottom" />
         <SplitView Name="PlayQueueBar"

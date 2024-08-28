@@ -65,6 +65,18 @@
         </Content>
     </ItemGroup>
     <ItemGroup>
+      <Compile Remove="Diaglogs\**" />
+      <EmbeddedResource Remove="Diaglogs\**" />
+      <None Remove="Diaglogs\**" />
+      <Page Remove="Diaglogs\**" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_BLACK.TTF" />
+      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_BOLD.TTF" />
+      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_LIGHT.TTF" />
+      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_MEDIUM.TTF" />
+      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_REGULAR.TTF" />
+      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_THIN.TTF" />
       <None Remove="Assets\Icons\create_new_folder.svg" />
       <None Remove="Assets\Icons\library-music.svg" />
       <None Remove="Assets\Icons\queue-music.svg" />
@@ -130,6 +142,32 @@
       </Page>
     </ItemGroup>
     <ItemGroup>
-      <Folder Include="Diaglogs\" />
+      <PRIResource Remove="Diaglogs\**" />
+    </ItemGroup>
+    <ItemGroup>
+      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_BLACK.TTF">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_BOLD.TTF">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_LIGHT.TTF">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_MEDIUM.TTF">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_REGULAR.TTF">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_THIN.TTF">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="Assets\Fonts\NOVECENTO-WIDE-BOLD.OTF">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="Assets\Fonts\Segoe Fluent Icons.ttf">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 </Project>

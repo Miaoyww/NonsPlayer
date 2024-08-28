@@ -9,17 +9,13 @@
 ![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
 ![license](https://img.shields.io/github/license/Miaoyww/NonsPlayer)
 
-高性能 | 多平台 | 支持本地音乐 | 支持插件
+高性能 | 多音乐平台 | 支持本地音乐 | 支持插件
 
 ![Alt](https://repobeats.axiom.co/api/embed/104248b2c1f2c27f8f5b29df5ab1ab2a4269ed96.svg "Repobeats analytics image")
 
 ***
 
 </div>
-
-# UI开发进度
-
-详情见: [Latest Release](https://github.com/Miaoyww/NonsPlayer/releases/latest)
 
 # ⭐亮点
 
@@ -45,6 +41,14 @@
 
 详见[Code of Conduct](https://github.com/Miaoyww/NonsPlayer?tab=coc-ov-file)
 
+
+# 🖼️应用截图
+**仍在开发中，并不代表最终质量**
+
+![Home](docs/home.png)
+![MY](docs/my.png)
+![Home](docs/local.png)
+
 # 📜开源许可
 
 Copyright Miaoyww 2022-2024.
@@ -62,13 +66,19 @@ the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/
 
 # 特别鸣谢
 
-- [Zhuym](https://github.com/Zhuym07) 为图标设计提供帮助
-- [GooGuJiang](https://github.com/GooGuJiang) 为图标设计、UI设计提供帮助
-- [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) 提供网易云音乐Api。
-- [Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics) 提供出色的歌词服务!
-- [amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db) 逐词歌词数据库!
-- [material-design-icons](https://github.com/google/material-design-icons) 优秀的开源图标
-  
+- [Zhuym](https://github.com/Zhuym07), [GooGuJiang](https://github.com/GooGuJiang) 为图标设计、UI设计提供帮助
+- [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi)
+- [Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics)
+- [amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)
+- [material-design-icons](https://github.com/google/material-design-icons)
+
+# 资源使用
+
+## 字体
+[HarmonyOS Sans SC](https://developer.huawei.com/consumer/cn/doc/design-guides-V1/font-0000001157868583-V1)
+
+Novecento Wide Bold
+
 <div align="center">
 <image src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg"></image>
 <div>
