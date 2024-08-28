@@ -38,20 +38,20 @@ public class KeyHookService
 
     private void VolumeUp()
     {
-        MusicStateModel.Instance.Volume += AppConfig.VolumeAddition;
+        MusicStateModel.Instance.Volume += AppConfig.Instance.AppSettings.VolumeStep;
     }
 
     private void VolumeDown()
     {
         if (MusicStateModel.Instance.Volume -
-            AppConfig.VolumeAddition <= 0)
+            AppConfig.Instance.AppSettings.VolumeStep <= 0)
         {
             MusicStateModel.Instance.Volume = 0;
             return;
         }
 
         MusicStateModel.Instance.Volume -=
-            AppConfig.VolumeAddition;
+            AppConfig.Instance.AppSettings.VolumeStep;
     }
 
 

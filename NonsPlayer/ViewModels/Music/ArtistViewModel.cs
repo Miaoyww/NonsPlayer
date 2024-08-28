@@ -11,7 +11,6 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
-using NonsPlayer.Utils;
 using System.Collections.ObjectModel;
 using System.Xml.Linq;
 using Windows.Media.Playlists;
@@ -47,7 +46,7 @@ public partial class ArtistViewModel : ObservableRecipient, INavigationAware
         {
             ServiceHelper.DispatcherQueue.TryEnqueue(async () =>
             {
-                Cover = await ImageUtils.GetImageBrushAsyncFromBytes(((LocalMusic)Songs[0]).GetCover());
+                Cover = await ImageHelpers.GetImageBrushAsyncFromBytes(((LocalMusic)Songs[0]).GetCover());
             });
         }
     }
@@ -61,7 +60,7 @@ public partial class ArtistViewModel : ObservableRecipient, INavigationAware
         for (var i = 0; i < Songs.Count; i++)
         {
             var index = i;
-            if (index < AppConfig.PlaylistTrackShowCount)
+            if (index < AppConfig.Instance.AppSettings.PlaylistTrackCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
                     MusicItems.Add(new MusicModel { Music = Songs[index], Index = (index + 1).ToString("D2") });
@@ -69,7 +68,7 @@ public partial class ArtistViewModel : ObservableRecipient, INavigationAware
         }
 
         currentItemGroupIndex =
-            AppConfig.PlaylistTrackShowCount;
+            AppConfig.Instance.AppSettings.PlaylistTrackCount;
     }
 
     public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
@@ -80,7 +79,7 @@ public partial class ArtistViewModel : ObservableRecipient, INavigationAware
 
             var height = scrollViewer.ScrollableHeight;
             if (height - offset <
-                AppConfig.PlaylistTrackShowCount &&
+                AppConfig.Instance.AppSettings.PlaylistTrackCount &&
                 currentItemGroupIndex < Songs.Count - 1)
                 await LoadMusicItemsByGroup();
         }
@@ -91,7 +90,7 @@ public partial class ArtistViewModel : ObservableRecipient, INavigationAware
     /// </summary>
     private async Task LoadMusicItemsByGroup()
     {
-        for (var i = 0; i < AppConfig.PlaylistTrackShowCount; i++)
+        for (var i = 0; i < AppConfig.Instance.AppSettings.PlaylistTrackCount; i++)
         {
             var index = currentItemGroupIndex + i;
             if (index < Songs.Count)
@@ -101,7 +100,7 @@ public partial class ArtistViewModel : ObservableRecipient, INavigationAware
                 });
         }
 
-        currentItemGroupIndex += AppConfig.PlaylistTrackShowCount;
+        currentItemGroupIndex += AppConfig.Instance.AppSettings.PlaylistTrackCount;
     }
 
 

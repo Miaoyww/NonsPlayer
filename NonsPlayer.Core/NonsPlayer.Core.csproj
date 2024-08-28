@@ -5,6 +5,9 @@
         <Nullable>enable</Nullable>
         <LangVersion>12</LangVersion>
     </PropertyGroup>
+    <ItemGroup>
+      <Compile Remove="Models\AppSettings.cs" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Inflatable.Lastfm" Version="1.2.0" />

@@ -7,8 +7,6 @@ using NonsPlayer.Cache;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
-using NonsPlayer.Utils;
-using SharpCompress.Common;
 
 namespace NonsPlayer.Helpers;
 
@@ -73,13 +71,13 @@ public static class CacheHelper
 
     public static async Task<ImageBrush?> GetImageBrushAsync(string cacheId, byte[] cover)
     {
-        return await GetCacheItemAsync(cacheId, () => ImageUtils.GetImageBrushAsyncFromBytes(cover));
+        return await GetCacheItemAsync(cacheId, () => ImageHelpers.GetImageBrushAsyncFromBytes(cover));
     }
 
     public static async Task<ImageBrush> GetImageBrushAsync(string cacheId, string url)
     {
         return (await GetCacheItemAsync(cacheId,
-            async () => new ImageBrush { ImageSource = await ImageUtils.GetBitmapImageFromServer(url) }));
+            async () => new ImageBrush { ImageSource = await ImageHelpers.GetBitmapImageFromServer(url) }));
     }
 
     public static async Task<IPlaylist?> GetPlaylistAsync(string cacheId, Func<Task<IPlaylist>> method)

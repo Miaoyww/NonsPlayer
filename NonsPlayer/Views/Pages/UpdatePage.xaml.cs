@@ -186,7 +186,7 @@ public sealed partial class UpdatePage : Page
                     FileName = exe,
                     WorkingDirectory = baseDir
                 });
-                AppConfig.IgnoreVersion = null;
+                AppConfig.Instance.IgnoreVersion = null;
                 Environment.Exit(0);
             }
         }
@@ -211,7 +211,7 @@ public sealed partial class UpdatePage : Page
     [RelayCommand]
     private void IgnoreThisVersion()
     {
-        AppConfig.IgnoreVersion = LatestRelease?.Version;
+        AppConfig.Instance.IgnoreVersion = LatestRelease?.Version;
         ServiceHelper.NavigationService.GoBack();
     }
 

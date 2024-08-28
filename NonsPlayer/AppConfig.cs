@@ -17,79 +17,73 @@ using NonsPlayer.Updater.Update;
 using NonsPlayer.ViewModels;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
+using System.Text.Json.Serialization;
 using WinRT;
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
+using NonsPlayer.Core.Resources;
+using System.Text.Json;
+using System.Text;
+using NonsPlayer.Core.Contracts.Managers;
 
 namespace NonsPlayer;
 
-internal static class AppConfig
+public class AppConfig : IConfigManager
 {
-    public static string LogFile { get; private set; }
+    public static AppConfig Instance { get; } = new();
+    public AppSettings AppSettings;
 
-    static AppConfig()
+    public AppConfig()
     {
+        AppSettings = new();
         Initialize();
     }
 
-    public static string? IgnoreVersion { get; set; }
-    public static string? AppVersion { get; set; }
+    public string? IgnoreVersion { get; set; }
+    public string? AppVersion { get; set; }
+    public string ConfigPath = Path.Combine(ConfigManager.Instance.Settings.DataPath, "app_config.json");
 
-    private static void Initialize()
+    private void Initialize()
     {
         AppVersion = typeof(AppConfig).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion;
+        Load();
     }
 
-    #region Player Settings
+    public void Load()
+    {
+        try
+        {
+            if (File.Exists(ConfigPath))
+            {
+                var json = File.ReadAllText(ConfigPath);
+                AppSettings = JsonSerializer.Deserialize<AppSettings>(json);
+            }
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath));
+                File.Create(ConfigPath).Close();
+            }
+        }
+        catch (Exception e)
+        {
+            // ignore
+        }
+    }
 
-    /// <summary>
-    ///     播放歌单内音乐直接将歌曲添加至播放列表中
-    /// </summary>
-    public static bool IsPlay2List = true;
+    public void Save()
+    {
+        if (!File.Exists(ConfigPath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath));
+            File.Create(ConfigPath).Close();
+        }
 
-    /// <summary>
-    ///     是否显示翻译歌词
-    /// </summary>
-    public static bool IsShowTranLyric = true;
+        var options = new JsonSerializerOptions
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
 
-    /// <summary>
-    ///     歌词字体
-    /// </summary>
-    public static FontFamily LyricFontFamily;
-
-    /// <summary>
-    ///     是否启用系统媒体控制
-    /// </summary>
-    public static bool MediaControl = true;
-
-    /// <summary>
-    ///     加载下一页歌单的偏移量
-    /// </summary>
-    public static double PlaylistLoadOffset = 500;
-
-    /// <summary>
-    ///     歌单详情页一次显示的歌曲数量
-    /// </summary>
-    public static int PlaylistTrackShowCount = 30;
-
-    /// <summary>
-    ///     主页推荐歌单数量
-    /// </summary>
-    public static int RecommendedPlaylistCount = 20;
-
-    /// <summary>
-    ///     按一下音量加减的增量
-    /// </summary>
-    public static double VolumeAddition = 10;
-
-    #endregion
-
-    #region Remote Settings
-
-    /// <summary>
-    ///     远程控制端口
-    /// </summary>
-    public static int ApiPort = 8080;
-
-    #endregion
+        var json = JsonSerializer.Serialize(AppSettings, options);
+        File.WriteAllText(ConfigPath, json, Encoding.UTF8);
+    }
 }

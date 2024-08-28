@@ -305,20 +305,14 @@
   <data name="Settings_OtherSettings.Header" xml:space="preserve">
     <value>其它设置</value>
   </data>
-  <data name="Settings_OtherSettings_HomeCount.Header" xml:space="preserve">
-    <value>主页推荐歌单数量</value>
-  </data>
   <data name="Settings_OtherSettings_MediaControl.Header" xml:space="preserve">
     <value>是否启用系统媒体控制</value>
   </data>
   <data name="Settings_OtherSettings_Offset.Header" xml:space="preserve">
     <value>加载下一页歌单的偏移量</value>
   </data>
-  <data name="Settings_OtherSettings_RecommendedCount.Header" xml:space="preserve">
-    <value>歌单详情页一次显示的歌曲数量</value>
-  </data>
   <data name="Settings_OtherSettings_VolumeStep.Header" xml:space="preserve">
-    <value>按一下音量加减的增量</value>
+    <value>音量加减的增量</value>
   </data>
   <data name="Settings_Personalize.Header" xml:space="preserve">
     <value>个性化</value>
@@ -553,5 +547,23 @@
   </data>
   <data name="FilePath" xml:space="preserve">
     <value>文件位置</value>
+  </data>
+  <data name="Settings_OtherSettings_TrackCount.Header" xml:space="preserve">
+    <value>歌单详情页一次显示的歌曲数量</value>
+  </data>
+  <data name="Settings_OtherSettings_HomeRecommendedCount.Header" xml:space="preserve">
+    <value>主页推荐歌单数量</value>
+  </data>
+  <data name="Settings_OtherSettings_VolumeStep.Description" xml:space="preserve">
+    <value>使用快捷键调整音量</value>
+  </data>
+  <data name="ArtistSep" xml:space="preserve">
+    <value>艺术家分割符</value>
+  </data>
+  <data name="ArtistSepManage" xml:space="preserve">
+    <value>管理艺术家分割符</value>
+  </data>
+  <data name="AddNew" xml:space="preserve">
+    <value>新增</value>
   </data>
 </root>

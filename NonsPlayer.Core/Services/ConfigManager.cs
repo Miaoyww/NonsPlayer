@@ -1,11 +1,12 @@
 ﻿using System.IO;
 using System.Text;
 using System.Text.Json;
+using NonsPlayer.Core.Contracts.Managers;
 using NonsPlayer.Core.Resources;
 
 namespace NonsPlayer.Core.Services;
 
-public class ConfigManager
+public class ConfigManager: IConfigManager
 {
     #region 事件注册
 
@@ -15,12 +16,10 @@ public class ConfigManager
     #endregion
     public static ConfigManager Instance { get; } = new();
     public LocalSettings Settings;
-    private Dictionary<string, object?> otherSettings;
 
     public ConfigManager()
     {
         Settings = new();
-        otherSettings = new();
     }
 
     public void Load()
@@ -60,38 +59,5 @@ public class ConfigManager
 
         var json = JsonSerializer.Serialize(Settings, options);
         File.WriteAllText(Settings.ConfigFilePath, json, Encoding.UTF8);
-    }
-
-    public bool TryGetConfig<T>(string key, out T? value) where T : class
-    {
-        if (otherSettings.TryGetValue(key, out object result))
-        {
-            value = result as T;
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    public bool TryGetConfig(string key ,out string? value)
-    {
-        if (otherSettings.TryGetValue(key, out object result))
-        {
-            value = result as string;
-            if (value != null) return true;
-            try
-            {
-                value = ((System.Text.Json.JsonElement)result).ToString();
-            }
-            catch
-            {
-                return false;
-            }
-            return true;
-        }
-
-        value = default;
-        return false;
     }
 }

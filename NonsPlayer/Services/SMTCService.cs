@@ -22,21 +22,24 @@ public class SMTCService
 
     public SMTCService()
     {
-        Player.Instance.MusicChanged += MusicChangedHandle;
+        if (AppConfig.Instance.AppSettings.SMTCEnable)
+        {
+            Player.Instance.MusicChanged += MusicChangedHandle;
 
-        _player.CommandManager.IsEnabled = false;
-        //直接创建SystemMediaTransportControls对象被平台限制，神奇的是MediaPlayer对象可以创建该NativeObject
-        _smtc = _player.SystemMediaTransportControls;
-        _updater = new SMTCUpdater(_smtc.DisplayUpdater, "NonsPlayer");
+            _player.CommandManager.IsEnabled = false;
+            //直接创建SystemMediaTransportControls对象被平台限制，神奇的是MediaPlayer对象可以创建该NativeObject
+            _smtc = _player.SystemMediaTransportControls;
+            _updater = new SMTCUpdater(_smtc.DisplayUpdater, "NonsPlayer");
 
-        //启用状态
-        _smtc.IsEnabled = true;
-        _smtc.IsPlayEnabled = true;
-        _smtc.IsPauseEnabled = true;
-        _smtc.IsNextEnabled = true;
-        _smtc.IsPreviousEnabled = true;
-        //响应系统播放器的命令
-        _smtc.ButtonPressed += SmtcOnButtonPressed;
+            //启用状态
+            _smtc.IsEnabled = true;
+            _smtc.IsPlayEnabled = true;
+            _smtc.IsPauseEnabled = true;
+            _smtc.IsNextEnabled = true;
+            _smtc.IsPreviousEnabled = true;
+            //响应系统播放器的命令
+            _smtc.ButtonPressed += SmtcOnButtonPressed;
+        }
     }
 
     public void Dispose()
@@ -88,7 +91,14 @@ public class SMTCService
 
     public void Init()
     {
-        logger.LogInformation("Init finished");
+        if (AppConfig.Instance.AppSettings.SMTCEnable)
+        {
+            logger.LogInformation("Init finished");
+        }
+        else
+        {
+            logger.LogInformation("SMTC was disabled");
+        }
     }
 }
 

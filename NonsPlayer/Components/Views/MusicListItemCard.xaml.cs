@@ -9,6 +9,7 @@ using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Dialogs;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 
@@ -54,8 +55,8 @@ public sealed partial class MusicListItemCard : UserControl
         var dialog = new ContentDialog();
         dialog.XamlRoot = this.XamlRoot;
         dialog.Title = "Properties".GetLocalized();
-        dialog.PrimaryButtonText = "Save";
-        dialog.CloseButtonText = "Cancel";
+        dialog.PrimaryButtonText = "Save".GetLocalized();
+        dialog.CloseButtonText = "Cancel".GetLocalized();
         dialog.DefaultButton = ContentDialogButton.Primary;
         dialog.Content = new LocalProperties(music);
         dialog.Width = 1000;

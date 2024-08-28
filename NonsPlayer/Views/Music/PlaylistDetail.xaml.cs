@@ -7,7 +7,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using NonsPlayer.Helpers;
-using NonsPlayer.Utils;
 using NonsPlayer.ViewModels;
 using WinRT.Interop;
 
@@ -23,12 +22,6 @@ public sealed partial class PlaylistDetailPage : Page
 
     public PlaylistDetailViewModel ViewModel { get; }
 
-    private void ShowMenu(bool isTransient, CommandBarFlyout flyout, UIElement place)
-    {
-        var myOption = new FlyoutShowOptions();
-        myOption.ShowMode = isTransient ? FlyoutShowMode.Transient : FlyoutShowMode.Standard;
-        flyout.ShowAt(place, myOption);
-    }
 
     [RelayCommand]
     public async void SaveCover()
@@ -48,7 +41,7 @@ public sealed partial class PlaylistDetailPage : Page
             {
                 using (var tw = new StreamWriter(stream))
                 {
-                    var content = (await ImageUtils.GetImageStreamFromServer(ViewModel.PlayList.AvatarUrl))
+                    var content = (await ImageHelpers.GetImageStreamFromServer(ViewModel.PlayList.AvatarUrl))
                         .AsStream();
                     var btArray = new byte[512];
                     var contentSize = await content.ReadAsync(btArray, 0, btArray.Length);

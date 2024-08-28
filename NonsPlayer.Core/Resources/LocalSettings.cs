@@ -43,6 +43,8 @@ namespace NonsPlayer.Core.Resources
         [JsonPropertyName("today_play_duration")]
         public Tuple<DateTime, TimeSpan> TodayPlayDuration { get; set; }
 
+        [JsonPropertyName("local_artist_sep")] public List<string> LocalArtistSep { get; set; }
+
         public LocalSettings()
         {
             DataPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -60,6 +62,7 @@ namespace NonsPlayer.Core.Resources
             DisabledAdapters = string.Empty;
             DisabledPlugins = string.Empty;
             TodayPlayDuration = new Tuple<DateTime, TimeSpan>(DateTime.Now, TimeSpan.Zero);
+            LocalArtistSep = [";", ","];
         }
     }
 }

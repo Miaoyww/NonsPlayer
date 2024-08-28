@@ -33,13 +33,6 @@ public partial class HomeViewModel : ObservableRecipient
     }
 
     [RelayCommand]
-    public async void Test(string id)
-    {
-        var music = await AdapterService.Instance.GetAdapter("ncm").Music.GetMusicByIdAsync(id);
-        PlayQueue.Instance.Play(music);
-    }
-
-    [RelayCommand]
     public void NativeToExplore()
     {
         NavigationService.NavigateTo(typeof(ExploreViewModel)?.FullName);
@@ -56,16 +49,15 @@ public partial class HomeViewModel : ObservableRecipient
         List<IPlaylist> recommendedPlaylist = new();
         foreach (var item in adapters)
         {
-            recommendedPlaylist.AddRange(await item.Common.GetRecommendedPlaylistAsync( 20));
+            recommendedPlaylist.AddRange(
+                await item.Common.GetRecommendedPlaylistAsync(AppConfig.Instance.AppSettings.RecommendedPlaylistCount));
         }
+
         ServiceHelper.DispatcherQueue.TryEnqueue(() =>
         {
             foreach (var item in recommendedPlaylist)
             {
-                RecommendedPlaylist.Add(new PlaylistModel
-                {
-                    Playlist = item
-                });
+                RecommendedPlaylist.Add(new PlaylistModel { Playlist = item });
             }
         });
     }

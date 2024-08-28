@@ -70,7 +70,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         for (var i = 0; i < PlayList.Musics.Count; i++)
         {
             var index = i;
-            if (index < AppConfig.PlaylistTrackShowCount)
+            if (index < AppConfig.Instance.AppSettings.PlaylistTrackCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
                     MusicItems.Add(new MusicModel
@@ -81,7 +81,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         }
 
         currentItemGroupIndex =
-            AppConfig.PlaylistTrackShowCount;
+            AppConfig.Instance.AppSettings.PlaylistTrackCount;
     }
 
     public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
@@ -92,7 +92,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
 
             var height = scrollViewer.ScrollableHeight;
             if (height - offset <
-                AppConfig.PlaylistTrackShowCount &&
+                AppConfig.Instance.AppSettings.PlaylistTrackCount &&
                 currentItemGroupIndex < PlayList.MusicsCount - 1)
                 await LoadMusicItemsByGroup();
         }
@@ -103,7 +103,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     /// </summary>
     private async Task LoadMusicItemsByGroup()
     {
-        for (var i = 0; i < AppConfig.PlaylistTrackShowCount; i++)
+        for (var i = 0; i < AppConfig.Instance.AppSettings.PlaylistTrackCount; i++)
         {
             var index = currentItemGroupIndex + i;
             if (index < PlayList.MusicsCount)
@@ -116,7 +116,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
                 });
         }
 
-        currentItemGroupIndex += AppConfig.PlaylistTrackShowCount;
+        currentItemGroupIndex += AppConfig.Instance.AppSettings.PlaylistTrackCount;
     }
 
 

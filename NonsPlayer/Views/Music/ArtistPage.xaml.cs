@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Controls;
-using NonsPlayer.Utils;
+using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
@@ -38,7 +38,7 @@ public sealed partial class ArtistPage : Page
             {
                 using (var tw = new StreamWriter(stream))
                 {
-                    var content = (await ImageUtils.GetImageStreamFromServer(ViewModel.CurrentArtist.AvatarUrl))
+                    var content = (await ImageHelpers.GetImageStreamFromServer(ViewModel.CurrentArtist.AvatarUrl))
                         .AsStream();
                     var btArray = new byte[512];
                     var contentSize = await content.ReadAsync(btArray, 0, btArray.Length);

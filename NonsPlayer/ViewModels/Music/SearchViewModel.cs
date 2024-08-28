@@ -109,7 +109,7 @@ public partial class SearchViewModel : ObservableRecipient, INavigationAware, IN
         //
         //     var height = scrollViewer.ScrollableHeight;
         //     if (height - offset <
-        //         App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackShowCount &&
+        //         App.GetService<ILocalSettingsService>().GetOptions().PlaylistTrackCount &&
         //         currentItemGroupIndex < playListObject.MusicsCount - 1)
         //         await LoadMusicItemsByGroup();
         // }

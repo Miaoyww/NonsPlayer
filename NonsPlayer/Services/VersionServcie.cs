@@ -24,7 +24,7 @@ public partial class VersionService : ObservableObject
 
     public string GetCurrentVersion()
     {
-        if (CurrentVersion == null) CurrentVersion = AppConfig.AppVersion!;
+        if (CurrentVersion == null) CurrentVersion = AppConfig.Instance.AppVersion!;
 
         return CurrentVersion;
     }

@@ -46,11 +46,12 @@
                             <toolkit:SettingsExpander.Items>
                                 <toolkit:SettingsCard x:Uid="Settings_Adapter_OpenCard"
                                                       Style="{StaticResource CustomSettingsCard}">
-                                    <Button x:Uid="Settings_Adapter_OpenCard_Button" Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
+                                    <Button x:Uid="Settings_Adapter_OpenCard_Button"
+                                            Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_Adapter_OpenLocalCard"
                                                       Style="{StaticResource CustomSettingsCard}">
-                                    <Button x:Uid="Settings_Adapter_OpenLocalCard_Button" 
+                                    <Button x:Uid="Settings_Adapter_OpenLocalCard_Button"
                                             Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_Adapter_Default"
@@ -89,30 +90,42 @@
                                                   Style="{StaticResource CustomSettingsExpander}"
                                                   HeaderIcon="{ui:FontIcon Glyph=&#xEE40;}">
                             <toolkit:SettingsExpander.Items>
-                                <toolkit:SettingsCard x:Uid="Settings_OtherSettings_RecommendedCount"
-                                                      Style="{StaticResource CustomSettingsCard}"
-                                                      Description="Incomplete">
-                                    <TextBox Text="30" />
+                                <toolkit:SettingsCard x:Name="ArtistSepSettingsCard"
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <Button Command="{x:Bind OpenArtistCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <FontIcon Glyph="&#xE70F;"
+                                                      FontSize="14" />
+                                            <TextBlock x:Name="ArtistSepTextBlock"
+                                                       Margin="10,0,0,0"
+                                                       FontSize="14"
+                                                       Style="{StaticResource CommonTextStyle}" />
+                                        </StackPanel>
+                                    </Button>
                                 </toolkit:SettingsCard>
-                                <toolkit:SettingsCard x:Uid="Settings_OtherSettings_HomeCount"
-                                                      Style="{StaticResource CustomSettingsCard}"
-                                                      Description="Incomplete">
-                                    <TextBox Text="20" />
+                                <toolkit:SettingsCard x:Uid="Settings_OtherSettings_HomeRecommendedCount"
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <NumberBox Text="{x:Bind ViewModel.RecommendedCount, Mode=TwoWay}"
+                                               PreviewKeyDown="OnPreviewKeyDown"/>
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Uid="Settings_OtherSettings_TrackCount"
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <NumberBox Text="{x:Bind ViewModel.TrackCount, Mode=TwoWay}"
+                                               PreviewKeyDown="OnPreviewKeyDown" />
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_OtherSettings_VolumeStep"
-                                                      Style="{StaticResource CustomSettingsCard}"
-                                                      Description="Incomplete">
-                                    <TextBox Text="10" />
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <NumberBox Text="{x:Bind ViewModel.VolumeStep, Mode=TwoWay}"
+                                               PreviewKeyDown="OnPreviewKeyDown" />
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_OtherSettings_Offset"
-                                                      Style="{StaticResource CustomSettingsCard}"
-                                                      Description="Incomplete">
-                                    <TextBox Text="500" />
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <NumberBox Text="{x:Bind ViewModel.PlayListLoadOffset, Mode=TwoWay}"
+                                               PreviewKeyDown="OnPreviewKeyDown" />
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_OtherSettings_MediaControl"
-                                                      Style="{StaticResource CustomSettingsCard}"
-                                                      Description="Incomplete">
-                                    <TextBox Text="500" />
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <ToggleSwitch />
                                 </toolkit:SettingsCard>
 
                             </toolkit:SettingsExpander.Items>
