@@ -14,17 +14,18 @@
             <Frame x:Name="NavigationFrame" Margin="0,0,0,0" />
         </Grid>
         <Grid VerticalAlignment="Top"
-              Background="{StaticResource  CustomAcrylicBrush}"
+              x:Name="AppTitleBar"
+              Background="{StaticResource CustomAcrylicBrush}"
               Height="48"
               Margin="0,-1,0,0">
             <Grid Margin="20,0,0,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition x:Name="TitleBarColumn" Width="Auto" />
+                    <ColumnDefinition x:Name="SearchBarColumn" Width="Auto" />
+                    <ColumnDefinition x:Name="NativeBarColumn" Width="*" />
+                    <ColumnDefinition x:Name="SettingsColumn"  Width="*" />
                 </Grid.ColumnDefinitions>
-                <Grid x:Name="AppTitleBar" VerticalAlignment="Center" Margin="20,0,0,0">
+                <Grid VerticalAlignment="Center" Margin="20,0,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -41,7 +42,8 @@
                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </StackPanel>
                 </Grid>
-                <Grid Grid.Column="1" Margin="10,0,0,0">
+                <Grid x:Name="Bars"
+                    Grid.Column="1" Margin="10,0,0,0">
                     <StackPanel Orientation="Horizontal">
                         <Button Name="NativeBack" Width="30" Height="30" Padding="0"
                                 BorderThickness="0" Background="Transparent"
@@ -94,7 +96,7 @@
 
             </StackPanel>
         </Grid>
-        
+
         <views:PlayBar x:Name="PlayerBar"
                        VerticalAlignment="Bottom" />
         <SplitView Name="PlayQueueBar"
