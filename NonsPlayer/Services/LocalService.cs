@@ -6,6 +6,7 @@ using NonsPlayer.Core.Services;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.Json;
+using Exception = System.Exception;
 
 namespace NonsPlayer.Services;
 
@@ -13,9 +14,10 @@ public class LocalService
 {
     #region 事件注册
 
-    public delegate void LocalFolderModelEventHandler();
+    public delegate void LocalFolderModelEventHandler(string param);
 
     public event LocalFolderModelEventHandler? LocalFolderChanged;
+    public event LocalFolderModelEventHandler? LocalLoadFailed;
 
     #endregion
 
@@ -45,7 +47,7 @@ public class LocalService
             if (songItem.FilePath.Equals(song.FilePath)) return false;
         }
 
-        LocalFolderChanged?.Invoke();
+        LocalFolderChanged?.Invoke(string.Empty);
         var result = Songs.Add(song);
         return result;
     }
@@ -57,7 +59,7 @@ public class LocalService
             TryAddSong(inputSongItem);
         }
 
-        LocalFolderChanged?.Invoke();
+        LocalFolderChanged?.Invoke(string.Empty);
     }
 
     public bool HasDirectory(string path)
@@ -86,29 +88,36 @@ public class LocalService
         if (!TryGetModel(path, out var result)) return false;
         Directories.Remove(result);
         Save();
-        LocalFolderChanged?.Invoke();
+        LocalFolderChanged?.Invoke(string.Empty);
         return true;
     }
 
     public void LoadFromFile()
     {
-        var data = FileService.ReadData(_dataKey);
-        if (!string.IsNullOrEmpty(data))
+        try
         {
-            var value = JArray.Parse(data);
-            Directories.Clear();
-            var index = 0;
-            foreach (var item in value)
+            var data = FileService.ReadData(_dataKey);
+            if (!string.IsNullOrEmpty(data))
             {
-                index++;
-                Directories.Add(new LocalFolderModel(
-                    (item)["path"].ToString(),
-                    index.ToString("D2")
-                ));
-            }
+                var value = JArray.Parse(data);
+                Directories.Clear();
+                var index = 0;
+                foreach (var item in value)
+                {
+                    index++;
+                    Directories.Add(new LocalFolderModel(
+                        (item)["path"].ToString(),
+                        index.ToString("D2")
+                    ));
+                }
 
-            LocalFolderChanged?.Invoke();
+                LocalFolderChanged?.Invoke(string.Empty);
+            }
+        }catch(Exception e)
+        {
+            LocalLoadFailed?.Invoke(e.Message);
         }
+
     }
 
     public void Save()

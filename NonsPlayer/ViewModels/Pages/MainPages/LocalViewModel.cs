@@ -31,7 +31,7 @@ public partial class LocalViewModel : ObservableObject, INavigationAware
         LocalService.LocalFolderChanged += LocalServiceOnLocalFolderChanged;
     }
 
-    private void LocalServiceOnLocalFolderChanged()
+    private void LocalServiceOnLocalFolderChanged(string e)
     {
         RefreshInfo();
     }

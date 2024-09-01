@@ -179,8 +179,9 @@ public partial class App : Application
         #region Local
 
         Log.Information("Start init local service");
+        GetService<LocalService>().LocalLoadFailed += OnLocalLoadFailed;
         GetService<LocalService>().LoadFromFile();
-
+        
         #endregion
         #region Counter
 
@@ -197,6 +198,11 @@ public partial class App : Application
 
         #endregion
 
+    }
+
+    private void OnLocalLoadFailed(string param)
+    {
+        ExceptionService.Instance.Throw(param);
     }
 
     private void OnConfigLoadFailed(string param)

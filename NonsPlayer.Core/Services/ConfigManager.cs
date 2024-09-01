@@ -33,8 +33,7 @@ public class ConfigManager: IConfigManager
             }
             else
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(Settings.ConfigFilePath));
-                File.Create(Settings.ConfigFilePath).Close();
+                Create();
             }
         }
         catch(Exception e)
@@ -43,7 +42,11 @@ public class ConfigManager: IConfigManager
         }
 
     }
-
+    public void Create()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Settings.ConfigFilePath));
+        File.Create(Settings.ConfigFilePath).Close();
+    }
     public void Save()
     {
         if (!File.Exists(Settings.ConfigFilePath))
