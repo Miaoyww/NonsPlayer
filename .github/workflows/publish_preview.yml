@@ -28,7 +28,8 @@ jobs:
       version: ${{ needs.version.outputs.version }}
     strategy:
       matrix:
-        platform: [x64, arm64]
+        configuration: [ Debug, Release ]
+        platform: [ x64, arm64 ]
     env:
       Platform: ${{ matrix.platform }}
       Version: ${{ needs.version.outputs.version }}
@@ -44,6 +45,10 @@ jobs:
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.3.1
+
+      - name: SHA
+        id: sha
+        run: echo "sha=$("${{ github.sha }}".SubString(0, 7))" >> $env:GITHUB_OUTPUT
 
       - name: Build
         run: ./build.ps1 -Architecture $env:Platform -Version $env:Version

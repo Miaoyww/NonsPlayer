@@ -46,37 +46,48 @@ public class LocalMusic : IMusic
         FilePath = path;
     }
 
-    public void Init()
+    public bool Init()
     {
-        if (IsInit) return;
-        IsInit = true;
-        var track = new Track(FilePath);
-
-        Name = track.Title;
-        if (string.IsNullOrEmpty(Name))
+        try
         {
-            Name = Path.GetFileNameWithoutExtension(track.Title);
-        }
+            if (IsInit) return true;
+            IsInit = true;
+            var track = new Track(FilePath);
 
-        Cover = LocalUtils.CompressAndConvertToByteArray(GetCover(track), 80, 80);
-        Md5 = track.GetHashCode().ToString();
-        Id = $"{Name}_{Md5}";
-        Url = track.Path;
-        Album = new LocalAlbum() { Name = track.Album, Id = $"{track.Album}_{Md5}", AvatarUrl = Url, Songs = [this] };
+            Name = track.Title;
+            if (string.IsNullOrEmpty(Name))
+            {
+                Name = Path.GetFileNameWithoutExtension(track.Title);
+            }
 
-        var artists = track
-            .Artist
-            .Split(ConfigManager.Instance.Settings.LocalArtistSep.ToArray(), StringSplitOptions.None).ToList();
-        Artists = new IArtist[artists.Count];
-        for (int i = 0; i < artists.Count; i++)
-        {
-            Artists[i] = new LocalArtist{ 
-                Name = artists[i], 
-                Id = $"{artists[i]}_{Md5}", 
-                Songs = [this]
+            Cover = LocalUtils.CompressAndConvertToByteArray(GetCover(track), 80, 80);
+
+
+            Md5 = track.GetHashCode().ToString();
+            Id = $"{Name}_{Md5}";
+            Url = track.Path;
+            Album = new LocalAlbum()
+            {
+                Name = track.Album, Id = $"{track.Album}_{Md5}", AvatarUrl = Url, Songs = [this]
             };
+
+            var artists = track
+                .Artist
+                .Split(ConfigManager.Instance.Settings.LocalArtistSep.ToArray(), StringSplitOptions.None).ToList();
+            Artists = new IArtist[artists.Count];
+            for (int i = 0; i < artists.Count; i++)
+            {
+                Artists[i] = new LocalArtist { Name = artists[i], Id = $"{artists[i]}_{Md5}", Songs = [this] };
+            }
+
+            Duration = TimeSpan.FromSeconds(track.Duration);
+            return true;
         }
-        Duration = TimeSpan.FromSeconds(track.Duration);
+        catch (Exception e)
+        {
+            ExceptionService.Instance.Throw(e);
+            return false;
+        }
     }
 
     public byte[] GetCover()

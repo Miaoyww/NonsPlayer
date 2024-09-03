@@ -35,8 +35,10 @@ public partial class LocalMusicLibViewModel : ObservableObject, INavigationAware
         {
             index++;
             SongModels.Add(new MusicModel() { Index = index.ToString("D2"), Music = song, });
-            if (!song.IsInit) song.Init();
-            
+            if (!song.IsInit)
+            {
+                if (!song.Init()) return;
+            }
             if (song.Artists != null)
             {
                 foreach (LocalArtist artist in song.Artists)

@@ -1,4 +1,5 @@
-﻿using SixLabors.ImageSharp;
+﻿using NonsPlayer.Core.Services;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 
@@ -20,7 +21,7 @@ public static class LocalUtils
         return false;
     }
 
-    public static byte[]? CompressAndConvertToByteArray(byte[] imageData, int width, int height)
+    public static byte[]? CompressAndConvertToByteArray(byte[]? imageData, int width, int height)
     {
         try
         {
@@ -33,10 +34,19 @@ public static class LocalUtils
             image.Save(msOutput, new JpegEncoder { Quality = 20 });
             return msOutput.ToArray();
         }
-        catch (NotSupportedException)
+        catch (NotSupportedException ex)
         {
-            return null;
+            ExceptionService.Instance.Throw("Not Supported ImageFormat: " + ex.Message);
         }
+        catch (UnknownImageFormatException ex)
+        {
+            ExceptionService.Instance.Throw("Unknown ImageFormat: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            ExceptionService.Instance.Throw(ex);
+        }
+        return null;
     }
 
     public static byte[]? CompressAndConvertToByteArray(Stream stream, int width, int height)
@@ -50,9 +60,18 @@ public static class LocalUtils
             image.Save(msOutput, new JpegEncoder { Quality = 20 });
             return msOutput.ToArray();
         }
-        catch (NotSupportedException)
+        catch (NotSupportedException ex)
         {
-            return null;
+            ExceptionService.Instance.Throw("Not Supported ImageFormat: " + ex.Message);
         }
+        catch (UnknownImageFormatException ex)
+        {
+            ExceptionService.Instance.Throw("Unknown ImageFormat: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            ExceptionService.Instance.Throw(ex);
+        }
+        return null;
     }
 }
