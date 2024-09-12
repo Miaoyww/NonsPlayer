@@ -8,9 +8,11 @@ using NonsPlayer.Activation;
 using NonsPlayer.AMLL.Components.ViewModels;
 using NonsPlayer.AMLL.ViewModels;
 using NonsPlayer.Cache;
+using NonsPlayer.Components.Models;
 using NonsPlayer.Components.ViewModels;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Contracts.Services;
+using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
@@ -241,7 +243,12 @@ public partial class App : Application
 
     private void App_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        Log.Error($"Unhandled exception threw: {e.Exception}");
+        Log.Error($"App Version:{GetService<VersionService>().CurrentVersion}\n" +
+                  $"Current Music:{MusicStateModel.Instance.CurrentMusic.Name}\n" +
+                  $"Position: {MusicStateModel.Instance.Position} / {MusicStateModel.Instance.Duration.TotalMilliseconds} \n" +
+                  $"MixMode: {Player.Instance.IsMixed} \n" +
+                  $"Adapter: {MusicStateModel.Instance.CurrentMusic.Adapter} \n" +
+                  $"Unhandled exception threw: {e.Exception}");
         ExceptionService.Instance.Throw(e.Exception);
     }
 

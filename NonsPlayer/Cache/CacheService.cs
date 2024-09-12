@@ -71,12 +71,15 @@ public class CacheService
 
     private void CleanupExpiredItems()
     {
+        var count = 0;
         foreach (var key in _cache.Keys)
         {
             if (_cache.TryGetValue(key, out var cacheItem) && cacheItem.IsExpired())
             {
+                count++;
                 _cache.TryRemove(key, out _);
             }
         }
+        if(count != 0) Logger.LogInformation("Cache cleanup finished, {count} items removed", count);
     }
 }
