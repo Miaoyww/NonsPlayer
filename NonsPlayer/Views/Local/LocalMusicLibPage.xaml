@@ -10,62 +10,65 @@
     xmlns:views="using:NonsPlayer.Components.Views"
     xmlns:models="using:NonsPlayer.Models"
     mc:Ignorable="d">
-    <ScrollViewer>
-        <Grid Margin="{StaticResource PageCommonMargin}">
-            <Grid Margin="{StaticResource PageContentCommonMargin}">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid Grid.Row="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0"
-                               Text="本地音乐库"
-                               Style="{StaticResource CommonTextStyle}"
-                               FontSize="30" />
-                    <SelectorBar Grid.Column="1"
-                                 VerticalAlignment="Center"
-                                 Margin="20,-4,0,0"
-                                 SelectionChanged="SelectorBar_OnSelectionChanged">
-                        <SelectorBarItem x:Name="SelectorMusic"
-                                         Margin="0,0,10,0"
-                                         Tag="music"
-                                         IsSelected="True">
-                            <TextBlock x:Name="MusicTextBlock"
-                                       Margin="5"
-                                       FontSize="20"
-                                       Style="{StaticResource CommonTextStyle}" />
-                        </SelectorBarItem>
-                        <SelectorBarItem x:Name="SelectorAlbum"
-                                         Tag="album"
-                                         Margin="0,0,10,0">
-                            <TextBlock x:Name="AlbumTextBlock"
-                                       Margin="5"
-                                       FontSize="20"
-                                       Style="{StaticResource CommonTextStyle}" />
-                        </SelectorBarItem>
-                        <SelectorBarItem x:Name="SelectorArtist"
-                                         Tag="artist"
-                                         Margin="0,0,10,0">
-                            <TextBlock x:Name="ArtistTextBlock"
-                                       Margin="5"
-                                       FontSize="20"
-                                       Style="{StaticResource CommonTextStyle}" />
-                        </SelectorBarItem>
-                    </SelectorBar>
+    <Grid>
+        <ScrollViewer ViewChanged="{x:Bind ViewModel.OnScrollViewerViewChanged}">
+            <Grid Margin="{StaticResource PageCommonMargin}">
+                <Grid Margin="{StaticResource PageContentCommonMargin}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="本地音乐库"
+                                   Style="{StaticResource CommonTextStyle}"
+                                   FontSize="30" />
+                        <SelectorBar Grid.Column="1"
+                                     VerticalAlignment="Center"
+                                     Margin="20,-4,0,0"
+                                     SelectionChanged="SelectorBar_OnSelectionChanged">
+                            <SelectorBarItem x:Name="SelectorMusic"
+                                             Margin="0,0,10,0"
+                                             Tag="music"
+                                             IsSelected="True">
+                                <TextBlock x:Name="MusicTextBlock"
+                                           Margin="5"
+                                           FontSize="20"
+                                           Style="{StaticResource CommonTextStyle}" />
+                            </SelectorBarItem>
+                            <SelectorBarItem x:Name="SelectorAlbum"
+                                             Tag="album"
+                                             Margin="0,0,10,0">
+                                <TextBlock x:Name="AlbumTextBlock"
+                                           Margin="5"
+                                           FontSize="20"
+                                           Style="{StaticResource CommonTextStyle}" />
+                            </SelectorBarItem>
+                            <SelectorBarItem x:Name="SelectorArtist"
+                                             Tag="artist"
+                                             Margin="0,0,10,0">
+                                <TextBlock x:Name="ArtistTextBlock"
+                                           Margin="5"
+                                           FontSize="20"
+                                           Style="{StaticResource CommonTextStyle}" />
+                            </SelectorBarItem>
+                        </SelectorBar>
+                    </Grid>
+                    <Grid Grid.Row="1">
+                        <views:MusicListBar Visibility="{x:Bind MusicVisibility, Mode=OneWay}"
+                                            MusicItems="{x:Bind ViewModel.SongModels, Mode=OneWay}" />
+                        <views:LocalArtistListBar Visibility="{x:Bind ArtistVisibility, Mode=OneWay}"
+                                                  Models="{x:Bind ViewModel.ArtistModels, Mode=OneWay}" />
+                    </Grid>
                 </Grid>
-                <Grid Grid.Row="1">
-                    <views:MusicListBar Visibility="{x:Bind MusicVisibility, Mode=OneWay}"
-                                        MusicItems="{x:Bind ViewModel.SongModels, Mode=OneWay}" />
-                    <views:LocalArtistListBar Visibility="{x:Bind ArtistVisibility, Mode=OneWay}"
-                                              Models="{x:Bind ViewModel.ArtistModels, Mode=OneWay}" />
-                </Grid>
-            </Grid>
 
-        </Grid>
-    </ScrollViewer>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+
 
 </Page>

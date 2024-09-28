@@ -1,13 +1,16 @@
 ﻿using ABI.Windows.Devices.Midi;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
+using NonsPlayer.Core.Utils;
 using NonsPlayer.Helpers;
 using NonsPlayer.Models;
 using NonsPlayer.Services;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using static NonsPlayer.Core.Services.ControlFactory;
 
@@ -19,8 +22,10 @@ public partial class LocalMusicLibViewModel : ObservableObject, INavigationAware
     public ObservableCollection<MusicModel> SongModels = new();
     public ObservableCollection<LocalArtistModel> ArtistModels = new();
     public ObservableCollection<LocalAlbumModel> AlbumModels = new();
-
+    private int taskCount = 8;
+    private int completedTasks = 0;
     private LocalService localService = App.GetService<LocalService>();
+    private int currentItemGroupIndex;
 
     public LocalMusicLibViewModel()
     {
@@ -31,14 +36,10 @@ public partial class LocalMusicLibViewModel : ObservableObject, INavigationAware
     {
         var index = 0;
         SongModels.Clear();
+        await LoadMusicItemsByGroup();
         foreach (LocalMusic song in localService.Songs)
         {
             index++;
-            SongModels.Add(new MusicModel() { Index = index.ToString("D2"), Music = song, });
-            if (!song.IsInit)
-            {
-                if (!song.Init()) return;
-            }
             if (song.Artists != null)
             {
                 foreach (LocalArtist artist in song.Artists)
@@ -87,6 +88,49 @@ public partial class LocalMusicLibViewModel : ObservableObject, INavigationAware
             index3++;
             AlbumModels.Add(new LocalAlbumModel { Album = album, Index = index3.ToString("D2") });
         }
+    }
+
+    public async void OnScrollViewerViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (sender is ScrollViewer scrollViewer)
+        {
+            var offset = scrollViewer.VerticalOffset;
+        
+            var height = scrollViewer.ScrollableHeight;
+            if (height - offset <
+                AppConfig.Instance.AppSettings.PlaylistTrackCount &&
+                currentItemGroupIndex < localService.Songs.Count - 1)
+                await LoadMusicItemsByGroup();
+        }
+    }
+
+    /// <summary>
+    ///     用于分组加载MusicItem
+    /// </summary>
+    private async Task LoadMusicItemsByGroup()
+    {
+        for (var i = 0; i < AppConfig.Instance.AppSettings.PlaylistTrackCount; i++)
+        {
+            int currentIndex = currentItemGroupIndex + i;
+            if (currentIndex >= localService.Songs.Count) break; // 确保索引有效
+            GlobalThreadPool.Instance.Enqueue(() =>
+            {
+                var music = localService.Songs[currentIndex];
+                if (!music.IsInit)
+                {
+                    music.Init();
+                    music.Cover = LocalUtils.CompressAndConvertToByteArray(music.GetCover(), 80, 80);
+                }
+
+                var model = new MusicModel { Music = music, Index = (currentIndex + 1).ToString("D2") };
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                {
+                    SongModels.Add(model);
+                });
+            });
+        }
+
+        currentItemGroupIndex += AppConfig.Instance.AppSettings.PlaylistTrackCount;
     }
 
     public void OnNavigatedTo(object parameter)

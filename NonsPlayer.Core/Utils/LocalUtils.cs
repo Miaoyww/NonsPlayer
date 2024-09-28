@@ -27,7 +27,7 @@ public static class LocalUtils
         {
             if (imageData == null) return null;
 
-            using var ms = new MemoryStream(imageData);
+            using var ms = new MemoryStream(imageData); 
             Image image = Image.Load(ms);
             image.Mutate(x => x.Resize(width, height));
             using var msOutput = new MemoryStream();

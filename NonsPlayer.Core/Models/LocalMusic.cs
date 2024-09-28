@@ -59,10 +59,7 @@ public class LocalMusic : IMusic
             {
                 Name = Path.GetFileNameWithoutExtension(track.Title);
             }
-
-            Cover = LocalUtils.CompressAndConvertToByteArray(GetCover(track), 80, 80);
-
-
+            
             Md5 = track.GetHashCode().ToString();
             Id = $"{Name}_{Md5}";
             Url = track.Path;

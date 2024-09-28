@@ -23,9 +23,9 @@ public class LocalService
 
     private const string _dataKey = "local_dictionaries.json";
     public ObservableCollection<LocalFolderModel> Directories = new();
-    public HashSet<LocalMusic> Songs = new();
-    public HashSet<LocalArtist> Artists = new();
-    public HashSet<LocalAlbum> Albums = new();
+    public List<LocalMusic> Songs = new();
+    public List<LocalArtist> Artists = new();
+    public List<LocalAlbum> Albums = new();
 
     private FileService FileService = App.GetService<FileService>();
 
@@ -40,23 +40,22 @@ public class LocalService
         return true;
     }
 
-    public bool TryAddSong(LocalMusic song)
+    public void AddSong(LocalMusic song)
     {
         foreach (LocalMusic songItem in Songs)
         {
-            if (songItem.FilePath.Equals(song.FilePath)) return false;
+            if (songItem.FilePath.Equals(song.FilePath)) return;
         }
 
         LocalFolderChanged?.Invoke(string.Empty);
-        var result = Songs.Add(song);
-        return result;
+        Songs.Add(song);
     }
 
     public void AddSongs(IEnumerable<LocalMusic> songs)
     {
         foreach (LocalMusic inputSongItem in songs)
         {
-            TryAddSong(inputSongItem);
+            AddSong(inputSongItem);
         }
 
         LocalFolderChanged?.Invoke(string.Empty);
