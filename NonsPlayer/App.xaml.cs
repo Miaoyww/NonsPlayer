@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Activation;
@@ -26,12 +27,16 @@ using Serilog;
 using Windows.Graphics.Display;
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
 using WinRT;
+using LyricViewModel = NonsPlayer.AMLL.ViewModels.AMLLViewModel;
+using NonsPlayer.AMLL.Views;
 
 namespace NonsPlayer;
 
 // To learn more about WinUI 3, see https://docs.microsoft.com/windows/apps/winui/winui3/.
 public partial class App : Application
-{
+{   
+    public static IntPtr WindowHandle { get; set; }
+
     public App()
     {
         InitializeComponent();
@@ -91,8 +96,8 @@ public partial class App : Application
                 services.AddTransient<LoginPage>();
                 services.AddTransient<SearchViewModel>();
                 services.AddTransient<SearchPage>();
-                services.AddTransient<LyricViewModel>();
-                services.AddTransient<LyricPage>();
+                services.AddTransient<ViewModels.LyricViewModel>();
+                services.AddTransient<AMLLCard>();
                 services.AddTransient<ArtistPage>();
                 services.AddTransient<ArtistViewModel>();
                 services.AddTransient<AlbumPage>();
@@ -140,13 +145,14 @@ public partial class App : Application
                 #endregion
 
 
-                // AMLL
-                services.AddTransient<AMLLViewModel>();
+                // Lyric
+                services.AddTransient<LyricViewModel>();
                 services.AddTransient<LyricCardViewModel>();
             }).Build();
 
         GetService<IAppNotificationService>().Initialize();
         UnhandledException += App_UnhandledException;
+        
 
         #region Config
 
@@ -185,6 +191,7 @@ public partial class App : Application
         GetService<LocalService>().LoadFromFile();
         
         #endregion
+        
         #region Counter
 
         Log.Information($"Start loading player counter");
@@ -199,7 +206,7 @@ public partial class App : Application
         GetService<SMTCService>().Init();
 
         #endregion
-
+        
     }
 
     private void OnLocalLoadFailed(string param)
@@ -243,12 +250,21 @@ public partial class App : Application
 
     private void App_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        Log.Error($"App Version:{GetService<VersionService>().CurrentVersion}\n" +
-                  $"Current Music:{MusicStateModel.Instance.CurrentMusic.Name}\n" +
-                  $"Position: {MusicStateModel.Instance.Position} / {MusicStateModel.Instance.Duration.TotalMilliseconds} \n" +
-                  $"MixMode: {Player.Instance.IsMixed} \n" +
-                  $"Adapter: {MusicStateModel.Instance.CurrentMusic.Adapter} \n" +
-                  $"Unhandled exception threw: {e.Exception}");
+        if (MusicStateModel.Instance.CurrentMusic != null)
+        {
+            Log.Error($"App Version:{GetService<VersionService>().CurrentVersion}\n" +
+                      $"Current Music:{MusicStateModel.Instance.CurrentMusic.Name}\n" +
+                      $"Position: {MusicStateModel.Instance.Position} / {MusicStateModel.Instance.Duration.TotalMilliseconds} \n" +
+                      $"MixMode: {Player.Instance.IsMixed} \n" +
+                      $"Adapter: {MusicStateModel.Instance.CurrentMusic.Adapter} \n" +
+                      $"Unhandled exception threw: {e.Exception}");
+        }
+        else
+        {
+            Log.Error($"App Version:{GetService<VersionService>().CurrentVersion}\n" +
+                      $"Unhandled exception threw: {e.Exception}");
+        }
+        
         ExceptionService.Instance.Throw(e.Exception);
     }
 

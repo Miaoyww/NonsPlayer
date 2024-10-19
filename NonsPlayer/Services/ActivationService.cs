@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using NonsPlayer.Activation;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Helpers;
 using NonsPlayer.Views;
 using NonsPlayer.Views.Pages;
 

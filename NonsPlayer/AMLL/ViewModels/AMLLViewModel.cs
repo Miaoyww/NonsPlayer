@@ -14,7 +14,6 @@ public partial class AMLLViewModel : ObservableRecipient
 {
     public ObservableCollection<LyricCombiner> LyricItems = new();
     [ObservableProperty] private IMusic currentMusic;
-    public int LyricPosition;
 
     #region 命令
 
@@ -39,6 +38,7 @@ public partial class AMLLViewModel : ObservableRecipient
     private async void OnMusicChanged(IMusic value)
     {
         LyricItems.Clear();
+
         if (value.Lyric == null)
         {
             LyricItems.Add(new LyricCombiner

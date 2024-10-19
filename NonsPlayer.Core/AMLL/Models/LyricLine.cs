@@ -11,7 +11,7 @@ public class LyricLine
     public string? Pure { get; set; }
     public string? Translation { get; set; }
 
-    public bool HaveTranslation => !string.IsNullOrEmpty(Translation);
+    public bool HasTranslation => !string.IsNullOrEmpty(Translation);
 
     /// <summary>
     /// 是否为纯音乐

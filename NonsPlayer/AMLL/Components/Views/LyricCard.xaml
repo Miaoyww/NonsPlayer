@@ -5,9 +5,6 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-    xmlns:media="using:CommunityToolkit.WinUI.Media"
-    xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
-    xmlns:models="using:NonsPlayer.AMLL.Models"
     mc:Ignorable="d">
     <Grid>
         <Grid.RowDefinitions>
@@ -17,17 +14,17 @@
         <TextBlock Grid.Row="0" Name="TextBlockPureLyric"
                    Text="{x:Bind ViewModel.LyricModel.Lyric.Pure,Mode=OneWay}"
                    HorizontalAlignment="Left" VerticalAlignment="Top" TextAlignment="Left" Width="500"
-                   TextWrapping="WrapWholeWords"
+                   Style="{StaticResource CommonTextStyle}"
                    Foreground="{x:Bind ViewModel.Foreground, Mode=OneWay}"
-                   FontFamily="HarmonyOS Sans SC" FontWeight="Bold" FontSize="30" />
+                   FontWeight="Bold" FontSize="40" />
 
         <TextBlock Grid.Row="1" Name="TextBlockTranLyric"
                    Text="{x:Bind ViewModel.LyricModel.Lyric.Translation, Mode=OneWay}"
                    Visibility="{x:Bind ViewModel.TransVisibility, Mode=OneWay}"
-                   TextWrapping="WrapWholeWords"
+                   Style="{StaticResource CommonTextStyle}"
                    HorizontalAlignment="Left" VerticalAlignment="Bottom" TextAlignment="Left"
                    Foreground="{x:Bind ViewModel.Foreground, Mode=OneWay}"
-                   FontFamily="HarmonyOS Sans SC" FontWeight="Bold" FontSize="18" />
+                   FontWeight="Bold" />
 
     </Grid>
 </UserControl>

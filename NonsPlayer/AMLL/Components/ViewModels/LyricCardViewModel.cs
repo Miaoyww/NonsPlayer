@@ -2,8 +2,12 @@
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using NonsPlayer.AMLL.Components.Views;
+using NonsPlayer.AMLL.Helpers;
 using NonsPlayer.AMLL.Models;
 using NonsPlayer.Core.AMLL.Models;
+using NonsPlayer.Helpers;
+using Windows.UI;
 
 namespace NonsPlayer.AMLL.Components.ViewModels;
 
@@ -18,23 +22,33 @@ public sealed partial class LyricCardViewModel : ObservableObject
 
     [ObservableProperty] public Visibility transVisibility;
 
-    partial void OnLyricModelChanged(LyricItemModel value)
+    public LyricCardViewModel()
     {
-        TransVisibility = value.Lyric.HaveTranslation ? Visibility.Visible : Visibility.Collapsed;
+        Foreground = new SolidColorBrush(Color.FromArgb(255, 240, 240, 240));
+        LyricHelper.Instance.LyricChanged += OnLyricChanged;
     }
 
-    private void OnLyricChanged(int i)
+    partial void OnLyricModelChanged(LyricItemModel value)
+    {
+        TransVisibility = value.Lyric.HasTranslation ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnLyricChanged(LyricLine lyric)
     {
         try
         {
-            if (i - 1 == Index)
+            if (LyricModel == null) return;
+            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
             {
-                Foreground = new SolidColorBrush(Colors.White);
-            }
-            else
-            {
-                Foreground = Application.Current.Resources["TextFillColorTertiaryBrush"] as SolidColorBrush;
-            }
+                if (lyric.Equals(LyricModel.Lyric))
+                {
+                    Foreground = new SolidColorBrush(Colors.White);
+                }
+                else
+                {
+                    Foreground = Application.Current.Resources["TextFillColorTertiaryBrush"] as SolidColorBrush;
+                }
+            });
         }
         catch
         {

@@ -1,6 +1,8 @@
 ﻿using Windows.System;
 using CommunityToolkit.Mvvm.Input;
 using Gma.System.MouseKeyHook;
+using Microsoft.UI;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -12,10 +14,12 @@ using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 using Microsoft.UI.Windowing;
+using Vanara.PInvoke;
 using Windows.Graphics;
 using Windows.UI.WindowManagement;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using AppWindow = Microsoft.UI.Windowing.AppWindow;
 using AppWindowTitleBar = Microsoft.UI.Windowing.AppWindowTitleBar;
 
 namespace NonsPlayer.Views;
@@ -23,29 +27,26 @@ namespace NonsPlayer.Views;
 public sealed partial class ShellPage : Page
 {
     public delegate void ShellViewDialogShowEventHandler();
+    public UiHelper UiHelper = UiHelper.Instance;
+    private AppWindow AppWindow => Window.AppWindow;
 
-    public IntPtr WindowHandle { get; private init; }
-
-    public double UIScale => PInvoke.GetDpiForWindow((HWND)WindowHandle) / 96d;
-
-    public ShellPage(ShellViewModel viewModel)
+    private Window Window;
+    public ShellPage()
     {
-        ViewModel = viewModel;
+        ViewModel = App.GetService<ShellViewModel>();
         InitializeComponent();
         PlayQueueBarViewModel = App.GetService<PlayQueueBarViewModel>();
         ViewModel.NavigationService.Frame = NavigationFrame;
-        WindowHandle = (IntPtr)App.MainWindow.AppWindow.Id.Value;
-
-        // TODO: Set the title bar icon by updating /Assets/WindowIcon.ico.
-        // A custom title bar is required for full window theme and Mica support.
-        // https://docs.microsoft.com/windows/apps/develop/title-bar?tabs=winui3#full-customization
+        App.WindowHandle = (IntPtr)App.MainWindow.AppWindow.Id.Value;
+        WindowUtility.CurrentWindowId  = Win32Interop.GetWindowIdFromWindow(App.WindowHandle);
+        
         App.MainWindow.ExtendsContentIntoTitleBar = true;
-        App.MainWindow.SetTitleBar(AppTitleBar);
-        App.MainWindow.Activated += MainWindow_Activated;
-        SetDragRectangles(new RectInt32(0, 0, 100000, (int)(48 * UIScale)));
-        AppTitleBarText.Text = "AppDisplayName".GetLocalized();
-        App.MainWindow.AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
+        App.MainWindow.AppWindow.TitleBar.IconShowOptions = IconShowOptions.ShowIconAndSystemMenu;
         App.MainWindow.AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        App.MainWindow.Activated += MainWindow_Activated;
+        App.MainWindow.SetTitleBar(TitleIcon);
+        // SetDragRectangles(new RectInt32(0, 0, 100000, (int)(48 * WindowUtility.UiScale)));
+        AppTitleBarText.Text = "AppDisplayName".GetLocalized();
         PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
         ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
     }
@@ -144,5 +145,18 @@ public sealed partial class ShellPage : Page
         var result = navigationService.GoBack();
 
         args.Handled = result;
+    }
+
+    private void ShellPage_OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        App.MainWindow.RaiseSetTitleBarDragRegion(SetTitleBarDragRegion);
+    }
+    
+    private int SetTitleBarDragRegion(InputNonClientPointerSource source, SizeInt32 size, double scaleFactor, Func<UIElement, RectInt32?, RectInt32> getScaledRect)
+    {
+        // source.SetRegionRects(NonClientRegionKind.Passthrough, [getScaledRect(SearchBar, null)]);
+        // source.SetRegionRects(NonClientRegionKind.Passthrough, [getScaledRect(SettingsBar, null)]);
+        // source.SetRegionRects(NonClientRegionKind.Passthrough, [getScaledRect(NavigationBar, null)]);
+        return 48;
     }
 }

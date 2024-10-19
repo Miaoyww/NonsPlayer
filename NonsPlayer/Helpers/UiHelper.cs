@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
@@ -130,7 +131,7 @@ internal class TitleBarHelper
     }
 }
 
-public class UiHelper
+public partial class UiHelper : ObservableObject
 {
     public static UiHelper Instance { get; } = new();
 
@@ -138,4 +139,20 @@ public class UiHelper
     public delegate void LyricChangedHandler(int index);
 
     public LyricChangedHandler LyricChanged;
+    
+    [ObservableProperty] private Visibility lyricShow = Visibility.Collapsed;
+    [ObservableProperty] private Visibility playBarShow = Visibility.Visible;
+
+    partial void OnLyricShowChanged(Visibility value)
+    {
+        switch (value)
+        {
+            case Visibility.Collapsed:
+                PlayBarShow = Visibility.Visible;
+                break;
+            case Visibility.Visible:
+                PlayBarShow = Visibility.Collapsed;
+                break;
+        }
+    }
 }

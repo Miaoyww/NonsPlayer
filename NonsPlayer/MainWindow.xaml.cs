@@ -5,6 +5,7 @@ namespace NonsPlayer;
 
 public sealed partial class MainWindow : WindowEx
 {
+    public UiHelper UiHelper = UiHelper.Instance;
     public MainWindow()
     {
         InitializeComponent();

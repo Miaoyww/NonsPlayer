@@ -4,10 +4,10 @@
         <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
         <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
         <RootNamespace>NonsPlayer</RootNamespace>
-		<Platforms>x86;x64;ARM64</Platforms>        
-		<RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>        
-		<PublishProfile>win10-$(Platform).pubxml</PublishProfile>        
-		<ImplicitUsings>enable</ImplicitUsings>
+        <Platforms>x86;x64;ARM64</Platforms>
+        <RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
+        <PublishProfile>win10-$(Platform).pubxml</PublishProfile>
+        <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UseWinUI>true</UseWinUI>
         <UseRidGraph>true</UseRidGraph>
@@ -25,31 +25,46 @@
         <PublishReadyToRun>true</PublishReadyToRun>
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
-    
+
     <ItemGroup>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
         <PackageReference Include="CommunityToolkit.WinUI" Version="7.1.2" />
         <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.0.240109" />
         <PackageReference Include="CommunityToolkit.WinUI.Media" Version="8.0.240109" />
         <PackageReference Include="CommunityToolkit.WinUI.UI.Controls" Version="7.1.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0-preview.2.24128.5" />
+        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240627000" />
+        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Serilog" Version="4.0.1" />
+        <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Vanara.PInvoke.ComCtl32" Version="4.0.4" />
+        <PackageReference Include="Vanara.PInvoke.DwmApi" Version="4.0.4" />
+        <PackageReference Include="Vanara.PInvoke.Ole" Version="4.0.4" />
+        <PackageReference Include="Vanara.PInvoke.SHCore" Version="4.0.4" />
+        <PackageReference Include="Vanara.PInvoke.Shell32" Version="4.0.4" />
+    </ItemGroup>
+    
+    <ItemGroup>
+
         <PackageReference Include="Dapper" Version="2.1.28" />
         <PackageReference Include="F23.StringSimilarity" Version="5.1.0" />
         <PackageReference Include="ksemenenko.ColorThief" Version="1.1.1.4" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0-preview.2.24128.5" />
-        <PackageReference Include="Microsoft.Windows.CsWin32" PrivateAssets="all" Version="0.3.106">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240627000" />
-        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
         <PackageReference Include="MouseKeyHook" Version="5.7.1" />
         <PackageReference Include="NAudio" Version="2.2.1" />
         <PackageReference Include="NuGet.Versioning" Version="6.9.1" />
         <PackageReference Include="QRCoder" Version="1.4.3" />
         <PackageReference Include="RestSharp" Version="106.15.0" />
-        <PackageReference Include="Serilog" Version="4.0.1" />
-        <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
-        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-        <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
         <PackageReference Include="WinUIEx" Version="2.3.4" />
         <PackageReference Include="z440.atl.core" Version="6.1.0" />
@@ -65,109 +80,109 @@
         </Content>
     </ItemGroup>
     <ItemGroup>
-      <Compile Remove="Diaglogs\**" />
-      <EmbeddedResource Remove="Diaglogs\**" />
-      <None Remove="Diaglogs\**" />
-      <Page Remove="Diaglogs\**" />
+        <Compile Remove="Diaglogs\**" />
+        <EmbeddedResource Remove="Diaglogs\**" />
+        <None Remove="Diaglogs\**" />
+        <Page Remove="Diaglogs\**" />
     </ItemGroup>
     <ItemGroup>
-      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_BLACK.TTF" />
-      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_BOLD.TTF" />
-      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_LIGHT.TTF" />
-      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_MEDIUM.TTF" />
-      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_REGULAR.TTF" />
-      <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_THIN.TTF" />
-      <None Remove="Assets\Icons\create_new_folder.svg" />
-      <None Remove="Assets\Icons\library-music.svg" />
-      <None Remove="Assets\Icons\queue-music.svg" />
-      <None Remove="Components\Views\LocalCa.xaml" />
-      <None Remove="Components\Views\LocalProperties.xaml" />
-      <None Remove="Components\Views\Local\AddFolderDialog.xaml" />
-      <None Remove="Components\Views\Local\LocalArtistItem.xaml" />
-      <None Remove="Components\Views\Local\LocalArtistListBar.xaml" />
-      <None Remove="Components\Views\Local\LocalFolderItem.xaml" />
-      <None Remove="Components\Views\Local\LocalMusicCard.xaml" />
-      <None Remove="Components\Views\Local\LocalQueueCard.xaml" />
-      <None Remove="Dialogs\ArtistSeparator.xaml" />
-      <None Remove="Views\Local\LocalMusicLibPage.xaml" />
-      <None Remove="Views\Local\LocalQueuePage.xaml" />
+        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_BLACK.TTF" />
+        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_BOLD.TTF" />
+        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_LIGHT.TTF" />
+        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_MEDIUM.TTF" />
+        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_REGULAR.TTF" />
+        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_THIN.TTF" />
+        <None Remove="Assets\Icons\create_new_folder.svg" />
+        <None Remove="Assets\Icons\library-music.svg" />
+        <None Remove="Assets\Icons\queue-music.svg" />
+        <None Remove="Components\Views\LocalCa.xaml" />
+        <None Remove="Components\Views\LocalProperties.xaml" />
+        <None Remove="Components\Views\Local\AddFolderDialog.xaml" />
+        <None Remove="Components\Views\Local\LocalArtistItem.xaml" />
+        <None Remove="Components\Views\Local\LocalArtistListBar.xaml" />
+        <None Remove="Components\Views\Local\LocalFolderItem.xaml" />
+        <None Remove="Components\Views\Local\LocalMusicCard.xaml" />
+        <None Remove="Components\Views\Local\LocalQueueCard.xaml" />
+        <None Remove="Dialogs\ArtistSeparator.xaml" />
+        <None Remove="Views\Local\LocalMusicLibPage.xaml" />
+        <None Remove="Views\Local\LocalQueuePage.xaml" />
     </ItemGroup>
     <ItemGroup>
-      <Page Update="Components\Views\Local\LocalArtistListBar.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        <SubType>Designer</SubType>
-      </Page>
-      <Page Update="Components\Views\Local\LocalArtistItem.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        <SubType>Designer</SubType>
-      </Page>
-      <Page Update="Components\Views\Local\LocalFolderItem.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        <SubType>Designer</SubType>
-      </Page>
-      <Page Update="Components\Views\Local\AddFolderDialog.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      </Page>
-      <Page Update="Components\Views\LocalProperties.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        <SubType>Designer</SubType>
-      </Page>
-      <Page Update="Dialogs\ArtistSeparator.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      </Page>
-      <Page Update="Views\Local\LocalQueuePage.xaml">
-        <Generator>MSBuild:Compile</Generator>
-      </Page>
+        <Page Update="Components\Views\Local\LocalArtistListBar.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+            <SubType>Designer</SubType>
+        </Page>
+        <Page Update="Components\Views\Local\LocalArtistItem.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+            <SubType>Designer</SubType>
+        </Page>
+        <Page Update="Components\Views\Local\LocalFolderItem.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+            <SubType>Designer</SubType>
+        </Page>
+        <Page Update="Components\Views\Local\AddFolderDialog.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        </Page>
+        <Page Update="Components\Views\LocalProperties.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+            <SubType>Designer</SubType>
+        </Page>
+        <Page Update="Dialogs\ArtistSeparator.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        </Page>
+        <Page Update="Views\Local\LocalQueuePage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </Page>
     </ItemGroup>
     <ItemGroup>
-      <Page Update="Components\Views\LocalCa.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      </Page>
-      <Page Update="Components\Views\Local\LocalMusicCard.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        <SubType>Designer</SubType>
-      </Page>
-      <Page Update="Components\Views\Local\LocalQueueCard.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-      </Page>
-      <Page Update="Styles\CustomComponents.xaml">
-        <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        <SubType>Designer</SubType>
-        <Generator>MSBuild:Compile</Generator>
-      </Page>
+        <Page Update="Components\Views\LocalCa.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        </Page>
+        <Page Update="Components\Views\Local\LocalMusicCard.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+            <SubType>Designer</SubType>
+        </Page>
+        <Page Update="Components\Views\Local\LocalQueueCard.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+        </Page>
+        <Page Update="Styles\CustomComponents.xaml">
+            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+            <SubType>Designer</SubType>
+            <Generator>MSBuild:Compile</Generator>
+        </Page>
     </ItemGroup>
     <ItemGroup>
-      <Page Update="Views\Local\LocalMusicLibPage.xaml">
-        <Generator>MSBuild:Compile</Generator>
-      </Page>
+        <Page Update="Views\Local\LocalMusicLibPage.xaml">
+            <Generator>MSBuild:Compile</Generator>
+        </Page>
     </ItemGroup>
     <ItemGroup>
-      <PRIResource Remove="Diaglogs\**" />
+        <PRIResource Remove="Diaglogs\**" />
     </ItemGroup>
     <ItemGroup>
-      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_BLACK.TTF">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_BOLD.TTF">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_LIGHT.TTF">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_MEDIUM.TTF">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_REGULAR.TTF">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_THIN.TTF">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Update="Assets\Fonts\NOVECENTO-WIDE-BOLD.OTF">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
-      <Content Update="Assets\Fonts\Segoe Fluent Icons.ttf">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
+        <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_BLACK.TTF">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_BOLD.TTF">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_LIGHT.TTF">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_MEDIUM.TTF">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_REGULAR.TTF">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_THIN.TTF">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Assets\Fonts\NOVECENTO-WIDE-BOLD.OTF">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Assets\Fonts\Segoe Fluent Icons.ttf">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 </Project>

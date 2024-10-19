@@ -1,10 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.UI.Xaml;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Contracts.ViewModels;
 using NonsPlayer.Helpers;
+using NonsPlayer.Views.Pages;
 
 namespace NonsPlayer.Services;
 
@@ -51,13 +53,28 @@ public class NavigationService : INavigationService
     [MemberNotNullWhen(true, nameof(Frame), nameof(_frame))]
     public bool CanGoBack => Frame != null && Frame.CanGoBack;
 
+    private void CheckLyricPage(object type)
+    {
+        if (type is LyricPage)
+        {
+            UiHelper.Instance.LyricShow = Visibility.Visible;
+        }
+        else
+        {
+            UiHelper.Instance.LyricShow = Visibility.Collapsed;
+        }
+    }
     public bool GoBack()
     {
         if (CanGoBack)
         {
             var vmBeforeNavigation = _frame.GetPageViewModel();
+
+
             _frame.GoBack();
             if (vmBeforeNavigation is INavigationAware navigationAware) navigationAware.OnNavigatedFrom();
+
+            CheckLyricPage(_frame.Content);
             logger.LogInformation("Page goes back");
             return true;
         }
@@ -82,6 +99,8 @@ public class NavigationService : INavigationService
             }
 
             logger.LogInformation("Navigate to {pageKey}", pageKey);
+
+            CheckLyricPage(pageType);
             return navigated;
         }
 

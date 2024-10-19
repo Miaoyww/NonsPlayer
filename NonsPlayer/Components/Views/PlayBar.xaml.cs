@@ -26,7 +26,7 @@ public sealed partial class PlayBar : UserControl
     private ManipulationStartedRoutedEventArgs? _slidingEventArgs = null;
     private TimeSpan StartingTimeSpan = TimeSpan.Zero;
     private bool _isSliding = false;
-    
+
     public PlayerBarViewModel ViewModel { get; }
 
     public event EventHandler OnPlayQueueBarOpenHandler;
@@ -34,12 +34,8 @@ public sealed partial class PlayBar : UserControl
     [RelayCommand]
     public void OpenLyric()
     {
-        // if (ServiceHelper.NavigationService.Frame.Content.GetType().ToString() == typeof(LyricPage)?.FullName)
-        // {
-        //     ServiceHelper.NavigationService.NavigateTo(ServiceHelper.NavigationService.LastPage, isBack: true);
-        //     return;
-        // }
         ServiceHelper.NavigationService.NavigateTo(typeof(LyricViewModel)?.FullName);
+        UiHelper.Instance.LyricShow = Visibility.Visible;
     }
 
     [RelayCommand]
@@ -66,7 +62,7 @@ public sealed partial class PlayBar : UserControl
         var state = await accountAdapter.IsLikedSong(MusicStateModel.Instance.CurrentMusic.Id);
         MusicStateModel.Instance.CurrentMusic.IsLiked = state;
         MusicStateModel.Instance.CurrentSongLiked = state;
-        
+
         //
         //     var dialog = new ContentDialog
         //     {

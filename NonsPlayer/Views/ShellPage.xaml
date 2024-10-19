@@ -8,13 +8,14 @@
     xmlns:models="using:NonsPlayer.Components.Models"
     Loaded="OnLoaded"
     Unloaded="OnUnloaded"
+    SizeChanged="ShellPage_OnSizeChanged"
     mc:Ignorable="d">
     <Grid>
-        <Grid>
-            <Frame x:Name="NavigationFrame" Margin="0,0,0,0" />
-        </Grid>
-        <Grid VerticalAlignment="Top"
+        <Frame x:Name="NavigationFrame" Margin="0,0,0,0" />
+        <Grid x:Name="TitlebarArea"
+              VerticalAlignment="Top"
               Background="{StaticResource  CustomAcrylicBrush}"
+              Visibility="{x:Bind UiHelper.PlayBarShow, Mode=OneWay}"
               Height="48"
               Margin="0,-1,0,0">
             <Grid Margin="20,0,0,0">
@@ -24,7 +25,8 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Grid x:Name="AppTitleBar" VerticalAlignment="Center" Margin="20,0,0,0">
+                <Grid x:Name="TitleIcon"
+                      VerticalAlignment="Center" Margin="20,0,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -41,21 +43,23 @@
                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </StackPanel>
                 </Grid>
-                <Grid Grid.Column="1" Margin="10,0,0,0">
+                <Grid x:Name="SearchBar" Grid.Column="1" Margin="10,0,0,0">
                     <StackPanel Orientation="Horizontal">
-                        <Button Name="NativeBack" Width="30" Height="30" Padding="0"
+                        <Button Name="NavigateBack" Width="30" Height="30" Padding="0"
                                 BorderThickness="0" Background="Transparent"
                                 Command="{x:Bind ViewModel.GoBackCommand, Mode=OneWay}">
                             <FontIcon Glyph="&#xE973;" />
                         </Button>
 
-                        <AutoSuggestBox QueryIcon="Find"
+                        <AutoSuggestBox Name="SearchBox"
+                                        QueryIcon="Find"
                                         Height="32"
                                         Width="200"
                                         QuerySubmitted="{x:Bind ViewModel.SearchBox_Query}" />
                     </StackPanel>
                 </Grid>
-                <Grid Grid.Column="3" Margin="10,0,140,0" HorizontalAlignment="Right">
+                <Grid x:Name="SettingsBar"
+                      Grid.Column="3" Margin="10,0,140,0" HorizontalAlignment="Right">
                     <StackPanel Orientation="Horizontal">
                         <Button Name="SettingsButton"
                                 Command="{x:Bind ViewModel.OpenPageCommand}"
@@ -68,25 +72,26 @@
                     </StackPanel>
                 </Grid>
             </Grid>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+            <StackPanel x:Name="NavigationBar"
+                        Orientation="Horizontal" HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Height="30" Margin="0,0,0,0">
-                <Button Name="NativeHome" Style="{StaticResource NativeButton}"
+                <Button Name="NavigateHome" Style="{StaticResource NativeButton}"
                         Command="{x:Bind ViewModel.OpenPageCommand}"
                         CommandParameter="home">
                     <TextBlock x:Uid="ShellMenu_Home" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
                 </Button>
-                <Button Name="NativeExplore" Style="{StaticResource NativeButton}"
+                <Button Name="NavigateExplore" Style="{StaticResource NativeButton}"
                         Command="{x:Bind ViewModel.OpenPageCommand}"
                         CommandParameter="explore">
                     <TextBlock x:Uid="ShellMenu_Explore" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
                 </Button>
-                <Button Name="NativeLocal" Style="{StaticResource NativeButton}"
+                <Button Name="NavigateLocal" Style="{StaticResource NativeButton}"
                         Command="{x:Bind ViewModel.OpenPageCommand}"
                         CommandParameter="local">
                     <TextBlock x:Uid="ShellMenu_Local" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
                 </Button>
-                <Button Name="NativeOwn" Style="{StaticResource NativeButton}"
+                <Button Name="NavigateOwn" Style="{StaticResource NativeButton}"
                         Command="{x:Bind ViewModel.OpenPageCommand}"
                         CommandParameter="own">
                     <TextBlock x:Uid="ShellMenu_Own" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
@@ -94,8 +99,9 @@
 
             </StackPanel>
         </Grid>
-        
+
         <views:PlayBar x:Name="PlayerBar"
+                       Visibility="{x:Bind UiHelper.PlayBarShow, Mode=OneWay}"
                        VerticalAlignment="Bottom" />
         <SplitView Name="PlayQueueBar"
                    BorderThickness="0" CornerRadius="12,0,0,12"
