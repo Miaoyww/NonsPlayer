@@ -24,7 +24,6 @@ public sealed partial class LyricCardViewModel : ObservableObject
 
     public LyricCardViewModel()
     {
-        Foreground = new SolidColorBrush(Color.FromArgb(255, 240, 240, 240));
         LyricHelper.Instance.LyricChanged += OnLyricChanged;
     }
 

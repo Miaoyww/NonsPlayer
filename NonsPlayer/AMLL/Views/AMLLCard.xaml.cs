@@ -1,10 +1,13 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using NonsPlayer.AMLL.Helpers;
 using NonsPlayer.AMLL.ViewModels;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
+using Windows.Foundation;
+using Windows.UI.Core;
 
 namespace NonsPlayer.AMLL.Views;
 
@@ -53,58 +56,40 @@ public sealed partial class AMLLCard : UserControl
     {
         try
         {
-            try
+            if (LyricHelper.Instance.LyricPosition == -1)
             {
-                if (LyricHelper.Instance.LyricPosition == -1)
-                {
-                    LyricBoxContainer.ChangeView(null, 0, null, false);
-                    return;
-                }
-
-                var item = LyricBox.Items[LyricHelper.Instance.LyricPosition];
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    LyricBox.ScrollIntoView(item);
-                });
-            }
-            catch (Exception ex)
-            {
-                // Log the error if needed
+                LyricBoxContainer.ChangeView(null, 0, null, false);
+                return;
             }
 
-            // var item = ViewModel.LyricItems[ViewModel.LyricPosition];
-            // var k = LyricBox.ItemsSourceView.IndexOf(item);
-            // UIElement actualElement;
-            // bool isNewLoaded = false;
-            // if (LyricBox.TryGetElement(k) is { } ele)
-            // {
-            //     actualElement = ele;
-            // }
-            // else
-            // {
-            //     actualElement = LyricBox.GetOrCreateElement(k) as Border;
-            //     isNewLoaded = true;
-            // }
-            //
-            // if (actualElement != null && item != null &&
-            //     !string.IsNullOrEmpty(item.LyricItemModel.Lyric.Pure))
-            // {
-            //     actualElement.UpdateLayout();
-            //     actualElement.StartBringIntoView();
-            //
-            //     if (!isNewLoaded)
-            //     {
-            //         var transform = actualElement?.TransformToVisual((UIElement)LyricBoxContainer.ContentTemplateRoot);
-            //         var position = transform?.TransformPoint(new Windows.Foundation.Point(0, 0));
-            //         LyricBoxContainer.ChangeView(0,
-            //             (position?.Y + LyricHost.Margin.Top - MainGrid.ActualHeight / 4) - 200, 1,
-            //             false);
-            //     }
-            //     else
-            //     {
-            //         // actualElement.StartBringIntoView(NoAnimationBringIntoViewOptions);
-            //     }
-            // }
+            var item = ViewModel.LyricItems[LyricHelper.Instance.LyricPosition];
+            var k = LyricBox.ItemsSourceView.IndexOf(item);
+            UIElement actualElement;
+            bool isNewLoaded = false;
+            if (LyricBox.TryGetElement(k) is { } ele)
+            {
+                actualElement = ele;
+            }
+            else
+            {
+                actualElement = LyricBox.GetOrCreateElement(k) as Border;
+                isNewLoaded = true;
+            }
+
+            actualElement.UpdateLayout();
+
+            if (!isNewLoaded)
+            {
+                var transform = actualElement?.TransformToVisual((UIElement)LyricBoxContainer.ContentTemplateRoot);
+                var position = transform?.TransformPoint(new Windows.Foundation.Point(0, 0));
+                LyricBoxContainer.ChangeView(0,
+                    (position?.Y + LyricHost.Margin.Top - MainGrid.ActualHeight / 4) - 200, 1,
+                    false);
+            }
+            else
+            {
+                // actualElement.StartBringIntoView(NoAnimationBringIntoViewOptions);
+            }
         }
         catch
         {

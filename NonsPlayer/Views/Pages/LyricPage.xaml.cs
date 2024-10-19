@@ -23,6 +23,10 @@ public sealed partial class LyricPage : Page
         InitializeComponent();
         Player.Instance.PositionChanged += OnPositionChanged;
         Player.Instance.MusicChanged += OnMusicChanged;
+        if (MusicStateModel.Instance.CurrentMusic != null)
+        {
+            OnMusicChanged(MusicStateModel.Instance.CurrentMusic);
+        }
     }
 
     private ColorThief colorThief = new();

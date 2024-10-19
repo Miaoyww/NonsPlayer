@@ -16,10 +16,9 @@
                       VerticalScrollBarVisibility="Hidden"
                       HorizontalScrollMode="Disabled">
             <Grid x:Name="LyricHost">
-                <ListView x:Name="LyricBox"
-                          ItemsSource="{x:Bind ViewModel.LyricItems, Mode=OneWay}"
-                          SelectionMode="None">
-                    <ListView.ItemTemplate>
+                <ItemsRepeater x:Name="LyricBox"
+                               ItemsSource="{x:Bind ViewModel.LyricItems, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="models:LyricCombiner">
                             <Border Margin="0,40,0,10">
                                 <views:LyricCard
@@ -32,8 +31,8 @@
                                     Index="{x:Bind Index}" />
                             </Border>
                         </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
             </Grid>
 
         </ScrollViewer>
