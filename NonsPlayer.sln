@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32804.467
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NonsPlayer", "NonsPlayer\NonsPlayer.csproj", "{803AEE18-AC5A-426D-B41A-D5115C5F9A58}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NonsPlayer", "src\NonsPlayer\NonsPlayer.csproj", "{803AEE18-AC5A-426D-B41A-D5115C5F9A58}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NonsPlayer.Core", "NonsPlayer.Core\NonsPlayer.Core.csproj", "{4F8E4835-D244-4999-8ACC-8F1A2D9DD8E1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NonsPlayer.Core", "src\NonsPlayer.Core\NonsPlayer.Core.csproj", "{4F8E4835-D244-4999-8ACC-8F1A2D9DD8E1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NonsPlayer.Updater", "NonsPlayer.Updater\NonsPlayer.Updater.csproj", "{750DDD97-204B-46EB-90DC-17148DA7D785}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NonsPlayer.Updater", "src\NonsPlayer.Updater\NonsPlayer.Updater.csproj", "{750DDD97-204B-46EB-90DC-17148DA7D785}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NonsPlayer.Launcher", "NonsPlayer.Launcher\NonsPlayer.Launcher.vcxproj", "{3A19539D-2A99-419E-9DBB-05C98409A8AC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NonsPlayer.Launcher", "src\NonsPlayer.Launcher\NonsPlayer.Launcher.vcxproj", "{3A19539D-2A99-419E-9DBB-05C98409A8AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
