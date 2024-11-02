@@ -22,24 +22,24 @@
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0"
                        Text="#"
-                       Style="{StaticResource CommonTextStyle}"
+                       Style="{ThemeResource CommonTextStyle}"
                        FontSize="15"
                        FontWeight="Medium" />
             <TextBlock Grid.Column="1"
                        Margin="102,0,0,0"
                        x:Name="TitleTextBlock"
-                       Style="{StaticResource CommonTextStyle}"
+                       Style="{ThemeResource CommonTextStyle}"
                        FontSize="15"
                        FontWeight="Medium" />
             <TextBlock Grid.Column="2"
                        x:Uid="MusicListBar_Album"
-                       Style="{StaticResource CommonTextStyle}"
+                       Style="{ThemeResource CommonTextStyle}"
                        FontSize="15"
                        FontWeight="Medium"
                        Margin="40,0,0,0" />
             <TextBlock Grid.Column="3"
                        x:Uid="MusicListBar_Duration"
-                       Style="{StaticResource CommonTextStyle}"
+                       Style="{ThemeResource CommonTextStyle}"
                        FontSize="15"
                        FontWeight="Medium" />
         </Grid>

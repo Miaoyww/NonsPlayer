@@ -7,8 +7,10 @@
     xmlns:winUi="using:CommunityToolkit.WinUI"
     mc:Ignorable="d">
     <Border Name="Login"
-            Height="350" Width="350" CornerRadius="{StaticResource CustomCornerRadius}"
-            VerticalAlignment="Center" HorizontalAlignment="Center"
+            Height="350" Width="350" 
+            CornerRadius="{StaticResource CustomCornerRadius}"
+            VerticalAlignment="Center" 
+            HorizontalAlignment="Center"
             Padding="0,40,0,0">
         <Grid Name="TokenCard">
             <Grid.RowDefinitions>

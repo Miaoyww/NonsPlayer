@@ -7,7 +7,7 @@
     xmlns:winUi="using:CommunityToolkit.WinUI"
     mc:Ignorable="d"
     Unloaded="{x:Bind ViewModel.HitokotoCard_OnUnloaded}">
-    <Border Background="{StaticResource ComponentsCardBackground}"
+    <Border Background="{ThemeResource ComponentsCardBackground}"
             CornerRadius="20">
         <Grid Grid.Row="0" Margin="20">
             <Grid.ColumnDefinitions>
@@ -17,7 +17,6 @@
             <StackPanel Grid.Column="0">
                 <TextBlock x:Uid="HitokotoCard"
                            Style="{StaticResource CommonTextStyle}"
-                           Foreground="{StaticResource CommonTextColor}"
                            FontWeight="Medium" FontSize="25"
                            VerticalAlignment="Center" />
                 <TextBlock Text="HITOKOTO" FontSize="20"
@@ -25,8 +24,7 @@
                            VerticalAlignment="Center" />
             </StackPanel>
             <RichTextBlock Grid.Column="1" Margin="30,0,0,0" VerticalAlignment="Center" Width="400"
-                           Style="{StaticResource CommonRichTextStyle}" MaxLines="2"
-                           Foreground="{StaticResource CommonTextColor}">
+                           Style="{StaticResource CommonRichTextStyle}" MaxLines="2">
                 <Paragraph>
                     <Run Text="{x:Bind ViewModel.Hitokoto, Mode=OneWay}" />
                 </Paragraph>

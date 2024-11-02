@@ -10,7 +10,7 @@
     Unloaded="OnUnloaded"
     SizeChanged="ShellPage_OnSizeChanged"
     mc:Ignorable="d">
-    <Grid>
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Frame x:Name="NavigationFrame" Margin="0,0,0,0" />
         <Grid x:Name="TitlebarArea"
               VerticalAlignment="Top"
@@ -45,7 +45,11 @@
                 </Grid>
                 <Grid x:Name="SearchBar" Grid.Column="1" Margin="10,0,0,0">
                     <StackPanel Orientation="Horizontal">
-                        <Button Name="NavigateBack" Width="30" Height="30" Padding="0"
+                        <Button Name="NavigateBack" 
+                                Width="30" 
+                                Height="30" 
+                                Padding="0"
+                                Margin="0,0,10,0"
                                 BorderThickness="0" Background="Transparent"
                                 Command="{x:Bind ViewModel.GoBackCommand, Mode=OneWay}">
                             <FontIcon Glyph="&#xE973;" />

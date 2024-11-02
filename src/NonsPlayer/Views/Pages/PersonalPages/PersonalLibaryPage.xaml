@@ -33,7 +33,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Border
-                Background="{StaticResource ComponentsCardBackground}"
+                Background="{ThemeResource ComponentsCardBackground}"
                 CornerRadius="{StaticResource CustomCornerRadius}">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -41,7 +41,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock
-                        Style="{StaticResource CommonTextStyle}"
+                        Style="{ThemeResource CommonTextStyle}"
                         Margin="20"
                         Text="{x:Bind ViewModel.Lyric, Mode=OneWay}" />
                     <Grid Grid.Row="1" Margin="20,0,20,0">
@@ -55,12 +55,12 @@
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <TextBlock Grid.Row="0"
-                                       Style="{StaticResource CommonTextStyle}"
+                                       Style="{ThemeResource CommonTextStyle}"
                                        FontWeight="Medium" FontSize="20"
                                        Text="Liked Songs" />
                             <TextBlock Grid.Row="1"
                                        Margin="0,10,0,0"
-                                       Style="{StaticResource CommonTextStyle}">
+                                       Style="{ThemeResource CommonTextStyle}">
                                 <Run Text="{x:Bind ViewModel.FavoriteCount, Mode=OneWay}" />
                                 <Run Text=" Tracks" />
                             </TextBlock>

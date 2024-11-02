@@ -57,7 +57,7 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
                         <RichTextBlock Grid.Row="0" x:Name="Name"
-                                       Style="{StaticResource CommonRichTextStyle}"
+                                       Style="{ThemeResource CommonRichTextStyle}"
                                        TextTrimming="WordEllipsis" FontSize="35" CanDrag="True"
                                        HorizontalAlignment="Left" VerticalAlignment="Top">
                             <Paragraph>
@@ -72,7 +72,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Name="MusicsCount"
                                        Text="{x:Bind ViewModel.MusicsCount, Mode=OneWay}"
-                                       Style="{StaticResource CommonTextStyle}"
+                                       Style="{ThemeResource CommonTextStyle}"
                                        HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="13"
                                        Opacity="0.6" />
                             <TextBlock Grid.Column="1" Name="Creator"
@@ -80,13 +80,13 @@
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Top"
                                        FontSize="13"
-                                       Style="{StaticResource CommonTextStyle}"
+                                       Style="{ThemeResource CommonTextStyle}"
                                        Opacity="0.6"
                                        Margin="5,0,0,0"
                                        Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}" />
                             <TextBlock Grid.Column="2" Name="CreateTime"
                                        Text="{x:Bind ViewModel.CreateTime, Mode=OneWay}"
-                                       Style="{StaticResource CommonTextStyle}"
+                                       Style="{ThemeResource CommonTextStyle}"
                                        HorizontalAlignment="Right"
                                        VerticalAlignment="Top"
                                        FontSize="13"
@@ -95,7 +95,7 @@
                         </Grid>
                         <Grid Grid.Row="2" Height="80" Margin="0,10,0,0" Width="600" HorizontalAlignment="Left">
                             <RichTextBlock Name="Description"
-                                           Style="{StaticResource CommonRichTextStyle}"
+                                           Style="{ThemeResource CommonRichTextStyle}"
                                            VerticalAlignment="Top"
                                            TextWrapping="Wrap"
                                            FontSize="15"
@@ -117,7 +117,7 @@
                                                   Glyph="&#xF5B0;"
                                                   FontSize="16" />
                                         <TextBlock VerticalAlignment="Center" x:Uid="PlaylistTips_PlayAll"
-                                                   Style="{StaticResource CommonTextStyle}"
+                                                   Style="{ThemeResource CommonTextStyle}"
                                                    FontSize="14" />
                                     </StackPanel>
                                 </Button>

@@ -7,7 +7,7 @@
     mc:Ignorable="d"
     Tapped="{x:Bind ViewModel.RecommendedPlaylistCard_OnTapped}">
     <Border
-        Background="{StaticResource ComponentsCardBackground}"
+        Background="{ThemeResource ComponentsCardBackground}"
         CornerRadius="20" Width="500" Height="200">
         <Grid>
             <Grid.Resources>
@@ -32,11 +32,12 @@
                 <TextBlock x:Name="RecommendedPlaylistTextBlock"
                            Margin="20,10,0,0"
                            Style="{StaticResource CommonTextStyle}"
-                           Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="40" CharacterSpacing="300" />
+                           FontSize="40" 
+                           CharacterSpacing="300" />
 
                 <TextBlock x:Uid="RecommendedPlaylistCardTip"
                            Style="{StaticResource EnglishTextStyle}"
-                           Foreground="{x:Bind ViewModel.FontColor, Mode=OneWay}" FontSize="24"
+                           FontSize="24"
                            VerticalAlignment="Center" HorizontalAlignment="Center"
                            Visibility="{x:Bind ViewModel.TipVisibility, Mode=OneWay}" />
             </StackPanel>

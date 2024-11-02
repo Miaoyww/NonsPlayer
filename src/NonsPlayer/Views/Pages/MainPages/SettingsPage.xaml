@@ -11,24 +11,76 @@
     <Grid>
         <ScrollViewer>
             <Grid Margin="{StaticResource PageCommonMargin}">
-                <Grid Margin="{StaticResource PageContentCommonMargin}">
+                <Grid Margin="{StaticResource SettingsContentMargin}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <TextBlock x:Uid="Settings_Settings" FontWeight="Bold" FontSize="30"
-                               Margin="20,20,0,0" />
+                    <Grid Margin="20,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Image Grid.Row="0"
+                               Source="ms-appx:///Assets/NonsPlayer-Icon-Miaoyww.svg"
+                               Width="200"
+                               Margin="-23,0,0,0"
+                               HorizontalAlignment="Left" />
+                        <TextBlock Text="NonsPlayer"
+                                   Grid.Row="1"
+                                   Style="{StaticResource CommonTextStyle}"
+                                   FontWeight="Bold" 
+                                   FontSize="20"/>
+                        <TextBlock Grid.Row="2"
+                                   Style="{StaticResource CommonTextStyle}"
+                                   Margin="0,10,0,0"
+                                   FontSize="16">
+                            <Run x:Uid="Settings_CurrentVersion"/>
+                            <Run Text="{x:Bind ViewModel.CurrentVersion, Mode=OneWay}"
+                                 Foreground="{StaticResource IconActiveColor}"/>
+                        </TextBlock>
+                    </Grid>
+
                     <StackPanel Grid.Row="1" Margin="20">
+                        <toolkit:SettingsExpander x:Uid="Settings_General"
+                                                  Margin="0,0,0,5"
+                                                  Style="{StaticResource CustomSettingsExpander}"
+                                                  HeaderIcon="{ui:FontIcon Glyph=&#xE713;}">
+                            <toolkit:SettingsExpander.Items>
+                                <toolkit:SettingsCard x:Uid="Settings_Version"
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Margin="10,0,0,0" Command="{x:Bind ViewModel.CheckUpdateCommand}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <FontIcon Glyph="&#xE752;" FontSize="16" Margin="0,0,5,0" />
+                                                <TextBlock x:Uid="Settings_Version_CheckUpdate"
+                                                           FontSize="14" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Uid="Settings_Version_Test"
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <Button Margin="10,0,0,0"
+                                            Command="{x:Bind ViewModel.TestCommand}">
+                                        <TextBlock FontSize="14"
+                                                   x:Uid="Settings_Version_TestButton" />
+                                    </Button>
+                                </toolkit:SettingsCard>
+                            </toolkit:SettingsExpander.Items>
+
+                        </toolkit:SettingsExpander>
                         <toolkit:SettingsExpander x:Uid="Settings_Personalize"
                                                   Margin="0,0,0,5"
                                                   Style="{StaticResource CustomSettingsExpander}"
                                                   HeaderIcon="{ui:FontIcon Glyph=&#xE771;}">
                             <toolkit:SettingsExpander.Items>
                                 <toolkit:SettingsCard x:Uid="Settings_Personalize_Theme"
-                                                      Style="{StaticResource CustomSettingsCard}"
-                                                      Description="Incomplete">
-                                    <ComboBox SelectedIndex="0">
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <ComboBox x:Name="ThemeComboBox" 
+                                              SelectionChanged="ThemeComboBox_OnSelectionChanged">
                                         <ComboBox.Items>
                                             <TextBlock x:Uid="Settings_Personalize_Theme_FollowSystem" />
                                             <TextBlock x:Uid="Settings_Personalize_Theme_Light" />
@@ -98,15 +150,14 @@
                                                       FontSize="14" />
                                             <TextBlock x:Name="ArtistSepTextBlock"
                                                        Margin="10,0,0,0"
-                                                       FontSize="14"
-                                                       Style="{StaticResource CommonTextStyle}" />
+                                                       FontSize="14"/>
                                         </StackPanel>
                                     </Button>
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_OtherSettings_HomeRecommendedCount"
                                                       Style="{StaticResource CustomSettingsCard}">
                                     <NumberBox Text="{x:Bind ViewModel.RecommendedCount, Mode=TwoWay}"
-                                               PreviewKeyDown="OnPreviewKeyDown"/>
+                                               PreviewKeyDown="OnPreviewKeyDown" />
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_OtherSettings_TrackCount"
                                                       Style="{StaticResource CustomSettingsCard}">
@@ -130,48 +181,6 @@
 
                             </toolkit:SettingsExpander.Items>
                         </toolkit:SettingsExpander>
-                        <toolkit:SettingsExpander Margin="0,0,0,5"
-                                                  Header="NonsPlayer"
-                                                  Style="{StaticResource CustomSettingsExpander}"
-                                                  HeaderIcon="{ui:BitmapIcon Source=ms-appx:///Assets/NonsPlayer.png}">
-                            <toolkit:SettingsExpander.Items>
-                                <toolkit:SettingsCard x:Uid="Settings_Version"
-                                                      Style="{StaticResource CustomSettingsCard}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}"
-                                                   Style="{StaticResource CommonTextStyle}"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                   FontSize="13" FontWeight="Normal" />
-                                        <Button Margin="10,0,0,0" Command="{x:Bind ViewModel.CheckUpdateCommand}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <FontIcon Glyph="&#xE752;" FontSize="16" Margin="0,0,5,0" />
-                                                <TextBlock x:Uid="Settings_Version_CheckUpdate"
-                                                           Style="{StaticResource CommonTextStyle}" FontSize="14" />
-                                            </StackPanel>
-                                        </Button>
-                                    </StackPanel>
-                                </toolkit:SettingsCard>
-                                <toolkit:SettingsCard x:Uid="Settings_Version_Test"
-                                                      Style="{StaticResource CustomSettingsCard}">
-                                    <Button Margin="10,0,0,0"
-                                            Command="{x:Bind ViewModel.TestCommand}">
-                                        <TextBlock Style="{StaticResource CommonTextStyle}"
-                                                   FontSize="14"
-                                                   x:Uid="Settings_Version_TestButton" />
-                                    </Button>
-                                </toolkit:SettingsCard>
-                                <toolkit:SettingsCard>
-                                    <toolkit:SettingsCard.Header>
-                                        <HyperlinkButton x:Uid="SettingsPage_GithubLink" />
-                                    </toolkit:SettingsCard.Header>
-                                </toolkit:SettingsCard>
-                                <toolkit:SettingsCard>
-                                    <toolkit:SettingsCard.Header>
-                                        <HyperlinkButton x:Uid="SettingsPage_BilibiliLink" />
-                                    </toolkit:SettingsCard.Header>
-                                </toolkit:SettingsCard>
-                            </toolkit:SettingsExpander.Items>
-                        </toolkit:SettingsExpander>
 
                     </StackPanel>
                     <Grid Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,120">
@@ -190,7 +199,11 @@
                                            HorizontalTextAlignment="Center" />
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
                                             VerticalAlignment="Center">
-                                    <HyperlinkButton x:Uid="SettingsPage_GithubLink" />
+                                    <HyperlinkButton x:Uid="SettingsPage_GithubLink">
+                                        <ImageIcon HorizontalAlignment="Left"
+                                                   Source="ms-appx:///Assets/Icons/github-mark.svg"
+                                                   Width="20" />
+                                    </HyperlinkButton>
                                     <HyperlinkButton x:Uid="SettingsPage_BilibiliLink" />
                                 </StackPanel>
                             </StackPanel>

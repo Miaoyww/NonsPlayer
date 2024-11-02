@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:winUi="using:CommunityToolkit.WinUI"
     mc:Ignorable="d">
-    <Border Background="{StaticResource ComponentsCardBackground}"
+    <Border Background="{ThemeResource ComponentsCardBackground}"
             CornerRadius="20">
         <Grid Grid.Row="0" Margin="20">
             <Grid.ColumnDefinitions>
@@ -24,7 +24,8 @@
             </StackPanel>
             <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.TotalListen, Mode=OneWay}"
                        Style="{StaticResource CommonTextStyle}"
-                       FontWeight="Bold" FontSize="38" Foreground="#3662EC"
+                       FontWeight="Bold" FontSize="38" 
+                       Foreground="{ThemeResource IconActiveColor}"
                        VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20,0,0,0" />
         </Grid>
     </Border>

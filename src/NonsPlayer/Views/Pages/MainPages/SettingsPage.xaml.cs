@@ -5,9 +5,11 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
+using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Dialogs;
 using NonsPlayer.Helpers;
+using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -22,14 +24,34 @@ public sealed partial class SettingsPage : Page
         ViewModel = App.GetService<SettingsViewModel>();
         NonsPlayerIco = new ImageBrush { ImageSource = new BitmapImage(new Uri("ms-appx:///Assets/NonsPlayer.png")) };
         InitializeComponent();
-        RefreshAdapterInfo();
         ArtistSepSettingsCard.Header = "ArtistSep".GetLocalized();
         ArtistSepTextBlock.Text = "ArtistSepManage".GetLocalized();
+
+        Init();
     }
 
     public SettingsViewModel ViewModel { get; }
     public ImageBrush NonsPlayerIco;
     private ControlService _controlService = App.GetService<ControlService>();
+    private IThemeSelectorService themeSelectorService = App.GetService<IThemeSelectorService>();
+
+    private void Init()
+    {
+        RefreshAdapterInfo();
+
+        switch (themeSelectorService.Theme)
+        {
+            case ElementTheme.Light:
+                ThemeComboBox.SelectedIndex = 1;
+                break;
+            case ElementTheme.Dark:
+                ThemeComboBox.SelectedIndex = 2;
+                break;
+            default:
+                ThemeComboBox.SelectedIndex = 0;
+                break;
+        }
+    }
 
     private void RefreshAdapterInfo()
     {
@@ -82,9 +104,9 @@ public sealed partial class SettingsPage : Page
                 {
                     ConfigManager.Instance.Settings.LocalArtistSep.Add(artistSeparator.Text);
                 }
+
                 ConfigManager.Instance.Save();
             }
-
         }
     }
 
@@ -117,12 +139,31 @@ public sealed partial class SettingsPage : Page
             ((NumberBox)sender).Text = "0";
             e.Handled = true;
         }
-
     }
 
     private static bool IsTextAllowed(string text)
     {
         var regex = new Regex(@"^[0-9]\d*$");
         return regex.IsMatch(text);
+    }
+
+    private void ThemeComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var index = ((ComboBox)sender).SelectedIndex;
+        switch (index)
+        {
+            case 0:
+                themeSelectorService.SetTheme(ElementTheme.Default);
+                break;
+            case 1:
+                themeSelectorService.SetTheme(ElementTheme.Light);
+                break;
+            case 2:
+                themeSelectorService.SetTheme(ElementTheme.Dark);
+                break;
+            default:
+                themeSelectorService.SetTheme(ElementTheme.Default);
+                break;
+        }
     }
 }

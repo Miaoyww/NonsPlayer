@@ -22,6 +22,7 @@ public partial class SettingsViewModel : ObservableRecipient, INavigationAware
     private readonly VersionService _versionService = App.GetService<VersionService>();
 
     [ObservableProperty] private string versionDescription;
+    [ObservableProperty] private string currentVersion;
     [ObservableProperty] private string playListLoadOffset;
     [ObservableProperty] private string trackCount;
     [ObservableProperty] private string recommendedCount;
@@ -34,8 +35,8 @@ public partial class SettingsViewModel : ObservableRecipient, INavigationAware
 
     public void RefreshInfo()
     {
-        VersionDescription = _versionService.CurrentVersionDescription;
-
+        VersionDescription = _versionService.CurrentVersionDescription; 
+        CurrentVersion = _versionService.CurrentVersion;
         PlayListLoadOffset = AppConfig.Instance.AppSettings.PlaylistLoadOffset.ToString();
         TrackCount = AppConfig.Instance.AppSettings.PlaylistTrackCount.ToString();
         RecommendedCount = AppConfig.Instance.AppSettings.RecommendedPlaylistCount.ToString();

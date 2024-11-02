@@ -144,7 +144,6 @@ public partial class App : Application
                 services.AddTransient<LocalArtistListBarViewModel>();
                 #endregion
 
-
                 // Lyric
                 services.AddTransient<LyricViewModel>();
                 services.AddTransient<LyricCardViewModel>();
@@ -153,7 +152,6 @@ public partial class App : Application
         GetService<IAppNotificationService>().Initialize();
         UnhandledException += App_UnhandledException;
         
-
         #region Config
 
         Log.Information($"Start loading config, current config path:{ConfigManager.Instance.Settings.ConfigFilePath}");

@@ -7,7 +7,7 @@
     xmlns:winUi="using:CommunityToolkit.WinUI"
     mc:Ignorable="d"
     Unloaded="{x:Bind ViewModel.GreetingsCard_OnUnloaded}">
-    <Border Background="{StaticResource ComponentsCardBackground}"
+    <Border Background="{ThemeResource ComponentsCardBackground}"
             CornerRadius="20">
         <Grid Grid.Row="0" Margin="20">
             <TextBlock FontSize="30"
@@ -16,7 +16,9 @@
                        VerticalAlignment="Center" HorizontalAlignment="Left" />
             <TextBlock Text="{x:Bind ViewModel.TimeString, Mode=OneWay}"
                        Style="{StaticResource CommonTextStyle}"
-                       FontWeight="Bold" FontSize="30" Foreground="#3662EC"
+                       FontWeight="Bold" 
+                       FontSize="30"
+                       Foreground="{ThemeResource IconActiveColor}"
                        VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,10,0" />
         </Grid>
     </Border>

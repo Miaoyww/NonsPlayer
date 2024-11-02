@@ -60,13 +60,13 @@ public class ActivationService : IActivationService
 
     private async Task InitializeAsync()
     {
-        await _themeSelectorService.InitializeAsync().ConfigureAwait(false);
+        _themeSelectorService.Initialize();
         await Task.CompletedTask;
     }
 
     private async Task StartupAsync()
     {
-        await _themeSelectorService.SetRequestedThemeAsync();
+        _themeSelectorService.SetRequestedTheme();
         await Task.CompletedTask;
     }
 }

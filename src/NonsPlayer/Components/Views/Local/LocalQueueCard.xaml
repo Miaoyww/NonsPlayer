@@ -8,7 +8,7 @@
     Tapped="UIElement_OnTapped">
     <Border Name="OpenQueueCard"
             CornerRadius="{StaticResource CustomCornerRadius}"
-            Background="{StaticResource ComponentsCardBackground}">
+            Background="{ThemeResource ComponentsCardBackground}">
         <Grid Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
@@ -17,6 +17,7 @@
             <ImageIcon Grid.Row="0"
                        HorizontalAlignment="Left"
                        Source="ms-appx:///Assets/Icons/queue-music.svg"
+                       Foreground="{ThemeResource CommonTextColor}"
                        Width="45" />
             <StackPanel Grid.Row="1">
                 <TextBlock

@@ -9,7 +9,7 @@
         <Setter Property="FontFamily" Value="HarmonyOS Sans SC" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextWrapping" Value="WrapWholeWords" />
-        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}" />
+        <Setter Property="Foreground" Value="{ThemeResource CommonTextColor}" />
         <Setter Property="FontWeight" Value="Normal" />
     </Style>
 
@@ -18,7 +18,7 @@
         <Setter Property="FontFamily" Value="HarmonyOS Sans SC" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="TextWrapping" Value="WrapWholeWords" />
-        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}" />
+        <Setter Property="Foreground" Value="{ThemeResource CommonTextColor}" />
         <Setter Property="FontWeight" Value="Normal" />
     </Style>
 
@@ -46,7 +46,7 @@
 
     <Style x:Key="EnglishTextStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="Novecento" />
-        <Setter Property="Foreground" Value="{StaticResource CommonTextColor}" />
+        <Setter Property="Foreground" Value="{ThemeResource CommonTextColor}" />
     </Style>
 
     <Style x:Key="CustomMenuFlyoutSubItem" TargetType="MenuFlyoutSubItem">

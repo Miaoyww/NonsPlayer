@@ -123,10 +123,6 @@
   <data name="AppDescription" xml:space="preserve">
     <value>NonsPlayer</value>
   </data>
-  <data name="Main_Title.Text" xml:space="preserve">
-    <value>Main</value>
-    <comment>Page title for MainPage</comment>
-  </data>
   <data name="SettingsPage_GithubLink.Content" xml:space="preserve">
     <value>Github</value>
     <comment>设置页面 超链接文本 Github</comment>
@@ -153,14 +149,6 @@
     &lt;action content="Settings" arguments="action=Settings"/&gt;
   &lt;/actions&gt;
 &lt;/toast&gt;</value>
-  </data>
-  <data name="Home_Title.Text" xml:space="preserve">
-    <value>Home</value>
-    <comment>Page title for HomePage</comment>
-  </data>
-  <data name="Explore_Title.Text" xml:space="preserve">
-    <value>Explore</value>
-    <comment>Page title for ExplorePage</comment>
   </data>
   <data name="ShellMenu_Explore.Text" xml:space="preserve">
     <value>发现</value>
@@ -329,17 +317,20 @@
   <data name="Settings_Personalize_Theme_Light.Text" xml:space="preserve">
     <value>亮色</value>
   </data>
-  <data name="Settings_Settings.Text" xml:space="preserve">
-    <value>设置</value>
+  <data name="Settings_CurrentVersion.Text" xml:space="preserve">
+    <value>当前版本:</value>
   </data>
   <data name="Settings_Version.Header" xml:space="preserve">
-    <value>当前版本</value>
+    <value>版本检查更新</value>
   </data>
   <data name="Settings_Version_CheckUpdate.Text" xml:space="preserve">
     <value>检查更新</value>
   </data>
   <data name="Settings_Version_Test.Header" xml:space="preserve">
-    <value>测试</value>
+    <value>程序测试</value>
+  </data>
+  <data name="Settings_Version_Test.Description" xml:space="preserve">
+    <value>测试专用，非开发人员请勿轻易尝试</value>
   </data>
   <data name="Settings_Version_TestButton.Text" xml:space="preserve">
     <value>测试按钮</value>
@@ -565,5 +556,8 @@
   </data>
   <data name="AddNew" xml:space="preserve">
     <value>新增</value>
+  </data>
+  <data name="Settings_General.Header" xml:space="preserve">
+    <value>通用首选项</value>
   </data>
 </root>
