@@ -34,40 +34,51 @@ public sealed partial class AMLLCard : UserControl
 
     private void OnPositionChanged(TimeSpan time)
     {
-        // 获取当前和下一个歌词
-        var currentLyric = ViewModel.LyricItems[LyricHelper.Instance.LyricPosition];
-        var nextLyric = LyricHelper.Instance.LyricPosition < ViewModel.LyricItems.Count - 1
-            ? ViewModel.LyricItems[LyricHelper.Instance.LyricPosition + 1]
-            : null;
-
-        // 当前歌词开始和结束时间
-        var startTime = currentLyric.LyricItemModel.Lyric.StartTime;
-        var endTime = nextLyric?.LyricItemModel.Lyric.StartTime ?? TimeSpan.MaxValue;
-
-        // 判断当前时间是否在当前歌词的时间范围内
-        if (time >= startTime && time < endTime)
+        try
         {
-            // 时间在当前歌词的时间范围内，继续显示当前歌词
-            LyricHelper.Instance.LyricChanged.Invoke(currentLyric.LyricItemModel.Lyric);
-        }
-        else
-        {
-            // 时间超出了当前歌词的范围，需要更新歌词位置
-            if (time >= endTime && LyricHelper.Instance.LyricPosition < ViewModel.LyricItems.Count - 1)
+            // 获取当前和下一个歌词
+            if (LyricHelper.Instance.LyricPosition > ViewModel.LyricItems.Count - 1)
             {
-                LyricHelper.Instance.LyricPosition++;
+                return;
             }
-            else if (time < startTime && LyricHelper.Instance.LyricPosition > 0)
-            {
-                LyricHelper.Instance.LyricPosition--;
-            }
+            var currentLyric = ViewModel.LyricItems[LyricHelper.Instance.LyricPosition];
+            var nextLyric = LyricHelper.Instance.LyricPosition < ViewModel.LyricItems.Count - 1
+                ? ViewModel.LyricItems[LyricHelper.Instance.LyricPosition + 1]
+                : null;
 
-            // 更新歌词
-            DispatcherQueue.TryEnqueue(() =>
+            // 当前歌词开始和结束时间
+            var startTime = currentLyric.LyricItemModel.Lyric.StartTime;
+            var endTime = nextLyric?.LyricItemModel.Lyric.StartTime ?? TimeSpan.MaxValue;
+
+            // 判断当前时间是否在当前歌词的时间范围内
+            if (time >= startTime && time < endTime)
             {
-                ScrollLyric();
-            });
+                // 时间在当前歌词的时间范围内，继续显示当前歌词
+                LyricHelper.Instance.LyricChanged.Invoke(currentLyric.LyricItemModel.Lyric);
+            }
+            else
+            {
+                // 时间超出了当前歌词的范围，需要更新歌词位置
+                if (time >= endTime && LyricHelper.Instance.LyricPosition < ViewModel.LyricItems.Count - 1)
+                {
+                    LyricHelper.Instance.LyricPosition++;
+                }
+                else if (time < startTime && LyricHelper.Instance.LyricPosition > 0)
+                {
+                    LyricHelper.Instance.LyricPosition--;
+                }
+
+                // 更新歌词
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    ScrollLyric();
+                });
+            }
+        }catch
+        {
+            // ignore
         }
+        
     }
 
     private int CalculateLyricPosition(TimeSpan time)
