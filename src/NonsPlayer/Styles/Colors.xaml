@@ -15,7 +15,6 @@
             <SolidColorBrush x:Key="ComponentsCardBackground">#edebe9</SolidColorBrush>
             <SolidColorBrush x:Key="IconCommonColor">#3D3D3D</SolidColorBrush>
             <SolidColorBrush x:Key="IconActiveColor">#3662EC</SolidColorBrush>
-
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
             <SolidColorBrush x:Key="CommonTextColor">#f3f2f1</SolidColorBrush>

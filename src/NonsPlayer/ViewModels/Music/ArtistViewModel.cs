@@ -32,15 +32,20 @@ public partial class ArtistViewModel : ObservableRecipient, INavigationAware
     public void OnNavigatedTo(object parameter)
     {
         CurrentArtist = (IArtist)parameter;
-        Songs = CurrentArtist.Songs.ToList();
+        if (CurrentArtist.Songs != null)
+        {
+            Songs = CurrentArtist.Songs.ToList();
+            MusicsCount = Songs.Count + " Tracks";
+        }
+
         Name = CurrentArtist.Name;
-        MusicsCount = Songs.Count + " Tracks";
         Task.Run(Init);
     }
 
     private async Task Init()
     {
-        InitMusicsAsync();
+
+        if (CurrentArtist.Songs != null) InitMusicsAsync();
 
         if (CurrentArtist is LocalArtist)
         {

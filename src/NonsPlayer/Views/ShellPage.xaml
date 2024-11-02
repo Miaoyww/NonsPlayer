@@ -123,11 +123,11 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock
                                         x:Uid="PlayQueue"
-                                        Style="{StaticResource CommonTextStyle}" FontWeight="Black"
+                                        Style="{ThemeResource CommonTextStyle}" FontWeight="Black"
                                         HorizontalAlignment="Left" Margin="20,10,0,0" />
                                     <TextBlock
                                         Text="{x:Bind PlayQueueBarViewModel.Count, Mode=OneWay}"
-                                        FontSize="16" Style="{StaticResource CommonTextStyle}"
+                                        FontSize="16" Style="{ThemeResource CommonTextStyle}"
                                         FontWeight="Medium"
                                         HorizontalAlignment="Left" Margin="2,10,0,0" />
                                 </StackPanel>

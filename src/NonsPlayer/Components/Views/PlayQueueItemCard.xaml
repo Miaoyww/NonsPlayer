@@ -23,12 +23,13 @@
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch"
                             Margin="20,2,0,0">
                     <TextBlock Name="TitleTextBlock" Text="{x:Bind Name, Mode=OneWay}"
-                               Style="{StaticResource CommonTextStyle}"
+                               Style="{ThemeResource CommonTextStyle}"
                                HorizontalAlignment="Left" VerticalAlignment="Top"
                                FontWeight="Black" FontSize="15" MaxLines="2"
                                TextAlignment="Left" TextTrimming="WordEllipsis" TextWrapping="Wrap" />
                     <controls:MetadataControl Separator=" / " HorizontalAlignment="Left" VerticalAlignment="Top"
-                                              FontFamily="HarmonyOS Sans SC" FontSize="15" Foreground="Black"
+                                              FontFamily="HarmonyOS Sans SC" FontSize="15"
+                                              Foreground="{ThemeResource CommonTextColor}"
                                               Opacity="0.75" MaxWidth="300" FontWeight="Medium"
                                               Items="{x:Bind ArtistMetadata, Mode=OneWay}">
                         <controls:MetadataControl.TextBlockStyle>
