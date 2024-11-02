@@ -27,6 +27,7 @@ public class FileService
             File.Create(path).Dispose();
             return string.Empty;
         }
+
         using var reader = new StreamReader(path);
         var json = reader.ReadToEnd();
         return json;
@@ -48,12 +49,42 @@ public class FileService
         File.WriteAllText(Path.Combine(folderPath, fileName), fileContent, Encoding.UTF8);
     }
 
-    public void Delete(string folderPath, string fileName)
+    public void Delete(string filePath)
     {
-        if (fileName != null && File.Exists(Path.Combine(folderPath, fileName)))
-            File.Delete(Path.Combine(folderPath, fileName));
+        if (filePath != null && File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
     }
 
+    public void DeleteFolder(string folderPath)
+    {
+        if (!Directory.Exists(folderPath))
+        {
+            return;
+        }
+
+        try
+        {
+            string[] files = Directory.GetFiles(folderPath, "*", SearchOption.TopDirectoryOnly);
+            foreach (string file in files)
+            {
+                Delete(file);
+            }
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            ExceptionService.Instance.Throw(ex);
+        }
+        catch (IOException ex)
+        {
+            // ignore
+        }
+        catch (Exception ex)
+        {
+            ExceptionService.Instance.Throw(ex);
+        }
+    }
     public void Move<T>(string targetFile, string folderPath)
     {
     }
@@ -65,5 +96,61 @@ public class FileService
         {
             writer.Write(content);
         }
+    }
+
+    public static bool Exist(string path)
+    {
+        if (File.Exists(path))
+        {
+            return true;
+            
+        }
+        else if (Directory.Exists(path))
+        {
+            return true;
+        }
+
+        return false;
+    }
+    public static long GetFileSize(string filePath)
+    {
+        if (File.Exists(filePath))
+        {
+            FileInfo fileInfo = new FileInfo(filePath);
+            return fileInfo.Length;
+        }
+
+        return 0;
+
+    }
+    public static long GetDirectorySize(string folderPath)
+    {
+        if (!Directory.Exists(folderPath))
+        {
+            return 0;
+        }
+
+        long size = 0;
+
+        foreach (string file in Directory.GetFiles(folderPath, "*", SearchOption.AllDirectories))
+        {
+            size += new FileInfo(file).Length;
+        }
+
+        return size;
+    }
+    public static string FormatSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double size = bytes;
+
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+
+        return $"{size:0.##} {sizes[order]}";
     }
 }

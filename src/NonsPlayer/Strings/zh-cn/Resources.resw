@@ -560,4 +560,19 @@
   <data name="Settings_General.Header" xml:space="preserve">
     <value>通用首选项</value>
   </data>
+  <data name="CacheSize" xml:space="preserve">
+    <value>本地缓存当前共占用了 {0}</value>
+  </data>
+  <data name="Settings_Cache_Clean.Text" xml:space="preserve">
+    <value>清理缓存</value>
+  </data>
+  <data name="Notification" xml:space="preserve">
+    <value>注意</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>出错了</value>
+  </data>
+  <data name="CacheCleanedNotification" xml:space="preserve">
+    <value>已清理了 {0} 的缓存</value>
+  </data>
 </root>

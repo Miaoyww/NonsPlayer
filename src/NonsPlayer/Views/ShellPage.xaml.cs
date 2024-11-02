@@ -27,10 +27,12 @@ namespace NonsPlayer.Views;
 public sealed partial class ShellPage : Page
 {
     public delegate void ShellViewDialogShowEventHandler();
+
     public UiHelper UiHelper = UiHelper.Instance;
     private AppWindow AppWindow => Window.AppWindow;
 
     private Window Window;
+
     public ShellPage()
     {
         ViewModel = App.GetService<ShellViewModel>();
@@ -38,8 +40,8 @@ public sealed partial class ShellPage : Page
         PlayQueueBarViewModel = App.GetService<PlayQueueBarViewModel>();
         ViewModel.NavigationService.Frame = NavigationFrame;
         App.WindowHandle = (IntPtr)App.MainWindow.AppWindow.Id.Value;
-        WindowUtility.CurrentWindowId  = Win32Interop.GetWindowIdFromWindow(App.WindowHandle);
-        
+        WindowUtility.CurrentWindowId = Win32Interop.GetWindowIdFromWindow(App.WindowHandle);
+
         App.MainWindow.ExtendsContentIntoTitleBar = true;
         App.MainWindow.AppWindow.TitleBar.IconShowOptions = IconShowOptions.ShowIconAndSystemMenu;
         App.MainWindow.AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
@@ -49,11 +51,14 @@ public sealed partial class ShellPage : Page
         AppTitleBarText.Text = "AppDisplayName".GetLocalized();
         PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
         ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
+        DialogHelper.Instance.DialogShowing += OnDialogShowing;
     }
+
 
     public void SetDragRectangles(params RectInt32[] value)
     {
-        if (AppWindowTitleBar.IsCustomizationSupported() && App.MainWindow.AppWindow.TitleBar.ExtendsContentIntoTitleBar == true)
+        if (AppWindowTitleBar.IsCustomizationSupported() &&
+            App.MainWindow.AppWindow.TitleBar.ExtendsContentIntoTitleBar == true)
         {
             App.MainWindow.AppWindow.TitleBar.SetDragRectangles(value);
         }
@@ -63,11 +68,21 @@ public sealed partial class ShellPage : Page
 
     public PlayQueueBarViewModel PlayQueueBarViewModel { get; }
 
+    private void OnDialogShowing(string content)
+    {
+        ExceptionTip.DispatcherQueue.TryEnqueue(() =>
+        {
+            ExceptionTip.Title = "Notification".GetLocalized();
+            ExceptionTip.Content = content;
+            ExceptionTip.IsOpen = true;
+        });
+    }
+
     private void OnExceptionThrew(string content)
     {
         ExceptionTip.DispatcherQueue.TryEnqueue(() =>
         {
-            ExceptionTip.Title = "出错啦！";
+            ExceptionTip.Title = "Error".GetLocalized();
             ExceptionTip.Content = content;
             ExceptionTip.IsOpen = true;
         });
@@ -84,6 +99,7 @@ public sealed partial class ShellPage : Page
     {
         ViewModel.NavigationService.NavigateTo(typeof(PersonalCenterViewModel).FullName);
     }
+
     public event ShellViewDialogShowEventHandler OnDialogShowCall;
 
     public void OnOpenPlayQueueButton_Click(object? sender, EventArgs e)
@@ -151,8 +167,9 @@ public sealed partial class ShellPage : Page
     {
         App.MainWindow.RaiseSetTitleBarDragRegion(SetTitleBarDragRegion);
     }
-    
-    private int SetTitleBarDragRegion(InputNonClientPointerSource source, SizeInt32 size, double scaleFactor, Func<UIElement, RectInt32?, RectInt32> getScaledRect)
+
+    private int SetTitleBarDragRegion(InputNonClientPointerSource source, SizeInt32 size, double scaleFactor,
+        Func<UIElement, RectInt32?, RectInt32> getScaledRect)
     {
         // source.SetRegionRects(NonClientRegionKind.Passthrough, [getScaledRect(SearchBar, null)]);
         // source.SetRegionRects(NonClientRegionKind.Passthrough, [getScaledRect(SettingsBar, null)]);

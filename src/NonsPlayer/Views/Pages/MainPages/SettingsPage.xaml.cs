@@ -22,24 +22,23 @@ public sealed partial class SettingsPage : Page
     public SettingsPage()
     {
         ViewModel = App.GetService<SettingsViewModel>();
-        NonsPlayerIco = new ImageBrush { ImageSource = new BitmapImage(new Uri("ms-appx:///Assets/NonsPlayer.png")) };
         InitializeComponent();
         ArtistSepSettingsCard.Header = "ArtistSep".GetLocalized();
         ArtistSepTextBlock.Text = "ArtistSepManage".GetLocalized();
 
-        Init();
+        RefreshInfo();
     }
 
     public SettingsViewModel ViewModel { get; }
-    public ImageBrush NonsPlayerIco;
-    private ControlService _controlService = App.GetService<ControlService>();
-    private IThemeSelectorService themeSelectorService = App.GetService<IThemeSelectorService>();
+    private readonly ControlService _controlService = App.GetService<ControlService>();
+    private readonly IThemeSelectorService _themeSelectorService = App.GetService<IThemeSelectorService>();
+    private readonly FileService _fileService = App.GetService<FileService>();
 
-    private void Init()
+    private void RefreshInfo()
     {
         RefreshAdapterInfo();
 
-        switch (themeSelectorService.Theme)
+        switch (_themeSelectorService.Theme)
         {
             case ElementTheme.Light:
                 ThemeComboBox.SelectedIndex = 1;
@@ -51,6 +50,25 @@ public sealed partial class SettingsPage : Page
                 ThemeComboBox.SelectedIndex = 0;
                 break;
         }
+
+        if (ConfigManager.Instance.Settings.SMTCEnable) SMTCSwitcher.IsOn = true;
+
+        try
+        {
+            var size = FileService.FormatSize(GetCacheSize());
+            CacheCard.Header = string.Format("CacheSize".GetLocalized(), size);
+        }
+        catch(Exception ex)
+        {
+            ExceptionService.Instance.Throw(ex);
+        }
+        
+    }
+
+    private long GetCacheSize()
+    {
+        return FileService.GetDirectorySize(ConfigManager.Instance.Settings.LogPath) +
+                               FileService.GetDirectorySize(ConfigManager.Instance.Settings.CachePath);
     }
 
     private void RefreshAdapterInfo()
@@ -77,6 +95,32 @@ public sealed partial class SettingsPage : Page
                 CommandParameter = adapter.GetMetadata().Name,
             });
         }
+    }
+
+    [RelayCommand]
+    private async Task CleanCache()
+    {
+        var paths = new List<string>
+        {
+            ConfigManager.Instance.Settings.LogPath,
+            ConfigManager.Instance.Settings.CachePath
+        };
+        var sizeBefore = GetCacheSize();
+        foreach (string path in paths)
+        {
+            try
+            {
+                _fileService.DeleteFolder(path);
+            }
+            catch (Exception ex)
+            {
+                ExceptionService.Instance.Throw(ex);
+            }
+        }
+        var sizeAfter = GetCacheSize();
+        var cleaned = FileService.FormatSize(sizeBefore - sizeAfter);
+        DialogHelper.Instance.Show(string.Format("CacheCleanedNotification".GetLocalized(), cleaned));
+        RefreshInfo();
     }
 
     [RelayCommand]
@@ -153,17 +197,24 @@ public sealed partial class SettingsPage : Page
         switch (index)
         {
             case 0:
-                themeSelectorService.SetTheme(ElementTheme.Default);
+                _themeSelectorService.SetTheme(ElementTheme.Default);
                 break;
             case 1:
-                themeSelectorService.SetTheme(ElementTheme.Light);
+                _themeSelectorService.SetTheme(ElementTheme.Light);
                 break;
             case 2:
-                themeSelectorService.SetTheme(ElementTheme.Dark);
+                _themeSelectorService.SetTheme(ElementTheme.Dark);
                 break;
             default:
-                themeSelectorService.SetTheme(ElementTheme.Default);
+                _themeSelectorService.SetTheme(ElementTheme.Default);
                 break;
         }
+    }
+
+    private void SMTCSwitcher_OnToggled(object sender, RoutedEventArgs e)
+    {
+        var isOn = ((ToggleSwitch)sender).IsOn;
+        ConfigManager.Instance.Settings.SMTCEnable = isOn;
+        ConfigManager.Instance.Save();
     }
 }

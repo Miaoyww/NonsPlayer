@@ -31,15 +31,15 @@
                         <TextBlock Text="NonsPlayer"
                                    Grid.Row="1"
                                    Style="{StaticResource CommonTextStyle}"
-                                   FontWeight="Bold" 
-                                   FontSize="20"/>
+                                   FontWeight="Bold"
+                                   FontSize="20" />
                         <TextBlock Grid.Row="2"
                                    Style="{StaticResource CommonTextStyle}"
                                    Margin="0,10,0,0"
                                    FontSize="16">
-                            <Run x:Uid="Settings_CurrentVersion"/>
+                            <Run x:Uid="Settings_CurrentVersion" />
                             <Run Text="{x:Bind ViewModel.CurrentVersion, Mode=OneWay}"
-                                 Foreground="{StaticResource IconActiveColor}"/>
+                                 Foreground="{StaticResource IconActiveColor}" />
                         </TextBlock>
                     </Grid>
 
@@ -52,18 +52,32 @@
                                 <toolkit:SettingsCard x:Uid="Settings_Version"
                                                       Style="{StaticResource CustomSettingsCard}">
                                     <StackPanel Orientation="Horizontal">
-                                        <Button Margin="10,0,0,0" Command="{x:Bind ViewModel.CheckUpdateCommand}">
+                                        <Button Style="{StaticResource SettingButton}"
+                                                Command="{x:Bind ViewModel.CheckUpdateCommand}">
                                             <StackPanel Orientation="Horizontal">
-                                                <FontIcon Glyph="&#xE752;" FontSize="16" Margin="0,0,5,0" />
+                                                <FontIcon Glyph="&#xE752;"
+                                                          FontSize="16"
+                                                          Margin="0,0,5,0" />
                                                 <TextBlock x:Uid="Settings_Version_CheckUpdate"
                                                            FontSize="14" />
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
                                 </toolkit:SettingsCard>
+                                <toolkit:SettingsCard x:Name="CacheCard"
+                                                      Style="{StaticResource CustomSettingsCard}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource SettingButton}"
+                                                Command="{x:Bind CleanCacheCommand}">
+                                            <TextBlock x:Uid="Settings_Cache_Clean"
+                                                       TextAlignment="Center"
+                                                       FontSize="14" />
+                                        </Button>
+                                    </StackPanel>
+                                </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_Version_Test"
                                                       Style="{StaticResource CustomSettingsCard}">
-                                    <Button Margin="10,0,0,0"
+                                    <Button Style="{StaticResource SettingButton}"
                                             Command="{x:Bind ViewModel.TestCommand}">
                                         <TextBlock FontSize="14"
                                                    x:Uid="Settings_Version_TestButton" />
@@ -79,7 +93,7 @@
                             <toolkit:SettingsExpander.Items>
                                 <toolkit:SettingsCard x:Uid="Settings_Personalize_Theme"
                                                       Style="{StaticResource CustomSettingsCard}">
-                                    <ComboBox x:Name="ThemeComboBox" 
+                                    <ComboBox x:Name="ThemeComboBox"
                                               SelectionChanged="ThemeComboBox_OnSelectionChanged">
                                         <ComboBox.Items>
                                             <TextBlock x:Uid="Settings_Personalize_Theme_FollowSystem" />
@@ -99,11 +113,13 @@
                                 <toolkit:SettingsCard x:Uid="Settings_Adapter_OpenCard"
                                                       Style="{StaticResource CustomSettingsCard}">
                                     <Button x:Uid="Settings_Adapter_OpenCard_Button"
+                                            Style="{StaticResource SettingButton}"
                                             Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_Adapter_OpenLocalCard"
                                                       Style="{StaticResource CustomSettingsCard}">
                                     <Button x:Uid="Settings_Adapter_OpenLocalCard_Button"
+                                            Style="{StaticResource SettingButton}"
                                             Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_Adapter_Default"
@@ -130,7 +146,7 @@
                                                       Description="Incomplete">
                                     <ToggleSwitch />
                                 </toolkit:SettingsCard>
-                                <toolkit:SettingsCard Header="Settings_Apis_SetPort"
+                                <toolkit:SettingsCard x:Uid="Settings_Apis_SetPort"
                                                       Style="{StaticResource CustomSettingsCard}"
                                                       Description="Incomplete">
                                     <TextBox Text="8080" />
@@ -144,13 +160,14 @@
                             <toolkit:SettingsExpander.Items>
                                 <toolkit:SettingsCard x:Name="ArtistSepSettingsCard"
                                                       Style="{StaticResource CustomSettingsCard}">
-                                    <Button Command="{x:Bind OpenArtistCommand}">
+                                    <Button Style="{StaticResource SettingButton}"
+                                            Command="{x:Bind OpenArtistCommand}">
                                         <StackPanel Orientation="Horizontal">
                                             <FontIcon Glyph="&#xE70F;"
                                                       FontSize="14" />
                                             <TextBlock x:Name="ArtistSepTextBlock"
                                                        Margin="10,0,0,0"
-                                                       FontSize="14"/>
+                                                       FontSize="14" />
                                         </StackPanel>
                                     </Button>
                                 </toolkit:SettingsCard>
@@ -176,12 +193,11 @@
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_OtherSettings_MediaControl"
                                                       Style="{StaticResource CustomSettingsCard}">
-                                    <ToggleSwitch />
+                                    <ToggleSwitch x:Name="SMTCSwitcher" Toggled="SMTCSwitcher_OnToggled" />
                                 </toolkit:SettingsCard>
 
                             </toolkit:SettingsExpander.Items>
                         </toolkit:SettingsExpander>
-
                     </StackPanel>
                     <Grid Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,120">
                         <Grid>

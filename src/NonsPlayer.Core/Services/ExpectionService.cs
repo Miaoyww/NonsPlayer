@@ -12,19 +12,19 @@ public class ExceptionService
 
     public void Throw(string content)
     {
-        Debug.WriteLine($"抛出了一个异常: {content}");
+        Debug.WriteLine($"Threw an Exception: {content}");
         ExceptionThrew?.Invoke(content);
     }
 
     public void Throw(Exception exception)
     {
-        Debug.WriteLine($"抛出了一个异常: {exception}");
+        Debug.WriteLine($"Threw an Exception:: {exception}");
         ExceptionThrew?.Invoke(exception.Message);
     }
 
     public void Throw(Exception exception, string content)
     {
-        Debug.WriteLine($"抛出了一个异常: {exception}");
+        Debug.WriteLine($"Threw an Exception:: {exception}");
         ExceptionThrew?.Invoke(content);
     }
 }

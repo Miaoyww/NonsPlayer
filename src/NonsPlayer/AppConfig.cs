@@ -40,7 +40,7 @@ public class AppConfig : IConfigManager
 
     public string? IgnoreVersion { get; set; }
     public string? AppVersion { get; set; }
-    public string ConfigPath = Path.Combine(ConfigManager.Instance.Settings.DataPath, "app_config.json");
+    public string ConfigPath = Path.Combine(ConfigManager.Instance.Settings.MainPath, "app_config.json");
 
     private void Initialize()
     {

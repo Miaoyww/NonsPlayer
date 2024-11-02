@@ -11,7 +11,7 @@ namespace NonsPlayer.Core.Resources
 {
     public class LocalSettings
     {
-        [JsonIgnore] public string DataPath { get; set; }
+        [JsonIgnore] public string MainPath { get; set; }
 
         [JsonIgnore] public string ConfigFilePath;
 
@@ -40,6 +40,12 @@ namespace NonsPlayer.Core.Resources
 
         [JsonPropertyName("log")] public string Log { get; set; }
 
+        [JsonPropertyName("log_path")] public string LogPath { get; set; }
+
+        [JsonPropertyName("cache_path")] public string CachePath { get; set; }
+
+        [JsonPropertyName("smtc")] public bool SMTCEnable { get; set; }
+
         [JsonPropertyName("today_play_duration")]
         public Tuple<DateTime, TimeSpan> TodayPlayDuration { get; set; }
 
@@ -47,13 +53,15 @@ namespace NonsPlayer.Core.Resources
 
         public LocalSettings()
         {
-            DataPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            MainPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "NonsPlayer");
-            ConfigFilePath = Path.Join(DataPath, "config.json");
-            AdapterPath = Path.Join(DataPath, "adapters");
-            PluginPath = Path.Join(DataPath, "plugins");
-            Data = Path.Join(DataPath, "Data");
-            Log = Path.Combine(DataPath, "logs", $"NonsPlayer_{DateTime.Now:yyMMdd_HHmmss}.log");
+            ConfigFilePath = Path.Join(MainPath, "config.json");
+            AdapterPath = Path.Join(MainPath, "adapters");
+            PluginPath = Path.Join(MainPath, "plugins");
+            Data = Path.Join(MainPath, "data");
+            CachePath = Path.Join(MainPath, "cache");
+            LogPath = Path.Join(MainPath, "logs");
+            Log = Path.Combine(LogPath, $"NonsPlayer_{DateTime.Now:yyMMdd_HHmmss}.log");
             Theme = "Light";
             Volume = 50;
             TotalPlayCount = 0;
@@ -63,6 +71,7 @@ namespace NonsPlayer.Core.Resources
             DisabledPlugins = string.Empty;
             TodayPlayDuration = new Tuple<DateTime, TimeSpan>(DateTime.Now, TimeSpan.Zero);
             LocalArtistSep = [";", ","];
+            SMTCEnable = true;
         }
     }
 }

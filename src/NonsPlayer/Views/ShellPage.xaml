@@ -150,6 +150,8 @@
                      PreferredPlacement="Bottom"
                      PlacementMargin="20"
                      IsLightDismissEnabled="True"
+                     MaxHeight="500"
+                     MaxWidth="500"
                      ActionButtonCommand="{x:Bind ExceptionActionCommand}" />
     </Grid>
 </Page>

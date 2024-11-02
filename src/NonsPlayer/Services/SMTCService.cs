@@ -6,6 +6,7 @@ using Windows.Storage.Streams;
 using NAudio.Wave;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Nons.Player;
+using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using NonsPlayer.ViewModels;
 using Timer = System.Timers.Timer;
@@ -22,7 +23,7 @@ public class SMTCService
 
     public SMTCService()
     {
-        if (AppConfig.Instance.AppSettings.SMTCEnable)
+        if (ConfigManager.Instance.Settings.SMTCEnable)
         {
             Player.Instance.MusicChanged += MusicChangedHandle;
 

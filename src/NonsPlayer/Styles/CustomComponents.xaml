@@ -15,6 +15,10 @@
         <Setter Property="Foreground" Value="{ThemeResource CommonTextColor}" />
         <Setter Property="Margin" Value="5,0,5,0" />
     </Style>
+    <Style x:Key="SettingButton" TargetType="Button">
+        <Setter Property="Margin" Value="10,0,0,0"/>
+        <Setter Property="MinWidth" Value="120" />
+    </Style>
     <Style x:Key="CustomPivotItem" TargetType="PivotItem">
         <Setter Property="FontFamily" Value="HarmonyOS Sans SC"/>
         <Setter Property="FontSize" Value="20"/>
