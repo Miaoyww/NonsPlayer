@@ -1,11 +1,11 @@
 {
-  "Version": "0.5.7",
-  "PortableSize": 61712602,
+  "PortableSize": 61703802,
+  "Portable": "https://github.com/Miaoyww/NonsPlayer/releases/download/0.5.8/NonsPlayer_0.5.8_x64.7z",
+  "BuildTime": "2024-11-02T14:53:05.118438+00:00",
   "Architecture": "x64",
-  "BuildTime": "2024-10-26T15:29:18.2123721+00:00",
+  "Version": "0.5.8",
   "InstallHash": null,
-  "Portable": "https://github.com/Miaoyww/NonsPlayer/releases/download/0.5.7/NonsPlayer_0.5.7_x64.7z",
-  "InstallSize": 0,
   "DisableAutoUpdate": false,
-  "PortableHash": "4F64E8E01A7D6449E5EDC795E3F71392E9F18E6835C7B5E79EED93F98A858FF0"
+  "InstallSize": 0,
+  "PortableHash": "CAD79D247B7409F9F5F7BB9C9CE455C814A899EA17EFAE0502B1D69CD1AAFD15"
 }
