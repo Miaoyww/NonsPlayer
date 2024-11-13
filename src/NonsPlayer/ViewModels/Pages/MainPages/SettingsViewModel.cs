@@ -74,7 +74,7 @@ public partial class SettingsViewModel : ObservableRecipient, INavigationAware
     [RelayCommand]
     public void OpenAdapterFolder()
     {
-        Process.Start("explorer.exe", ConfigManager.Instance.Settings.ConfigFilePath);
+        Process.Start("explorer.exe", ConfigManager.Instance.Settings.AdapterPath);
     }
 
     public void OnNavigatedTo(object parameter)

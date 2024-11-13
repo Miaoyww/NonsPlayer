@@ -120,7 +120,7 @@
                                                       Style="{StaticResource CustomSettingsCard}">
                                     <Button x:Uid="Settings_Adapter_OpenLocalCard_Button"
                                             Style="{StaticResource SettingButton}"
-                                            Command="{x:Bind ViewModel.OpenAdapterSettingCommand}" />
+                                            Command="{x:Bind ViewModel.OpenAdapterFolderCommand}" />
                                 </toolkit:SettingsCard>
                                 <toolkit:SettingsCard x:Uid="Settings_Adapter_Default"
                                                       Style="{StaticResource CustomSettingsCard}">
