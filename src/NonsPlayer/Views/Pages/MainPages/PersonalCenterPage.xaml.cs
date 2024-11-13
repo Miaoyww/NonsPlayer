@@ -77,4 +77,22 @@ public sealed partial class PersonalCenterPage : Page
             if (vmBeforeNavigation is INavigationAware navigationAware) navigationAware.OnNavigatedTo(parameter);
         }
     }
+    
+    public void PersonalCenterPage_OnLoaded(object sender, RoutedEventArgs e)
+    {
+        var defaultAdapter = AdapterService.Instance.GetAdapter(ConfigManager.Instance.Settings.DefaultAdapter);
+        foreach (SelectorBarItem item in CustomSelectorBar.Items)
+        {
+            if (item.Tag is IAdapter adapter)
+            {
+                if (adapter == defaultAdapter)
+                {
+                    CustomSelectorBar.SelectedItem = item;
+                    break;
+                }
+            }
+        }
+        //TODO: 本地账号设置
+        // if (!Account.Instance.IsLoggedIn) NavigationService.NavigateTo(typeof(LoginViewModel).FullName!);
+    }
 }

@@ -7,7 +7,7 @@ using NonsPlayer.Helpers;
 
 namespace NonsPlayer.ViewModels;
 
-public class PersonalCenterViewModel : ObservableRecipient, INotifyPropertyChanged
+public class PersonalCenterViewModel : ObservableRecipient
 {
     public PersonalCenterViewModel(INavigationService navigationService)
     {
@@ -16,9 +16,5 @@ public class PersonalCenterViewModel : ObservableRecipient, INotifyPropertyChang
 
     public INavigationService NavigationService { get; }
 
-    public void PersonalCenterPage_OnLoaded(object sender, RoutedEventArgs e)
-    {
-        //TODO: 本地账号设置
-        // if (!Account.Instance.IsLoggedIn) NavigationService.NavigateTo(typeof(LoginViewModel).FullName!);
-    }
+
 }
