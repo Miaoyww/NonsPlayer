@@ -3,10 +3,13 @@ using NonsPlayer.Components.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Core.Utils;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.Json;
+using Windows.Storage;
 using Exception = System.Exception;
+using FileAttributes = Windows.Storage.FileAttributes;
 
 namespace NonsPlayer.Services;
 
@@ -127,5 +130,49 @@ public class LocalService
         };
 
         FileService.SaveData(_dataKey, JsonSerializer.Serialize(Directories, options));
+    }
+    
+    public async Task<List<LocalMusic>> ScanMusic(string folderPath)
+    {
+        StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(folderPath);
+        var items = await folder.GetItemsAsync();
+        List<LocalMusic> musics = new();
+        foreach (var file in items)
+        {
+            if (file.Attributes.HasFlag(FileAttributes.Directory))
+            {
+                musics.AddRange(await ScanMusic(await (file as StorageFolder).GetItemsAsync()));
+            }
+            else if (file.Attributes.HasFlag(FileAttributes.Normal))
+            {
+                if (LocalUtils.IsMusic(file.Path))
+                {
+                    musics.Add(new LocalMusic(file.Path));
+                }
+            }
+        }
+
+        return musics;
+    }
+
+    public async Task<List<LocalMusic>> ScanMusic(IReadOnlyList<IStorageItem> items)
+    {
+        List<LocalMusic> musics = new();
+        foreach (var file in items)
+        {
+            if (file.Attributes.HasFlag(Windows.Storage.FileAttributes.Directory))
+            {
+                musics.AddRange(await ScanMusic(await (file as StorageFolder).GetItemsAsync()));
+            }
+            else if (file.Attributes.HasFlag(FileAttributes.Normal))
+            {
+                if (LocalUtils.IsMusic(file.Path))
+                {
+                    musics.Add(new LocalMusic(file.Path));
+                }
+            }
+        }
+
+        return musics;
     }
 }

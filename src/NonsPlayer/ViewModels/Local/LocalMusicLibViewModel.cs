@@ -36,7 +36,15 @@ public partial class LocalMusicLibViewModel : ObservableObject, INavigationAware
     {
         var index = 0;
         SongModels.Clear();
+        
+        localService.Songs.Clear();
+        foreach (LocalFolderModel item in localService.Directories)
+        {
+            localService.AddSongs(await localService.ScanMusic(item.Path));
+        }
+        
         await LoadMusicItemsByGroup();
+        
         foreach (LocalMusic song in localService.Songs)
         {
             index++;
