@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Media;
 using NonsPlayer.Core.Contracts.Models.Music;
+using NonsPlayer.Core.Models;
 
 namespace NonsPlayer.Views.Pages;
 
@@ -49,9 +50,20 @@ public sealed partial class LyricPage : Page
         // var image = new Bitmap(stream.AsStream());
         // var color = colorThief.GetColor(image, ignoreWhite: false);
         // AlbumColor = Color.FromArgb(color.Color.A, color.Color.R, color.Color.G, color.Color.B);
-        var imageBrush = await CacheHelper.GetImageBrushAsync(value.Album.CacheMiddleAvatarId, value.Album.AvatarUrl);
+
+        ImageBrush imageBrush;
+        if (value is LocalMusic)
+        {
+            imageBrush = await ImageHelpers.GetImageBrushAsyncFromBytes(((LocalMusic)value).GetCover());
+        }
+        else
+        {
+            imageBrush =
+                await CacheHelper.GetImageBrushAsync(value.Album.CacheMiddleAvatarId, value.Album.AvatarUrl);
+        }
         imageBrush.Stretch = Stretch.UniformToFill;
         AcrylicCover.Fill = imageBrush;
+
         // double brightness = (0.299 * color.Color.A + 0.587 * color.Color.G + 0.114 * color.Color.B) / 255;
         TextForeground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 240, 240, 240));
         // if (brightness < 0.68)
@@ -90,9 +102,6 @@ public sealed partial class LyricPage : Page
     }
 
 
-    
-    
-
     private void CurrentTimeSlider_OnManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
     {
         _slidingEventArgs = null;
@@ -126,6 +135,5 @@ public sealed partial class LyricPage : Page
     public void UnExpand()
     {
         ServiceHelper.NavigationService.GoBack();
-       
     }
 }

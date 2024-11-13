@@ -80,59 +80,7 @@ public sealed partial class AMLLCard : UserControl
         }
         
     }
-
-    private int CalculateLyricPosition(TimeSpan time)
-    {
-        if (ViewModel.LyricItems.Count == 0)
-        {
-            return -1;
-        }
-
-        int currentPosition = LyricHelper.Instance.LyricPosition;
-        int itemCount = ViewModel.LyricItems.Count;
-
-        // 检查当前歌词的开始时间和结束时间
-        if (currentPosition >= 0 && currentPosition < itemCount)
-        {
-            var currentLyric = ViewModel.LyricItems[currentPosition].LyricItemModel.Lyric;
-            if (time >= currentLyric.StartTime && time <= currentLyric.EndTime)
-            {
-                return currentPosition; // 当前歌词位置正确
-            }
-        }
-
-        // 检查下一个歌词的时间
-        if (currentPosition + 1 < itemCount)
-        {
-            var nextLyric = ViewModel.LyricItems[currentPosition + 1].LyricItemModel.Lyric;
-            if (time >= nextLyric.StartTime)
-            {
-                return currentPosition + 1; // 下一个歌词位置正确
-            }
-        }
-
-        // 检查上一个歌词的时间
-        if (currentPosition - 1 >= 0)
-        {
-            var prevLyric = ViewModel.LyricItems[currentPosition - 1].LyricItemModel.Lyric;
-            if (time < prevLyric.StartTime)
-            {
-                return currentPosition - 1; // 上一个歌词位置正确
-            }
-        }
-
-        // 遍历所有歌词项，找到当前时间对应的位置
-        for (int i = 0; i < itemCount; i++)
-        {
-            var lyric = ViewModel.LyricItems[i].LyricItemModel.Lyric;
-            if (time >= lyric.StartTime && (i == itemCount - 1 || time < ViewModel.LyricItems[i + 1].LyricItemModel.Lyric.StartTime))
-            {
-                return i;
-            }
-        }
-
-        return -1; // 未找到合适的歌词位置
-    }
+    
 
     private void ScrollLyric()
     {

@@ -26,7 +26,6 @@ public partial class LyricViewModel : ObservableRecipient
     [ObservableProperty] private ImageBrush cover;
     public LyricViewModel()
     {
-        Player.Instance.PositionChanged += LyricChanger;
         Player.Instance.MusicChanged += OnMusicChanged;
         LyricPosition = 0;
         if (Player.Instance.CurrentMusic == null)
@@ -48,68 +47,31 @@ public partial class LyricViewModel : ObservableRecipient
     {
         PlayQueue.Instance.SwitchShuffle();
     }
-
-    // public Visibility TransVisibility => TranLyric.Equals(string.Empty) ? Visibility.Collapsed : Visibility.Visible;
-    private void OnMusicChanged(IMusic music)
+    
+    private async void OnMusicChanged(IMusic music)
     {
         CurrentMusic = music;
         LyricItems.Clear();
-
-        foreach (var line in music.Lyric.LyricLines)
+        if (music.Lyric != null)
         {
-            LyricItems.Add(line);
+            foreach (var line in music.Lyric.LyricLines)
+            {
+                LyricItems.Add(line);
+            }
+
+            LyricPosition = 0;
         }
-
-        LyricPosition = 0;
-        Cover = CacheHelper.GetImageBrush(CurrentMusic.CacheAvatarId, CurrentMusic.GetCoverUrl("?param=500x500"));
+        
+        if (CurrentMusic is LocalMusic)
+        {
+            Cover = await ImageHelpers.GetImageBrushAsyncFromBytes(((LocalMusic)CurrentMusic).GetCover());
+        }
+        else
+        {
+            Cover =
+                Cover = CacheHelper.GetImageBrush(CurrentMusic.CacheAvatarId, CurrentMusic.GetCoverUrl("?param=500x500"));
+        }
+       
     }
-
-    private void LyricChanger(TimeSpan time)
-    {
-        // if (LyricItems.Count == 0) return;
-        // if (LyricPosition >= LyricItems.Count || LyricPosition < 0) LyricPosition = 0;
-        // var changed = false;
-        // var realPos = Player.Instance.Position;
-
-        // if (LyricItems[LyricPosition].LyricLine.StartTime > realPos) //当感知到进度回溯时执行
-        // {
-        //     LyricPosition = LyricItems.ToList().FindLastIndex(t => t.LyricLine.StartTime <= realPos) - 1;
-        //     if (LyricPosition == -2) LyricPosition = -1;
-        //     changed = true;
-        // }
-        //
-        // try
-        // {
-        //     if (LyricPosition == 0 && LyricItems.Count != 1) changed = false;
-        //     while (LyricItems.Count > LyricPosition + 1 &&
-        //            LyricItems[LyricPosition + 1].LyricLine.StartTime <= realPos) //正常的滚歌词
-        //     {
-        //         LyricPosition++;
-        //         changed = true;
-        //     }
-        // }
-        // catch
-        // {
-        //     // ignored
-        // }
-
-
-        // if (changed)
-        // {
-        // OnLyricChanged();
-        // }
-    }
-
-    private void OnLyricChanged()
-    {
-        if (LyricPosition == -1) return;
-        if (LyricItems.Count <= LyricPosition) return;
-        ChangeLyric();
-    }
-
-    private void ChangeLyric()
-    {
-        // LyricText = HyPlayList.Lyrics[HyPlayList.LyricPos].LyricLine.CurrentLyric;
-        // LyricControl.Lyric = HyPlayList.Lyrics[HyPlayList.LyricPos];
-    }
+    
 }
