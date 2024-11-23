@@ -5,7 +5,7 @@
     <CornerRadius x:Key="CustomCornerRadius">20</CornerRadius>
     <Thickness x:Key="PageCommonMargin">0,54,0,0</Thickness>
     <Thickness x:Key="PageContentCommonMargin">60,20,60,0</Thickness>
-    <Thickness x:Key="SettingsContentMargin">400,20,400,0</Thickness>
+    <Thickness x:Key="SettingsContentMargin">300,20,300,0</Thickness>
 
     <Thickness x:Key="LyricPageMargin">0,0,0,0</Thickness>
     <Thickness x:Key="ScrollViewerMargin">0,0,0,100</Thickness>

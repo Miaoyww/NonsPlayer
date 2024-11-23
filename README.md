@@ -69,6 +69,13 @@ the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/
 ## 字体
 [HarmonyOS Sans SC](https://developer.huawei.com/consumer/cn/doc/design-guides-V1/font-0000001157868583-V1)
 
+# 和开发者交流
+
+欢迎加入我们的交流空间！
+
+技术|开发|吹水: [QQ群](https://qm.qq.com/q/YMcwgNJB2a)
+
+
 # 🖼️应用截图
 **仍在开发中，并不代表最终质量**
 

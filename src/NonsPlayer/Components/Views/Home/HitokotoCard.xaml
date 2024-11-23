@@ -23,7 +23,10 @@
                            Style="{StaticResource EnglishTextStyle}" 
                            VerticalAlignment="Center" />
             </StackPanel>
-            <RichTextBlock Grid.Column="1" Margin="30,0,0,0" VerticalAlignment="Center" Width="400"
+            <RichTextBlock Grid.Column="1" 
+                           Margin="30,0,0,0" 
+                           VerticalAlignment="Center" 
+                           MaxWidth="400"
                            Style="{StaticResource CommonRichTextStyle}" MaxLines="2">
                 <Paragraph>
                     <Run Text="{x:Bind ViewModel.Hitokoto, Mode=OneWay}" />

@@ -5,10 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:windowex="using:WinUIEx"
-    xmlns:views="using:NonsPlayer.Views"
-    xmlns:pages="using:NonsPlayer.Views.Pages"
-    MinHeight="780"
-    MinWidth="1400"
+    MinHeight="800"
+    MinWidth="1380"
     PersistenceId="MainWindow"
     mc:Ignorable="d">
 </windowex:WindowEx>
