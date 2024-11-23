@@ -45,7 +45,7 @@
     </Style>
 
     <Style x:Key="EnglishTextStyle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="Novecento" />
+        <Setter Property="FontFamily" Value="Novecento wide" />
         <Setter Property="Foreground" Value="{ThemeResource CommonTextColor}" />
     </Style>
 

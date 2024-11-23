@@ -204,22 +204,21 @@
                             <StackPanel>
                                 <TextBlock FontWeight="Bold" FontSize="16"
                                            HorizontalAlignment="Center"
-                                           Text="MADE BY MIAOYWW"
-                                           VerticalAlignment="Center" Style="{StaticResource EnglishTextStyle}" />
+                                           VerticalAlignment="Center" 
+                                           Style="{StaticResource EnglishTextStyle}" >
+                                    <Run Text="MADE BY"/>
+                                    <Run Text="MIAOYWW"/>
+                                </TextBlock>
 
-                                <TextBlock Text="Copyright Miaoyww 2022-2024."
-                                           Style="{StaticResource CommonTextStyle}" FontSize="13"
-                                           HorizontalTextAlignment="Center" />
-                                <TextBlock Text="Distributed under the terms of the GPL-3.0 license."
-                                           Style="{StaticResource CommonTextStyle}" FontSize="13"
-                                           HorizontalTextAlignment="Center" />
+                                <TextBlock Style="{StaticResource CommonTextStyle}" FontSize="13"
+                                           HorizontalTextAlignment="Center" >
+                                    <Run Text="Copyright Miaoyww 2022-2024."/>
+                                    <LineBreak/>
+                                    <Run Text="Distributed under the terms of the GPL-3.0 license."/>
+                                </TextBlock>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
                                             VerticalAlignment="Center">
-                                    <HyperlinkButton x:Uid="SettingsPage_GithubLink">
-                                        <ImageIcon HorizontalAlignment="Left"
-                                                   Source="ms-appx:///Assets/Icons/github-mark.svg"
-                                                   Width="20" />
-                                    </HyperlinkButton>
+                                    <HyperlinkButton x:Uid="SettingsPage_GithubLink"/>
                                     <HyperlinkButton x:Uid="SettingsPage_BilibiliLink" />
                                 </StackPanel>
                             </StackPanel>

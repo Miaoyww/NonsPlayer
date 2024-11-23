@@ -87,119 +87,42 @@
         <PackageReference Include="z440.atl.core" Version="6.1.0" />
         <Manifest Include="$(ApplicationManifest)" />
     </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\NonsPlayer.Core\NonsPlayer.Core.csproj" />
         <ProjectReference Include="..\NonsPlayer.Updater\NonsPlayer.Updater.csproj" />
     </ItemGroup>
+
     <ItemGroup>
         <Content Include="Assets\**">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
-    <ItemGroup>
-        <Compile Remove="Diaglogs\**" />
-        <EmbeddedResource Remove="Diaglogs\**" />
-        <None Remove="Diaglogs\**" />
-        <Page Remove="Diaglogs\**" />
-    </ItemGroup>
-    <ItemGroup>
-        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_BLACK.TTF" />
-        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_BOLD.TTF" />
-        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_LIGHT.TTF" />
-        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_MEDIUM.TTF" />
-        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_REGULAR.TTF" />
-        <None Remove="Assets\Fonts\HARMONYOS_SANS_SC_THIN.TTF" />
-        <None Remove="Assets\Icons\create_new_folder.svg" />
-        <None Remove="Assets\Icons\library-music.svg" />
-        <None Remove="Assets\Icons\queue-music.svg" />
-        <None Remove="Components\Views\LocalCa.xaml" />
-        <None Remove="Components\Views\LocalProperties.xaml" />
-        <None Remove="Components\Views\Local\AddFolderDialog.xaml" />
-        <None Remove="Components\Views\Local\LocalArtistItem.xaml" />
-        <None Remove="Components\Views\Local\LocalArtistListBar.xaml" />
-        <None Remove="Components\Views\Local\LocalFolderItem.xaml" />
-        <None Remove="Components\Views\Local\LocalMusicCard.xaml" />
-        <None Remove="Components\Views\Local\LocalQueueCard.xaml" />
-        <None Remove="Dialogs\ArtistSeparator.xaml" />
-        <None Remove="Views\Local\LocalMusicLibPage.xaml" />
-        <None Remove="Views\Local\LocalQueuePage.xaml" />
-    </ItemGroup>
-    <ItemGroup>
-        <Page Update="Components\Views\Local\LocalArtistListBar.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-            <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\Local\LocalArtistItem.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-            <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\Local\LocalFolderItem.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-            <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\Local\AddFolderDialog.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        </Page>
-        <Page Update="Components\Views\LocalProperties.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-            <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Dialogs\ArtistSeparator.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        </Page>
-        <Page Update="Views\Local\LocalQueuePage.xaml">
-            <Generator>MSBuild:Compile</Generator>
-        </Page>
-    </ItemGroup>
-    <ItemGroup>
-        <Page Update="Components\Views\LocalCa.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        </Page>
-        <Page Update="Components\Views\Local\LocalMusicCard.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-            <SubType>Designer</SubType>
-        </Page>
-        <Page Update="Components\Views\Local\LocalQueueCard.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-        </Page>
-        <Page Update="Styles\CustomComponents.xaml">
-            <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-            <SubType>Designer</SubType>
-            <Generator>MSBuild:Compile</Generator>
-        </Page>
-    </ItemGroup>
-    <ItemGroup>
-        <Page Update="Views\Local\LocalMusicLibPage.xaml">
-            <Generator>MSBuild:Compile</Generator>
-        </Page>
-    </ItemGroup>
-    <ItemGroup>
-        <PRIResource Remove="Diaglogs\**" />
-    </ItemGroup>
+
     <ItemGroup>
         <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_BLACK.TTF">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_BOLD.TTF">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_LIGHT.TTF">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_MEDIUM.TTF">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_REGULAR.TTF">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_THIN.TTF">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Content Update="Assets\Fonts\NOVECENTO-WIDE-BOLD.OTF">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
         <Content Update="Assets\Fonts\Segoe Fluent Icons.ttf">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
 </Project>

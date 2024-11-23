@@ -21,36 +21,46 @@
             Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}"
             Height="80" Background="{StaticResource CustomAcrylicBrush}">
         <Grid>
-            <Button Name="SongInfo"
-                    HorizontalAlignment="Left" VerticalAlignment="Center"
-                    Margin="30,0,0,0"
-                    MaxWidth="400"
-                    Padding="0"
-                    Height="75"
-                    BorderThickness="0"
-                    Command="{x:Bind OpenLyricCommand}">
-                <Grid Margin="15,0,10,0">
+            <Grid Name="SongInfo"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Margin="30,0,0,0"
+                  MaxWidth="400"
+                  Padding="0"
+                  Height="75"
+                  BorderThickness="0">
+                <Grid HorizontalAlignment="Left"
+                      Margin="15,0,10,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Border Grid.Column="0" Name="Cover"
+                    <Button Grid.Column="0" 
+                            Name="Cover" Background="Transparent"
+                            BorderThickness="0"
+                            Height="60" Width="60" CornerRadius="10"
+                            Padding="0"
+                            Margin="0,0,10,0"
+                            Command="{x:Bind OpenLyricCommand}">
+                        <Border
                             Visibility="{x:Bind ViewModel.MusicStateModel.ShowCover, Mode=OneWay}"
                             Height="60" Width="60" CornerRadius="10"
-                            Background="{x:Bind ViewModel.MusicStateModel.Cover, Mode=OneWay}"
-                            BorderThickness="0"
-                            Margin="0,0,10,0" />
+                            Background="{x:Bind ViewModel.MusicStateModel.Cover, Mode=OneWay}"/>
+                    </Button>
+
                     <Grid Grid.Column="1" VerticalAlignment="Center">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <RichTextBlock Grid.Row="0" Name="Title" Style="{ThemeResource CommonRichTextStyle}"
+                        <RichTextBlock Grid.Row="0" 
+                                       Name="Title" 
+                                       Style="{ThemeResource CommonRichTextStyle}"
                                        HorizontalAlignment="Left" VerticalAlignment="Center"
                                        FontSize="17"
-                                       Margin="0,0,0,0" FontWeight="Medium" MaxLines="2"
-                                       TextTrimming="CharacterEllipsis">
+                                       MaxWidth="250"
+                                       Margin="0,0,0,0" FontWeight="Medium" MaxLines="2">
                             <Paragraph>
                                 <Run Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.Name, Mode=OneWay}" />
                             </Paragraph>
@@ -61,7 +71,9 @@
                                                   Style="{StaticResource CustomMetaDataControl}"
                                                   FontSize="15"
                                                   Foreground="{ThemeResource CommonTextColor}"
-                                                  Opacity="0.75" MaxWidth="300" FontWeight="Medium"
+                                                  Opacity="0.75" 
+                                                  MaxWidth="250" 
+                                                  FontWeight="Medium"
                                                   Visibility="{x:Bind ViewModel.ArtistVisibility, Mode=OneWay}"
                                                   Items="{x:Bind ViewModel.MusicStateModel.ArtistsMetadata, Mode=OneWay}">
                             <controls:MetadataControl.TextBlockStyle>
@@ -71,7 +83,10 @@
                             </controls:MetadataControl.TextBlockStyle>
                         </controls:MetadataControl>
                     </Grid>
-                    <Button Grid.Column="2" Name="Like" Width="35" Height="35" Command="{x:Bind LikeMusicCommand}"
+                    <Button Grid.Column="2" 
+                            Name="Like" 
+                            Width="35" Height="35" 
+                            Command="{x:Bind LikeMusicCommand}"
                             VerticalAlignment="Center" HorizontalAlignment="Right"
                             Margin="8,0,0,0"
                             Padding="0" Background="Transparent" BorderThickness="0">
@@ -81,7 +96,7 @@
                             FontSize="21" />
                     </Button>
                 </Grid>
-            </Button>
+            </Grid>
 
             <Grid HorizontalAlignment="Center">
                 <StackPanel Margin="-20,12,0,0" Orientation="Horizontal" HorizontalAlignment="Center"
