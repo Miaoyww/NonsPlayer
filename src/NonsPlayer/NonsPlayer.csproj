@@ -1,52 +1,71 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
+		<!--General-->
+		<Platforms>x86;x64;ARM64</Platforms>
+		<RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
+		<PublishProfile>win10-$(Platform).pubxml</PublishProfile>
+		<ApplicationManifest>app.manifest</ApplicationManifest>			
+		<Configurations>Debug;Release</Configurations>
+		<ApplicationIcon>Assets\WindowIcon.ico</ApplicationIcon>
+		<!--Target Settings-->
+		<OutputType>WinExe</OutputType>
         <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
         <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+	    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+	    <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>
+		<!--Info-->
         <RootNamespace>NonsPlayer</RootNamespace>
-        <Platforms>x86;x64;ARM64</Platforms>
-        <RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
-        <PublishProfile>win10-$(Platform).pubxml</PublishProfile>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <UseWinUI>true</UseWinUI>
-        <UseRidGraph>true</UseRidGraph>
-        <EnableMsixTooling>true</EnableMsixTooling>
-        <WindowsPackageType>None</WindowsPackageType>
-        <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-        <DefaultLanguage>zh-cn</DefaultLanguage>
-        <Product>NonsPlayer</Product>
-        <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
-        <ApplicationIcon>Assets/WindowIcon.ico</ApplicationIcon>
-        <Configurations>Debug;Release</Configurations>
+	    <Product>NonsPlayer</Product>			
+		<DefaultLanguage>zh-cn</DefaultLanguage>
+	    <Authors>Miaoyww</Authors>
+		<!--WinUi3-->
+	    <UseWinUI>true</UseWinUI>
+		<UseRidGraph>true</UseRidGraph>
+		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+        <!--Other-->
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<EnableMsixTooling>true</EnableMsixTooling>
+		<WindowsPackageType>None</WindowsPackageType>
+		<AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
         <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
         <PublishReadyToRun>true</PublishReadyToRun>
-        <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-        <PackageReference Include="CommunityToolkit.WinUI" Version="7.1.2" />
-        <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.0.240109" />
-        <PackageReference Include="CommunityToolkit.WinUI.Media" Version="8.0.240109" />
-        <PackageReference Include="CommunityToolkit.WinUI.UI.Controls" Version="7.1.2" />
-    </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+		<PackageReference Include="CommunityToolkit.WinUI" Version="7.1.2" />
+		<PackageReference Include="CommunityToolkit.WinUI.UI.Controls" Version="7.1.2" />
+		<PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.1.240916" />
+		<PackageReference Include="CommunityToolkit.WinUI.Media" Version="8.1.240916" />
+	</ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0-preview.2.24128.5" />
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240627000" />
-        <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
-    </ItemGroup>
+	    <PackageReference Include="WinUIEx" Version="2.5.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+	    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.241114003" />
+	    <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
+	</ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="Serilog" Version="4.0.1" />
-        <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+		<PackageReference Include="Serilog" Version="4.1.0" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
     </ItemGroup>
     
+	<ItemGroup>
+		<PackageReference Include="System.Net.Http" Version="4.3.4" />
+		<PackageReference Include="System.Private.Uri" Version="4.3.2" />
+		<PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+		<PackageReference Include="System.Management" Version="9.0.0" />
+		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+		<PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.0" />
+		<PackageReference Include="System.Text.Json" Version="9.0.0" />
+	</ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="Vanara.PInvoke.ComCtl32" Version="4.0.4" />
         <PackageReference Include="Vanara.PInvoke.DwmApi" Version="4.0.4" />
@@ -56,7 +75,6 @@
     </ItemGroup>
     
     <ItemGroup>
-
         <PackageReference Include="Dapper" Version="2.1.28" />
         <PackageReference Include="F23.StringSimilarity" Version="5.1.0" />
         <PackageReference Include="ksemenenko.ColorThief" Version="1.1.1.4" />
@@ -66,7 +84,6 @@
         <PackageReference Include="QRCoder" Version="1.4.3" />
         <PackageReference Include="RestSharp" Version="106.15.0" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
-        <PackageReference Include="WinUIEx" Version="2.3.4" />
         <PackageReference Include="z440.atl.core" Version="6.1.0" />
         <Manifest Include="$(ApplicationManifest)" />
     </ItemGroup>
