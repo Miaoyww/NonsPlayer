@@ -70,6 +70,13 @@ internal class TitleBarHelper
         {
             if (theme != ElementTheme.Default)
             {
+                App.MainWindow.AppWindow.TitleBar.ButtonForegroundColor = theme switch
+                {
+                    ElementTheme.Dark => Colors.White,
+                    ElementTheme.Light => Colors.Black,
+                    _ => Colors.Transparent
+                };
+
                 Application.Current.Resources["WindowCaptionForeground"] = theme switch
                 {
                     ElementTheme.Dark => new SolidColorBrush(Colors.White),
