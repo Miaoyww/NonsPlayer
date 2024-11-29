@@ -26,7 +26,9 @@
                        Style="{StaticResource CommonTextStyle}"
                        FontWeight="Bold" FontSize="38" 
                        Foreground="{ThemeResource IconActiveColor}"
-                       VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20,0,0,0" />
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center"
+                       Margin="20,0,0,0" />
         </Grid>
     </Border>
 </UserControl>

@@ -25,34 +25,24 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Grid x:Name="TitleIcon"
-                      VerticalAlignment="Center" Margin="20,0,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+                <Grid Grid.Column="0" x:Name="TitleIcon"
+                      VerticalAlignment="Center" Margin="35,0,0,0">
                     <StackPanel Orientation="Horizontal">
                         <ImageIcon Source="ms-appx:///Assets/NonsPlayer-Icon-Miaoyww.svg"
-                                   Width="30"
-                                   VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        <TextBlock x:Name="AppTitleBarText" TextWrapping="NoWrap"
-                                   Margin="10,0,0,2"
-                                   Style="{StaticResource CommonTextStyle}"
-                                   FontWeight="Bold"
-                                   FontSize="16"
+                                   Width="32"
                                    VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </StackPanel>
                 </Grid>
                 <Grid x:Name="SearchBar" Grid.Column="1" Margin="10,0,0,0">
                     <StackPanel Orientation="Horizontal">
                         <Button Name="NavigateBack"
-                                Width="30"
-                                Height="30"
+                                Width="40"
+                                Height="40"
                                 Padding="0"
                                 Margin="0,0,10,0"
                                 BorderThickness="0" Background="Transparent"
                                 Command="{x:Bind ViewModel.GoBackCommand, Mode=OneWay}">
-                            <FontIcon Glyph="&#xE973;" />
+                            <FontIcon Glyph="&#xE973;" FontSize="24"/>
                         </Button>
 
                         <AutoSuggestBox Name="SearchBox"

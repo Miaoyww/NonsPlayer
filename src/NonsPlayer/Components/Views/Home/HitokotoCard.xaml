@@ -9,7 +9,7 @@
     Unloaded="{x:Bind ViewModel.HitokotoCard_OnUnloaded}">
     <Border Background="{ThemeResource ComponentsCardBackground}"
             CornerRadius="20">
-        <Grid Grid.Row="0" Margin="20">
+        <Grid Margin="20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -20,13 +20,12 @@
                            FontWeight="Medium" FontSize="25"
                            VerticalAlignment="Center" />
                 <TextBlock Text="HITOKOTO" FontSize="20"
-                           Style="{StaticResource EnglishTextStyle}" 
+                           Style="{StaticResource EnglishTextStyle}"
                            VerticalAlignment="Center" />
             </StackPanel>
-            <RichTextBlock Grid.Column="1" 
-                           Margin="30,0,0,0" 
-                           VerticalAlignment="Center" 
-                           MaxWidth="400"
+            <RichTextBlock Grid.Column="1"
+                           Margin="30,0,0,0"
+                           VerticalAlignment="Center"
                            Style="{StaticResource CommonRichTextStyle}" MaxLines="2">
                 <Paragraph>
                     <Run Text="{x:Bind ViewModel.Hitokoto, Mode=OneWay}" />
