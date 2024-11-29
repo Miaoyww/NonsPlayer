@@ -37,6 +37,7 @@ public sealed partial class LyricPage : Page
     public static Color AlbumColor;
     public LyricViewModel ViewModel { get; }
 
+    [ObservableProperty] private double coverBoxWidth = 300;
     [ObservableProperty] private SolidColorBrush foregroundAccentTextBrush =
         Application.Current.Resources["SystemControlPageTextBaseHighBrush"] as SolidColorBrush;
 
@@ -135,5 +136,10 @@ public sealed partial class LyricPage : Page
     public void UnExpand()
     {
         ServiceHelper.NavigationService.GoBack();
+    }
+
+    private void CoverBox_OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        CoverBoxWidth = ((Viewbox)sender).ActualWidth;
     }
 }

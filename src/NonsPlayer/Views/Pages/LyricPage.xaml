@@ -42,19 +42,36 @@
             </Grid.ColumnDefinitions>
             <Grid Column="0"
                   VerticalAlignment="Center"
-                  Margin="50,60,0,100">
+                  Margin="50,50,0,50">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="1.3*" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <StackPanel Grid.Row="0"
-                                Margin="0,50,0,0"
-                                HorizontalAlignment="Center">
-                        <Border Name="Cover" Width="500" Height="500" CornerRadius="18"
-                                VerticalAlignment="Center" HorizontalAlignment="Center"
-                                Background="{x:Bind ViewModel.Cover, Mode=OneWay}" />
-                        <Grid Name="MusicInfo" Margin="0,40,0,0">
+                    <Viewbox Name="CoverBox"
+                             Grid.Row="0"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Stretch"
+                             Stretch="Uniform"
+                             SizeChanged="CoverBox_OnSizeChanged">
+                        <Border
+                            Name="Cover"
+                            MinHeight="300"
+                            MinWidth="300"
+                            CornerRadius="18"
+                            Background="{x:Bind ViewModel.Cover, Mode=OneWay}" />
+                    </Viewbox>
+                    <Grid Grid.Row="1" Width="{x:Bind CoverBoxWidth, Mode=OneWay}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0"
+                              Name="MusicInfo"
+                              VerticalAlignment="Center"
+                              Margin="0,40,0,0">
                             <StackPanel>
                                 <TextBlock Name="TextBlockName" Margin="0,0,0,5"
                                            FontSize="28"
@@ -69,9 +86,10 @@
                                            Text="{x:Bind ViewModel.MusicStateModel.CurrentMusic.ArtistsName, Mode=OneWay}" />
                             </StackPanel>
                         </Grid>
-                        <StackPanel Name="MediaController">
-                            <Slider x:Name="CurrentTimeSlider" 
-                                    Width="498"
+                        <StackPanel Grid.Row="1"
+                                    Name="MediaController"
+                                    VerticalAlignment="Center">
+                            <Slider x:Name="CurrentTimeSlider"
                                     ManipulationMode="TranslateX"
                                     ManipulationCompleted=" CurrentTimeSlider_OnManipulationCompleted"
                                     ManipulationStarting="CurrentTimeSlider_OnManipulationStarting"
@@ -89,28 +107,33 @@
                                            VerticalAlignment="Center"
                                            Height="20"
                                            Foreground="{x:Bind TextForeground, Mode=OneWay}"
-                                           Padding="0,2,0,0" 
-                                           HorizontalAlignment="Left" 
+                                           Padding="0,2,0,0"
+                                           HorizontalAlignment="Left"
                                            FontSize="12" />
                                 <TextBlock Name="DurationTime"
                                            Text="{x:Bind ViewModel.MusicStateModel.DurationString, Mode=OneWay}"
-                                           FontWeight="Black" 
+                                           FontWeight="Black"
                                            Style="{StaticResource CommonTextStyle}"
                                            Foreground="{x:Bind TextForeground, Mode=OneWay}"
-                                           Margin="0" 
-                                           VerticalAlignment="Center" 
-                                           Height="20" 
+                                           Margin="0"
+                                           VerticalAlignment="Center"
+                                           Height="20"
                                            Padding="0,2,0,0"
-                                           HorizontalAlignment="Right" 
-                                           FontSize="12" 
+                                           HorizontalAlignment="Right"
+                                           FontSize="12"
                                            FlowDirection="RightToLeft" />
                             </Grid>
                             <Grid VerticalAlignment="Center">
-                                <Button Name="ShuffleSwitcher" Width="35" Height="35" Margin="0,0,10,0"
-                                        VerticalAlignment="Center" HorizontalAlignment="Left" Background="Transparent"
+                                <Button Name="ShuffleSwitcher" 
+                                        Width="35" 
+                                        Height="35" 
+                                        Margin="0,0,10,0"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Left"
+                                        Background="Transparent"
                                         BorderThickness="0" Padding="0"
                                         Command="{x:Bind ViewModel.SwitchShuffleCommand}">
-                                    <Grid>
+                                    <Grid Margin="-13,0,0,0">
                                         <FontIcon FontSize="20" Glyph="&#xe8b1;"
                                                   Foreground="{x:Bind TextForeground, Mode=OneWay}" />
                                         <Line Margin="0,0,0,-4" StrokeThickness="2" X1="0" X2="10"
@@ -151,36 +174,44 @@
                                                   Foreground="{x:Bind TextForeground, Mode=OneWay}" />
                                     </Button>
                                 </StackPanel>
-                                <Button Name="PlayModeSwitcher" Width="35" Height="35"
-                                        VerticalAlignment="Center" HorizontalAlignment="Right" Background="Transparent"
+                                <Button Name="PlayModeSwitcher" 
+                                        Width="35" 
+                                        Height="35"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Right" 
+                                        Background="Transparent"
                                         BorderThickness="0" Padding="0"
                                         Command="{x:Bind ViewModel.SwitchPlayModeCommand}">
-                                    <FontIcon FontSize="20"
+                                    <FontIcon Margin="0,0,-12,0"
+                                        FontSize="20"
                                               Foreground="{x:Bind TextForeground, Mode=OneWay}"
                                               Glyph="{x:Bind ViewModel.PlayerService.CurrentPlayMode, Converter={StaticResource PlayModeIconConverter}, Mode=OneWay}" />
                                 </Button>
                             </Grid>
                         </StackPanel>
-
-                        <Grid Margin="0,20,0,0">
-                            <FontIcon FontSize="20"
-                                      VerticalAlignment="Center" HorizontalAlignment="Left"
+                        <Grid Grid.Row="2" Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" FontSize="20"
+                                      VerticalAlignment="Center"
                                       Foreground="{x:Bind TextForeground, Mode=OneWay}"
                                       Glyph="&#xE992;" />
-
-                            <Slider Name="VolumeSlider" IsThumbToolTipEnabled="True"
-                                    Margin="0,0,0,0"
-                                    Value="{x:Bind ViewModel.MusicStateModel.Volume, Mode=TwoWay}" Width="400"
-                                    Foreground="{x:Bind TextForeground, Mode=OneWay}"
-                                    HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" />
-
-                            <FontIcon FontSize="20"
-                                      VerticalAlignment="Center" HorizontalAlignment="Right"
+                            <Slider Grid.Column="1" 
+                                    Name="VolumeSlider"
+                                    IsThumbToolTipEnabled="True"
+                                    Value="{x:Bind ViewModel.MusicStateModel.Volume, Mode=TwoWay}"
+                                    Maximum="100"
+                                    Margin="3,0,10,0"
+                                    Foreground="{x:Bind TextForeground, Mode=OneWay}"/>
+                            <FontIcon Grid.Column="2" FontSize="20"
+                                      VerticalAlignment="Center"
                                       Foreground="{x:Bind TextForeground, Mode=OneWay}"
                                       Glyph="&#xE995;" />
                         </Grid>
-                    </StackPanel>
-
+                    </Grid>
                 </Grid>
             </Grid>
             <amll:AMLLCard Grid.Column="1"
@@ -195,9 +226,11 @@
                     BorderThickness="0"
                     Background="Transparent"
                     Command="{x:Bind UnExpandCommand}">
-                <FontIcon Glyph="&#xE70D;" FontSize="22" 
-                          Foreground="{x:Bind TextForeground, Mode=OneWay}"/>
+                <FontIcon Glyph="&#xE70D;" 
+                          FontSize="27"
+                          Foreground="{x:Bind TextForeground, Mode=OneWay}" />
             </Button>
         </Canvas>
+
     </Grid>
 </Page>
