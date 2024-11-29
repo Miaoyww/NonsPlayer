@@ -18,6 +18,10 @@ public partial class ShellViewModel : ObservableRecipient
 {
     public static INavigationService OutNavigationService;
     private bool _isBackEnabled;
+    [ObservableProperty] private Visibility homeLineVisibility = Visibility.Visible;
+    [ObservableProperty] private Visibility exploreLineVisibility = Visibility.Collapsed;
+    [ObservableProperty] private Visibility localLineVisibility = Visibility.Collapsed;
+    [ObservableProperty] private Visibility ownLineVisibility = Visibility.Collapsed;
     public ShellViewModel(INavigationService navigationService)
     {
         NavigationService = navigationService;
@@ -57,7 +61,41 @@ public partial class ShellViewModel : ObservableRecipient
     private void OnNavigated(object sender, NavigationEventArgs e)
     {
         IsBackEnabled = NavigationService.CanGoBack;
+           switch (e.SourcePageType.Name)
+        {
+            case nameof(HomePage):
+                HomeLineVisibility = Visibility.Visible;
+                ExploreLineVisibility = Visibility.Collapsed;
+                LocalLineVisibility = Visibility.Collapsed;
+                OwnLineVisibility = Visibility.Collapsed;
+                break;
+            case nameof(ExplorePage):
+                HomeLineVisibility = Visibility.Collapsed;
+                ExploreLineVisibility = Visibility.Visible;
+                LocalLineVisibility = Visibility.Collapsed;
+                OwnLineVisibility = Visibility.Collapsed;
+                break;
+            case nameof(LocalPage):
+                HomeLineVisibility = Visibility.Collapsed;
+                ExploreLineVisibility = Visibility.Collapsed;
+                LocalLineVisibility = Visibility.Visible;
+                OwnLineVisibility = Visibility.Collapsed;
+                break;
+            case nameof(PersonalCenterPage):
+                HomeLineVisibility = Visibility.Collapsed;
+                ExploreLineVisibility = Visibility.Collapsed;
+                LocalLineVisibility = Visibility.Collapsed;
+                OwnLineVisibility = Visibility.Visible;
+                break;
+            default:
+                HomeLineVisibility = Visibility.Collapsed;
+                ExploreLineVisibility = Visibility.Collapsed;
+                LocalLineVisibility = Visibility.Collapsed;
+                OwnLineVisibility = Visibility.Collapsed;
+                break;
+        }
     }
+    
 
     [RelayCommand]
     private void OpenPage(string param)

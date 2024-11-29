@@ -45,9 +45,9 @@
                 </Grid>
                 <Grid x:Name="SearchBar" Grid.Column="1" Margin="10,0,0,0">
                     <StackPanel Orientation="Horizontal">
-                        <Button Name="NavigateBack" 
-                                Width="30" 
-                                Height="30" 
+                        <Button Name="NavigateBack"
+                                Width="30"
+                                Height="30"
                                 Padding="0"
                                 Margin="0,0,10,0"
                                 BorderThickness="0" Background="Transparent"
@@ -83,22 +83,66 @@
                 <Button Name="NavigateHome" Style="{StaticResource NativeButton}"
                         Command="{x:Bind ViewModel.OpenPageCommand}"
                         CommandParameter="home">
-                    <TextBlock x:Uid="ShellMenu_Home" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                    <Grid>
+                        <TextBlock x:Uid="ShellMenu_Home" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                        <Line Margin="0,0,0,-4"
+                              x:Name="HomeUnderLine"
+                              StrokeThickness="2"
+                              X1="0" X2="20"
+                              VerticalAlignment="Bottom"
+                              HorizontalAlignment="Center"
+                              Visibility="{x:Bind ViewModel.HomeLineVisibility,Mode=OneWay}"
+                              Stroke="#0067c0" />
+                    </Grid>
+
                 </Button>
                 <Button Name="NavigateExplore" Style="{StaticResource NativeButton}"
                         Command="{x:Bind ViewModel.OpenPageCommand}"
                         CommandParameter="explore">
-                    <TextBlock x:Uid="ShellMenu_Explore" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                    <Grid>
+                        <TextBlock x:Uid="ShellMenu_Explore" FontWeight="Medium"
+                                   Style="{StaticResource CommonTextStyle}" />
+                        <Line Margin="0,0,0,-4"
+                              x:Name="ExploreUnderLine"
+                              StrokeThickness="2"
+                              X1="0" X2="20"
+                              VerticalAlignment="Bottom"
+                              HorizontalAlignment="Center"
+                              Visibility="{x:Bind ViewModel.ExploreLineVisibility,Mode=OneWay}"
+
+                              Stroke="#0067c0" />
+                    </Grid>
                 </Button>
                 <Button Name="NavigateLocal" Style="{StaticResource NativeButton}"
                         Command="{x:Bind ViewModel.OpenPageCommand}"
                         CommandParameter="local">
-                    <TextBlock x:Uid="ShellMenu_Local" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                    <Grid>
+                        <TextBlock x:Uid="ShellMenu_Local" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                        <Line Margin="0,0,0,-4"
+                              x:Name="LocalUnderLine"
+                              StrokeThickness="2"
+                              X1="0" X2="20"
+                              VerticalAlignment="Bottom"
+                              HorizontalAlignment="Center"
+                              Visibility="{x:Bind ViewModel.LocalLineVisibility,Mode=OneWay}"
+
+                              Stroke="#0067c0" />
+                    </Grid>
                 </Button>
                 <Button Name="NavigateOwn" Style="{StaticResource NativeButton}"
                         Command="{x:Bind ViewModel.OpenPageCommand}"
                         CommandParameter="own">
-                    <TextBlock x:Uid="ShellMenu_Own" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                    <Grid>
+                        <TextBlock x:Uid="ShellMenu_Own" FontWeight="Medium" Style="{StaticResource CommonTextStyle}" />
+                        <Line Margin="0,0,0,-4"
+                              x:Name="OwnUnderLine"
+                              StrokeThickness="2"
+                              X1="0" X2="20"
+                              VerticalAlignment="Bottom"
+                              HorizontalAlignment="Center"
+                              Visibility="{x:Bind ViewModel.OwnLineVisibility,Mode=OneWay}"
+                              Stroke="#0067c0" />
+                    </Grid>
                 </Button>
 
             </StackPanel>
