@@ -48,7 +48,6 @@ public sealed partial class ShellPage : Page
         App.MainWindow.Activated += MainWindow_Activated;
         App.MainWindow.SetTitleBar(TitleIcon);
         // SetDragRectangles(new RectInt32(0, 0, 100000, (int)(48 * WindowUtility.UiScale)));
-        AppTitleBarText.Text = "AppDisplayName".GetLocalized();
         PlayerBar.OnPlayQueueBarOpenHandler += OnOpenPlayQueueButton_Click;
         ExceptionService.Instance.ExceptionThrew += OnExceptionThrew;
         DialogHelper.Instance.DialogShowing += OnDialogShowing;
