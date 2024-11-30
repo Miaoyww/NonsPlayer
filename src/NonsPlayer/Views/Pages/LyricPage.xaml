@@ -124,16 +124,16 @@
                                            FlowDirection="RightToLeft" />
                             </Grid>
                             <Grid VerticalAlignment="Center">
-                                <Button Name="ShuffleSwitcher" 
-                                        Width="35" 
-                                        Height="35" 
-                                        Margin="0,0,10,0"
+                                <Button Name="ShuffleSwitcher"
+                                        Width="35"
+                                        Height="35"
                                         VerticalAlignment="Center"
                                         HorizontalAlignment="Left"
                                         Background="Transparent"
                                         BorderThickness="0" Padding="0"
+                                        Margin="-13,0,10,0"
                                         Command="{x:Bind ViewModel.SwitchShuffleCommand}">
-                                    <Grid Margin="-13,0,0,0">
+                                    <Grid>
                                         <FontIcon FontSize="20" Glyph="&#xe8b1;"
                                                   Foreground="{x:Bind TextForeground, Mode=OneWay}" />
                                         <Line Margin="0,0,0,-4" StrokeThickness="2" X1="0" X2="10"
@@ -174,18 +174,19 @@
                                                   Foreground="{x:Bind TextForeground, Mode=OneWay}" />
                                     </Button>
                                 </StackPanel>
-                                <Button Name="PlayModeSwitcher" 
-                                        Width="35" 
+                                <Button Name="PlayModeSwitcher"
+                                        Width="35"
                                         Height="35"
                                         VerticalAlignment="Center"
-                                        HorizontalAlignment="Right" 
+                                        HorizontalAlignment="Right"
                                         Background="Transparent"
                                         BorderThickness="0" Padding="0"
+                                        Margin="0,0,-12,0"
                                         Command="{x:Bind ViewModel.SwitchPlayModeCommand}">
-                                    <FontIcon Margin="0,0,-12,0"
+                                    <FontIcon
                                         FontSize="20"
-                                              Foreground="{x:Bind TextForeground, Mode=OneWay}"
-                                              Glyph="{x:Bind ViewModel.PlayerService.CurrentPlayMode, Converter={StaticResource PlayModeIconConverter}, Mode=OneWay}" />
+                                        Foreground="{x:Bind TextForeground, Mode=OneWay}"
+                                        Glyph="{x:Bind ViewModel.PlayerService.CurrentPlayMode, Converter={StaticResource PlayModeIconConverter}, Mode=OneWay}" />
                                 </Button>
                             </Grid>
                         </StackPanel>
@@ -199,13 +200,13 @@
                                       VerticalAlignment="Center"
                                       Foreground="{x:Bind TextForeground, Mode=OneWay}"
                                       Glyph="&#xE992;" />
-                            <Slider Grid.Column="1" 
+                            <Slider Grid.Column="1"
                                     Name="VolumeSlider"
                                     IsThumbToolTipEnabled="True"
                                     Value="{x:Bind ViewModel.MusicStateModel.Volume, Mode=TwoWay}"
                                     Maximum="100"
                                     Margin="3,0,10,0"
-                                    Foreground="{x:Bind TextForeground, Mode=OneWay}"/>
+                                    Foreground="{x:Bind TextForeground, Mode=OneWay}" />
                             <FontIcon Grid.Column="2" FontSize="20"
                                       VerticalAlignment="Center"
                                       Foreground="{x:Bind TextForeground, Mode=OneWay}"
@@ -226,7 +227,7 @@
                     BorderThickness="0"
                     Background="Transparent"
                     Command="{x:Bind UnExpandCommand}">
-                <FontIcon Glyph="&#xE70D;" 
+                <FontIcon Glyph="&#xE70D;"
                           FontSize="27"
                           Foreground="{x:Bind TextForeground, Mode=OneWay}" />
             </Button>
