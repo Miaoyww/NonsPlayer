@@ -20,6 +20,7 @@ public partial class PlaylistCardViewModel
     [ObservableProperty] private string id;
     [ObservableProperty] private string title;
     [ObservableProperty] private string creator;
+    public UiHelper UiHelper = UiHelper.Instance;
 
     public void Init(IPlaylist item)
     {

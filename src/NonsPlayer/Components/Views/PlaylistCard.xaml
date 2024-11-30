@@ -7,6 +7,7 @@
     mc:Ignorable="d">
 
     <Border CornerRadius="10"
+            SizeChanged="FrameworkElement_OnSizeChanged"
             Tapped="{x:Bind ViewModel.UIElement_OnTapped}">
         <Border.ContextFlyout>
             <MenuFlyout>
@@ -14,23 +15,27 @@
                 <MenuFlyoutItem x:Uid="PlayNext" Icon="Play" Command="{x:Bind ViewModel.PlayNextCommand}" />
             </MenuFlyout>
         </Border.ContextFlyout>
-        <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <Border Grid.Row="0" Name="Cover"
                     Background="{x:Bind ViewModel.Cover,Mode=OneWay}"
-                    Width="230" Height="230"
-                    Margin="0,0,0,0" CornerRadius="10" HorizontalAlignment="Center" />
+                    VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch"
+                    Width="{x:Bind CoverSize, Mode=OneWay}"
+                    Height="{x:Bind CoverSize, Mode=OneWay}"
+                    CornerRadius="10" />
             <TextBlock Grid.Row="1" Name="Title"
                        Margin="0,5,0,0"
                        Text="{x:Bind ViewModel.Title,Mode=OneWay}"
                        Style="{StaticResource CommonTextStyle}"
                        VerticalAlignment="Center"
-                       TextAlignment="Left" FontSize="17" FontWeight="Medium"
-                       Width="224" Height="58" />
+                       TextAlignment="Left"
+                       FontSize="17"
+                       FontWeight="Medium"
+                       Height="58" />
         </Grid>
     </Border>
 </UserControl>

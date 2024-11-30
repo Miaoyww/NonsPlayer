@@ -146,7 +146,6 @@ public partial class UiHelper : ObservableObject
     public delegate void LyricChangedHandler(int index);
 
     public LyricChangedHandler LyricChanged;
-    
     [ObservableProperty] private Visibility lyricShow = Visibility.Collapsed;
     [ObservableProperty] private Visibility playBarShow = Visibility.Visible;
 
