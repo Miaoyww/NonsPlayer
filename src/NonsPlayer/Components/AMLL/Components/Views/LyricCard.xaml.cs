@@ -1,8 +1,8 @@
 ﻿using Microsoft.UI.Xaml.Controls;
-using NonsPlayer.AMLL.Components.ViewModels;
-using NonsPlayer.AMLL.Models;
+using NonsPlayer.Components.AMLL.Components.ViewModels;
+using NonsPlayer.Components.AMLL.Models;
 
-namespace NonsPlayer.AMLL.Components.Views;
+namespace NonsPlayer.Components.AMLL.Components.Views;
 
 public sealed partial class LyricCard : UserControl
 {

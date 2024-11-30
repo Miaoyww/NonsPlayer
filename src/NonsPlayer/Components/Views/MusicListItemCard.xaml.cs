@@ -9,8 +9,9 @@ using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
-using NonsPlayer.Dialogs;
+using NonsPlayer.Components.Dialogs;
 using NonsPlayer.Helpers;
+using NonsPlayer.Models;
 using NonsPlayer.ViewModels;
 
 namespace NonsPlayer.Components.Views;

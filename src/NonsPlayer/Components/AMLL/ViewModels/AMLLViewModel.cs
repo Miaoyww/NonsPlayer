@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NonsPlayer.AMLL.Models;
+using NonsPlayer.Components.AMLL.Models;
 using NonsPlayer.Core.AMLL.Models;
 using NonsPlayer.Core.Contracts.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
@@ -9,7 +9,7 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.ViewModels;
 
-namespace NonsPlayer.AMLL.ViewModels;
+namespace NonsPlayer.Components.AMLL.ViewModels;
 
 public partial class AMLLViewModel : ObservableRecipient
 {

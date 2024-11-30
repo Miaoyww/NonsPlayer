@@ -1,7 +1,7 @@
 ﻿using Microsoft.UI.Xaml.Data;
 using NonsPlayer.Core.Enums;
 
-namespace NonsPlayer.Converters;
+namespace NonsPlayer.Helpers.Converters;
 
 public class SearchDataTypeToString : IValueConverter
 {

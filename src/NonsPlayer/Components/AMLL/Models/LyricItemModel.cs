@@ -1,6 +1,6 @@
 ﻿using NonsPlayer.Core.AMLL.Models;
 
-namespace NonsPlayer.AMLL.Models;
+namespace NonsPlayer.Components.AMLL.Models;
 
 /// <summary>
 /// 一个歌词项(行)的数据模型

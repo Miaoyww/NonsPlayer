@@ -5,15 +5,16 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Newtonsoft.Json.Linq;
+using NonsPlayer.Components.Dialogs;
 using NonsPlayer.Contracts.Services;
 using NonsPlayer.Core.Services;
-using NonsPlayer.Dialogs;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using ArtistSeparator = NonsPlayer.Components.Dialogs.ArtistSeparator;
 
 namespace NonsPlayer.Views.Pages;
 

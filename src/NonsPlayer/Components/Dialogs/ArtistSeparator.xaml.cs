@@ -6,7 +6,7 @@ using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
 using System.Collections.ObjectModel;
 
-namespace NonsPlayer.Dialogs;
+namespace NonsPlayer.Components.Dialogs;
 
 [INotifyPropertyChanged]
 public sealed partial class ArtistSeparator : Page

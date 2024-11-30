@@ -6,8 +6,8 @@ using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using NonsPlayer.Activation;
-using NonsPlayer.AMLL.Components.ViewModels;
-using NonsPlayer.AMLL.ViewModels;
+using NonsPlayer.Components.AMLL.Components.ViewModels;
+using NonsPlayer.Components.AMLL.ViewModels;
 using NonsPlayer.Cache;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Components.ViewModels;
@@ -27,8 +27,8 @@ using Serilog;
 using Windows.Graphics.Display;
 using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArgs;
 using WinRT;
-using LyricViewModel = NonsPlayer.AMLL.ViewModels.AMLLViewModel;
-using NonsPlayer.AMLL.Views;
+using LyricViewModel = NonsPlayer.Components.AMLL.ViewModels.AMLLViewModel;
+using NonsPlayer.Components.AMLL.Views;
 
 namespace NonsPlayer;
 

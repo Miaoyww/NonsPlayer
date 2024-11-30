@@ -1,7 +1,7 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 
-namespace NonsPlayer.Converters;
+namespace NonsPlayer.Helpers.Converters;
 
 public class ThumbConverter : DependencyObject, IValueConverter
 {

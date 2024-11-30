@@ -1,8 +1,8 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using NonsPlayer.AMLL.Helpers;
-using NonsPlayer.AMLL.ViewModels;
+using NonsPlayer.Components.AMLL.Helpers;
+using NonsPlayer.Components.AMLL.ViewModels;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Helpers;
@@ -10,7 +10,7 @@ using Windows.Foundation;
 using Windows.UI.Core;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
-namespace NonsPlayer.AMLL.Views;
+namespace NonsPlayer.Components.AMLL.Views;
 
 public sealed partial class AMLLCard : UserControl
 {

@@ -2,14 +2,14 @@
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
-using NonsPlayer.AMLL.Components.Views;
-using NonsPlayer.AMLL.Helpers;
-using NonsPlayer.AMLL.Models;
+using NonsPlayer.Components.AMLL.Components.Views;
+using NonsPlayer.Components.AMLL.Helpers;
+using NonsPlayer.Components.AMLL.Models;
 using NonsPlayer.Core.AMLL.Models;
 using NonsPlayer.Helpers;
 using Windows.UI;
 
-namespace NonsPlayer.AMLL.Components.ViewModels;
+namespace NonsPlayer.Components.AMLL.Components.ViewModels;
 
 public sealed partial class LyricCardViewModel : ObservableObject
 {

@@ -6,11 +6,11 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:NonsPlayer.Components.Models"
     xmlns:views="using:NonsPlayer.Components.Views"
-    xmlns:converters="using:NonsPlayer.Converters"
     xmlns:media="using:CommunityToolkit.WinUI.Media"
     xmlns:animations="using:CommunityToolkit.WinUI.Animations"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
-    xmlns:amll="using:NonsPlayer.AMLL.Views"
+    xmlns:amll="using:NonsPlayer.Components.AMLL.Views"
+    xmlns:converters="using:NonsPlayer.Helpers.Converters"
     Loaded="LyricPage_OnLoaded"
     mc:Ignorable="d">
     <Page.Resources>

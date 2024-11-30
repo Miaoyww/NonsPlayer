@@ -1,9 +1,8 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
-using NonsPlayer.Helpers;
 
-namespace NonsPlayer.Converters;
+namespace NonsPlayer.Helpers.Converters;
 
 public class LikeIconConverter : IValueConverter
 {

@@ -1,4 +1,4 @@
-﻿using NonsPlayer.AMLL.Models;
+﻿using NonsPlayer.Components.AMLL.Models;
 using NonsPlayer.Core.AMLL.Models;
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static NonsPlayer.Core.Nons.Player.Player;
 
-namespace NonsPlayer.AMLL.Helpers;
+namespace NonsPlayer.Components.AMLL.Helpers;
 
 public class LyricHelper
 {

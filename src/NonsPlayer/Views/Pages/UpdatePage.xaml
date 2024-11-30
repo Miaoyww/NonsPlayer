@@ -4,13 +4,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:cvs="using:NonsPlayer.Converters"
+    xmlns:converters="using:NonsPlayer.Helpers.Converters"
     mc:Ignorable="d"
     Loaded="UpdatePage_OnLoaded"
     Unloaded="UpdatePage_OnUnloaded">
     <Page.Resources>
         <ResourceDictionary>
-            <cvs:ByteLengthToStringConverter x:Key="ByteLengthToStringConverter" />
+            <converters:ByteLengthToStringConverter x:Key="ByteLengthToStringConverter" />
         </ResourceDictionary>
     </Page.Resources>
     <Grid Margin="{StaticResource PageCommonMargin}">

@@ -1,10 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using NonsPlayer.Core.Contracts.Models;
-using NonsPlayer.Core.Contracts.Models.Music;
-using NonsPlayer.Core.Models;
-using System.Text.Json.Serialization;
-
-namespace NonsPlayer.Components.Models;
+﻿namespace NonsPlayer.Models;
 
 public class LocalTrackModel
 {

@@ -16,6 +16,7 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
+using NonsPlayer.Models;
 using NonsPlayer.Services;
 using NonsPlayer.ViewModels;
 using System.Collections.ObjectModel;
@@ -26,7 +27,7 @@ using System.Diagnostics;
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
-namespace NonsPlayer.Dialogs;
+namespace NonsPlayer.Components.Dialogs;
 
 [INotifyPropertyChanged]
 public sealed partial class LocalProperties : Page

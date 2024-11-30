@@ -1,6 +1,6 @@
 ﻿using Microsoft.UI.Xaml.Data;
 
-namespace NonsPlayer.Converters;
+namespace NonsPlayer.Helpers.Converters;
 
 public class VolumeIconConverter : IValueConverter
 {

@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:CommunityToolkit.WinUI.UI.Controls"
-    xmlns:converters="using:NonsPlayer.Converters"
+    xmlns:converters="using:NonsPlayer.Helpers.Converters"
     mc:Ignorable="d">
     <UserControl.Resources>
         <converters:RadioPlayIconConverter x:Key="RadioPlayIconConverter" />

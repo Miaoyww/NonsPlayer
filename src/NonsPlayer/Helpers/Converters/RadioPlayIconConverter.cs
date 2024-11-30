@@ -1,7 +1,7 @@
 ﻿using Microsoft.UI.Xaml.Data;
 using NonsPlayer.Services;
 
-namespace NonsPlayer.Converters;
+namespace NonsPlayer.Helpers.Converters;
 
 public class RadioPlayIconConverter : IValueConverter
 {
