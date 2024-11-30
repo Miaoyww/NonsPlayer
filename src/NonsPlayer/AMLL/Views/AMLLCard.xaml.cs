@@ -93,37 +93,41 @@ public sealed partial class AMLLCard : UserControl
             }
 
             var item = ViewModel.LyricItems[LyricHelper.Instance.LyricPosition];
-            var k = LyricBox.ItemsSourceView.IndexOf(item);
-            UIElement actualElement;
-            bool isNewLoaded = false;
-            if (LyricBox.TryGetElement(k) is { } ele)
+            if (LyricBox.ItemsSourceView != null)
             {
-                actualElement = ele;
-            }
-            else
-            {
-                actualElement = LyricBox.GetOrCreateElement(k) as Border;
-                isNewLoaded = true;
-            }
-
-
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                actualElement.UpdateLayout();
-
-                if (!isNewLoaded)
+                var k = LyricBox.ItemsSourceView.IndexOf(item);
+                UIElement actualElement;
+                bool isNewLoaded = false;
+                if (LyricBox.TryGetElement(k) is { } ele)
                 {
-                    var transform = actualElement?.TransformToVisual((UIElement)LyricBoxContainer.ContentTemplateRoot);
-                    var position = transform?.TransformPoint(new Windows.Foundation.Point(0, 0));
-                    LyricBoxContainer.ChangeView(0,
-                        (position?.Y + LyricHost.Margin.Top - MainGrid.ActualHeight / 4) - 200, 1,
-                        false);
+                    actualElement = ele;
                 }
                 else
                 {
-                    // actualElement.StartBringIntoView(NoAnimationBringIntoViewOptions);
+                    actualElement = LyricBox.GetOrCreateElement(k) as Border;
+                    isNewLoaded = true;
                 }
-            });
+
+
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    actualElement.UpdateLayout();
+
+                    if (!isNewLoaded)
+                    {
+                        var transform = actualElement?.TransformToVisual((UIElement)LyricBoxContainer.ContentTemplateRoot);
+                        var position = transform?.TransformPoint(new Windows.Foundation.Point(0, 0));
+                        LyricBoxContainer.ChangeView(0,
+                            (position?.Y + LyricHost.Margin.Top - MainGrid.ActualHeight / 4) - 200, 1,
+                            false);
+                    }
+                    else
+                    {
+                        // actualElement.StartBringIntoView(NoAnimationBringIntoViewOptions);
+                    }
+                });
+            }
+
   
         }
         catch
