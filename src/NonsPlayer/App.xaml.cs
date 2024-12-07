@@ -278,22 +278,3 @@ public partial class App : Application
         await GetService<IActivationService>().ActivateAsync(args);
     }
 }
-
-public static class WindowExtensions
-{
-    public static IntPtr GetWindowHandle(this Window window)
-    {
-        return window is null
-            ? throw new ArgumentNullException(nameof(window))
-            : window.As<IWindowNative>().WindowHandle;
-    }
-
-    // https://www.sharpgis.net/post/Using-the-CWin32-code-generator-to-enhance-your-WinUI-3-app
-    [ComImport]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    [Guid("EECDBF0E-BAE9-4CB6-A68E-9598E1CB57BB")]
-    internal interface IWindowNative
-    {
-        IntPtr WindowHandle { get; }
-    }
-}

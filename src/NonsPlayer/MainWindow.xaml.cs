@@ -1,5 +1,6 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using NonsPlayer.DataBase;
 using NonsPlayer.Helpers;
 using NonsPlayer.Services;
 
@@ -24,4 +25,8 @@ public sealed partial class MainWindow : WindowEx
         
     }
 
+    private void MainWindow_OnClosed(object sender, WindowEventArgs args)
+    {
+        LocalDbManager.Instance.Dispose();
+    }
 }

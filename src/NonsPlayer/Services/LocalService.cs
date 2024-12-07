@@ -1,10 +1,15 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic;
+using Newtonsoft.Json.Linq;
 using NonsPlayer.Components.Models;
 using NonsPlayer.Core.Contracts.Models.Music;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Core.Utils;
+using NonsPlayer.DataBase;
+using NonsPlayer.DataBase.Models;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using Windows.Storage;
@@ -24,14 +29,11 @@ public class LocalService
 
     #endregion
 
-    private const string _dataKey = "local_dictionaries.json";
     public ObservableCollection<LocalFolderModel> Directories = new();
     public List<LocalMusic> Songs = new();
     public List<LocalArtist> Artists = new();
     public List<LocalAlbum> Albums = new();
-
-    private FileService FileService = App.GetService<FileService>();
-
+    private ILogger _logger = App.GetLogger<LocalService>();
     public bool TryAddDirection(string path)
     {
         if (string.IsNullOrEmpty(path)) return false;
@@ -89,6 +91,7 @@ public class LocalService
         if (!HasDirectory(path)) return false;
         if (!TryGetModel(path, out var result)) return false;
         Directories.Remove(result);
+        var deleted = LocalDbManager.GetFolders().DeleteMany(x => x.Path == path);
         Save();
         LocalFolderChanged?.Invoke(string.Empty);
         return true;
@@ -98,40 +101,50 @@ public class LocalService
     {
         try
         {
-            var data = FileService.ReadData(_dataKey);
-            if (!string.IsNullOrEmpty(data))
+            var data = LocalDbManager.GetFolders().FindAll();
+            if (data != null)
             {
-                var value = JArray.Parse(data);
                 Directories.Clear();
                 var index = 0;
-                foreach (var item in value)
+                foreach (var item in data)
                 {
                     index++;
                     Directories.Add(new LocalFolderModel(
-                        (item)["path"].ToString(),
+                        item.Path,
                         index.ToString("D2")
                     ));
+
+                    _logger.LogInformation($"Loaded folder: {item.Path}");
                 }
 
                 LocalFolderChanged?.Invoke(string.Empty);
             }
-        }catch(Exception e)
+        }
+        catch (Exception e)
         {
             LocalLoadFailed?.Invoke(e.Message);
         }
-
     }
 
     public void Save()
     {
-        var options = new JsonSerializerOptions
-        {
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
+        var db = LocalDbManager.Instance.GetDatabase().GetCollection<DbFolderModel>("folders");
+        db.EnsureIndex(x => x.Path, true); // 'true' 表示唯一索引
 
-        FileService.SaveData(_dataKey, JsonSerializer.Serialize(Directories, options));
+        foreach (LocalFolderModel localFolderModel in Directories)
+        {
+            try
+            {
+                LocalDbManager.UpdateFolder(localFolderModel.ConvertToDbFolderModel());
+            }
+            catch
+            {
+                //ignore;
+            }
+
+        }
     }
-    
+
     public async Task<List<LocalMusic>> ScanMusic(string folderPath)
     {
         StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(folderPath);

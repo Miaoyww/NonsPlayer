@@ -9,5 +9,6 @@
     MinWidth="1380"
     PersistenceId="MainWindow"
     mc:Ignorable="d"
-    SizeChanged="MainWindow_OnSizeChanged">
+    SizeChanged="MainWindow_OnSizeChanged"
+    Closed="MainWindow_OnClosed">
 </windowex:WindowEx>

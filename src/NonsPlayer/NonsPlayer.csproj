@@ -45,8 +45,6 @@
     <ItemGroup>
         <PackageReference Include="WinUIEx" Version="2.5.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
-        <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
         <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.241114003" />
         <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="2.0.9" />
     </ItemGroup>
@@ -87,6 +85,7 @@
         <PackageReference Include="RestSharp" Version="106.15.0" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
         <PackageReference Include="z440.atl.core" Version="6.1.0" />
+        <PackageReference Include="LiteDB" Version="5.0.21" />
         <Manifest Include="$(ApplicationManifest)" />
     </ItemGroup>
 
@@ -126,10 +125,5 @@
         <Content Update="Assets\Fonts\Segoe Fluent Icons.ttf">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Resource Remove="AMLL\Components\Views\LyricCard.xaml" />
-      <Resource Remove="AMLL\Views\AMLLCard.xaml" />
     </ItemGroup>
 </Project>
