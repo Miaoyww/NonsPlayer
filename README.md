@@ -35,18 +35,15 @@
 
 **需要[.net8.0 Desktop Runtime](https://dotnet.microsoft.com/zh-cn/download/dotnet/8.0)**
 
+**需要适配器, 目前仅有[网易云音乐](https://github.com/Miaoyww/NonsAdapter-Ncmp)可用**
+
 **Windows 10版本需要额外下载[Fluent Icons](https://learn.microsoft.com/zh-cn/windows/apps/design/downloads/#fonts)字体库**
 
-# 🧭开发指南
+# 和开发者交流🎉
 
-详见[Code of Conduct](https://github.com/Miaoyww/NonsPlayer?tab=coc-ov-file)
+欢迎加入我们的交流空间！
 
-# 📜开源许可
-
-Copyright Miaoyww 2022-2024.
-
-Distributed under the terms of
-the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
+技术|开发|吹水: [QQ群](https://qm.qq.com/q/YMcwgNJB2a)
 
 # 💡灵感来源
 
@@ -69,12 +66,7 @@ the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/
 ## 字体
 [HarmonyOS Sans SC](https://developer.huawei.com/consumer/cn/doc/design-guides-V1/font-0000001157868583-V1)
 
-# 和开发者交流
-
-欢迎加入我们的交流空间！
-
-技术|开发|吹水: [QQ群](https://qm.qq.com/q/YMcwgNJB2a)
-
+Novecento Wide Bold
 
 # 🖼️应用截图
 **仍在开发中，并不代表最终质量**
@@ -84,7 +76,13 @@ the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/
 ![Home](docs/local.png)
 ![Lyric](docs/lyric.png)
 
-Novecento Wide Bold
+
+# 📜开源许可
+
+Copyright Miaoyww 2022-2024.
+
+Distributed under the terms of
+the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
 
 <div align="center">
 <image src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg"></image>
