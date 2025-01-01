@@ -11,23 +11,17 @@ using System.Timers;
 public class CacheService
 {
     private readonly ConcurrentDictionary<string, CacheBase> _cache = new();
-    private readonly Timer _cleanupTimer;
     public ILogger Logger = App.GetLogger<CacheService>();
 
-    public CacheService() // 默认每分钟清理一次
+    public CacheService()
     {
-        var cleanupInterval = 60000;
-        _cleanupTimer = new Timer(cleanupInterval);
-        _cleanupTimer.Elapsed += (sender, e) => CleanupExpiredItems();
-        _cleanupTimer.Start();
         Logger.LogInformation("CacheService init finished");
-        Logger.LogInformation("Current cache expiration time(ms): {time}", cleanupInterval);
     }
 
 
     public bool TryGet<T>(string id, out T result)
     {
-        if (_cache.TryGetValue(id, out var cacheItem) && !cacheItem.IsExpired())
+        if (_cache.TryGetValue(id, out var cacheItem))
         {
             result = (T)cacheItem.Value;
             return true;
@@ -67,19 +61,5 @@ public class CacheService
         {
             return;
         }
-    }
-
-    private void CleanupExpiredItems()
-    {
-        var count = 0;
-        foreach (var key in _cache.Keys)
-        {
-            if (_cache.TryGetValue(key, out var cacheItem) && cacheItem.IsExpired())
-            {
-                count++;
-                _cache.TryRemove(key, out _);
-            }
-        }
-        if(count != 0) Logger.LogInformation("Cache cleanup finished, {count} items removed", count);
     }
 }
