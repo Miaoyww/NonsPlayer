@@ -1,0 +1,44 @@
+<windowex:WindowEx
+    x:Class="NonsPlayer.CrashWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:windowex="using:WinUIEx"
+    mc:Ignorable="d"
+    Title="NonsPlayer Error"
+    Height="600"
+    Width="500"
+    IsResizable="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0"
+                   HorizontalAlignment="Center"
+                   FontSize="20"
+                   Text="Something went wrong!" />
+        <ScrollViewer Grid.Row="1" Margin="0,30,0,0">
+            <RichTextBlock>
+                <Paragraph TextAlignment="Center">
+                    <Run x:Name="ExceptionText" />
+                </Paragraph>
+            </RichTextBlock>
+        </ScrollViewer>
+        <Grid Grid.Row="2">
+            <Button HorizontalAlignment="Right" 
+                    BorderThickness="0"
+                    Background="Transparent"
+                    Click="ButtonBase_OnClick">
+                <FontIcon Glyph="&#xF407;" />
+            </Button>
+            <HyperlinkButton HorizontalAlignment="Center" 
+                             Content="Report this crash"
+                             NavigateUri="https://github.com/Miaoyww/NonsPlayer/issues/new"/>
+         
+        </Grid>
+
+    </Grid>
+</windowex:WindowEx>

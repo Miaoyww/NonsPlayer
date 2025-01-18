@@ -7,8 +7,6 @@
     mc:Ignorable="d">
 
     <Grid Margin="{StaticResource PageCommonMargin}">
-        <TextBox Name="TtmlContent" TextWrapping="Wrap" AcceptsReturn="True"/>
-        <Button Content="加载ttml歌词" Command="{x:Bind ViewModel.TestCommand}"
-                CommandParameter="{x:Bind TtmlContent.Text, Mode=OneWay}" />
+        <Button Content="加载ttml歌词" Command="{x:Bind ViewModel.TestCommand}"/>
     </Grid>
 </Page>

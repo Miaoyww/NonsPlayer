@@ -40,7 +40,7 @@ public partial class ExploreViewModel : ObservableRecipient, INavigationAware
             if (adapters.Length != 0)
             {
                 logger.LogInformation($"Explore got adapter {adapters[0].GetMetadata().DisplayPlatform}");
-                ConfigManager.Instance.Settings.DefaultAdapter = adapters[0].GetMetadata().Name;
+                ConfigManager.Instance.Settings.DefaultAdapter = adapters[0].GetMetadata().Slug;
                 var music = await adapters[0].Common.GetDailyRecommended();
                 if (music != null)
                 {

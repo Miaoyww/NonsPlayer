@@ -29,6 +29,7 @@ using UnhandledExceptionEventArgs = Microsoft.UI.Xaml.UnhandledExceptionEventArg
 using WinRT;
 using LyricViewModel = NonsPlayer.Components.AMLL.ViewModels.AMLLViewModel;
 using NonsPlayer.Components.AMLL.Views;
+using Microsoft.UI.Xaml.Controls;
 
 namespace NonsPlayer;
 
@@ -125,7 +126,7 @@ public partial class App : Application
                 services.AddTransient<BestMusicCardViewModel>();
                 services.AddTransient<BestArtistCardViewModel>();
                 services.AddTransient<MusicListBarViewModel>();
-                services.AddTransient<AdapterCardViewModel>();
+                services.AddTransient<PluginCardViewModel>();
                 services.AddTransient<GreetingsCardViewModel>();
                 services.AddTransient<HitokotoCardViewModel>();
                 services.AddTransient<RecentlyPlayCardViewModel>();
@@ -262,7 +263,8 @@ public partial class App : Application
             Log.Error($"App Version:{GetService<VersionService>().CurrentVersion}\n" +
                       $"Unhandled exception threw: {e.Exception}");
         }
-        
+        var window = new CrashWindow(e.Exception);
+        window.AppWindow.Show();
         ExceptionService.Instance.Throw(e.Exception);
     }
 

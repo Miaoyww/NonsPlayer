@@ -54,7 +54,7 @@ public partial class SettingsViewModel : ObservableRecipient, INavigationAware
     [RelayCommand]
     private async Task Test()
     {
-        ServiceHelper.NavigationService.NavigateTo(typeof(TestViewModel)?.FullName);
+        ServiceHelper.NavigationService.NavigateTo(typeof(TestViewModel)?.FullName);    
     }
 
     [RelayCommand]

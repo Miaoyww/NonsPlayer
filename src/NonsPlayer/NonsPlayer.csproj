@@ -101,6 +101,10 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Remove="CrashWindow.xaml" />
+    </ItemGroup>
+
+    <ItemGroup>
         <Content Update="Assets\Fonts\HARMONYOS_SANS_SC_BLACK.TTF">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
@@ -125,5 +129,11 @@
         <Content Update="Assets\Fonts\Segoe Fluent Icons.ttf">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Page Update="CrashWindow.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </Page>
     </ItemGroup>
 </Project>

@@ -91,9 +91,9 @@ public sealed partial class SettingsPage : Page
             AdaptersItems.Items.Add(new MenuFlyoutItem
             {
                 Text = adapter.GetMetadata().DisplayPlatform,
-                Tag = adapter.GetMetadata().Name,
+                Tag = adapter.GetMetadata().Slug,
                 Command = SetAdapterCommand,
-                CommandParameter = adapter.GetMetadata().Name,
+                CommandParameter = adapter.GetMetadata().Slug,
             });
         }
     }
