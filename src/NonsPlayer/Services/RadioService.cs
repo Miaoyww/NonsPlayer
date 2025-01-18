@@ -22,6 +22,7 @@ public partial class RadioService : ObservableObject
     public IAdapter CurrentAdapter;
     public List<IMusic> RadioSongs = new();
     public bool IsStarted = false;
+    public IMusic CurrentSong;
     private ILogger logger = App.GetLogger<RadioService>();
 
     public void Start(IMusic[] music, IAdapter adapter)

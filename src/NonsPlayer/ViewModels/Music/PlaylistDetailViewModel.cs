@@ -46,6 +46,7 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
         {
             InfoVisibility = Visibility.Collapsed;
         }
+
         CurrentId = PlayList.Id;
         if (!PlayList.IsInitialized) await Task.Run(PlayList.InitializePlaylist);
         LoadPlaylistDetail();
@@ -73,10 +74,8 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             if (index < AppConfig.Instance.AppSettings.PlaylistTrackCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
-                    MusicItems.Add(new MusicModel
-                    {
-                        Music = PlayList.Musics[index], Index = (index + 1).ToString("D2")
-                    });
+                    MusicItems.Add(
+                        new MusicModel { Music = PlayList.Musics[index], Index = (index + 1).ToString("D2") });
                 });
         }
 
@@ -109,10 +108,8 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
             if (index < PlayList.MusicsCount)
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
-                    MusicItems.Add(new MusicModel
-                    {
-                        Music = PlayList.Musics[index], Index = (index + 1).ToString("D2")
-                    });
+                    MusicItems.Add(
+                        new MusicModel { Music = PlayList.Musics[index], Index = (index + 1).ToString("D2") });
                 });
         }
 

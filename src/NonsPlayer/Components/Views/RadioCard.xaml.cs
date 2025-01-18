@@ -17,9 +17,6 @@ using NonsPlayer.ViewModels;
 using System.Collections.ObjectModel;
 using UserControl = Microsoft.UI.Xaml.Controls.UserControl;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
-
 namespace NonsPlayer.Components.Views;
 
 [INotifyPropertyChanged]
@@ -34,6 +31,7 @@ public sealed partial class RadioCard : UserControl
     private List<IMusic> SavedSongs;
     [ObservableProperty] private IMusic currentSong;
 
+    private const string RADIO_ID = "radio_song_current";
     private CancellationTokenSource tokenSource;
     private CancellationToken cancellationToken;
 
@@ -78,8 +76,20 @@ public sealed partial class RadioCard : UserControl
             }
 
             Adapter = value;
-            SavedSongs = (await value.Common.GetRadioSong()).ToList();
-            if (SavedSongs == null) return;
+
+            if (CacheHelper.Service.TryGet(RADIO_ID, out List<IMusic> songs))
+            {
+                if (songs.Count > 1)
+                {
+                    SavedSongs = songs;
+                }
+            }
+            else
+            {
+                SavedSongs = (await value.Common.GetRadioSong()).ToList();
+                if (SavedSongs == null) return;
+                CacheHelper.Service.AddOrUpdate("radio_song_current", SavedSongs);
+            }
 
             var firstSong = SavedSongs[0];
             await RefreshInfo(firstSong);
@@ -110,13 +120,10 @@ public sealed partial class RadioCard : UserControl
             {
                 Artists.Add(new MetadataItem
                 {
-                    Label = artist.Name,
-                    Command = ForwardArtistCommand,
-                    CommandParameter = artist
+                    Label = artist.Name, Command = ForwardArtistCommand, CommandParameter = artist
                 });
             }
         });
-
     }
 
 

@@ -30,14 +30,13 @@ public partial class PersonalLibaryViewModel : ObservableRecipient, INavigationA
     private PlaylistModel[] SavedPlaylists;
     private PlaylistModel[] CreatedPlaylists;
 
-    public ObservableCollection<MusicModel> TopSongs = new();
     private IAccount account;
     public IAdapter Adapter;
 
-    public async void OnNavigatedTo(object parameter)
+    public void OnNavigatedTo(object parameter)
     {
         Adapter = parameter as IAdapter;
-        await Task.Run(Init);
+        Task.Run(Init);
     }
 
     public void OnNavigatedFrom()
@@ -49,36 +48,43 @@ public partial class PersonalLibaryViewModel : ObservableRecipient, INavigationA
         account = Adapter.Account.GetAccount();
         if (account.IsLoggedIn)
         {
-            var avatar = await account.GetAvatarUrlAsync();
-            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+            Task.Run(async () =>
             {
-                Avatar = new ImageBrush { ImageSource = new BitmapImage(new Uri(avatar)) };
-                UserName = account.Name;
-            });
-            FavoriteSongs = await CacheHelper.GetPlaylistAsync($"playlist_favorite_{Adapter.GetMetadata().Name}", async () =>
-            {
-                await Adapter.Account.GetFavoritePlaylist();
-                return Adapter.Account.FavoritePlaylist;
+                var avatar = await account.GetAvatarUrlAsync();
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                {
+                    Avatar = new ImageBrush { ImageSource = new BitmapImage(new Uri(avatar)) };
+                    UserName = account.Name;
+                });
             });
 
-            await SwitchPlaylist("all").ConfigureAwait(false);
-            if (Adapter.Account.FavoritePlaylist == null) return;
-            Task.WaitAll(FavoriteSongs.InitializeTracks(), FavoriteSongs.InitializeMusics());
-            var songs = Adapter.Account.FavoritePlaylist.Musics.Take(20)
-                .Select(music => new MusicModel { Music = music }).ToArray();
-            var firstSong = songs.GetValue(0);
-            await LoadLyric((firstSong as MusicModel)?.Music);
-            ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+            Task.Run(async () =>
             {
-                foreach (MusicModel item in songs)
-                {
-                    TopSongs.Add(item);
-                }
+                FavoriteSongs = await CacheHelper.GetPlaylistAsync($"playlist_favorite_{Adapter.GetMetadata().Slug}",
+                    async () =>
+                    {
+                        await Adapter.Account.GetFavoritePlaylist();
+                        return Adapter.Account.FavoritePlaylist;
+                    });
+                var songs = Adapter.Account.FavoritePlaylist.Musics.Take(20)
+                    .Select(music => new MusicModel { Music = music }).ToArray();
 
-                if (Adapter.Account.FavoritePlaylist != null)
+                Task.Run(async () =>
                 {
-                    FavoriteCount = FavoriteSongs.MusicsCount;
-                }
+                    var firstSong = songs.GetValue(Random.Shared.Next(0, 19));
+                    await LoadLyric((firstSong as MusicModel)?.Music);
+                    await SwitchPlaylistAsync("all");
+                });
+
+                if (Adapter.Account.FavoritePlaylist == null) return;
+                Task.WhenAny(FavoriteSongs.InitializeTracks(), FavoriteSongs.InitializeMusics());
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (Adapter.Account.FavoritePlaylist != null)
+                    {
+                        FavoriteCount = FavoriteSongs.MusicsCount;
+                    }
+                });
             });
         }
     }
@@ -116,7 +122,7 @@ public partial class PersonalLibaryViewModel : ObservableRecipient, INavigationA
     }
 
     [RelayCommand]
-    public async Task SwitchPlaylist(string param)
+    public async Task SwitchPlaylistAsync(string param)
     {
         if (CreatedPlaylists == null) await LoadUserPlaylists();
         if (SavedPlaylists == null) await LoadUserPlaylists();
