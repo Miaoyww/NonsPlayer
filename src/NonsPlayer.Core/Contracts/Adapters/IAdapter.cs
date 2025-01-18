@@ -9,7 +9,7 @@ public class AdapterMetadata
         This = this;
     }
 
-    public string Name { get; set; }
+    public string Slug { get; set; }
 
     public string Platform { get; set; }
 

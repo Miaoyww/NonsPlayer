@@ -6,24 +6,29 @@ using NonsPlayer.Core.Contracts.Adapters;
 using NonsPlayer.Core.Contracts.Plugins;
 using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Services;
+using NonsPlayer.Models.Github;
 using NonsPlayer.Services;
+using PluginModel = NonsPlayer.Models.Github.PluginModel;
 
 namespace NonsPlayer.ViewModels;
 
 public partial class AdapterManagerViewModel : ObservableRecipient, INavigationAware
 {
-    public ObservableCollection<AdapterModel> InstalledAdapters { set; get; } = new();
-    public ObservableCollection<PluginModel> InstalledPlugins { set; get; } = new();
-    public ConfigManager ConfigManager => ConfigManager.Instance;
-    private readonly VersionService _versionService = App.GetService<VersionService>();
+    public ObservableCollection<PluginModel> PluginList = new();
 
-    [ObservableProperty] private string versionDescription;
+    public List<PluginModel> Installed = new();
+    public List<PluginModel> Plugins = new();
+    public List<PluginModel> Adapters = new();
+    public List<IAdapter> LocalAdapters = new();
+    public ConfigManager ConfigManager => ConfigManager.Instance;
+
+    [ObservableProperty] private string pluginCount;
+    [ObservableProperty] private string updateTime;
     [ObservableProperty] private string adapterPath;
 
     public AdapterManagerViewModel()
     {
         AdapterPath = ConfigManager.Settings.AdapterPath;
-        VersionDescription = _versionService.CurrentVersionDescription;
     }
 
     public void OnNavigatedTo(object parameter)
@@ -33,17 +38,20 @@ public partial class AdapterManagerViewModel : ObservableRecipient, INavigationA
 
     public void Refresh()
     {
-        var adapters = AdapterService.Instance.GetLoadedAdapters();
-        for (int i = 0; i < adapters.Length; i++)
+        LocalAdapters.Clear();
+        Installed.Clear();
+        foreach (var item in AdapterService.Instance.GetLoadedAdapters())
         {
-            InstalledAdapters.Add(new AdapterModel()
+            LocalAdapters.Add(item);
+            foreach (PluginModel pluginModel in Adapters)
             {
-                Index = i + 1,
-                Metadata = adapters[i].GetMetadata()
-            });
+                if (string.IsNullOrEmpty(pluginModel.Slug)) break;
+                if (pluginModel.Slug.Equals(item.GetMetadata().Slug))
+                {
+                    Installed.Add(pluginModel);
+                }
+            }
         }
-
-        // var plugins = PluginService.Instance.GetLoadedPlugins();
     }
 
     public void OnNavigatedFrom()

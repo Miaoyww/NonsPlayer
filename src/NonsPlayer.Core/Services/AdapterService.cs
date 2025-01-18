@@ -58,11 +58,11 @@ public class AdapterService
         }
     }
 
-    public bool DisableAdapter(string name)
+    public bool DisableAdapter(string slug)
     {
-        if (!_adapters.ContainsKey(name)) return false;
-        if (_disabledAdaptersStrings.Contains(name)) return false;
-        _disabledAdaptersStrings.Add(name);
+        if (!_adapters.ContainsKey(slug)) return false;
+        if (_disabledAdaptersStrings.Contains(slug)) return false;
+        _disabledAdaptersStrings.Add(slug);
         ConfigManager.Instance.Settings.DisabledAdapters = string.Join(";;", _disabledAdaptersStrings);
         return true;
     }
@@ -84,7 +84,7 @@ public class AdapterService
                 if (item.FullName.Contains("Adapters.Adapter"))
                 {
                     adapter = (IAdapter)Activator.CreateInstance(item);
-                    return new Tuple<string, IAdapter>(adapter.GetMetadata().Name, adapter);
+                    return new Tuple<string, IAdapter>(adapter.GetMetadata().Slug, adapter);
                 }
             }
 

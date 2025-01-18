@@ -19,7 +19,7 @@
         <Setter Property="Margin" Value="10,0,0,0"/>
         <Setter Property="MinWidth" Value="120" />
     </Style>
-    <Style x:Key="CustomPivotItem" TargetType="PivotItem">
+    <Style x:Key="CustomSelectorBarItem" TargetType="SelectorBarItem">
         <Setter Property="FontFamily" Value="HarmonyOS Sans SC"/>
         <Setter Property="FontSize" Value="20"/>
         <Setter Property="FontWeight" Value="Medium"/>

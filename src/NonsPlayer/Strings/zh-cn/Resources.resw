@@ -575,4 +575,16 @@
   <data name="CacheCleanedNotification" xml:space="preserve">
     <value>已清理了 {0} 的缓存</value>
   </data>
+  <data name="Adapter" xml:space="preserve">
+    <value>适配器</value>
+  </data>
+  <data name="Install" xml:space="preserve">
+    <value>安装</value>
+  </data>
+  <data name="Installed" xml:space="preserve">
+    <value>已安装</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>更新</value>
+  </data>
 </root>
