@@ -34,10 +34,12 @@ public partial class MusicListItemViewModel : ObservableObject
     [ObservableProperty] private Visibility coverVisibility = Visibility.Collapsed;
     [ObservableProperty] private Visibility likeVisibility = Visibility.Collapsed;
     [ObservableProperty] private Visibility localVisibility = Visibility.Collapsed;
+
     [ObservableProperty]
     private SolidColorBrush titleColor = Application.Current.Resources["CommonTextColor"] as SolidColorBrush;
 
     private LocalService localService = App.GetService<LocalService>();
+
     public ObservableCollection<MetadataItem> ArtistsMetadata = new();
 
     [RelayCommand]
@@ -52,13 +54,14 @@ public partial class MusicListItemViewModel : ObservableObject
         ServiceHelper.NavigationService.NavigateTo(typeof(AlbumViewModel)?.FullName, Music.Album);
     }
 
-    public async void Init(IMusic music)
+    public void Init(IMusic music)
     {
         Music = music;
         if (music is LocalMusic)
         {
             LocalVisibility = Visibility.Visible;
         }
+
         Name = Music.Name;
         Time = Music.TotalTimeString;
         Album = Music.AlbumName;
@@ -76,10 +79,18 @@ public partial class MusicListItemViewModel : ObservableObject
         if (!string.IsNullOrEmpty(Trans)) TransVisibility = Visibility.Visible;
         {
             if (Music is not LocalMusic) LikeVisibility = Visibility.Visible;
-            Liked = await Music.GetLikeState();
-            Music.IsLiked = Liked;
+            Task.Run(async () =>
+            {
+                var liked = await Music.GetLikeState();
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                {
+                    Liked = liked;
+                    Music.IsLiked = Liked;
+                });
+            });
+
         }
-        await Task.WhenAll(Music.GetAvailable(), InitCover());
+        Task.WhenAny(Music.GetAvailable(), InitCover());
         TitleColor = Music.Available
             ? Application.Current.Resources["CommonTextColor"] as SolidColorBrush
             : Application.Current.Resources["TextFillColorDisabledBrush"] as SolidColorBrush;
@@ -138,14 +149,17 @@ public partial class MusicListItemViewModel : ObservableObject
             if (((LocalMusic)Music).Cover != null)
             {
                 cover = await CacheHelper.GetImageBrushAsync(Music.Album.CacheAvatarId, ((LocalMusic)Music).Cover);
-                ServiceHelper.DispatcherQueue.TryEnqueue(() => { Cover = cover; });
-                CoverVisibility = Visibility.Visible;
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                {
+                    Cover = cover;
+                    CoverVisibility = Visibility.Visible;
+                });
+                
             }
         }
         else
         {
-            cover = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl)
-                .ConfigureAwait(false);
+            cover = await CacheHelper.GetImageBrushAsync(Music.Album.CacheSmallAvatarId, Music.Album.SmallAvatarUrl);
             ServiceHelper.DispatcherQueue.TryEnqueue(() =>
             {
                 Cover = cover;

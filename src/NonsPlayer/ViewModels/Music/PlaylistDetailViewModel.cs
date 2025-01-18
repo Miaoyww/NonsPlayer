@@ -16,6 +16,7 @@ using NonsPlayer.Core.Models;
 using NonsPlayer.Core.Nons.Player;
 using NonsPlayer.Core.Services;
 using NonsPlayer.Helpers;
+using NonsPlayer.Models;
 
 namespace NonsPlayer.ViewModels;
 
@@ -39,45 +40,72 @@ public partial class PlaylistDetailViewModel : ObservableRecipient, INavigationA
     {
     }
 
-    public async void OnNavigatedTo(object parameter)
+    public void OnNavigatedTo(object parameter)
     {
         PlayList = (IPlaylist)parameter;
+        if (CacheHelper.Service.TryGet(PlayList.CacheId, out IPlaylist playlist))
+        {
+            PlayList = playlist;
+        }
+
         if (PlayList is RecommendedPlaylistCardViewModel.RecommendedPlaylist)
         {
             InfoVisibility = Visibility.Collapsed;
         }
 
-        CurrentId = PlayList.Id;
-        if (!PlayList.IsInitialized) await Task.Run(PlayList.InitializePlaylist);
         LoadPlaylistDetail();
-        await Task.Run(InitMusicsAsync);
+        CurrentId = PlayList.Id;
+        Task.Run(async () =>
+        {
+            if (!PlayList.IsInitialized)
+            {
+                await PlayList.InitializePlaylist();
+                PlayList.IsInitialized = true;
+                CacheHelper.Service.AddOrUpdate(PlayList.CacheId, PlayList);
+                ServiceHelper.DispatcherQueue.TryEnqueue(() =>
+                {
+                    LoadPlaylistDetail();
+                });
+            }
+
+            await InitMusicsAsync();
+        });
+        
     }
 
     private void LoadPlaylistDetail()
     {
         Name = PlayList.Name;
-        Creator = "made by " + PlayList.Creator;
-        CreateTime = $"· {PlayList.CreateTime.ToString().Split(" ")[0]}";
-        Description = PlayList.Description;
-        MusicsCount = PlayList.MusicsCount + " Tracks";
-        Cover = CacheHelper.GetImageBrush(PlayList.CacheAvatarId, PlayList.AvatarUrl);
-        // IsLiked = UserPlaylistService.Instance.IsLiked(CurrentId);
+        Creator = $"made by {(string.IsNullOrEmpty(PlayList.Creator) ? PlayList.Creator : string.Empty)}";
+        CreateTime = $"· {PlayList.CreateTime.ToString("D").Split(" ")[0]}";
+        Description = (string.IsNullOrEmpty(PlayList.Description) ? PlayList.Description : string.Empty);
+        MusicsCount = (PlayList.MusicTrackIds != null ? PlayList.MusicsCount : 0) + " Tracks";
+        if (!string.IsNullOrEmpty(PlayList.AvatarUrl))
+        {
+            Cover = CacheHelper.GetImageBrush(PlayList.CacheAvatarId, PlayList.AvatarUrl);
+        }
     }
 
     private async Task InitMusicsAsync()
     {
-        if (PlayList.Musics == null) await PlayList.InitializeMusics();
+        if (PlayList.Musics == null)
+        {
+            await PlayList.InitializeMusics();
+        }
 
         for (var i = 0; i < PlayList.Musics.Count; i++)
         {
             var index = i;
             if (index < AppConfig.Instance.AppSettings.PlaylistTrackCount)
+            {
                 ServiceHelper.DispatcherQueue.TryEnqueue(() =>
                 {
                     MusicItems.Add(
                         new MusicModel { Music = PlayList.Musics[index], Index = (index + 1).ToString("D2") });
                 });
+            }
         }
+
 
         currentItemGroupIndex =
             AppConfig.Instance.AppSettings.PlaylistTrackCount;

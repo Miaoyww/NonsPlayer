@@ -73,9 +73,6 @@ public class Lyric
             {
                 translatedIndex++;
             }
-
-            Debug.WriteLine(
-                $"{i} - {translatedIndex}: {originalLine.Pure}, {translatedLine.Pure} - {originalLine.StartTime == translatedLine.StartTime}");
             originalLine.SetTranslation(translatedLine.Pure);
         }
     }

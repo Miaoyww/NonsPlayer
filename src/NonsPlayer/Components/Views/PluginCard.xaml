@@ -156,7 +156,7 @@
                     <Button Grid.Row="0"
                             x:Name="UpgradeButton"
                             IsEnabled="{x:Bind ViewModel.DownloadButtonEnable, Mode=OneWay}"
-                            Background="#3662EC"
+                            Background="#32B67A"
                             VerticalAlignment="Center"
                             Margin="0,0,0,0"
                             Width="100"
@@ -169,7 +169,7 @@
                                        Margin="0,0,10,0"
                                        Foreground="White"
                                        FontSize="16" />
-                            <FontIcon Glyph="&#xE896;"
+                            <FontIcon Glyph="&#xE752;"
                                       Foreground="White"
                                       FontSize="14" />
                         </StackPanel>
