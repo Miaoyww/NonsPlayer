@@ -34,9 +34,19 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <TextBlock Style="{StaticResource CommonTextStyle}"
-                                   FontWeight="Bold"
-                                   Text="NonsPlayer 插件商店" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource CommonTextStyle}"
+                                       FontWeight="Bold"
+                                       Text="NonsPlayer 插件商店" />
+                            <Button x:Uid="AdapterButtonRefresh"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Margin="10,0,0,0">
+                                <FontIcon Glyph="&#xE72C;" FontSize="16"/>
+                            </Button>
+                        </StackPanel>
+
                         <Grid Grid.Row="1" Margin="0,10,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource CommonTextStyle}"

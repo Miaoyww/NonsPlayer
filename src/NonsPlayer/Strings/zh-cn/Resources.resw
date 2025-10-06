@@ -587,4 +587,7 @@
   <data name="Update" xml:space="preserve">
     <value>更新</value>
   </data>
+  <data name="AdapterButtonRefresh.ToolTipService.ToolTip" xml:space="preserve">
+    <value>点击以强制刷新</value>
+  </data>
 </root>
