@@ -1,92 +1,77 @@
 <div align="center">
-<!--![Alt](exp.png "exp")-->
 
-<img src="NonsPlayer-Icon.png" alt="图标" Height="128" Width="128">
+<img src="NonsPlayer-Icon.png" alt="NonsPlayer Logo" height="128" width="128">
 
-# NonsPlayer
+# NonsPlayer (Next-Gen)
 
-![.net](https://img.shields.io/badge/C%23-.net8.0-orange)
-![Windows](https://img.shields.io/badge/Windows-10%2B-orange)
-![license](https://img.shields.io/github/license/Miaoyww/NonsPlayer)
+[![Svelte](https://img.shields.io/badge/Svelte-5-FF3E00?style=flat-square&logo=svelte&logoColor=white)](https://svelte.dev)
+[![Tauri](https://img.shields.io/badge/Tauri-2.0-24C8DB?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](#)
+[![Status](https://img.shields.io/badge/Status-WIP%20%2F%20Planning-blueviolet?style=flat-square)](#)
+[![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl?style=flat-square)](LICENSE.txt)
 
-高性能 | 多音乐平台 | 支持本地音乐 | 支持插件
+**极致轻量 | 全平台支持 | 极度自定义 | 沉浸式听歌体验**
 
-![Alt](https://repobeats.axiom.co/api/embed/104248b2c1f2c27f8f5b29df5ab1ab2a4269ed96.svg "Repobeats analytics image")
-
-***
+![Analytics](https://repobeats.axiom.co/api/embed/104248b2c1f2c27f8f5b29df5ab1ab2a4269ed96.svg "Repobeats analytics image")
 
 </div>
 
-# ⭐亮点
+---
 
-- 高开放的API接口, 可以获取 / 修改播放器状态
-- 可播放多平台音乐 / 本地音乐 / NAS音乐
-- 似Apple Music的歌词显示
-- 可供扩展的插件系统
-- 可扩展的音乐源
-- 界面美观, 操作简单
-- 低占用
+> ⚠️ **项目状态公告 (WIP)**
+> 
+> NonsPlayer 目前正在经历一次**底层重构**。为了实现真正的跨平台与极致的性能，我们正从旧版框架全面迁移至 `Svelte + Tauri` 架构。
+> **当前状态：** 架构设计与早期开发阶段（新建文件夹 ）。所有功能正在积极敲代码中，敬请期待！
 
-# 📦️下载
+## ✨ 核心愿景 & 计划特性
 
-打开 [Latest Release](https://github.com/Miaoywww/NeteaseCloudMusicControl/releases) 页面, 下载最新版本,并解压
+新一代的 NonsPlayer 旨在成为一个**不受平台限制、完全由你掌控**的音乐枢纽。
 
-找到 `NonsPlayer.exe` 文件, 打开它即可！
+- 🌍 **真正的全平台支持：** 将脱离仅限Windows的头衔，全面拥抱Windows + macOS + Linux 全平台
+- 🧩 **突破极限的自定义 (重点开发中)：**
+  - **核心插件系统：** 深度开放的 API，自由获取与修改播放器状态。
+  - **多源适配器：** 自由扩展音乐源（本地音乐、NAS、各大在线音乐平台）。
+  - **视觉自定义 (WIP/探索中)：** 未来计划开放 UI 套件与歌词界面的深度定制，打造专属于你的播放器。
+- 🎵 **沉浸式视听：** 标志性的类似 Apple Music 的唯美歌词展示系统。
 
-**需要[.net8.0 Desktop Runtime](https://dotnet.microsoft.com/zh-cn/download/dotnet/8.0)**
+## 🗺️ 开发路线图 (Roadmap)
 
-**需要适配器, 目前仅有[网易云音乐](https://github.com/Miaoyww/NonsAdapter-Ncmp)可用**
+在这里见证 NonsPlayer 的成长轨迹：
 
-**Windows 10版本需要额外下载[Fluent Icons](https://learn.microsoft.com/zh-cn/windows/apps/design/downloads/#fonts)字体库**
+- [x] **Phase 0:** 新建文件夹 
+- [ ] **Phase 1: 基础设施构建**...
 
-# 和开发者交流🎉
+## 📦️ 下载与体验
 
-欢迎加入我们的交流空间！
+*由于项目正在重构初期，暂未提供基于新架构的编译版本。*
 
-技术|开发|吹水: [QQ群](https://qm.qq.com/q/YMcwgNJB2a)
+如果你想体验**基于旧版架构**的 NonsPlayer，请访问 [旧版 Latest Release](https://github.com/Miaoywww/NeteaseCloudMusicControl/releases)。
+*(注：旧版仅支持 Windows，且需要 .NET 8.0 Desktop Runtime 及特定适配器)*
 
-# 💡灵感来源
+## 💬 和开发者交流
 
-- [Spotify](https://www.spotify.com/)
-- [Apple Music](https://music.apple.com)
+欢迎加入我们的交流空间，一起见证新一代 NonsPlayer 的诞生，或参与技术吹水！
+
+- **QQ群：** [点击加入](https://qm.qq.com/q/iqCKFZ12ZG)
+
+## 💡 灵感来源
+
+本项目的诞生离不开以下优秀产品的启发：
 - [YesPlayMusic](https://github.com/qier222/YesPlayMusic)
-- [网易云音乐](https://music.163.com/)
-- [QQ音乐](https://y.qq.com/)
 
-# 特别鸣谢
+## 🙏 特别鸣谢
 
-- [Zhuym](https://github.com/Zhuym07), [GooGuJiang](https://github.com/GooGuJiang) 为图标设计、UI设计提供帮助
-- [NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi)
-- [Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics)
-- [amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)
-- [material-design-icons](https://github.com/google/material-design-icons)
+- **[Zhuym](https://github.com/Zhuym07), [GooGuJiang](https://github.com/GooGuJiang)** - 为图标与 UI 设计提供重要帮助。
+- **[NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi)**
+- **[Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics)**
+- **[amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)**
 
-# 资源使用
+**视觉与字体资源：**
+- [HarmonyOS Sans SC](https://developer.huawei.com/consumer/cn/doc/design-guides-V1/font-0000001157868583-V1)
+- Novecento Wide Bold
 
-## 字体
-[HarmonyOS Sans SC](https://developer.huawei.com/consumer/cn/doc/design-guides-V1/font-0000001157868583-V1)
+## 📜 开源许可
 
-Novecento Wide Bold
+Copyright Miaoyww 2022-2026.
 
-# 🖼️应用截图
-**仍在开发中，并不代表最终质量**
-
-![Home](docs/home.png)
-![MY](docs/my.png)
-![Home](docs/local.png)
-![Lyric](docs/lyric.png)
-
-
-# 📜开源许可
-
-Copyright Miaoyww 2022-2024.
-
-Distributed under the terms of
-the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
-
-<div align="center">
-<image src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg"></image>
-<div>
-特别感谢 <a href=https://jb.gg/OpenSourceSupport>JetBrains</a> 为本项目提供的大力支持
-</div>
-</div>
+Distributed under the terms of the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
