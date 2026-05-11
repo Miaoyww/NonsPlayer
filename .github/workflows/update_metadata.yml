@@ -1,5 +1,5 @@
 
-name: Convert Preview to Stable
+name: Update Metadata
 
 on:
   workflow_dispatch:
