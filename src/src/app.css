@@ -4,6 +4,24 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+	font-family: 'HarmonyOS SansSC';
+	src:
+		url('/fonts/HarmonyOS_SansSC_Regular') format('ttf'),
+		url('/fonts/HarmonyOS_SansSC_Regular') format('ttf');
+	font-weight: 400;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'HarmonyOS SansSC';
+	src:
+		url('/fonts/HarmonyOS_SansSC_Bold') format('ttf'),
+		url('/fonts/HarmonyOS_SansSC_Bold') format('ttf');
+	font-weight: 700;
+	font-style: bold;
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
