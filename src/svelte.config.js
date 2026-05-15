@@ -12,6 +12,12 @@ const config = {
     adapter: adapter({
       fallback: "index.html",
     }),
+    csrf: {
+      checkOrigin: false,
+    },
+    alias: {
+      $lib: "src/lib",
+    },
   },
 };
 
