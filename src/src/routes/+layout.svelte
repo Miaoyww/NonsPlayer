@@ -15,7 +15,7 @@
       currentSettings = s;
     });
     
-    if (currentSettings && !currentSettings.welcomeCompleted && window.location.pathname !== '/welcome') {
+    if (currentSettings && !currentSettings.welcomeCompleted && !window.location.pathname.startsWith('/welcome')) {
       goto('/welcome');
     }
     

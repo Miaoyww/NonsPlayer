@@ -1,5 +1,6 @@
 export const NONSPLAYER_NAME = "NonsPlayer";
-export const NONSPLAYER_TAGLINE = "你的音乐，不止于听";
+export const NONSPLAYER_TAGLINE = "多音源 | 高性能";
+export const NONSPLAYER_DESCRIPTION = "跨平台、多音源的音乐播放器";
 
 /** 可用的音乐平台适配器 */
 export interface MusicAdapter {
