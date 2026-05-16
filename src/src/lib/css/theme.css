@@ -1,0 +1,157 @@
+/**
+ * VETO — Custom theme tokens (light & dark)
+ *
+ * Covers:
+ *   • Page gradient background colours
+ *   • Glass / blur-backdrop surfaces
+ *   • Probability-slider chrome
+ *   • Dynamic inline-style status colours (unit cards)
+ *   • Utility classes: .status-label / .status-value
+ *
+ * Imported by app.css.  Tailwind @theme inline entries are added
+ * at the bottom of app.css so that `from-page-from / to-page-to`
+ * become valid Tailwind utilities.
+ */
+
+/* ═══════════════════════════════════════════
+   Light-mode tokens (default / :root)
+   ═══════════════════════════════════════════ */
+:root {
+	/* Page gradient ------------------------------------------------- */
+	--page-bg-from: #f1f5f9;
+	/* slate-100 */
+	--page-bg-to: #e7e5e4;
+	/* stone-200 */
+
+	/* Probability slider -------------------------------------------- */
+	--slider-fill: #f59e0b;
+	/* amber-500 */
+	--slider-track: #e5e7eb;
+	/* gray-200  */
+	--slider-thumb-border: #ffffff;
+
+	/* Unit-icon inline-style status badges -------------------------- */
+	--status-engaged-border: #ef4444;
+	/* red-500   */
+	--status-engaged-text: #dc2626;
+	/* red-600   */
+	--status-engaged-bg: #fef2f2;
+	/* red-50    */
+	--status-pending-border: #f59e0b;
+	/* amber-500 */
+	--status-pending-text: #b45309;
+	/* amber-700 */
+	--status-pending-bg: #fffbeb;
+	/* amber-50  */
+}
+
+/* ═══════════════════════════════════════════
+   Dark-mode overrides  (.dark on <html>)
+   ═══════════════════════════════════════════ */
+.dark {
+	/* Page gradient ------------------------------------------------- */
+	--page-bg-from: #0f172a;
+	/* slate-900 */
+	--page-bg-to: #1c1917;
+	/* stone-900 */
+
+	/* Probability slider -------------------------------------------- */
+	--slider-fill: #fbbf24;
+	/* amber-400 */
+	--slider-track: #44403c;
+	/* stone-700 */
+	--slider-thumb-border: #1c1917;
+	/* stone-900 */
+
+	/* Unit-icon inline-style status badges -------------------------- */
+	--status-engaged-border: #f87171;
+	/* red-400                */
+	--status-engaged-text: #f87171;
+	/* red-400                */
+	--status-engaged-bg: rgba(239, 68, 68, 0.15);
+	--status-pending-border: #fbbf24;
+	/* amber-400              */
+	--status-pending-text: #fbbf24;
+	/* amber-400              */
+	--status-pending-bg: rgba(245, 158, 11, 0.15);
+}
+/* ═══════════════════════════════════════════
+   Probability slider (shared by event-card
+   and event-config-dialog)
+   ═══════════════════════════════════════════ */
+.prob-slider {
+	appearance: none;
+	height: 6px;
+	border-radius: 9999px;
+	background: linear-gradient(to right,
+			var(--slider-fill) 0%,
+			var(--slider-fill) var(--val, 50%),
+			var(--slider-track) var(--val, 50%),
+			var(--slider-track) 100%);
+	outline: none;
+}
+
+.prob-slider::-webkit-slider-thumb {
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--slider-fill);
+	border: 2px solid var(--slider-thumb-border);
+	box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4);
+	cursor: pointer;
+	transition: box-shadow 0.15s;
+}
+
+.prob-slider::-moz-range-thumb {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--slider-fill);
+	border: 2px solid var(--slider-thumb-border);
+	cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════
+   Status-label / status-value (header-right)
+   ═══════════════════════════════════════════ */
+.status-label {
+	font-size: 0.6rem;
+	line-height: 1;
+	color: oklch(0.552 0.016 285.938);
+	/* muted-foreground light */
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.dark .status-label {
+	color: oklch(0.705 0.015 286.067);
+	/* muted-foreground dark */
+}
+
+.status-value {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: oklch(0.21 0.006 285.885);
+	/* foreground light */
+}
+
+.dark .status-value {
+	color: oklch(0.985 0 0);
+	/* foreground dark */
+}
+
+/* ═══════════════════════════════════════════
+   Unit status badge  (sim-units-card)
+   ═══════════════════════════════════════════ */
+.unit-status-badge-engaged {
+	border-color: var(--status-engaged-border);
+	color: var(--status-engaged-text);
+	background: var(--status-engaged-bg);
+}
+
+.unit-status-badge-pending {
+	border-color: var(--status-pending-border);
+	color: var(--status-pending-text);
+	background: var(--status-pending-bg);
+}

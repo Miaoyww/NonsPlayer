@@ -1,0 +1,31 @@
+@import '../../app.css';
+@import './theme.css';
+
+@utility veto-base {
+    @apply border border-border/70 bg-background/75 shadow-xl;
+    @apply rounded-lg;
+
+}
+
+.veto-card {
+    @apply backdrop-blur-md;
+    @apply flex items-center p-2;
+    @apply veto-base;
+}
+
+.veto-popup {
+    @apply backdrop-blur-md;
+    @apply veto-base;
+}
+
+.veto-sidebar {
+    @apply backdrop-blur-md;
+    @apply py-0;
+    @apply veto-base;
+}
+
+.veto-page {
+    @apply backdrop-blur-md;
+    @apply flex items-center p-2;
+    @apply veto-base;
+}
