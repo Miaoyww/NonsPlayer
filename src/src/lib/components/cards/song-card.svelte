@@ -62,13 +62,8 @@
     <p class="text-sm font-medium text-[#747474] truncate">{artist}</p>
   </div>
 
-  <!-- 专辑名 -->
-  <div class="flex-1 min-w-0 text-center w-20">
-    <p class="text-sm font-medium truncate">{album}</p>
-  </div>
-
   <!-- 右侧：时长 + 操作按钮 -->
-  <div class="flex items-center w-30 gap-5 shrink-0 m-2">
+  <div class="flex items-center w-30 gap-5 shrink-0 m-2 ml-auto">
     {#if duration}
       <span class="text-sm font-medium text-foreground">{duration}</span>
     {/if}
