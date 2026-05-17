@@ -11,8 +11,16 @@
   // 临时数据
   const dummySongs = [
     {
+      songName: "JANE DOE",
+      artist: "米津玄師 · 宇多田ヒカル",
+      alias: "(剧场版《电锯人：蕾塞篇》片尾曲)",
+      duration: "3:02",
+      album: "JANE DOE",
+    },
+    {
       songName: "僕の戦争",
       artist: "神聖かまってちゃん",
+      alias: "(TV动画《进击的巨人》片头曲)",
       duration: "3:30",
       album: "僕の戦争",
     },
@@ -22,22 +30,31 @@
       duration: "3:40",
       album: "The Rumbling",
     },
-    { songName: "紅蓮華", artist: "LiSA", duration: "3:56", album: "紅蓮華" },
+    {
+      songName: "紅蓮華",
+      artist: "LiSA",
+      alias: "(TV动画《鬼灭之刃》片头曲)",
+      duration: "3:56",
+      album: "紅蓮華",
+    },
     {
       songName: "廻廻奇譚",
       artist: "Eve",
+      alias: "(TV动画《咒术回战》片头曲)",
       duration: "3:38",
       album: "廻廻奇譚",
     },
     {
       songName: "残酷な天使のテーゼ",
       artist: "高橋洋子",
+      alias: "(TV动画《新世纪福音战士》片头曲)",
       duration: "4:06",
       album: "残酷な天使のテーゼ",
     },
     {
       songName: "Again",
       artist: "YUI",
+      alias: "(TV动画《钢之炼金术师》片头曲)",
       duration: "4:15",
       album: "Fullmetal Alchemist",
     },
@@ -91,7 +108,7 @@
       <!-- 歌曲列表：单行横向滚动 -->
       <ScrollArea class="flex gap-2 pb-1">
         {#each dummySongs as song}
-          <div class="shrink-0">
+          <div class="shrink-0 mb-2">
             <SongCard {...song} />
           </div>
         {/each}
