@@ -1,61 +1,77 @@
 <script lang="ts">
-	import { Play, Heart } from '@lucide/svelte';
-  import Button from '../ui/button/button.svelte';
+  import { Play, Heart, Ellipsis } from "@lucide/svelte";
+  import Button from "../ui/button/button.svelte";
 
-	interface Props {
-		songName: string;
-		artist: string;
-		coverUrl?: string;
-		duration?: string;
-		liked?: boolean;
-		onplay?: () => void;
-		onlike?: () => void;
-	}
+  interface Props {
+    songName: string;
+    artist: string;
+    coverUrl?: string;
+    duration?: string;
+    liked?: boolean;
+    album?: string;
+    onplay?: () => void;
+    onlike?: () => void;
+  }
 
-	let {
-		songName,
-		artist,
-		coverUrl = '',
-		duration = '',
-		liked = $bindable(false),
-		onplay,
-		onlike
-	}: Props = $props();
+  let {
+    songName,
+    artist,
+    coverUrl = "",
+    duration = "",
+    album = "",
+    liked = $bindable(false),
+    onplay,
+    onlike,
+  }: Props = $props();
 
-	function handleLike(e: MouseEvent) {
-		e.stopPropagation();
-		liked = !liked;
-		onlike?.();
-	}
+  function handleLike(e: MouseEvent) {
+    e.stopPropagation();
+    liked = !liked;
+    onlike?.();
+  }
 </script>
 
-<button
-	class="group flex items-center gap-3 w-full rounded-xl p-3 hover:bg-muted/50 transition-colors cursor-pointer text-left"
-	onclick={() => onplay?.()}
+<div
+  class="group flex items-center gap-3 w-full rounded-xl p-3 hover:bg-muted/50 transition-colors cursor-pointer text-left"
 >
-	<!-- 封面 -->
-	<div
-		class="size-12 shrink-0 rounded-lg bg-cover bg-center bg-muted"
-		style={coverUrl ? `background-image: url(${coverUrl})` : ''}
-	></div>
+  <!-- 封面 -->
+  <div>
+    <img src={coverUrl} alt="" class="size-15 rounded-lg" />
+  </div>
 
-	<!-- 歌曲信息 -->
-	<div class="flex-1 min-w-0">
-		<p class="text-sm font-semibold text-foreground truncate">{songName}</p>
-		<p class="text-xs text-muted-foreground truncate">{artist}</p>
-	</div>
+  <!-- 歌曲信息 -->
+  <div class="flex-1 min-w-0">
+    <p class="text-sm font-semibold text-foreground truncate">{songName}</p>
+    <p class="text-sm text-muted-foreground truncate">{artist}</p>
+  </div>
 
-	<!-- 时长 -->
-	{#if duration}
-		<span class="text-xs text-muted-foreground shrink-0">{duration}</span>
-	{/if}
+  <div class="flex-1 min-w-0">
+    <p class="text-sm font-semibold text-foreground truncate">{album}</p>
+  </div>
 
-	<!-- 收藏按钮 -->
-	<Button
-		class="shrink-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-		aria-label={liked ? '取消收藏' : '收藏'}
-		onclick={handleLike}
-	>
-		<Heart class="size-4" fill={liked ? 'currentColor' : 'none'} />
-	</Button>
-</button>
+  <div class="flex items-center gap-2">
+    <!-- 时长 -->
+    {#if duration}
+      <span class="text-sm text-muted-foreground shrink-0">{duration}</span>
+      <!-- 收藏按钮 -->
+      <Button
+        class="shrink-0 p-1 transition-opacity cursor-pointer"
+        variant="ghost"
+        size="icon"
+        aria-label={liked ? "取消收藏" : "收藏"}
+        onclick={handleLike}
+      >
+        <Heart class="size-4 fill-blue-500 stroke-blue-500" />
+      </Button>
+      <Button
+        class="shrink-0 p-1 transition-opacity cursor-pointer"
+        variant="ghost"
+        size="icon"
+        aria-label={liked ? "取消收藏" : "收藏"}
+        onclick={handleLike}
+      >
+        <Ellipsis class="size-4" />
+      </Button>
+    {/if}
+  </div>
+</div>
