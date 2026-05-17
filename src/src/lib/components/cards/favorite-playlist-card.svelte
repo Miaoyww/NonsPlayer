@@ -16,12 +16,12 @@
 </script>
 
 <div class="w-full h-full rounded-lg shadow bg-muted">
-  <div class="flex items-end justify-between p-6 h-full">
+  <div class="flex items-end justify-between p-4 h-full">
     <!-- 左侧：歌词 + 标题信息 -->
-    <div class="flex flex-col gap-10">
+    <div class="flex flex-col gap-5">
       <!-- 歌词 -->
       <div
-        class="text-base font-medium text-[#262626] leading-[18.75px] max-w-80"
+        class="text-sm font-medium max-w-80"
       >
         {#if lyrics.length > 0}
           {#each lyrics as line}
@@ -36,14 +36,14 @@
       </div>
       <!-- 歌单名称 + 曲目数 -->
       <div class="flex flex-col gap-2">
-        <p class="text-sm font-bold text-[#262626]">{title}</p>
-        <p class="text-sm font-bold text-[#262626]">{trackCount}</p>
+        <p class="text-sm font-bold text-foreground">{title}</p>
+        <p class="text-sm font-bold text-foreground">{trackCount}</p>
       </div>
     </div>
 
     <!-- 右侧：播放按钮 -->
     <Button
-      class="relative shrink-0 rounded-full flex items-center justify-center ho cursor-pointer bg-blue-500"
+      class="relative shrink-0 rounded-full flex items-center justify-center hover:bg-blue-600 cursor-pointer bg-blue-500"
       size="icon"
     >
       <Play
