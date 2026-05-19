@@ -1,10 +1,14 @@
 <script lang="ts">
   import "../app.css";
-  import '../lib/css/components.css';
-  import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
-  import { globalSettings } from '$lib/stores/global-settings.store';
-  import { onMount } from 'svelte';
+  import "../lib/css/components.css";
+  import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
+  import { globalSettings } from "$lib/stores/global-settings.store";
+  import { onMount } from "svelte";
+  import TitleBar from "$lib/components/titlebar.svelte";
+  import { NONSPLAYER_NAME } from "$lib/const";
+  import logo from "$lib/assets/logo.svg";
+  import { isTauri } from "@tauri-apps/api/core";
 
   let { children } = $props();
 
@@ -14,17 +18,35 @@
     const unsub = settings.subscribe((s) => {
       currentSettings = s;
     });
-    
-    if (currentSettings && !currentSettings.welcomeCompleted && !window.location.pathname.startsWith('/welcome')) {
-      goto('/welcome');
+
+    if (
+      currentSettings &&
+      !currentSettings.welcomeCompleted &&
+      !window.location.pathname.startsWith("/welcome")
+    ) {
+      goto("/welcome");
     }
-    
+
     unsub();
   });
 </script>
 
-<div>
+<svelte:head>
+  <title>{NONSPLAYER_NAME}</title>
+  <meta name="title" content={NONSPLAYER_NAME} />
+  <link rel="icon" type="image/x-icon" href={logo} />
+</svelte:head>
+
+<TitleBar />
+
+<div class={isTauri() ? 'pt-9' : ''}>
   <main>
     {@render children?.()}
   </main>
 </div>
+
+<style>
+  * {
+    margin: 0;
+  }
+</style>

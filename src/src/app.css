@@ -5,6 +5,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html,
+body {
+	padding-top: calc(var(--safe-area-inset-top) + 1rem);
+	display: flex;
+	flex-direction: column;
+	scroll-behavior: smooth;
+	overscroll-behavior: none;
+	overflow-x: hidden;
+	scrollbar-width: none;
+	font-family: 'HarmonyOS SansSC', sans-serif;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+	display: none;
+}
+
 @font-face {
 	font-family: 'HarmonyOS SansSC';
 	src:
@@ -27,9 +44,11 @@
 	* {
 		@apply border-border outline-ring/50;
 	}
+
 	body {
 		@apply bg-background text-foreground;
 	}
+
 	html {
 		@apply font-sans;
 	}
