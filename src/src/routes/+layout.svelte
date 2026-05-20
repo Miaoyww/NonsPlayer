@@ -6,6 +6,7 @@
   import { globalSettings } from "$lib/stores/global-settings.store";
   import { onMount } from "svelte";
   import TitleBar from "$lib/components/titlebar.svelte";
+  import SettingsDialog from "$lib/components/settings/settings-dialog.svelte";
   import { NONSPLAYER_NAME } from "$lib/const";
   import logo from "$lib/assets/logo.svg";
   import { isTauri } from "@tauri-apps/api/core";
@@ -38,6 +39,8 @@
 </svelte:head>
 
 <TitleBar />
+
+<SettingsDialog />
 
 <div class={isTauri() ? 'pt-9' : ''}>
   <main>

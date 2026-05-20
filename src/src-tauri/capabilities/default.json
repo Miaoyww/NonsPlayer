@@ -20,6 +20,7 @@
     "fs:allow-write-file",
     "fs:allow-read-file",
     "fs:allow-remove",
-    "fs:allow-mkdir"
+    "fs:allow-mkdir",
+    "opener:allow-open-url"
   ]
 }

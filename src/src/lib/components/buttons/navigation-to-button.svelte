@@ -15,12 +15,17 @@
   } = $props();
 
   let isActive = $derived($page.url.pathname === href);
+
+  function onClick() {
+    console.log("Navigating to", href);
+    goto(href);
+  }
 </script>
 
 <Button
   class="relative flex flex-col items-center gap-1 p-0 font-medium text-muted-foreground transition-colors hover:text-foreground {className} cursor-pointer"
   variant="ghost"
-  onclick={() => goto(href)}
+  onclick={onClick}
 >
   <span class="text-base leading-none">
     {label}

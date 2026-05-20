@@ -12,6 +12,11 @@
 
 	const API_URL = 'https://api.github.com/repos/Miaoyww/Veto/releases/latest';
 	import favicon from '$lib/assets/favicon.png';
+
+	function openUrl(url: string) {
+		window.open(url);
+	}
+
 	async function checkForUpdates() {}
 </script>
 
@@ -22,20 +27,17 @@
 		</div>
 		<div class="mb-6 flex flex-col items-center gap-2 text-center">
 			<h2 class="text-3xl font-extrabold tracking-wide text-stone-800 dark:text-stone-100">
-				{VETO_NAME}
+				{NONSPLAYER_NAME}
 			</h2>
-			<p class="text-sm text-muted-foreground">否决权</p>
-			<p class="text-sm text-muted-foreground">模拟联合国会议系统</p>
+			<p class="text-sm text-muted-foreground">多音源 | 高性能 | 跨平台 | 多音源 </p>
 		</div>
 		<div class="space-y-3">
 			<SettingCard title="版本号" description="当前应用版本。">
 				<Label>v{version}</Label>
 			</SettingCard>
 
-			<!-- 新增：联系我们模块 -->
 			<SettingCard title="联系我们" description="加入我们的社区交流或反馈问题。">
 				<Dialog.Root>
-					<!-- 如果你使用的是 Svelte 5 的最新 shadcn 规范，这里的 Button 可能需要用 {#snippet child({ props })} 包裹，具体取决于你的 shadcn-svelte 版本 -->
 					<Dialog.Trigger>
 						<Button variant="outline" size="sm">
 							<MessageCircle size={13} class="mr-1.5" />
@@ -48,22 +50,18 @@
 							<Dialog.Description>请选择你要加入的平台进行交流或反馈问题。</Dialog.Description>
 						</Dialog.Header>
 						<div class="grid gap-3 py-4">
-							<!-- QQ 群按钮，记得替换 href 为真实的加群链接 -->
 							<Button
 								variant="outline"
-								href="https://qm.qq.com/q/pTvxDLoiVq"
-								target="_blank"
+								onclick={() => openUrl('https://qm.qq.com/q/5zKXit2G7m')}
 								class="w-full justify-start"
 							>
 								<MessageCircle size={16} class="mr-2" />
 								加入 QQ 群
 							</Button>
 
-							<!-- Discord 按钮，记得替换 href 为真实的邀请链接 -->
 							<Button
 								variant="outline"
-								href="https://discord.gg/"
-								target="_blank"
+								onclick={() => openUrl('https://discord.gg/')}
 								class="w-full justify-start"
 								disabled
 							>
@@ -79,8 +77,7 @@
 				<Button
 					variant="outline"
 					size="sm"
-					href="https://github.com/Miaoyww/Veto/blob/master/LICENSE"
-					target="_blank"
+					onclick={() => openUrl('https://github.com/Miaoyww/Veto/blob/master/LICENSE')}
 				>
 					<FileText size={13} class="mr-1.5" />
 					GPL-3.0
@@ -88,7 +85,7 @@
 			</SettingCard>
 
 			<SettingCard title="GitHub 仓库" description="查看源代码或提交 Issue。">
-				<Button variant="outline" size="sm" href="https://github.com/Miaoyww/Veto" target="_blank">
+				<Button variant="outline" size="sm" onclick={() => openUrl('https://github.com/Miaoyww/Veto')}>
 					<ExternalLink size={13} class="mr-1.5" />
 					Miaoyww/Veto
 				</Button>

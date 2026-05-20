@@ -4,6 +4,7 @@
   import { NONSPLAYER_NAME } from "$lib/const";
   import { Button } from "$lib/components/ui/button";
   import { isTauri } from "@tauri-apps/api/core";
+  import { settingsDialogOpen } from "$lib/stores/global-ui-store";
   import NavigationButton from "./buttons/navigation-button.svelte";
   import favicon from "$lib/assets/favicon.png";
   import NavigationToButton from "$lib/components/buttons/navigation-to-button.svelte";
@@ -43,7 +44,7 @@
 </script>
 
 <div
-  class="fixed top-0 right-0 left-0 z-[9999] flex h-9 items-stretch border-b border-border/30 bg-background select-none"
+  class="fixed top-0 right-0 left-0 z-[9999] flex h-10 items-stretch border-b border-border/30 bg-background select-none"
 >
   <!-- 应用名 -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -78,8 +79,8 @@
     <Button
       class="flex items-center justify-center px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       variant="ghost"
-      onclick={() => goto("/settings")}
-      title="前往设置"
+      onclick={() => settingsDialogOpen.set(true)}
+      title="设置"
     >
       <Settings size={14} />
     </Button>
