@@ -10,7 +10,7 @@
 	import { fly } from 'svelte/transition';
 	const version = __APP_VERSION__;
 
-	const API_URL = 'https://api.github.com/repos/Miaoyww/Veto/releases/latest';
+	const API_URL = 'https://api.github.com/repos/Miaoyww/NonsPlayer/releases/latest';
 	import favicon from '$lib/assets/favicon.png';
 
 	function openUrl(url: string) {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
-  import { globalSettings } from "$lib/stores/global-settings.store";
+  import { globalSettings } from "$lib/stores/global-settings-store";
   import { Button } from "$lib/components/ui/button";
   import { ArrowRight, ArrowLeft, CircleCheck } from "@lucide/svelte";
   const STEPS = [

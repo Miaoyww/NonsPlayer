@@ -2,7 +2,7 @@
 	import SettingCard from '$lib/components/cards/settings/settings-card.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import { globalSettings } from '$lib/stores/global-settings.store';
+	import { globalSettings } from '$lib/stores/global-settings-store';
 	import { fly } from 'svelte/transition';
 
 	function saveIconStyle(style: 'nato' | 'simple') {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
-	import { globalSettings } from '$lib/stores/global-settings.store';
+	import { globalSettings } from '$lib/stores/global-settings-store';
 	import { THEME_OPTIONS, type ThemeOption } from '$lib/const';
 	import { Sun as SunIcon, Moon, Settings2 } from '@lucide/svelte';
 	import { onMount } from 'svelte';

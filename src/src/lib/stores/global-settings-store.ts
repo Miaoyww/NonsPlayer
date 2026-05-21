@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 import type { MusicAdapter } from '$lib/const';
 
 export interface GlobalSettings {
+	
 	/** 是否已完成/跳过欢迎向导 */
 	welcomeCompleted: boolean;
 	/** 已选择的适配器 ID 列表 */

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
-	import { globalSettings } from '$lib/stores/global-settings.store';
+	import { globalSettings } from '$lib/stores/global-settings-store';
 	import { AVAILABLE_ADAPTERS, type MusicAdapter } from '$lib/const';
 	import { Music, Headphones, Folder, CircleCheck } from '@lucide/svelte';
 	import { onMount } from 'svelte';

@@ -8,10 +8,13 @@
   import NavigationButton from "./buttons/navigation-button.svelte";
   import favicon from "$lib/assets/favicon.png";
   import NavigationToButton from "$lib/components/buttons/navigation-to-button.svelte";
+  import { onMount } from "svelte";
+  import { page } from "$app/state";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let appWindow = $state<any>(null);
   let isMaximized = $state(false);
+  let titlebarVisible = $state(true);
 
   $effect(() => {
     if (!isTauri()) return;
@@ -41,10 +44,18 @@
     { href: "/explore", label: "发现" },
     { href: "/library", label: "音乐库" },
   ];
+
+  $effect(() => {
+    if (page.url.pathname.startsWith("/welcome")) {
+      titlebarVisible = false;
+    } else {
+      titlebarVisible = true;
+    }
+  });
 </script>
 
 <div
-  class="fixed top-0 right-0 left-0 z-[9999] flex h-10 items-stretch border-b border-border/30 bg-background select-none"
+  class="fixed top-0 right-0 left-0 flex h-10 items-stretch border-b border-border/30 bg-background select-none"
 >
   <!-- 应用名 -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -69,24 +80,27 @@
     class="flex flex-1 items-center justify-center gap-2"
     onmousedown={onDragMouseDown}
   >
-    {#each navigations as nav}
-      <NavigationToButton href={nav.href} label={nav.label} />
-    {/each}
+    {#if titlebarVisible}
+      {#each navigations as nav}
+        <NavigationToButton href={nav.href} label={nav.label} />
+      {/each}
+    {/if}
   </div>
 
   <!-- 功能区 -->
   <div class="flex shrink-0 items-stretch">
-    <Button
-      class="flex items-center justify-center px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-      variant="ghost"
-      onclick={() => settingsDialogOpen.set(true)}
-      title="设置"
-    >
-      <Settings size={14} />
-    </Button>
+    {#if titlebarVisible}
+      <Button
+        class="flex items-center justify-center px-3 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        variant="ghost"
+        onclick={() => settingsDialogOpen.set(true)}
+        title="设置"
+      >
+        <Settings size={14} />
+      </Button>
 
-    <div class="mx-0.5 my-2 w-px bg-border/40"></div>
-
+      <div class="mx-0.5 my-2 w-px bg-border/40"></div>
+    {/if}
     <Button
       class="flex w-11 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       onclick={() => appWindow?.minimize()}

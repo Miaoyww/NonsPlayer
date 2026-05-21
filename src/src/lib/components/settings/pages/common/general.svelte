@@ -7,7 +7,7 @@
 	import { Upload, Trash2, Sun, Moon, ChevronDown } from '@lucide/svelte';
 	import { setMode, userPrefersMode } from 'mode-watcher';
 	import { fly } from 'svelte/transition';
-	import { globalSettings } from '$lib/stores/global-settings.store';
+	import { globalSettings } from '$lib/stores/global-settings-store';
 
 </script>
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
-	import { globalSettings } from '$lib/stores/global-settings.store';
+	import { globalSettings } from '$lib/stores/global-settings-store';
 	import { Folder, Plus, Trash2 } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
