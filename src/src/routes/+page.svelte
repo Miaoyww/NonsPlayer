@@ -133,7 +133,7 @@
     <!-- 我的喜欢 + 最爱歌单 横向布局 -->
     <div class="flex gap-4 items-start">
       <!-- 我的喜欢卡片 -->
-      <div class="w-[45%] shrink-0" bind:clientHeight={cardHeight}>
+      <div class="w-[45%] shrink-0 h-50" >
         <FavoritePlaylistCard />
       </div>
 
@@ -146,9 +146,9 @@
         </div>
         <div
           class="flex-1 min-h-0 overflow-hidden"
-          style={cardHeight > 0 ? `height: ${cardHeight}px` : ''}
+          bind:clientHeight={cardHeight}
         >
-          <ScrollArea class="h-full">
+          <ScrollArea class="h-50" >
             <div class="flex flex-col gap-1.5 pr-1">
               {#each favoritePlaylists as playlist}
                 <PlaylistCard {...playlist} />
