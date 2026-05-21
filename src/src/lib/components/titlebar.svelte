@@ -29,6 +29,7 @@
   });
 
   function onDragMouseDown(e: MouseEvent) {
+    if (e.target !== e.currentTarget) return;
     if (e.buttons === 1 && appWindow) {
       appWindow.startDragging();
     }

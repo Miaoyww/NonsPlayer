@@ -32,7 +32,7 @@
   </span>
   <span
     class={cn(
-      "h-0.5 w-5 rounded-full transition-opacity cursor-pointer bg-blue-500",
+      "h-0.5 w-5 rounded-full transition-opacity cursor-pointer bg-blue-600",
     )}
     class:opacity-100={isActive}
     class:opacity-0={!isActive}
