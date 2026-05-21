@@ -6,9 +6,12 @@
   import PlaylistRowCard from "$lib/components/cards/playlist-row-card.svelte";
   import PlaylistCard from "$lib/components/cards/playlist-card.svelte";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
+  import { fly } from "svelte/transition";
 
   let greeting = "晚上好";
   let quote = "受尽苦难而不厌，此乃阿修罗之道。";
+
+  let cardHeight = $state(0);
 
   // 临时数据 - 歌曲
   const dummySongs = [
@@ -71,7 +74,7 @@
       artist: "HOUND DOG",
       duration: "3:39",
       album: "ROCKS",
-    }
+    },
   ];
 
   // 临时数据 - 推荐歌单
@@ -115,37 +118,53 @@
 
 <div class="flex flex-col gap-4 p-8 h-screen overflow-hidden">
   <!-- 头部区域 -->
-  <div class="flex justify-between items-start shrink-0">
+  <div
+    class="flex flex-col gap-4 shrink-0"
+    transition:fly={{ y: -20, duration: 400 }}
+  >
     <!-- 问候语 -->
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-1">
       <p class="text-xl font-bold text-foreground">{greeting}</p>
       <p class="text-sm font-medium text-gray-400 whitespace-nowrap">
         {quote}
       </p>
-      <!-- 我的喜欢卡片 -->
-      <FavoritePlaylistCard />
     </div>
-  </div>
 
-  <!-- 最爱歌单 -->
-  <div class="flex flex-col gap-2 shrink-0">
-    <div class="flex items-center">
-      <ListMusic class="size-6 text-foreground" />
-      <p class="text-base font-bold text-foreground">最爱歌单</p>
-      <ChevronRight class="size-5 text-foreground" />
-    </div>
-    <!-- 歌单卡片：单行横向滚动 -->
-    <ScrollArea class="pb-1" orientation="horizontal">
-      <div class="flex gap-3">
-        {#each favoritePlaylists as playlist}
-          <PlaylistCard {...playlist} />
-        {/each}
+    <!-- 我的喜欢 + 最爱歌单 横向布局 -->
+    <div class="flex gap-4 items-start">
+      <!-- 我的喜欢卡片 -->
+      <div class="w-[45%] shrink-0" bind:clientHeight={cardHeight}>
+        <FavoritePlaylistCard />
       </div>
-    </ScrollArea>
+
+      <!-- 最爱歌单 -->
+      <div class="flex flex-col gap-2 flex-1 min-w-0 overflow-hidden">
+        <div class="flex items-center gap-1 shrink-0">
+          <ListMusic class="size-5 text-foreground" />
+          <p class="text-base font-bold text-foreground">最爱歌单</p>
+          <ChevronRight class="size-4 text-foreground" />
+        </div>
+        <div
+          class="flex-1 min-h-0 overflow-hidden"
+          style={cardHeight > 0 ? `height: ${cardHeight}px` : ''}
+        >
+          <ScrollArea class="h-full">
+            <div class="flex flex-col gap-1.5 pr-1">
+              {#each favoritePlaylists as playlist}
+                <PlaylistCard {...playlist} />
+              {/each}
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 底部双栏：填充剩余空间 -->
-  <div class="flex justify-between items-stretch gap-8 flex-1 min-h-0">
+  <div
+    class="flex justify-between items-stretch gap-8 flex-1 min-h-0"
+    transition:fly={{ y: -20, duration: 400 }}
+  >
     <!-- 下一首播放 -->
     <div class="flex flex-col gap-3 min-w-0 flex-1 w-1/2">
       <div class="flex items-center gap-1 shrink-0">

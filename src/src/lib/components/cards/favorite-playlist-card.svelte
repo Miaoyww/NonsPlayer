@@ -15,14 +15,12 @@
   }: Props = $props();
 </script>
 
-<div class="w-full h-full rounded-lg shadow bg-muted">
-  <div class="flex items-end justify-between p-4 h-full">
+<div class="w-full rounded-lg shadow bg-muted">
+  <div class="flex items-end justify-between p-4">
     <!-- 左侧：歌词 + 标题信息 -->
     <div class="flex flex-col gap-5">
       <!-- 歌词 -->
-      <div
-        class="text-sm font-medium max-w-80"
-      >
+      <div class="text-sm font-medium max-w-80">
         {#if lyrics.length > 0}
           {#each lyrics as line}
             <p>{line}</p>
