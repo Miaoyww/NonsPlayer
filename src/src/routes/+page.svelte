@@ -6,6 +6,7 @@
   import PlaylistCard from "$lib/components/cards/playlist-card.svelte";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import { fly } from "svelte/transition";
+  import Button from "$lib/components/ui/button/button.svelte";
 
   let greeting = "晚上好";
   let quote = "受尽苦难而不厌，此乃阿修罗之道。";
@@ -121,7 +122,7 @@
 
 <div
   class="grid grid-rows-[auto_1fr] gap-4 p-8 h-screen overflow-hidden"
-  transition:fly={{ y: -20, duration: 400 }}
+  transition:fly={{ y: -20, duration: 200 }}
 >
   <!-- ===== 上半部分：问候语 + 最爱歌单 ===== -->
   <div class="flex flex-col gap-4 min-h-0 overflow-hidden">
@@ -131,23 +132,15 @@
       <p class="text-sm font-medium text-gray-400 whitespace-nowrap">{quote}</p>
     </div>
 
-    <!-- 最爱歌单标签 左对齐 -->
-    <div class="flex items-center gap-1 shrink-0">
-      <ListMusic class="size-5 text-foreground" />
-      <p class="text-base font-bold text-foreground">最爱歌单</p>
-      <ChevronRight class="size-4 text-foreground" />
-    </div>
-
     <!-- 我的喜欢 + 最爱歌单 3:7 布局 -->
-    <div class="flex gap-9 min-h-0 overflow-hidden">
-      <!-- 我的喜欢 (flex:3) -->
-      <div class="min-h-0 overflow-hidden" style="flex: 3;">
+    <div class="flex gap-8 min-h-0 overflow-hidden">
+ 
+      <div class="min-h-0 overflow-hidden" style="flex: 4;">
         <FavoritePlaylistCard />
       </div>
 
-      <!-- 最爱歌单 3列固定网格 (flex:7) -->
       <div class="min-h-0 overflow-hidden" style="flex: 7;">
-        <div class="grid grid-cols-3 gap-3 auto-rows-auto">
+        <div class="grid grid-cols-4 gap-3 auto-rows-auto">
           {#each favoritePlaylists as playlist}
             <PlaylistCard {...playlist} />
           {/each}
@@ -161,8 +154,12 @@
     <!-- 下一首播放 -->
     <div class="flex flex-col gap-3 min-h-0 overflow-hidden">
       <div class="flex items-center gap-1 shrink-0">
-        <SkipForward class="size-6 text-foreground" />
+        <SkipForward class="size-4 text-foreground" />
         <p class="text-base font-bold text-foreground">下一首播放</p>
+        <Button variant="ghost" class="cursor-pointer" size="icon" >
+        <ChevronRight class="size-4 text-foreground" />
+
+        </Button>
       </div>
       <ScrollArea class="flex gap-2 pb-1 flex-1 min-h-0">
         {#each dummySongs as song}
@@ -178,7 +175,10 @@
       <div class="flex items-center gap-1 shrink-0">
         <ListMusic class="size-6 text-foreground" />
         <p class="text-base font-bold text-foreground">推荐歌单</p>
-        <ChevronRight class="size-5 text-foreground" />
+        <Button variant="ghost" class="cursor-pointer" size="icon" >
+        <ChevronRight class="size-4 text-foreground" />
+
+        </Button>
       </div>
       <ScrollArea class="flex flex-col gap-2 flex-1 min-h-0">
         {#each dummyPlaylists as playlist}
