@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { Star, SkipForward, ListMusic, ChevronRight } from "@lucide/svelte";
+  import { SkipForward, ListMusic, ChevronRight } from "@lucide/svelte";
   import FavoritePlaylistCard from "$lib/components/cards/favorite-playlist-card.svelte";
-  import RecommendedSongCard from "$lib/components/cards/recommended-song-card.svelte";
   import SongCard from "$lib/components/cards/song-card.svelte";
   import PlaylistRowCard from "$lib/components/cards/playlist-row-card.svelte";
   import PlaylistCard from "$lib/components/cards/playlist-card.svelte";
@@ -10,8 +9,6 @@
 
   let greeting = "晚上好";
   let quote = "受尽苦难而不厌，此乃阿修罗之道。";
-
-  let cardHeight = $state(0);
 
   // 临时数据 - 歌曲
   const dummySongs = [
@@ -105,7 +102,7 @@
     },
   ];
 
-  // 临时数据 - 最爱歌单卡片
+  // 临时数据 - 最爱歌单卡片 3x4
   const favoritePlaylists = [
     { playlistName: "R&B式情绪过肺｜深呼吸把烦恼吐出去" },
     { playlistName: "日语｜温柔治愈的日系旋律" },
@@ -113,65 +110,60 @@
     { playlistName: "说唱｜中文说唱精选集" },
     { playlistName: "古典｜专注阅读时光" },
     { playlistName: "民谣｜旅途中的故事" },
+    { playlistName: "摇滚｜热血公路旅行" },
+    { playlistName: "爵士｜深夜咖啡馆" },
+    { playlistName: "轻音乐｜雨天阅读" },
+    { playlistName: "欧美｜公告牌精选" },
+    { playlistName: "韩语｜K-Pop热单" },
+    { playlistName: "纯音乐｜专注工作" },
   ];
 </script>
 
-<div class="flex flex-col gap-4 p-8 h-screen overflow-hidden">
-  <!-- 头部区域 -->
-  <div
-    class="flex flex-col gap-4 shrink-0"
-    transition:fly={{ y: -20, duration: 400 }}
-  >
+<div
+  class="grid grid-rows-[auto_1fr] gap-4 p-8 h-screen overflow-hidden"
+  transition:fly={{ y: -20, duration: 400 }}
+>
+  <!-- ===== 上半部分：问候语 + 最爱歌单 ===== -->
+  <div class="flex flex-col gap-4 min-h-0 overflow-hidden">
     <!-- 问候语 -->
-    <div class="flex flex-col gap-1">
+    <div class="flex flex-col gap-1 shrink-0">
       <p class="text-xl font-bold text-foreground">{greeting}</p>
-      <p class="text-sm font-medium text-gray-400 whitespace-nowrap">
-        {quote}
-      </p>
+      <p class="text-sm font-medium text-gray-400 whitespace-nowrap">{quote}</p>
     </div>
 
-    <!-- 我的喜欢 + 最爱歌单 横向布局 -->
-    <div class="flex gap-4 items-start">
-      <!-- 我的喜欢卡片 -->
-      <div class="w-[45%] shrink-0 h-50" >
+    <!-- 最爱歌单标签 左对齐 -->
+    <div class="flex items-center gap-1 shrink-0">
+      <ListMusic class="size-5 text-foreground" />
+      <p class="text-base font-bold text-foreground">最爱歌单</p>
+      <ChevronRight class="size-4 text-foreground" />
+    </div>
+
+    <!-- 我的喜欢 + 最爱歌单 3:7 布局 -->
+    <div class="flex gap-9 min-h-0 overflow-hidden">
+      <!-- 我的喜欢 (flex:3) -->
+      <div class="min-h-0 overflow-hidden" style="flex: 3;">
         <FavoritePlaylistCard />
       </div>
 
-      <!-- 最爱歌单 -->
-      <div class="flex flex-col gap-2 flex-1 min-w-0 overflow-hidden">
-        <div class="flex items-center gap-1 shrink-0">
-          <ListMusic class="size-5 text-foreground" />
-          <p class="text-base font-bold text-foreground">最爱歌单</p>
-          <ChevronRight class="size-4 text-foreground" />
-        </div>
-        <div
-          class="flex-1 min-h-0 overflow-hidden"
-          bind:clientHeight={cardHeight}
-        >
-          <ScrollArea class="h-50" >
-            <div class="flex flex-col gap-1.5 pr-1">
-              {#each favoritePlaylists as playlist}
-                <PlaylistCard {...playlist} />
-              {/each}
-            </div>
-          </ScrollArea>
+      <!-- 最爱歌单 3列固定网格 (flex:7) -->
+      <div class="min-h-0 overflow-hidden" style="flex: 7;">
+        <div class="grid grid-cols-3 gap-3 auto-rows-auto">
+          {#each favoritePlaylists as playlist}
+            <PlaylistCard {...playlist} />
+          {/each}
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 底部双栏：填充剩余空间 -->
-  <div
-    class="flex justify-between items-stretch gap-8 flex-1 min-h-0"
-    transition:fly={{ y: -20, duration: 400 }}
-  >
+  <!-- ===== 下半部分 2/3：下一首播放 + 推荐歌单 ===== -->
+  <div class="grid grid-cols-2 gap-4 min-h-0 overflow-hidden">
     <!-- 下一首播放 -->
-    <div class="flex flex-col gap-3 min-w-0 flex-1 w-1/2">
+    <div class="flex flex-col gap-3 min-h-0 overflow-hidden">
       <div class="flex items-center gap-1 shrink-0">
         <SkipForward class="size-6 text-foreground" />
         <p class="text-base font-bold text-foreground">下一首播放</p>
       </div>
-      <!-- 歌曲列表：单行横向滚动 -->
       <ScrollArea class="flex gap-2 pb-1 flex-1 min-h-0">
         {#each dummySongs as song}
           <div class="shrink-0 mb-2">
@@ -182,7 +174,7 @@
     </div>
 
     <!-- 推荐歌单 -->
-    <div class="flex flex-col gap-3 flex-1 w-1/2 min-w-0">
+    <div class="flex flex-col gap-3 min-h-0 overflow-hidden">
       <div class="flex items-center gap-1 shrink-0">
         <ListMusic class="size-6 text-foreground" />
         <p class="text-base font-bold text-foreground">推荐歌单</p>

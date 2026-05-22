@@ -15,10 +15,11 @@
   }: Props = $props();
 </script>
 
-<div class="w-full rounded-lg shadow bg-muted">
-  <div class="flex items-end justify-between p-4">
+<div class="w-full h-full rounded-lg shadow bg-muted">
+  <div class="flex h-full items-end justify-between p-4">
+
     <!-- 左侧：歌词 + 标题信息 -->
-    <div class="flex flex-col gap-5">
+    <div class="flex flex-col gap-5 ">
       <!-- 歌词 -->
       <div class="text-sm font-medium max-w-80">
         {#if lyrics.length > 0}
@@ -34,7 +35,7 @@
       </div>
       <!-- 歌单名称 + 曲目数 -->
       <div class="flex flex-col gap-2">
-        <p class="text-sm font-bold text-foreground">{title}</p>
+        <p class="text-2xl font-bold text-foreground">{title}</p>
         <p class="text-sm font-bold text-foreground">{trackCount}</p>
       </div>
     </div>
@@ -48,5 +49,6 @@
         class="size-4 text-foreground ml-0.5 fill-white stroke-white"
       />
     </Button>
+
   </div>
 </div>
