@@ -85,7 +85,7 @@
         <div class="flex flex-1 flex-col bg-background">
           <!-- 关闭按钮 -->
           <button
-            class="absolute end-4 top-4 z-10 opacity-70 transition-opacity hover:opacity-100"
+            class="absolute inset-e-4 top-4 z-10 opacity-70 transition-opacity hover:opacity-100"
             onclick={() => settingsDialogOpen.set(false)}
           >
             <X size={18} />

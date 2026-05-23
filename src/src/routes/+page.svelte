@@ -7,9 +7,7 @@
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import { fly } from "svelte/transition";
   import Button from "$lib/components/ui/button/button.svelte";
-
-  let greeting = "晚上好";
-  let quote = "受尽苦难而不厌，此乃阿修罗之道。";
+  import GreetingQuote from "$lib/components/greeting-quote.svelte";
 
   // 临时数据 - 歌曲
   const dummySongs = [
@@ -126,15 +124,10 @@
 >
   <!-- ===== 上半部分：问候语 + 最爱歌单 ===== -->
   <div class="flex flex-col gap-4 min-h-0 overflow-hidden">
-    <!-- 问候语 -->
-    <div class="flex flex-col gap-1 shrink-0">
-      <p class="text-xl font-bold text-foreground">{greeting}</p>
-      <p class="text-sm font-medium text-gray-400 whitespace-nowrap">{quote}</p>
-    </div>
+    <GreetingQuote />
 
     <!-- 我的喜欢 + 最爱歌单 3:7 布局 -->
     <div class="flex gap-8 min-h-0 overflow-hidden">
- 
       <div class="min-h-0 overflow-hidden" style="flex: 4;">
         <FavoritePlaylistCard />
       </div>
@@ -156,9 +149,13 @@
       <div class="flex items-center gap-1 shrink-0">
         <SkipForward class="size-4 text-foreground" />
         <p class="text-base font-bold text-foreground">下一首播放</p>
-        <Button variant="ghost" class="cursor-pointer" size="icon" >
-        <ChevronRight class="size-4 text-foreground" />
-
+        <Button
+          variant="ghost"
+          class="cursor-pointer"
+          size="icon"
+          href="/playqueue"
+        >
+          <ChevronRight class="size-4 text-foreground" />
         </Button>
       </div>
       <ScrollArea class="flex gap-2 pb-1 flex-1 min-h-0">
@@ -175,9 +172,13 @@
       <div class="flex items-center gap-1 shrink-0">
         <ListMusic class="size-6 text-foreground" />
         <p class="text-base font-bold text-foreground">推荐歌单</p>
-        <Button variant="ghost" class="cursor-pointer" size="icon" >
-        <ChevronRight class="size-4 text-foreground" />
-
+        <Button
+          variant="ghost"
+          class="cursor-pointer"
+          size="icon"
+          href="/explore"
+        >
+          <ChevronRight class="size-4 text-foreground" />
         </Button>
       </div>
       <ScrollArea class="flex flex-col gap-2 flex-1 min-h-0">

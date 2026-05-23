@@ -41,7 +41,7 @@
   tabindex="0"
 >
   <!-- 封面 93x93 -->
-  <div class=" size-20 shrink-0 rounded-lg bg-muted overflow-hidden">
+  <div class=" size-16 shrink-0 rounded-lg bg-muted overflow-hidden">
     {#if coverUrl}
       <img src={coverUrl} alt="" class="size-full object-cover" />
     {/if}

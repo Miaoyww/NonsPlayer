@@ -1,72 +1,92 @@
 <script lang="ts">
-	import SettingCard from '$lib/components/cards/settings-card.svelte';
-	import { Kbd, KbdGroup } from '$lib/components/ui/kbd';
-	import * as Accordion from '$lib/components/ui/accordion/index.js';
-	import { Button } from '$lib/components/ui/button';
-	import { toast } from 'svelte-sonner';
-	import { Upload, Trash2, Sun, Moon, ChevronDown } from '@lucide/svelte';
-	import { setMode, userPrefersMode } from 'mode-watcher';
-	import { fly } from 'svelte/transition';
-	import { globalSettings } from '$lib/stores/global-settings-store';
-
+  import SettingCard from "$lib/components/cards/settings-card.svelte";
+  import { Kbd, KbdGroup } from "$lib/components/ui/kbd";
+  import * as Accordion from "$lib/components/ui/accordion/index.js";
+  import { Button } from "$lib/components/ui/button";
+  import { toast } from "svelte-sonner";
+  import { Upload, Trash2, Sun, Moon, ChevronDown, Settings } from "@lucide/svelte";
+  import { setMode, userPrefersMode } from "mode-watcher";
+  import { fly } from "svelte/transition";
+  import { globalSettings } from "$lib/stores/global-settings-store";
 </script>
 
 <div class="space-y-8" in:fly={{ y: 8, duration: 320, opacity: 0 }}>
-	<!-- 界面 -->
-	<div>
-		<div class="mb-1 text-xl font-bold text-stone-800 dark:text-stone-100">界面</div>
-		<div class="space-y-3">
-			<!-- 主题 -->
-			<SettingCard title="界面主题" description="选择浅色或暗色界面主题。">
-				<div class="flex gap-1.5">
-					<Button
-						variant={userPrefersMode.current === 'light' ? 'secondary' : 'ghost'}
-						size="sm"
-						onclick={() => setMode('light')}
-					>
-						<Sun size={13} class="mr-1.5" />
-						浅色
-					</Button>
-					<Button
-						variant={userPrefersMode.current === 'dark' ? 'secondary' : 'ghost'}
-						size="sm"
-						onclick={() => setMode('dark')}
-					>
-						<Moon size={13} class="mr-1.5" />
-						暗色
-					</Button>
-				</div>
-			</SettingCard>
+  <!-- 界面 -->
+  <div>
+    <div class="mb-1 text-xl font-bold text-stone-800 dark:text-stone-100">
+      界面
+    </div>
+    <div class="space-y-3">
+      <!-- 主题 -->
+      <SettingCard title="界面主题" description="选择浅色或暗色界面主题。">
+        <div class="flex gap-1.5">
+          <Button
+            variant={userPrefersMode.current === "light"
+              ? "secondary"
+              : "ghost"}
+            size="sm"
+            onclick={() => setMode("light")}
+          >
+            <Sun size={13} class="mr-1.5" />
+            浅色
+          </Button>
+          <Button
+            variant={userPrefersMode.current === "dark" ? "secondary" : "ghost"}
+            size="sm"
+            onclick={() => setMode("dark")}
+          >
+            <Moon size={13} class="mr-1.5" />
+            暗色
+          </Button>
+          <Button
+            variant={userPrefersMode.current === "system" ? "secondary" : "ghost"}
+            size="sm"
+            onclick={() => setMode("system")}
+          >
+            <Settings size={13} class="mr-1.5" />
+            跟随系统
+          </Button>
+        </div>
+      </SettingCard>
 
-			<!-- 语言 -->
-			<SettingCard title="界面语言" description="切换界面显示语言。部分界面可能需要刷新后生效。">
-				<div class="flex gap-1.5">
-					<Button
-						variant={$globalSettings.language === 'zh-cn' ? 'secondary' : 'ghost'}
-						size="sm"
-						onclick={() => globalSettings.patch({ language: 'zh-cn' })}
-					>
-						中文
-					</Button>
-					<Button
-						variant={$globalSettings.language === 'en' ? 'secondary' : 'ghost'}
-						size="sm"
-						onclick={() => globalSettings.patch({ language: 'en' })}
-					>
-						English
-					</Button>
-				</div>
-			</SettingCard>
-		</div>
-	</div>
+      <!-- 语言 -->
+      <SettingCard
+        title="界面语言"
+        description="切换界面显示语言。部分界面可能需要刷新后生效。"
+      >
+        <div class="flex gap-1.5">
+          <Button
+            variant={$globalSettings.language === "zh-cn"
+              ? "secondary"
+              : "ghost"}
+            size="sm"
+            onclick={() => globalSettings.patch({ language: "zh-cn" })}
+          >
+            中文
+          </Button>
+          <Button
+            variant={$globalSettings.language === "en" ? "secondary" : "ghost"}
+            size="sm"
+            onclick={() => globalSettings.patch({ language: "en" })}
+          >
+            English
+          </Button>
+        </div>
+      </SettingCard>
+    </div>
+  </div>
 
-	<!-- 快捷键 -->
-	<div>
-		<div class="mb-1 text-xl font-bold text-stone-800 dark:text-stone-100">快捷键</div>
-		<p class="mb-5 text-sm text-muted-foreground">当前版本快捷键为只读，后续版本支持自定义。</p>
+  <!-- 快捷键 -->
+  <div>
+    <div class="mb-1 text-xl font-bold text-stone-800 dark:text-stone-100">
+      快捷键
+    </div>
+    <p class="mb-5 text-sm text-muted-foreground">
+      当前版本快捷键为只读，后续版本支持自定义。
+    </p>
 
-		<div class="space-y-6">
-			<!-- {#each GROUPS as group}
+    <div class="space-y-6">
+      <!-- {#each GROUPS as group}
 				<div>
 					<Accordion.Root type="single">
 						<Accordion.Item value="item-1">
@@ -96,7 +116,6 @@
 					</Accordion.Root>
 				</div>
 			{/each} -->
-		</div>
-	</div>
-
+    </div>
+  </div>
 </div>
