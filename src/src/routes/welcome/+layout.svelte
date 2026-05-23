@@ -6,7 +6,7 @@
   import { ArrowRight, ArrowLeft, CircleCheck } from "@lucide/svelte";
   const STEPS = [
     { path: "/welcome", label: "欢迎" },
-    { path: "/welcome/adapters", label: "平台" },
+    { path: "/welcome/adapter", label: "适配器" },
     { path: "/welcome/theme", label: "主题" },
     { path: "/welcome/local", label: "本地" },
   ];

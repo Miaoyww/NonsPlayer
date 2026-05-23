@@ -27,7 +27,7 @@
     <Button
       size="lg"
       class="start-btn"
-      onclick={() => goto("/welcome/adapters")}
+      onclick={() => goto("/welcome/adapter")}
     >
       开始设置
       <ArrowRight class="size-5" />

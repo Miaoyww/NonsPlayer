@@ -78,12 +78,6 @@
 
 <style>
 	.step-card-container { width: 100%; }
-	.step-card {
-		border: 1px solid var(--border);
-		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-	}
-	.step-title { font-size: 1.25rem; text-align: center; }
-	.step-desc { text-align: center; line-height: 1.5; }
 
 	.theme-list { display: flex; flex-direction: column; gap: 0.75rem; }
 
