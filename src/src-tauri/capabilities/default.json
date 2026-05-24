@@ -21,6 +21,12 @@
     "fs:allow-read-file",
     "fs:allow-remove",
     "fs:allow-mkdir",
-    "opener:allow-open-url"
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://*" },
+        { "url": "http://*" }
+      ]
+    }
   ]
 }

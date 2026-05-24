@@ -1,5 +1,6 @@
 <script lang="ts">
   import { SkipForward, ListMusic, ChevronRight } from "@lucide/svelte";
+  import { goto } from "$app/navigation";
   import FavoritePlaylistCard from "$lib/components/cards/favorite-playlist-card.svelte";
   import SongCard from "$lib/components/cards/song-card.svelte";
   import PlaylistRowCard from "$lib/components/cards/playlist-row-card.svelte";
@@ -101,6 +102,10 @@
     },
   ];
 
+  function goPlaylist(name: string) {
+    goto(`/adapter/playlist/${encodeURIComponent(name)}`);
+  }
+
   // 临时数据 - 最爱歌单卡片 3x4
   const favoritePlaylists = [
     { playlistName: "R&B式情绪过肺｜深呼吸把烦恼吐出去" },
@@ -135,7 +140,7 @@
       <div class="min-h-0 overflow-hidden" style="flex: 7;">
         <div class="grid grid-cols-4 gap-3 auto-rows-auto">
           {#each favoritePlaylists as playlist}
-            <PlaylistCard {...playlist} />
+            <PlaylistCard {...playlist} onclick={() => goPlaylist(playlist.playlistName)} />
           {/each}
         </div>
       </div>
@@ -184,7 +189,7 @@
       <ScrollArea class="flex flex-col gap-2 flex-1 min-h-0">
         {#each dummyPlaylists as playlist}
           <div class="mb-2">
-            <PlaylistRowCard {...playlist} />
+            <PlaylistRowCard {...playlist} onplay={() => goPlaylist(playlist.playlistName)} />
           </div>
         {/each}
       </ScrollArea>
