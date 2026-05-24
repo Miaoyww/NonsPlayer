@@ -12,7 +12,7 @@
 
 **极致轻量 | 全平台支持 | 极度自定义 | 沉浸式听歌体验**
 
-![Analytics](https://repobeats.axiom.co/api/embed/104248b2c1f2c27f8f5b29df5ab1ab2a4269ed96.svg "Repobeats analytics image")
+![Alt](https://repobeats.axiom.co/api/embed/104248b2c1f2c27f8f5b29df5ab1ab2a4269ed96.svg "Repobeats analytics image")
 
 </div>
 
