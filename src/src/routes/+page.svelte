@@ -2,7 +2,7 @@
   import { SkipForward, ListMusic, ChevronRight } from "@lucide/svelte";
   import { goto } from "$app/navigation";
   import FavoritePlaylistCard from "$lib/components/cards/favorite-playlist-card.svelte";
-  import SongCard from "$lib/components/cards/song-card.svelte";
+  import SongCard from "$lib/components/cards/song-nextup-card.svelte";
   import PlaylistRowCard from "$lib/components/cards/playlist-row-card.svelte";
   import PlaylistCard from "$lib/components/cards/playlist-card.svelte";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
