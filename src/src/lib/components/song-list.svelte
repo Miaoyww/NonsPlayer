@@ -4,20 +4,10 @@
   import { Button } from "$lib/components/ui/button";
   import SongInfoCard from "./cards/song-info-card.svelte";
   import SongActionCard from "./cards/song-action-card.svelte";
-
-  export interface SongItem {
-    index: number;
-    name: string;
-    artist: string;
-    album: string;
-    albumId?: string;
-    duration: string;
-    liked: boolean;
-    coverUrl?: string;
-  }
+  import type { Song } from "$lib/types";
 
   interface Props {
-    songs: SongItem[];
+    songs: Song[];
     onlike?: (index: number) => void;
     onplay?: (index: number) => void;
     class?: string;
@@ -40,6 +30,7 @@
 
   <!-- Song Rows -->
   {#each songs as song, i}
+    {@const idx = i + 1}
     <div
       class="flex items-center gap-4 px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
       role="button"
@@ -51,7 +42,7 @@
       <span
         class="w-8 text-center text-sm text-muted-foreground group-hover:hidden"
       >
-        {song.index}
+        {idx}
       </span>
       <span
         class="w-8 text-center hidden group-hover:flex items-center justify-center"
@@ -61,8 +52,8 @@
 
       <SongInfoCard
         name={song.name}
-        artist={song.artist}
-        coverUrl={song.coverUrl || ""}
+        artist={song.artistsName}
+        coverUrl={song.avatarUrl}
         size="sm"
         class="flex-1"
       />
@@ -73,17 +64,15 @@
         variant="link"
         onclick={(e) => {
           e.stopPropagation();
-          goto(
-            `/adapter/album/${encodeURIComponent(song.albumId || song.album)}`,
-          );
+          goto(`/adapter/album/${encodeURIComponent(song.album.id)}`);
         }}
       >
-        {song.album}
+        {song.albumName}
       </Button>
 
       <SongActionCard
-        duration={song.duration}
-        bind:liked={song.liked}
+        duration={song.durationText}
+        bind:liked={song.isLiked}
         onlike={() => onlike?.(i)}
       />
     </div>

@@ -1,27 +1,16 @@
 <script lang="ts">
   import SongInfoCard from "./song-info-card.svelte";
   import SongActionCard from "./song-action-card.svelte";
+  import type { Song } from "$lib/types";
 
   interface Props {
-    songName: string;
-    artist: string;
-    alias?: string;
-    coverUrl?: string;
-    duration?: string;
-    album?: string;
-    liked?: boolean;
+    song: Song;
     onplay?: () => void;
     onlike?: () => void;
   }
 
   let {
-    songName,
-    artist,
-    alias = "",
-    coverUrl = "",
-    duration = "",
-    album = "",
-    liked = $bindable(false),
+    song,
     onplay,
     onlike,
   }: Props = $props();
@@ -37,12 +26,12 @@
   tabindex="0"
 >
   <SongInfoCard
-    name={songName}
-    {artist}
-    {alias}
-    {coverUrl}
+    name={song.name}
+    artist={song.artistsName}
+    alias={song.trans ?? ""}
+    coverUrl={song.avatarUrl}
     class="flex-1"
   />
 
-  <SongActionCard {duration} bind:liked variant="card" />
+  <SongActionCard duration={song.durationText} bind:liked={song.isLiked} variant="card" />
 </div>

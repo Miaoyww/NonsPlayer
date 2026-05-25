@@ -9,97 +9,52 @@
   import { fly } from "svelte/transition";
   import Button from "$lib/components/ui/button/button.svelte";
   import GreetingQuote from "$lib/components/greeting-quote.svelte";
+  import type { Song, Playlist } from "$lib/types";
+
+  // 临时工厂函数
+  const empty = "";
+  const a = (id: string, name: string) =>
+    ({ id, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty, createDate: empty, description: empty, songs: [], artists: [], artistsName: name, collectionCount: 0, trackCount: 0 }) as Song["album"];
+  const r = (id: string, name: string) =>
+    ({ id, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty, description: empty, songs: [], musicCount: 0, trans: empty }) as Song["artists"][number];
+
+  function mkSong(name: string, artistId: string, artistName: string, albumName: string, durationText: string, trans?: string): Song {
+    return {
+      id: empty, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty,
+      album: a(empty, albumName),
+      artists: [r(artistId, artistName)],
+      isEmpty: false, duration: 0, url: empty, lyric: null, available: true,
+      isLiked: false, trans: trans ?? null, albumName, artistsName: artistName, durationText,
+    };
+  }
+
+  function mkPlaylist(name: string, creator: string, playCount: number, musicsCount: number): Playlist {
+    return {
+      id: empty, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty,
+      title: name, creator, createTime: empty, description: empty, musicTrackIds: [], tags: [], musics: [],
+      isInitialized: true, playCount, musicsCount,
+    };
+  }
 
   // 临时数据 - 歌曲
-  const dummySongs = [
-    {
-      songName: "JANE DOE",
-      artist: "米津玄師 · 宇多田ヒカル",
-      alias: "(剧场版《电锯人：蕾塞篇》片尾曲)",
-      duration: "3:02",
-      album: "JANE DOE",
-    },
-    {
-      songName: "僕の戦争",
-      artist: "神聖かまってちゃん",
-      alias: "(TV动画《进击的巨人》片头曲)",
-      duration: "3:30",
-      album: "僕の戦争",
-    },
-    {
-      songName: "The Rumbling",
-      artist: "SiM",
-      duration: "3:40",
-      album: "The Rumbling",
-    },
-    {
-      songName: "紅蓮華",
-      artist: "LiSA",
-      alias: "(TV动画《鬼灭之刃》片头曲)",
-      duration: "3:56",
-      album: "紅蓮華",
-    },
-    {
-      songName: "廻廻奇譚",
-      artist: "Eve",
-      alias: "(TV动画《咒术回战》片头曲)",
-      duration: "3:38",
-      album: "廻廻奇譚",
-    },
-    {
-      songName: "残酷な天使のテーゼ",
-      artist: "高橋洋子",
-      alias: "(TV动画《新世纪福音战士》片头曲)",
-      duration: "4:06",
-      album: "残酷な天使のテーゼ",
-    },
-    {
-      songName: "Again",
-      artist: "YUI",
-      alias: "(TV动画《钢之炼金术师》片头曲)",
-      duration: "4:15",
-      album: "Fullmetal Alchemist",
-    },
-    {
-      songName: "シルエット",
-      artist: "KANA-BOON",
-      duration: "4:01",
-      album: "シルエット",
-    },
-    {
-      songName: "R★O★C★K★S",
-      artist: "HOUND DOG",
-      duration: "3:39",
-      album: "ROCKS",
-    },
+  const dummySongs: Song[] = [
+    mkSong("JANE DOE", "artist-kenshi", "米津玄師 · 宇多田ヒカル", "JANE DOE", "3:02", "(剧场版《电锯人：蕾塞篇》片尾曲)"),
+    mkSong("僕の戦争", "artist-shinsei", "神聖かまってちゃん", "僕の戦争", "3:30", "(TV动画《进击的巨人》片头曲)"),
+    mkSong("The Rumbling", "artist-sim", "SiM", "The Rumbling", "3:40"),
+    mkSong("紅蓮華", "artist-lisa", "LiSA", "紅蓮華", "3:56", "(TV动画《鬼灭之刃》片头曲)"),
+    mkSong("廻廻奇譚", "artist-eve", "Eve", "廻廻奇譚", "3:38", "(TV动画《咒术回战》片头曲)"),
+    mkSong("残酷な天使のテーゼ", "artist-yoko", "高橋洋子", "残酷な天使のテーゼ", "4:06", "(TV动画《新世纪福音战士》片头曲)"),
+    mkSong("Again", "artist-yui", "YUI", "Fullmetal Alchemist", "4:15", "(TV动画《钢之炼金术师》片头曲)"),
+    mkSong("シルエット", "artist-kana", "KANA-BOON", "シルエット", "4:01"),
+    mkSong("R★O★C★K★S", "artist-hound", "HOUND DOG", "ROCKS", "3:39"),
   ];
 
   // 临时数据 - 推荐歌单
-  const dummyPlaylists = [
-    {
-      playlistName: "在路上-2026",
-      creator: "Miaoyww",
-      playCount: "161",
-      trackCount: "104 Tracks",
-    },
-    {
-      playlistName: "深夜安静学习",
-      creator: "Miaoyww",
-      playCount: "89",
-      trackCount: "52 Tracks",
-    },
-    {
-      playlistName: "动漫金曲精选",
-      creator: "NonsPlayer",
-      playCount: "342",
-      trackCount: "128 Tracks",
-    },
-    {
-      playlistName: "午后咖啡时光",
-      creator: "Miaoyww",
-      playCount: "56",
-      trackCount: "36 Tracks",
-    },
+  const dummyPlaylists: Playlist[] = [
+    mkPlaylist("在路上-2026", "Miaoyww", 161, 104),
+    mkPlaylist("深夜安静学习", "Miaoyww", 89, 52),
+    mkPlaylist("动漫金曲精选", "NonsPlayer", 342, 128),
+    mkPlaylist("午后咖啡时光", "Miaoyww", 56, 36),
   ];
 
   function goPlaylist(name: string) {
@@ -107,19 +62,19 @@
   }
 
   // 临时数据 - 最爱歌单卡片 3x4
-  const favoritePlaylists = [
-    { playlistName: "R&B式情绪过肺｜深呼吸把烦恼吐出去" },
-    { playlistName: "日语｜温柔治愈的日系旋律" },
-    { playlistName: "电子｜深夜代码冲刺" },
-    { playlistName: "说唱｜中文说唱精选集" },
-    { playlistName: "古典｜专注阅读时光" },
-    { playlistName: "民谣｜旅途中的故事" },
-    { playlistName: "摇滚｜热血公路旅行" },
-    { playlistName: "爵士｜深夜咖啡馆" },
-    { playlistName: "轻音乐｜雨天阅读" },
-    { playlistName: "欧美｜公告牌精选" },
-    { playlistName: "韩语｜K-Pop热单" },
-    { playlistName: "纯音乐｜专注工作" },
+  const favoritePlaylists: Playlist[] = [
+    mkPlaylist("R&B式情绪过肺｜深呼吸把烦恼吐出去", "", 0, 0),
+    mkPlaylist("日语｜温柔治愈的日系旋律", "", 0, 0),
+    mkPlaylist("电子｜深夜代码冲刺", "", 0, 0),
+    mkPlaylist("说唱｜中文说唱精选集", "", 0, 0),
+    mkPlaylist("古典｜专注阅读时光", "", 0, 0),
+    mkPlaylist("民谣｜旅途中的故事", "", 0, 0),
+    mkPlaylist("摇滚｜热血公路旅行", "", 0, 0),
+    mkPlaylist("爵士｜深夜咖啡馆", "", 0, 0),
+    mkPlaylist("轻音乐｜雨天阅读", "", 0, 0),
+    mkPlaylist("欧美｜公告牌精选", "", 0, 0),
+    mkPlaylist("韩语｜K-Pop热单", "", 0, 0),
+    mkPlaylist("纯音乐｜专注工作", "", 0, 0),
   ];
 </script>
 
@@ -139,8 +94,8 @@
 
       <div class="min-h-0 overflow-hidden" style="flex: 7;">
         <div class="grid grid-cols-4 gap-3 auto-rows-auto">
-          {#each favoritePlaylists as playlist}
-            <PlaylistCard {...playlist} onclick={() => goPlaylist(playlist.playlistName)} />
+          {#each favoritePlaylists as p}
+            <PlaylistCard playlist={p} onclick={() => goPlaylist(p.name)} />
           {/each}
         </div>
       </div>
@@ -166,7 +121,7 @@
       <ScrollArea class="flex gap-2 pb-1 flex-1 min-h-0">
         {#each dummySongs as song}
           <div class="shrink-0 mb-2">
-            <SongCard {...song} />
+            <SongCard {song} />
           </div>
         {/each}
       </ScrollArea>
@@ -187,9 +142,9 @@
         </Button>
       </div>
       <ScrollArea class="flex flex-col gap-2 flex-1 min-h-0">
-        {#each dummyPlaylists as playlist}
+        {#each dummyPlaylists as p}
           <div class="mb-2">
-            <PlaylistRowCard {...playlist} onplay={() => goPlaylist(playlist.playlistName)} />
+            <PlaylistRowCard playlist={p} onplay={() => goPlaylist(p.name)} />
           </div>
         {/each}
       </ScrollArea>

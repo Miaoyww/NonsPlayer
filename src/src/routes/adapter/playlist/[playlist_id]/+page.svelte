@@ -9,120 +9,59 @@
   } from "$lib/components/ui/dropdown-menu";
   import { fly } from "svelte/transition";
   import SongList from "$lib/components/song-list.svelte";
-  import type { SongItem } from "$lib/components/song-list.svelte";
+  import type { Song, Playlist } from "$lib/types";
 
-  const playlist = {
-    name: "在路上-2026",
-    coverUrl: "",
-    musicsCount: "104 首",
+  // 临时数据 - 歌单信息
+  const empty = "";
+  const a = (id: string, name: string) =>
+    ({ id, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty, createDate: empty, description: empty, songs: [], artists: [], artistsName: name, collectionCount: 0, trackCount: 0 }) as Song["album"];
+  const r = (id: string, name: string) =>
+    ({ id, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty, description: empty, songs: [], musicCount: 0, trans: empty }) as Song["artists"][number];
+
+  function s(name: string, artistId: string, artistName: string, albumId: string, albumName: string, durationText: string, isLiked: boolean): Song {
+    return {
+      id: empty, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty,
+      album: a(albumId, albumName),
+      artists: [r(artistId, artistName)],
+      isEmpty: false, duration: 0, url: empty, lyric: null, available: true,
+      isLiked, trans: null, albumName, artistsName: artistName, durationText,
+    };
+  }
+
+  const playlist: Playlist = {
+    id: "playlist-on-the-road", md5: empty, name: "在路上-2026",
+    shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty,
+    title: "在路上-2026",
     creator: "Miaoyww",
     createTime: "2026-01-15",
-    description:
-      "感受每一段旅程的自由与洒脱，让音乐陪伴你在路上的每一个瞬间。收藏了这些年开车旅行时最喜欢的歌曲，从经典摇滚到独立民谣，从华语流行到欧美金曲。",
-    liked: false,
+    description: "感受每一段旅程的自由与洒脱，让音乐陪伴你在路上的每一个瞬间。收藏了这些年开车旅行时最喜欢的歌曲，从经典摇滚到独立民谣，从华语流行到欧美金曲。",
+    musicTrackIds: [],
+    tags: [],
+    musics: [],
+    isInitialized: true,
+    musicsCount: 104,
+    playCount: 0
   };
 
-  let songs: SongItem[] = $state([
-    {
-      index: 1,
-      name: "曾经的你",
-      artist: "许巍",
-      album: "每一刻都是崭新的",
-      duration: "4:23",
-      liked: true,
-    },
-    {
-      index: 2,
-      name: "蓝莲花",
-      artist: "许巍",
-      album: "时光·漫步",
-      duration: "4:32",
-      liked: true,
-    },
-    {
-      index: 3,
-      name: "平凡之路",
-      artist: "朴树",
-      album: "猎户星座",
-      duration: "5:02",
-      liked: false,
-    },
-    {
-      index: 4,
-      name: "夜空中最亮的星",
-      artist: "逃跑计划",
-      album: "世界",
-      duration: "4:14",
-      liked: true,
-    },
-    {
-      index: 5,
-      name: "南山南",
-      artist: "马頔",
-      album: "孤岛",
-      duration: "4:37",
-      liked: false,
-    },
-    {
-      index: 6,
-      name: "理想三旬",
-      artist: "陈鸿宇",
-      album: "浓烟下的诗歌电台",
-      duration: "3:47",
-      liked: true,
-    },
-    {
-      index: 7,
-      name: "春风十里",
-      artist: "鹿先森乐队",
-      album: "所有的酒，都不如你",
-      duration: "6:24",
-      liked: false,
-    },
-    {
-      index: 8,
-      name: "成都",
-      artist: "赵雷",
-      album: "无法长大",
-      duration: "5:28",
-      liked: true,
-    },
-    {
-      index: 9,
-      name: "Don't Look Back in Anger",
-      artist: "Oasis",
-      album: "(What's the Story) Morning Glory?",
-      duration: "4:48",
-      liked: false,
-    },
-    {
-      index: 10,
-      name: "Hotel California",
-      artist: "Eagles",
-      album: "Hotel California",
-      duration: "6:30",
-      liked: true,
-    },
-    {
-      index: 11,
-      name: "Bohemian Rhapsody",
-      artist: "Queen",
-      album: "A Night at the Opera",
-      duration: "5:55",
-      liked: false,
-    },
-    {
-      index: 12,
-      name: "Stairway to Heaven",
-      artist: "Led Zeppelin",
-      album: "Led Zeppelin IV",
-      duration: "8:02",
-      liked: true,
-    },
+  let playlistLiked = $state(false);
+
+  let songs: Song[] = $state([
+    s("曾经的你", "artist-xw", "许巍", "album-msk", "每一刻都是崭新的", "4:23", true),
+    s("蓝莲花", "artist-xw", "许巍", "album-sgmb", "时光·漫步", "4:32", true),
+    s("平凡之路", "artist-ps", "朴树", "album-lhxz", "猎户星座", "5:02", false),
+    s("夜空中最亮的星", "artist-tp", "逃跑计划", "album-sj", "世界", "4:14", true),
+    s("南山南", "artist-md", "马頔", "album-gd", "孤岛", "4:37", false),
+    s("理想三旬", "artist-chy", "陈鸿宇", "album-nysg", "浓烟下的诗歌电台", "3:47", true),
+    s("春风十里", "artist-lxs", "鹿先森乐队", "album-sydj", "所有的酒，都不如你", "6:24", false),
+    s("成都", "artist-zl", "赵雷", "album-wfzd", "无法长大", "5:28", true),
+    s("Don't Look Back in Anger", "artist-oasis", "Oasis", "album-wtsmg", "(What's the Story) Morning Glory?", "4:48", false),
+    s("Hotel California", "artist-eagles", "Eagles", "album-hc", "Hotel California", "6:30", true),
+    s("Bohemian Rhapsody", "artist-queen", "Queen", "album-anato", "A Night at the Opera", "5:55", false),
+    s("Stairway to Heaven", "artist-lz", "Led Zeppelin", "album-lz4", "Led Zeppelin IV", "8:02", true),
   ]);
 
   function handleLike(index: number) {
-    songs = songs.map((s, i) => (i === index ? { ...s, liked: !s.liked } : s));
+    songs = songs.map((sg, i) => (i === index ? { ...sg, isLiked: !sg.isLiked } : sg));
   }
 
   function handlePlayAll() {
@@ -130,7 +69,7 @@
   }
 
   function handleTogglePlaylistLike() {
-    playlist.liked = !playlist.liked;
+    playlistLiked = !playlistLiked;
   }
 </script>
 
@@ -144,9 +83,9 @@
       <div
         class="w-64 h-64 shrink-0 rounded-xl border border-border bg-muted overflow-hidden shadow-lg"
       >
-        {#if playlist.coverUrl}
+        {#if playlist.avatarUrl}
           <img
-            src={playlist.coverUrl}
+            src={playlist.avatarUrl}
             alt={playlist.name}
             class="w-full h-full object-cover"
           />
@@ -172,7 +111,7 @@
           <div
             class="flex items-center gap-2 text-sm text-muted-foreground/60 mt-1"
           >
-            <span>{playlist.musicsCount}</span>
+            <span>{playlist.musicsCount} 首</span>
             <span>&middot;</span>
             <span>{playlist.creator}</span>
             <span>&middot;</span>
@@ -201,15 +140,15 @@
           <Button
             variant="outline"
             size="icon"
-            class="h-12.5 w-12.5 rounded-full cursor-pointer {playlist.liked
+            class="h-12.5 w-12.5 rounded-full cursor-pointer {playlistLiked
               ? 'text-red-500 border-red-500'
               : ''}"
             onclick={handleTogglePlaylistLike}
-            aria-label={playlist.liked ? "取消收藏" : "收藏"}
+            aria-label={playlistLiked ? "取消收藏" : "收藏"}
           >
             <Heart
               size={18}
-              class={playlist.liked ? "fill-red-500 text-red-500" : ""}
+              class={playlistLiked ? "fill-red-500 text-red-500" : ""}
             />
           </Button>
 
