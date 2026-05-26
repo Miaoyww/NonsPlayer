@@ -28,4 +28,5 @@ async-trait = "0.1"
 lofty = "0.22"
 walkdir = "2"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+rand = "0.8"
 

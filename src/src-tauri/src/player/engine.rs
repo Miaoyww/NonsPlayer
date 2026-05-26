@@ -1,0 +1,228 @@
+use std::ffi::{c_void, CString};
+use std::sync::Mutex;
+
+use super::ffi;
+use crate::error::{Error, Result};
+
+// Re-export the BASS constants we'll need externally
+const BASS_STREAM_AUTOFREE: u32 = ffi::BASS_STREAM_AUTOFREE;
+const BASS_STREAM_STATUS: u32 = ffi::BASS_STREAM_STATUS;
+const BASS_UNICODE: u32 = ffi::BASS_UNICODE;
+const BASS_SYNC_END: u32 = ffi::BASS_SYNC_END;
+const BASS_ACTIVE_PLAYING: u32 = ffi::BASS_ACTIVE_PLAYING;
+const BASS_POS_BYTE: u32 = ffi::BASS_POS_BYTE;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum PlayerState {
+    Idle,
+    Playing,
+    Paused,
+    Stopped,
+}
+
+/// Thread-safe wrapper around the BASS audio engine.
+/// All `unsafe` FFI calls are encapsulated here.
+pub struct BassEngine {
+    current_stream: Mutex<Option<u32>>,
+    volume: Mutex<f32>,
+    state: Mutex<PlayerState>,
+}
+
+impl BassEngine {
+    pub fn new() -> Result<Self> {
+        let result = unsafe { ffi::BASS_Init(-1, 44100, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
+        if result == 0 {
+            return Err(Error::BassError(unsafe { ffi::BASS_ErrorGetCode() }));
+        }
+
+        Ok(Self {
+            current_stream: Mutex::new(None),
+            volume: Mutex::new(0.8),
+            state: Mutex::new(PlayerState::Idle),
+        })
+    }
+
+    /// Play audio from a URL.
+    pub fn play_url(&self, url: &str) -> Result<()> {
+        self.stop_current();
+
+        let url_c = CString::new(url).map_err(|e| Error::Other(e.to_string()))?;
+
+        let stream = unsafe {
+            ffi::BASS_StreamCreateURL(
+                url_c.as_ptr(),
+                0,
+                BASS_STREAM_STATUS | BASS_STREAM_AUTOFREE | BASS_UNICODE,
+                None,
+                std::ptr::null_mut(),
+            )
+        };
+
+        if stream == 0 {
+            return Err(Error::BassError(unsafe { ffi::BASS_ErrorGetCode() }));
+        }
+
+        unsafe { ffi::BASS_ChannelPlay(stream, 0); }
+        *self.current_stream.lock().unwrap() = Some(stream);
+        *self.state.lock().unwrap() = PlayerState::Playing;
+        Ok(())
+    }
+
+    /// Play audio from a local file path.
+    pub fn play_file(&self, path: &str) -> Result<()> {
+        self.stop_current();
+
+        let path_c = CString::new(path).map_err(|e| Error::Other(e.to_string()))?;
+
+        let stream = unsafe {
+            ffi::BASS_StreamCreateFile(
+                0,
+                path_c.as_ptr() as *const c_void,
+                0,
+                0,
+                BASS_STREAM_AUTOFREE | BASS_UNICODE,
+            )
+        };
+
+        if stream == 0 {
+            return Err(Error::BassError(unsafe { ffi::BASS_ErrorGetCode() }));
+        }
+
+        unsafe { ffi::BASS_ChannelPlay(stream, 0); }
+        *self.current_stream.lock().unwrap() = Some(stream);
+        *self.state.lock().unwrap() = PlayerState::Playing;
+        Ok(())
+    }
+
+    /// Pause the current stream.
+    pub fn pause(&self) {
+        if let Some(stream) = *self.current_stream.lock().unwrap() {
+            unsafe { ffi::BASS_ChannelPause(stream); }
+            *self.state.lock().unwrap() = PlayerState::Paused;
+        }
+    }
+
+    /// Resume the paused stream.
+    pub fn resume(&self) {
+        if let Some(stream) = *self.current_stream.lock().unwrap() {
+            unsafe { ffi::BASS_ChannelPlay(stream, 0); }
+            *self.state.lock().unwrap() = PlayerState::Playing;
+        }
+    }
+
+    /// Toggle between play and pause.
+    pub fn toggle_playback(&self) {
+        match *self.state.lock().unwrap() {
+            PlayerState::Playing => self.pause(),
+            PlayerState::Paused => self.resume(),
+            _ => {}
+        }
+    }
+
+    /// Seek to a position in seconds.
+    pub fn seek(&self, seconds: f64) {
+        if let Some(stream) = *self.current_stream.lock().unwrap() {
+            unsafe {
+                let bytes = ffi::BASS_ChannelSeconds2Bytes(stream, seconds);
+                ffi::BASS_ChannelSetPosition(stream, bytes, BASS_POS_BYTE);
+            }
+        }
+    }
+
+    /// Get the current playback position in seconds.
+    pub fn get_position(&self) -> f64 {
+        if let Some(stream) = *self.current_stream.lock().unwrap() {
+            unsafe {
+                let bytes = ffi::BASS_ChannelGetPosition(stream, BASS_POS_BYTE);
+                ffi::BASS_ChannelBytes2Seconds(stream, bytes)
+            }
+        } else {
+            0.0
+        }
+    }
+
+    /// Get the total duration of the current stream in seconds.
+    pub fn get_duration(&self) -> f64 {
+        if let Some(stream) = *self.current_stream.lock().unwrap() {
+            unsafe {
+                let bytes = ffi::BASS_ChannelGetLength(stream, BASS_POS_BYTE);
+                ffi::BASS_ChannelBytes2Seconds(stream, bytes)
+            }
+        } else {
+            0.0
+        }
+    }
+
+    /// Set the master volume (0.0 ~ 1.0).
+    pub fn set_volume(&self, vol: f32) {
+        let clamped = vol.clamp(0.0, 1.0);
+        unsafe { ffi::BASS_SetVolume(clamped); }
+        *self.volume.lock().unwrap() = clamped;
+    }
+
+    /// Get the current volume.
+    pub fn get_volume(&self) -> f32 {
+        *self.volume.lock().unwrap()
+    }
+
+    /// Check if the current stream is still playing.
+    pub fn is_playing(&self) -> bool {
+        if let Some(stream) = *self.current_stream.lock().unwrap() {
+            unsafe { ffi::BASS_ChannelIsActive(stream) == BASS_ACTIVE_PLAYING }
+        } else {
+            false
+        }
+    }
+
+    /// Get the current player state.
+    pub fn get_state(&self) -> PlayerState {
+        self.state.lock().unwrap().clone()
+    }
+
+    /// Register an end-of-stream sync callback.
+    pub fn set_end_sync<F>(&self, callback: F)
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        if let Some(stream) = *self.current_stream.lock().unwrap() {
+            unsafe extern "C" fn sync_proc(_handle: u32, _channel: u32, _data: u32, user: *mut c_void) {
+                if !user.is_null() {
+                    let cb: Box<Box<dyn FnOnce() + Send>> = Box::from_raw(user as *mut _);
+                    cb();
+                }
+            }
+
+            let cb: Box<Box<dyn FnOnce() + Send>> = Box::new(Box::new(callback));
+            let user_ptr = Box::into_raw(cb) as *mut c_void;
+
+            unsafe {
+                ffi::BASS_ChannelSetSync(stream, BASS_SYNC_END, 0, Some(sync_proc), user_ptr);
+            }
+        }
+    }
+
+    /// Stop and free the current stream.
+    fn stop_current(&self) {
+        if let Some(stream) = *self.current_stream.lock().unwrap() {
+            unsafe {
+                ffi::BASS_ChannelStop(stream);
+                ffi::BASS_StreamFree(stream);
+            }
+            *self.current_stream.lock().unwrap() = None;
+        }
+        *self.state.lock().unwrap() = PlayerState::Stopped;
+    }
+
+    /// Stop playback and reset state to Idle.
+    pub fn stop(&self) {
+        self.stop_current();
+        *self.state.lock().unwrap() = PlayerState::Idle;
+    }
+}
+
+impl Drop for BassEngine {
+    fn drop(&mut self) {
+        self.stop_current();
+        unsafe { ffi::BASS_Free(); }
+    }
+}

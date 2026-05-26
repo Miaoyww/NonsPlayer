@@ -2,14 +2,21 @@ mod adapters;
 mod commands;
 mod error;
 mod models;
+mod player;
 mod services;
 
+use std::sync::Arc;
+
 use adapters::AdapterManager;
+use player::engine::BassEngine;
+use player::play_queue::PlayQueue;
 use services::http;
 
 pub struct AppState {
     pub adapters: AdapterManager,
     pub http_client: reqwest::Client,
+    pub player_engine: Arc<BassEngine>,
+    pub play_queue: Arc<PlayQueue>,
 }
 
 #[tauri::command]
@@ -21,10 +28,14 @@ fn greet(name: &str) -> String {
 pub fn run() {
     let adapters = AdapterManager::new();
     let http_client = http::create_client();
+    let player_engine = Arc::new(BassEngine::new().expect("failed to initialize BASS audio engine"));
+    let play_queue = Arc::new(PlayQueue::new());
 
     let state = AppState {
         adapters,
         http_client,
+        player_engine,
+        play_queue,
     };
 
     tauri::Builder::default()
@@ -54,6 +65,21 @@ pub fn run() {
             // recommend
             commands::music::get_recommended_playlists,
             commands::music::get_daily_recommended,
+            // player
+            commands::player::play,
+            commands::player::pause,
+            commands::player::resume,
+            commands::player::toggle_playback,
+            commands::player::seek,
+            commands::player::set_volume,
+            commands::player::get_position,
+            commands::player::get_duration,
+            commands::player::next,
+            commands::player::prev,
+            commands::player::set_play_mode,
+            commands::player::get_play_mode,
+            commands::player::get_queue,
+            commands::player::get_current_song,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

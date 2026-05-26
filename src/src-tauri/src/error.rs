@@ -20,6 +20,9 @@ pub enum Error {
     #[error("audio parse error: {0}")]
     AudioParse(String),
 
+    #[error("bass error: code {0}")]
+    BassError(i32),
+
     #[error("{0}")]
     Other(String),
 }
