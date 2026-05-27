@@ -6,4 +6,6 @@ export interface Artist extends SongModel {
   songs: Song[];
   musicCount: number;
   trans: string;
+  /** 来源适配器标识 */
+  adapterSlug: string;
 }

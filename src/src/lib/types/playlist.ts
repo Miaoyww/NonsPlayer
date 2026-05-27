@@ -13,4 +13,6 @@ export interface Playlist extends SongModel {
   playCount: number;
   /** musicTrackIds.length（computed） */
   musicsCount: number;
+  /** 来源适配器标识 */
+  adapterSlug: string;
 }

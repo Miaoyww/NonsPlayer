@@ -19,4 +19,6 @@ export interface Song extends SongModel {
   artistsName: string;
   /** 格式化时长 "m:ss"（computed） */
   durationText: string;
+  /** 来源适配器标识 */
+  adapterSlug: string;
 }

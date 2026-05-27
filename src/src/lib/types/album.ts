@@ -11,4 +11,6 @@ export interface Album extends SongModel {
   artistsName: string;
   collectionCount: number;
   trackCount: number;
+  /** 来源适配器标识 */
+  adapterSlug: string;
 }

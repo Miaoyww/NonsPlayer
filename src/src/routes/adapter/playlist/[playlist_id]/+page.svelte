@@ -29,6 +29,7 @@
       artistsName: name,
       collectionCount: 0,
       trackCount: 0,
+      adapterSlug: "local",
     }) as Song["album"];
   const r = (id: string, name: string) =>
     ({
@@ -43,6 +44,7 @@
       songs: [],
       musicCount: 0,
       trans: empty,
+      adapterSlug: "local",
     }) as Song["artists"][number];
 
   function s(
@@ -74,6 +76,7 @@
       albumName,
       artistsName: artistName,
       durationText,
+      adapterSlug: "local",
     };
   }
 
@@ -96,6 +99,7 @@
     isInitialized: true,
     musicsCount: 104,
     playCount: 0,
+    adapterSlug: "local",
   };
 
   let playlistLiked = $state(false);

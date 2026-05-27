@@ -14,9 +14,9 @@
   // 临时工厂函数
   const empty = "";
   const a = (id: string, name: string) =>
-    ({ id, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty, createDate: empty, description: empty, songs: [], artists: [], artistsName: name, collectionCount: 0, trackCount: 0 }) as Song["album"];
+    ({ id, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty, createDate: empty, description: empty, songs: [], artists: [], artistsName: name, collectionCount: 0, trackCount: 0, adapterSlug: "local" }) as Song["album"];
   const r = (id: string, name: string) =>
-    ({ id, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty, description: empty, songs: [], musicCount: 0, trans: empty }) as Song["artists"][number];
+    ({ id, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty, description: empty, songs: [], musicCount: 0, trans: empty, adapterSlug: "local" }) as Song["artists"][number];
 
   function mkSong(name: string, artistId: string, artistName: string, albumName: string, durationText: string, trans?: string): Song {
     return {
@@ -25,6 +25,7 @@
       artists: [r(artistId, artistName)],
       isEmpty: false, duration: 0, url: empty, lyric: null, available: true,
       isLiked: false, trans: trans ?? null, albumName, artistsName: artistName, durationText,
+      adapterSlug: "local",
     };
   }
 
@@ -33,6 +34,7 @@
       id: empty, md5: empty, name, shareUrl: empty, avatarUrl: empty, smallAvatarUrl: empty, middleAvatarUrl: empty,
       title: name, creator, createTime: empty, description: empty, musicTrackIds: [], tags: [], musics: [],
       isInitialized: true, playCount, musicsCount,
+      adapterSlug: "local",
     };
   }
 
