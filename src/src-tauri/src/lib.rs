@@ -62,6 +62,7 @@ pub fn run() {
             greet,
             // adapter management
             commands::adapter::scan_local,
+            commands::adapter::init_adapters,
             commands::adapter::list_adapters,
             // music
             commands::music::get_song,

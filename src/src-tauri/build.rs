@@ -15,7 +15,7 @@ fn main() {
     };
 
     let profile = env::var("PROFILE").unwrap_or_else(|_| "debug".into());
-    let out_dir = manifest_dir.join("..").join("..").join("target").join(&profile);
+    let out_dir = manifest_dir.join("target").join(&profile);
 
     // Try platform-specific subdirectory first, then root bass/ dir
     let platform_dir = manifest_dir.join("bass").join(_src_dir);
