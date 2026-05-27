@@ -9,13 +9,14 @@ use std::sync::Arc;
 
 use adapters::AdapterManager;
 use player::engine::BassEngine;
+use player::ffi::BassLib;
 use player::play_queue::PlayQueue;
 use services::http;
 
 pub struct AppState {
     pub adapters: AdapterManager,
     pub http_client: reqwest::Client,
-    pub player_engine: Arc<BassEngine>,
+    pub player_engine: Option<Arc<BassEngine>>,
     pub play_queue: Arc<PlayQueue>,
 }
 
@@ -28,7 +29,22 @@ fn greet(name: &str) -> String {
 pub fn run() {
     let adapters = AdapterManager::new();
     let http_client = http::create_client();
-    let player_engine = Arc::new(BassEngine::new().expect("failed to initialize BASS audio engine"));
+    let player_engine = match BassLib::load() {
+        Ok(bass) => {
+            let engine = BassEngine::new(Arc::new(bass));
+            match engine {
+                Ok(e) => Some(Arc::new(e)),
+                Err(e) => {
+                    eprintln!("warning: BASS init failed: {}", e);
+                    None
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("warning: {}", e);
+            None
+        }
+    };
     let play_queue = Arc::new(PlayQueue::new());
 
     let state = AppState {

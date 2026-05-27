@@ -1,16 +1,8 @@
 use std::ffi::{c_void, CString};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
-use super::ffi;
+use super::ffi::{BassLib, BASS_ACTIVE_PLAYING, BASS_POS_BYTE, BASS_STREAM_AUTOFREE, BASS_STREAM_STATUS, BASS_SYNC_END, BASS_UNICODE};
 use crate::error::{Error, Result};
-
-// Re-export the BASS constants we'll need externally
-const BASS_STREAM_AUTOFREE: u32 = ffi::BASS_STREAM_AUTOFREE;
-const BASS_STREAM_STATUS: u32 = ffi::BASS_STREAM_STATUS;
-const BASS_UNICODE: u32 = ffi::BASS_UNICODE;
-const BASS_SYNC_END: u32 = ffi::BASS_SYNC_END;
-const BASS_ACTIVE_PLAYING: u32 = ffi::BASS_ACTIVE_PLAYING;
-const BASS_POS_BYTE: u32 = ffi::BASS_POS_BYTE;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlayerState {
@@ -23,19 +15,21 @@ pub enum PlayerState {
 /// Thread-safe wrapper around the BASS audio engine.
 /// All `unsafe` FFI calls are encapsulated here.
 pub struct BassEngine {
+    bass: Arc<BassLib>,
     current_stream: Mutex<Option<u32>>,
     volume: Mutex<f32>,
     state: Mutex<PlayerState>,
 }
 
 impl BassEngine {
-    pub fn new() -> Result<Self> {
-        let result = unsafe { ffi::BASS_Init(-1, 44100, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
+    pub fn new(bass: Arc<BassLib>) -> Result<Self> {
+        let result = unsafe { (bass.BASS_Init)(-1, 44100, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
         if result == 0 {
-            return Err(Error::BassError(unsafe { ffi::BASS_ErrorGetCode() }));
+            return Err(Error::BassError(unsafe { (bass.BASS_ErrorGetCode)() }));
         }
 
         Ok(Self {
+            bass,
             current_stream: Mutex::new(None),
             volume: Mutex::new(0.8),
             state: Mutex::new(PlayerState::Idle),
@@ -49,7 +43,7 @@ impl BassEngine {
         let url_c = CString::new(url).map_err(|e| Error::Other(e.to_string()))?;
 
         let stream = unsafe {
-            ffi::BASS_StreamCreateURL(
+            (self.bass.BASS_StreamCreateURL)(
                 url_c.as_ptr(),
                 0,
                 BASS_STREAM_STATUS | BASS_STREAM_AUTOFREE | BASS_UNICODE,
@@ -59,10 +53,10 @@ impl BassEngine {
         };
 
         if stream == 0 {
-            return Err(Error::BassError(unsafe { ffi::BASS_ErrorGetCode() }));
+            return Err(Error::BassError(unsafe { (self.bass.BASS_ErrorGetCode)() }));
         }
 
-        unsafe { ffi::BASS_ChannelPlay(stream, 0); }
+        unsafe { (self.bass.BASS_ChannelPlay)(stream, 0); }
         *self.current_stream.lock().unwrap() = Some(stream);
         *self.state.lock().unwrap() = PlayerState::Playing;
         Ok(())
@@ -75,7 +69,7 @@ impl BassEngine {
         let path_c = CString::new(path).map_err(|e| Error::Other(e.to_string()))?;
 
         let stream = unsafe {
-            ffi::BASS_StreamCreateFile(
+            (self.bass.BASS_StreamCreateFile)(
                 0,
                 path_c.as_ptr() as *const c_void,
                 0,
@@ -85,10 +79,10 @@ impl BassEngine {
         };
 
         if stream == 0 {
-            return Err(Error::BassError(unsafe { ffi::BASS_ErrorGetCode() }));
+            return Err(Error::BassError(unsafe { (self.bass.BASS_ErrorGetCode)() }));
         }
 
-        unsafe { ffi::BASS_ChannelPlay(stream, 0); }
+        unsafe { (self.bass.BASS_ChannelPlay)(stream, 0); }
         *self.current_stream.lock().unwrap() = Some(stream);
         *self.state.lock().unwrap() = PlayerState::Playing;
         Ok(())
@@ -97,7 +91,7 @@ impl BassEngine {
     /// Pause the current stream.
     pub fn pause(&self) {
         if let Some(stream) = *self.current_stream.lock().unwrap() {
-            unsafe { ffi::BASS_ChannelPause(stream); }
+            unsafe { (self.bass.BASS_ChannelPause)(stream); }
             *self.state.lock().unwrap() = PlayerState::Paused;
         }
     }
@@ -105,7 +99,7 @@ impl BassEngine {
     /// Resume the paused stream.
     pub fn resume(&self) {
         if let Some(stream) = *self.current_stream.lock().unwrap() {
-            unsafe { ffi::BASS_ChannelPlay(stream, 0); }
+            unsafe { (self.bass.BASS_ChannelPlay)(stream, 0); }
             *self.state.lock().unwrap() = PlayerState::Playing;
         }
     }
@@ -123,8 +117,8 @@ impl BassEngine {
     pub fn seek(&self, seconds: f64) {
         if let Some(stream) = *self.current_stream.lock().unwrap() {
             unsafe {
-                let bytes = ffi::BASS_ChannelSeconds2Bytes(stream, seconds);
-                ffi::BASS_ChannelSetPosition(stream, bytes, BASS_POS_BYTE);
+                let bytes = (self.bass.BASS_ChannelSeconds2Bytes)(stream, seconds);
+                (self.bass.BASS_ChannelSetPosition)(stream, bytes, BASS_POS_BYTE);
             }
         }
     }
@@ -133,8 +127,8 @@ impl BassEngine {
     pub fn get_position(&self) -> f64 {
         if let Some(stream) = *self.current_stream.lock().unwrap() {
             unsafe {
-                let bytes = ffi::BASS_ChannelGetPosition(stream, BASS_POS_BYTE);
-                ffi::BASS_ChannelBytes2Seconds(stream, bytes)
+                let bytes = (self.bass.BASS_ChannelGetPosition)(stream, BASS_POS_BYTE);
+                (self.bass.BASS_ChannelBytes2Seconds)(stream, bytes)
             }
         } else {
             0.0
@@ -145,8 +139,8 @@ impl BassEngine {
     pub fn get_duration(&self) -> f64 {
         if let Some(stream) = *self.current_stream.lock().unwrap() {
             unsafe {
-                let bytes = ffi::BASS_ChannelGetLength(stream, BASS_POS_BYTE);
-                ffi::BASS_ChannelBytes2Seconds(stream, bytes)
+                let bytes = (self.bass.BASS_ChannelGetLength)(stream, BASS_POS_BYTE);
+                (self.bass.BASS_ChannelBytes2Seconds)(stream, bytes)
             }
         } else {
             0.0
@@ -156,7 +150,7 @@ impl BassEngine {
     /// Set the master volume (0.0 ~ 1.0).
     pub fn set_volume(&self, vol: f32) {
         let clamped = vol.clamp(0.0, 1.0);
-        unsafe { ffi::BASS_SetVolume(clamped); }
+        unsafe { (self.bass.BASS_SetVolume)(clamped); }
         *self.volume.lock().unwrap() = clamped;
     }
 
@@ -168,7 +162,7 @@ impl BassEngine {
     /// Check if the current stream is still playing.
     pub fn is_playing(&self) -> bool {
         if let Some(stream) = *self.current_stream.lock().unwrap() {
-            unsafe { ffi::BASS_ChannelIsActive(stream) == BASS_ACTIVE_PLAYING }
+            unsafe { (self.bass.BASS_ChannelIsActive)(stream) == BASS_ACTIVE_PLAYING }
         } else {
             false
         }
@@ -196,7 +190,7 @@ impl BassEngine {
             let user_ptr = Box::into_raw(cb) as *mut c_void;
 
             unsafe {
-                ffi::BASS_ChannelSetSync(stream, BASS_SYNC_END, 0, Some(sync_proc), user_ptr);
+                (self.bass.BASS_ChannelSetSync)(stream, BASS_SYNC_END, 0, Some(sync_proc), user_ptr);
             }
         }
     }
@@ -205,8 +199,8 @@ impl BassEngine {
     fn stop_current(&self) {
         if let Some(stream) = *self.current_stream.lock().unwrap() {
             unsafe {
-                ffi::BASS_ChannelStop(stream);
-                ffi::BASS_StreamFree(stream);
+                (self.bass.BASS_ChannelStop)(stream);
+                (self.bass.BASS_StreamFree)(stream);
             }
             *self.current_stream.lock().unwrap() = None;
         }
@@ -223,6 +217,6 @@ impl BassEngine {
 impl Drop for BassEngine {
     fn drop(&mut self) {
         self.stop_current();
-        unsafe { ffi::BASS_Free(); }
+        unsafe { (self.bass.BASS_Free)(); }
     }
 }

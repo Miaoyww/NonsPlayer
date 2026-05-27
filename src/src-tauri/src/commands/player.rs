@@ -8,6 +8,13 @@ use crate::player::engine::PlayerState;
 use crate::player::play_queue::{PlayMode, QueueItem};
 use crate::AppState;
 
+fn get_engine(state: &AppState) -> Result<&crate::player::engine::BassEngine, String> {
+    state
+        .player_engine
+        .as_deref()
+        .ok_or_else(|| "BASS audio library not loaded (bass.dll / libbass.dylib / libbass.so not found)".to_string())
+}
+
 fn get_adapter(
     adapter_slug: &str,
     state: &AppState,
@@ -69,9 +76,9 @@ async fn play_current(state: &AppState, app: &AppHandle) -> Result<(), String> {
     // Determine if this is a local file or remote URL
     if url.starts_with("file://") {
         let path = url.strip_prefix("file://").unwrap_or(&url);
-        state.player_engine.play_file(path).map_err(|e| e.to_string())?;
+        get_engine(state)?.play_file(path).map_err(|e| e.to_string())?;
     } else {
-        state.player_engine.play_url(&url).map_err(|e| e.to_string())?;
+        get_engine(state)?.play_url(&url).map_err(|e| e.to_string())?;
     }
 
     // Notify frontend of track change
@@ -89,7 +96,7 @@ async fn play_current(state: &AppState, app: &AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn pause(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
-    state.player_engine.pause();
+    get_engine(&state)?.pause();
     app.emit(
         "player-state-changed",
         serde_json::json!({ "state": "paused" }),
@@ -100,7 +107,7 @@ pub fn pause(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn resume(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
-    state.player_engine.resume();
+    get_engine(&state)?.resume();
     app.emit(
         "player-state-changed",
         serde_json::json!({ "state": "playing" }),
@@ -111,8 +118,9 @@ pub fn resume(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> 
 
 #[tauri::command]
 pub fn toggle_playback(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
-    state.player_engine.toggle_playback();
-    let st = match state.player_engine.get_state() {
+    let engine = get_engine(&state)?;
+    engine.toggle_playback();
+    let st = match engine.get_state() {
         PlayerState::Playing => "playing",
         PlayerState::Paused => "paused",
         _ => "stopped",
@@ -123,24 +131,24 @@ pub fn toggle_playback(state: State<'_, AppState>, app: AppHandle) -> Result<(),
 
 #[tauri::command]
 pub fn seek(seconds: f64, state: State<'_, AppState>) -> Result<(), String> {
-    state.player_engine.seek(seconds);
+    get_engine(&state)?.seek(seconds);
     Ok(())
 }
 
 #[tauri::command]
 pub fn set_volume(vol: f32, state: State<'_, AppState>) -> Result<(), String> {
-    state.player_engine.set_volume(vol);
+    get_engine(&state)?.set_volume(vol);
     Ok(())
 }
 
 #[tauri::command]
 pub fn get_position(state: State<'_, AppState>) -> Result<f64, String> {
-    Ok(state.player_engine.get_position())
+    Ok(get_engine(&state)?.get_position())
 }
 
 #[tauri::command]
 pub fn get_duration(state: State<'_, AppState>) -> Result<f64, String> {
-    Ok(state.player_engine.get_duration())
+    Ok(get_engine(&state)?.get_duration())
 }
 
 #[tauri::command]
@@ -152,7 +160,7 @@ pub async fn next(
     match item {
         Some(_) => play_current(&state, &app).await,
         None => {
-            state.player_engine.stop();
+            get_engine(&state)?.stop();
             app.emit(
                 "player-state-changed",
                 serde_json::json!({ "state": "stopped" }),
