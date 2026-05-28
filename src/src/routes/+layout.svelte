@@ -4,9 +4,11 @@
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { globalSettings } from "$lib/stores/global-settings-store";
+  import { adapterStore } from "$lib/stores/adapter-store.svelte";
   import { onMount } from "svelte";
   import TitleBar from "$lib/components/titlebar.svelte";
   import SettingsDialog from "$lib/components/settings/settings-dialog.svelte";
+  import PlayerBar from "$lib/components/player-bar.svelte";
   import { NONSPLAYER_NAME } from "$lib/const";
   import logo from "$lib/assets/logo.svg";
   import { isTauri } from "@tauri-apps/api/core";
@@ -14,9 +16,17 @@
 
   let { children } = $props();
 
-  onMount(() => {
+  onMount(async () => {
     if (!$globalSettings.welcomeCompleted) {
       goto("/welcome");
+      return;
+    }
+
+    // Initialize adapters from stored config
+    try {
+      await adapterStore.initialize($globalSettings.localMusicFolders);
+    } catch (e) {
+      console.warn("Failed to initialize adapters:", e);
     }
   });
 </script>
@@ -34,8 +44,11 @@
 <TitleBar />
 
 <div class={isTauri() ? "pt-9" : ""}>
-  <main>
-    {@render children?.()}
+  <main class="relative flex flex-col h-[calc(100vh-2.5rem)] overflow-hidden">
+    <div class="flex-1 min-h-0 overflow-hidden">
+      {@render children?.()}
+    </div>
+    <PlayerBar />
   </main>
 </div>
 
