@@ -1,8 +1,27 @@
-use std::ffi::{c_void, CString};
+use std::ffi::{c_void, CString, OsStr};
 use std::sync::{Arc, Mutex};
 
 use super::ffi::{BassLib, BASS_ACTIVE_PLAYING, BASS_POS_BYTE, BASS_STREAM_AUTOFREE, BASS_STREAM_STATUS, BASS_SYNC_END, BASS_UNICODE};
 use crate::error::{Error, Result};
+
+/// Convert a file path to a null-terminated wide-string (UTF-16LE) for BASS on Windows.
+#[cfg(windows)]
+fn path_to_bass_ptr(path: &str) -> Result<(Vec<u16>, *const c_void)> {
+    use std::os::windows::ffi::OsStrExt;
+    let wide: Vec<u16> = OsStr::new(path)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    let ptr = wide.as_ptr() as *const c_void;
+    Ok((wide, ptr))
+}
+
+#[cfg(not(windows))]
+fn path_to_bass_ptr(path: &str) -> Result<(Vec<u8>, *const c_void)> {
+    let cstr = CString::new(path).map_err(|e| Error::Other(e.to_string()))?;
+    let ptr = cstr.as_ptr() as *const c_void;
+    Ok((cstr.into_bytes_with_nul(), ptr))
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlayerState {
@@ -66,12 +85,12 @@ impl BassEngine {
     pub fn play_file(&self, path: &str) -> Result<()> {
         self.stop_current();
 
-        let path_c = CString::new(path).map_err(|e| Error::Other(e.to_string()))?;
+        let (_buf, ptr) = path_to_bass_ptr(path)?;
 
         let stream = unsafe {
             (self.bass.BASS_StreamCreateFile)(
                 0,
-                path_c.as_ptr() as *const c_void,
+                ptr,
                 0,
                 0,
                 BASS_STREAM_AUTOFREE | BASS_UNICODE,
