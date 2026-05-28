@@ -21,6 +21,7 @@
     "fs:allow-read-file",
     "fs:allow-remove",
     "fs:allow-mkdir",
+    "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",
       "allow": [

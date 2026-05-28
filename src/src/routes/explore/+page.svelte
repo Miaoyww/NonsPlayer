@@ -37,8 +37,8 @@
     loading = false;
   });
 
-  function goPlaylist(name: string) {
-    goto(`/adapter/playlist/${encodeURIComponent(name)}`);
+  function goPlaylist(playlist: { id: string; adapterSlug: string }) {
+    goto(`/adapter/${playlist.adapterSlug}/playlist/${encodeURIComponent(playlist.id)}`);
   }
 
   function getDummyPlaylists(): Playlist[] {
@@ -91,7 +91,7 @@
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {#each playlists as p}
-            <PlaylistCard playlist={p} onclick={() => goPlaylist(p.name)} />
+            <PlaylistCard playlist={p} onclick={() => goPlaylist(p)} />
           {/each}
         </div>
       </div>

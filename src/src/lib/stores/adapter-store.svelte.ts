@@ -1,12 +1,12 @@
-import type { AdapterMetadata, CapabilityType } from "$lib/types/adapter";
+import type { AdapterMetadata, CapabilityType, AdapterConfig } from "$lib/types/adapter";
 import { listAdapters, initAdapters, scanLocal } from "$lib/services/adapter-service";
 
 class AdapterStore {
   adapters = $state<AdapterMetadata[]>([]);
 
   /** Initialize all adapters from config. Called once at app startup. */
-  async initialize(dirs: string[]) {
-    const list = await initAdapters({ localMusicDirs: dirs });
+  async initialize(config: AdapterConfig) {
+    const list = await initAdapters(config);
     this.adapters = list;
   }
 
@@ -23,10 +23,8 @@ class AdapterStore {
 
   /** Get adapters that support a given capability. */
   byCapability(cap: CapabilityType): AdapterMetadata[] {
-    // The frontend doesn't know per-adapter capabilities yet;
-    // this will be filled in when the Rust adapter returns capabilities in metadata.
     return this.adapters.filter((a) => {
-      // For now, all registered adapters support Music. Refine later.
+      // All registered adapters support basic capabilities.
       return true;
     });
   }

@@ -38,4 +38,5 @@ export type LoginStatus =
 
 export interface AdapterConfig {
   localMusicDirs?: string[];
+  neteaseApiBase?: string;
 }

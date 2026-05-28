@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 import type { MusicAdapter } from '$lib/const';
 
 export interface GlobalSettings {
-	
+
 	/** 是否已完成/跳过欢迎向导 */
 	welcomeCompleted: boolean;
 	/** 已选择的适配器 ID 列表 */
@@ -13,6 +13,8 @@ export interface GlobalSettings {
 	localMusicFolders: string[];
 	/** 界面语言 */
 	language: 'zh-cn' | 'en';
+	/** 网易云 API 代理地址 */
+	neteaseApiBase: string;
 }
 
 const STORAGE_KEY = 'nonsplayer_settings';
@@ -22,7 +24,8 @@ const DEFAULTS: GlobalSettings = {
 	selectedAdapters: [],
 	theme: 'system',
 	localMusicFolders: [],
-	language: 'zh-cn'
+	language: 'zh-cn',
+	neteaseApiBase: 'http://localhost:3000',
 };
 
 function loadSettings(): GlobalSettings {

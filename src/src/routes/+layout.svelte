@@ -12,19 +12,29 @@
   import { NONSPLAYER_NAME } from "$lib/const";
   import logo from "$lib/assets/logo.svg";
   import { isTauri } from "@tauri-apps/api/core";
+  import { attachConsole } from "@tauri-apps/plugin-log";
   import { ModeWatcher } from "mode-watcher";
 
   let { children } = $props();
 
   onMount(async () => {
+    // Forward Rust logs to browser devtools console
+    if (isTauri()) {
+      attachConsole().catch(() => {});
+    }
+
     if (!$globalSettings.welcomeCompleted) {
       goto("/welcome");
       return;
     }
 
+    console.log("App started with settings:", $globalSettings);
     // Initialize adapters from stored config
     try {
-      await adapterStore.initialize($globalSettings.localMusicFolders);
+      await adapterStore.initialize({
+        localMusicDirs: $globalSettings.localMusicFolders,
+        neteaseApiBase: $globalSettings.neteaseApiBase || undefined,
+      });
     } catch (e) {
       console.warn("Failed to initialize adapters:", e);
     }

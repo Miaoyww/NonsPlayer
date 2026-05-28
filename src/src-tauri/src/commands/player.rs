@@ -67,18 +67,30 @@ async fn play_current(state: &AppState, app: &AppHandle) -> Result<(), String> {
         .current()
         .ok_or_else(|| "queue is empty".to_string())?;
 
+    log::info!(
+        "[play_current] \"{}\" (adapter=\"{}\", id=\"{}\")",
+        item.song.name,
+        item.adapter_slug,
+        item.song.id
+    );
+
     let adapter = get_adapter(&item.adapter_slug, state)?;
     let url = adapter
         .get_song_url(&item.song.id)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            log::error!("[play_current] failed to get URL: {}", e);
+            e.to_string()
+        })?;
+
+    log::info!("[play_current] url=\"{}\"", url);
 
     // Determine if this is a local file or remote URL
     if url.starts_with("file://") {
         let path = url.strip_prefix("file://").unwrap_or(&url);
-        get_engine(state)?.play_file(path).map_err(|e| e.to_string())?;
+        get_engine(state)?.play_file(path).map_err(|e| { log::error!("[play_current] BASS error: {}", e); e.to_string() })?;
     } else {
-        get_engine(state)?.play_url(&url).map_err(|e| e.to_string())?;
+        get_engine(state)?.play_url(&url).map_err(|e| { log::error!("[play_current] BASS error: {}", e); e.to_string() })?;
     }
 
     // Notify frontend of track change

@@ -10,10 +10,18 @@ fn get_adapter(
     adapter_name: &str,
     state: &AppState,
 ) -> Result<Arc<dyn Adapter>, String> {
-    state
-        .adapters
-        .get(adapter_name)
-        .ok_or_else(|| format!("unknown adapter: {}", adapter_name))
+    match state.adapters.get(adapter_name) {
+        Some(a) => Ok(a),
+        None => {
+            let available: Vec<String> = state.adapters.list().into_iter().map(|m| m.slug).collect();
+            log::warn!(
+                "[get_adapter] unknown adapter \"{}\", available: {:?}",
+                adapter_name,
+                available
+            );
+            Err(format!("unknown adapter: {}", adapter_name))
+        }
+    }
 }
 
 #[tauri::command]
@@ -119,10 +127,19 @@ pub async fn search(
     keyword: String,
     state: State<'_, AppState>,
 ) -> Result<SearchResult, String> {
-    get_adapter(&adapter, &state)?
+    log::info!("[search] adapter=\"{}\", keyword=\"{}\"", adapter, keyword);
+    let result = get_adapter(&adapter, &state)?
         .search(&keyword)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    log::info!(
+        "[search] {} songs, {} albums, {} artists, {} playlists",
+        result.songs.len(),
+        result.albums.len(),
+        result.artists.len(),
+        result.playlists.len()
+    );
+    Ok(result)
 }
 
 // -- Account commands --

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { adapterStore } from "$lib/stores/adapter-store.svelte";
   import { playerService } from "$lib/services/player-service.svelte";
@@ -14,24 +13,21 @@
   let localSongs = $state<Song[]>([]);
   let loadingLocal = $state(false);
   let localError = $state("");
+  let localLoaded = false;
 
-  onMount(async () => {
-    // Refresh adapter list from backend
-    await adapterStore.refresh();
-
-    // Load local music
+  // Adapters are initialized by +layout.svelte; reactively load local music
+  // when the local adapter becomes available.
+  $effect(() => {
+    if (localLoaded) return;
     const localAdapter = adapterStore.get("local");
-    if (localAdapter) {
-      loadingLocal = true;
-      try {
-        const result = await search("local", "");
-        localSongs = result.songs;
-      } catch (e) {
-        localError = String(e);
-      } finally {
-        loadingLocal = false;
-      }
-    }
+    if (!localAdapter) return;
+
+    localLoaded = true;
+    loadingLocal = true;
+    search("local", "")
+      .then((result) => { localSongs = result.songs; })
+      .catch((e) => { localError = String(e); })
+      .finally(() => { loadingLocal = false; });
   });
 
   function playAllLocal() {

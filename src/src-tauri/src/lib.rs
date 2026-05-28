@@ -12,6 +12,7 @@ use player::engine::BassEngine;
 use player::ffi::BassLib;
 use player::play_queue::PlayQueue;
 use services::http;
+use tauri_plugin_log::{Target, TargetKind};
 
 pub struct AppState {
     pub adapters: AdapterManager,
@@ -31,17 +32,21 @@ pub fn run() {
     let http_client = http::create_client();
     let player_engine = match BassLib::load() {
         Ok(bass) => {
+            log::info!("[startup] BASS library loaded successfully");
             let engine = BassEngine::new(Arc::new(bass));
             match engine {
-                Ok(e) => Some(Arc::new(e)),
+                Ok(e) => {
+                    log::info!("[startup] BASS engine initialized");
+                    Some(Arc::new(e))
+                }
                 Err(e) => {
-                    eprintln!("warning: BASS init failed: {}", e);
+                    log::warn!("[startup] BASS engine init failed: {}", e);
                     None
                 }
             }
         }
         Err(e) => {
-            eprintln!("warning: {}", e);
+            log::warn!("[startup] BASS library not found: {}", e);
             None
         }
     };
@@ -58,6 +63,12 @@ pub fn run() {
         .manage(state)
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(
+            tauri_plugin_log::Builder::default()
+                .targets([Target::new(TargetKind::Webview)])
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             greet,
             // adapter management

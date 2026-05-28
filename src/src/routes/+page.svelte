@@ -100,8 +100,8 @@
     };
   }
 
-  function goPlaylist(name: string) {
-    goto(`/adapter/playlist/${encodeURIComponent(name)}`);
+  function goPlaylist(playlist: { id: string; adapterSlug: string }) {
+    goto(`/adapter/${playlist.adapterSlug}/playlist/${encodeURIComponent(playlist.id)}`);
   }
 
   function playSong(song: Song) {
@@ -142,7 +142,7 @@
       <div class="min-h-0 overflow-hidden" style="flex: 7;">
         <div class="grid grid-cols-4 gap-3 auto-rows-auto">
           {#each favoritePlaylists as p}
-            <PlaylistCard playlist={p} onclick={() => goPlaylist(p.name)} />
+            <PlaylistCard playlist={p} onclick={() => goPlaylist(p)} />
           {/each}
         </div>
       </div>
@@ -198,7 +198,7 @@
         {:else}
           {#each recommendedPlaylists as p}
             <div class="mb-2">
-              <PlaylistRowCard playlist={p} onplay={() => goPlaylist(p.name)} />
+              <PlaylistRowCard playlist={p} onplay={() => goPlaylist(p)} />
             </div>
           {/each}
         {/if}

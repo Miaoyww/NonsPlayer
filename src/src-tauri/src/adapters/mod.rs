@@ -1,4 +1,5 @@
 pub mod local;
+pub mod netease;
 
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -117,6 +118,10 @@ impl AdapterManager {
     /// Register an adapter. Takes ownership via Arc; &self suffices thanks to RwLock.
     pub fn register(&self, adapter: impl Adapter + 'static) {
         let meta = adapter.metadata().clone();
+        log::info!(
+            "[adapter] loaded  {}  v{}  (slug=\"{}\", platform=\"{}\")",
+            meta.display_platform, meta.version, meta.slug, meta.platform
+        );
         self.adapters
             .write()
             .unwrap()
