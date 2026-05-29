@@ -34,13 +34,6 @@
   - **视觉自定义 (WIP/探索中)：** 未来计划开放 UI 套件与歌词界面的深度定制，打造专属于你的播放器。
 - 🎵 **沉浸式视听：** 标志性的类似 Apple Music 的唯美歌词展示系统。
 
-## 🗺️ 开发路线图 (Roadmap)
-
-在这里见证 NonsPlayer 的成长轨迹：
-
-- [x] **Phase 0:** 新建文件夹 
-- [ ] **Phase 1: 基础设施构建**...
-
 ## 📦️ 下载与体验
 
 *由于项目正在重构初期，暂未提供基于新架构的编译版本。*
@@ -58,6 +51,7 @@
 
 本项目的诞生离不开以下优秀产品的启发：
 - [YesPlayMusic](https://github.com/qier222/YesPlayMusic)
+- [coriander_player](https://github.com/Ferry-200/coriander_player)
 
 ## 🙏 特别鸣谢
 
@@ -68,10 +62,9 @@
 
 **视觉与字体资源：**
 - [HarmonyOS Sans SC](https://developer.huawei.com/consumer/cn/doc/design-guides-V1/font-0000001157868583-V1)
-- Novecento Wide Bold
 
 ## 📜 开源许可
 
 Copyright Miaoyww 2022-2026.
 
-Distributed under the terms of the [GPL-3.0 license](https://github.com/Miaoywww/NeteaseCloudMusicControl/blob/master/LICENSE.txt).
+Distributed under the terms of the [GPL-3.0 license](https://github.com/Miaoywww/NonsPlayer/blob/master/LICENSE).
