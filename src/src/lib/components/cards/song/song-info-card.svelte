@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import Button from "$lib/components/ui/button/button.svelte";
+  import { coverSrc } from "$lib/utils";
 
   interface Props {
     name: string;
@@ -39,7 +40,7 @@
   <!-- Cover -->
   <div class="shrink-0 rounded-md bg-muted overflow-hidden size-12">
     {#if coverUrl}
-      <img src={coverUrl} alt="" class="size-full object-cover" />
+      <img src={coverSrc(coverUrl)} alt="" class="size-full object-cover" />
     {:else}
       <div
         class="size-full"

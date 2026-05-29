@@ -59,10 +59,10 @@
     };
   });
 
-  // -- Sync lyric data --
+  // -- Sync lyric data (create plain copy to avoid structuredClone Proxy error) --
   $effect(() => {
     if (player && lyricLines.length > 0) {
-      player.setLyricLines(lyricLines);
+      player.setLyricLines(JSON.parse(JSON.stringify(lyricLines)));
     }
   });
 

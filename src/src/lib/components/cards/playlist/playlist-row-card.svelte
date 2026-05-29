@@ -2,6 +2,7 @@
   import { Play, Heart, Ellipsis } from "@lucide/svelte";
   import Button from "../../ui/button/button.svelte";
   import type { Playlist } from "$lib/types";
+  import { coverSrc } from "$lib/utils";
 
   interface Props {
     playlist: Playlist;
@@ -36,7 +37,7 @@
   <!-- 封面 93x93 -->
   <div class=" size-16 shrink-0 rounded-lg bg-muted overflow-hidden">
     {#if playlist.avatarUrl}
-      <img src={playlist.avatarUrl} alt="" class="size-full object-cover" />
+      <img src={coverSrc(playlist.avatarUrl)} alt="" class="size-full object-cover" />
     {/if}
   </div>
 

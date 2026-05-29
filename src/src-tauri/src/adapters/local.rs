@@ -1,10 +1,8 @@
 use std::collections::HashMap;
-use std::io::Cursor;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
-use base64::{engine::general_purpose, Engine as _};
-use image::imageops;
 use lofty::prelude::*;
 use lofty::read_from_path;
 use walkdir::WalkDir;
@@ -119,29 +117,9 @@ impl LocalAdapter {
             .unwrap_or("未知专辑")
             .to_string();
 
-        // Extract cover art as base64 data URL
+        // Extract cover art and save to disk
         let avatar_url = tag
-            .and_then(|t| {
-                t.pictures().first().map(|pic| {
-                    let data = pic.data();
-                    if let Ok(img) = image::load_from_memory(data) {
-                        let img_ratio = img.width() as f32 / img.height() as f32;
-                        let (w, h) = if img_ratio > 1.0 {
-                            (256, (256.0 / img_ratio).round() as u32)
-                        } else {
-                            ((256.0 * img_ratio).round() as u32, 256)
-                        };
-                        let resized = imageops::resize(&img, w, h, imageops::FilterType::Triangle);
-                        let mut buf = Cursor::new(Vec::new());
-                        if resized.write_to(&mut buf, image::ImageFormat::Jpeg).is_ok() {
-                            let b64 = general_purpose::STANDARD.encode(buf.into_inner());
-                            return format!("data:image/jpeg;base64,{}", b64);
-                        }
-                    }
-                    let b64 = general_purpose::STANDARD.encode(data);
-                    format!("data:image/jpeg;base64,{}", b64)
-                })
-            })
+            .and_then(|t| t.pictures().first().map(|pic| save_cover_to_disk(pic.data(), path)))
             .unwrap_or_default();
 
         let id = path.to_string_lossy().to_string();
@@ -216,15 +194,22 @@ impl Adapter for LocalAdapter {
     }
 
     async fn get_lyric(&self, id: &str) -> Result<String> {
+        eprintln!("[get_lyric] id={}", id);
         // Strategy 1: try embedded lyrics tag via lofty
         if let Some(lyric) = _get_lyric_from_lofty(id) {
+            eprintln!("[get_lyric] found embedded lyric ({} bytes)", lyric.len());
             return Ok(lyric);
         }
         // Strategy 2: try external .lrc file with same name
+        let lrc_path = PathBuf::from(id).with_extension("lrc");
+        eprintln!("[get_lyric] trying .lrc at: {}", lrc_path.display());
         match _get_lyric_from_lrc_file(id) {
-            Ok(lyric) => Ok(lyric),
+            Ok(lyric) => {
+                eprintln!("[get_lyric] loaded .lrc ({} bytes)", lyric.len());
+                Ok(lyric)
+            }
             Err(e) => {
-                log::warn!("[get_lyric] failed to get lrc for {}: {}", id, e);
+                eprintln!("[get_lyric] .lrc failed: {}", e);
                 Ok(String::new())
             }
         }
@@ -266,6 +251,41 @@ impl Adapter for LocalAdapter {
             playlists: vec![],
         })
     }
+}
+
+/// Get or create the covers cache directory.
+fn covers_dir() -> PathBuf {
+    let dir = PathBuf::from(
+        std::env::var("APPDATA")
+            .or_else(|_| std::env::var("HOME"))
+            .unwrap_or_else(|_| ".".into()),
+    )
+    .join("NonsPlayer")
+    .join("covers");
+    std::fs::create_dir_all(&dir).ok();
+    dir
+}
+
+/// Save cover image data to disk and return the file path.
+fn save_cover_to_disk(data: &[u8], audio_path: &Path) -> String {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    audio_path.to_string_lossy().hash(&mut hasher);
+    let hash = hasher.finish();
+
+    // Detect image format from magic bytes
+    let ext = if data.len() >= 3 && data[0] == 0xFF && data[1] == 0xD8 {
+        "jpg"
+    } else if data.len() >= 4 && &data[0..4] == b"\x89PNG" {
+        "png"
+    } else if data.len() >= 4 && &data[0..4] == b"GIF8" {
+        "gif"
+    } else {
+        "jpg" // default
+    };
+
+    let cover_path = covers_dir().join(format!("{:x}.{}", hash, ext));
+    std::fs::write(&cover_path, data).ok();
+    cover_path.to_string_lossy().to_string()
 }
 
 /// Try to read embedded lyrics tag from the audio file via lofty.

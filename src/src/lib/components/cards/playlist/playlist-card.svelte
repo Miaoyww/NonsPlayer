@@ -1,6 +1,7 @@
 <script lang="ts">
 		import { Play } from "@lucide/svelte";
 		import type { Playlist } from "$lib/types";
+		import { coverSrc } from "$lib/utils";
 
 		interface Props {
 			playlist: Playlist;
@@ -31,12 +32,11 @@
 	>
 		<div class="size-10 shrink-0 rounded-lg overflow-hidden shadow-sm">
 			{#if playlist.avatarUrl}
-				<img src={playlist.avatarUrl} alt={playlist.name} class="size-10 object-cover" />
+				<img src={coverSrc(playlist.avatarUrl)} alt={playlist.name} class="size-10 object-cover" />
 			{:else}
 				<div class="size-10" style="background: {gradient}"></div>
 			{/if}
 		</div>
 		<p class="text-sm font-medium text-foreground truncate flex-1">{playlist.name}</p>
-		<Play class="size-3.5 text-muted-foreground/50 shrink-0
-		             opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+		<Play class="size-3.5 text-muted-foreground/50 shrink-0 group-hover:text-foreground/80 transition-colors" />
 	</button>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Play, Heart, Star } from '@lucide/svelte';
+	import { coverSrc } from "$lib/utils";
 
 	interface Props {
 		songName?: string;
@@ -32,7 +33,7 @@
 			<!-- 专辑封面 -->
 			<div
 				class="w-[205px] h-[205px] shrink-0 rounded-[15px] bg-cover bg-center bg-muted"
-				style={coverUrl ? `background-image: url(${coverUrl})` : ''}
+				style={coverUrl ? `background-image: url(${coverSrc(coverUrl)})` : ''}
 			></div>
 
 			<!-- 歌曲信息区 -->

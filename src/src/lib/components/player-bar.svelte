@@ -5,9 +5,10 @@
   import { onMount } from "svelte";
   import { fly, slide } from "svelte/transition";
   import LyricPlayer from "$lib/components/lyrics/LyricPlayer.svelte";
-  import { parseLyric } from "$lib/components/lyrics/lyric-parser";
   import { getLyric } from "$lib/services/adapter-service";
   import type { LyricLine } from "$lib/types/lyric";
+  import { parseLrc } from "@applemusic-like-lyrics/lyric";
+  import { coverSrc } from "$lib/utils";
 
   let showLyrics = $state(false);
   let showVolumeSlider = $state(false);
@@ -25,18 +26,43 @@
       : 0
   );
 
+  let currentSongId = $state("");
+  let lyricLoaded = $state(false);
+
   $effect(() => {
-    if (lyricLines.length > 0) return;
     const song = playerService.currentSong;
     if (!song) return;
+    // Reset lyric when song changes
+    if (song.id !== currentSongId) {
+      currentSongId = song.id;
+      lyricLines = [];
+      lyricLoaded = false;
+    }
+    if (lyricLoaded || lyricLines.length > 0) return;
     loadLyricFor(song.adapterSlug, song.id);
   });
 
   async function loadLyricFor(adapterSlug: string, songId: string) {
     loadingLyric = true;
+    lyricLoaded = true;
     try {
       const raw = await getLyric(adapterSlug, songId);
-      if (raw) lyricLines = parseLyric(raw);
+      if (!raw) { lyricLines = []; return; }
+      // Use AMLL's built-in LRC parser
+      const result = parseLrc(raw);
+      lyricLines = result.lines.map((line: any) => ({
+        words: (line.words ?? []).map((w: any) => ({
+          startTime: w.startTime ?? 0,
+          endTime: w.endTime ?? 0,
+          word: w.word ?? "",
+        })),
+        translatedLyric: line.translatedLyric ?? "",
+        romanLyric: line.romanLyric ?? "",
+        startTime: line.startTime ?? 0,
+        endTime: line.endTime ?? 0,
+        isBG: line.isBG ?? false,
+        isDuet: line.isDuet ?? false,
+      }));
     } catch {
       lyricLines = [];
     } finally {
@@ -134,7 +160,7 @@
   <div class="flex items-center gap-3 w-56 shrink-0">
     <div class="size-12 shrink-0 rounded-md bg-muted overflow-hidden">
       {#if song?.avatarUrl}
-        <img src={song.avatarUrl} alt="" class="size-full object-cover" />
+        <img src={coverSrc(song.avatarUrl)} alt="" class="size-full object-cover" />
       {:else}
         <div class="size-full bg-linear-to-br from-primary/30 to-primary/10"></div>
       {/if}
