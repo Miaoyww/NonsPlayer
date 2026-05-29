@@ -47,19 +47,16 @@
   <link rel="icon" type="image/x-icon" href={logo} />
 </svelte:head>
 
-
 <ModeWatcher />
 <SettingsDialog />
 
 <TitleBar />
 
 <div class={isTauri() ? "pt-9" : ""}>
-  <main class="relative flex flex-col h-[calc(100vh-2.5rem)] overflow-hidden">
-    <div class="flex-1 min-h-0 overflow-hidden">
-      {@render children?.()}
-    </div>
-    <PlayerBar />
+  <main class="h-[calc(100vh-2.5rem)] overflow-hidden">
+    {@render children?.()}
   </main>
+  <PlayerBar />
 </div>
 
 <style>

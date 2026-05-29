@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Play } from "@lucide/svelte";
-  import Button from "../ui/button/button.svelte";
+  import Button from "../../ui/button/button.svelte";
 
   interface Props {
     title?: string;

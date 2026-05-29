@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import Button from "../ui/button/button.svelte";
+  import Button from "$lib/components/ui/button/button.svelte";
 
   interface Props {
     name: string;

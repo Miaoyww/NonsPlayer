@@ -1,9 +1,9 @@
 <script lang="ts">
   import { SkipForward, ListMusic, ChevronRight } from "@lucide/svelte";
   import { goto } from "$app/navigation";
-  import FavoritePlaylistCard from "$lib/components/cards/favorite-playlist-card.svelte";
-  import SongCard from "$lib/components/cards/song-nextup-card.svelte";
-  import PlaylistRowCard from "$lib/components/cards/playlist-row-card.svelte";
+  import FavoritePlaylistCard from "$lib/components/cards/playlist/favorite-playlist-card.svelte";
+  import NextupSongList from "$lib/components/nextup-song-list.svelte";
+  import PlaylistRowCard from "$lib/components/cards/playlist/playlist-row-card.svelte";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import { fly } from "svelte/transition";
   import Button from "$lib/components/ui/button/button.svelte";
@@ -90,19 +90,7 @@
           <ChevronRight class="size-4 text-foreground" />
         </Button>
       </div>
-      <ScrollArea class="flex gap-2 pb-1 flex-1 min-h-0">
-        {#if loading}
-          <div class="text-sm text-muted-foreground p-4">加载中...</div>
-        {:else if songs.length === 0}
-          <div class="text-sm text-muted-foreground p-4">暂无歌曲</div>
-        {:else}
-          {#each songs as song}
-            <div class="shrink-0 mb-2">
-              <SongCard {song} onplay={() => playSong(song)} />
-            </div>
-          {/each}
-        {/if}
-      </ScrollArea>
+      <NextupSongList {songs} {loading} onplay={playSong} />
     </div>
 
     <!-- 推荐歌单 -->

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import SongInfoCard from "./song-info-card.svelte";
-  import SongActionCard from "./song-action-card.svelte";
+  import SongInfoCard from "$lib/components/cards/song/song-info-card.svelte";
+  import SongActionCard from "$lib/components/cards/song/song-action-card.svelte";
   import type { Song } from "$lib/types";
 
   interface Props {

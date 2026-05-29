@@ -5,7 +5,7 @@
   import { getUserPlaylists, getAccount } from "$lib/services/adapter-service";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import Button from "$lib/components/ui/button/button.svelte";
-  import PlaylistRowCard from "$lib/components/cards/playlist-row-card.svelte";
+  import PlaylistRowCard from "$lib/components/cards/playlist/playlist-row-card.svelte";
   import { ArrowLeft, Disc3, User, Library, Heart, Music, Search, Album, Users, List, Zap } from "@lucide/svelte";
   import { fly } from "svelte/transition";
   import { goto } from "$app/navigation";

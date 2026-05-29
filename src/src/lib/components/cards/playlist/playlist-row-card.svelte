@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Play, Heart, Ellipsis } from "@lucide/svelte";
-  import Button from "../ui/button/button.svelte";
+  import Button from "../../ui/button/button.svelte";
   import type { Playlist } from "$lib/types";
 
   interface Props {

@@ -2,8 +2,8 @@
   import { Play } from "@lucide/svelte";
   import { goto } from "$app/navigation";
   import { Button } from "$lib/components/ui/button";
-  import SongInfoCard from "./cards/song-info-card.svelte";
-  import SongActionCard from "./cards/song-action-card.svelte";
+  import SongInfoCard from "$lib/components/cards/song/song-info-card.svelte";
+  import SongActionCard from "$lib/components/cards/song/song-action-card.svelte";
   import type { Song } from "$lib/types";
 
   interface Props {
@@ -23,7 +23,7 @@
   }: Props = $props();
 </script>
 
-<div class={className}>
+<div class="pb-24 {className}">
   <!-- Table Header -->
   <div
     class="flex items-center gap-4 px-3 py-2 text-xs font-semibold text-muted-foreground/50 uppercase tracking-wider border-b border-border"

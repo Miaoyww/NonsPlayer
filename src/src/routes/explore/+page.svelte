@@ -4,7 +4,7 @@
   import { adapterStore } from "$lib/stores/adapter-store.svelte";
   import { getRecommendedPlaylists } from "$lib/services/adapter-service";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
-  import PlaylistCard from "$lib/components/cards/playlist-card.svelte";
+  import PlaylistCard from "$lib/components/cards/playlist/playlist-card.svelte";
   import { Compass, Sparkles } from "@lucide/svelte";
   import type { Playlist } from "$lib/types";
   import { fly } from "svelte/transition";

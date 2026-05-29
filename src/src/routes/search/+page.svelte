@@ -6,8 +6,8 @@
   import { search as doSearch } from "$lib/services/adapter-service";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import Input from "$lib/components/ui/input/input.svelte";
-  import SongCard from "$lib/components/cards/song-nextup-card.svelte";
-  import PlaylistRowCard from "$lib/components/cards/playlist-row-card.svelte";
+  import SongCard from "$lib/components/cards/song/song-nextup-card.svelte";
+  import PlaylistRowCard from "$lib/components/cards/playlist/playlist-row-card.svelte";
   import { Search, Music, SearchX, Disc3 } from "@lucide/svelte";
   import type { Song, Playlist } from "$lib/types";
   import type { SearchResult } from "$lib/types/adapter";
