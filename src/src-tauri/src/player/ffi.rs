@@ -68,36 +68,61 @@ impl BassLib {
     /// Load the BASS library for the current platform.
     pub fn load() -> Result<Self, String> {
         #[cfg(target_os = "windows")]
-        let lib_path = "bass.dll";
+        let lib_name = "bass.dll";
 
         #[cfg(target_os = "macos")]
-        let lib_path = "libbass.dylib";
+        let lib_name = "libbass.dylib";
 
         #[cfg(target_os = "linux")]
-        let lib_path = "libbass.so";
+        let lib_name = "libbass.so";
 
-        let lib = unsafe { Library::new(lib_path) }
-            .map_err(|e| format!("failed to load {}: {}", lib_path, e))?;
+        // Search paths: exe dir, working dir, then just the filename (system search).
+        let mut candidates: Vec<std::path::PathBuf> = Vec::new();
 
-        Ok(Self {
-            BASS_Init: load_fn!(lib, "BASS_Init"),
-            BASS_Free: load_fn!(lib, "BASS_Free"),
-            BASS_ErrorGetCode: load_fn!(lib, "BASS_ErrorGetCode"),
-            BASS_SetVolume: load_fn!(lib, "BASS_SetVolume"),
-            BASS_StreamCreateURL: load_fn!(lib, "BASS_StreamCreateURL"),
-            BASS_StreamCreateFile: load_fn!(lib, "BASS_StreamCreateFile"),
-            BASS_StreamFree: load_fn!(lib, "BASS_StreamFree"),
-            BASS_ChannelPlay: load_fn!(lib, "BASS_ChannelPlay"),
-            BASS_ChannelPause: load_fn!(lib, "BASS_ChannelPause"),
-            BASS_ChannelStop: load_fn!(lib, "BASS_ChannelStop"),
-            BASS_ChannelIsActive: load_fn!(lib, "BASS_ChannelIsActive"),
-            BASS_ChannelSetPosition: load_fn!(lib, "BASS_ChannelSetPosition"),
-            BASS_ChannelGetPosition: load_fn!(lib, "BASS_ChannelGetPosition"),
-            BASS_ChannelGetLength: load_fn!(lib, "BASS_ChannelGetLength"),
-            BASS_ChannelBytes2Seconds: load_fn!(lib, "BASS_ChannelBytes2Seconds"),
-            BASS_ChannelSeconds2Bytes: load_fn!(lib, "BASS_ChannelSeconds2Bytes"),
-            BASS_ChannelSetSync: load_fn!(lib, "BASS_ChannelSetSync"),
-            lib,
-        })
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(dir) = exe.parent() {
+                candidates.push(dir.join(lib_name));
+            }
+        }
+        if let Ok(cwd) = std::env::current_dir() {
+            candidates.push(cwd.join(lib_name));
+        }
+        candidates.push(std::path::PathBuf::from(lib_name));
+
+        let mut last_err = String::new();
+        for path in &candidates {
+            eprintln!("[BassLib] trying: {}", path.display());
+            match unsafe { Library::new(path) } {
+                Ok(lib) => {
+                    eprintln!("[BassLib] loaded successfully from: {}", path.display());
+                    return Ok(Self {
+                        BASS_Init: load_fn!(lib, "BASS_Init"),
+                        BASS_Free: load_fn!(lib, "BASS_Free"),
+                        BASS_ErrorGetCode: load_fn!(lib, "BASS_ErrorGetCode"),
+                        BASS_SetVolume: load_fn!(lib, "BASS_SetVolume"),
+                        BASS_StreamCreateURL: load_fn!(lib, "BASS_StreamCreateURL"),
+                        BASS_StreamCreateFile: load_fn!(lib, "BASS_StreamCreateFile"),
+                        BASS_StreamFree: load_fn!(lib, "BASS_StreamFree"),
+                        BASS_ChannelPlay: load_fn!(lib, "BASS_ChannelPlay"),
+                        BASS_ChannelPause: load_fn!(lib, "BASS_ChannelPause"),
+                        BASS_ChannelStop: load_fn!(lib, "BASS_ChannelStop"),
+                        BASS_ChannelIsActive: load_fn!(lib, "BASS_ChannelIsActive"),
+                        BASS_ChannelSetPosition: load_fn!(lib, "BASS_ChannelSetPosition"),
+                        BASS_ChannelGetPosition: load_fn!(lib, "BASS_ChannelGetPosition"),
+                        BASS_ChannelGetLength: load_fn!(lib, "BASS_ChannelGetLength"),
+                        BASS_ChannelBytes2Seconds: load_fn!(lib, "BASS_ChannelBytes2Seconds"),
+                        BASS_ChannelSeconds2Bytes: load_fn!(lib, "BASS_ChannelSeconds2Bytes"),
+                        BASS_ChannelSetSync: load_fn!(lib, "BASS_ChannelSetSync"),
+                        lib,
+                    });
+                }
+                Err(e) => {
+                    last_err = format!("{}: {}", path.display(), e);
+                    eprintln!("[BassLib] {}", last_err);
+                }
+            }
+        }
+
+        Err(format!("failed to load {}: {}", lib_name, last_err))
     }
 }

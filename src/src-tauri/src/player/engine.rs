@@ -40,9 +40,17 @@ pub struct BassEngine {
     state: Mutex<PlayerState>,
 }
 
+const BASS_ERROR_DEVICE: i32 = 46;
+
 impl BassEngine {
     pub fn new(bass: Arc<BassLib>) -> Result<Self> {
-        let result = unsafe { (bass.BASS_Init)(-1, 44100, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
+        // Try default device first
+        let mut result = unsafe { (bass.BASS_Init)(-1, 44100, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
+        // Fall back to "no sound" device if no audio output is available
+        if result == 0 && unsafe { (bass.BASS_ErrorGetCode)() } == BASS_ERROR_DEVICE {
+            eprintln!("[startup] BASS: no audio device, falling back to no-sound device");
+            result = unsafe { (bass.BASS_Init)(0, 44100, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
+        }
         if result == 0 {
             return Err(Error::BassError(unsafe { (bass.BASS_ErrorGetCode)() }));
         }
