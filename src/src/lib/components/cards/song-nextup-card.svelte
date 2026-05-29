@@ -9,11 +9,7 @@
     onlike?: () => void;
   }
 
-  let {
-    song,
-    onplay,
-    onlike,
-  }: Props = $props();
+  let { song, onplay, onlike }: Props = $props();
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -32,6 +28,10 @@
     coverUrl={song.avatarUrl}
     class="flex-1"
   />
+  <!-- Duration -->
+  <span class="w-20 text-right text-sm text-muted-foreground tabular-nums">
+    {song.durationText}
+  </span>
 
-  <SongActionCard duration={song.durationText} bind:liked={song.isLiked} variant="card" />
+  <SongActionCard bind:liked={song.isLiked} variant="card" />
 </div>

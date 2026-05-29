@@ -2,14 +2,13 @@
   import { onMount } from "svelte";
   import { playerService } from "$lib/services/player-service.svelte";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
-  import SongCard from "$lib/components/cards/song-nextup-card.svelte";
+  import SongList from "$lib/components/song-list.svelte";
   import { ListMusic, Trash2 } from "@lucide/svelte";
   import Button from "$lib/components/ui/button/button.svelte";
   import type { Song } from "$lib/types";
   import { fly } from "svelte/transition";
 
   let queue = $state<Song[]>([]);
-  let currentIndex = $state(-1);
 
   onMount(async () => {
     try {
@@ -19,14 +18,10 @@
     }
   });
 
-  // Reactively sync queue
+  // Reactively sync queue when current song changes
   $effect(() => {
-    // Re-fetch when current song changes
     const _ = playerService.currentSong;
-    playerService.getQueue().then((q) => {
-      queue = q;
-      currentIndex = q.findIndex((s) => s.id === playerService.currentSong?.id);
-    }).catch(() => {});
+    playerService.getQueue().then((q) => { queue = q; }).catch(() => {});
   });
 
   function playAt(index: number) {
@@ -60,19 +55,7 @@
         播放队列为空
       </div>
     {:else}
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-        {#each queue as song, i}
-          <div
-            class="shrink-0"
-            class:opacity-50={i < currentIndex}
-            class:ring-1={i === currentIndex}
-            class:ring-primary={i === currentIndex}
-            class:rounded-lg={i === currentIndex}
-          >
-            <SongCard {song} onplay={() => playAt(i)} />
-          </div>
-        {/each}
-      </div>
+      <SongList songs={queue} onplay={playAt} />
     {/if}
   </ScrollArea>
 </div>

@@ -8,12 +8,19 @@
 
   interface Props {
     songs: Song[];
+    showActions?: boolean;
     onlike?: (index: number) => void;
     onplay?: (index: number) => void;
     class?: string;
   }
 
-  let { songs, onlike, onplay, class: className = "" }: Props = $props();
+  let {
+    songs,
+    showActions = true,
+    onlike,
+    onplay,
+    class: className = "",
+  }: Props = $props();
 </script>
 
 <div class={className}>
@@ -70,9 +77,14 @@
         {song.albumName}
       </Button>
 
+      <!-- Duration -->
+      <span class="w-20 text-right text-sm text-muted-foreground tabular-nums">
+        {song.durationText}
+      </span>
+
       <SongActionCard
-        duration={song.durationText}
         bind:liked={song.isLiked}
+        visible={showActions}
         onlike={() => onlike?.(i)}
       />
     </div>
