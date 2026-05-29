@@ -32,21 +32,21 @@ pub fn run() {
     let http_client = http::create_client();
     let player_engine = match BassLib::load() {
         Ok(bass) => {
-            log::info!("[startup] BASS library loaded successfully");
+            eprintln!("[startup] BASS library loaded successfully");
             let engine = BassEngine::new(Arc::new(bass));
             match engine {
                 Ok(e) => {
-                    log::info!("[startup] BASS engine initialized");
+                    eprintln!("[startup] BASS engine initialized");
                     Some(Arc::new(e))
                 }
                 Err(e) => {
-                    log::warn!("[startup] BASS engine init failed: {}", e);
+                    eprintln!("[startup] BASS engine init failed: {}", e);
                     None
                 }
             }
         }
         Err(e) => {
-            log::warn!("[startup] BASS library not found: {}", e);
+            eprintln!("[startup] BASS library load failed: {}", e);
             None
         }
     };

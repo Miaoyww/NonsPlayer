@@ -33,4 +33,6 @@ log = "0.4"
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 libloading = "0.8"
+image = "0.25"
+base64 = "0.22"
 

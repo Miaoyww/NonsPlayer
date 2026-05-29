@@ -1,7 +1,10 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::io::Cursor;
+use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
+use base64::{engine::general_purpose, Engine as _};
+use image::imageops;
 use lofty::prelude::*;
 use lofty::read_from_path;
 use walkdir::WalkDir;
@@ -116,6 +119,31 @@ impl LocalAdapter {
             .unwrap_or("未知专辑")
             .to_string();
 
+        // Extract cover art as base64 data URL
+        let avatar_url = tag
+            .and_then(|t| {
+                t.pictures().first().map(|pic| {
+                    let data = pic.data();
+                    if let Ok(img) = image::load_from_memory(data) {
+                        let img_ratio = img.width() as f32 / img.height() as f32;
+                        let (w, h) = if img_ratio > 1.0 {
+                            (256, (256.0 / img_ratio).round() as u32)
+                        } else {
+                            ((256.0 * img_ratio).round() as u32, 256)
+                        };
+                        let resized = imageops::resize(&img, w, h, imageops::FilterType::Triangle);
+                        let mut buf = Cursor::new(Vec::new());
+                        if resized.write_to(&mut buf, image::ImageFormat::Jpeg).is_ok() {
+                            let b64 = general_purpose::STANDARD.encode(buf.into_inner());
+                            return format!("data:image/jpeg;base64,{}", b64);
+                        }
+                    }
+                    let b64 = general_purpose::STANDARD.encode(data);
+                    format!("data:image/jpeg;base64,{}", b64)
+                })
+            })
+            .unwrap_or_default();
+
         let id = path.to_string_lossy().to_string();
         let minutes = (duration / 60.0) as u64;
         let seconds = (duration % 60.0) as u64;
@@ -147,6 +175,7 @@ impl LocalAdapter {
             album_name,
             artists_name: artist_name,
             adapter_slug: "local".into(),
+            avatar_url,
             ..Song::empty()
         })
     }
@@ -186,9 +215,19 @@ impl Adapter for LocalAdapter {
         }
     }
 
-    async fn get_lyric(&self, _id: &str) -> Result<String> {
-        // TODO: try to read .lrc file with same name
-        Ok(String::new())
+    async fn get_lyric(&self, id: &str) -> Result<String> {
+        // Strategy 1: try embedded lyrics tag via lofty
+        if let Some(lyric) = _get_lyric_from_lofty(id) {
+            return Ok(lyric);
+        }
+        // Strategy 2: try external .lrc file with same name
+        match _get_lyric_from_lrc_file(id) {
+            Ok(lyric) => Ok(lyric),
+            Err(e) => {
+                log::warn!("[get_lyric] failed to get lrc for {}: {}", id, e);
+                Ok(String::new())
+            }
+        }
     }
 
     async fn toggle_like(&self, _id: &str, _like: bool) -> Result<bool> {
@@ -227,4 +266,49 @@ impl Adapter for LocalAdapter {
             playlists: vec![],
         })
     }
+}
+
+/// Try to read embedded lyrics tag from the audio file via lofty.
+fn _get_lyric_from_lofty(path: &str) -> Option<String> {
+    let tagged_file = lofty::read_from_path(path).ok()?;
+    let tag = tagged_file
+        .primary_tag()
+        .or_else(|| tagged_file.first_tag())?;
+    let lyric_tag = tag.get(&ItemKey::Lyrics)?;
+    let lyric = lyric_tag.value().text()?;
+    Some(lyric.to_string())
+}
+
+/// Try to read a .lrc file with the same name as the audio file.
+/// Handles UTF-8 and UTF-16 LE/BE encoding.
+fn _get_lyric_from_lrc_file(path: &str) -> std::result::Result<String, std::io::Error> {
+    let mut lrc_file_path = PathBuf::from(path);
+    lrc_file_path.set_extension("lrc");
+
+    let lrc_bytes = std::fs::read(&lrc_file_path)?;
+
+    let is_le = lrc_bytes.starts_with(&[0xFF, 0xFE]);
+    let is_utf16 =
+        (is_le || lrc_bytes.starts_with(&[0xFE, 0xFF])) && lrc_bytes.len() % 2 == 0;
+
+    if is_utf16 {
+        let convert_fn: fn([u8; 2]) -> u16 = match is_le {
+            true => u16::from_le_bytes,
+            false => u16::from_be_bytes,
+        };
+
+        let mut u16_bytes: Vec<u16> = vec![];
+        let mut chunk_iter = lrc_bytes.chunks_exact(2);
+        chunk_iter.next(); // skip BOM
+
+        for chunk in chunk_iter {
+            u16_bytes.push(convert_fn([chunk[0], chunk[1]]));
+        }
+
+        return String::from_utf16(&u16_bytes)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()));
+    }
+
+    String::from_utf8(lrc_bytes)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
 }
