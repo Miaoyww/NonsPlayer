@@ -48,9 +48,10 @@
     try {
       const raw = await getLyric(adapterSlug, songId);
       if (!raw) { lyricLines = []; return; }
-      // Use AMLL's built-in LRC parser
-      const result = parseLrc(raw);
-      lyricLines = result.lines.map((line: any) => ({
+      // Use AMLL's built-in LRC parser (returns array directly)
+      const lines = parseLrc(raw);
+      if (!Array.isArray(lines) || !lines.length) { lyricLines = []; return; }
+      lyricLines = lines.map((line: any) => ({
         words: (line.words ?? []).map((w: any) => ({
           startTime: w.startTime ?? 0,
           endTime: w.endTime ?? 0,
