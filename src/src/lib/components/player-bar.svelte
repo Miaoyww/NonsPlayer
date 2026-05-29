@@ -123,21 +123,29 @@
 
 <svelte:window onmousemove={onProgressMouseMove} onmouseup={onProgressMouseUp} />
 
-<!-- Lyrics panel overlay -->
+<!-- Lyrics fullscreen overlay -->
 {#if song && showLyrics}
   <div
-    class="absolute left-1/2 -translate-x-1/2 bottom-20 z-50 w-full max-w-3xl h-96 rounded-t-xl bg-background/95 backdrop-blur border border-border/50 shadow-2xl overflow-hidden"
+    class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
     transition:slide={{ axis: "y", duration: 300 }}
+    onclick={() => showLyrics = false}
+    onkeydown={() => {}}
+    role="button"
+    tabindex="0"
   >
-    <div class="flex items-center justify-between px-4 py-2 border-b border-border/30">
-      <span class="text-sm font-medium text-muted-foreground">歌词</span>
-      <Button variant="ghost" size="icon" class="cursor-pointer" onclick={() => showLyrics = false}>
-        <ChevronUp class="size-4" />
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div
+      class="absolute top-4 right-4 z-10"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <Button variant="ghost" size="icon" class="cursor-pointer text-white/70 hover:text-white" onclick={() => showLyrics = false}>
+        <ChevronUp class="size-5" />
       </Button>
     </div>
-    <div class="h-[calc(100%-2.5rem)]">
+
+    <div class="relative w-full h-full" onclick={(e) => e.stopPropagation()}>
       {#if loadingLyric}
-        <div class="flex items-center justify-center h-full text-sm text-muted-foreground">加载歌词中...</div>
+        <div class="flex items-center justify-center h-full text-sm text-white/60">加载歌词中...</div>
       {:else if lyricLines.length > 0}
         <LyricPlayer
           lyricLines={lyricLines}
@@ -146,7 +154,7 @@
           onLineClick={handleLineClick}
         />
       {:else}
-        <div class="flex items-center justify-center h-full text-sm text-muted-foreground">暂无歌词</div>
+        <div class="flex items-center justify-center h-full text-sm text-white/60">暂无歌词</div>
       {/if}
     </div>
   </div>

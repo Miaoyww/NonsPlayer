@@ -37,6 +37,7 @@
   let player: LyricPlayer | null = $state(null);
   let animFrameId: number | null = null;
   let lastFrameTime = 0;
+  let timeRef = $state(0);
 
   onMount(() => {
     player = new LyricPlayer();
@@ -59,14 +60,26 @@
     };
   });
 
-  // -- Sync lyric data (create plain copy to avoid structuredClone Proxy error) --
+  // Keep timeRef in sync with currentTime prop (so animation loop reads latest)
+  $effect(() => { timeRef = currentTime; });
+
+  // Sync lyric data (deep-spread to strip Svelte 5 proxies)
   $effect(() => {
     if (player && lyricLines.length > 0) {
-      player.setLyricLines(JSON.parse(JSON.stringify(lyricLines)));
+      const plain = lyricLines.map((l) => ({
+        words: l.words.map((w) => ({ ...w })),
+        translatedLyric: l.translatedLyric,
+        romanLyric: l.romanLyric,
+        startTime: l.startTime,
+        endTime: l.endTime,
+        isBG: l.isBG,
+        isDuet: l.isDuet,
+      }));
+      player.setLyricLines(plain);
     }
   });
 
-  // -- Sync config --
+  // Sync config
   $effect(() => { player?.setAlignAnchor(alignAnchor); });
   $effect(() => { player?.setAlignPosition(alignPosition); });
   $effect(() => { player?.setEnableSpring(enableSpring); });
@@ -75,7 +88,7 @@
   $effect(() => { player?.setHidePassedLines(hidePassedLines); });
   $effect(() => { player?.setWordFadeWidth(wordFadeWidth); });
 
-  // -- Play state -> animation loop --
+  // Play state -> animation loop
   $effect(() => {
     if (!player) return;
     if (isPlaying) {
@@ -87,10 +100,10 @@
     }
   });
 
-  // -- Seek --
+  // Seek
   $effect(() => {
     if (isSeeking && player) {
-      player.setCurrentTime(currentTime, true);
+      player.setCurrentTime(timeRef, true);
     }
   });
 
@@ -100,7 +113,7 @@
       const dt = now - lastFrameTime;
       lastFrameTime = now;
       player.update(dt);
-      player.setCurrentTime(currentTime, false);
+      player.setCurrentTime(timeRef | 0);
       animFrameId = requestAnimationFrame(tick);
     };
     animFrameId = requestAnimationFrame(tick);
@@ -114,4 +127,4 @@
   }
 </script>
 
-<div bind:this={containerEl} class="lyric-container w-full h-full overflow-hidden"></div>
+<div bind:this={containerEl} class="w-full h-full" style="contain: paint layout;"></div>
