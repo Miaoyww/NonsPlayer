@@ -124,10 +124,22 @@ impl BassEngine {
     }
 
     /// Toggle between play and pause.
+    /// Unlike calling pause()/resume() directly, this only locks `state` once
+    /// to avoid a deadlock when both locks are acquired in nested calls.
     pub fn toggle_playback(&self) {
         match *self.state.lock().unwrap() {
-            PlayerState::Playing => self.pause(),
-            PlayerState::Paused => self.resume(),
+            PlayerState::Playing => {
+                if let Some(stream) = *self.current_stream.lock().unwrap() {
+                    unsafe { (self.bass.BASS_ChannelPause)(stream); }
+                    *self.state.lock().unwrap() = PlayerState::Paused;
+                }
+            }
+            PlayerState::Paused => {
+                if let Some(stream) = *self.current_stream.lock().unwrap() {
+                    unsafe { (self.bass.BASS_ChannelPlay)(stream, 0); }
+                    *self.state.lock().unwrap() = PlayerState::Playing;
+                }
+            }
             _ => {}
         }
     }
