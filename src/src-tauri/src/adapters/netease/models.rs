@@ -21,6 +21,10 @@ pub struct SongItem {
     #[serde(default)]
     pub name: String,
     #[serde(default)]
+    pub first: Option<String>,
+    #[serde(default)]
+    pub second: Option<String>,
+    #[serde(default)]
     pub dt: f64,
     #[serde(default)]
     pub fee: i64,

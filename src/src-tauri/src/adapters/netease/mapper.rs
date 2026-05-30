@@ -29,7 +29,11 @@ fn artist_item_to_artist(a: &super::models::ArtistItem) -> Artist {
 
 pub fn map_song(raw: &SongItem) -> Song {
     let id = val_to_string(&raw.id);
-    let name = raw.name.clone();
+    let name = if raw.name.is_empty() {
+        raw.first.clone().unwrap_or_default()
+    } else {
+        raw.name.clone()
+    };
     let dt_ms = raw.dt;
     let duration = dt_ms / 1000.0;
     let fee = raw.fee;
@@ -43,6 +47,13 @@ pub fn map_song(raw: &SongItem) -> Song {
         raw.ar.iter().map(artist_item_to_artist).collect()
     } else if !raw.artists.is_empty() {
         raw.artists.iter().map(artist_item_to_artist).collect()
+    } else if let Some(ref second) = raw.second {
+        // Toplist tracks use "first"/"second" (artist1/artist2)
+        second.split('/').map(|a| Artist {
+            name: a.trim().to_string(),
+            adapter_slug: "netease".into(),
+            ..Artist::empty()
+        }).collect()
     } else {
         vec![]
     };
