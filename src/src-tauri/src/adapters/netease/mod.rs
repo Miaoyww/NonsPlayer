@@ -7,7 +7,7 @@ use std::sync::Mutex;
 
 use async_trait::async_trait;
 
-use super::{Adapter, AdapterMetadata, CapabilityType, LoginStatus, MatchResult, PlaylistCategory, SearchResult, TopPlaylistGroup};
+use super::{Adapter, AdapterMetadata, CapabilityType, LoginStatus, PlaylistCategory, SearchResult, TopPlaylistGroup};
 use crate::error::{Error, Result};
 use crate::models::{account::Account, album::Album, artist::Artist, playlist::Playlist, song::Song};
 
@@ -16,47 +16,6 @@ use mapper::{
     map_cloudsearch_album, map_cloudsearch_artist, map_playlist_full, map_recommend_playlist,
     map_search_playlist, map_song, map_toplist_item,
 };
-
-/// Character-level matching score (mirrors Coriander Player's `_computeScore`).
-/// Returns 0.0–1.0 where 1.0 = perfect match.
-fn compute_match_score(
-    local_name: &str,
-    local_artist: &str,
-    local_album: &str,
-    remote_name: &str,
-    remote_artist: &str,
-    remote_album: &str,
-) -> f64 {
-    let max_score = local_name.len() + local_artist.len() + local_album.len();
-    if max_score == 0 {
-        return 0.0;
-    }
-
-    let mut score: usize = 0;
-
-    let min_len = local_name.len().min(remote_name.len());
-    for i in 0..min_len {
-        if local_name.as_bytes()[i] == remote_name.as_bytes()[i] {
-            score += 1;
-        }
-    }
-
-    let min_len = local_artist.len().min(remote_artist.len());
-    for i in 0..min_len {
-        if local_artist.as_bytes()[i] == remote_artist.as_bytes()[i] {
-            score += 1;
-        }
-    }
-
-    let min_len = local_album.len().min(remote_album.len());
-    for i in 0..min_len {
-        if local_album.as_bytes()[i] == remote_album.as_bytes()[i] {
-            score += 1;
-        }
-    }
-
-    score as f64 / max_score as f64
-}
 
 pub struct NeteaseAdapter {
     metadata: AdapterMetadata,
@@ -76,7 +35,6 @@ impl NeteaseAdapter {
                 description: "网易云音乐适配器，支持搜索、歌单、每日推荐、二维码登录".into(),
                 version: "0.2.0".into(),
                 capabilities: vec![],
-                amll_db_tag: "ncm".into(),
             },
             client: NeteaseClient::new(),
             account: Mutex::new(None),
@@ -532,161 +490,6 @@ impl Adapter for NeteaseAdapter {
         })
     }
 
-    async fn match_song(&self, name: &str, artist: &str) -> Result<Option<MatchResult>> {
-        // Use only the first artist (split on common separators like "/" "、" "&")
-        let primary_artist = artist
-            .split(&['/', '、', '&', ',', ';'][..])
-            .next()
-            .unwrap_or("")
-            .trim();
-        let query = if primary_artist.is_empty() {
-            name.to_string()
-        } else {
-            format!("{} {}", name, primary_artist)
-        };
-        log::info!("[netease] match_song: query=\"{}\"", query);
-
-        // Matches NeteaseCloudMusicApi module/cloudsearch.js:
-        //   POST https://interface.music.163.com/eapi/cloudsearch/pc
-        //   crypto: 'eapi', type: 1 (单曲)
-        let url = format!("{}/eapi/cloudsearch/pc", INTERFACE_HOST);
-        let raw = self
-            .client
-            .request(
-                CryptoType::Eapi,
-                &url,
-                &serde_json::json!({"s": query, "type": 1, "limit": 5, "offset": 0, "total": true}),
-            )
-            .await;
-
-        let songs: Vec<models::SongItem> = match raw {
-            Ok(val) => {
-                let raw_str = serde_json::to_string(&val).unwrap_or_default();
-                let preview: String = raw_str.chars().take(500).collect();
-                log::info!(
-                    "[netease] match_song: raw ({} chars): {}",
-                    raw_str.len(),
-                    preview
-                );
-
-                // Check response code (old API doesn't go through request_ok)
-                let code = val["code"].as_i64().unwrap_or(-1);
-                if code != 200 {
-                    let msg = val["message"].as_str().unwrap_or("unknown");
-                    log::warn!("[netease] match_song: API error {}: {}", code, msg);
-                    return Ok(None);
-                }
-
-                match serde_json::from_value::<models::CloudSearchResponse>(val) {
-                    Ok(resp) => {
-                        log::info!(
-                            "[netease] match_song: parsed {} songs for \"{}\"",
-                            resp.result.songs.len(),
-                            query
-                        );
-                        resp.result.songs
-                    }
-                    Err(e) => {
-                        log::warn!("[netease] match_song: parse error: {} | raw: {}", e, preview);
-                        return Ok(None);
-                    }
-                }
-            }
-            Err(e) => {
-                log::warn!("[netease] match_song: HTTP error: {}", e);
-                return Ok(None);
-            }
-        };
-
-        if songs.is_empty() {
-            log::info!("[netease] match_song: empty results for \"{}\"", query);
-            return Ok(None);
-        }
-
-        // Score each result by character-level matching (same algorithm as
-        // the frontend/Dart `_computeScore`).
-        let mut scored: Vec<(f64, &models::SongItem, String)> = Vec::new();
-        for (i, s) in songs.iter().enumerate() {
-            let s_name = if s.name.is_empty() {
-                s.first.as_deref().unwrap_or("")
-            } else {
-                &s.name
-            };
-            let s_artist = if !s.ar.is_empty() {
-                s.ar.iter()
-                    .map(|a| a.name.as_str())
-                    .collect::<Vec<_>>()
-                    .join("/")
-            } else if !s.artists.is_empty() {
-                s.artists.iter()
-                    .map(|a| a.name.as_str())
-                    .collect::<Vec<_>>()
-                    .join("/")
-            } else {
-                s.second.as_deref().unwrap_or("").to_string()
-            };
-            let s_album = s.al.as_ref()
-                .or(s.album.as_ref())
-                .map(|a| a.name.as_str())
-                .unwrap_or("");
-
-            let score = compute_match_score(name, artist, "", s_name, &s_artist, s_album);
-            let raw_id = mapper::val_to_string(&s.id);
-
-            log::info!(
-                "[netease] match_song:   #{} \"{}\" - \"{}\" id={} score={:.4}",
-                i + 1, s_name, s_artist, raw_id, score
-            );
-
-            scored.push((score, s, raw_id));
-        }
-
-        // Sort by score descending
-        scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
-
-        let (score, best, raw_id) = &scored[0];
-
-        let winner_artist = if !best.ar.is_empty() {
-            best.ar.iter().map(|a| a.name.as_str()).collect::<Vec<_>>().join("/")
-        } else if !best.artists.is_empty() {
-            best.artists.iter().map(|a| a.name.as_str()).collect::<Vec<_>>().join("/")
-        } else {
-            best.second.as_deref().unwrap_or("").to_string()
-        };
-
-        log::info!(
-            "[netease] match_song: WINNER \"{}\" - \"{}\" id={} score={:.4} (out of {} candidates)",
-            if best.name.is_empty() { best.first.as_deref().unwrap_or("?") } else { &best.name },
-            winner_artist,
-            raw_id,
-            score,
-            scored.len()
-        );
-
-        let best_name = if best.name.is_empty() {
-            best.first.as_deref().unwrap_or("").to_string()
-        } else {
-            best.name.clone()
-        };
-        let best_artist = if !best.ar.is_empty() {
-            best.ar.iter().map(|a| a.name.clone()).collect::<Vec<_>>().join("/")
-        } else if !best.artists.is_empty() {
-            best.artists.iter().map(|a| a.name.clone()).collect::<Vec<_>>().join("/")
-        } else {
-            best.second.as_deref().unwrap_or("").to_string()
-        };
-
-        Ok(Some(MatchResult {
-            adapter_slug: "netease".into(),
-            song_id: format!("netease_song_{}", raw_id),
-            numeric_id: raw_id.clone(),
-            name: best_name,
-            artist: best_artist,
-            score: *score,
-            amll_db_tag: "ncm".into(),
-        }))
-    }
-
     // ── Account ──
 
     async fn login_qr_url(&self) -> Result<(String, String)> {
@@ -995,12 +798,6 @@ impl Adapter for NeteaseAdapter {
             }
         }
 
-        log::info!(
-            "[netease] get_top_playlists: {} official, {} featured",
-            official.len(),
-            featured.len()
-        );
-
         Ok(vec![
             TopPlaylistGroup {
                 name: "Official".into(),
@@ -1056,8 +853,6 @@ impl Adapter for NeteaseAdapter {
             .map(|(name, tags)| PlaylistCategory { name, tags })
             .collect();
 
-        log::info!("[netease] get_playlist_cats: {} categories", cats.len());
-
         Ok(cats)
     }
 
@@ -1091,15 +886,6 @@ impl Adapter for NeteaseAdapter {
             let total = resp.total.unwrap_or(0.0) as usize;
             let has_more = total > (offset + limit) as usize;
 
-            log::info!(
-                "[netease] get_playlist_square hq cat={} offset={} count={} total={} more={}",
-                cat,
-                offset,
-                playlists.len(),
-                total,
-                has_more
-            );
-
             Ok((playlists, if has_more { total } else { 0 }))
         } else {
             let body = self
@@ -1125,16 +911,6 @@ impl Adapter for NeteaseAdapter {
             let total = resp.total.unwrap_or(0.0) as usize;
             let has_more = resp.more.unwrap_or(false)
                 || total > (offset + limit) as usize;
-
-            log::info!(
-                "[netease] get_playlist_square cat={} order={} offset={} count={} total={} more={}",
-                cat,
-                order,
-                offset,
-                playlists.len(),
-                total,
-                has_more
-            );
 
             Ok((playlists, if has_more { total } else { 0 }))
         }

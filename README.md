@@ -57,7 +57,7 @@ NonsPlayer的诞生离不开以下优秀产品的启发：
 ## 🙏 特别鸣谢
 
 - **[Zhuym](https://github.com/Zhuym07), [GooGuJiang](https://github.com/GooGuJiang)** - 为图标与 UI 设计提供重要帮助。
-- **[NeteaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi)**
+- **[NeteaseCloudMusicApiEnhanced](https://github.com/NeteaseCloudMusicApiEnhanced/api-enhanced/)**
 - **[Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics)**
 - **[amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)**
 

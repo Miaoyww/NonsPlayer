@@ -3,19 +3,37 @@ mod commands;
 mod error;
 mod models;
 mod player;
+mod server;
 mod services;
 
-use std::sync::Arc;
+use std::process::Child;
+use std::sync::{Arc, Mutex};
 
 use adapters::AdapterManager;
 use player::play_queue::PlayQueue;
 use services::http;
+use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind};
 
 pub struct AppState {
     pub adapters: AdapterManager,
     pub http_client: reqwest::Client,
     pub play_queue: Arc<PlayQueue>,
+}
+
+/// Holds the Netease API server child process handle.
+/// On drop, kills the child process.
+pub struct ServerProcess(pub Mutex<Option<Child>>);
+
+impl Drop for ServerProcess {
+    fn drop(&mut self) {
+        if let Ok(mut guard) = self.0.lock() {
+            if let Some(ref mut child) = *guard {
+                let _ = child.kill();
+                log::info!("[server] Netease API server stopped");
+            }
+        }
+    }
 }
 
 #[tauri::command]
@@ -47,6 +65,16 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(state)
+        .manage(ServerProcess(Mutex::new(None)))
+        .setup(|app| {
+            // Start the Netease API Express server in the background
+            let child = server::start_api_server();
+            let server_handle = app.state::<ServerProcess>();
+            if let Ok(mut guard) = server_handle.0.lock() {
+                *guard = child;
+            }
+            Ok(())
+        })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -85,16 +113,6 @@ pub fn run() {
             commands::music::get_top_playlists,
             commands::music::get_playlist_cats,
             commands::music::get_playlist_square,
-            commands::music::match_song_across_adapters,
-            // lyric cache
-            commands::lyric_cache::get_app_lyric_dir,
-            commands::lyric_cache::save_ttml_cache,
-            commands::lyric_cache::get_ttml_cache,
-            commands::lyric_cache::clear_ttml_cache,
-            commands::lyric_cache::delete_ttml_cache,
-            commands::lyric_cache::get_ttml_cache_stats,
-            commands::lyric_cache::save_lyric_map,
-            commands::lyric_cache::get_lyric_map,
             // player
             commands::player::play,
             commands::player::pause,

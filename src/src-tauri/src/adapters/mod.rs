@@ -30,10 +30,6 @@ pub struct AdapterMetadata {
     pub description: String,
     pub version: String,
     pub capabilities: Vec<CapabilityType>,
-    /// Tag used for AMLL TTML DB folder lookup (e.g. "ncm", "qq").
-    /// Empty string means this adapter doesn't support AMLL DB.
-    #[serde(default)]
-    pub amll_db_tag: String,
 }
 
 /// Search result aggregation
@@ -43,25 +39,6 @@ pub struct SearchResult {
     pub albums: Vec<Album>,
     pub artists: Vec<Artist>,
     pub playlists: Vec<Playlist>,
-}
-
-/// Result of matching a local song (name + artist) to an online platform.
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MatchResult {
-    pub adapter_slug: String,
-    /// Adapter-prefixed song ID (e.g. "netease_song_1010728767").
-    pub song_id: String,
-    /// Raw platform numeric ID, suitable for AMLL TTML DB lookup.
-    pub numeric_id: String,
-    pub name: String,
-    pub artist: String,
-    /// 0.0 – 1.0 character-level match score.
-    pub score: f64,
-    /// AMLL DB tag (e.g. "ncm") copied from the adapter metadata.
-    /// Empty string means this adapter doesn't support AMLL DB.
-    #[serde(default)]
-    pub amll_db_tag: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -102,12 +79,6 @@ pub trait Adapter: Send + Sync {
 
     // -- Search --
     async fn search(&self, keyword: &str) -> Result<SearchResult>;
-
-    /// Match a local song (by name + artist) to this adapter's platform.
-    /// Returns `Ok(None)` if the adapter doesn't support matching (e.g. local adapter).
-    async fn match_song(&self, _name: &str, _artist: &str) -> Result<Option<MatchResult>> {
-        Ok(None)
-    }
 
     // -- Account (default: not supported) --
     async fn login_qr_url(&self) -> Result<(String, String)> {

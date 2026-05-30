@@ -23,23 +23,14 @@ export interface LyricLine {
 export enum LyricSourceType {
   /** Embedded or external .lrc file */
   local = "local",
-  /** AMLL TTML DB (word-level synced lyrics) */
-  amll = "amll",
-  /** Adapter's native lyric API (fallback, typically LRC) */
+  /** Adapter's native lyric API (typically LRC or YRC) */
   platform = "platform",
 }
 
 export interface LyricSource {
   source: LyricSourceType;
-  /** Song ID used for AMLL TTML DB lookup */
-  ttmlId?: string;
   /** Which adapter provides this song */
   adapterSlug?: string;
-  /** Song ID for adapter platform fallback */
+  /** Song ID for adapter platform */
   adapterSongId?: string;
-  /** AMLL DB tag (e.g. "ncm") for platform-specific lyrics folder */
-  amllDbTag?: string;
 }
-
-/** Maps `"adapterSlug:songId"` → LyricSource */
-export type LyricMap = Record<string, LyricSource>;
