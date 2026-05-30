@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { Settings, Info, X } from "@lucide/svelte";
+  import { Settings, Info, X, Folder } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import GeneralPage from "./pages/common/general.svelte";
+  import LocalPage from "./pages/common/local.svelte";
   import AboutPage from "./pages/common/about.svelte";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import * as Dialog from "$lib/components/ui/dialog";
@@ -9,7 +10,7 @@
   const version = __APP_VERSION__;
 
   let activeSection = $state<Section>("general");
-  type Section = "general" | "about";
+  type Section = "general" | "local" | "about";
 
   interface NavItem {
     key: Section;
@@ -19,6 +20,7 @@
 
   let NAV_TOP: NavItem[] = $state([
     { key: "general", label: "常规", icon: Settings },
+    { key: "local", label: "本地", icon: Folder },
   ]);
   let NAV_BOTTOM: NavItem[] = $state([
     { key: "about", label: "关于", icon: Info },
@@ -93,6 +95,7 @@
           <ScrollArea class="h-full w-full">
             <div class="p-10">
               {#if activeSection === "general"}<GeneralPage />{/if}
+              {#if activeSection === "local"}<LocalPage />{/if}
               {#if activeSection === "about"}<AboutPage />{/if}
             </div>
           </ScrollArea>
