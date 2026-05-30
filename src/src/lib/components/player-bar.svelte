@@ -165,7 +165,7 @@
 {#if hasSong}
   <div
     class="fixed bottom-3 left-3 right-3 h-20 rounded-xl border border-border/50 bg-background/95 backdrop-blur shadow-lg flex items-center gap-4 px-4 z-40"
-    transition:fly={{ y: 20, duration: 250 }}
+    in:fly={{ y: 16, duration: 300, opacity: 0 }}
   >
   <!-- Left: song info -->
   <div class="flex items-center gap-3 w-56 shrink-0">
@@ -261,7 +261,7 @@
         {/if}
       </Button>
       {#if showVolumeSlider}
-        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 p-2 bg-background border border-border rounded-lg shadow-lg" transition:fly={{ y: 5, duration: 150 }}>
+        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 p-2 bg-background border border-border rounded-lg shadow-lg" in:fly={{ y: 16, duration: 300, opacity: 0 }}>
           <input
             type="range"
             min="0" max="100" value={playerService.volume * 100}

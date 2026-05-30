@@ -24,7 +24,7 @@
 
 <div
   class="grid h-full grid-rows-2"
-  in:fly={{ y: 8, duration: 320, opacity: 0 }}
+  in:fly={{ y: 16, duration: 300, opacity: 0 }}
 >
   <div>
     <div class="mb-1 flex justify-center">

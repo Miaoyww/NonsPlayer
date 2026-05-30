@@ -8,7 +8,7 @@
 
 <div
   class="grid grid-rows-[auto_1fr] gap-4 pt-8 pl-8 pr-8 h-full overflow-hidden"
-  transition:fly={{ y: -20, duration: 200 }}
+  in:fly={{ y: 16, duration: 300, opacity: 0 }}
 >
   <!-- ===== 上半部分：问候语 + 最爱歌单 ===== -->
   <div class="flex flex-col gap-4 min-h-0 overflow-hidden">

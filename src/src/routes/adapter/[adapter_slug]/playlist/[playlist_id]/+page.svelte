@@ -83,7 +83,7 @@
 
 <div
   class="h-[calc(100vh-36px)] overflow-y-auto"
-  transition:fly={{ y: -20, duration: 200 }}
+  in:fly={{ y: 16, duration: 300, opacity: 0 }}
 >
   {#if loading}
     <!-- ===== Skeleton ===== -->

@@ -51,7 +51,7 @@
 
 <div
   class="grid grid-rows-[auto_1fr] gap-6 px-8 py-6 h-full overflow-hidden"
-  transition:fly={{ y: -20, duration: 200 }}
+  in:fly={{ y: 16, duration: 300, opacity: 0 }}
 >
   <!-- ===== 上半：在线适配器卡片 ===== -->
   <div class="shrink-0">

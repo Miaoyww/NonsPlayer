@@ -57,7 +57,7 @@
         {/if}
         <div class="folder-list">
           {#each localFolders as folder, i}
-            <div class="folder-item" transition:fly={{ y: -10, duration: 200 }}>
+            <div class="folder-item" in:fly={{ y: 16, duration: 300, opacity: 0 }}>
               <Folder class="size-4 text-amber-500 shrink-0" />
               <span class="folder-path">{folder}</span>
               <button class="folder-remove" onclick={() => removeFolder(i)}>

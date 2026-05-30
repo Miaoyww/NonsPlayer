@@ -10,7 +10,7 @@
   import { globalSettings } from "$lib/stores/global-settings-store";
 </script>
 
-<div class="space-y-8" in:fly={{ y: 8, duration: 320, opacity: 0 }}>
+<div class="space-y-8" in:fly={{ y: 16, duration: 300, opacity: 0 }}>
   <!-- 界面 -->
   <div>
     <div class="mb-1 text-xl font-bold text-stone-800 dark:text-stone-100">

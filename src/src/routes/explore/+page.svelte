@@ -24,7 +24,7 @@
 
 <div
 	class="flex h-full overflow-hidden"
-	transition:fly={{ y: -20, duration: 200 }}
+	in:fly={{ y: 16, duration: 300, opacity: 0 }}
 >
 	<!-- 左侧导航 -->
 	<div class="flex w-50 shrink-0 flex-col bg-muted/50">
