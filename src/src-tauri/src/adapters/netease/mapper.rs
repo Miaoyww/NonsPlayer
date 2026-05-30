@@ -13,6 +13,10 @@ pub fn val_to_string(v: &serde_json::Value) -> String {
     }
 }
 
+fn cover_url(base: &str, size: &str) -> String {
+    if base.is_empty() { String::new() } else { format!("{}?param={}", base, size) }
+}
+
 fn artist_item_to_artist(a: &super::models::ArtistItem) -> Artist {
     Artist {
         id: format!("netease_artist_{}", val_to_string(&a.id)),
@@ -54,9 +58,9 @@ pub fn map_song(raw: &SongItem) -> Song {
     let album = Album {
         id: format!("netease_album_{}", album_id),
         name: album_name.clone(),
-        avatar_url: format!("{}?param=300y300", album_pic),
-        small_avatar_url: format!("{}?param=50y50", album_pic),
-        middle_avatar_url: format!("{}?param=200y200", album_pic),
+        avatar_url: cover_url(album_pic, "300y300"),
+        small_avatar_url: cover_url(album_pic, "50y50"),
+        middle_avatar_url: cover_url(album_pic, "200y200"),
         artists: artists.clone(),
         artists_name: artists.iter().map(|a| a.name.clone()).collect::<Vec<_>>().join("/"),
         adapter_slug: "netease".into(),
@@ -70,8 +74,8 @@ pub fn map_song(raw: &SongItem) -> Song {
         id: format!("netease_song_{}", id),
         name,
         avatar_url: avatar_url.clone(),
-        small_avatar_url: format!("{}?param=50y50", avatar_url),
-        middle_avatar_url: format!("{}?param=200y200", avatar_url),
+        small_avatar_url: cover_url(&avatar_url, "50y50"),
+        middle_avatar_url: cover_url(&avatar_url, "200y200"),
         album,
         artists,
         duration,
@@ -107,9 +111,9 @@ pub fn map_search_playlist(raw: &CloudSearchPlaylist) -> Playlist {
     Playlist {
         id: format!("netease_playlist_{}", id),
         name: name.clone(),
-        avatar_url: format!("{}?param=300y300", cover),
-        small_avatar_url: format!("{}?param=50y50", cover),
-        middle_avatar_url: format!("{}?param=200y200", cover),
+        avatar_url: cover_url(cover, "300y300"),
+        small_avatar_url: cover_url(cover, "50y50"),
+        middle_avatar_url: cover_url(cover, "200y200"),
         title: name,
         creator,
         description: raw.description.clone().unwrap_or_default(),
@@ -141,9 +145,9 @@ pub fn map_recommend_playlist(raw: &RecommendPlaylistItem) -> Playlist {
     Playlist {
         id: format!("netease_playlist_{}", id),
         name: name.clone(),
-        avatar_url: format!("{}?param=300y300", cover),
-        small_avatar_url: format!("{}?param=50y50", cover),
-        middle_avatar_url: format!("{}?param=200y200", cover),
+        avatar_url: cover_url(cover, "300y300"),
+        small_avatar_url: cover_url(cover, "50y50"),
+        middle_avatar_url: cover_url(cover, "200y200"),
         title: name,
         creator,
         description: raw.copywriter.clone().unwrap_or_default(),
@@ -182,9 +186,9 @@ pub fn map_playlist_full(raw: &PlaylistDetailResponse) -> Playlist {
     Playlist {
         id: format!("netease_playlist_{}", id),
         name: name.clone(),
-        avatar_url: format!("{}?param=300y300", cover),
-        small_avatar_url: format!("{}?param=50y50", cover),
-        middle_avatar_url: format!("{}?param=200y200", cover),
+        avatar_url: cover_url(cover, "300y300"),
+        small_avatar_url: cover_url(cover, "50y50"),
+        middle_avatar_url: cover_url(cover, "200y200"),
         title: name,
         creator,
         create_time,
@@ -215,9 +219,9 @@ pub fn map_cloudsearch_album(raw: &CloudSearchAlbum) -> Album {
     Album {
         id: format!("netease_album_{}", id),
         name: raw.name.clone(),
-        avatar_url: format!("{}?param=300y300", cover),
-        small_avatar_url: format!("{}?param=50y50", cover),
-        middle_avatar_url: format!("{}?param=200y200", cover),
+        avatar_url: cover_url(cover, "300y300"),
+        small_avatar_url: cover_url(cover, "50y50"),
+        middle_avatar_url: cover_url(cover, "200y200"),
         artists: vec![artist.clone()],
         artists_name: artist.name,
         adapter_slug: "netease".into(),
@@ -269,9 +273,9 @@ pub fn map_toplist_item(raw: &ToplistItem) -> Playlist {
     Playlist {
         id: format!("netease_playlist_{}", id),
         name: name.clone(),
-        avatar_url: format!("{}?param=300y300", cover),
-        small_avatar_url: format!("{}?param=50y50", cover),
-        middle_avatar_url: format!("{}?param=200y200", cover),
+        avatar_url: cover_url(cover, "300y300"),
+        small_avatar_url: cover_url(cover, "50y50"),
+        middle_avatar_url: cover_url(cover, "200y200"),
         title: name,
         creator,
         description: format!("{}|{}", description, update_tip),
