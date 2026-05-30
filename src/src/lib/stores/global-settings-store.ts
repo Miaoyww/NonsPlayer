@@ -13,8 +13,6 @@ export interface GlobalSettings {
 	localMusicFolders: string[];
 	/** 界面语言 */
 	language: 'zh-cn' | 'en';
-	/** 网易云 API 代理地址 */
-	neteaseApiBase: string;
 }
 
 const STORAGE_KEY = 'nonsplayer_settings';
@@ -25,7 +23,6 @@ const DEFAULTS: GlobalSettings = {
 	theme: 'system',
 	localMusicFolders: [],
 	language: 'zh-cn',
-	neteaseApiBase: 'http://localhost:3000',
 };
 
 function loadSettings(): GlobalSettings {

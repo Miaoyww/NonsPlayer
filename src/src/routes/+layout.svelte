@@ -33,7 +33,6 @@
     try {
       await adapterStore.initialize({
         localMusicDirs: $globalSettings.localMusicFolders,
-        neteaseApiBase: $globalSettings.neteaseApiBase || undefined,
       });
     } catch (e) {
       console.warn("Failed to initialize adapters:", e);

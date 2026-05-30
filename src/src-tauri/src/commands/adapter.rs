@@ -15,9 +15,6 @@ pub struct AdapterConfig {
     /// Local music directories to scan.
     #[serde(default)]
     pub local_music_dirs: Vec<String>,
-    /// Base URL for the NeteaseCloudMusicApi proxy (default: http://localhost:3000).
-    #[serde(default)]
-    pub netease_api_base: Option<String>,
 }
 
 #[tauri::command]
@@ -40,9 +37,8 @@ pub fn init_adapters(
     state: State<'_, AppState>,
 ) -> Result<Vec<AdapterMetadata>, String> {
     log::info!(
-        "[init_adapters] local_dirs={:?}, netease_api={:?}",
+        "[init_adapters] local_dirs={:?}",
         config.local_music_dirs,
-        config.netease_api_base
     );
 
     // Local adapter
@@ -60,13 +56,9 @@ pub fn init_adapters(
         log::info!("[init_adapters] no local music dirs configured, skipping local adapter");
     }
 
-    // Netease adapter
-    if let Some(ref api_base) = config.netease_api_base {
-        let netease = NeteaseAdapter::new(Some(api_base.clone()));
-        state.adapters.register(netease);
-    } else {
-        log::info!("[init_adapters] no netease api base configured, skipping netease adapter");
-    }
+    // Netease adapter — always registered (self-contained, no external proxy needed)
+    let netease = NeteaseAdapter::new();
+    state.adapters.register(netease);
 
     let list = state.adapters.list();
     log::info!("[init_adapters] done, {} adapter(s) registered", list.len());
