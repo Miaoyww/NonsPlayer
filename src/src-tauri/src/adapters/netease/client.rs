@@ -170,6 +170,12 @@ impl NeteaseClient {
             .map(|(k, v)| (k.as_str(), v.as_str()))
             .collect();
 
+        log::debug!("[netease] POST {} (crypto={})", url, match crypto_type {
+            CryptoType::Weapi => "weapi",
+            CryptoType::Eapi => "eapi",
+            CryptoType::Api => "api",
+        });
+
         let resp = self
             .http
             .post(url)
@@ -180,6 +186,8 @@ impl NeteaseClient {
             .send()
             .await
             .map_err(Error::Http)?;
+
+        log::debug!("[netease] response status={}", resp.status());
 
         if is_binary_response {
             // eapi response: binary, decrypt with AES-128-ECB

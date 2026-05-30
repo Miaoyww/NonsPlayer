@@ -1,16 +1,22 @@
 use serde::Deserialize;
 
+// All Netease API responses use camelCase field names. This attribute
+// automatically maps track_count -> trackCount, pic_url -> picUrl, etc.
+// Single-word fields (id, name, dt, fee, etc.) are unaffected.
+
 // ── /api/v3/song/detail ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SongDetailResponse {
     pub songs: Vec<SongItem>,
     pub code: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SongItem {
-    pub id: serde_json::Value, // can be number or string
+    pub id: serde_json::Value,
     pub name: String,
     #[serde(default)]
     pub dt: f64,
@@ -31,36 +37,36 @@ pub struct SongItem {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ArtistItem {
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub pic_url: Option<String>,
-    #[serde(alias = "picUrl")]
-    pub pic_url_alt: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct AlbumItem {
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub pic_url: Option<String>,
-    #[serde(alias = "picUrl")]
-    pub pic_url_alt: Option<String>,
 }
 
 // ── /eapi/song/enhance/player/url/v1 ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SongUrlResponse {
     pub data: Vec<SongUrlItem>,
     pub code: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SongUrlItem {
     pub id: Option<serde_json::Value>,
     #[serde(default)]
@@ -84,6 +90,7 @@ pub struct SongUrlItem {
 // ── /eapi/song/lyric/v1 ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LyricResponse {
     #[serde(default)]
     pub lrc: Option<LyricBlock>,
@@ -101,6 +108,7 @@ pub struct LyricResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LyricBlock {
     #[serde(default)]
     pub version: i64,
@@ -111,6 +119,7 @@ pub struct LyricBlock {
 // ── /api/song/lyric (legacy, plain) ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LegacyLyricResponse {
     #[serde(default)]
     pub lrc: Option<LyricBlock>,
@@ -122,20 +131,20 @@ pub struct LegacyLyricResponse {
 // ── /weapi/v1/album/<id> ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AlbumResponse {
     pub album: AlbumDetail,
     pub code: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AlbumDetail {
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub pic_url: Option<String>,
-    #[serde(alias = "picUrl")]
-    pub pic_url_alt: Option<String>,
     #[serde(default)]
     pub artist: Option<ArtistItem>,
     #[serde(default)]
@@ -153,6 +162,7 @@ pub struct AlbumDetail {
 // ── /weapi/v1/artist/<id> ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ArtistResponse {
     pub artist: ArtistDetail,
     #[serde(default)]
@@ -161,14 +171,13 @@ pub struct ArtistResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ArtistDetail {
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub pic_url: Option<String>,
-    #[serde(alias = "picUrl")]
-    pub pic_url_alt: Option<String>,
     #[serde(default)]
     pub brief_desc: Option<String>,
     #[serde(default)]
@@ -182,6 +191,7 @@ pub struct ArtistDetail {
 // ── /api/v6/playlist/detail ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlaylistDetailResponse {
     pub playlist: PlaylistDetail,
     pub code: Option<i64>,
@@ -190,14 +200,13 @@ pub struct PlaylistDetailResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlaylistDetail {
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub cover_img_url: Option<String>,
-    #[serde(alias = "coverImgUrl")]
-    pub cover_img_url_alt: Option<String>,
     #[serde(default)]
     pub track_count: Option<f64>,
     #[serde(default)]
@@ -221,11 +230,13 @@ pub struct PlaylistDetail {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrackIdItem {
     pub id: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlaylistCreator {
     #[serde(default)]
     pub nickname: String,
@@ -234,12 +245,14 @@ pub struct PlaylistCreator {
 // ── /eapi/cloudsearch/pc ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CloudSearchResponse {
     pub result: CloudSearchResult,
     pub code: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CloudSearchResult {
     #[serde(default)]
     pub song_count: Option<f64>,
@@ -260,38 +273,35 @@ pub struct CloudSearchResult {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CloudSearchAlbum {
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub pic_url: Option<String>,
-    #[serde(alias = "picUrl")]
-    pub pic_url_alt: Option<String>,
     #[serde(default)]
     pub artist: Option<ArtistItem>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CloudSearchArtist {
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub pic_url: Option<String>,
-    #[serde(alias = "picUrl")]
-    pub pic_url_alt: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CloudSearchPlaylist {
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub cover_img_url: Option<String>,
-    #[serde(alias = "coverImgUrl")]
-    pub cover_img_url_alt: Option<String>,
     #[serde(default)]
     pub track_count: Option<f64>,
     #[serde(default)]
@@ -311,12 +321,14 @@ pub struct CloudSearchPlaylist {
 // ── /weapi/login/qrcode/unikey ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct QrKeyResponse {
     pub data: QrKeyData,
     pub code: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct QrKeyData {
     #[serde(default)]
     pub unikey: Option<String>,
@@ -326,6 +338,7 @@ pub struct QrKeyData {
 // ── /weapi/login/qrcode/client/login ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct QrCheckResponse {
     pub code: Option<i64>,
     #[serde(default)]
@@ -337,6 +350,7 @@ pub struct QrCheckResponse {
 // ── /api/nuser/account/get ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserAccountResponse {
     pub account: Option<AccountInfo>,
     pub profile: Option<ProfileInfo>,
@@ -344,6 +358,7 @@ pub struct UserAccountResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AccountInfo {
     pub id: serde_json::Value,
     #[serde(default)]
@@ -351,6 +366,7 @@ pub struct AccountInfo {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProfileInfo {
     #[serde(default)]
     pub user_id: Option<serde_json::Value>,
@@ -358,8 +374,6 @@ pub struct ProfileInfo {
     pub nickname: Option<String>,
     #[serde(default)]
     pub avatar_url: Option<String>,
-    #[serde(alias = "avatarUrl")]
-    pub avatar_url_alt: Option<String>,
     #[serde(default)]
     pub signature: Option<String>,
     #[serde(default)]
@@ -377,6 +391,7 @@ pub struct ProfileInfo {
 // ── /api/user/playlist ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserPlaylistResponse {
     #[serde(default)]
     pub playlist: Vec<CloudSearchPlaylist>,
@@ -388,6 +403,7 @@ pub struct UserPlaylistResponse {
 // ── /weapi/v1/discovery/recommend/resource ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecommendResourceResponse {
     #[serde(default)]
     pub recommend: Vec<RecommendPlaylistItem>,
@@ -397,6 +413,7 @@ pub struct RecommendResourceResponse {
 // ── /weapi/personalized/playlist ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PersonalizedResponse {
     #[serde(default)]
     pub result: Vec<RecommendPlaylistItem>,
@@ -404,14 +421,13 @@ pub struct PersonalizedResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecommendPlaylistItem {
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub pic_url: Option<String>,
-    #[serde(alias = "picUrl")]
-    pub pic_url_alt: Option<String>,
     #[serde(default)]
     pub track_count: Option<f64>,
     #[serde(default)]
@@ -425,12 +441,14 @@ pub struct RecommendPlaylistItem {
 // ── /api/v3/discovery/recommend/songs ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecommendSongsResponse {
     pub data: RecommendSongsData,
     pub code: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecommendSongsData {
     #[serde(default)]
     pub daily_songs: Vec<SongItem>,
@@ -441,6 +459,7 @@ pub struct RecommendSongsData {
 // ── /api/register/anonimous ──
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RegisterAnonymousResponse {
     pub code: Option<i64>,
     #[serde(default)]

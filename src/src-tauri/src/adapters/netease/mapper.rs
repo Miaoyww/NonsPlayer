@@ -17,16 +17,10 @@ fn artist_item_to_artist(a: &super::models::ArtistItem) -> Artist {
     Artist {
         id: format!("netease_artist_{}", val_to_string(&a.id)),
         name: a.name.clone(),
-        avatar_url: a.pic_url.as_deref().or(a.pic_url_alt.as_deref()).unwrap_or("").to_string(),
+        avatar_url: a.pic_url.as_deref().unwrap_or("").to_string(),
         adapter_slug: "netease".into(),
         ..Artist::empty()
     }
-}
-
-fn song_item_pic_url(s: &SongItem) -> &str {
-    let al = s.al.as_ref().or(s.album.as_ref());
-    al.and_then(|v| v.pic_url.as_deref().or(v.pic_url_alt.as_deref()))
-        .unwrap_or("")
 }
 
 pub fn map_song(raw: &SongItem) -> Song {
@@ -41,7 +35,6 @@ pub fn map_song(raw: &SongItem) -> Song {
     let seconds = (duration % 60.0) as u64;
     let duration_text = format!("{}:{:02}", minutes, seconds);
 
-    // Artists: "ar" from song/detail, "artists" from cloudsearch
     let artists: Vec<Artist> = if !raw.ar.is_empty() {
         raw.ar.iter().map(artist_item_to_artist).collect()
     } else if !raw.artists.is_empty() {
@@ -50,18 +43,13 @@ pub fn map_song(raw: &SongItem) -> Song {
         vec![]
     };
 
-    // Album: "al" from song/detail, "album" from cloudsearch
     let al = raw.al.as_ref().or(raw.album.as_ref());
-    let album_id = al
-        .map(|v| val_to_string(&v.id))
-        .unwrap_or_default();
+    let album_id = al.map(|v| val_to_string(&v.id)).unwrap_or_default();
     let album_name = al
         .and_then(|v| if v.name.is_empty() { None } else { Some(v.name.as_str()) })
         .unwrap_or("")
         .to_string();
-    let album_pic = al
-        .and_then(|v| v.pic_url.as_deref().or(v.pic_url_alt.as_deref()))
-        .unwrap_or("");
+    let album_pic = al.and_then(|v| v.pic_url.as_deref()).unwrap_or("");
 
     let album = Album {
         id: format!("netease_album_{}", album_id),
@@ -102,11 +90,7 @@ pub fn map_song(raw: &SongItem) -> Song {
 pub fn map_search_playlist(raw: &CloudSearchPlaylist) -> Playlist {
     let id = val_to_string(&raw.id);
     let name = raw.name.clone();
-    let cover = raw
-        .cover_img_url
-        .as_deref()
-        .or(raw.cover_img_url_alt.as_deref())
-        .unwrap_or("");
+    let cover = raw.cover_img_url.as_deref().unwrap_or("");
     let track_count = raw.track_count.unwrap_or(0.0) as u32;
     let play_count = raw.play_count.unwrap_or(0.0) as u32;
     let creator = raw
@@ -114,6 +98,11 @@ pub fn map_search_playlist(raw: &CloudSearchPlaylist) -> Playlist {
         .as_ref()
         .map(|c| c.nickname.clone())
         .unwrap_or_default();
+
+    log::debug!(
+        "[netease] map_search_playlist id={} name={} trackCount={} playCount={} creator={}",
+        id, name, track_count, play_count, creator
+    );
 
     Playlist {
         id: format!("netease_playlist_{}", id),
@@ -135,11 +124,7 @@ pub fn map_search_playlist(raw: &CloudSearchPlaylist) -> Playlist {
 pub fn map_recommend_playlist(raw: &RecommendPlaylistItem) -> Playlist {
     let id = val_to_string(&raw.id);
     let name = raw.name.clone();
-    let cover = raw
-        .pic_url
-        .as_deref()
-        .or(raw.pic_url_alt.as_deref())
-        .unwrap_or("");
+    let cover = raw.pic_url.as_deref().unwrap_or("");
     let track_count = raw.track_count.unwrap_or(0.0) as u32;
     let play_count = raw.playcount.unwrap_or(0.0) as u32;
     let creator = raw
@@ -147,6 +132,11 @@ pub fn map_recommend_playlist(raw: &RecommendPlaylistItem) -> Playlist {
         .as_ref()
         .map(|c| c.nickname.clone())
         .unwrap_or_default();
+
+    log::debug!(
+        "[netease] map_recommend_playlist id={} name={} trackCount={} playCount={} creator={}",
+        id, name, track_count, play_count, creator
+    );
 
     Playlist {
         id: format!("netease_playlist_{}", id),
@@ -168,11 +158,7 @@ pub fn map_playlist_full(raw: &PlaylistDetailResponse) -> Playlist {
     let playlist = &raw.playlist;
     let id = val_to_string(&playlist.id);
     let name = playlist.name.clone();
-    let cover = playlist
-        .cover_img_url
-        .as_deref()
-        .or(playlist.cover_img_url_alt.as_deref())
-        .unwrap_or("");
+    let cover = playlist.cover_img_url.as_deref().unwrap_or("");
     let track_count = playlist.track_count.unwrap_or(0.0) as u32;
     let play_count = playlist.play_count.unwrap_or(0.0) as u32;
     let creator = playlist
@@ -216,11 +202,7 @@ pub fn map_playlist_full(raw: &PlaylistDetailResponse) -> Playlist {
 
 pub fn map_cloudsearch_album(raw: &CloudSearchAlbum) -> Album {
     let id = val_to_string(&raw.id);
-    let cover = raw
-        .pic_url
-        .as_deref()
-        .or(raw.pic_url_alt.as_deref())
-        .unwrap_or("");
+    let cover = raw.pic_url.as_deref().unwrap_or("");
     let artist = raw
         .artist
         .as_ref()
@@ -247,12 +229,7 @@ pub fn map_cloudsearch_artist(raw: &CloudSearchArtist) -> Artist {
     Artist {
         id: format!("netease_artist_{}", val_to_string(&raw.id)),
         name: raw.name.clone(),
-        avatar_url: raw
-            .pic_url
-            .as_deref()
-            .or(raw.pic_url_alt.as_deref())
-            .unwrap_or("")
-            .to_string(),
+        avatar_url: raw.pic_url.as_deref().unwrap_or("").to_string(),
         adapter_slug: "netease".into(),
         ..Artist::empty()
     }

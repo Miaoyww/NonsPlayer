@@ -258,18 +258,14 @@ impl Adapter for NeteaseAdapter {
             ),
             name: artist_raw.map(|a| a.name.clone()).unwrap_or_default(),
             avatar_url: artist_raw
-                .and_then(|a| a.pic_url.as_deref().or(a.pic_url_alt.as_deref()))
+                .and_then(|a| a.pic_url.as_deref())
                 .unwrap_or("")
                 .to_string(),
             adapter_slug: "netease".into(),
             ..Artist::empty()
         };
 
-        let cover = album
-            .pic_url
-            .as_deref()
-            .or(album.pic_url_alt.as_deref())
-            .unwrap_or("");
+        let cover = album.pic_url.as_deref().unwrap_or("");
         let songs: Vec<Song> = album.songs.iter().map(map_song).collect();
 
         Ok(Album {
@@ -306,12 +302,7 @@ impl Adapter for NeteaseAdapter {
         Ok(Artist {
             id: format!("netease_artist_{}", mapper::val_to_string(&artist.id)),
             name: artist.name.clone(),
-            avatar_url: artist
-                .pic_url
-                .as_deref()
-                .or(artist.pic_url_alt.as_deref())
-                .unwrap_or("")
-                .to_string(),
+            avatar_url: artist.pic_url.as_deref().unwrap_or("").to_string(),
             description: artist.brief_desc.clone().unwrap_or_default(),
             adapter_slug: "netease".into(),
             ..Artist::empty()
@@ -529,7 +520,7 @@ impl Adapter for NeteaseAdapter {
         let avatar = resp
             .profile
             .as_ref()
-            .and_then(|p| p.avatar_url.as_deref().or(p.avatar_url_alt.as_deref()))
+            .and_then(|p| p.avatar_url.as_deref())
             .unwrap_or("")
             .to_string();
 
@@ -647,6 +638,7 @@ impl Adapter for NeteaseAdapter {
                 .await
             {
                 Ok(body) => {
+                    log::debug!("[netease] recommend/resource raw body: {}", body);
                     let resp: models::RecommendResourceResponse = serde_json::from_value(body)
                         .map_err(|e| Error::Other(format!("parse error: {}", e)))?;
                     resp.recommend
@@ -655,8 +647,8 @@ impl Adapter for NeteaseAdapter {
                         .map(map_recommend_playlist)
                         .collect()
                 }
-                Err(_) => {
-                    // Fall back to anonymous /personalized
+                Err(e) => {
+                    log::debug!("[netease] recommend/resource failed ({}), falling back to /personalized", e);
                     let body = self
                         .client
                         .request_ok(
@@ -665,6 +657,7 @@ impl Adapter for NeteaseAdapter {
                             &serde_json::json!({"limit": count, "total": true, "n": 1000}),
                         )
                         .await?;
+                    log::debug!("[netease] personalized raw body: {}", body);
                     let resp: models::PersonalizedResponse = serde_json::from_value(body)
                         .map_err(|e| Error::Other(format!("parse error: {}", e)))?;
                     resp.result.iter().map(map_recommend_playlist).collect()
@@ -672,6 +665,7 @@ impl Adapter for NeteaseAdapter {
             }
         } else {
             // Anonymous: /personalized
+            log::debug!("[netease] anonymous, using /personalized");
             let body = self
                 .client
                 .request_ok(
@@ -680,6 +674,7 @@ impl Adapter for NeteaseAdapter {
                     &serde_json::json!({"limit": count, "total": true, "n": 1000}),
                 )
                 .await?;
+            log::debug!("[netease] personalized raw body: {}", body);
             let resp: models::PersonalizedResponse = serde_json::from_value(body)
                 .map_err(|e| Error::Other(format!("parse error: {}", e)))?;
             resp.result.iter().map(map_recommend_playlist).collect()
