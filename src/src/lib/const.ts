@@ -7,7 +7,7 @@ export interface MusicAdapter {
 	id: string;
 	name: string;
 	description: string;
-	icon: string; // hugeicons icon name
+	icon: string; // lucide icon name
 	color: string; // tailwind color class
 }
 

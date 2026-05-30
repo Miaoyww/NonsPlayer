@@ -35,8 +35,6 @@
   },
   "devDependencies": {
     "@fontsource-variable/figtree": "^5.2.10",
-    "@hugeicons/core-free-icons": "^4.1.4",
-    "@hugeicons/svelte": "^1.1.2",
     "@internationalized/date": "^3.12.0",
     "@sveltejs/adapter-static": "^3.0.6",
     "@sveltejs/kit": "^2.9.0",
