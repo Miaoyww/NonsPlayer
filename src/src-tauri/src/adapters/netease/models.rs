@@ -474,3 +474,102 @@ pub struct RegisterAnonymousResponse {
     #[serde(default)]
     pub cookie: Option<String>,
 }
+
+// ── /api/toplist/detail ──
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToplistDetailResponse {
+    #[serde(default)]
+    pub list: Vec<ToplistItem>,
+    #[serde(default)]
+    pub code: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToplistItem {
+    pub id: serde_json::Value,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub cover_img_url: Option<String>,
+    #[serde(default)]
+    pub cover_img_url_str: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub track_count: Option<f64>,
+    #[serde(default)]
+    pub play_count: Option<f64>,
+    #[serde(default)]
+    pub update_frequency: Option<String>,
+    #[serde(default)]
+    pub tracks: Vec<SongItem>,
+    #[serde(default)]
+    #[serde(rename = "ToplistType")]
+    pub toplist_type: Option<String>,
+    #[serde(default)]
+    pub creator: Option<PlaylistCreator>,
+    #[serde(default)]
+    pub track_number_update_time: Option<f64>,
+    #[serde(default)]
+    pub track_update_time: Option<f64>,
+    #[serde(default)]
+    pub subscribed_count: Option<f64>,
+    #[serde(default)]
+    pub comment_thread_id: Option<String>,
+}
+
+// ── /playlist/catlist ──
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatlistResponse {
+    #[serde(default)]
+    pub sub: Vec<CatItem>,
+    #[serde(default)]
+    pub categories: Option<serde_json::Map<String, serde_json::Value>>,
+    pub code: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatItem {
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub category: Option<f64>,
+    #[serde(default)]
+    pub hot: bool,
+}
+
+// ── /top/playlist ──
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopPlaylistResponse {
+    #[serde(default)]
+    pub playlists: Vec<CloudSearchPlaylist>,
+    #[serde(default)]
+    pub total: Option<f64>,
+    #[serde(default)]
+    pub more: Option<bool>,
+    pub code: Option<i64>,
+}
+
+// ── /top/playlist/highquality ──
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HighqualityPlaylistResponse {
+    #[serde(default)]
+    pub playlists: Vec<CloudSearchPlaylist>,
+    #[serde(default)]
+    pub total: Option<f64>,
+    #[serde(default)]
+    pub more: Option<bool>,
+    #[serde(default)]
+    pub lasttime: Option<f64>,
+    pub code: Option<i64>,
+}

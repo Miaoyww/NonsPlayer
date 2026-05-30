@@ -2,7 +2,7 @@ use crate::models::{album::Album, artist::Artist, playlist::Playlist, song::Song
 
 use super::models::{
     CloudSearchAlbum, CloudSearchArtist, CloudSearchPlaylist, PlaylistDetailResponse,
-    RecommendPlaylistItem, SongItem,
+    RecommendPlaylistItem, SongItem, ToplistItem,
 };
 
 pub fn val_to_string(v: &serde_json::Value) -> String {
@@ -232,5 +232,54 @@ pub fn map_cloudsearch_artist(raw: &CloudSearchArtist) -> Artist {
         avatar_url: raw.pic_url.as_deref().unwrap_or("").to_string(),
         adapter_slug: "netease".into(),
         ..Artist::empty()
+    }
+}
+
+pub fn map_toplist_item(raw: &ToplistItem) -> Playlist {
+    let id = val_to_string(&raw.id);
+    let name = raw.name.clone();
+    let cover = raw
+        .cover_img_url
+        .as_deref()
+        .or(raw.cover_img_url_str.as_deref())
+        .unwrap_or("");
+    let track_count = raw.track_count.unwrap_or(0.0) as u32;
+    let play_count = raw.play_count.unwrap_or(0.0) as u32;
+    let creator = raw
+        .creator
+        .as_ref()
+        .map(|c| c.nickname.clone())
+        .unwrap_or_default();
+    let description = raw.description.clone().unwrap_or_default();
+    // Build update tip from update_frequency
+    let update_tip = raw
+        .update_frequency
+        .as_ref()
+        .map(|f| format!("{}", f))
+        .unwrap_or_default();
+
+    // Map embedded tracks
+    let musics: Vec<Song> = raw.tracks.iter().map(map_song).collect();
+
+    log::debug!(
+        "[netease] map_toplist_item id={} name={} trackCount={} playCount={} tracks={}",
+        id, name, track_count, play_count, musics.len()
+    );
+
+    Playlist {
+        id: format!("netease_playlist_{}", id),
+        name: name.clone(),
+        avatar_url: format!("{}?param=300y300", cover),
+        small_avatar_url: format!("{}?param=50y50", cover),
+        middle_avatar_url: format!("{}?param=200y200", cover),
+        title: name,
+        creator,
+        description: format!("{}|{}", description, update_tip),
+        musics,
+        is_initialized: true,
+        musics_count: track_count,
+        play_count,
+        adapter_slug: "netease".into(),
+        ..Playlist::empty()
     }
 }

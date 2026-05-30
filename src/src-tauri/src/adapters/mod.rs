@@ -104,6 +104,38 @@ pub trait Adapter: Send + Sync {
     async fn get_daily_recommended(&self) -> Result<Vec<Song>> {
         Err(Error::NotImplemented("recommend not supported".into()))
     }
+
+    // -- Discover (default: not supported) --
+    async fn get_top_playlists(&self) -> Result<Vec<TopPlaylistGroup>> {
+        Err(Error::NotImplemented("top playlists not supported".into()))
+    }
+    async fn get_playlist_cats(&self) -> Result<Vec<PlaylistCategory>> {
+        Err(Error::NotImplemented("playlist cats not supported".into()))
+    }
+    async fn get_playlist_square(
+        &self,
+        _cat: &str,
+        _order: &str,
+        _limit: u32,
+        _offset: u32,
+        _high_quality: bool,
+    ) -> Result<(Vec<Playlist>, usize)> {
+        Err(Error::NotImplemented("playlist square not supported".into()))
+    }
+}
+
+/// A group of playlists (e.g. "Official", "Featured")
+#[derive(Clone, Debug, Serialize)]
+pub struct TopPlaylistGroup {
+    pub name: String,
+    pub playlists: Vec<Playlist>,
+}
+
+/// A playlist category with its tags
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PlaylistCategory {
+    pub name: String,
+    pub tags: Vec<String>,
 }
 
 /// Thread-safe adapter registry.

@@ -10,6 +10,8 @@ import type { Album } from "$lib/types/album";
 import type { Artist } from "$lib/types/artist";
 import type { Playlist } from "$lib/types/playlist";
 import type { Account } from "$lib/types/account";
+import type { TopPlaylistGroup } from "$lib/types/top-playlist";
+import type { PlaylistCategory } from "$lib/types/playlist-category";
 
 // -- Adapter management --
 
@@ -100,4 +102,32 @@ export function getRecommendedPlaylists(
 
 export function getDailyRecommended(adapter: string): Promise<Song[]> {
   return invoke("get_daily_recommended", { adapter });
+}
+
+// -- Discover --
+
+export function getTopPlaylists(adapter: string): Promise<TopPlaylistGroup[]> {
+  return invoke("get_top_playlists", { adapter });
+}
+
+export function getPlaylistCats(adapter: string): Promise<PlaylistCategory[]> {
+  return invoke("get_playlist_cats", { adapter });
+}
+
+export function getPlaylistSquare(
+  adapter: string,
+  cat: string,
+  order: string,
+  limit: number,
+  offset: number,
+  highQuality: boolean,
+): Promise<[Playlist[], number]> {
+  return invoke("get_playlist_square", {
+    adapter,
+    cat,
+    order,
+    limit,
+    offset,
+    highQuality,
+  });
 }

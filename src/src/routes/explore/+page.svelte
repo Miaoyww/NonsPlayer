@@ -1,100 +1,60 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { goto } from "$app/navigation";
-  import { adapterStore } from "$lib/stores/adapter-store.svelte";
-  import { getRecommendedPlaylists } from "$lib/services/adapter-service";
-  import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
-  import PlaylistCard from "$lib/components/cards/playlist/playlist-card.svelte";
-  import { Compass, Sparkles } from "@lucide/svelte";
-  import type { Playlist } from "$lib/types";
-  import { fly } from "svelte/transition";
+	import { Compass, Sparkles, ChartColumn, LayoutGrid } from "@lucide/svelte";
+	import Button from "$lib/components/ui/button/button.svelte";
+	import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
+	import RecommendedTab from "$lib/components/explore/recommended-tab.svelte";
+	import ToplistTab from "$lib/components/explore/toplist-tab.svelte";
+	import PlaylistSquareTab from "$lib/components/explore/playlist-square-tab.svelte";
+	import { fly } from "svelte/transition";
 
-  let playlists = $state<Playlist[]>([]);
-  let loading = $state(false);
+	type Section = "recommended" | "toplist" | "square";
 
-  onMount(async () => {
-    await adapterStore.refresh();
-    loading = true;
+	let activeSection = $state<Section>("recommended");
 
-    // Try each adapter for recommendations
-    for (const a of adapterStore.adapters) {
-      try {
-        const recs = await getRecommendedPlaylists(a.slug, 20);
-        if (recs.length > 0) {
-          playlists = recs;
-          break;
-        }
-      } catch {
-        // adapter doesn't support recommend
-      }
-    }
+	type NavItem = { key: Section; label: string; icon: typeof Compass };
 
-    // Fallback: use dummy data if no recommendations available
-    if (playlists.length === 0) {
-      playlists = getDummyPlaylists();
-    }
-
-    loading = false;
-  });
-
-  function goPlaylist(playlist: { id: string; adapterSlug: string }) {
-    goto(`/adapter/${playlist.adapterSlug}/playlist/${encodeURIComponent(playlist.id)}`);
-  }
-
-  function getDummyPlaylists(): Playlist[] {
-    const names = [
-      "在路上-2026", "深夜安静学习", "动漫金曲精选", "午后咖啡时光",
-      "R&B式情绪过肺", "日语｜温柔治愈", "电子｜深夜代码冲刺",
-      "说唱｜中文说唱精选", "古典｜专注阅读时光", "民谣｜旅途中的故事",
-      "摇滚｜热血公路旅行", "爵士｜深夜咖啡馆", "轻音乐｜雨天阅读",
-    ];
-    return names.map((name) => ({
-      id: name,
-      md5: "",
-      name,
-      shareUrl: "",
-      avatarUrl: "",
-      smallAvatarUrl: "",
-      middleAvatarUrl: "",
-      title: name,
-      creator: "NonsPlayer",
-      createTime: "",
-      description: "",
-      musicTrackIds: [],
-      tags: [],
-      musics: [],
-      isInitialized: true,
-      playCount: Math.floor(Math.random() * 500),
-      musicsCount: Math.floor(Math.random() * 150),
-      adapterSlug: "local",
-    }));
-  }
+	const navItems: NavItem[] = [
+		{ key: "recommended", label: "推荐歌单", icon: Sparkles },
+		{ key: "toplist", label: "雷达歌单", icon: ChartColumn },
+		{ key: "square", label: "歌单广场", icon: LayoutGrid },
+	];
 </script>
 
 <div
-  class="flex flex-col gap-4 px-8 py-6 h-full overflow-hidden"
-  transition:fly={{ y: -20, duration: 200 }}
+	class="flex h-full overflow-hidden"
+	transition:fly={{ y: -20, duration: 200 }}
 >
-  <div class="flex items-center gap-2 shrink-0">
-    <Compass class="size-5 text-foreground" />
-    <h1 class="text-xl font-bold text-foreground">发现</h1>
-  </div>
+	<!-- 左侧导航 -->
+	<div class="flex w-50 shrink-0 flex-col bg-muted/50">
+		<div class="px-5 pt-5 pb-2">
+			<div class="flex items-center gap-2">
+				<Compass class="size-5 text-foreground" />
+				<h1 class="text-xl font-bold leading-none tracking-tight">发现音乐</h1>
+			</div>
+			<p class="mt-1.5 text-sm text-muted-foreground">探索新音乐</p>
+		</div>
+		<div class="flex flex-1 flex-col gap-0.5 px-3 pt-3">
+			{#each navItems as item}
+				<Button
+					class="w-full cursor-pointer justify-start gap-2.5 px-3 h-9"
+					variant={activeSection === item.key ? "secondary" : "ghost"}
+					onclick={() => (activeSection = item.key)}
+				>
+					<item.icon size={18} />
+					<span class="text-sm">{item.label}</span>
+				</Button>
+			{/each}
+		</div>
+	</div>
 
-  <ScrollArea class="flex-1 min-h-0">
-    {#if loading}
-      <div class="text-sm text-muted-foreground text-center py-16">加载推荐中...</div>
-    {:else}
-      <div class="mb-4">
-        <div class="flex items-center gap-2 mb-3">
-          <Sparkles class="size-4 text-foreground" />
-          <h2 class="text-base font-bold text-foreground">推荐歌单</h2>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {#each playlists as p}
-            <PlaylistCard playlist={p} onclick={() => goPlaylist(p)} />
-          {/each}
-        </div>
-      </div>
-    {/if}
-  </ScrollArea>
+	<!-- 右侧内容 -->
+	<div class="flex flex-1 flex-col bg-background min-w-0">
+		<ScrollArea class="h-full w-full">
+			<div class="p-8">
+				{#if activeSection === "recommended"}<RecommendedTab />{/if}
+				{#if activeSection === "toplist"}<ToplistTab />{/if}
+				{#if activeSection === "square"}<PlaylistSquareTab />{/if}
+			</div>
+		</ScrollArea>
+	</div>
 </div>

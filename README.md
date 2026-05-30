@@ -52,6 +52,7 @@
 本项目的诞生离不开以下优秀产品的启发：
 - [YesPlayMusic](https://github.com/qier222/YesPlayMusic)
 - [coriander_player](https://github.com/Ferry-200/coriander_player)
+- [SPlayer](https://github.com/SPlayer-Dev/SPlayer)
 
 ## 🙏 特别鸣谢
 

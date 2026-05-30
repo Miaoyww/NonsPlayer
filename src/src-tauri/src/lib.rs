@@ -105,6 +105,10 @@ pub fn run() {
             // recommend
             commands::music::get_recommended_playlists,
             commands::music::get_daily_recommended,
+            // discover
+            commands::music::get_top_playlists,
+            commands::music::get_playlist_cats,
+            commands::music::get_playlist_square,
             // player
             commands::player::play,
             commands::player::pause,

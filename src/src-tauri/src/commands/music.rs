@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tauri::State;
 
-use crate::adapters::{Adapter, SearchResult};
+use crate::adapters::{Adapter, PlaylistCategory, SearchResult, TopPlaylistGroup};
 use crate::models::{album::Album, artist::Artist, playlist::Playlist, song::Song};
 use crate::AppState;
 
@@ -221,6 +221,46 @@ pub async fn get_daily_recommended(
 ) -> Result<Vec<Song>, String> {
     get_adapter(&adapter, &state)?
         .get_daily_recommended()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// -- Discover commands --
+
+#[tauri::command]
+pub async fn get_top_playlists(
+    adapter: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<TopPlaylistGroup>, String> {
+    get_adapter(&adapter, &state)?
+        .get_top_playlists()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_playlist_cats(
+    adapter: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<PlaylistCategory>, String> {
+    get_adapter(&adapter, &state)?
+        .get_playlist_cats()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_playlist_square(
+    adapter: String,
+    cat: String,
+    order: String,
+    limit: u32,
+    offset: u32,
+    high_quality: bool,
+    state: State<'_, AppState>,
+) -> Result<(Vec<Playlist>, usize), String> {
+    get_adapter(&adapter, &state)?
+        .get_playlist_square(&cat, &order, limit, offset, high_quality)
         .await
         .map_err(|e| e.to_string())
 }

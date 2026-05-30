@@ -7,14 +7,14 @@ use std::sync::Mutex;
 
 use async_trait::async_trait;
 
-use super::{Adapter, AdapterMetadata, CapabilityType, LoginStatus, SearchResult};
+use super::{Adapter, AdapterMetadata, CapabilityType, LoginStatus, PlaylistCategory, SearchResult, TopPlaylistGroup};
 use crate::error::{Error, Result};
 use crate::models::{account::Account, album::Album, artist::Artist, playlist::Playlist, song::Song};
 
 use client::{CryptoType, NeteaseClient, INTERFACE3_HOST, INTERFACE_HOST, MUSIC_HOST};
 use mapper::{
     map_cloudsearch_album, map_cloudsearch_artist, map_playlist_full, map_recommend_playlist,
-    map_search_playlist, map_song,
+    map_search_playlist, map_song, map_toplist_item,
 };
 
 pub struct NeteaseAdapter {
@@ -697,5 +697,177 @@ impl Adapter for NeteaseAdapter {
             .map_err(|e| Error::Other(format!("parse error: {}", e)))?;
         let songs: Vec<Song> = resp.data.daily_songs.iter().map(map_song).collect();
         Ok(songs)
+    }
+
+    // ── Discover ──
+
+    async fn get_top_playlists(&self) -> Result<Vec<TopPlaylistGroup>> {
+        let body = self
+            .client
+            .request_ok(
+                CryptoType::Api,
+                &format!("{}/api/toplist/detail", MUSIC_HOST),
+                &serde_json::json!({}),
+            )
+            .await?;
+
+        let resp: models::ToplistDetailResponse = serde_json::from_value(body)
+            .map_err(|e| Error::Other(format!("parse toplist: {}", e)))?;
+
+        let mut official = Vec::new();
+        let mut featured = Vec::new();
+
+        for item in &resp.list {
+            let playlist = map_toplist_item(item);
+            if item.toplist_type.is_some() {
+                official.push(playlist);
+            } else {
+                featured.push(playlist);
+            }
+        }
+
+        log::info!(
+            "[netease] get_top_playlists: {} official, {} featured",
+            official.len(),
+            featured.len()
+        );
+
+        Ok(vec![
+            TopPlaylistGroup {
+                name: "Official".into(),
+                playlists: official,
+            },
+            TopPlaylistGroup {
+                name: "Featured".into(),
+                playlists: featured,
+            },
+        ])
+    }
+
+    async fn get_playlist_cats(&self) -> Result<Vec<PlaylistCategory>> {
+        let body = self
+            .client
+            .request_ok(
+                CryptoType::Api,
+                &format!("{}/api/playlist/catlist", MUSIC_HOST),
+                &serde_json::json!({}),
+            )
+            .await?;
+
+        let resp: models::CatlistResponse = serde_json::from_value(body)
+            .map_err(|e| Error::Other(format!("parse catlist: {}", e)))?;
+
+        // Build category map from the "categories" object
+        let mut cat_map: std::collections::BTreeMap<String, Vec<String>> =
+            std::collections::BTreeMap::new();
+
+        // Parse categories: keys are numbers, values are category names
+        if let Some(categories) = &resp.categories {
+            for (key, val) in categories {
+                let cat_num = key.parse::<i64>().unwrap_or(-1);
+                let cat_name = match val {
+                    serde_json::Value::String(s) => s.clone(),
+                    _ => key.clone(),
+                };
+                // Collect sub items for this category
+                let tags: Vec<String> = resp
+                    .sub
+                    .iter()
+                    .filter(|c| c.category.map(|c| c as i64) == Some(cat_num))
+                    .map(|c| c.name.clone())
+                    .collect();
+                if !tags.is_empty() {
+                    cat_map.insert(cat_name, tags);
+                }
+            }
+        }
+
+        let cats: Vec<PlaylistCategory> = cat_map
+            .into_iter()
+            .map(|(name, tags)| PlaylistCategory { name, tags })
+            .collect();
+
+        log::info!("[netease] get_playlist_cats: {} categories", cats.len());
+
+        Ok(cats)
+    }
+
+    async fn get_playlist_square(
+        &self,
+        cat: &str,
+        order: &str,
+        limit: u32,
+        offset: u32,
+        high_quality: bool,
+    ) -> Result<(Vec<Playlist>, usize)> {
+        if high_quality {
+            let body = self
+                .client
+                .request_ok(
+                    CryptoType::Api,
+                    &format!("{}/api/top/playlist/highquality", MUSIC_HOST),
+                    &serde_json::json!({
+                        "cat": cat,
+                        "limit": limit,
+                        "before": offset,
+                    }),
+                )
+                .await?;
+
+            let resp: models::HighqualityPlaylistResponse = serde_json::from_value(body)
+                .map_err(|e| Error::Other(format!("parse highquality: {}", e)))?;
+
+            let playlists: Vec<Playlist> =
+                resp.playlists.iter().map(map_search_playlist).collect();
+            let total = resp.total.unwrap_or(0.0) as usize;
+            let has_more = total > (offset + limit) as usize;
+
+            log::info!(
+                "[netease] get_playlist_square hq cat={} offset={} count={} total={} more={}",
+                cat,
+                offset,
+                playlists.len(),
+                total,
+                has_more
+            );
+
+            Ok((playlists, if has_more { total } else { 0 }))
+        } else {
+            let body = self
+                .client
+                .request_ok(
+                    CryptoType::Api,
+                    &format!("{}/api/top/playlist", MUSIC_HOST),
+                    &serde_json::json!({
+                        "cat": cat,
+                        "order": order,
+                        "limit": limit,
+                        "offset": offset,
+                        "total": true,
+                    }),
+                )
+                .await?;
+
+            let resp: models::TopPlaylistResponse = serde_json::from_value(body)
+                .map_err(|e| Error::Other(format!("parse top/playlist: {}", e)))?;
+
+            let playlists: Vec<Playlist> =
+                resp.playlists.iter().map(map_search_playlist).collect();
+            let total = resp.total.unwrap_or(0.0) as usize;
+            let has_more = resp.more.unwrap_or(false)
+                || total > (offset + limit) as usize;
+
+            log::info!(
+                "[netease] get_playlist_square cat={} order={} offset={} count={} total={} more={}",
+                cat,
+                order,
+                offset,
+                playlists.len(),
+                total,
+                has_more
+            );
+
+            Ok((playlists, if has_more { total } else { 0 }))
+        }
     }
 }

@@ -4,3 +4,5 @@ export type { Album } from "./album";
 export type { Artist } from "./artist";
 export type { Playlist } from "./playlist";
 export type { Account } from "./account";
+export type { TopPlaylistGroup } from "./top-playlist";
+export type { PlaylistCategory } from "./playlist-category";
