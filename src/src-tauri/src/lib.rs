@@ -28,6 +28,16 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Capture panics to a file for debugging
+    let _ = std::panic::set_hook(Box::new(|info| {
+        let msg = format!("PANIC: {:?}", info);
+        eprintln!("{}", msg);
+        let _ = std::fs::write(
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("crash.log"),
+            &msg,
+        );
+    }));
+
     let adapters = AdapterManager::new();
     let http_client = http::create_client();
     let player_engine = match BassLib::load() {

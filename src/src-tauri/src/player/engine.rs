@@ -40,21 +40,16 @@ pub struct BassEngine {
     state: Mutex<PlayerState>,
 }
 
-const BASS_ERROR_DEVICE: i32 = 46;
-
 impl BassEngine {
     pub fn new(bass: Arc<BassLib>) -> Result<Self> {
-        // Try default device first
-        let mut result = unsafe { (bass.BASS_Init)(-1, 44100, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
-        // Fall back to "no sound" device if no audio output is available
-        if result == 0 && unsafe { (bass.BASS_ErrorGetCode)() } == BASS_ERROR_DEVICE {
-            eprintln!("[startup] BASS: no audio device, falling back to no-sound device");
-            result = unsafe { (bass.BASS_Init)(0, 44100, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
-        }
+        let result = unsafe { (bass.BASS_Init)(-1, 44100, 0, std::ptr::null_mut(), std::ptr::null_mut()) };
         if result == 0 {
-            return Err(Error::BassError(unsafe { (bass.BASS_ErrorGetCode)() }));
+            let code = unsafe { (bass.BASS_ErrorGetCode)() };
+            eprintln!("[startup] BASS_Init failed with error code: {}", code);
+            return Err(Error::BassError(code));
         }
 
+        eprintln!("[startup] BASS initialized successfully");
         Ok(Self {
             bass,
             current_stream: Mutex::new(None),
@@ -132,10 +127,9 @@ impl BassEngine {
     }
 
     /// Toggle between play and pause.
-    /// Unlike calling pause()/resume() directly, this only locks `state` once
-    /// to avoid a deadlock when both locks are acquired in nested calls.
     pub fn toggle_playback(&self) {
-        match *self.state.lock().unwrap() {
+        let state = self.state.lock().unwrap().clone();
+        match state {
             PlayerState::Playing => {
                 if let Some(stream) = *self.current_stream.lock().unwrap() {
                     unsafe { (self.bass.BASS_ChannelPause)(stream); }
@@ -236,7 +230,8 @@ impl BassEngine {
 
     /// Stop and free the current stream.
     fn stop_current(&self) {
-        if let Some(stream) = *self.current_stream.lock().unwrap() {
+        let stream = *self.current_stream.lock().unwrap();
+        if let Some(stream) = stream {
             unsafe {
                 (self.bass.BASS_ChannelStop)(stream);
                 (self.bass.BASS_StreamFree)(stream);

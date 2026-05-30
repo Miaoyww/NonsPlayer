@@ -194,22 +194,15 @@ impl Adapter for LocalAdapter {
     }
 
     async fn get_lyric(&self, id: &str) -> Result<String> {
-        eprintln!("[get_lyric] id={}", id);
         // Strategy 1: try embedded lyrics tag via lofty
         if let Some(lyric) = _get_lyric_from_lofty(id) {
-            eprintln!("[get_lyric] found embedded lyric ({} bytes)", lyric.len());
             return Ok(lyric);
         }
         // Strategy 2: try external .lrc file with same name
-        let lrc_path = PathBuf::from(id).with_extension("lrc");
-        eprintln!("[get_lyric] trying .lrc at: {}", lrc_path.display());
         match _get_lyric_from_lrc_file(id) {
-            Ok(lyric) => {
-                eprintln!("[get_lyric] loaded .lrc ({} bytes)", lyric.len());
-                Ok(lyric)
-            }
+            Ok(lyric) => Ok(lyric),
             Err(e) => {
-                eprintln!("[get_lyric] .lrc failed: {}", e);
+                log::warn!("[get_lyric] .lrc failed for {}: {}", id, e);
                 Ok(String::new())
             }
         }
