@@ -47,8 +47,8 @@
     el.style.height = "100%";
     containerEl!.appendChild(el);
 
-    // Click handler
-    player.addEventListener("click", (evt: Event) => {
+    // Click handler — AMLL v0.5 dispatches "line-click" events
+    player.addEventListener("line-click", (evt: Event) => {
       if (evt instanceof LyricLineMouseEvent) {
         onLineClick?.(evt.lineIndex, evt.line.getLine());
       }

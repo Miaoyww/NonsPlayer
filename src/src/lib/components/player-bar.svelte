@@ -104,6 +104,7 @@
   }
 
   function handleLineClick(index: number, line: LyricLine) {
+    console.log("Seeking to lyric line:", line);
     playerService.seek(line.startTime / 1000);
   }
 
