@@ -655,6 +655,44 @@ impl Adapter for NeteaseAdapter {
         Ok(playlists)
     }
 
+    async fn get_favorite_playlist(&self) -> Result<Option<Playlist>> {
+        let uid = {
+            let account_guard = self.account.lock().unwrap();
+            account_guard
+                .as_ref()
+                .and_then(|a| a.id.strip_prefix("netease_user_").map(|s| s.to_string()))
+        };
+
+        let uid = match uid {
+            Some(u) => u,
+            None => {
+                let account = self.get_account().await?;
+                account
+                    .id
+                    .strip_prefix("netease_user_")
+                    .unwrap_or("")
+                    .to_string()
+            }
+        };
+        if uid.is_empty() {
+            return Ok(None);
+        }
+
+        let raw = self
+            .call_api_ok("/user/playlist", &[("uid", &uid), ("limit", "50")])
+            .await?;
+
+        // Netease liked songs playlist has specialType=5
+        let fav = raw["playlist"]
+            .as_array()
+            .and_then(|arr| {
+                arr.iter().find(|p| p["specialType"].as_u64() == Some(5))
+            })
+            .map(Self::map_search_playlist);
+
+        Ok(fav)
+    }
+
     // -- Recommend --
 
     async fn get_recommended_playlists(&self, count: u32) -> Result<Vec<Playlist>> {

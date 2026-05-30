@@ -85,6 +85,10 @@ export function getUserPlaylists(adapter: string): Promise<Playlist[]> {
   return invoke("get_user_playlists", { adapter });
 }
 
+export function getFavoritePlaylist(adapter: string): Promise<Playlist | null> {
+  return invoke("get_favorite_playlist", { adapter });
+}
+
 // -- Recommend --
 
 export function getRecommendedPlaylists(

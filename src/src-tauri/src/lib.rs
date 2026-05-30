@@ -101,6 +101,7 @@ pub fn run() {
             commands::music::check_login,
             commands::music::get_account,
             commands::music::get_user_playlists,
+            commands::music::get_favorite_playlist,
             // recommend
             commands::music::get_recommended_playlists,
             commands::music::get_daily_recommended,

@@ -189,6 +189,17 @@ pub async fn get_user_playlists(
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub async fn get_favorite_playlist(
+    adapter: String,
+    state: State<'_, AppState>,
+) -> Result<Option<Playlist>, String> {
+    get_adapter(&adapter, &state)?
+        .get_favorite_playlist()
+        .await
+        .map_err(|e| e.to_string())
+}
+
 // -- Recommend commands --
 
 #[tauri::command]

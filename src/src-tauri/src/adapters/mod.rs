@@ -92,6 +92,9 @@ pub trait Adapter: Send + Sync {
     async fn get_user_playlists(&self) -> Result<Vec<Playlist>> {
         Ok(vec![])
     }
+    async fn get_favorite_playlist(&self) -> Result<Option<Playlist>> {
+        Ok(None)
+    }
 
     // -- Recommend (default: not supported) --
     async fn get_recommended_playlists(&self, _count: u32) -> Result<Vec<Playlist>> {
