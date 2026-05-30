@@ -1,9 +1,18 @@
 import { parseLrc, parseYrc } from "@applemusic-like-lyrics/lyric";
+import { get } from "svelte/store";
 import type { Song } from "$lib/types/song";
 import type { LyricLine, LyricSource } from "$lib/types/lyric";
 import { LyricSourceType } from "$lib/types/lyric";
 import { getLyric } from "$lib/services/adapter-service";
 import { fetchNeteaseLyric, searchNeteaseSong } from "$lib/services/netease-api-service";
+import { getTtml, parseTtmlLyrics } from "$lib/services/amll-db-service";
+import { globalSettings } from "$lib/stores/global-settings-store";
+
+// ── Platform → AMLL DB tag mapping ──────────────────────────────────
+
+const AMLL_DB_TAGS: Record<string, string> = {
+  netease: "ncm",
+};
 
 // ── LyricService ────────────────────────────────────────────────────
 
@@ -17,6 +26,9 @@ class LyricService {
   // ── Internal state ──
 
   private requestId = 0;
+  private lyricCache = new Map<string, LyricLine[]>();
+  private prefetchedLyric: { key: string; lines: LyricLine[] } | null = null;
+  private static MAX_CACHE_SIZE = 50;
 
   // ── Main entry point ──
 
@@ -26,6 +38,16 @@ class LyricService {
       this.lyricSource = null;
       return;
     }
+
+    const cacheKey = this._cacheKey(song);
+
+    // Check prefetch cache first
+    if (this.prefetchedLyric?.key === cacheKey) {
+      this.currentLyricLines = this.prefetchedLyric.lines;
+      this.prefetchedLyric = null;
+      return;
+    }
+    this.prefetchedLyric = null;
 
     this.requestId += 1;
     const reqId = this.requestId;
@@ -46,38 +68,135 @@ class LyricService {
     }
   }
 
-  // ── Core logic ──────────────────────────────────────────────────
+  /** Pre-fetch lyrics for the next song. Fire-and-forget. */
+  async prefetch(song: Song | null): Promise<void> {
+    if (!song) {
+      this.prefetchedLyric = null;
+      return;
+    }
+    const cacheKey = this._cacheKey(song);
+    if (this.lyricCache.has(cacheKey)) return;
+
+    try {
+      const lines = await this._getLyric(song);
+      this.prefetchedLyric = { key: cacheKey, lines };
+    } catch {
+      this.prefetchedLyric = null;
+    }
+  }
+
+  // ── Core priority logic (参照 SPlayer fetchOnlineLyric) ─────────
 
   private async _getLyric(song: Song): Promise<LyricLine[]> {
+    const cacheKey = this._cacheKey(song);
+
+    // Check in-memory cache
+    const cached = this.lyricCache.get(cacheKey);
+    if (cached) return cached;
+
     const isLocal = song.adapterSlug === "local";
 
-    if (!isLocal) {
-      // Online song: extract numeric ID → fetch from local Netease API
-      const numericId = this._extractNumericId(song.id, song.adapterSlug);
-      if (!numericId) return [];
-      const lines = await this._fetchOnlineLyric(numericId, song.adapterSlug);
-      if (lines) return lines;
-      return [];
+    let lines: LyricLine[];
+    if (isLocal) {
+      lines = await this._getLyricForLocal(song);
+    } else {
+      lines = await this._getLyricForOnline(song);
     }
 
-    // Local song: try local LRC first
-    const localLines = await this._fetchLocalLrc(song.id);
+    this._addToCache(cacheKey, lines);
+    return lines;
+  }
+
+  /** Online song: AMLL TTML → Netease YRC → Netease LRC */
+  private async _getLyricForOnline(song: Song): Promise<LyricLine[]> {
+    const numericId = this._extractNumericId(song.id, song.adapterSlug);
+    if (!numericId) return [];
+
+    const settings = get(globalSettings);
+    const amllTag = AMLL_DB_TAGS[song.adapterSlug] ?? "";
+
+    console.log(`[lyric] online: adapter=${song.adapterSlug} id=${numericId} enableAmll=${settings.enableAmllDb} amllTag="${amllTag}"`);
+
+    // 1. Try AMLL TTML DB first (word-level synced lyrics)
+    if (settings.enableAmllDb && amllTag) {
+      console.log(`[lyric] trying AMLL TTML for ${amllTag}/${numericId}`);
+      const ttmlLines = await this._tryAmll(numericId, amllTag, song.adapterSlug);
+      if (ttmlLines) {
+        console.log(`[lyric] AMLL TTML SUCCESS (${ttmlLines.length} lines)`);
+        return ttmlLines;
+      }
+      console.log(`[lyric] AMLL TTML miss, falling back to Netease API`);
+    }
+
+    // 2. Try Netease API (YRC word-level → LRC fallback)
+    const neteaseLines = await this._tryNeteaseApi(numericId, song.adapterSlug);
+    if (neteaseLines) return neteaseLines;
+
+    return [];
+  }
+
+  /** Local song: AMLL TTML (if matched) → local LRC → search Netease match → online flow */
+  private async _getLyricForLocal(song: Song): Promise<LyricLine[]> {
+    const settings = get(globalSettings);
+    const localLines = await this._tryLocalLrc(song.id);
+
+    // If AMLL DB is enabled, search for a Netease match so we can try TTML
+    if (settings.enableAmllDb) {
+      const query = song.artistsName ? `${song.name} ${song.artistsName}` : song.name;
+      const results = await searchNeteaseSong(query, 5);
+      if (results.length > 0) {
+        const best = results[0];
+        const amllTag = AMLL_DB_TAGS["netease"] ?? "ncm";
+        // Try AMLL TTML — word-level lyrics take priority over local LRC
+        const ttmlLines = await this._tryAmll(best.id, amllTag, "netease");
+        if (ttmlLines) {
+          console.log(`[lyric] local song matched → AMLL TTML found (${ttmlLines.length} lines)`);
+          return ttmlLines;
+        }
+        // TTML miss — fall back to Netease API for YRC/LRC
+        const neteaseLines = await this._tryNeteaseApi(best.id, "netease");
+        if (neteaseLines) {
+          console.log(`[lyric] local song matched → Netease lyrics (${neteaseLines.length} lines)`);
+          return neteaseLines;
+        }
+      }
+    }
+
+    // No online match or AMLL disabled — use local LRC
     if (localLines && localLines.length > 0) {
       this.lyricSource = { source: LyricSourceType.local };
       return localLines;
     }
 
-    // No local LRC → search Netease by name + artist
-    const onlineLines = await this._matchAndFetchOnline(song);
-    if (onlineLines && onlineLines.length > 0) return onlineLines;
-
     return [];
   }
 
-  // ── Fetchers ────────────────────────────────────────────────────
+  // ── Individual source fetchers ───────────────────────────────────
 
-  /** Fetch lyrics from the local Netease API server. Prefers YRC (word-level). */
-  private async _fetchOnlineLyric(
+  private async _tryAmll(
+    numericId: string,
+    amllTag: string,
+    adapterSlug: string,
+  ): Promise<LyricLine[] | null> {
+    try {
+      const ttml = await getTtml(numericId, amllTag);
+      if (!ttml) return null;
+
+      const lines = parseTtmlLyrics(ttml);
+      if (lines.length === 0) return null;
+
+      this.lyricSource = {
+        source: LyricSourceType.platform,
+        adapterSlug,
+        adapterSongId: numericId,
+      };
+      return lines;
+    } catch {
+      return null;
+    }
+  }
+
+  private async _tryNeteaseApi(
     numericId: string,
     adapterSlug: string,
   ): Promise<LyricLine[] | null> {
@@ -86,25 +205,17 @@ class LyricService {
 
     // Prefer YRC (word-level) over LRC
     if (result.yrc) {
-      const parsed = parseYrc(result.yrc);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        this.lyricSource = {
-          source: LyricSourceType.platform,
-          adapterSlug,
-          adapterSongId: numericId,
-        };
+      const parsed = this._tryParse(result.yrc, true);
+      if (parsed) {
+        this.lyricSource = { source: LyricSourceType.platform, adapterSlug, adapterSongId: numericId };
         return this._mapLines(parsed);
       }
     }
 
     if (result.lrc) {
-      const parsed = parseLrc(result.lrc);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        this.lyricSource = {
-          source: LyricSourceType.platform,
-          adapterSlug,
-          adapterSongId: numericId,
-        };
+      const parsed = this._tryParse(result.lrc, false);
+      if (parsed) {
+        this.lyricSource = { source: LyricSourceType.platform, adapterSlug, adapterSongId: numericId };
         return this._mapLines(parsed);
       }
     }
@@ -112,8 +223,7 @@ class LyricService {
     return null;
   }
 
-  /** Read embedded or external .lrc from the local adapter. */
-  private async _fetchLocalLrc(songId: string): Promise<LyricLine[] | null> {
+  private async _tryLocalLrc(songId: string): Promise<LyricLine[] | null> {
     try {
       const raw = await getLyric("local", songId);
       if (!raw) return null;
@@ -125,19 +235,60 @@ class LyricService {
     }
   }
 
-  /** Search Netease for a match, then fetch its lyrics. */
-  private async _matchAndFetchOnline(song: Song): Promise<LyricLine[] | null> {
-    const query = song.artistsName ? `${song.name} ${song.artistsName}` : song.name;
-    const results = await searchNeteaseSong(query, 5);
-    if (results.length === 0) return null;
+  // ── Format-robust parser ─────────────────────────────────────────
 
-    const best = results[0];
-    return this._fetchOnlineLyric(best.id, "netease");
+  /** Try multiple parsing strategies. Returns raw parsed lines or null. */
+  private _tryParse(text: string, preferWordLevel: boolean): any[] | null {
+    if (!text || text.trim().length === 0) return null;
+
+    // Strategy 1: YRC parser (word-level timestamps)
+    if (preferWordLevel) {
+      try {
+        const parsed = parseYrc(text);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch { /* fall through */ }
+    }
+
+    // Strategy 2: Standard LRC parser
+    try {
+      const parsed = parseLrc(text);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch { /* fall through */ }
+
+    // Strategy 3: JSON format extraction (legacy JSON-format lyrics)
+    try {
+      if (text.startsWith("{") && text.includes('"c"')) {
+        const obj = JSON.parse(text);
+        if (Array.isArray(obj.c)) {
+          const items = obj.c.filter((item: any) => typeof item.tx === "string");
+          if (items.length > 0) {
+            return items.map((item: any) => ({
+              words: [{ startTime: 0, endTime: 0, word: item.tx }],
+              startTime: 0,
+              endTime: 0,
+            }));
+          }
+        }
+      }
+    } catch { /* last resort failed */ }
+
+    return null;
   }
 
   // ── Helpers ─────────────────────────────────────────────────────
 
-  /** Extract numeric song ID from adapter-prefixed ID (e.g. "netease_song_1010728767" → "1010728767"). */
+  private _cacheKey(song: Song): string {
+    return `${song.adapterSlug}:${song.id}`;
+  }
+
+  private _addToCache(key: string, lines: LyricLine[]): void {
+    if (this.lyricCache.size >= LyricService.MAX_CACHE_SIZE) {
+      const firstKey = this.lyricCache.keys().next().value;
+      if (firstKey !== undefined) this.lyricCache.delete(firstKey);
+    }
+    this.lyricCache.set(key, lines);
+  }
+
   private _extractNumericId(songId: string, adapterSlug: string): string | null {
     if (!songId || adapterSlug === "local") return null;
     const prefix = `${adapterSlug}_song_`;
@@ -149,7 +300,6 @@ class LyricService {
     return null;
   }
 
-  /** Map raw parsed lines to the app's LyricLine type. */
   private _mapLines(lines: any[]): LyricLine[] {
     return lines.map((line: any) => ({
       words: (line.words ?? []).map((w: any) => ({

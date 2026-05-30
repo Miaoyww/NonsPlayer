@@ -21,19 +21,36 @@ pub struct AppState {
     pub play_queue: Arc<PlayQueue>,
 }
 
-/// Holds the Netease API server child process handle.
+/// Holds the Netease API server child process handle and port.
 /// On drop, kills the child process.
-pub struct ServerProcess(pub Mutex<Option<Child>>);
+pub struct ServerProcess {
+    pub child: Mutex<Option<Child>>,
+    pub port: Mutex<u16>,
+}
+
+impl ServerProcess {
+    pub fn new() -> Self {
+        ServerProcess {
+            child: Mutex::new(None),
+            port: Mutex::new(25884),
+        }
+    }
+}
 
 impl Drop for ServerProcess {
     fn drop(&mut self) {
-        if let Ok(mut guard) = self.0.lock() {
+        if let Ok(mut guard) = self.child.lock() {
             if let Some(ref mut child) = *guard {
                 let _ = child.kill();
                 log::info!("[server] Netease API server stopped");
             }
         }
     }
+}
+
+#[tauri::command]
+fn get_api_port(state: tauri::State<'_, ServerProcess>) -> u16 {
+    state.port.lock().map(|g| *g).unwrap_or(25884)
 }
 
 #[tauri::command]
@@ -65,13 +82,18 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(state)
-        .manage(ServerProcess(Mutex::new(None)))
+        .manage(ServerProcess::new())
         .setup(|app| {
             // Start the Netease API Express server in the background
-            let child = server::start_api_server();
+            let result = server::start_api_server();
             let server_handle = app.state::<ServerProcess>();
-            if let Ok(mut guard) = server_handle.0.lock() {
-                *guard = child;
+            if let Some((child, port)) = result {
+                if let Ok(mut guard) = server_handle.child.lock() {
+                    *guard = Some(child);
+                }
+                if let Ok(mut guard) = server_handle.port.lock() {
+                    *guard = port;
+                }
             }
             Ok(())
         })
@@ -113,6 +135,12 @@ pub fn run() {
             commands::music::get_top_playlists,
             commands::music::get_playlist_cats,
             commands::music::get_playlist_square,
+            // lyric cache
+            commands::lyric_cache::save_lyric_cache,
+            commands::lyric_cache::get_lyric_cache,
+            commands::lyric_cache::clear_lyric_cache,
+            // server
+            get_api_port,
             // player
             commands::player::play,
             commands::player::pause,

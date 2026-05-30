@@ -32,9 +32,13 @@
     }
     // Only update when song actually changes
     if (song.id !== lastSongId) {
-      console.log(`[player-bar] song changed: "${song.name}" (${song.adapterSlug}:${song.id}) → calling lyricService.updateLyric`);
       lastSongId = song.id;
       lyricService.updateLyric(song);
+      // Pre-fetch next song's lyrics
+      const nextSong = playerService.getNextSong();
+      if (nextSong) {
+        lyricService.prefetch(nextSong);
+      }
     }
   });
 

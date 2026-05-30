@@ -15,6 +15,8 @@ export interface GlobalSettings {
 	language: 'zh-cn' | 'en';
 	/** 本地歌词优先 (true) vs 在线优先 (false) */
 	localLyricFirst: boolean;
+	/** 启用 AMLL TTML 歌词库 */
+	enableAmllDb: boolean;
 }
 
 const STORAGE_KEY = 'nonsplayer_settings';
@@ -26,6 +28,7 @@ const DEFAULTS: GlobalSettings = {
 	localMusicFolders: [],
 	language: 'zh-cn',
 	localLyricFirst: true,
+	enableAmllDb: true,
 };
 
 function loadSettings(): GlobalSettings {

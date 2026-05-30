@@ -85,6 +85,11 @@ class PlayerService {
     await this.controller.jumpTo(index);
   }
 
+  /** Get the next song in the queue without advancing. */
+  getNextSong(): Song | null {
+    return this.controller.peekNext()?.song ?? null;
+  }
+
   // ── Cleanup ──
 
   destroy(): void {

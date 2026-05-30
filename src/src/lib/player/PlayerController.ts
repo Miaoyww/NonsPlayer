@@ -279,7 +279,7 @@ class PlayerController {
 
   // ── Queue navigation ──
 
-  private peekNext(): QueueItem | null {
+  public peekNext(): QueueItem | null {
     if (this._queue.length === 0) return null;
 
     switch (this._playMode) {

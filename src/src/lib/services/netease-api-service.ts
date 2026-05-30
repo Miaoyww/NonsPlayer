@@ -1,6 +1,24 @@
-// ── Configuration ────────────────────────────────────────────────────
+import { invoke } from "@tauri-apps/api/core";
 
-const API_BASE = "http://127.0.0.1:25884/api";
+// ── Dynamic port resolution ──────────────────────────────────────────
+
+let _apiPort: number | null = null;
+
+async function getApiPort(): Promise<number> {
+  if (_apiPort !== null) return _apiPort;
+  try {
+    _apiPort = await invoke<number>("get_api_port");
+    return _apiPort;
+  } catch {
+    _apiPort = 25884;
+    return _apiPort;
+  }
+}
+
+async function getApiBase(): Promise<string> {
+  const port = await getApiPort();
+  return `http://127.0.0.1:${port}/api`;
+}
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -21,7 +39,8 @@ export interface NeteaseSearchSong {
 /** Fetch both LRC and YRC for a Netease song ID. Returns null on failure. */
 export async function fetchNeteaseLyric(songId: string): Promise<NeteaseLyricResult | null> {
   try {
-    const resp = await fetch(`${API_BASE}/lyric?id=${encodeURIComponent(songId)}`);
+    const baseUrl = await getApiBase();
+    const resp = await fetch(`${baseUrl}/lyric?id=${encodeURIComponent(songId)}`);
     if (!resp.ok) return null;
     return await resp.json();
   } catch {
@@ -35,8 +54,9 @@ export async function searchNeteaseSong(
   limit = 5,
 ): Promise<NeteaseSearchSong[]> {
   try {
+    const baseUrl = await getApiBase();
     const resp = await fetch(
-      `${API_BASE}/search?keywords=${encodeURIComponent(keywords)}&limit=${limit}`,
+      `${baseUrl}/search?keywords=${encodeURIComponent(keywords)}&limit=${limit}`,
     );
     if (!resp.ok) return [];
     const data = await resp.json();

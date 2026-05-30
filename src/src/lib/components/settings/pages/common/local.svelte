@@ -11,13 +11,15 @@
 
   let localFolders = $state<string[]>([]);
   let localLyricFirst = $state(true);
+  let enableAmllDb = $state(true);
   let initialized = false;
 
   // Persist lyric settings whenever toggles change (skips initial mount)
   $effect(() => {
     localLyricFirst;
+    enableAmllDb;
     if (initialized) {
-      globalSettings.patch({ localLyricFirst });
+      globalSettings.patch({ localLyricFirst, enableAmllDb });
     }
   });
 
@@ -25,6 +27,7 @@
     const unsub = globalSettings.subscribe((s) => {
       localFolders = [...s.localMusicFolders];
       localLyricFirst = s.localLyricFirst;
+      enableAmllDb = s.enableAmllDb;
     });
     // Mark initialized after first store sync, so $effect won't trigger on mount
     setTimeout(() => { initialized = true; }, 0);
@@ -138,6 +141,15 @@
             <span class="text-sm font-medium">本地歌词优先</span>
             <span class="text-xs text-muted-foreground">
               优先使用本地内嵌或外挂 .lrc 文件
+            </span>
+          </div>
+        </label>
+        <label class="flex items-center gap-3">
+          <Switch bind:checked={enableAmllDb} />
+          <div class="flex flex-col gap-0.5">
+            <span class="text-sm font-medium">AMLL 歌词库</span>
+            <span class="text-xs text-muted-foreground">
+              从 amll-ttml-db 获取逐字 TTML 歌词（优先）
             </span>
           </div>
         </label>
