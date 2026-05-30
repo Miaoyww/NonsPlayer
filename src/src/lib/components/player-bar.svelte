@@ -162,10 +162,11 @@
 {/if}
 
 <!-- Player bar (floating card, fixed to viewport) -->
-<div
-  class="fixed bottom-3 left-3 right-3 h-20 rounded-xl border border-border/50 bg-background/95 backdrop-blur shadow-lg flex items-center gap-4 px-4 z-40"
-  transition:fly={{ y: 20, duration: 250 }}
->
+{#if hasSong}
+  <div
+    class="fixed bottom-3 left-3 right-3 h-20 rounded-xl border border-border/50 bg-background/95 backdrop-blur shadow-lg flex items-center gap-4 px-4 z-40"
+    transition:fly={{ y: 20, duration: 250 }}
+  >
   <!-- Left: song info -->
   <div class="flex items-center gap-3 w-56 shrink-0">
     <div class="size-12 shrink-0 rounded-md bg-muted overflow-hidden">
@@ -277,3 +278,4 @@
     </Button>
   </div>
 </div>
+{/if}
