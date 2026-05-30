@@ -76,7 +76,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_log::Builder::default()
-                .targets([Target::new(TargetKind::Webview)])
+                .targets([Target::new(TargetKind::Stdout), Target::new(TargetKind::Webview)])
                 .level(log::LevelFilter::Info)
                 .build(),
         )

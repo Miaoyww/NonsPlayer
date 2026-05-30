@@ -718,6 +718,10 @@ impl Adapter for NeteaseAdapter {
         let mut featured = Vec::new();
 
         for item in &resp.list {
+            // Skip items without a valid id (some API entries lack this field)
+            if item.id.is_null() {
+                continue;
+            }
             let playlist = map_toplist_item(item);
             if item.toplist_type.is_some() {
                 official.push(playlist);

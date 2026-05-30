@@ -20,7 +20,9 @@
   onMount(async () => {
     // Forward Rust logs to browser devtools console
     if (isTauri()) {
-      attachConsole().catch(() => {});
+      attachConsole()
+        .then(() => console.log("[log] Rust log forwarding attached"))
+        .catch((e) => console.error("[log] Failed to attach console:", e));
     }
 
     if (!$globalSettings.welcomeCompleted) {
