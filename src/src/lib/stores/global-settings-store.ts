@@ -48,6 +48,12 @@ export interface GlobalSettings {
 	showTran: boolean;
 	/** 歌词混合模式 */
 	lyricsBlendMode: string;
+	/** 歌词来源优先级 */
+	lyricPriority: 'auto' | 'qm' | 'official' | 'ttml';
+	/** 启用 QQ 音乐歌词 */
+	enableQQMusicLyric: boolean;
+	/** 启用在线 TTML 歌词 */
+	enableOnlineTTMLLyric: boolean;
 }
 
 const STORAGE_KEY = 'nonsplayer_settings';
@@ -74,6 +80,9 @@ const DEFAULTS: GlobalSettings = {
 	showWordLyrics: true,
 	showTran: true,
 	lyricsBlendMode: 'normal',
+	lyricPriority: 'auto',
+	enableQQMusicLyric: false,
+	enableOnlineTTMLLyric: true,
 };
 
 function loadSettings(): GlobalSettings {

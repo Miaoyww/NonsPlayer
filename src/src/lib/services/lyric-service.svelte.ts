@@ -1,4 +1,4 @@
-import { parseLrc, parseYrc } from "@applemusic-like-lyrics/lyric";
+import { parseYrc } from "@applemusic-like-lyrics/lyric";
 import { get } from "svelte/store";
 import type { Song } from "$lib/types/song";
 import type { LyricLine, LyricSource } from "$lib/types/lyric";
@@ -7,13 +7,33 @@ import { getLyric } from "$lib/services/adapter-service";
 import { fetchNeteaseLyric, searchNeteaseSong } from "$lib/services/netease-api-service";
 import { getTtml, parseTtmlLyrics } from "$lib/services/amll-db-service";
 import { globalSettings } from "$lib/stores/global-settings-store";
-import { alignLyrics } from "$lib/utils/lyric-align";
+import {
+  alignLyrics,
+  alignLyricLines,
+  parseSmartLrc,
+  cleanTTMLTranslations,
+} from "$lib/utils/lyric-parser";
 
 // ── Platform → AMLL DB tag mapping ──────────────────────────────────
 
 const AMLL_DB_TAGS: Record<string, string> = {
   netease: "ncm",
 };
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+/** Strip translations that are identical to the main lyric text (not real translations). */
+function dedupeTranslations(lines: LyricLine[]): void {
+  for (const line of lines) {
+    const mainText = line.words.map((w) => w.word).join("").trim();
+    if (line.translatedLyric && line.translatedLyric.trim() === mainText) {
+      line.translatedLyric = "";
+    }
+    if (line.romanLyric && line.romanLyric.trim() === mainText) {
+      line.romanLyric = "";
+    }
+  }
+}
 
 // ── LyricService ────────────────────────────────────────────────────
 
@@ -86,7 +106,7 @@ class LyricService {
     }
   }
 
-  // ── Core priority logic (参照 SPlayer fetchOnlineLyric) ─────────
+  // ── Core priority logic ──────────────────────────────────────────
 
   private async _getLyric(song: Song): Promise<LyricLine[]> {
     const cacheKey = this._cacheKey(song);
@@ -108,7 +128,7 @@ class LyricService {
     return lines;
   }
 
-  /** Online song: AMLL TTML → Netease YRC → Netease LRC */
+  /** Online song: priority-based multi-source (SPlayer pattern). */
   private async _getLyricForOnline(song: Song): Promise<LyricLine[]> {
     const numericId = this._extractNumericId(song.id, song.adapterSlug);
     if (!numericId) return [];
@@ -116,46 +136,252 @@ class LyricService {
     const settings = get(globalSettings);
     const amllTag = AMLL_DB_TAGS[song.adapterSlug] ?? "";
 
-    // 1. Try AMLL TTML DB first (word-level synced lyrics)
-    if (settings.enableAmllDb && amllTag) {
+    const result: { lrcData: LyricLine[]; yrcData: LyricLine[] } = { lrcData: [], yrcData: [] };
+    let ttmlAdopted = false;
+    let qqMusicAdopted = false;
+
+    // ── adoptQQMusic (stub — QQ Music adapter not yet available) ──
+    const adoptQQMusic = async () => {
+      // TODO: implement when QQ Music adapter is available
+    };
+
+    // ── adoptTTML ────────────────────────────────────────────────────
+    const adoptTTML = async () => {
+      if (!settings.enableOnlineTTMLLyric && settings.lyricPriority !== "ttml") return;
+      if (!settings.enableAmllDb || !amllTag) return;
+
       const ttmlLines = await this._tryAmll(numericId, amllTag, song.adapterSlug);
-      if (ttmlLines) return ttmlLines;
+      if (!ttmlLines) return;
+
+      // Clean translations before parsing
+      // Note: parseTtmlLyrics already handles raw TTML; cleanTTMLTranslations
+      // is an optimization to reorder translated lines for better grouping
+      // Only override if no YRC data yet, or TTML has priority
+      if (
+        !result.yrcData.length ||
+        settings.lyricPriority === "ttml" ||
+        settings.lyricPriority === "auto"
+      ) {
+        result.yrcData = ttmlLines;
+        ttmlAdopted = true;
+      }
+    };
+
+    // ── adoptLRC (Netease API: YRC + LRC with translations) ─────────
+    const adoptLRC = async () => {
+      // Skip if QQ Music already provided word-level lyrics
+      if (qqMusicAdopted && result.yrcData.length > 0) return;
+
+      const apiResult = await fetchNeteaseLyric(numericId);
+      if (!apiResult) {
+        console.log("[lyric] fetchNeteaseLyric returned null for:", numericId);
+        return;
+      }
+
+      console.log("[lyric] API response keys:", {
+        hasLrc: !!apiResult.lrc,
+        lrcLen: apiResult.lrc?.length ?? 0,
+        hasYrc: !!apiResult.yrc,
+        yrcLen: apiResult.yrc?.length ?? 0,
+        hasTlyric: !!apiResult.tlyric,
+        tlyricLen: apiResult.tlyric?.length ?? 0,
+        hasYtlrc: !!apiResult.ytlrc,
+        ytlrcLen: apiResult.ytlrc?.length ?? 0,
+        hasRomalrc: !!apiResult.romalrc,
+        romalrcLen: apiResult.romalrc?.length ?? 0,
+        hasYromalrc: !!apiResult.yromalrc,
+        yromalrcLen: apiResult.yromalrc?.length ?? 0,
+      });
+
+      let lrcLines: LyricLine[] = [];
+      let yrcLines: LyricLine[] = [];
+
+      // ── Line-level (LRC) ──
+      if (apiResult.lrc) {
+        const { lines: parsed } = parseSmartLrc(apiResult.lrc);
+        console.log("[lyric] LRC main parsed:", parsed.length, "lines");
+        if (parsed.length > 0) {
+          lrcLines = this._mapLines(parsed);
+          // Align line-level translations
+          if (apiResult.tlyric) {
+            const { lines: transParsed } = parseSmartLrc(apiResult.tlyric);
+            console.log("[lyric] LRC tlyric parsed:", transParsed.length, "lines, sample:", transParsed[0]?.words?.[0]?.word);
+            if (transParsed.length > 0) {
+              const beforeTrans = lrcLines.filter((l) => l.translatedLyric).length;
+              lrcLines = alignLyrics(lrcLines, this._mapLines(transParsed), "translatedLyric");
+              const afterTrans = lrcLines.filter((l) => l.translatedLyric).length;
+              console.log("[lyric] LRC aligned trans:", beforeTrans, "→", afterTrans);
+            }
+          }
+          if (apiResult.romalrc) {
+            const { lines: romaParsed } = parseSmartLrc(apiResult.romalrc);
+            console.log("[lyric] LRC romalrc parsed:", romaParsed.length, "lines");
+            if (romaParsed.length > 0) {
+              lrcLines = alignLyrics(lrcLines, this._mapLines(romaParsed), "romanLyric");
+            }
+          }
+        }
+      }
+
+      // ── Word-level (YRC) ──
+      if (apiResult.yrc) {
+        const mainParsed = this._tryParseYrc(apiResult.yrc);
+        console.log("[lyric] YRC main parsed:", mainParsed ? mainParsed.length : 0, "lines");
+        if (mainParsed) {
+          yrcLines = this._mapLines(mainParsed);
+        }
+      }
+
+      // ── Align translations to YRC ──
+      const transText = apiResult.ytlrc || apiResult.tlyric;
+      const romaText = apiResult.yromalrc || apiResult.romalrc;
+
+      console.log("[lyric] transText source:", apiResult.ytlrc ? "ytlrc" : apiResult.tlyric ? "tlyric" : "none",
+        "length:", transText?.length ?? 0);
+
+      if (yrcLines.length > 0) {
+        if (transText) {
+          const { lines: transParsed } = parseSmartLrc(transText);
+          console.log("[lyric] YRC trans parsed:", transParsed.length, "lines, sample:", transParsed[0]?.words?.[0]?.word);
+          if (transParsed.length > 0) {
+            const beforeTrans = yrcLines.filter((l) => l.translatedLyric).length;
+            yrcLines = alignLyrics(yrcLines, this._mapLines(transParsed), "translatedLyric");
+            const afterTrans = yrcLines.filter((l) => l.translatedLyric).length;
+            console.log("[lyric] YRC aligned trans:", beforeTrans, "→", afterTrans);
+          }
+        }
+        if (romaText) {
+          const { lines: romaParsed } = parseSmartLrc(romaText);
+          console.log("[lyric] YRC roma parsed:", romaParsed.length, "lines");
+          if (romaParsed.length > 0) {
+            yrcLines = alignLyrics(yrcLines, this._mapLines(romaParsed), "romanLyric");
+          }
+        }
+      }
+
+      // If TTML already has yrcData, align external translations onto it
+      if (result.yrcData.length > 0 && (transText || romaText)) {
+        console.log("[lyric] aligning external trans onto existing TTML yrcData (", result.yrcData.length, "lines)");
+        if (transText) {
+          const { lines: transParsed } = parseSmartLrc(transText);
+          console.log("[lyric] TTML+yrc trans parsed:", transParsed.length, "lines, sample:", transParsed[0]?.words?.[0]?.word);
+          if (transParsed.length > 0) {
+            const beforeTrans = result.yrcData.filter((l) => l.translatedLyric).length;
+            result.yrcData = alignLyrics(result.yrcData, this._mapLines(transParsed), "translatedLyric");
+            const afterTrans = result.yrcData.filter((l) => l.translatedLyric).length;
+            console.log("[lyric] TTML+yrc aligned trans:", beforeTrans, "→", afterTrans);
+          }
+        }
+        if (romaText) {
+          const { lines: romaParsed } = parseSmartLrc(romaText);
+          if (romaParsed.length > 0) {
+            result.yrcData = alignLyrics(result.yrcData, this._mapLines(romaParsed), "romanLyric");
+          }
+        }
+      }
+
+      if (lrcLines.length) result.lrcData = lrcLines;
+      // Use Netease YRC only if no TTML word-level lyrics yet
+      if (!result.yrcData.length && yrcLines.length) {
+        console.log("[lyric] using Netease YRC for yrcData:", yrcLines.length, "lines");
+        result.yrcData = yrcLines;
+      }
+    };
+
+    // ── Execute priority-based strategy ──────────────────────────────
+    const priority = settings.lyricPriority;
+    if (priority === "qm") {
+      await adoptQQMusic();
+      if (!qqMusicAdopted) {
+        await Promise.all([adoptTTML(), adoptLRC()]);
+      }
+    } else if (priority === "official") {
+      await adoptLRC();
+    } else if (priority === "ttml") {
+      await adoptTTML();
+      await adoptLRC();
+      if (!ttmlAdopted && !result.lrcData.length) {
+        await adoptQQMusic();
+      }
+    } else {
+      // "auto": QQ Music (if enabled) → TTML + LRC in parallel
+      if (settings.enableQQMusicLyric) {
+        await adoptQQMusic();
+      }
+      await Promise.all([adoptTTML(), adoptLRC()]);
     }
 
-    // 2. Try Netease API (YRC word-level → LRC fallback)
-    const neteaseLines = await this._tryNeteaseApi(numericId, song.adapterSlug);
-    if (neteaseLines) return neteaseLines;
+    // ── Dedupe fake translations ──
+    dedupeTranslations(result.yrcData);
+    dedupeTranslations(result.lrcData);
 
+    // ── Log final state ──
+    const yrcWithTrans = result.yrcData.filter((l) => l.translatedLyric).length;
+    const lrcWithTrans = result.lrcData.filter((l) => l.translatedLyric).length;
+    console.log("[lyric] final — yrcData:", result.yrcData.length, "lines (", yrcWithTrans, "with trans ), lrcData:",
+      result.lrcData.length, "lines (", lrcWithTrans, "with trans ), ttmlAdopted:", ttmlAdopted,
+      "showWordLyrics:", settings.showWordLyrics);
+
+    // ── Set source metadata ──
+    if (ttmlAdopted || result.yrcData.length > 0) {
+      this.lyricSource = { source: LyricSourceType.platform, adapterSlug: song.adapterSlug, adapterSongId: numericId };
+    }
+
+    // ── Return preferred data (word-level first if enabled) ──
+    if (settings.showWordLyrics && result.yrcData.length > 0) {
+      console.log("[lyric] returning yrcData");
+      return result.yrcData;
+    }
+    if (result.lrcData.length > 0) {
+      console.log("[lyric] returning lrcData");
+      return result.lrcData;
+    }
+    if (result.yrcData.length > 0) {
+      console.log("[lyric] returning yrcData (fallback)");
+      return result.yrcData;
+    }
+
+    console.log("[lyric] no lyrics found");
     return [];
   }
 
-  /** Local song: AMLL TTML (if matched) → local LRC → search Netease match → online flow */
+  /** Local song: AMLL TTML → Netease match → local LRC */
   private async _getLyricForLocal(song: Song): Promise<LyricLine[]> {
     const settings = get(globalSettings);
     const localLines = await this._tryLocalLrc(song.id);
+    console.log("[lyric:local] local LRC parsed:", localLines?.length ?? 0, "lines",
+      "with trans:", localLines?.filter((l) => l.translatedLyric).length ?? 0);
 
-    // If AMLL DB is enabled, search for a Netease match so we can try TTML
     if (settings.enableAmllDb) {
       const query = song.artistsName ? `${song.name} ${song.artistsName}` : song.name;
       const results = await searchNeteaseSong(query, 5);
+      console.log("[lyric:local] Netease search for:", query, "→", results.length, "results");
       if (results.length > 0) {
         const best = results[0];
+        console.log("[lyric:local] best match:", best.id, best.name, best.artists);
         const amllTag = AMLL_DB_TAGS["netease"] ?? "ncm";
-        // Try AMLL TTML — word-level lyrics take priority over local LRC
         const ttmlLines = await this._tryAmll(best.id, amllTag, "netease");
-        if (ttmlLines) return ttmlLines;
-        // TTML miss — fall back to Netease API for YRC/LRC
+        if (ttmlLines) {
+          console.log("[lyric:local] TTML hit, returning", ttmlLines.length, "lines");
+          return ttmlLines;
+        }
         const neteaseLines = await this._tryNeteaseApi(best.id, "netease");
-        if (neteaseLines) return neteaseLines;
+        if (neteaseLines) {
+          const withTrans = neteaseLines.filter((l) => l.translatedLyric).length;
+          console.log("[lyric:local] Netease API hit, returning", neteaseLines.length, "lines,", withTrans, "with trans");
+          return neteaseLines;
+        }
+        console.log("[lyric:local] Netease API returned null");
       }
     }
 
-    // No online match or AMLL disabled — use local LRC
     if (localLines && localLines.length > 0) {
       this.lyricSource = { source: LyricSourceType.local };
+      console.log("[lyric:local] falling back to local LRC:", localLines.length, "lines");
       return localLines;
     }
 
+    console.log("[lyric:local] no lyrics found");
     return [];
   }
 
@@ -170,7 +396,8 @@ class LyricService {
       const ttml = await getTtml(numericId, amllTag);
       if (!ttml) return null;
 
-      const lines = parseTtmlLyrics(ttml);
+      const cleaned = cleanTTMLTranslations(ttml);
+      const lines = parseTtmlLyrics(cleaned);
       if (lines.length === 0) return null;
 
       this.lyricSource = {
@@ -191,54 +418,31 @@ class LyricService {
     const result = await fetchNeteaseLyric(numericId);
     if (!result) return null;
 
-    const hasTrans = !!(result.tlyric || result.ytlrc);
-    const hasRoma = !!(result.romalrc || result.yromalrc);
-    if (hasTrans || hasRoma) {
-      console.log(`[lyric] translations found for ${numericId}: trans=${hasTrans} roma=${hasRoma}`);
-    }
-
     // Prefer YRC (word-level) over LRC
     if (result.yrc) {
-      const mainParsed = this._tryParse(result.yrc, true);
+      const mainParsed = this._tryParseYrc(result.yrc);
+      console.log("[lyric:netease] YRC parsed:", mainParsed ? mainParsed.length : 0, "lines, tlyric:", !!result.tlyric, "ytlrc:", !!result.ytlrc);
       if (mainParsed) {
         let lines = this._mapLines(mainParsed);
-        // Align translations: prefer word-level (ytlrc), fall back to line-level (tlyric)
-        const transText = result.ytlrc || result.tlyric;
-        if (transText) {
-          const transParsed = this._tryParse(transText, false);
-          if (transParsed) {
-            lines = alignLyrics(lines, this._mapLines(transParsed), "translatedLyric");
-          }
-        }
-        const romaText = result.yromalrc || result.romalrc;
-        if (romaText) {
-          const romaParsed = this._tryParse(romaText, false);
-          if (romaParsed) {
-            lines = alignLyrics(lines, this._mapLines(romaParsed), "romanLyric");
-          }
-        }
+        const beforeTrans = lines.filter((l) => l.translatedLyric).length;
+        lines = this._alignTrans(lines, result.ytlrc || result.tlyric, result.yromalrc || result.romalrc);
+        const afterTrans = lines.filter((l) => l.translatedLyric).length;
+        console.log("[lyric:netease] YRC trans aligned:", beforeTrans, "→", afterTrans);
         this.lyricSource = { source: LyricSourceType.platform, adapterSlug, adapterSongId: numericId };
         return lines;
       }
     }
 
     if (result.lrc) {
-      const mainParsed = this._tryParse(result.lrc, false);
-      if (mainParsed) {
+      // Use smart parser for main lyrics
+      const { lines: mainParsed } = parseSmartLrc(result.lrc);
+      console.log("[lyric:netease] LRC parsed:", mainParsed.length, "lines, tlyric:", !!result.tlyric);
+      if (mainParsed.length > 0) {
         let lines = this._mapLines(mainParsed);
-        // Align line-level translations
-        if (result.tlyric) {
-          const transParsed = this._tryParse(result.tlyric, false);
-          if (transParsed) {
-            lines = alignLyrics(lines, this._mapLines(transParsed), "translatedLyric");
-          }
-        }
-        if (result.romalrc) {
-          const romaParsed = this._tryParse(result.romalrc, false);
-          if (romaParsed) {
-            lines = alignLyrics(lines, this._mapLines(romaParsed), "romanLyric");
-          }
-        }
+        const beforeTrans = lines.filter((l) => l.translatedLyric).length;
+        lines = this._alignTrans(lines, result.tlyric, result.romalrc);
+        const afterTrans = lines.filter((l) => l.translatedLyric).length;
+        console.log("[lyric:netease] LRC trans aligned:", beforeTrans, "→", afterTrans);
         this.lyricSource = { source: LyricSourceType.platform, adapterSlug, adapterSongId: numericId };
         return lines;
       }
@@ -247,39 +451,75 @@ class LyricService {
     return null;
   }
 
+  /** Parse and align translation / romaji into main lines. */
+  private _alignTrans(
+    lines: LyricLine[],
+    transText: string | undefined,
+    romaText: string | undefined,
+  ): LyricLine[] {
+    if (transText) {
+      const { lines: transParsed } = parseSmartLrc(transText);
+      console.log("[lyric:align] transText length:", transText.length, "parsed:", transParsed.length, "lines, sample:", transParsed[0]?.words?.[0]?.word?.slice(0, 40));
+      if (transParsed.length > 0) {
+        lines = alignLyrics(lines, this._mapLines(transParsed), "translatedLyric");
+      }
+    } else {
+      console.log("[lyric:align] no transText provided");
+    }
+    if (romaText) {
+      const { lines: romaParsed } = parseSmartLrc(romaText);
+      console.log("[lyric:align] romaText length:", romaText.length, "parsed:", romaParsed.length, "lines");
+      if (romaParsed.length > 0) {
+        lines = alignLyrics(lines, this._mapLines(romaParsed), "romanLyric");
+      }
+    }
+    // Remove fake translations (same text as main)
+    dedupeTranslations(lines);
+    return lines;
+  }
+
   private async _tryLocalLrc(songId: string): Promise<LyricLine[] | null> {
     try {
       const raw = await getLyric("local", songId);
       if (!raw) return null;
-      const parsed = parseLrc(raw);
-      if (!Array.isArray(parsed) || parsed.length === 0) return null;
-      return this._mapLines(parsed);
+
+      // Parse with smart parser, then merge same-timestamp lines into trans/roma
+      const { lines: parsed } = parseSmartLrc(raw);
+      if (parsed.length === 0) return null;
+
+      console.log("[lyric:localLrc] raw parsed:", parsed.length, "lines, sample startTime:", parsed[0]?.startTime);
+      const merged = alignLyricLines(parsed);
+      const withTrans = merged.filter((l) => l.translatedLyric).length;
+      console.log("[lyric:localLrc] after alignLyricLines:", merged.length, "lines,", withTrans, "with trans");
+      return this._mapLines(merged);
     } catch {
       return null;
     }
   }
 
-  // ── Format-robust parser ─────────────────────────────────────────
+  // ── Format-robust parsers ─────────────────────────────────────────
 
-  /** Try multiple parsing strategies. Returns raw parsed lines or null. */
-  private _tryParse(text: string, preferWordLevel: boolean): any[] | null {
+  /** Parse YRC text. Falls back to smart LRC parser if YRC format fails. */
+  private _tryParseYrc(text: string): any[] | null {
     if (!text || text.trim().length === 0) return null;
 
-    // Strategy 1: YRC parser (word-level timestamps)
-    if (preferWordLevel) {
-      try {
-        const parsed = parseYrc(text);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch { /* fall through */ }
-    }
-
-    // Strategy 2: Standard LRC parser
     try {
-      const parsed = parseLrc(text);
+      const parsed = parseYrc(text);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     } catch { /* fall through */ }
 
-    // Strategy 3: JSON format extraction (legacy JSON-format lyrics)
+    // Fall back to smart LRC parser
+    try {
+      const { lines } = parseSmartLrc(text);
+      if (lines.length > 0) return lines;
+    } catch { /* fall through */ }
+
+    // Last resort: JSON format
+    return this._tryParseJson(text);
+  }
+
+  /** Try extracting lyrics from JSON format. */
+  private _tryParseJson(text: string): any[] | null {
     try {
       if (text.startsWith("{") && text.includes('"c"')) {
         const obj = JSON.parse(text);
@@ -294,8 +534,7 @@ class LyricService {
           }
         }
       }
-    } catch { /* last resort failed */ }
-
+    } catch { /* not JSON */ }
     return null;
   }
 
