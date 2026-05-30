@@ -39,12 +39,7 @@
   <div class="flex items-center gap-1 shrink-0">
     <ListMusic class="size-6 text-foreground" />
     <p class="text-base font-bold text-foreground">推荐歌单</p>
-    <Button
-      variant="ghost"
-      class="cursor-pointer"
-      size="icon"
-      href="/explore"
-    >
+    <Button variant="ghost" class="cursor-pointer" size="icon" href="/explore">
       <ChevronRight class="size-4 text-foreground" />
     </Button>
   </div>
@@ -66,5 +61,6 @@
         </div>
       {/each}
     {/if}
+    <div class="h-24"></div>
   </ScrollArea>
 </div>
