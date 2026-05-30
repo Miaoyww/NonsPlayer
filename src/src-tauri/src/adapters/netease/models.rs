@@ -16,6 +16,7 @@ pub struct SongDetailResponse {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongItem {
+    #[serde(default)]
     pub id: serde_json::Value,
     #[serde(default)]
     pub name: String,
