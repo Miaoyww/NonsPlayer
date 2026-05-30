@@ -2,7 +2,7 @@
   import { Play, Heart, Ellipsis } from "@lucide/svelte";
   import Button from "../../ui/button/button.svelte";
   import type { Playlist } from "$lib/types";
-  import { coverSrc } from "$lib/utils";
+  import { coverSrc, formatCount } from "$lib/utils";
 
   interface Props {
     playlist: Playlist;
@@ -50,10 +50,10 @@
   <!-- 右侧：播放数 + 曲目数 + 操作按钮 -->
   <div class="flex-1 flex items-center justify-end gap-2 h-full m-2 ml-auto">
     {#if playlist.playCount > 0}
-      <div class="flex items-center gap-px w-10">
+      <div class="flex items-center gap-px w-15">
         <Play class="size-3 text-gray-500 fill-blue-500 stroke-blue-500" />
         <span class="text-xs font-medium text-gray-500"
-          >{playlist.playCount}</span
+          >{formatCount(playlist.playCount)}</span
         >
       </div>
     {/if}

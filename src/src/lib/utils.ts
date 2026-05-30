@@ -6,6 +6,13 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+/** Format a count with K/M suffix, always one decimal place. */
+export function formatCount(n: number): string {
+	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+	if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+	return String(n);
+}
+
 /** Convert a cover URL or file path to a loadable asset URL. */
 export function coverSrc(url: string): string {
 	if (!url) return "";
