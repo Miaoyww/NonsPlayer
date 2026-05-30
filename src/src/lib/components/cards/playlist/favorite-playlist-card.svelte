@@ -12,7 +12,7 @@
 
   $effect(() => {
     if (loaded) return;
-    const online = adapterStore.adapters.filter((a) => a.slug !== "local");
+    const online = adapterStore.streaming;
     if (online.length === 0) { loading = false; loaded = true; return; }
 
     loaded = true;
@@ -27,7 +27,7 @@
     })();
   });
 
-  const hasNoAdapters = $derived(!loading && !favorite && adapterStore.adapters.filter((a) => a.slug !== "local").length === 0);
+  const hasNoAdapters = $derived(!loading && !favorite && adapterStore.streaming.length === 0);
   const needLogin = $derived(!loading && !favorite && !hasNoAdapters);
   const fav = $derived(favorite!);
 </script>

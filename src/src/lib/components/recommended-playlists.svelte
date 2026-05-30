@@ -13,7 +13,7 @@
 
   $effect(() => {
     if (loaded) return;
-    const online = adapterStore.adapters.filter((a) => a.slug !== "local");
+    const online = adapterStore.streaming;
     if (online.length === 0) { loading = false; return; }
 
     loaded = true;

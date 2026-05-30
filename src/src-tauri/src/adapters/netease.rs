@@ -29,6 +29,7 @@ impl NeteaseAdapter {
                 author: "NonsPlayer".into(),
                 description: "网易云音乐适配器，支持搜索、歌单、每日推荐、二维码登录".into(),
                 version: "0.1.0".into(),
+                capabilities: vec![],
             },
             client: reqwest::Client::new(),
             api_base: base,

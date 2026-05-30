@@ -23,10 +23,11 @@ class AdapterStore {
 
   /** Get adapters that support a given capability. */
   byCapability(cap: CapabilityType): AdapterMetadata[] {
-    return this.adapters.filter((a) => {
-      // All registered adapters support basic capabilities.
-      return true;
-    });
+    return this.adapters.filter((a) => a.capabilities.includes(cap));
+  }
+
+  get streaming(): AdapterMetadata[] {
+    return this.byCapability("Account");
   }
 
   /** Look up a single adapter by slug. */

@@ -29,6 +29,7 @@ impl LocalAdapter {
             author: "NonsPlayer".into(),
             description: "播放本地音乐文件".into(),
             version: "0.1.0".into(),
+            capabilities: vec![],
         };
 
         let mut adapter = Self {

@@ -11,6 +11,7 @@ export interface AdapterMetadata {
   author: string;
   description: string;
   version: string;
+  capabilities: CapabilityType[];
 }
 
 export type CapabilityType =

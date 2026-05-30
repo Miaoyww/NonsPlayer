@@ -37,7 +37,7 @@
   });
 
   const onlineAdapters = $derived(
-    adapterStore.adapters.filter((a) => a.slug !== "local"),
+    adapterStore.streaming,
   );
 
   function playAllLocal(index = 0) {

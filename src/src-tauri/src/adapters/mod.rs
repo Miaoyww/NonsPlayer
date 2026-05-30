@@ -29,6 +29,7 @@ pub struct AdapterMetadata {
     pub author: String,
     pub description: String,
     pub version: String,
+    pub capabilities: Vec<CapabilityType>,
 }
 
 /// Search result aggregation
@@ -142,7 +143,11 @@ impl AdapterManager {
             .read()
             .unwrap()
             .values()
-            .map(|a| a.metadata().clone())
+            .map(|a| {
+                let mut meta = a.metadata().clone();
+                meta.capabilities = a.capabilities();
+                meta
+            })
             .collect()
     }
 }
