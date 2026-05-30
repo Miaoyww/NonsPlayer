@@ -15,6 +15,8 @@
     enableScale?: boolean;
     hidePassedLines?: boolean;
     wordFadeWidth?: number;
+    showLyricTran?: boolean;
+    showLyricRoma?: boolean;
     onLineClick?: (lineIndex: number, line: LyricLine) => void;
   }
 
@@ -30,6 +32,8 @@
     enableScale = true,
     hidePassedLines = false,
     wordFadeWidth = 0.5,
+    showLyricTran = true,
+    showLyricRoma = true,
     onLineClick = undefined,
   }: Props = $props();
 
@@ -64,12 +68,13 @@
   $effect(() => { timeRef = currentTime; });
 
   // Sync lyric data (deep-spread to strip Svelte 5 proxies)
+  // Respect showLyricTran/showLyricRoma toggles
   $effect(() => {
     if (player && lyricLines.length > 0) {
       const plain = lyricLines.map((l) => ({
         words: l.words.map((w) => ({ ...w })),
-        translatedLyric: l.translatedLyric,
-        romanLyric: l.romanLyric,
+        translatedLyric: showLyricTran ? l.translatedLyric : "",
+        romanLyric: showLyricRoma ? l.romanLyric : "",
         startTime: l.startTime,
         endTime: l.endTime,
         isBG: l.isBG,

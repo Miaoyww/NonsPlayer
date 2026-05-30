@@ -7,6 +7,7 @@ import { getLyric } from "$lib/services/adapter-service";
 import { fetchNeteaseLyric, searchNeteaseSong } from "$lib/services/netease-api-service";
 import { getTtml, parseTtmlLyrics } from "$lib/services/amll-db-service";
 import { globalSettings } from "$lib/stores/global-settings-store";
+import { alignLyrics } from "$lib/utils/lyric-align";
 
 // ── Platform → AMLL DB tag mapping ──────────────────────────────────
 
@@ -115,17 +116,10 @@ class LyricService {
     const settings = get(globalSettings);
     const amllTag = AMLL_DB_TAGS[song.adapterSlug] ?? "";
 
-    console.log(`[lyric] online: adapter=${song.adapterSlug} id=${numericId} enableAmll=${settings.enableAmllDb} amllTag="${amllTag}"`);
-
     // 1. Try AMLL TTML DB first (word-level synced lyrics)
     if (settings.enableAmllDb && amllTag) {
-      console.log(`[lyric] trying AMLL TTML for ${amllTag}/${numericId}`);
       const ttmlLines = await this._tryAmll(numericId, amllTag, song.adapterSlug);
-      if (ttmlLines) {
-        console.log(`[lyric] AMLL TTML SUCCESS (${ttmlLines.length} lines)`);
-        return ttmlLines;
-      }
-      console.log(`[lyric] AMLL TTML miss, falling back to Netease API`);
+      if (ttmlLines) return ttmlLines;
     }
 
     // 2. Try Netease API (YRC word-level → LRC fallback)
@@ -149,16 +143,10 @@ class LyricService {
         const amllTag = AMLL_DB_TAGS["netease"] ?? "ncm";
         // Try AMLL TTML — word-level lyrics take priority over local LRC
         const ttmlLines = await this._tryAmll(best.id, amllTag, "netease");
-        if (ttmlLines) {
-          console.log(`[lyric] local song matched → AMLL TTML found (${ttmlLines.length} lines)`);
-          return ttmlLines;
-        }
+        if (ttmlLines) return ttmlLines;
         // TTML miss — fall back to Netease API for YRC/LRC
         const neteaseLines = await this._tryNeteaseApi(best.id, "netease");
-        if (neteaseLines) {
-          console.log(`[lyric] local song matched → Netease lyrics (${neteaseLines.length} lines)`);
-          return neteaseLines;
-        }
+        if (neteaseLines) return neteaseLines;
       }
     }
 
@@ -203,20 +191,56 @@ class LyricService {
     const result = await fetchNeteaseLyric(numericId);
     if (!result) return null;
 
+    const hasTrans = !!(result.tlyric || result.ytlrc);
+    const hasRoma = !!(result.romalrc || result.yromalrc);
+    if (hasTrans || hasRoma) {
+      console.log(`[lyric] translations found for ${numericId}: trans=${hasTrans} roma=${hasRoma}`);
+    }
+
     // Prefer YRC (word-level) over LRC
     if (result.yrc) {
-      const parsed = this._tryParse(result.yrc, true);
-      if (parsed) {
+      const mainParsed = this._tryParse(result.yrc, true);
+      if (mainParsed) {
+        let lines = this._mapLines(mainParsed);
+        // Align translations: prefer word-level (ytlrc), fall back to line-level (tlyric)
+        const transText = result.ytlrc || result.tlyric;
+        if (transText) {
+          const transParsed = this._tryParse(transText, false);
+          if (transParsed) {
+            lines = alignLyrics(lines, this._mapLines(transParsed), "translatedLyric");
+          }
+        }
+        const romaText = result.yromalrc || result.romalrc;
+        if (romaText) {
+          const romaParsed = this._tryParse(romaText, false);
+          if (romaParsed) {
+            lines = alignLyrics(lines, this._mapLines(romaParsed), "romanLyric");
+          }
+        }
         this.lyricSource = { source: LyricSourceType.platform, adapterSlug, adapterSongId: numericId };
-        return this._mapLines(parsed);
+        return lines;
       }
     }
 
     if (result.lrc) {
-      const parsed = this._tryParse(result.lrc, false);
-      if (parsed) {
+      const mainParsed = this._tryParse(result.lrc, false);
+      if (mainParsed) {
+        let lines = this._mapLines(mainParsed);
+        // Align line-level translations
+        if (result.tlyric) {
+          const transParsed = this._tryParse(result.tlyric, false);
+          if (transParsed) {
+            lines = alignLyrics(lines, this._mapLines(transParsed), "translatedLyric");
+          }
+        }
+        if (result.romalrc) {
+          const romaParsed = this._tryParse(result.romalrc, false);
+          if (romaParsed) {
+            lines = alignLyrics(lines, this._mapLines(romaParsed), "romanLyric");
+          }
+        }
         this.lyricSource = { source: LyricSourceType.platform, adapterSlug, adapterSongId: numericId };
-        return this._mapLines(parsed);
+        return lines;
       }
     }
 

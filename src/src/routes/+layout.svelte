@@ -9,6 +9,8 @@
   import TitleBar from "$lib/components/titlebar.svelte";
   import SettingsDialog from "$lib/components/settings/settings-dialog.svelte";
   import PlayerBar from "$lib/components/player-bar.svelte";
+  import FullPlayer from "$lib/components/player/FullPlayer.svelte";
+  import { playerUI } from "$lib/stores/player-ui-store.svelte";
   import { NONSPLAYER_NAME } from "$lib/const";
   import logo from "$lib/assets/logo.svg";
   import { isTauri } from "@tauri-apps/api/core";
@@ -58,6 +60,7 @@
     {@render children?.()}
   </main>
   <PlayerBar />
+  <FullPlayer />
 </div>
 
 <style>

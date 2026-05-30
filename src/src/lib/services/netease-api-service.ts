@@ -25,6 +25,14 @@ async function getApiBase(): Promise<string> {
 export interface NeteaseLyricResult {
   lrc: string;
   yrc: string;
+  /** Translated line-level lyrics (LRC format) */
+  tlyric: string;
+  /** Romanized line-level lyrics (LRC format) */
+  romalrc: string;
+  /** Translated word-level lyrics (YRC format) */
+  ytlrc: string;
+  /** Romanized word-level lyrics (YRC format) */
+  yromalrc: string;
 }
 
 export interface NeteaseSearchSong {

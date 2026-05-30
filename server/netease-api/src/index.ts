@@ -30,28 +30,33 @@ app.get("/api/lyric", async (req, res) => {
       return;
     }
 
-    // 1. Try lyric_new first (supports YRC word-level lyrics)
+    // 1. Try lyric_new first (supports YRC word-level lyrics + translations)
     const resultNew = await lyric_new({ id });
     let lrc = resultNew.body?.lrc?.lyric || "";
     let yrc = resultNew.body?.yrc?.lyric || "";
+    let tlyric = resultNew.body?.tlyric?.lyric || "";
+    let romalrc = resultNew.body?.romalrc?.lyric || "";
+    let ytlrc = resultNew.body?.ytlrc?.lyric || "";
+    let yromalrc = resultNew.body?.yromalrc?.lyric || "";
 
     // 2. If lrc looks like JSON (not real lyric text), fall back to old endpoint
     if (isJsonFormatLyric(lrc)) {
       try {
         const resultOld = await lyric({ id });
         lrc = resultOld.body?.lrc?.lyric || "";
+        tlyric = resultOld.body?.tlyric?.lyric || tlyric;
         if (isJsonFormatLyric(yrc) || !yrc) {
           yrc = resultOld.body?.yrc?.lyric || resultOld.body?.tlyric?.lyric || "";
         }
       } catch { /* old endpoint fallback failed, keep original */ }
     }
 
-    // 3. Also clear JSON-format YRC
-    if (isJsonFormatLyric(yrc)) {
-      yrc = "";
-    }
+    // 3. Also clear JSON-format lyrics
+    if (isJsonFormatLyric(yrc)) yrc = "";
+    if (isJsonFormatLyric(tlyric)) tlyric = "";
+    if (isJsonFormatLyric(ytlrc)) ytlrc = "";
 
-    res.json({ lrc, yrc });
+    res.json({ lrc, yrc, tlyric, romalrc, ytlrc, yromalrc });
   } catch (err) {
     // If lyric_new errors entirely, try old endpoint as last resort
     try {
@@ -60,6 +65,10 @@ app.get("/api/lyric", async (req, res) => {
       res.json({
         lrc: resultOld.body?.lrc?.lyric || "",
         yrc: resultOld.body?.yrc?.lyric || "",
+        tlyric: resultOld.body?.tlyric?.lyric || "",
+        romalrc: "",
+        ytlrc: "",
+        yromalrc: "",
       });
     } catch (err2) {
       console.error("[netease-api] lyric error:", err2);

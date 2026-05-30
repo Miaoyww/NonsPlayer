@@ -1,14 +1,12 @@
 <script lang="ts">
-  import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, ListMusic, MicVocal, ChevronUp } from "@lucide/svelte";
+  import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, ListMusic, Shuffle, Repeat, Repeat1 } from "@lucide/svelte";
+import { playerUI } from "$lib/stores/player-ui-store.svelte";
   import Button from "$lib/components/ui/button/button.svelte";
   import { playerService } from "$lib/services/player-service.svelte";
-  import { fly, slide } from "svelte/transition";
-  import LyricPlayer from "$lib/components/lyrics/LyricPlayer.svelte";
+  import { fly } from "svelte/transition";
   import { lyricService } from "$lib/services/lyric-service.svelte";
-  import type { LyricLine } from "$lib/types/lyric";
   import { coverSrc } from "$lib/utils";
 
-  let showLyrics = $state(false);
   let showVolumeSlider = $state(false);
 
   // Progress bar drag
@@ -74,20 +72,18 @@
     dragPercent = (x / rect.width) * 100;
   }
 
-  function handleLineClick(index: number, line: LyricLine) {
-    console.log("Seeking to lyric line:", line);
-    playerService.seek(line.startTime / 1000);
-  }
-
   function togglePlayMode() {
     const modes: Array<"sequential" | "shuffle" | "single_loop" | "list_loop"> = ["sequential", "shuffle", "single_loop", "list_loop"];
     const idx = modes.indexOf(playerService.playMode);
     playerService.setPlayMode(modes[(idx + 1) % modes.length]);
   }
 
-  const playModeLabel = $derived(
-    { sequential: "顺序", shuffle: "随机", single_loop: "单曲", list_loop: "列表" }[playerService.playMode] ?? "顺序"
-  );
+  const playModeIcon = $derived({
+    sequential: Repeat,
+    shuffle: Shuffle,
+    single_loop: Repeat1,
+    list_loop: Repeat,
+  }[playerService.playMode]);
 
   const song = $derived(playerService.currentSong);
   const hasSong = $derived(song != null);
@@ -95,51 +91,22 @@
 
 <svelte:window onmousemove={onProgressMouseMove} onmouseup={onProgressMouseUp} />
 
-<!-- Lyrics fullscreen overlay -->
-{#if song && showLyrics}
-  <div
-    class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
-    transition:slide={{ axis: "y", duration: 300 }}
-    onclick={() => showLyrics = false}
-    onkeydown={() => {}}
-    role="button"
-    tabindex="0"
-  >
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div
-      class="absolute top-4 right-4 z-10"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <Button variant="ghost" size="icon" class="cursor-pointer text-white/70 hover:text-white" onclick={() => showLyrics = false}>
-        <ChevronUp class="size-5" />
-      </Button>
-    </div>
-
-    <div class="relative w-full h-full" onclick={(e) => e.stopPropagation()}>
-      {#if lyricService.loadingLyric}
-        <div class="flex items-center justify-center h-full text-sm text-white/60">加载歌词中...</div>
-      {:else if lyricService.currentLyricLines.length > 0}
-        <LyricPlayer
-          lyricLines={lyricService.currentLyricLines}
-          currentTime={playerService.position * 1000}
-          isPlaying={playerService.isPlaying}
-          onLineClick={handleLineClick}
-        />
-      {:else}
-        <div class="flex items-center justify-center h-full text-sm text-white/60">暂无歌词</div>
-      {/if}
-    </div>
-  </div>
-{/if}
-
 <!-- Player bar (floating card, fixed to viewport) -->
 {#if hasSong}
   <div
     class="fixed bottom-3 left-3 right-3 h-20 rounded-xl border border-border/50 bg-background/95 backdrop-blur shadow-lg flex items-center gap-4 px-4 z-40"
     in:fly={{ y: 16, duration: 300, opacity: 0 }}
   >
-  <!-- Left: song info -->
-  <div class="flex items-center gap-3 w-56 shrink-0">
+  <!-- Left: song info (clickable → opens full player) -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="flex items-center gap-3 w-56 shrink-0 cursor-pointer rounded-lg hover:bg-muted/50 transition-colors -ml-2 pl-2 py-1"
+    onclick={() => (playerUI.showFullPlayer = true)}
+    onkeydown={() => {}}
+    role="button"
+    tabindex="0"
+    aria-label="打开全屏播放器"
+  >
     <div class="size-12 shrink-0 rounded-md bg-muted overflow-hidden">
       {#if song?.avatarUrl}
         <img src={coverSrc(song.avatarUrl)} alt="" class="size-full object-cover" />
@@ -161,9 +128,6 @@
   <div class="flex-1 flex flex-col items-center gap-1 max-w-xl mx-auto">
     <!-- Buttons -->
     <div class="flex items-center gap-1">
-      <Button variant="ghost" size="icon" class="cursor-pointer" disabled={!hasSong} onclick={togglePlayMode} title={playModeLabel}>
-        <span class="text-[10px] font-bold text-muted-foreground">{playModeLabel}</span>
-      </Button>
       <Button variant="ghost" size="icon" class="cursor-pointer" disabled={!hasSong} onclick={() => playerService.prev()}>
         <SkipBack class="size-5" />
       </Button>
@@ -180,9 +144,6 @@
       </Button>
       <Button variant="ghost" size="icon" class="cursor-pointer" disabled={!hasSong} onclick={() => playerService.next()}>
         <SkipForward class="size-5" />
-      </Button>
-      <Button variant="ghost" size="icon" class="cursor-pointer" disabled={!hasSong} onclick={() => showLyrics = !showLyrics}>
-        <MicVocal class={`size-4 text-muted-foreground ${lyricService.currentLyricLines.length === 0 ? 'opacity-50' : ''}`} />
       </Button>
     </div>
 
@@ -219,8 +180,12 @@
     </div>
   </div>
 
-  <!-- Right: volume + queue -->
-  <div class="flex items-center gap-1 w-48 justify-end shrink-0">
+  <!-- Right: play mode + volume + queue -->
+  <div class="flex items-center gap-1 w-54 justify-end shrink-0">
+    <Button variant="ghost" size="icon" class="cursor-pointer" disabled={!hasSong} onclick={togglePlayMode}>
+      <svelte:component this={playModeIcon} class="size-4 text-muted-foreground" />
+    </Button>
+
     <div class="relative flex items-center" onmouseenter={() => showVolumeSlider = true} onmouseleave={() => showVolumeSlider = false}>
       <Button
         variant="ghost" size="icon" class="cursor-pointer"
