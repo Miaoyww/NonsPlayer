@@ -52,10 +52,6 @@
 </script>
 
 <div in:fly={{ y: 16, duration: 300, opacity: 0 }} class="h-full">
-	<div class="flex items-center gap-2 mb-4">
-		<ChartColumn class="size-5 text-foreground" />
-		<h2 class="text-lg font-bold text-foreground">雷达歌单</h2>
-	</div>
 	<ScrollArea class="h-full">
 		{#if loading}
 		<!-- Official chart skeletons -->

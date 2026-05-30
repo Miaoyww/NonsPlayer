@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { Compass, Sparkles, ChartColumn, LayoutGrid } from "@lucide/svelte";
+	import { Compass, Sparkles, ChartColumn, LayoutGrid, Radio } from "@lucide/svelte";
 	import Button from "$lib/components/ui/button/button.svelte";
 	import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
 	import RecommendedTab from "$lib/components/explore/recommended-tab.svelte";
 	import ToplistTab from "$lib/components/explore/toplist-tab.svelte";
+	import RadioTab from "$lib/components/explore/radio-tab.svelte";
 	import PlaylistSquareTab from "$lib/components/explore/playlist-square-tab.svelte";
 	import { fly } from "svelte/transition";
 
-	type Section = "recommended" | "toplist" | "square";
+	type Section = "recommended" | "toplist" | "radio" | "square";
 
 	let activeSection = $state<Section>("recommended");
 
@@ -15,7 +16,8 @@
 
 	const navItems: NavItem[] = [
 		{ key: "recommended", label: "推荐歌单", icon: Sparkles },
-		{ key: "toplist", label: "雷达歌单", icon: ChartColumn },
+		{ key: "toplist", label: "排行榜", icon: ChartColumn },
+		{ key: "radio", label: "雷达歌单", icon: Radio },
 		{ key: "square", label: "歌单广场", icon: LayoutGrid },
 	];
 </script>
@@ -53,6 +55,7 @@
 			<div class="p-8">
 				{#if activeSection === "recommended"}<RecommendedTab />{/if}
 				{#if activeSection === "toplist"}<ToplistTab />{/if}
+				{#if activeSection === "radio"}<RadioTab />{/if}
 				{#if activeSection === "square"}<PlaylistSquareTab />{/if}
 			</div>
       <div class="h-24"></div>
