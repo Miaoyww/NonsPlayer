@@ -17,6 +17,7 @@ pub struct SongDetailResponse {
 #[serde(rename_all = "camelCase")]
 pub struct SongItem {
     pub id: serde_json::Value,
+    #[serde(default)]
     pub name: String,
     #[serde(default)]
     pub dt: f64,
@@ -34,6 +35,12 @@ pub struct SongItem {
     pub alia: Vec<String>,
     #[serde(default)]
     pub mv: serde_json::Value,
+    #[serde(default)]
+    pub pop: f64,
+    #[serde(default)]
+    pub no_copyright_rcmd: Option<serde_json::Value>,
+    #[serde(default)]
+    pub publish_time: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -76,7 +83,8 @@ pub struct SongUrlItem {
     #[serde(default)]
     pub size: Option<f64>,
     #[serde(default)]
-    pub r#type: Option<String>,
+    #[serde(rename = "type")]
+    pub song_type: Option<String>,
     #[serde(default)]
     pub level: Option<String>,
     #[serde(default)]
@@ -431,7 +439,8 @@ pub struct RecommendPlaylistItem {
     #[serde(default)]
     pub track_count: Option<f64>,
     #[serde(default)]
-    pub playcount: Option<f64>,
+    #[serde(alias = "playcount")]
+    pub play_count: Option<f64>,
     #[serde(default)]
     pub creator: Option<PlaylistCreator>,
     #[serde(default)]

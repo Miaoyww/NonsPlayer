@@ -126,7 +126,7 @@ pub fn map_recommend_playlist(raw: &RecommendPlaylistItem) -> Playlist {
     let name = raw.name.clone();
     let cover = raw.pic_url.as_deref().unwrap_or("");
     let track_count = raw.track_count.unwrap_or(0.0) as u32;
-    let play_count = raw.playcount.unwrap_or(0.0) as u32;
+    let play_count = raw.play_count.unwrap_or(0.0) as u32;
     let creator = raw
         .creator
         .as_ref()
