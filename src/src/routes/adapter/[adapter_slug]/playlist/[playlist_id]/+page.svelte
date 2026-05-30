@@ -13,6 +13,7 @@
   import { fly } from "svelte/transition";
   import SongList from "$lib/components/song-list.svelte";
   import { getPlaylist } from "$lib/services/adapter-service";
+  import { playerService } from "$lib/services/player-service.svelte";
   import type { Song, Playlist } from "$lib/types";
 
   const adapterSlug = page.params.adapter_slug ?? "";
@@ -42,14 +43,19 @@
     }
   });
 
+  function handlePlayAll() {
+    if (songs.length === 0) return;
+    playerService.play(songs, 0);
+  }
+
+  function handlePlay(index: number) {
+    playerService.play(songs, index);
+  }
+
   function handleLike(index: number) {
     songs = songs.map((sg, i) =>
       i === index ? { ...sg, isLiked: !sg.isLiked } : sg,
     );
-  }
-
-  function handlePlayAll() {
-    // TODO: play all songs
   }
 
   function handleTogglePlaylistLike() {
@@ -227,7 +233,7 @@
 
     <!-- ===== Song List ===== -->
     {#if songs.length > 0}
-      <SongList class="mt-10 mx-8 mb-24" {songs} onlike={handleLike} />
+      <SongList class="mt-10 mx-8 mb-24" {songs} onplay={handlePlay} onlike={handleLike} />
     {:else}
       <div class="flex flex-col items-center justify-center mt-16 gap-2 text-muted-foreground">
         <p class="text-sm">歌单为空</p>
