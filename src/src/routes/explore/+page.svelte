@@ -55,6 +55,7 @@
 				{#if activeSection === "toplist"}<ToplistTab />{/if}
 				{#if activeSection === "square"}<PlaylistSquareTab />{/if}
 			</div>
+      <div class="h-24"></div>
 		</ScrollArea>
 	</div>
 </div>
