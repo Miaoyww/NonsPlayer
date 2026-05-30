@@ -15,39 +15,33 @@
 
   let songs = $state<Song[]>([]);
   let recommendedPlaylists = $state<Playlist[]>([]);
-  let loading = $state(true);
-  let loaded = false;
+  let loadingSongs = $state(true);
+  let loadingPlaylists = $state(true);
+  let songsLoaded = false;
+  let playlistsLoaded = false;
 
-  // Adapters are initialized by +layout.svelte; reactively load data
-  // when adapters become available.
+  // Load "next up" songs independently
   $effect(() => {
-    if (loaded) return;
+    if (songsLoaded) return;
     const adapters = adapterStore.adapters;
     if (adapters.length === 0) return;
 
-    loaded = true;
-    loading = true;
+    songsLoaded = true;
+    Promise.all(adapters.map((a) => search(a.slug, "").then((r) => r.songs).catch(() => [] as Song[])))
+      .then((results) => { songs = results.flat().slice(0, 9); })
+      .finally(() => { loadingSongs = false; });
+  });
 
-    (async () => {
-      const realSongs: Song[] = [];
-      const realPlaylists: Playlist[] = [];
+  // Load recommended playlists independently
+  $effect(() => {
+    if (playlistsLoaded) return;
+    const adapters = adapterStore.adapters;
+    if (adapters.length === 0) return;
 
-      for (const a of adapters) {
-        try {
-          const result = await search(a.slug, "");
-          if (result.songs.length > 0) realSongs.push(...result.songs);
-        } catch { /* skip */ }
-
-        try {
-          const recs = await getRecommendedPlaylists(a.slug, 4);
-          if (recs.length > 0) realPlaylists.push(...recs);
-        } catch { /* skip */ }
-      }
-
-      songs = realSongs.slice(0, 9);
-      recommendedPlaylists = realPlaylists.slice(0, 4);
-      loading = false;
-    })();
+    playlistsLoaded = true;
+    Promise.all(adapters.map((a) => getRecommendedPlaylists(a.slug, 4).catch(() => [] as Playlist[])))
+      .then((results) => { recommendedPlaylists = results.flat().slice(0, 4); })
+      .finally(() => { loadingPlaylists = false; });
   });
 
   function goPlaylist(playlist: { id: string; adapterSlug: string }) {
@@ -90,7 +84,7 @@
           <ChevronRight class="size-4 text-foreground" />
         </Button>
       </div>
-      <NextupSongList {songs} {loading} onplay={playSong} />
+      <NextupSongList {songs} loading={loadingSongs} onplay={playSong} />
     </div>
 
     <!-- 推荐歌单 -->
@@ -103,7 +97,7 @@
         </Button>
       </div>
       <ScrollArea class="flex flex-col gap-2 flex-1 min-h-0">
-        {#if loading}
+        {#if loadingPlaylists}
           <div class="text-sm text-muted-foreground p-4">加载中...</div>
         {:else if recommendedPlaylists.length === 0}
           <div class="text-sm text-muted-foreground p-4">暂无推荐歌单</div>
