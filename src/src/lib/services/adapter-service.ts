@@ -131,3 +131,22 @@ export function getPlaylistSquare(
     highQuality,
   });
 }
+
+// -- Lyric matching --
+
+export interface MatchResult {
+  adapterSlug: string;
+  /** Adapter-prefixed song ID (e.g. "netease_song_1010728767"). */
+  songId: string;
+  /** Raw platform numeric ID, suitable for AMLL TTML DB lookup. */
+  numericId: string;
+  name: string;
+  artist: string;
+  /** 0.0–1.0 character-level match score. */
+  score: number;
+}
+
+/** Fan out match_song to all registered adapters concurrently. */
+export function matchSongAcrossAdapters(name: string, artist: string): Promise<MatchResult[]> {
+  return invoke("match_song_across_adapters", { name, artist });
+}

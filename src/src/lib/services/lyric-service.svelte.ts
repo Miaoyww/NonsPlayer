@@ -4,114 +4,12 @@ import { parseLrc } from "@applemusic-like-lyrics/lyric";
 import type { Song } from "$lib/types/song";
 import type { LyricLine, LyricMap, LyricSource } from "$lib/types/lyric";
 import { LyricSourceType } from "$lib/types/lyric";
-import { getLyric, search } from "$lib/services/adapter-service";
+import { getLyric, matchSongAcrossAdapters } from "$lib/services/adapter-service";
+import type { MatchResult } from "$lib/services/adapter-service";
 import { getTtml, parseTtmlLyrics } from "$lib/services/amll-db-service";
 import { globalSettings } from "$lib/stores/global-settings-store";
 
 const TAG = "[lyric]";
-
-// ── Matching helpers (mirrors Coriander Player's music_matcher.dart) ─
-
-interface MatchResult {
-  adapterSlug: string;
-  songId: string;        // full prefixed ID (e.g. "netease_song_1010728767")
-  numericId: string;     // raw numeric ID for AMLL DB (e.g. "1010728767")
-  score: number;
-}
-
-/**
- * Simple character-level matching score.
- * Mirrors `_computeScore` from Coriander Player's music_matcher.dart.
- */
-function computeScore(audio: Song, title: string, artists: string, album: string): number {
-  const maxScore = audio.name.length + audio.artistsName.length + (audio.albumName?.length ?? 0);
-  if (maxScore === 0) return 0;
-
-  let score = 0;
-  const minTitleLen = Math.min(audio.name.length, title.length);
-  for (let i = 0; i < minTitleLen; i++) {
-    if (audio.name[i] === title[i]) score += 1;
-  }
-  const minArtistLen = Math.min(audio.artistsName.length, artists.length);
-  for (let i = 0; i < minArtistLen; i++) {
-    if (audio.artistsName[i] === artists[i]) score += 1;
-  }
-  const albumName = audio.albumName ?? "";
-  const minAlbumLen = Math.min(albumName.length, album.length);
-  for (let i = 0; i < minAlbumLen; i++) {
-    if (albumName[i] === album[i]) score += 1;
-  }
-  return score / maxScore;
-}
-
-/**
- * Extract the raw numeric song ID from an adapter-prefixed ID.
- * NetEase IDs: "netease_song_1010728767" → "1010728767"
- * QQ IDs: "qqmusic_song_..." → "..."
- * Local file paths are NOT valid — returns null.
- */
-function extractNumericId(songId: string, adapterSlug: string): string | null {
-  if (adapterSlug === "local") return null;
-
-  const prefix = `${adapterSlug}_song_`;
-  if (songId.startsWith(prefix)) {
-    const id = songId.slice(prefix.length);
-    if (/^\d+$/.test(id)) return id;
-  }
-  if (/^\d+$/.test(songId)) return songId;
-  return null;
-}
-
-const ARTIST_SEPARATORS = /[、,/;&，xX]+|\/+/;
-
-/**
- * Search streaming adapters for a match to a local song.
- * Mirrors `uniSearch` + `getMostMatchedLyric` from Coriander Player.
- */
-async function matchLocalSong(song: Song): Promise<MatchResult | null> {
-  const primaryArtist = song.artistsName.split(ARTIST_SEPARATORS)[0]?.trim() ?? "";
-  const query = primaryArtist ? `${song.name} ${primaryArtist}` : song.name;
-  console.log(`${TAG} [match] searching: query="${query}"`);
-
-  const adaptersToTry = ["netease"]; // future: "qqmusic"
-  const allResults: MatchResult[] = [];
-
-  for (const adapterSlug of adaptersToTry) {
-    try {
-      const result = await search(adapterSlug, query);
-      console.log(`${TAG} [match] ${adapterSlug} returned ${result?.songs?.length ?? 0} songs`);
-      if (!result?.songs?.length) continue;
-
-      for (let i = 0; i < Math.min(result.songs.length, 5); i++) {
-        const s = result.songs[i];
-        if (!s || s.isEmpty) continue;
-
-        const numericId = extractNumericId(s.id, adapterSlug);
-        if (!numericId) {
-          console.log(`${TAG} [match]   #${i + 1} "${s.name}" id="${s.id}" → no numeric ID, skip`);
-          continue;
-        }
-
-        const score = computeScore(song, s.name, s.artistsName, s.albumName ?? "");
-        console.log(`${TAG} [match]   #${i + 1} "${s.name}" - "${s.artistsName}" id=${numericId} score=${score.toFixed(4)}`);
-        allResults.push({ adapterSlug, songId: s.id, numericId, score });
-      }
-    } catch (err) {
-      console.warn(`${TAG} [match] search failed for ${adapterSlug}:`, err);
-    }
-  }
-
-  allResults.sort((a, b) => b.score - a.score);
-
-  if (allResults.length > 0) {
-    const best = allResults[0];
-    console.log(`${TAG} [match] WINNER: "${song.name}" → ${best.adapterSlug}/${best.numericId} (score=${best.score.toFixed(4)}, candidates=${allResults.length})`);
-    return best;
-  }
-
-  console.log(`${TAG} [match] NO MATCH for "${song.name}"`);
-  return null;
-}
 
 // ── LyricService ────────────────────────────────────────────────────
 
@@ -221,25 +119,70 @@ class LyricService {
     enableAmll: boolean,
   ): Promise<LyricLine[]> {
     console.log(`${TAG} _getLyricForLocal: localFirst=${localFirst}`);
+    const mapKey = `${song.adapterSlug}:${song.id}`;
 
     if (localFirst) {
-      const localResult = await this._tryLocal(song);
+      // Run local LRC and cross-adapter match CONCURRENTLY.
+      // Local LRC is near-instant; match takes ~500ms-2s (HTTP search).
+      // We return local immediately if found, but the match result still
+      // populates the lyric map with platform IDs for future fallback.
+      let matchMeta: { adapterSlug: string; songId: string; numericId: string } | null = null;
+
+      const [localResult, matchResults] = await Promise.all([
+        this._tryLocal(song),
+        matchSongAcrossAdapters(song.name, song.artistsName).then((results) => {
+          if (results.length > 0) {
+            const best = results[0];
+            console.log(`${TAG} _getLyricForLocal: best match → ${best.adapterSlug}/${best.numericId} (score=${best.score.toFixed(4)})`);
+            matchMeta = { adapterSlug: best.adapterSlug, songId: best.songId, numericId: best.numericId };
+          }
+          return results;
+        }),
+      ]);
+
+      // Merge: if match succeeded, persist a combined entry that prefers
+      // local but keeps platform IDs for AMLL DB fallback.
+      if (matchMeta && localResult) {
+        await this._saveLyricSource(mapKey, {
+          source: LyricSourceType.local,
+          ttmlId: matchMeta.numericId,
+          adapterSlug: matchMeta.adapterSlug,
+          adapterSongId: matchMeta.songId,
+        });
+        console.log(`${TAG} _getLyricForLocal: merged local+online (ttmlId=${matchMeta.numericId})`);
+      }
+
       if (localResult) {
         console.log(`${TAG} _getLyricForLocal: local LRC found (${localResult.length} lines)`);
         return localResult;
       }
-      console.log(`${TAG} _getLyricForLocal: no local LRC, trying online match`);
-      const onlineResult = await this._tryOnlineForLocal(song, enableAmll);
-      console.log(`${TAG} _getLyricForLocal: online result = ${onlineResult ? onlineResult.length + " lines" : "null"}`);
-      return onlineResult ?? [];
+
+      // No local LRC — use the matched platform result
+      if (matchMeta) {
+        const onlineResult = await this._tryOnlineMatched(
+          song, matchMeta.adapterSlug, matchMeta.songId, enableAmll, matchMeta.numericId,
+        );
+        console.log(`${TAG} _getLyricForLocal: online result = ${onlineResult ? onlineResult.length + " lines" : "null"}`);
+        return onlineResult ?? [];
+      }
+
+      console.log(`${TAG} _getLyricForLocal: no local LRC and no match`);
+      return [];
     }
 
     // online-first for local
-    console.log(`${TAG} _getLyricForLocal: online-first, trying match`);
-    const onlineResult = await this._tryOnlineForLocal(song, enableAmll);
-    if (onlineResult) {
-      console.log(`${TAG} _getLyricForLocal: online match OK (${onlineResult.length} lines)`);
-      return onlineResult;
+    console.log(`${TAG} _getLyricForLocal: online-first, matching across adapters`);
+    const matchResults = await matchSongAcrossAdapters(song.name, song.artistsName);
+    if (matchResults.length > 0) {
+      const best = matchResults[0];
+      console.log(`${TAG} _getLyricForLocal: best match → ${best.adapterSlug}/${best.numericId} (score=${best.score.toFixed(4)})`);
+      const onlineResult = await this._tryOnlineMatched(
+        song, best.adapterSlug, best.songId, enableAmll, best.numericId,
+      );
+      if (onlineResult) {
+        console.log(`${TAG} _getLyricForLocal: online result OK (${onlineResult.length} lines)`);
+        return onlineResult;
+      }
     }
     console.log(`${TAG} _getLyricForLocal: online match failed, falling back to local LRC`);
     const localResult = await this._tryLocal(song);
@@ -272,35 +215,11 @@ class LyricService {
       }
 
       console.log(`${TAG} _tryLocal: SUCCESS, ${formatted.length} parsed lines`);
-      const mapKey = `${song.adapterSlug}:${song.id}`;
-      this.lyricSource = { source: LyricSourceType.local, adapterSlug: song.adapterSlug };
-      await this._saveLyricSource(mapKey, this.lyricSource);
       return formatted;
     } catch (err) {
       console.warn(`${TAG} _tryLocal: exception:`, err);
       return null;
     }
-  }
-
-  private async _tryOnlineForLocal(
-    song: Song,
-    enableAmll: boolean,
-  ): Promise<LyricLine[] | null> {
-    console.log(`${TAG} _tryOnlineForLocal: matching local song to platform...`);
-    const match = await matchLocalSong(song);
-    if (!match) {
-      console.log(`${TAG} _tryOnlineForLocal: no platform match found`);
-      return null;
-    }
-
-    console.log(`${TAG} _tryOnlineForLocal: matched → adapter=${match.adapterSlug} numericId=${match.numericId}`);
-    return await this._tryOnlineMatched(
-      song,
-      match.adapterSlug,
-      match.songId,
-      enableAmll,
-      match.numericId,
-    );
   }
 
   private async _tryOnlineMatched(
@@ -310,7 +229,7 @@ class LyricService {
     enableAmll: boolean,
     numericIdOverride?: string,
   ): Promise<LyricLine[] | null> {
-    const numericId = numericIdOverride ?? extractNumericId(songId, adapterSlug);
+    const numericId = numericIdOverride ?? this._extractNumericId(songId, adapterSlug);
     const mapKey = `${originalSong.adapterSlug}:${originalSong.id}`;
     console.log(`${TAG} _tryOnlineMatched: adapter=${adapterSlug} songId=${songId} numericId=${numericId ?? "null"} enableAmll=${enableAmll}`);
 
@@ -396,15 +315,74 @@ class LyricService {
     }
   }
 
+  /**
+   * Fire-and-forget background match: populates the lyric map with
+   * platform IDs so future plays can try AMLL DB / adapter fallback.
+   * Only called when a local entry has no match IDs yet.
+   */
+  private _backgroundMatch(song: Song): void {
+    const mapKey = `${song.adapterSlug}:${song.id}`;
+    console.log(`${TAG} _backgroundMatch: starting for "${song.name}"`);
+    matchSongAcrossAdapters(song.name, song.artistsName)
+      .then(async (results) => {
+        if (results.length === 0) {
+          console.log(`${TAG} _backgroundMatch: no match found for "${song.name}"`);
+          return;
+        }
+        const best = results[0];
+        console.log(`${TAG} _backgroundMatch: best → ${best.adapterSlug}/${best.numericId} (score=${best.score.toFixed(4)})`);
+        await this._saveLyricSource(mapKey, {
+          source: LyricSourceType.local,
+          ttmlId: best.numericId,
+          adapterSlug: best.adapterSlug,
+          adapterSongId: best.songId,
+        });
+        console.log(`${TAG} _backgroundMatch: merged for "${song.name}"`);
+      })
+      .catch((err) => {
+        console.warn(`${TAG} _backgroundMatch: error:`, err);
+      });
+  }
+
   // ── Persisted source dispatch ──────────────────────────────────
 
   private async _fetchFromSource(source: LyricSource, song: Song): Promise<LyricLine[] | null> {
     console.log(`${TAG} _fetchFromSource: source=${source.source} ttmlId=${source.ttmlId ?? "-"} adapterSlug=${source.adapterSlug ?? "-"} adapterSongId=${source.adapterSongId ?? "-"}`);
     switch (source.source) {
-      case LyricSourceType.local:
-        return await this._tryLocal(song);
+      case LyricSourceType.local: {
+        const localResult = await this._tryLocal(song);
+        if (localResult) {
+          // If this entry has no match IDs yet, kick off a background
+          // match so future plays can fall back to AMLL DB / adapter.
+          if (!source.ttmlId && !source.adapterSongId) {
+            this._backgroundMatch(song);
+          }
+          return localResult;
+        }
+
+        // Local failed — try fallback via stored match IDs
+        const enableAmll = get(globalSettings).enableAmllDb;
+        const numericId = source.ttmlId
+          ?? this._extractNumericId(source.adapterSongId ?? "", source.adapterSlug ?? "");
+        if (enableAmll && numericId) {
+          console.log(`${TAG} _fetchFromSource: local failed, trying AMLL DB fallback id=${numericId}`);
+          const amllResult = await this._fetchAmll(numericId);
+          if (amllResult) return amllResult;
+        }
+        if (source.adapterSlug && source.adapterSongId) {
+          console.log(`${TAG} _fetchFromSource: local failed, trying adapter fallback ${source.adapterSlug}/${source.adapterSongId}`);
+          try {
+            const raw = await getLyric(source.adapterSlug, source.adapterSongId);
+            if (raw) {
+              const lines = parseLrc(raw);
+              if (Array.isArray(lines) && lines.length > 0) return this._mapLrcLines(lines);
+            }
+          } catch { /* fall through */ }
+        }
+        return null;
+      }
       case LyricSourceType.amll: {
-        const id = source.ttmlId ?? extractNumericId(source.adapterSongId ?? song.id, source.adapterSlug ?? song.adapterSlug);
+        const id = source.ttmlId ?? this._extractNumericId(source.adapterSongId ?? song.id, source.adapterSlug ?? song.adapterSlug);
         if (!id) {
           console.log(`${TAG} _fetchFromSource: amll source has no numeric ID, skip`);
           return null;
@@ -432,6 +410,18 @@ class LyricService {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────
+
+  /** Extract numeric song ID from adapter-prefixed ID (e.g. "netease_song_1010728767" → "1010728767"). */
+  private _extractNumericId(songId: string, adapterSlug: string): string | null {
+    if (!songId || adapterSlug === "local") return null;
+    const prefix = `${adapterSlug}_song_`;
+    if (songId.startsWith(prefix)) {
+      const id = songId.slice(prefix.length);
+      if (/^\d+$/.test(id)) return id;
+    }
+    if (/^\d+$/.test(songId)) return songId;
+    return null;
+  }
 
   private _mapLrcLines(lines: any[]): LyricLine[] {
     return lines.map((line: any) => ({
@@ -502,7 +492,13 @@ class LyricService {
     try {
       let lines: LyricLine[] | null = null;
       if (isLocalSong) {
-        lines = await this._tryOnlineForLocal(this.currentSong, enableAmll);
+        const results = await matchSongAcrossAdapters(this.currentSong.name, this.currentSong.artistsName);
+        if (results.length > 0) {
+          const best = results[0];
+          lines = await this._tryOnlineMatched(
+            this.currentSong, best.adapterSlug, best.songId, enableAmll, best.numericId,
+          );
+        }
       } else {
         lines = await this._tryOnlineMatched(
           this.currentSong,

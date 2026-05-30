@@ -85,6 +85,7 @@ pub fn run() {
             commands::music::get_top_playlists,
             commands::music::get_playlist_cats,
             commands::music::get_playlist_square,
+            commands::music::match_song_across_adapters,
             // lyric cache
             commands::lyric_cache::get_app_lyric_dir,
             commands::lyric_cache::save_ttml_cache,

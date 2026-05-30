@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tauri::State;
 
-use crate::adapters::{Adapter, PlaylistCategory, SearchResult, TopPlaylistGroup};
+use crate::adapters::{Adapter, MatchResult, PlaylistCategory, SearchResult, TopPlaylistGroup};
 use crate::models::{album::Album, artist::Artist, playlist::Playlist, song::Song};
 use crate::AppState;
 
@@ -263,4 +263,80 @@ pub async fn get_playlist_square(
         .get_playlist_square(&cat, &order, limit, offset, high_quality)
         .await
         .map_err(|e| e.to_string())
+}
+
+/// Fan out `match_song` to all registered adapters concurrently.
+/// Returns aggregated results sorted by score (best first).
+#[tauri::command]
+pub async fn match_song_across_adapters(
+    name: String,
+    artist: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<MatchResult>, String> {
+    log::info!(
+        "[match_song] fanning out: name=\"{}\" artist=\"{}\"",
+        name, artist
+    );
+
+    let adapters: Vec<Arc<dyn Adapter>> = state
+        .adapters
+        .list()
+        .into_iter()
+        .filter_map(|m| {
+            let a = state.adapters.get(&m.slug)?;
+            log::info!("[match_song] dispatching to adapter: {}", m.slug);
+            Some(a)
+        })
+        .collect();
+
+    if adapters.is_empty() {
+        log::info!("[match_song] no adapters registered, returning empty");
+        return Ok(vec![]);
+    }
+
+    let handles: Vec<_> = adapters
+        .iter()
+        .map(|a| {
+            let name = name.clone();
+            let artist = artist.clone();
+            let adapter = Arc::clone(a);
+            let slug = adapter.metadata().slug.clone();
+            tauri::async_runtime::spawn(async move {
+                let result = adapter.match_song(&name, &artist).await;
+                (slug, result)
+            })
+        })
+        .collect();
+
+    let mut results: Vec<MatchResult> = Vec::new();
+    for handle in handles {
+        match handle.await {
+            Ok((slug, Ok(Some(r)))) => {
+                log::info!(
+                    "[match_song] {} → score={:.4} id={}",
+                    slug, r.score, r.numeric_id
+                );
+                results.push(r);
+            }
+            Ok((slug, Ok(None))) => {
+                log::info!("[match_song] {} → no match", slug);
+            }
+            Ok((slug, Err(e))) => {
+                log::warn!("[match_song] {} → error: {}", slug, e);
+            }
+            Err(e) => log::warn!("[match_song] join error: {}", e),
+        }
+    }
+
+    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+
+    log::info!(
+        "[match_song] DONE: \"{}\" - \"{}\" → {} results across {} adapters",
+        name,
+        artist,
+        results.len(),
+        adapters.len()
+    );
+
+    Ok(results)
 }

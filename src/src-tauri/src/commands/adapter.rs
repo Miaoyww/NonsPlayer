@@ -32,7 +32,7 @@ pub fn scan_local(
 /// Initialize all adapters from config. Called once at app startup.
 /// Returns metadata for all registered adapters.
 #[tauri::command]
-pub fn init_adapters(
+pub async fn init_adapters(
     config: AdapterConfig,
     state: State<'_, AppState>,
 ) -> Result<Vec<AdapterMetadata>, String> {
@@ -58,6 +58,12 @@ pub fn init_adapters(
 
     // Netease adapter — always registered (self-contained, no external proxy needed)
     let netease = NeteaseAdapter::new();
+    // Bootstrap a fresh anonymous token before registering.
+    // The hardcoded default token expires periodically; this fetches a new one.
+    match netease.bootstrap().await {
+        Ok(()) => log::info!("[init_adapters] netease anonymous token bootstrapped"),
+        Err(e) => log::warn!("[init_adapters] failed to bootstrap netease anonymous token: {}", e),
+    }
     state.adapters.register(netease);
 
     let list = state.adapters.list();

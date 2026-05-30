@@ -41,6 +41,21 @@ pub struct SearchResult {
     pub playlists: Vec<Playlist>,
 }
 
+/// Result of matching a local song (name + artist) to an online platform.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchResult {
+    pub adapter_slug: String,
+    /// Adapter-prefixed song ID (e.g. "netease_song_1010728767").
+    pub song_id: String,
+    /// Raw platform numeric ID, suitable for AMLL TTML DB lookup.
+    pub numeric_id: String,
+    pub name: String,
+    pub artist: String,
+    /// 0.0 – 1.0 character-level match score.
+    pub score: f64,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "status")]
 pub enum LoginStatus {
@@ -79,6 +94,12 @@ pub trait Adapter: Send + Sync {
 
     // -- Search --
     async fn search(&self, keyword: &str) -> Result<SearchResult>;
+
+    /// Match a local song (by name + artist) to this adapter's platform.
+    /// Returns `Ok(None)` if the adapter doesn't support matching (e.g. local adapter).
+    async fn match_song(&self, _name: &str, _artist: &str) -> Result<Option<MatchResult>> {
+        Ok(None)
+    }
 
     // -- Account (default: not supported) --
     async fn login_qr_url(&self) -> Result<(String, String)> {

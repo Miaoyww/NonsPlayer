@@ -144,8 +144,13 @@ impl NeteaseClient {
                 (vec![("params".into(), params), ("encSecKey".into(), enc_sec_key)], false)
             }
             CryptoType::Eapi => {
-                let url_path = Self::extract_path(url);
-                let params = crypto::eapi(url_path, &json_text);
+                // eapi signature MUST use /api/… path regardless of the
+                // actual POST URL (which uses /eapi/…).
+                // Matches NeteaseCloudMusicApi request.js:
+                //   data = encrypt.eapi(options.url, data)  ← /api/…
+                //   url  = url.replace(/\w*api/, 'eapi')    ← /eapi/…
+                let sign_path = Self::eapi_sign_path(url);
+                let params = crypto::eapi(&sign_path, &json_text);
                 (vec![("params".into(), params)], true)
             }
             CryptoType::Api => {
@@ -169,11 +174,28 @@ impl NeteaseClient {
             .map(|(k, v)| (k.as_str(), v.as_str()))
             .collect();
 
-        log::debug!("[netease] POST {} (crypto={})", url, match crypto_type {
+        let crypto_label = match crypto_type {
             CryptoType::Weapi => "weapi",
             CryptoType::Eapi => "eapi",
             CryptoType::Api => "api",
-        });
+        };
+
+        // ── Detailed request logging at info level ──
+        log::info!("[netease] ── REQUEST ──────────────────────────────");
+        log::info!("[netease] POST {}", url);
+        log::info!("[netease] crypto  = {}", crypto_label);
+        log::info!("[netease] payload = {}", json_text);
+        log::info!("[netease] cookie  = {}", cookie);
+        log::info!("[netease] ua      = {}", ua);
+        if !form_pairs.is_empty() {
+            let form_str = form_pairs
+                .iter()
+                .map(|(k, v)| format!("{}={}", k, if v.len() > 120 { &v[..120] } else { v }))
+                .collect::<Vec<_>>()
+                .join("&");
+            log::info!("[netease] form    = {}", form_str);
+        }
+        log::info!("[netease] ────────────────────────────────────────");
 
         let resp = self
             .http
@@ -187,7 +209,7 @@ impl NeteaseClient {
             .map_err(Error::Http)?;
 
         let status = resp.status();
-        log::debug!("[netease] response status={}", status);
+        log::info!("[netease] response status = {}", status);
 
         // If the upstream returned an error, read as text so we can log the reason
         if !status.is_success() {
@@ -201,28 +223,47 @@ impl NeteaseClient {
         }
 
         if is_binary_response {
-            // eapi response: binary, decrypt with AES-128-ECB
+            // eapi response: ideally AES-128-ECB encrypted binary.
+            // Mirror NeteaseCloudMusicApi's fallback:
+            //   1. Try decrypt + JSON.parse
+            //   2. If that fails, try JSON.parse on raw bytes
             let bytes = resp.bytes().await.map_err(|e| Error::Other(format!("read error: {}", e)))?;
 
-            // Guard: if the server returned a non-200 or the body length
-            // isn't block-aligned, it's likely a plain-text error, not
-            // encrypted. Log it and return an error instead of panicking.
-            if bytes.len() % 16 != 0 {
-                let preview = String::from_utf8_lossy(&bytes[..bytes.len().min(200)]);
-                log::error!("[netease] eapi response not block-aligned (len={}): {}", bytes.len(), preview);
-                return Err(Error::Other(format!(
-                    "eapi response is not encrypted (len={}): {}",
-                    bytes.len(), preview
-                )));
+            log::info!("[netease] response len = {} bytes", bytes.len());
+
+            // First, try the raw bytes as plain JSON (most common case when
+            // the server doesn't encrypt the response).
+            let raw_text = String::from_utf8_lossy(&bytes);
+            if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&bytes) {
+                let preview: String = raw_text.chars().take(500).collect();
+                log::info!("[netease] response body (plain JSON, {} chars): {}", raw_text.len(), preview);
+                return Ok(json);
             }
 
-            let decrypted = crypto::eapi_decrypt(&bytes)
-                .map_err(|e| Error::Other(format!("eapi decrypt: {}", e)))?;
-            let json: serde_json::Value =
-                serde_json::from_slice(&decrypted).map_err(|e| Error::Other(format!("parse error: {}", e)))?;
-            Ok(json)
+            // Not valid JSON — maybe it's encrypted (block-aligned binary).
+            if bytes.len() % 16 == 0 {
+                match crypto::eapi_decrypt(&bytes) {
+                    Ok(decrypted) => {
+                        let dec_str = String::from_utf8_lossy(&decrypted);
+                        let preview: String = dec_str.chars().take(500).collect();
+                        log::info!("[netease] response body (decrypted, {} chars): {}", dec_str.len(), preview);
+                        return serde_json::from_slice(&decrypted)
+                            .map_err(|e| Error::Other(format!("parse error after decrypt: {}", e)));
+                    }
+                    Err(_) => {
+                        log::warn!("[netease] eapi decrypt failed, raw text was not valid JSON either");
+                    }
+                }
+            }
+
+            Err(Error::Other(format!(
+                "eapi response is neither valid JSON nor decryptable: {}",
+                raw_text.chars().take(300).collect::<String>()
+            )))
         } else {
             let text = resp.text().await.map_err(|e| Error::Other(format!("read error: {}", e)))?;
+            let preview: String = text.chars().take(500).collect();
+            log::info!("[netease] response body ({} chars): {}", text.len(), preview);
             let json: serde_json::Value =
                 serde_json::from_str(&text).map_err(|e| Error::Other(format!("parse error: {}", e)))?;
             Ok(json)
@@ -253,6 +294,16 @@ impl NeteaseClient {
             }
         }
         url
+    }
+
+    /// Build the eapi signature path from the request URL.
+    ///
+    /// The eapi signature algorithm expects a `/api/…` path, but the actual
+    /// POST URL uses `/eapi/…`.  This mirrors NeteaseCloudMusicApi's
+    /// `request.js` which passes `options.url` (with `/api/`) to
+    /// `encrypt.eapi()` while posting to the `/eapi/` URL.
+    fn eapi_sign_path(url: &str) -> String {
+        Self::extract_path(url).replace("/eapi/", "/api/")
     }
 }
 
