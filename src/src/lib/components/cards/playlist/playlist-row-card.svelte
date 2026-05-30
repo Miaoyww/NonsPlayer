@@ -10,11 +10,7 @@
     onlike?: () => void;
   }
 
-  let {
-    playlist,
-    onplay,
-    onlike,
-  }: Props = $props();
+  let { playlist, onplay, onlike }: Props = $props();
 
   let liked = $state(false);
 
@@ -37,7 +33,11 @@
   <!-- 封面 93x93 -->
   <div class=" size-16 shrink-0 rounded-lg bg-muted overflow-hidden">
     {#if playlist.avatarUrl}
-      <img src={coverSrc(playlist.avatarUrl)} alt="" class="size-full object-cover" />
+      <img
+        src={coverSrc(playlist.avatarUrl)}
+        alt=""
+        class="size-full object-cover"
+      />
     {/if}
   </div>
 
@@ -49,14 +49,20 @@
 
   <!-- 右侧：播放数 + 曲目数 + 操作按钮 -->
   <div class="flex-1 flex items-center justify-end gap-2 h-full m-2 ml-auto">
-    <!-- 播放数 -->
-    <div class="flex items-center gap-px w-10">
-      <Play class="size-3 text-gray-500 fill-blue-500 stroke-blue-500"  />
-      <span class="text-xs font-medium text-gray-500">{playlist.playCount}</span>
-    </div>
+    {#if playlist.playCount > 0}
+      <div class="flex items-center gap-px w-10">
+        <Play class="size-3 text-gray-500 fill-blue-500 stroke-blue-500" />
+        <span class="text-xs font-medium text-gray-500"
+          >{playlist.playCount}</span
+        >
+      </div>
+    {/if}
 
-    <!-- 曲目数 -->
-    <span class="text-xs font-medium text-gray-500 w-16">{playlist.musicsCount} Tracks</span>
+    {#if playlist.musicsCount > 0}
+      <span class="text-xs font-medium text-gray-500 w-16"
+        >{playlist.musicsCount} Tracks</span
+      >
+    {/if}
 
     <!-- 收藏按钮 -->
     <Button
