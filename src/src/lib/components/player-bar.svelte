@@ -2,18 +2,14 @@
   import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, ListMusic, MicVocal, ChevronUp } from "@lucide/svelte";
   import Button from "$lib/components/ui/button/button.svelte";
   import { playerService } from "$lib/services/player-service.svelte";
-  import { onMount } from "svelte";
   import { fly, slide } from "svelte/transition";
   import LyricPlayer from "$lib/components/lyrics/LyricPlayer.svelte";
-  import { getLyric } from "$lib/services/adapter-service";
+  import { lyricService } from "$lib/services/lyric-service.svelte";
   import type { LyricLine } from "$lib/types/lyric";
-  import { parseLrc } from "@applemusic-like-lyrics/lyric";
   import { coverSrc } from "$lib/utils";
 
   let showLyrics = $state(false);
   let showVolumeSlider = $state(false);
-  let lyricLines = $state<LyricLine[]>([]);
-  let loadingLyric = $state(false);
 
   // Progress bar drag
   let progressBar = $state<HTMLDivElement>();
@@ -26,50 +22,21 @@
       : 0
   );
 
-  let currentSongId = $state("");
-  let lyricLoaded = $state(false);
+  let lastSongId = $state("");
 
   $effect(() => {
     const song = playerService.currentSong;
-    if (!song) return;
-    // Reset lyric when song changes
-    if (song.id !== currentSongId) {
-      currentSongId = song.id;
-      lyricLines = [];
-      lyricLoaded = false;
+    if (!song) {
+      lyricService.updateLyric(null);
+      return;
     }
-    if (lyricLoaded || lyricLines.length > 0) return;
-    loadLyricFor(song.adapterSlug, song.id);
+    // Only update when song actually changes
+    if (song.id !== lastSongId) {
+      console.log(`[player-bar] song changed: "${song.name}" (${song.adapterSlug}:${song.id}) → calling lyricService.updateLyric`);
+      lastSongId = song.id;
+      lyricService.updateLyric(song);
+    }
   });
-
-  async function loadLyricFor(adapterSlug: string, songId: string) {
-    loadingLyric = true;
-    lyricLoaded = true;
-    try {
-      const raw = await getLyric(adapterSlug, songId);
-      if (!raw) { lyricLines = []; return; }
-      // Use AMLL's built-in LRC parser (returns array directly)
-      const lines = parseLrc(raw);
-      if (!Array.isArray(lines) || !lines.length) { lyricLines = []; return; }
-      lyricLines = lines.map((line: any) => ({
-        words: (line.words ?? []).map((w: any) => ({
-          startTime: w.startTime ?? 0,
-          endTime: w.endTime ?? 0,
-          word: w.word ?? "",
-        })),
-        translatedLyric: line.translatedLyric ?? "",
-        romanLyric: line.romanLyric ?? "",
-        startTime: line.startTime ?? 0,
-        endTime: line.endTime ?? 0,
-        isBG: line.isBG ?? false,
-        isDuet: line.isDuet ?? false,
-      }));
-    } catch {
-      lyricLines = [];
-    } finally {
-      loadingLyric = false;
-    }
-  }
 
   function formatTime(seconds: number): string {
     if (!isFinite(seconds) || seconds < 0) return "0:00";
@@ -145,11 +112,11 @@
     </div>
 
     <div class="relative w-full h-full" onclick={(e) => e.stopPropagation()}>
-      {#if loadingLyric}
+      {#if lyricService.loadingLyric}
         <div class="flex items-center justify-center h-full text-sm text-white/60">加载歌词中...</div>
-      {:else if lyricLines.length > 0}
+      {:else if lyricService.currentLyricLines.length > 0}
         <LyricPlayer
-          lyricLines={lyricLines}
+          lyricLines={lyricService.currentLyricLines}
           currentTime={playerService.position * 1000}
           isPlaying={playerService.isPlaying}
           onLineClick={handleLineClick}
@@ -211,7 +178,7 @@
         <SkipForward class="size-5" />
       </Button>
       <Button variant="ghost" size="icon" class="cursor-pointer" disabled={!hasSong} onclick={() => showLyrics = !showLyrics}>
-        <MicVocal class={`size-4 text-muted-foreground ${lyricLines.length === 0 ? 'opacity-50' : ''}`} />
+        <MicVocal class={`size-4 text-muted-foreground ${lyricService.currentLyricLines.length === 0 ? 'opacity-50' : ''}`} />
       </Button>
     </div>
 

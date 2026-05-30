@@ -1,19 +1,41 @@
 <script lang="ts">
   import SettingCard from "$lib/components/cards/settings-card.svelte";
   import { Button } from "$lib/components/ui/button";
+  import { Switch } from "$lib/components/ui/switch";
   import { globalSettings } from "$lib/stores/global-settings-store";
   import { Folder, Plus, Trash2, FolderOpen, Settings } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
   import { open } from "@tauri-apps/plugin-dialog";
   import * as Dialog from "$lib/components/ui/dialog";
+  import { getCacheStats, clearTtmlCache, formatBytes } from "$lib/services/amll-db-service";
 
   let localFolders = $state<string[]>([]);
+  let localLyricFirst = $state(true);
+  let enableAmllDb = $state(true);
+  let cacheCount = $state(0);
+  let cacheSize = $state("");
+  let clearingCache = $state(false);
+  let initialized = false;
+
+  // Persist lyric settings whenever toggles change (skips initial mount)
+  $effect(() => {
+    localLyricFirst;
+    enableAmllDb;
+    if (initialized) {
+      globalSettings.patch({ localLyricFirst, enableAmllDb });
+    }
+  });
 
   onMount(() => {
     const unsub = globalSettings.subscribe((s) => {
       localFolders = [...s.localMusicFolders];
+      localLyricFirst = s.localLyricFirst;
+      enableAmllDb = s.enableAmllDb;
     });
+    refreshCacheStats();
+    // Mark initialized after first store sync, so $effect won't trigger on mount
+    setTimeout(() => { initialized = true; }, 0);
     return unsub;
   });
 
@@ -38,6 +60,27 @@
   function removeFolder(index: number) {
     localFolders = localFolders.filter((_, i) => i !== index);
     persist();
+  }
+
+  async function refreshCacheStats() {
+    try {
+      const stats = await getCacheStats();
+      cacheCount = stats.count;
+      cacheSize = formatBytes(stats.sizeBytes);
+    } catch {
+      cacheCount = 0;
+      cacheSize = "0 B";
+    }
+  }
+
+  async function handleClearCache() {
+    clearingCache = true;
+    try {
+      await clearTtmlCache();
+      await refreshCacheStats();
+    } finally {
+      clearingCache = false;
+    }
   }
 </script>
 
@@ -109,6 +152,52 @@
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog.Root>
+    </SettingCard>
+
+    <!-- ── 歌词设置 ── -->
+    <SettingCard
+      title="歌词来源"
+      description="设置歌词获取的优先级和来源。"
+    >
+      <div class="flex flex-col gap-3">
+        <label class="flex items-center gap-3">
+          <Switch bind:checked={localLyricFirst} />
+          <div class="flex flex-col gap-0.5">
+            <span class="text-sm font-medium">本地歌词优先</span>
+            <span class="text-xs text-muted-foreground">
+              优先使用本地内嵌或外挂 .lrc 文件
+            </span>
+          </div>
+        </label>
+        <label class="flex items-center gap-3">
+          <Switch bind:checked={enableAmllDb} />
+          <div class="flex flex-col gap-0.5">
+            <span class="text-sm font-medium">AMLL 歌词库</span>
+            <span class="text-xs text-muted-foreground">
+              从 amll-ttml-db 获取逐字 TTML 歌词
+            </span>
+          </div>
+        </label>
+      </div>
+    </SettingCard>
+
+    <SettingCard
+      title="TTML 缓存"
+      description="已缓存的逐字歌词文件。清除后需要重新从网络获取。"
+    >
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-muted-foreground">
+          已缓存 {cacheCount} 个文件，占用 {cacheSize}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={clearingCache || cacheCount === 0}
+          onclick={handleClearCache}
+        >
+          {clearingCache ? "清除中..." : "清除缓存"}
+        </Button>
+      </div>
     </SettingCard>
   </div>
 </div>
