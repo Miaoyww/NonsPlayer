@@ -168,7 +168,7 @@
 
           {#if playlist.description}
             <p
-              class="text-base text-muted-foreground/70 mt-3 line-clamp-3 max-w-150 leading-relaxed"
+              class="text-sm text-muted-foreground/70 mt-3 line-clamp-3 max-w-150 leading-relaxed"
             >
               {playlist.description}
             </p>

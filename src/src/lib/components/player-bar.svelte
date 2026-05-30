@@ -233,6 +233,7 @@
         aria-valuemax="100"
       >
         <div class="absolute inset-y-0 -top-1 left-0 right-0 group-hover:h-3 transition-all">
+          <!-- Playhead progress -->
           <div
             class="h-full bg-primary rounded-full transition-[width] duration-75"
             style="width: {progress}%"

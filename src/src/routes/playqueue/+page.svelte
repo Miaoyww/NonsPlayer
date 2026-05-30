@@ -1,28 +1,12 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { playerService } from "$lib/services/player-service.svelte";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import SongList from "$lib/components/song-list.svelte";
   import { ListMusic, Trash2 } from "@lucide/svelte";
   import Button from "$lib/components/ui/button/button.svelte";
-  import type { Song } from "$lib/types";
   import { fly } from "svelte/transition";
 
-  let queue = $state<Song[]>([]);
-
-  onMount(async () => {
-    try {
-      queue = await playerService.getQueue();
-    } catch {
-      queue = [];
-    }
-  });
-
-  // Reactively sync queue when current song changes
-  $effect(() => {
-    const _ = playerService.currentSong;
-    playerService.getQueue().then((q) => { queue = q; }).catch(() => {});
-  });
+  let queue = $derived(playerService.queue);
 
   function playAt(index: number) {
     playerService.play(queue, index);

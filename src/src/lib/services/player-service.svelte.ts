@@ -1,10 +1,17 @@
-import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { usePlayerController, type PlayMode, type PlayerState } from "$lib/player/PlayerController";
 import type { Song } from "$lib/types/song";
 
-type PlayMode = "sequential" | "shuffle" | "single_loop" | "list_loop";
-
+/**
+ * PlayerService — thin Svelte 5 reactive wrapper around PlayerController.
+ *
+ * Uses $state runes so that Svelte components can reactively bind to
+ * playback state. All actual playback logic lives in PlayerController.
+ */
 class PlayerService {
+  private controller = usePlayerController();
+
+  // ── Reactive state ──
+
   currentSong = $state<Song | null>(null);
   isPlaying = $state(false);
   position = $state(0);
@@ -12,103 +19,77 @@ class PlayerService {
   volume = $state(0.8);
   playMode = $state<PlayMode>("sequential");
   queue = $state<Song[]>([]);
+  queueIndex = $state(0);
+  loading = $state(false);
 
-  private unlisteners: UnlistenFn[] = [];
+  // For backward compatibility
+  buffering = $state(false);
+  downloadPercent = $state(0);
+  isLive = $state(false);
+
+  private unsub: (() => void) | null = null;
 
   constructor() {
-    this.setupListeners();
-  }
-
-  private async setupListeners() {
-    const u1 = await listen<Song>("track-changed", (e) => {
-      this.currentSong = e.payload;
-      this.duration = e.payload.duration;
+    this.unsub = this.controller.subscribe((state: PlayerState) => {
+      this.currentSong = state.currentSong;
+      this.isPlaying = state.isPlaying;
+      this.position = state.position;
+      this.duration = state.duration;
+      this.volume = state.volume;
+      this.playMode = state.playMode;
+      this.queue = state.queue;
+      this.queueIndex = state.queueIndex;
+      this.loading = state.loading;
     });
-
-    const u2 = await listen<{ state: string }>("player-state-changed", (e) => {
-      this.isPlaying = e.payload.state === "playing";
-    });
-
-    this.unlisteners = [u1, u2];
-
-    // Poll position while playing (BASS doesn't push position automatically)
-    this.startPositionPoll();
   }
 
-  private positionInterval: ReturnType<typeof setInterval> | null = null;
+  // ── Commands ──
 
-  private startPositionPoll() {
-    this.positionInterval = setInterval(async () => {
-      if (this.isPlaying) {
-        try {
-          this.position = await invoke("get_position");
-        } catch {
-          // engine not available
-        }
-      }
-    }, 250);
+  async play(songs: Song[], startIndex = 0): Promise<void> {
+    await this.controller.play(songs, startIndex);
   }
 
-  // -- Commands --
-
-  async play(songs: Song[], startIndex = 0) {
-    if (songs.length === 0) return;
-    const song = songs[startIndex];
-    if (!song) return;
-
-    await invoke("play", {
-      adapter: song.adapterSlug,
-      songId: song.id,
-      queueSongs: songs,
-      startIndex,
-    });
-    this.isPlaying = true;
+  async pause(): Promise<void> {
+    this.controller.pause();
   }
 
-  async pause() {
-    await invoke("pause");
-    this.isPlaying = false;
+  async resume(): Promise<void> {
+    await this.controller.resume();
   }
 
-  async resume() {
-    await invoke("resume");
-    this.isPlaying = true;
+  async togglePlayback(): Promise<void> {
+    await this.controller.togglePlayback();
   }
 
-  async togglePlayback() {
-    await invoke("toggle_playback");
+  async seek(seconds: number): Promise<void> {
+    this.controller.seek(seconds);
   }
 
-  async seek(seconds: number) {
-    await invoke("seek", { seconds });
-    this.position = seconds;
+  async setVolume(vol: number): Promise<void> {
+    this.controller.setVolume(vol);
   }
 
-  async setVolume(vol: number) {
-    await invoke("set_volume", { vol: Math.max(0, Math.min(1, vol)) });
-    this.volume = vol;
+  async next(): Promise<void> {
+    await this.controller.next();
   }
 
-  async next() {
-    await invoke("next");
+  async prev(): Promise<void> {
+    await this.controller.prev();
   }
 
-  async prev() {
-    await invoke("prev");
+  async setPlayMode(mode: PlayMode): Promise<void> {
+    this.controller.setPlayMode(mode);
   }
 
-  async setPlayMode(mode: PlayMode) {
-    await invoke("set_play_mode", { mode });
-    this.playMode = mode;
+  async jumpTo(index: number): Promise<void> {
+    await this.controller.jumpTo(index);
   }
 
-  async getQueue(): Promise<Song[]> {
-    return invoke("get_queue");
-  }
+  // ── Cleanup ──
 
-  destroy() {
-    this.unlisteners.forEach((u) => u());
-    if (this.positionInterval) clearInterval(this.positionInterval);
+  destroy(): void {
+    this.unsub?.();
+    this.controller.destroy();
   }
 }
 

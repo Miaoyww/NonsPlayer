@@ -27,7 +27,7 @@ thiserror = "2"
 async-trait = "0.1"
 lofty = "0.22"
 walkdir = "2"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "blocking"] }
 rand = "0.8"
 log = "0.4"
 aes = "0.8"
@@ -39,5 +39,4 @@ num-bigint = "0.4"
 num-traits = "0.2"
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
-libloading = "0.8"
 

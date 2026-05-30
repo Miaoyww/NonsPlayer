@@ -8,8 +8,6 @@ mod services;
 use std::sync::Arc;
 
 use adapters::AdapterManager;
-use player::engine::BassEngine;
-use player::ffi::BassLib;
 use player::play_queue::PlayQueue;
 use services::http;
 use tauri_plugin_log::{Target, TargetKind};
@@ -17,7 +15,6 @@ use tauri_plugin_log::{Target, TargetKind};
 pub struct AppState {
     pub adapters: AdapterManager,
     pub http_client: reqwest::Client,
-    pub player_engine: Option<Arc<BassEngine>>,
     pub play_queue: Arc<PlayQueue>,
 }
 
@@ -40,32 +37,11 @@ pub fn run() {
 
     let adapters = AdapterManager::new();
     let http_client = http::create_client();
-    let player_engine = match BassLib::load() {
-        Ok(bass) => {
-            eprintln!("[startup] BASS library loaded successfully");
-            let engine = BassEngine::new(Arc::new(bass));
-            match engine {
-                Ok(e) => {
-                    eprintln!("[startup] BASS engine initialized");
-                    Some(Arc::new(e))
-                }
-                Err(e) => {
-                    eprintln!("[startup] BASS engine init failed: {}", e);
-                    None
-                }
-            }
-        }
-        Err(e) => {
-            eprintln!("[startup] BASS library load failed: {}", e);
-            None
-        }
-    };
     let play_queue = Arc::new(PlayQueue::new());
 
     let state = AppState {
         adapters,
         http_client,
-        player_engine,
         play_queue,
     };
 
@@ -118,6 +94,7 @@ pub fn run() {
             commands::player::set_volume,
             commands::player::get_position,
             commands::player::get_duration,
+            commands::player::get_player_state,
             commands::player::next,
             commands::player::prev,
             commands::player::set_play_mode,

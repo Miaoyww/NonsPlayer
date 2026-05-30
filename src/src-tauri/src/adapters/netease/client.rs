@@ -186,12 +186,38 @@ impl NeteaseClient {
             .await
             .map_err(Error::Http)?;
 
-        log::debug!("[netease] response status={}", resp.status());
+        let status = resp.status();
+        log::debug!("[netease] response status={}", status);
+
+        // If the upstream returned an error, read as text so we can log the reason
+        if !status.is_success() {
+            let text = resp.text().await.unwrap_or_default();
+            let preview = &text[..text.len().min(300)];
+            log::error!("[netease] HTTP {} for {}: {}", status.as_u16(), url, preview);
+            return Err(Error::Other(format!(
+                "upstream returned HTTP {}: {}",
+                status.as_u16(), preview
+            )));
+        }
 
         if is_binary_response {
             // eapi response: binary, decrypt with AES-128-ECB
             let bytes = resp.bytes().await.map_err(|e| Error::Other(format!("read error: {}", e)))?;
-            let decrypted = crypto::eapi_decrypt(&bytes);
+
+            // Guard: if the server returned a non-200 or the body length
+            // isn't block-aligned, it's likely a plain-text error, not
+            // encrypted. Log it and return an error instead of panicking.
+            if bytes.len() % 16 != 0 {
+                let preview = String::from_utf8_lossy(&bytes[..bytes.len().min(200)]);
+                log::error!("[netease] eapi response not block-aligned (len={}): {}", bytes.len(), preview);
+                return Err(Error::Other(format!(
+                    "eapi response is not encrypted (len={}): {}",
+                    bytes.len(), preview
+                )));
+            }
+
+            let decrypted = crypto::eapi_decrypt(&bytes)
+                .map_err(|e| Error::Other(format!("eapi decrypt: {}", e)))?;
             let json: serde_json::Value =
                 serde_json::from_slice(&decrypted).map_err(|e| Error::Other(format!("parse error: {}", e)))?;
             Ok(json)

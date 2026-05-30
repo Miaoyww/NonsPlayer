@@ -65,7 +65,13 @@ fn aes128_ecb_encrypt(key: &[u8; 16], data: &[u8]) -> Vec<u8> {
     result
 }
 
-fn aes128_ecb_decrypt(key: &[u8; 16], data: &[u8]) -> Vec<u8> {
+fn aes128_ecb_decrypt(key: &[u8; 16], data: &[u8]) -> crate::error::Result<Vec<u8>> {
+    if data.len() % 16 != 0 {
+        return Err(crate::error::Error::Other(format!(
+            "AES-ECB decrypt: input length {} is not a multiple of 16",
+            data.len()
+        )));
+    }
     let cipher = Aes128::new_from_slice(key).expect("AES key must be 16 bytes");
     let mut result = Vec::with_capacity(data.len());
     for chunk in data.chunks(16) {
@@ -73,7 +79,7 @@ fn aes128_ecb_decrypt(key: &[u8; 16], data: &[u8]) -> Vec<u8> {
         cipher.decrypt_block(&mut block);
         result.extend_from_slice(&block);
     }
-    pkcs7_unpad(&result).to_vec()
+    Ok(pkcs7_unpad(&result).to_vec())
 }
 
 // ── AES-128-CBC ──
@@ -177,7 +183,7 @@ pub fn eapi(url_path: &str, json_text: &str) -> String {
 }
 
 /// eapi decrypt: decrypt response body (AES-128-ECB with eapi key)
-pub fn eapi_decrypt(data: &[u8]) -> Vec<u8> {
+pub fn eapi_decrypt(data: &[u8]) -> crate::error::Result<Vec<u8>> {
     aes128_ecb_decrypt(EAPI_KEY, data)
 }
 
@@ -199,7 +205,7 @@ mod tests {
     fn test_ecb_roundtrip() {
         let input = b"hello world test message for ecb mode!";
         let encrypted = aes128_ecb_encrypt(EAPI_KEY, input);
-        let decrypted = aes128_ecb_decrypt(EAPI_KEY, &encrypted);
+        let decrypted = aes128_ecb_decrypt(EAPI_KEY, &encrypted).expect("decrypt should succeed");
         assert_eq!(&decrypted, input);
     }
 
@@ -234,7 +240,7 @@ mod tests {
         // eapi_decrypt should reverse aes128_ecb_encrypt
         let input = b"test response data for eapi decrypt";
         let encrypted = aes128_ecb_encrypt(EAPI_KEY, input);
-        let decrypted = eapi_decrypt(&encrypted);
+        let decrypted = eapi_decrypt(&encrypted).expect("decrypt should succeed");
         assert_eq!(&decrypted, input);
     }
 }

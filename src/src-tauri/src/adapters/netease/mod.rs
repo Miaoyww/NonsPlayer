@@ -117,31 +117,90 @@ impl Adapter for NeteaseAdapter {
     async fn get_song_url(&self, id: &str) -> Result<String> {
         let netease_id = id.strip_prefix("netease_song_").unwrap_or(id);
 
+        // Try Eapi endpoint on interface3 (newer host)
         for level in &["exhigh", "lossless", "standard"] {
             let payload = serde_json::json!({
                 "ids": format!("[{}]", netease_id),
                 "level": level,
                 "encodeType": "flac",
             });
-            let body = self
+            if let Ok(body) = self
                 .client
                 .request(
                     CryptoType::Eapi,
-                    &format!("{}/eapi/song/enhance/player/url/v1", INTERFACE_HOST),
+                    &format!("{}/eapi/song/enhance/player/url/v1", INTERFACE3_HOST),
                     &payload,
                 )
-                .await?;
-
-            if body["code"].as_i64().unwrap_or(-1) != 200 {
-                continue;
+                .await
+            {
+                if body["code"].as_i64().unwrap_or(-1) == 200 {
+                    if let Ok(resp) = serde_json::from_value::<models::SongUrlResponse>(body) {
+                        if let Some(url) = resp.data.first().and_then(|d| d.url.as_deref()) {
+                            if !url.is_empty() {
+                                return Ok(url.to_string());
+                            }
+                        }
+                    }
+                }
             }
+        }
 
-            let resp: models::SongUrlResponse = serde_json::from_value(body)
-                .map_err(|e| Error::Other(format!("parse error: {}", e)))?;
+        // Fallback: try Weapi endpoint on music.163.com
+        for level in &["exhigh", "lossless", "standard"] {
+            let payload = serde_json::json!({
+                "ids": format!("[{}]", netease_id),
+                "level": level,
+                "encodeType": "flac",
+            });
+            if let Ok(body) = self
+                .client
+                .request(
+                    CryptoType::Weapi,
+                    &format!("{}/weapi/song/enhance/player/url/v1", MUSIC_HOST),
+                    &payload,
+                )
+                .await
+            {
+                if body["code"].as_i64().unwrap_or(-1) == 200 {
+                    if let Ok(resp) = serde_json::from_value::<models::SongUrlResponse>(body) {
+                        if let Some(url) = resp.data.first().and_then(|d| d.url.as_deref()) {
+                            if !url.is_empty() {
+                                return Ok(url.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-            if let Some(url) = resp.data.first().and_then(|d| d.url.as_deref()) {
-                if !url.is_empty() {
-                    return Ok(url.to_string());
+        // Last resort: try unencrypted API endpoint on music.163.com
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis();
+        for level in &["exhigh", "lossless", "standard"] {
+            let payload = serde_json::json!({
+                "id": netease_id,
+                "level": level,
+                "timestamp": ts,
+            });
+            if let Ok(body) = self
+                .client
+                .request(
+                    CryptoType::Api,
+                    &format!("{}/api/song/url/v1", MUSIC_HOST),
+                    &payload,
+                )
+                .await
+            {
+                if body["code"].as_i64().unwrap_or(-1) == 200 {
+                    if let Some(arr) = body["data"].as_array() {
+                        if let Some(url) = arr.first().and_then(|d| d["url"].as_str()) {
+                            if !url.is_empty() {
+                                return Ok(url.to_string());
+                            }
+                        }
+                    }
                 }
             }
         }
