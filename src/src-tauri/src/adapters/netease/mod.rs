@@ -76,6 +76,7 @@ impl NeteaseAdapter {
                 description: "网易云音乐适配器，支持搜索、歌单、每日推荐、二维码登录".into(),
                 version: "0.2.0".into(),
                 capabilities: vec![],
+                amll_db_tag: "ncm".into(),
             },
             client: NeteaseClient::new(),
             account: Mutex::new(None),
@@ -682,6 +683,7 @@ impl Adapter for NeteaseAdapter {
             name: best_name,
             artist: best_artist,
             score: *score,
+            amll_db_tag: "ncm".into(),
         }))
     }
 

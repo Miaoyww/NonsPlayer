@@ -144,6 +144,8 @@ export interface MatchResult {
   artist: string;
   /** 0.0–1.0 character-level match score. */
   score: number;
+  /** AMLL DB tag (e.g. "ncm") for platform-specific lyric folder lookup. */
+  amllDbTag: string;
 }
 
 /** Fan out match_song to all registered adapters concurrently. */

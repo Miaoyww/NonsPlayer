@@ -5,7 +5,7 @@ import type { LyricLine } from "$lib/types/lyric";
 // ── Constants ────────────────────────────────────────────────────────
 
 const TAG = "[amll-db]";
-const BASE_URL = "https://raw.githubusercontent.com/amll-dev/amll-ttml-db/main/am-lyrics";
+const BASE_URL = "https://raw.githubusercontent.com/Steve-xmh/amll-ttml-db/refs/heads/main";
 
 export interface CacheStats {
   count: number;
@@ -29,11 +29,13 @@ async function deleteTtmlCache(songId: string): Promise<void> {
 // ── Public API ───────────────────────────────────────────────────────
 
 /**
- * Check local TTML cache first, then fetch from AMLL DB if not cached.
- * Returns TTML content string, or null if unavailable.
+ * Fetch TTML from local cache or AMLL DB.
+ *
+ * @param songId   Numeric song ID (e.g. "3346496228")
+ * @param platform Adapter platform slug (e.g. "netease", "qq")
  */
-export async function getTtml(songId: string): Promise<string | null> {
-  // 1. Try local cache
+export async function getTtml(songId: string, platform: string): Promise<string | null> {
+  // 1. Try local cache (keyed by songId alone — platform doesn't change the content)
   try {
     const cached = await getTtmlCache(songId);
     if (cached) {
@@ -53,8 +55,8 @@ export async function getTtml(songId: string): Promise<string | null> {
     console.warn(`${TAG} cache read error for ${songId}:`, err);
   }
 
-  // 2. Fetch from AMLL DB
-  const url = `${BASE_URL}/${encodeURIComponent(songId)}.ttml`;
+  // 2. Fetch from AMLL DB: {base}/{platform}-lyrics/{songId}.ttml
+  const url = `${BASE_URL}/${encodeURIComponent(platform)}-lyrics/${encodeURIComponent(songId)}.ttml`;
   console.log(`${TAG} fetching: ${url}`);
 
   try {

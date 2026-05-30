@@ -30,6 +30,7 @@ impl LocalAdapter {
             description: "播放本地音乐文件".into(),
             version: "0.1.0".into(),
             capabilities: vec![],
+            amll_db_tag: String::new(),
         };
 
         let mut adapter = Self {

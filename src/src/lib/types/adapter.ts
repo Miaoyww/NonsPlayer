@@ -12,6 +12,8 @@ export interface AdapterMetadata {
   description: string;
   version: string;
   capabilities: CapabilityType[];
+  /** Tag used for AMLL TTML DB folder lookup (e.g. "ncm", "qq"). */
+  amllDbTag: string;
 }
 
 export type CapabilityType =

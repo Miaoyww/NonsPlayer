@@ -4,12 +4,36 @@ import { parseLrc } from "@applemusic-like-lyrics/lyric";
 import type { Song } from "$lib/types/song";
 import type { LyricLine, LyricMap, LyricSource } from "$lib/types/lyric";
 import { LyricSourceType } from "$lib/types/lyric";
-import { getLyric, matchSongAcrossAdapters } from "$lib/services/adapter-service";
+import { getLyric, matchSongAcrossAdapters, listAdapters } from "$lib/services/adapter-service";
 import type { MatchResult } from "$lib/services/adapter-service";
 import { getTtml, parseTtmlLyrics } from "$lib/services/amll-db-service";
 import { globalSettings } from "$lib/stores/global-settings-store";
 
 const TAG = "[lyric]";
+
+// ── Adapter → AMLL DB tag mapping ────────────────────────────────────
+// Lazily populated from adapter metadata on first use.
+let _adapterAmllTags: Record<string, string> | null = null;
+
+async function _loadAmllTags(): Promise<Record<string, string>> {
+  if (_adapterAmllTags) return _adapterAmllTags;
+  try {
+    const adapters = await listAdapters();
+    _adapterAmllTags = {};
+    for (const a of adapters) {
+      if (a.amllDbTag) _adapterAmllTags[a.slug] = a.amllDbTag;
+    }
+  } catch {
+    _adapterAmllTags = {};
+  }
+  return _adapterAmllTags;
+}
+
+/** Map adapter slug → AMLL DB tag (e.g. "netease" → "ncm"). */
+async function getAmllDbTag(adapterSlug: string): Promise<string> {
+  const tags = await _loadAmllTags();
+  return tags[adapterSlug] ?? "";
+}
 
 // ── LyricService ────────────────────────────────────────────────────
 
@@ -103,7 +127,8 @@ class LyricService {
 
     // Online song: AMLL DB → adapter fallback
     console.log(`${TAG} _getLyric: online song, trying AMLL DB → adapter`);
-    const onlineResult = await this._tryOnlineMatched(song, song.adapterSlug, song.id, enableAmll);
+    const onlineAmllTag = await getAmllDbTag(song.adapterSlug);
+    const onlineResult = await this._tryOnlineMatched(song, song.adapterSlug, song.id, enableAmll, undefined, onlineAmllTag);
     if (onlineResult) {
       console.log(`${TAG} _getLyric: online result OK (${onlineResult.length} lines)`);
       return onlineResult;
@@ -124,30 +149,47 @@ class LyricService {
     if (localFirst) {
       // Run local LRC and cross-adapter match CONCURRENTLY.
       // Local LRC is near-instant; match takes ~500ms-2s (HTTP search).
-      // We return local immediately if found, but the match result still
-      // populates the lyric map with platform IDs for future fallback.
-      let matchMeta: { adapterSlug: string; songId: string; numericId: string } | null = null;
-
+      // We return local immediately if found, but also try AMLL DB
+      // in the background so it's available for manual switch later.
       const [localResult, matchResults] = await Promise.all([
         this._tryLocal(song),
-        matchSongAcrossAdapters(song.name, song.artistsName).then((results) => {
-          if (results.length > 0) {
-            const best = results[0];
-            console.log(`${TAG} _getLyricForLocal: best match → ${best.adapterSlug}/${best.numericId} (score=${best.score.toFixed(4)})`);
-            matchMeta = { adapterSlug: best.adapterSlug, songId: best.songId, numericId: best.numericId };
-          }
-          return results;
-        }),
+        matchSongAcrossAdapters(song.name, song.artistsName),
       ]);
 
-      // Merge: if match succeeded, persist a combined entry that prefers
-      // local but keeps platform IDs for AMLL DB fallback.
+      const bestMatch = matchResults.length > 0 ? matchResults[0] : null;
+      if (bestMatch) {
+        console.log(`${TAG} _getLyricForLocal: best match → ${bestMatch.adapterSlug}/${bestMatch.numericId} (score=${bestMatch.score.toFixed(4)}) amllDbTag=${bestMatch.amllDbTag}`);
+      }
+      const matchMeta = bestMatch
+        ? { adapterSlug: bestMatch.adapterSlug, songId: bestMatch.songId, numericId: bestMatch.numericId, amllDbTag: bestMatch.amllDbTag }
+        : null;
+
+      // Try AMLL DB concurrently with the local result if both are available.
+      // Don't block the return — fire background fetch and cache for later use.
+      if (matchMeta && enableAmll) {
+        console.log(`${TAG} _getLyricForLocal: background AMLL DB fetch for id=${matchMeta.numericId} tag=${matchMeta.amllDbTag}`);
+        this._fetchAmll(matchMeta.numericId, matchMeta.amllDbTag).then((result) => {
+          if (result && result.length > 0) {
+            console.log(`${TAG} _getLyricForLocal: background AMLL DB SUCCESS (${result.length} lines), updating source`);
+            this._saveLyricSource(mapKey, {
+              source: LyricSourceType.amll,
+              ttmlId: matchMeta.numericId,
+              adapterSlug: matchMeta.adapterSlug,
+              adapterSongId: matchMeta.songId,
+              amllDbTag: matchMeta.amllDbTag,
+            });
+          }
+        });
+      }
+
+      // Merge: save the match meta so future plays & manual switch can use it.
       if (matchMeta && localResult) {
         await this._saveLyricSource(mapKey, {
           source: LyricSourceType.local,
           ttmlId: matchMeta.numericId,
           adapterSlug: matchMeta.adapterSlug,
           adapterSongId: matchMeta.songId,
+          amllDbTag: matchMeta.amllDbTag,
         });
         console.log(`${TAG} _getLyricForLocal: merged local+online (ttmlId=${matchMeta.numericId})`);
       }
@@ -160,7 +202,7 @@ class LyricService {
       // No local LRC — use the matched platform result
       if (matchMeta) {
         const onlineResult = await this._tryOnlineMatched(
-          song, matchMeta.adapterSlug, matchMeta.songId, enableAmll, matchMeta.numericId,
+          song, matchMeta.adapterSlug, matchMeta.songId, enableAmll, matchMeta.numericId, matchMeta.amllDbTag,
         );
         console.log(`${TAG} _getLyricForLocal: online result = ${onlineResult ? onlineResult.length + " lines" : "null"}`);
         return onlineResult ?? [];
@@ -177,7 +219,7 @@ class LyricService {
       const best = matchResults[0];
       console.log(`${TAG} _getLyricForLocal: best match → ${best.adapterSlug}/${best.numericId} (score=${best.score.toFixed(4)})`);
       const onlineResult = await this._tryOnlineMatched(
-        song, best.adapterSlug, best.songId, enableAmll, best.numericId,
+        song, best.adapterSlug, best.songId, enableAmll, best.numericId, best.amllDbTag,
       );
       if (onlineResult) {
         console.log(`${TAG} _getLyricForLocal: online result OK (${onlineResult.length} lines)`);
@@ -228,15 +270,16 @@ class LyricService {
     songId: string,
     enableAmll: boolean,
     numericIdOverride?: string,
+    amllDbTag?: string,
   ): Promise<LyricLine[] | null> {
     const numericId = numericIdOverride ?? this._extractNumericId(songId, adapterSlug);
     const mapKey = `${originalSong.adapterSlug}:${originalSong.id}`;
-    console.log(`${TAG} _tryOnlineMatched: adapter=${adapterSlug} songId=${songId} numericId=${numericId ?? "null"} enableAmll=${enableAmll}`);
+    console.log(`${TAG} _tryOnlineMatched: adapter=${adapterSlug} songId=${songId} numericId=${numericId ?? "null"} enableAmll=${enableAmll} amllDbTag=${amllDbTag ?? "-"}`);
 
     // 1. Try AMLL TTML DB first
     if (enableAmll && numericId) {
-      console.log(`${TAG} _tryOnlineMatched: trying AMLL DB for id=${numericId}`);
-      const ttmlResult = await this._fetchAmll(numericId);
+      console.log(`${TAG} _tryOnlineMatched: trying AMLL DB for id=${numericId} tag=${amllDbTag ?? "(none)"}`);
+      const ttmlResult = await this._fetchAmll(numericId, amllDbTag ?? "");
       if (ttmlResult && ttmlResult.length > 0) {
         console.log(`${TAG} _tryOnlineMatched: AMLL DB SUCCESS (${ttmlResult.length} lines)`);
         this.lyricSource = {
@@ -244,6 +287,7 @@ class LyricService {
           ttmlId: numericId,
           adapterSlug,
           adapterSongId: songId,
+          amllDbTag: amllDbTag ?? "",
         };
         await this._saveLyricSource(mapKey, this.lyricSource);
         return ttmlResult;
@@ -291,10 +335,21 @@ class LyricService {
     }
   }
 
-  private async _fetchAmll(numericId: string): Promise<LyricLine[] | null> {
-    console.log(`${TAG} _fetchAmll: id=${numericId}`);
+  /** Resolve AMLL DB tag from a source, falling back to adapter metadata. */
+  private async _resolveAmllDbTag(source: LyricSource): Promise<string> {
+    if (source.amllDbTag) return source.amllDbTag;
+    // Fallback for old persisted data: look up from adapter metadata
+    if (source.adapterSlug) return await getAmllDbTag(source.adapterSlug);
+    return "";
+  }
+
+  private async _fetchAmll(numericId: string, platform: string): Promise<LyricLine[] | null> {
+    console.log(`${TAG} _fetchAmll: id=${numericId} platform="${platform}"`);
+    if (!platform) {
+      console.warn(`${TAG} _fetchAmll: empty platform tag, AMLL DB URL will be malformed`);
+    }
     try {
-      const ttml = await getTtml(numericId);
+      const ttml = await getTtml(numericId, platform);
       if (!ttml) {
         console.log(`${TAG} _fetchAmll: getTtml returned null (cache miss + fetch failed or 404)`);
         return null;
@@ -336,6 +391,7 @@ class LyricService {
           ttmlId: best.numericId,
           adapterSlug: best.adapterSlug,
           adapterSongId: best.songId,
+          amllDbTag: best.amllDbTag,
         });
         console.log(`${TAG} _backgroundMatch: merged for "${song.name}"`);
       })
@@ -350,6 +406,8 @@ class LyricService {
     console.log(`${TAG} _fetchFromSource: source=${source.source} ttmlId=${source.ttmlId ?? "-"} adapterSlug=${source.adapterSlug ?? "-"} adapterSongId=${source.adapterSongId ?? "-"}`);
     switch (source.source) {
       case LyricSourceType.local: {
+        const enableAmll = get(globalSettings).enableAmllDb;
+        const mapKey = `${song.adapterSlug}:${song.id}`;
         const localResult = await this._tryLocal(song);
         if (localResult) {
           // If this entry has no match IDs yet, kick off a background
@@ -357,16 +415,35 @@ class LyricService {
           if (!source.ttmlId && !source.adapterSongId) {
             this._backgroundMatch(song);
           }
+          // If we have a ttmlId from a previous match, try AMLL DB
+          // in the background so it's ready for manual switch.
+          if (source.ttmlId && enableAmll) {
+            const ttmlId = source.ttmlId;
+            const resolvedTag = await this._resolveAmllDbTag(source);
+            console.log(`${TAG} _fetchFromSource: background AMLL DB fetch for id=${ttmlId} tag=${resolvedTag || "(unknown)"}`);
+            this._fetchAmll(ttmlId, resolvedTag).then((result) => {
+              if (result && result.length > 0) {
+                console.log(`${TAG} _fetchFromSource: background AMLL DB SUCCESS (${result.length} lines)`);
+                this._saveLyricSource(mapKey, {
+                  source: LyricSourceType.amll,
+                  ttmlId,
+                  adapterSlug: source.adapterSlug ?? "",
+                  adapterSongId: source.adapterSongId ?? "",
+                  amllDbTag: resolvedTag,
+                });
+              }
+            });
+          }
           return localResult;
         }
 
         // Local failed — try fallback via stored match IDs
-        const enableAmll = get(globalSettings).enableAmllDb;
         const numericId = source.ttmlId
           ?? this._extractNumericId(source.adapterSongId ?? "", source.adapterSlug ?? "");
         if (enableAmll && numericId) {
-          console.log(`${TAG} _fetchFromSource: local failed, trying AMLL DB fallback id=${numericId}`);
-          const amllResult = await this._fetchAmll(numericId);
+          const fallbackTag = await this._resolveAmllDbTag(source);
+          console.log(`${TAG} _fetchFromSource: local failed, trying AMLL DB fallback id=${numericId} tag=${fallbackTag || "(unknown)"}`);
+          const amllResult = await this._fetchAmll(numericId, fallbackTag);
           if (amllResult) return amllResult;
         }
         if (source.adapterSlug && source.adapterSongId) {
@@ -387,7 +464,8 @@ class LyricService {
           console.log(`${TAG} _fetchFromSource: amll source has no numeric ID, skip`);
           return null;
         }
-        return await this._fetchAmll(id);
+        const resolvedTag = await this._resolveAmllDbTag(source);
+        return await this._fetchAmll(id, resolvedTag);
       }
       case LyricSourceType.platform: {
         const adapterSlug = source.adapterSlug ?? song.adapterSlug;
@@ -487,24 +565,43 @@ class LyricService {
     if (!this.currentSong) return;
     const enableAmll = get(globalSettings).enableAmllDb;
     const isLocalSong = this.currentSong.adapterSlug === "local";
+    const mapKey = `${this.currentSong.adapterSlug}:${this.currentSong.id}`;
     console.log(`${TAG} useOnlineLyric: manual switch to online (isLocal=${isLocalSong})`);
     this.loadingLyric = true;
     try {
       let lines: LyricLine[] | null = null;
       if (isLocalSong) {
-        const results = await matchSongAcrossAdapters(this.currentSong.name, this.currentSong.artistsName);
-        if (results.length > 0) {
-          const best = results[0];
+        // Check if we already have a stored match result from a previous
+        // background match — avoids re-doing the HTTP search.
+        const persisted = this.lyricMap[mapKey];
+        if (persisted?.ttmlId && persisted?.adapterSlug && persisted?.adapterSongId) {
+          console.log(`${TAG} useOnlineLyric: using stored match → ${persisted.adapterSlug}/${persisted.ttmlId}`);
           lines = await this._tryOnlineMatched(
-            this.currentSong, best.adapterSlug, best.songId, enableAmll, best.numericId,
+            this.currentSong,
+            persisted.adapterSlug,
+            persisted.adapterSongId,
+            enableAmll,
+            persisted.ttmlId,
+            persisted.amllDbTag,
           );
+        } else {
+          const results = await matchSongAcrossAdapters(this.currentSong.name, this.currentSong.artistsName);
+          if (results.length > 0) {
+            const best = results[0];
+            lines = await this._tryOnlineMatched(
+              this.currentSong, best.adapterSlug, best.songId, enableAmll, best.numericId, best.amllDbTag,
+            );
+          }
         }
       } else {
+        const onlineAmllTag = await getAmllDbTag(this.currentSong.adapterSlug);
         lines = await this._tryOnlineMatched(
           this.currentSong,
           this.currentSong.adapterSlug,
           this.currentSong.id,
           enableAmll,
+          undefined,
+          onlineAmllTag,
         );
       }
       if (lines && lines.length > 0) {

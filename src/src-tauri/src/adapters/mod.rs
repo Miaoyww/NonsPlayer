@@ -30,6 +30,10 @@ pub struct AdapterMetadata {
     pub description: String,
     pub version: String,
     pub capabilities: Vec<CapabilityType>,
+    /// Tag used for AMLL TTML DB folder lookup (e.g. "ncm", "qq").
+    /// Empty string means this adapter doesn't support AMLL DB.
+    #[serde(default)]
+    pub amll_db_tag: String,
 }
 
 /// Search result aggregation
@@ -54,6 +58,10 @@ pub struct MatchResult {
     pub artist: String,
     /// 0.0 – 1.0 character-level match score.
     pub score: f64,
+    /// AMLL DB tag (e.g. "ncm") copied from the adapter metadata.
+    /// Empty string means this adapter doesn't support AMLL DB.
+    #[serde(default)]
+    pub amll_db_tag: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

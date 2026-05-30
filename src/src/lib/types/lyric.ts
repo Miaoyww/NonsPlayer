@@ -37,6 +37,8 @@ export interface LyricSource {
   adapterSlug?: string;
   /** Song ID for adapter platform fallback */
   adapterSongId?: string;
+  /** AMLL DB tag (e.g. "ncm") for platform-specific lyrics folder */
+  amllDbTag?: string;
 }
 
 /** Maps `"adapterSlug:songId"` → LyricSource */
