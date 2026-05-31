@@ -153,9 +153,14 @@ export function getUserPlaylists(adapter: string): Promise<Playlist[]> {
 
 export function getFavoritePlaylist(adapter: string): Promise<Playlist | null> {
   if (isFrontend(adapter)) {
-    return neteaseApi.getAccount().then((acc) =>
-      neteaseApi.getFavoritePlaylist(acc.id),
-    );
+    console.log("[adapter-service] getFavoritePlaylist | frontend adapter:", adapter);
+    return neteaseApi.getAccount().then((acc) => {
+      console.log("[adapter-service] getFavoritePlaylist | account:", acc.name, acc.id);
+      return neteaseApi.getFavoritePlaylist(acc.id);
+    }).catch((e) => {
+      console.log("[adapter-service] getFavoritePlaylist | error:", e);
+      return null;
+    });
   }
   return invoke("get_favorite_playlist", { adapter });
 }

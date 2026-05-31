@@ -4,27 +4,90 @@
   import Button from "../../ui/button/button.svelte";
   import { adapterStore } from "$lib/stores/adapter-store.svelte";
   import { getFavoritePlaylist } from "$lib/services/adapter-service";
+  import { neteaseAuth, fetchNeteaseLyric } from "$lib/services/netease-api";
+  import { parseYrc } from "@applemusic-like-lyrics/lyric";
+  import { parseSmartLrc } from "$lib/utils/lyric-parser";
   import type { Playlist } from "$lib/types";
 
   let favorite: Playlist | null = $state(null);
   let loading = $state(true);
-  let loaded = false;
+  let lyricLines = $state<string[]>([]);
+
+  // ── Lyric helpers ──────────────────────────────────────────────────
+
+  const META_PATTERNS = /^(作曲|作词|编曲|制作人|混音|母带|录音|和声|吉他|贝斯|键盘|鼓|钢琴|弦乐|小提琴|大提琴|监制|出品|发行|厂牌|DJ|Remix|feat\.?|ft\.?|Cover)/i;
+
+  /** Extract plain text lines from YRC or LRC raw lyric string. */
+  function lyricsToLines(yrcText: string, lrcText: string): string[] {
+    // Prefer YRC (word-level)
+    if (yrcText) {
+      try {
+        const parsed = parseYrc(yrcText);
+        return parsed
+          .map((l: any) => l.words?.map((w: any) => w.word ?? "").join("") ?? "")
+          .filter((t: string) => t.trim() && !META_PATTERNS.test(t));
+      } catch { /* fall through to LRC */ }
+    }
+    // Fallback: LRC
+    if (lrcText) {
+      try {
+        const { lines } = parseSmartLrc(lrcText);
+        return lines
+          .map((l: any) => l.words?.map((w: any) => w.word ?? "").join("") ?? "")
+          .filter((t: string) => t.trim() && !META_PATTERNS.test(t));
+      } catch { /* give up */ }
+    }
+    return [];
+  }
+
+  function pick<T>(arr: T[]): T | undefined {
+    if (arr.length === 0) return undefined;
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  async function fetchLyricLines(songs: { id: string }[], n = 5): Promise<string[]> {
+    const ids = songs.slice(0, n).map(s => s.id.replace(/^netease_song_/, ""));
+    const results = await Promise.allSettled(ids.map(id => fetchNeteaseLyric(id)));
+    const allSongs: string[][] = [];
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value) {
+        const lines = lyricsToLines(r.value.yrc, r.value.lrc);
+        if (lines.length > 0) allSongs.push(lines);
+      }
+    }
+    const chosen = pick(allSongs);
+    return chosen ? chosen.slice(0, 3) : [];
+  }
 
   $effect(() => {
     const online = adapterStore.streaming;
-    // Wait until adapters are actually available (frontend adapters
-    // may be merged in asynchronously after the first paint).
+    console.log("[fav-card] effect run | adapters:", online.map(a => a.slug));
     if (online.length === 0) return;
-    if (loaded) return;
-    loaded = true;
+
+    // Re-trigger on auth change
+    const authed = $neteaseAuth.loggedIn;
+    console.log("[fav-card] auth:", authed);
+
+    if (!authed) { favorite = null; loading = false; console.log("[fav-card] not authed → show needLogin"); return; }
+    loading = true;
 
     (async () => {
       for (const a of online) {
+        console.log("[fav-card] trying adapter:", a.slug);
         try {
           const fav = await getFavoritePlaylist(a.slug);
-          if (fav) { favorite = fav; break; }
-        } catch { /* adapter may not support this */ }
+          console.log("[fav-card] result for", a.slug, ":", fav ? fav.name : "null");
+          if (fav) {
+            favorite = fav;
+            // Fetch random lyric from first 5 songs
+            if (fav.musics?.length > 0) {
+              lyricLines = await fetchLyricLines(fav.musics);
+            }
+            break;
+          }
+        } catch (e) { console.log("[fav-card] error for", a.slug, ":", e); }
       }
+      console.log("[fav-card] done | favorite:", favorite?.name ?? "null");
       loading = false;
     })();
   });
@@ -42,10 +105,15 @@
           加载中...
         </div>
       {:else if favorite}
-        <!-- 歌词区域 -->
-        <div class="text-sm font-medium max-w-80 p-4 pb-0">
-          <p>{fav.name}</p>
-          <p class="text-xs text-muted-foreground">{fav.musicsCount ?? fav.musicTrackIds?.length ?? 0} 首</p>
+        <!-- 随机歌词 -->
+        <div class="flex-1 flex flex-col justify-center p-4">
+          {#if lyricLines.length > 0}
+            {#each lyricLines as line}
+              <p class="text-sm text-muted-foreground italic leading-relaxed">{line}</p>
+            {/each}
+          {:else}
+            <p class="text-xs text-muted-foreground">{fav.musicsCount ?? fav.musicTrackIds?.length ?? 0} 首</p>
+          {/if}
         </div>
         <!-- 底部 -->
         <div class="flex items-end justify-between p-4 mt-auto">

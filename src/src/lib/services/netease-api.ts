@@ -11,6 +11,7 @@
  * - Anonymous requests (before login) do not need a cookie.
  */
 
+import { writable } from "svelte/store";
 import type { Song } from "$lib/types/song";
 import type { Album } from "$lib/types/album";
 import type { Artist } from "$lib/types/artist";
@@ -43,6 +44,9 @@ const COOKIE_STORAGE_KEY = "netease_cookie";
 /** Current cookie string (set after login). Persisted across restarts. */
 let _cookie = tryLoadCookie();
 
+/** Reactive store that components can subscribe to for login/logout changes. */
+export const neteaseAuth = writable({ loggedIn: _cookie.includes("MUSIC_U") });
+
 function tryLoadCookie(): string {
   try {
     if (typeof localStorage !== "undefined") {
@@ -66,8 +70,12 @@ export function getCookie(): string {
 }
 
 export function setCookie(c: string): void {
+  const wasLoggedIn = _cookie.includes("MUSIC_U");
   _cookie = c;
   persistCookie(c);
+  const nowLoggedIn = c.includes("MUSIC_U");
+  console.log("[netease-api] setCookie | wasLoggedIn:", wasLoggedIn, "nowLoggedIn:", nowLoggedIn, "cookiePreview:", c.substring(0, 80));
+  neteaseAuth.set({ loggedIn: nowLoggedIn });
 }
 
 /**
@@ -75,21 +83,25 @@ export function setCookie(c: string): void {
  * Returns an Account if the stored cookie is still valid, otherwise null.
  */
 export async function tryAutoLogin(): Promise<Account | null> {
+  console.log("[netease-api] tryAutoLogin | cookie exists:", !!_cookie, "has MUSIC_U:", _cookie.includes("MUSIC_U"));
   if (!_cookie) return null;
 
   // Try refreshing the token first
   try {
     await loginRefresh();
-  } catch {
-    // Refresh failed — cookie is stale
+  } catch (e) {
+    console.log("[netease-api] tryAutoLogin | refresh failed:", e);
     setCookie("");
     return null;
   }
 
   // Cookie is valid — fetch account info
   try {
-    return await getAccount();
-  } catch {
+    const acc = await getAccount();
+    console.log("[netease-api] tryAutoLogin | account:", acc.name, acc.id);
+    return acc;
+  } catch (e) {
+    console.log("[netease-api] tryAutoLogin | getAccount failed:", e);
     return null;
   }
 }
@@ -182,39 +194,46 @@ export async function loginRefresh(): Promise<boolean> {
 // ── Account ───────────────────────────────────────────────────────────
 
 export async function getAccount(): Promise<Account> {
-  // Require login cookie; otherwise the API returns an anonymous/error response
+  console.log("[netease-api] getAccount | cookie exists:", !!_cookie, "has MUSIC_U:", _cookie.includes("MUSIC_U"));
   if (!_cookie || !_cookie.includes("MUSIC_U")) {
     throw new Error("Not logged in");
   }
   const data = await get("/user/account");
-  // api-enhanced forwards Netease's response. code !== 200 means not logged in.
+  console.log("[netease-api] getAccount | response code:", data.code, "has profile:", !!data.profile);
   if (data.code !== 200) {
-    throw new Error("Not logged in");
+    throw new Error("Not logged in: code " + data.code);
   }
   const profile = data.profile ?? {};
   const uid = data.account?.id ?? data.profile?.userId ?? "";
   if (!uid) {
-    throw new Error("Not logged in");
+    throw new Error("Not logged in: no uid");
   }
   return mapAccount(profile, uid, _cookie);
 }
 
 export async function getUserPlaylists(uid: string): Promise<Playlist[]> {
-  // Strip the netease_user_ prefix for the API
   const rawId = uid.replace(/^netease_user_/, "");
   const data = await get("/user/playlist", { uid: rawId, limit: "50", offset: "0" });
   return mapPlaylistsFromList(data.playlist ?? []);
 }
 
+/**
+ * Get the user's "favorite" playlist (❤️ 我喜欢的音乐).
+ * Netease marks this with `specialType === 5` in the raw API response.
+ * We need two API calls: /user/playlist to find it, then /playlist/detail for full data.
+ */
 export async function getFavoritePlaylist(uid: string): Promise<Playlist | null> {
-  const playlists = await getUserPlaylists(uid);
-  // Favorite playlist has specialType === 5
-  // Since we can't easily check specialType without the raw data,
-  // we call the same endpoint and look for the "我喜欢的音乐" playlist
-  // In practice api-enhanced returns specialType in raw, but mapper
-  // doesn't pass it through. We check by name.
-  const fav = playlists.find((p) => p.name === "我喜欢的音乐");
-  return fav ?? null;
+  const rawId = uid.replace(/^netease_user_/, "");
+  const data = await get("/user/playlist", { uid: rawId, limit: "50", offset: "0" });
+  const rawList: any[] = data.playlist ?? [];
+
+  // Find the playlist with specialType === 5
+  const favRaw = rawList.find((p: any) => p.specialType === 5);
+  if (!favRaw) return null;
+
+  // Fetch full playlist detail (tracks are null in the summary response)
+  const detail = await get("/playlist/detail", { id: String(favRaw.id), s: "0" });
+  return mapPlaylist(detail.playlist ?? detail);
 }
 
 // ── Search ────────────────────────────────────────────────────────────
