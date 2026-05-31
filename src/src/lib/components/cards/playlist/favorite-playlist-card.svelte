@@ -11,11 +11,13 @@
   let loaded = false;
 
   $effect(() => {
-    if (loaded) return;
     const online = adapterStore.streaming;
-    if (online.length === 0) { loading = false; loaded = true; return; }
-
+    // Wait until adapters are actually available (frontend adapters
+    // may be merged in asynchronously after the first paint).
+    if (online.length === 0) return;
+    if (loaded) return;
     loaded = true;
+
     (async () => {
       for (const a of online) {
         try {

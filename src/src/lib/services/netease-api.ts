@@ -37,8 +37,29 @@ import {
 /** Base URL of the local api-enhanced server. */
 const API_BASE = "http://localhost:3000";
 
-/** Current cookie string (set after login). */
-let _cookie = "";
+/** localStorage key for the login cookie. */
+const COOKIE_STORAGE_KEY = "netease_cookie";
+
+/** Current cookie string (set after login). Persisted across restarts. */
+let _cookie = tryLoadCookie();
+
+function tryLoadCookie(): string {
+  try {
+    if (typeof localStorage !== "undefined") {
+      return localStorage.getItem(COOKIE_STORAGE_KEY) ?? "";
+    }
+  } catch { /* not available in SSR */ }
+  return "";
+}
+
+function persistCookie(c: string): void {
+  try {
+    if (typeof localStorage !== "undefined") {
+      if (c) localStorage.setItem(COOKIE_STORAGE_KEY, c);
+      else localStorage.removeItem(COOKIE_STORAGE_KEY);
+    }
+  } catch { /* not available in SSR */ }
+}
 
 export function getCookie(): string {
   return _cookie;
@@ -46,6 +67,32 @@ export function getCookie(): string {
 
 export function setCookie(c: string): void {
   _cookie = c;
+  persistCookie(c);
+}
+
+/**
+ * Try to restore the previous login session on app startup.
+ * Returns an Account if the stored cookie is still valid, otherwise null.
+ */
+export async function tryAutoLogin(): Promise<Account | null> {
+  if (!_cookie) return null;
+
+  // Try refreshing the token first
+  try {
+    await loginRefresh();
+  } catch {
+    // Refresh failed — cookie is stale
+    _cookie = "";
+    persistCookie("");
+    return null;
+  }
+
+  // Cookie is valid — fetch account info
+  try {
+    return await getAccount();
+  } catch {
+    return null;
+  }
 }
 
 // ── Low-level fetch ───────────────────────────────────────────────────

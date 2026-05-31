@@ -12,8 +12,8 @@
 	}
 
 	let {
-		songName = '僕の戦争',
-		artist = '神聖かまってちゃん',
+		songName = '',
+		artist = '',
 		coverUrl = '',
 		liked = $bindable(false),
 		onplay,

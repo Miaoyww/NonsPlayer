@@ -152,6 +152,7 @@
       {:else}
         <SongList songs={localSongs} showActions={false} onplay={playAllLocal} />
       {/if}
+
     </ScrollArea>
   </div>
 </div>

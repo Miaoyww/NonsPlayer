@@ -92,10 +92,10 @@ export function search(adapter: string, keyword: string): Promise<SearchResult> 
 
 export async function loginQrUrl(adapter: string): Promise<[string, string]> {
   if (isFrontend(adapter)) {
-    const data = await neteaseApi.loginQrKey();
-    const key = data.unikey;
-    const qrUrl = `https://music.163.com/login?codekey=${key}`;
-    return [key, qrUrl];
+    const { unikey: key } = await neteaseApi.loginQrKey();
+    const { qrimg } = await neteaseApi.loginQrCreate(key);
+    // qrimg is a base64 data:image/png;… URL — use directly as img src
+    return [key, qrimg];
   }
   return invoke("login_qr_url", { adapter });
 }

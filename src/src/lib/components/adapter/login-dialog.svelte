@@ -26,11 +26,8 @@
   let message = $state("");
   let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-  const qrImageUrl = $derived(
-    qrUrl
-      ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrUrl)}`
-      : "",
-  );
+  // qrUrl from netease adapter is a base64 data URL — use directly as img src
+  const qrImageUrl = $derived(qrUrl);
 
   async function startLogin() {
     loginState = "loading";
