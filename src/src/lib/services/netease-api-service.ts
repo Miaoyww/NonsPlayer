@@ -10,7 +10,7 @@ async function getApiPort(): Promise<number> {
     _apiPort = await invoke<number>("get_api_port");
     return _apiPort;
   } catch {
-    _apiPort = 25884;
+    _apiPort = 37562;
     return _apiPort;
   }
 }

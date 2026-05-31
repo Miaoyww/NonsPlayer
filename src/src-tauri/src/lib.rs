@@ -32,7 +32,7 @@ impl ServerProcess {
     pub fn new() -> Self {
         ServerProcess {
             child: Mutex::new(None),
-            port: Mutex::new(25884),
+            port: Mutex::new(37562),
         }
     }
 }
@@ -50,12 +50,7 @@ impl Drop for ServerProcess {
 
 #[tauri::command]
 fn get_api_port(state: tauri::State<'_, ServerProcess>) -> u16 {
-    state.port.lock().map(|g| *g).unwrap_or(25884)
-}
-
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+    state.port.lock().map(|g| *g).unwrap_or(37562)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -107,7 +102,6 @@ pub fn run() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
-            greet,
             // adapter management
             commands::adapter::scan_local,
             commands::adapter::init_adapters,

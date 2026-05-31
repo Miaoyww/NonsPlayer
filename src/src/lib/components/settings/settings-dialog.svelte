@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { Settings, Info, X, Folder } from "@lucide/svelte";
+  import { Settings, Info, X, Folder, MicVocal, Server } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import GeneralPage from "./pages/common/general.svelte";
   import LocalPage from "./pages/common/local.svelte";
+  import AmllPage from "./pages/common/amll.svelte";
   import AboutPage from "./pages/common/about.svelte";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import * as Dialog from "$lib/components/ui/dialog";
@@ -10,7 +11,7 @@
   const version = __APP_VERSION__;
 
   let activeSection = $state<Section>("general");
-  type Section = "general" | "local" | "about";
+  type Section = "general" | "local" | "amll" | "about";
 
   interface NavItem {
     key: Section;
@@ -19,8 +20,10 @@
   }
 
   let NAV_TOP: NavItem[] = $state([
-    { key: "general", label: "常规", icon: Settings },
-    { key: "local", label: "本地", icon: Folder },
+    { key: "general", label: "常规设置", icon: Settings },
+    { key: "amll", label: "歌词设置", icon: MicVocal },
+
+    { key: "local", label: "本地设置", icon: Server },
   ]);
   let NAV_BOTTOM: NavItem[] = $state([
     { key: "about", label: "关于", icon: Info },
@@ -96,6 +99,7 @@
             <div class="p-10">
               {#if activeSection === "general"}<GeneralPage />{/if}
               {#if activeSection === "local"}<LocalPage />{/if}
+              {#if activeSection === "amll"}<AmllPage />{/if}
               {#if activeSection === "about"}<AboutPage />{/if}
             </div>
           </ScrollArea>

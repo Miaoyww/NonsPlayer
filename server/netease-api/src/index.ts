@@ -5,7 +5,7 @@ import cors from "cors";
 const require = createRequire(import.meta.url);
 const { lyric_new, lyric, search } = require("@neteasecloudmusicapienhanced/api");
 
-const BASE_PORT = parseInt(process.argv.find(a => a.startsWith("--port="))?.split("=")[1] || "25884", 10);
+const BASE_PORT = parseInt(process.argv.find(a => a.startsWith("--port="))?.split("=")[1] || "37562", 10);
 const MAX_PORT = BASE_PORT + 2; // try 3 ports
 
 const app = express();
