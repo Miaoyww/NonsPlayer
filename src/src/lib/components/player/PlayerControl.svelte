@@ -94,7 +94,6 @@
 
   const hasSong = $derived(playerService.currentSong != null);
 
-
   let showVolumeSlider = $state(false);
   let volumeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -231,11 +230,11 @@
     <!-- Right: volume + queue -->
     <div class="flex items-center gap-2 w-32 justify-end">
       <!-- svelte-ignore a11y_interactive_supports_focus -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="relative flex items-center"
         onmouseenter={showVolume}
         onmouseleave={scheduleHideVolume}
-        role="button"
       >
         <Button
           variant="ghost"
@@ -245,21 +244,21 @@
             playerService.setVolume(playerService.volume > 0 ? 0 : 0.8)}
         >
           {#if playerService.volume === 0}
-            <VolumeX class="size-4 text-muted-foreground" />
+            <VolumeX class="size-4" />
           {:else}
-            <Volume2 class="size-4 text-muted-foreground" />
+            <Volume2 class="size-4" />
           {/if}
         </Button>
         {#if showVolumeSlider}
           <!-- Transparent hit-area buffer -->
           <div
-            class="absolute top-0 left-1/2 -translate-x-1/2 pt-8 pb-8 px-12 -mb-10"
+            class="absolute bottom-full left-1/2 -translate-x-1/2 pb-2 pt-6 px-8"
             onmouseenter={showVolume}
             onmouseleave={scheduleHideVolume}
           >
             <div
               class="p-2 bg-background border border-border rounded-lg shadow-lg"
-              in:fly={{ y: 8, duration: 200, opacity: 0 }}
+              in:fly={{ y: -8, duration: 200, opacity: 0 }}
             >
               <input
                 type="range"
@@ -268,7 +267,8 @@
                 value={playerService.volume * 100}
                 oninput={(e) =>
                   playerService.setVolume(Number(e.currentTarget.value) / 100)}
-                class="w-28 h-4 cursor-pointer appearance-none bg-muted rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                class="h-20 w-6 cursor-pointer appearance-none bg-muted rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                style="-webkit-appearance: slider-vertical; writing-mode: vertical-lr; direction: rtl;"
               />
             </div>
           </div>
