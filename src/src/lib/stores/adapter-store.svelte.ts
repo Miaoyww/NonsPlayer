@@ -1,24 +1,41 @@
 import type { AdapterMetadata, CapabilityType, AdapterConfig } from "$lib/types/adapter";
 import { listAdapters, initAdapters, scanLocal } from "$lib/services/adapter-service";
 
+// ── Frontend-only adapters (no Rust backend) ──────────────────────────
+
+const FRONTEND_ADAPTER_METADATA: AdapterMetadata[] = [
+  {
+    slug: "netease",
+    platform: "netease",
+    displayPlatform: "网易云音乐",
+    author: "NonsPlayer",
+    description: "网易云音乐适配器，支持搜索、歌单、每日推荐、二维码登录",
+    version: "0.3.0",
+    capabilities: ["Music", "Search", "Album", "Artist", "Playlist", "Account", "Recommend"],
+  },
+];
+
 class AdapterStore {
   adapters = $state<AdapterMetadata[]>([]);
 
   /** Initialize all adapters from config. Called once at app startup. */
   async initialize(config: AdapterConfig) {
     const list = await initAdapters(config);
-    this.adapters = list;
+    // Merge frontend-only adapters with backend adapters
+    this.adapters = [...FRONTEND_ADAPTER_METADATA, ...list];
   }
 
   /** Re-scan local music folders and re-register. */
   async rescanLocal(dirs: string[]) {
     const list = await scanLocal(dirs);
-    this.adapters = list;
+    this.adapters = [...FRONTEND_ADAPTER_METADATA, ...list];
   }
 
   /** Refresh adapter list from backend. */
   async refresh() {
-    this.adapters = await listAdapters();
+    const list = await listAdapters();
+    // Merge frontend-only adapters with backend adapters
+    this.adapters = [...FRONTEND_ADAPTER_METADATA, ...list];
   }
 
   /** Get adapters that support a given capability. */

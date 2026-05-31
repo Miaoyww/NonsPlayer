@@ -4,7 +4,7 @@ import type { Song } from "$lib/types/song";
 import type { LyricLine, LyricSource } from "$lib/types/lyric";
 import { LyricSourceType } from "$lib/types/lyric";
 import { getLyric } from "$lib/services/adapter-service";
-import { fetchNeteaseLyric, searchNeteaseSong } from "$lib/services/netease-api-service";
+import { fetchNeteaseLyric, searchNeteaseSong } from "$lib/services/netease-api";
 import { getTtml, parseTtmlLyrics } from "$lib/services/amll-db-service";
 import { globalSettings } from "$lib/stores/global-settings-store";
 import {

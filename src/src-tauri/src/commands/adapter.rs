@@ -4,7 +4,6 @@ use serde::Deserialize;
 use tauri::State;
 
 use crate::adapters::local::LocalAdapter;
-use crate::adapters::netease::NeteaseAdapter;
 use crate::adapters::AdapterMetadata;
 use crate::AppState;
 
@@ -55,12 +54,6 @@ pub async fn init_adapters(
     } else {
         log::info!("[init_adapters] no local music dirs configured, skipping local adapter");
     }
-
-    // Netease adapter — always registered (self-contained, no external proxy needed)
-    let netease = NeteaseAdapter::new();
-    // Bootstrap a fresh anonymous token before registering.
-    // The hardcoded default token expires periodically; this fetches a new one.
-    state.adapters.register(netease);
 
     let list = state.adapters.list();
     log::info!("[init_adapters] done, {} adapter(s) registered", list.len());

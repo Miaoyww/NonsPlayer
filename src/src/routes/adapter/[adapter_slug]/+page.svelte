@@ -12,6 +12,7 @@
   import type { AdapterMetadata } from "$lib/types/adapter";
   import type { Playlist } from "$lib/types";
   import type { Account } from "$lib/types/account";
+  import LoginDialog from "$lib/components/adapter/login-dialog.svelte";
 
   const slug = $derived(page.params.adapter_slug ?? "");
   let adapter = $state<AdapterMetadata | undefined>();
@@ -19,6 +20,7 @@
   let playlists = $state<Playlist[]>([]);
   let loadingAccount = $state(false);
   let loadingPlaylists = $state(false);
+  let showLoginDialog = $state(false);
 
   const capabilityLabels: Record<string, { label: string; icon: typeof Music }> = {
     Music: { label: "音乐播放", icon: Music },
@@ -47,6 +49,18 @@
 
   function goPlaylist(playlist: { id: string; adapterSlug: string }) {
     goto(`/adapter/${playlist.adapterSlug}/playlist/${encodeURIComponent(playlist.id)}`);
+  }
+
+  async function handleLogin(loginAccount: Account) {
+    account = loginAccount;
+    // Refresh playlists after login
+    loadingPlaylists = true;
+    try {
+      playlists = await getUserPlaylists(slug);
+    } catch {
+      playlists = [];
+    }
+    loadingPlaylists = false;
   }
 </script>
 
@@ -103,11 +117,21 @@
               <p class="text-xs text-muted-foreground">已登录</p>
             </div>
           </div>
-        {:else}
+        {:else if adapter?.capabilities.includes("Account")}
           <p class="text-xs text-muted-foreground">未登录</p>
-          <Button variant="outline" size="sm" class="cursor-pointer text-xs" disabled>
-            登录（即将推出）
+          <Button
+            variant="outline"
+            size="sm"
+            class="cursor-pointer text-xs"
+            onclick={() => {
+              console.log("[login] 按钮点击, adapter:", slug, "capabilities:", adapter?.capabilities);
+              showLoginDialog = true;
+            }}
+          >
+            扫码登录
           </Button>
+        {:else}
+          <p class="text-xs text-muted-foreground">此适配器不支持账号登录</p>
         {/if}
       </div>
 
@@ -118,9 +142,11 @@
           {#each (["Music", "Search", "Album", "Artist", "Playlist", "Account", "Recommend"] as const) as cap}
             {@const info = capabilityLabels[cap]}
             {#if info}
+              {@const on = adapter?.capabilities.includes(cap) ?? false}
               <span
-                class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium bg-muted text-muted-foreground"
-                class:opacity-30={!adapter}
+                class={on
+                  ? "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium bg-primary/10 text-primary"
+                  : "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium bg-muted text-muted-foreground opacity-30"}
               >
                 <info.icon class="size-3" />
                 {info.label}
@@ -163,3 +189,5 @@
     </div>
   </div>
 </div>
+
+<LoginDialog adapter={slug} bind:open={showLoginDialog} onlogin={handleLogin} />

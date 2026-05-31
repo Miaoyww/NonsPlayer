@@ -3,54 +3,19 @@ mod commands;
 mod error;
 mod models;
 mod player;
-mod server;
 mod services;
 
-use std::process::Child;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use adapters::AdapterManager;
 use player::play_queue::PlayQueue;
 use services::http;
-use tauri::Manager;
 use tauri_plugin_log::{Target, TargetKind};
 
 pub struct AppState {
     pub adapters: AdapterManager,
     pub http_client: reqwest::Client,
     pub play_queue: Arc<PlayQueue>,
-}
-
-/// Holds the Netease API server child process handle and port.
-/// On drop, kills the child process.
-pub struct ServerProcess {
-    pub child: Mutex<Option<Child>>,
-    pub port: Mutex<u16>,
-}
-
-impl ServerProcess {
-    pub fn new() -> Self {
-        ServerProcess {
-            child: Mutex::new(None),
-            port: Mutex::new(37562),
-        }
-    }
-}
-
-impl Drop for ServerProcess {
-    fn drop(&mut self) {
-        if let Ok(mut guard) = self.child.lock() {
-            if let Some(ref mut child) = *guard {
-                let _ = child.kill();
-                log::info!("[server] Netease API server stopped");
-            }
-        }
-    }
-}
-
-#[tauri::command]
-fn get_api_port(state: tauri::State<'_, ServerProcess>) -> u16 {
-    state.port.lock().map(|g| *g).unwrap_or(37562)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -77,21 +42,6 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(state)
-        .manage(ServerProcess::new())
-        .setup(|app| {
-            // Start the Netease API Express server in the background
-            let result = server::start_api_server();
-            let server_handle = app.state::<ServerProcess>();
-            if let Some((child, port)) = result {
-                if let Ok(mut guard) = server_handle.child.lock() {
-                    *guard = Some(child);
-                }
-                if let Ok(mut guard) = server_handle.port.lock() {
-                    *guard = port;
-                }
-            }
-            Ok(())
-        })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -133,8 +83,6 @@ pub fn run() {
             commands::lyric_cache::save_lyric_cache,
             commands::lyric_cache::get_lyric_cache,
             commands::lyric_cache::clear_lyric_cache,
-            // server
-            get_api_port,
             // player
             commands::player::play,
             commands::player::pause,

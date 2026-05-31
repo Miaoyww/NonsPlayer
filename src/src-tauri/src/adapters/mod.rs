@@ -1,5 +1,4 @@
 pub mod local;
-pub mod netease;
 
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
