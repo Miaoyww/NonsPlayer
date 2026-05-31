@@ -82,6 +82,7 @@ jobs:
             patchelf
 
       - name: Install frontend dependencies
+        working-directory: ./src
         run: pnpm install
 
       - name: Build and release Tauri app

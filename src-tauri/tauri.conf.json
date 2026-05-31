@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "nonsplayer",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm  dev",
     "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../build"
