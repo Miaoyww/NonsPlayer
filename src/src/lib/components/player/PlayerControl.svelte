@@ -17,6 +17,7 @@
   import { goto } from "$app/navigation";
   import { playerUI } from "$lib/stores/player-ui-store.svelte";
   import { settingsDialogOpen } from "$lib/stores/global-ui-store";
+  import { fly } from "svelte/transition";
 
   interface Props {
     light?: boolean;
@@ -93,8 +94,25 @@
 
   const hasSong = $derived(playerService.currentSong != null);
 
-  // ── Volume ──
-  let showVolume = $state(false);
+
+  let showVolumeSlider = $state(false);
+  let volumeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function scheduleHideVolume() {
+    volumeTimer = setTimeout(() => {
+      showVolumeSlider = false;
+    }, 200);
+  }
+  function cancelHideVolume() {
+    if (volumeTimer) {
+      clearTimeout(volumeTimer);
+      volumeTimer = null;
+    }
+  }
+  function showVolume() {
+    cancelHideVolume();
+    showVolumeSlider = true;
+  }
 
   const textColor = $derived(light ? "text-white/70" : "text-muted-foreground");
   const progressBg = $derived(light ? "bg-white/20" : "bg-muted");
@@ -212,39 +230,47 @@
 
     <!-- Right: volume + queue -->
     <div class="flex items-center gap-2 w-32 justify-end">
+      <!-- svelte-ignore a11y_interactive_supports_focus -->
       <div
         class="relative flex items-center"
-        onmouseenter={() => (showVolume = true)}
-        onmouseleave={() => (showVolume = false)}
+        onmouseenter={showVolume}
+        onmouseleave={scheduleHideVolume}
+        role="button"
       >
         <Button
           variant="ghost"
           size="icon"
-          class="{textColor} cursor-pointer hover:text-white"
+          class="cursor-pointer"
           onclick={() =>
             playerService.setVolume(playerService.volume > 0 ? 0 : 0.8)}
         >
           {#if playerService.volume === 0}
-            <VolumeX class="size-5" />
+            <VolumeX class="size-4 text-muted-foreground" />
           {:else}
-            <Volume2 class="size-5" />
+            <Volume2 class="size-4 text-muted-foreground" />
           {/if}
         </Button>
-
-        {#if showVolume}
+        {#if showVolumeSlider}
+          <!-- Transparent hit-area buffer -->
           <div
-            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 rounded-lg bg-black/80 border border-white/20"
+            class="absolute top-0 left-1/2 -translate-x-1/2 pt-8 pb-8 px-12 -mb-10"
+            onmouseenter={showVolume}
+            onmouseleave={scheduleHideVolume}
           >
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={playerService.volume * 100}
-              oninput={(e) =>
-                playerService.setVolume(Number(e.currentTarget.value) / 100)}
-              class="h-20 w-6 cursor-pointer appearance-none rounded-full"
-              style="-webkit-appearance: slider-vertical; writing-mode: vertical-lr; direction: rtl;"
-            />
+            <div
+              class="p-2 bg-background border border-border rounded-lg shadow-lg"
+              in:fly={{ y: 8, duration: 200, opacity: 0 }}
+            >
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={playerService.volume * 100}
+                oninput={(e) =>
+                  playerService.setVolume(Number(e.currentTarget.value) / 100)}
+                class="w-28 h-4 cursor-pointer appearance-none bg-muted rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+              />
+            </div>
           </div>
         {/if}
       </div>
