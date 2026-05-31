@@ -3,13 +3,15 @@
   import { goto } from "$app/navigation";
   import Button from "../../ui/button/button.svelte";
   import { adapterStore } from "$lib/stores/adapter-store.svelte";
-  import { getFavoritePlaylist } from "$lib/services/adapter-service";
+  import { getFavoritePlaylist, getUserPlaylists } from "$lib/services/adapter-service";
   import { neteaseAuth, fetchNeteaseLyric } from "$lib/services/netease-api";
   import { parseYrc } from "@applemusic-like-lyrics/lyric";
   import { parseSmartLrc } from "$lib/utils/lyric-parser";
+  import PlaylistCard from "./playlist-card.svelte";
   import type { Playlist } from "$lib/types";
 
   let favorite: Playlist | null = $state(null);
+  let playlists: Playlist[] = $state([]);
   let loading = $state(true);
   let lyricLines = $state<string[]>([]);
 
@@ -76,18 +78,19 @@
         console.log("[fav-card] trying adapter:", a.slug);
         try {
           const fav = await getFavoritePlaylist(a.slug);
-          console.log("[fav-card] result for", a.slug, ":", fav ? fav.name : "null");
           if (fav) {
             favorite = fav;
-            // Fetch random lyric from first 5 songs
             if (fav.musics?.length > 0) {
               lyricLines = await fetchLyricLines(fav.musics);
             }
-            break;
           }
+          // Fetch user playlists (excluding favorite) for the right grid
+          const all = await getUserPlaylists(a.slug);
+          playlists = all.filter(p => p.id !== fav?.id).slice(0, 12);
+          break;
         } catch (e) { console.log("[fav-card] error for", a.slug, ":", e); }
       }
-      console.log("[fav-card] done | favorite:", favorite?.name ?? "null");
+      console.log("[fav-card] done | favorite:", favorite?.name ?? "null", "| playlists:", playlists.length);
       loading = false;
     })();
   });
@@ -147,9 +150,24 @@
       {/if}
     </div>
   </div>
-  <div class="min-h-0 overflow-hidden" style="flex: 7;">
-    <div class="h-full flex items-center justify-center text-sm text-muted-foreground">
-      暂无收藏歌单
-    </div>
+  <div class="min-h-0 overflow-auto" style="flex: 7;">
+    {#if loading}
+      <div class="h-full flex items-center justify-center text-sm text-muted-foreground">
+        加载中...
+      </div>
+    {:else if playlists.length > 0}
+      <div class="grid grid-cols-4 gap-3 p-1">
+        {#each playlists as pl}
+          <PlaylistCard
+            playlist={pl}
+            onclick={() => goto(`/adapter/${pl.adapterSlug}/playlist/${encodeURIComponent(pl.id)}`)}
+          />
+        {/each}
+      </div>
+    {:else}
+      <div class="h-full flex items-center justify-center text-sm text-muted-foreground">
+        暂无歌单
+      </div>
+    {/if}
   </div>
 </div>
