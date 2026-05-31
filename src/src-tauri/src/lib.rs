@@ -2,20 +2,15 @@ mod adapters;
 mod commands;
 mod error;
 mod models;
-mod player;
 mod services;
 
-use std::sync::Arc;
-
 use adapters::AdapterManager;
-use player::play_queue::PlayQueue;
 use services::http;
 use tauri_plugin_log::{Target, TargetKind};
 
 pub struct AppState {
     pub adapters: AdapterManager,
     pub http_client: reqwest::Client,
-    pub play_queue: Arc<PlayQueue>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -32,12 +27,10 @@ pub fn run() {
 
     let adapters = AdapterManager::new();
     let http_client = http::create_client();
-    let play_queue = Arc::new(PlayQueue::new());
 
     let state = AppState {
         adapters,
         http_client,
-        play_queue,
     };
 
     tauri::Builder::default()
@@ -83,22 +76,6 @@ pub fn run() {
             commands::lyric_cache::save_lyric_cache,
             commands::lyric_cache::get_lyric_cache,
             commands::lyric_cache::clear_lyric_cache,
-            // player
-            commands::player::play,
-            commands::player::pause,
-            commands::player::resume,
-            commands::player::toggle_playback,
-            commands::player::seek,
-            commands::player::set_volume,
-            commands::player::get_position,
-            commands::player::get_duration,
-            commands::player::get_player_state,
-            commands::player::next,
-            commands::player::prev,
-            commands::player::set_play_mode,
-            commands::player::get_play_mode,
-            commands::player::get_queue,
-            commands::player::get_current_song,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
