@@ -1,5 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { getSongUrl } from "$lib/services/adapter-service";
 import type { Song } from "$lib/types/song";
 
 /**
@@ -52,12 +52,9 @@ class SongManager {
       return cached;
     }
 
-    // Remote — call Rust adapter
+    // Remote — call adapter (frontend HTTP for netease, Rust otherwise)
     try {
-      const url = await invoke<string>("get_song_url", {
-        adapter: song.adapterSlug,
-        id: song.id,
-      });
+      const url = await getSongUrl(song.adapterSlug, song.id);
 
       if (!url) {
         console.warn(`[SongManager] No URL returned for "${song.name}" (${song.id})`);
@@ -97,10 +94,7 @@ class SongManager {
     }
 
     try {
-      const url = await invoke<string>("get_song_url", {
-        adapter: song.adapterSlug,
-        id: song.id,
-      });
+      const url = await getSongUrl(song.adapterSlug, song.id);
       if (url) {
         this.nextPrefetch = {
           id: song.id,

@@ -82,8 +82,7 @@ export async function tryAutoLogin(): Promise<Account | null> {
     await loginRefresh();
   } catch {
     // Refresh failed — cookie is stale
-    _cookie = "";
-    persistCookie("");
+    setCookie("");
     return null;
   }
 
@@ -124,34 +123,47 @@ export interface QrKeyResult {
 }
 
 export async function loginQrKey(): Promise<QrKeyResult> {
-  const data = await get("/login/qr/key");
-  // api-enhanced nests inside data
+  const data = await get("/login/qr/key", { timestamp: String(Date.now()) });
   return data.data ?? data;
 }
 
 export async function loginQrCreate(key: string): Promise<{ qrurl: string; qrimg: string }> {
-  const data = await get("/login/qr/create", { key, qrimg: "true" });
+  const data = await get("/login/qr/create", {
+    key,
+    qrimg: "true",
+    platform: "pc",
+    timestamp: String(Date.now()),
+    ua: "pc",
+  });
   const inner = data.data ?? data;
   return { qrurl: inner.qrurl, qrimg: inner.qrimg };
 }
 
 /**
- * Poll login status.
- * Returns the raw api-enhanced response so the adapter-service can
- * interpret the code and build a LoginStatus.
+ * Poll login status.  key is the unikey from loginQrKey.
+ * Returns the raw api-enhanced response so adapter-service can interpret
+ * the code and build a LoginStatus.
+ *
+ * Netease status codes:
+ *   800 – QR code expired
+ *   801 – waiting for scan
+ *   802 – scanned, waiting for user confirmation on phone
+ *   803 – login confirmed
  */
 export async function loginQrCheck(key: string): Promise<{ code: number; cookie?: string; message?: string }> {
-  const data = await get("/login/qr/check", { key });
-  // api-enhanced wraps in body for login/qr/check
+  const data = await get("/login/qr/check", {
+    key,
+    timestamp: String(Date.now()),
+    ua: "pc",
+  });
   const body = data.body ?? data;
-  // code may be a number or string
   const code = typeof body.code === "number" ? body.code : Number(body.code ?? -1);
 
   const result: { code: number; cookie?: string; message?: string } = { code, message: body.message };
 
-  // Login success — save cookie
+  // Login success — persist cookie to localStorage
   if (code === 803 && body.cookie) {
-    _cookie = body.cookie;
+    setCookie(body.cookie);
     result.cookie = body.cookie;
   }
 
@@ -159,9 +171,9 @@ export async function loginQrCheck(key: string): Promise<{ code: number; cookie?
 }
 
 export async function loginRefresh(): Promise<boolean> {
-  const data = await get("/login/refresh");
+  const data = await get("/login/refresh", { timestamp: String(Date.now()) });
   if (data.code === 200 && data.cookie) {
-    _cookie = data.cookie;
+    setCookie(data.cookie);
     return true;
   }
   return false;
