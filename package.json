@@ -36,6 +36,9 @@
     "jss-preset-default": "^10.10.0",
     "tailwindcss": "^4.3.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
   "devDependencies": {
     "@fontsource-variable/figtree": "^5.2.10",
     "@internationalized/date": "^3.12.0",
