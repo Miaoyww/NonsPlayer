@@ -1,23 +1,43 @@
 <script lang="ts">
   import SettingCard from "$lib/components/cards/settings-card.svelte";
   import { Switch } from "$lib/components/ui/switch";
+  import { Button } from "$lib/components/ui/button";
   import { globalSettings } from "$lib/stores/global-settings-store";
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
+  import { AlignStartVertical, AlignCenterVertical, AlignEndVertical } from "@lucide/svelte";
 
+  // ── Local state mirrored from store ──
   let showLyricTran = $state(true);
   let showLyricRoma = $state(true);
-  let showWordLyrics = $state(true);
-  let enableAmllDb = $state(true);
+  let lyricWordFadeWidth = $state(0.5);
+  let lyricEnableBlur = $state(true);
+  let lyricEnableSpring = $state(true);
+  let lyricEnableScale = $state(true);
+  let lyricHidePassedLines = $state(false);
+  let lyricAlignAnchor = $state<"top" | "bottom" | "center">("center");
+  let lyricAlignPosition = $state(0.35);
+  let playerBackgroundFps = $state(30);
+  let playerBackgroundFlowSpeed = $state(4);
+  let playerBackgroundRenderScale = $state(0.5);
+  let playerBackgroundStaticMode = $state(false);
+
   let initialized = false;
 
   $effect(() => {
-    showLyricTran;
-    showLyricRoma;
-    showWordLyrics;
-    enableAmllDb;
+    showLyricTran; showLyricRoma;
+    lyricWordFadeWidth; lyricEnableBlur; lyricEnableSpring; lyricEnableScale;
+    lyricHidePassedLines; lyricAlignAnchor; lyricAlignPosition;
+    playerBackgroundFps; playerBackgroundFlowSpeed; playerBackgroundRenderScale;
+    playerBackgroundStaticMode;
     if (initialized) {
-      globalSettings.patch({ showLyricTran, showLyricRoma, showWordLyrics, enableAmllDb });
+      globalSettings.patch({
+        showLyricTran, showLyricRoma,
+        lyricWordFadeWidth, lyricEnableBlur, lyricEnableSpring, lyricEnableScale,
+        lyricHidePassedLines, lyricAlignAnchor, lyricAlignPosition,
+        playerBackgroundFps, playerBackgroundFlowSpeed, playerBackgroundRenderScale,
+        playerBackgroundStaticMode,
+      });
     }
   });
 
@@ -25,73 +45,171 @@
     const unsub = globalSettings.subscribe((s) => {
       showLyricTran = s.showLyricTran;
       showLyricRoma = s.showLyricRoma;
-      showWordLyrics = s.showWordLyrics;
-      enableAmllDb = s.enableAmllDb;
+      lyricWordFadeWidth = s.lyricWordFadeWidth;
+      lyricEnableBlur = s.lyricEnableBlur;
+      lyricEnableSpring = s.lyricEnableSpring;
+      lyricEnableScale = s.lyricEnableScale;
+      lyricHidePassedLines = s.lyricHidePassedLines;
+      lyricAlignAnchor = s.lyricAlignAnchor;
+      lyricAlignPosition = s.lyricAlignPosition;
+      playerBackgroundFps = s.playerBackgroundFps;
+      playerBackgroundFlowSpeed = s.playerBackgroundFlowSpeed;
+      playerBackgroundRenderScale = s.playerBackgroundRenderScale;
+      playerBackgroundStaticMode = s.playerBackgroundStaticMode;
     });
     setTimeout(() => { initialized = true; }, 0);
     return unsub;
   });
+
+  function round1(n: number) { return Math.round(n * 10) / 10; }
+  function round2(n: number) { return Math.round(n * 100) / 100; }
 </script>
 
 <div in:fly={{ y: 16, duration: 300, opacity: 0 }}>
   <div class="mb-1 text-xl font-bold text-stone-800 dark:text-stone-100">
-    AMLL 歌词
+    歌词设置
   </div>
   <p class="mb-4 text-sm text-muted-foreground">
-    Apple Music Like Lyrics 歌词引擎相关设置。
+    控制歌词显示效果和背景动画行为。AMLL 歌词库会始终优先获取。
   </p>
 
   <div class="space-y-3">
+    <!-- ── 歌词显示 ── -->
+    <SettingCard title="显示翻译" description="在歌词下方显示翻译行（如果可用）">
+      <Switch bind:checked={showLyricTran} />
+    </SettingCard>
+
+    <SettingCard title="显示罗马音" description="在歌词下方显示罗马音行（如果可用）">
+      <Switch bind:checked={showLyricRoma} />
+    </SettingCard>
+
+    <!-- ── 歌词效果 ── -->
     <SettingCard
-      title="歌词来源"
-      description="设置歌词获取的优先级和来源。"
+      title="歌词渐变宽度"
+      description={`逐字淡入过渡宽度（${lyricWordFadeWidth.toFixed(2)}）`}
     >
-      <div class="flex flex-col gap-3">
-        <label class="flex items-center gap-3">
-          <Switch bind:checked={enableAmllDb} />
-          <div class="flex flex-col gap-0.5">
-            <span class="text-sm font-medium">AMLL 歌词库</span>
-            <span class="text-xs text-muted-foreground">
-              从 amll-ttml-db 获取逐字 TTML 歌词（优先）
-            </span>
-          </div>
-        </label>
-        <label class="flex items-center gap-3">
-          <Switch bind:checked={showWordLyrics} />
-          <div class="flex flex-col gap-0.5">
-            <span class="text-sm font-medium">逐字歌词</span>
-            <span class="text-xs text-muted-foreground">
-              启用逐字级别的歌词显示（需要 YRC 或 TTML 歌词源）
-            </span>
-          </div>
-        </label>
+      <div class="flex items-center gap-3 min-w-40">
+        <span class="text-xs text-muted-foreground w-6 text-right">0</span>
+        <input
+          type="range" min="0" max="1" step="0.05"
+          bind:value={lyricWordFadeWidth}
+          class="h-1.5 flex-1 appearance-none rounded-full bg-muted cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+        />
+        <span class="text-xs text-muted-foreground w-6">1</span>
+      </div>
+    </SettingCard>
+
+    <SettingCard title="歌词模糊" description="为非焦点行启用模糊效果">
+      <Switch bind:checked={lyricEnableBlur} />
+    </SettingCard>
+
+    <SettingCard title="使用弹簧动画" description="使用物理弹簧替代 CSS transition 驱动歌词位移">
+      <Switch bind:checked={lyricEnableSpring} />
+    </SettingCard>
+
+    <SettingCard title="已过行缩放" description="已播放的歌词行略微缩小">
+      <Switch bind:checked={lyricEnableScale} />
+    </SettingCard>
+
+    <SettingCard title="隐藏已过行" description="已播放完毕的歌词行完全隐藏">
+      <Switch bind:checked={lyricHidePassedLines} />
+    </SettingCard>
+
+    <!-- ── 歌词对齐 ── -->
+    <SettingCard
+      title="歌词对齐"
+      description={`歌词锚点位置（${lyricAlignAnchor === "center" ? "居中" : lyricAlignAnchor === "top" ? "顶部" : "底部"}，${(lyricAlignPosition * 100).toFixed(0)}%）`}
+    >
+      <div class="flex flex-col gap-2.5">
+        <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
+          <Button
+            variant={lyricAlignAnchor === "top" ? "secondary" : "ghost"}
+            size="sm"
+            class="flex items-center gap-1.5 rounded-md {lyricAlignAnchor !== 'top' ? 'text-muted-foreground' : ''}"
+            onclick={() => (lyricAlignAnchor = "top")}
+          >
+            <AlignStartVertical class="size-4" />
+            顶部
+          </Button>
+          <Button
+            variant={lyricAlignAnchor === "center" ? "secondary" : "ghost"}
+            size="sm"
+            class="flex items-center gap-1.5 rounded-md {lyricAlignAnchor !== 'center' ? 'text-muted-foreground' : ''}"
+            onclick={() => (lyricAlignAnchor = "center")}
+          >
+            <AlignCenterVertical class="size-4" />
+            居中
+          </Button>
+          <Button
+            variant={lyricAlignAnchor === "bottom" ? "secondary" : "ghost"}
+            size="sm"
+            class="flex items-center gap-1.5 rounded-md {lyricAlignAnchor !== 'bottom' ? 'text-muted-foreground' : ''}"
+            onclick={() => (lyricAlignAnchor = "bottom")}
+          >
+            <AlignEndVertical class="size-4" />
+            底部
+          </Button>
+        </div>
+        <div class="flex items-center gap-3 mt-1">
+          <span class="text-xs text-muted-foreground w-6 text-right">0%</span>
+          <input
+            type="range" min="0" max="1" step="0.05"
+            bind:value={lyricAlignPosition}
+            class="h-1.5 flex-1 appearance-none rounded-full bg-muted cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+          />
+          <span class="text-xs text-muted-foreground w-12">{(lyricAlignPosition * 100).toFixed(0)}%</span>
+        </div>
+      </div>
+    </SettingCard>
+
+    <!-- ── 背景动画 ── -->
+    <SettingCard
+      title="背景渲染帧率"
+      description={`流体背景动画帧率（${playerBackgroundFps} FPS）`}
+    >
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-muted-foreground w-6 text-right">10</span>
+        <input
+          type="range" min="10" max="120" step="5"
+          bind:value={playerBackgroundFps}
+          class="h-1.5 flex-1 appearance-none rounded-full bg-muted cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+        />
+        <span class="text-xs tabular-nums text-muted-foreground w-8">{playerBackgroundFps}</span>
       </div>
     </SettingCard>
 
     <SettingCard
-      title="歌词显示"
-      description="控制歌词下方的附加行显示。"
+      title="背景流动速度"
+      description={`渐变流动速率（${playerBackgroundFlowSpeed.toFixed(1)}x）`}
     >
-      <div class="flex flex-col gap-3">
-        <label class="flex items-center gap-3">
-          <Switch bind:checked={showLyricTran} />
-          <div class="flex flex-col gap-0.5">
-            <span class="text-sm font-medium">显示翻译</span>
-            <span class="text-xs text-muted-foreground">
-              在歌词下方显示翻译行（如果可用）
-            </span>
-          </div>
-        </label>
-        <label class="flex items-center gap-3">
-          <Switch bind:checked={showLyricRoma} />
-          <div class="flex flex-col gap-0.5">
-            <span class="text-sm font-medium">显示罗马音</span>
-            <span class="text-xs text-muted-foreground">
-              在歌词下方显示罗马音行（如果可用）
-            </span>
-          </div>
-        </label>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-muted-foreground w-6 text-right">0.1</span>
+        <input
+          type="range" min="0.1" max="10" step="0.1"
+          bind:value={playerBackgroundFlowSpeed}
+          class="h-1.5 flex-1 appearance-none rounded-full bg-muted cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+        />
+        <span class="text-xs tabular-nums text-muted-foreground w-8">{playerBackgroundFlowSpeed.toFixed(1)}</span>
       </div>
+    </SettingCard>
+
+    <SettingCard
+      title="背景渲染精度"
+      description={`Canvas 内部渲染缩放（${playerBackgroundRenderScale.toFixed(2)}）— 降低可减少 GPU 压力`}
+    >
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-muted-foreground w-6 text-right">0.1</span>
+        <input
+          type="range" min="0.1" max="3" step="0.05"
+          bind:value={playerBackgroundRenderScale}
+          class="h-1.5 flex-1 appearance-none rounded-full bg-muted cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+        />
+        <span class="text-xs tabular-nums text-muted-foreground w-8">{playerBackgroundRenderScale.toFixed(2)}</span>
+      </div>
+    </SettingCard>
+
+    <SettingCard title="背景静态模式" description="固定背景流动状态，不随播放动态变化">
+      <Switch bind:checked={playerBackgroundStaticMode} />
     </SettingCard>
   </div>
 </div>

@@ -84,6 +84,7 @@
       fps={$globalSettings.playerBackgroundFps ?? 30}
       {flowSpeed}
       renderScale={$globalSettings.playerBackgroundRenderScale ?? 0.5}
+      staticMode={$globalSettings.playerBackgroundStaticMode}
     />
   {/if}
 

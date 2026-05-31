@@ -183,8 +183,13 @@
                 lyricLines={lyricService.currentLyricLines}
                 currentTime={playerService.position * 1000}
                 {isPlaying}
-                enableBlur={true}
-                enableScale={true}
+                enableBlur={$globalSettings.lyricEnableBlur}
+                enableScale={$globalSettings.lyricEnableScale}
+                enableSpring={$globalSettings.lyricEnableSpring}
+                wordFadeWidth={$globalSettings.lyricWordFadeWidth}
+                hidePassedLines={$globalSettings.lyricHidePassedLines}
+                alignAnchor={$globalSettings.lyricAlignAnchor}
+                alignPosition={$globalSettings.lyricAlignPosition}
                 onLineClick={handleLineClick}
               />
             </div>

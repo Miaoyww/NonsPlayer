@@ -10,11 +10,13 @@
     Shuffle,
     Repeat,
     Repeat1,
+    Settings,
   } from "@lucide/svelte";
   import Button from "$lib/components/ui/button/button.svelte";
   import { playerService } from "$lib/services/player-service.svelte";
   import { goto } from "$app/navigation";
   import { playerUI } from "$lib/stores/player-ui-store.svelte";
+  import { settingsDialogOpen } from "$lib/stores/global-ui-store";
 
   interface Props {
     light?: boolean;
@@ -147,8 +149,16 @@
 
   <!-- Control buttons -->
   <div class="flex items-center justify-between">
-    <!-- Left: play mode -->
+    <!-- Left: settings + play mode -->
     <div class="flex items-center gap-2 w-32">
+      <Button
+        variant="ghost"
+        size="icon"
+        class="{textColor} cursor-pointer hover:text-white"
+        onclick={() => settingsDialogOpen.set(true)}
+      >
+        <Settings class="size-4" />
+      </Button>
       <Button
         variant="ghost"
         size="icon"

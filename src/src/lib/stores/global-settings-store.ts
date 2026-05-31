@@ -15,8 +15,6 @@ export interface GlobalSettings {
 	language: 'zh-cn' | 'en';
 	/** 本地歌词优先 (true) vs 在线优先 (false) */
 	localLyricFirst: boolean;
-	/** 启用 AMLL TTML 歌词库 */
-	enableAmllDb: boolean;
 	/** 显示歌词翻译行 */
 	showLyricTran: boolean;
 	/** 显示歌词罗马音行 */
@@ -48,12 +46,25 @@ export interface GlobalSettings {
 	showTran: boolean;
 	/** 歌词混合模式 */
 	lyricsBlendMode: string;
-	/** 歌词来源优先级 */
-	lyricPriority: 'auto' | 'qm' | 'official' | 'ttml';
-	/** 启用 QQ 音乐歌词 */
-	enableQQMusicLyric: boolean;
-	/** 启用在线 TTML 歌词 */
-	enableOnlineTTMLLyric: boolean;
+
+	// ── AMLL 歌词显示设置 ──
+
+	/** 逐字渐变宽度 (0~1) */
+	lyricWordFadeWidth: number;
+	/** 为非焦点行启用模糊效果 */
+	lyricEnableBlur: boolean;
+	/** 使用物理弹簧替代 CSS transition */
+	lyricEnableSpring: boolean;
+	/** 已过行缩放效果 */
+	lyricEnableScale: boolean;
+	/** 隐藏已播放行 */
+	lyricHidePassedLines: boolean;
+	/** 歌词对齐锚点 */
+	lyricAlignAnchor: 'top' | 'bottom' | 'center';
+	/** 歌词对齐位置 (0~1) */
+	lyricAlignPosition: number;
+	/** 背景动画静态模式（暂停时固定流动） */
+	playerBackgroundStaticMode: boolean;
 }
 
 const STORAGE_KEY = 'nonsplayer_settings';
@@ -65,7 +76,6 @@ const DEFAULTS: GlobalSettings = {
 	localMusicFolders: [],
 	language: 'zh-cn',
 	localLyricFirst: true,
-	enableAmllDb: true,
 	showLyricTran: true,
 	showLyricRoma: true,
 	playerType: 'cover',
@@ -80,9 +90,14 @@ const DEFAULTS: GlobalSettings = {
 	showWordLyrics: true,
 	showTran: true,
 	lyricsBlendMode: 'normal',
-	lyricPriority: 'auto',
-	enableQQMusicLyric: false,
-	enableOnlineTTMLLyric: true,
+	lyricWordFadeWidth: 0.5,
+	lyricEnableBlur: true,
+	lyricEnableSpring: true,
+	lyricEnableScale: true,
+	lyricHidePassedLines: false,
+	lyricAlignAnchor: 'center',
+	lyricAlignPosition: 0.35,
+	playerBackgroundStaticMode: false,
 };
 
 function loadSettings(): GlobalSettings {

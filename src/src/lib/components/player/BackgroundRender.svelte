@@ -10,6 +10,7 @@
     hasLyric?: boolean;
     lowFreqVolume?: number;
     renderScale?: number;
+    staticMode?: boolean;
   }
 
   let {
@@ -20,6 +21,7 @@
     hasLyric = true,
     lowFreqVolume = 1,
     renderScale = 0.5,
+    staticMode = false,
   }: Props = $props();
 
   let containerEl = $state<HTMLDivElement>();
@@ -70,6 +72,7 @@
   $effect(() => { bgRender?.setRenderScale(renderScale); });
   $effect(() => { bgRender?.setHasLyric(hasLyric); });
   $effect(() => { bgRender?.setLowFreqVolume(lowFreqVolume); });
+  $effect(() => { bgRender?.setStaticMode(staticMode); });
 </script>
 
 <div bind:this={containerEl} class="absolute inset-0 w-full h-full overflow-hidden"></div>

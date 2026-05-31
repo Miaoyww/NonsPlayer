@@ -138,40 +138,18 @@ class LyricService {
 
     const result: { lrcData: LyricLine[]; yrcData: LyricLine[] } = { lrcData: [], yrcData: [] };
     let ttmlAdopted = false;
-    let qqMusicAdopted = false;
 
-    // ── adoptQQMusic (stub — QQ Music adapter not yet available) ──
-    const adoptQQMusic = async () => {
-      // TODO: implement when QQ Music adapter is available
-    };
-
-    // ── adoptTTML ────────────────────────────────────────────────────
+    // ── adoptTTML (AMLL DB: word-level, always tried first) ─────────
     const adoptTTML = async () => {
-      if (!settings.enableOnlineTTMLLyric && settings.lyricPriority !== "ttml") return;
-      if (!settings.enableAmllDb || !amllTag) return;
-
       const ttmlLines = await this._tryAmll(numericId, amllTag, song.adapterSlug);
       if (!ttmlLines) return;
 
-      // Clean translations before parsing
-      // Note: parseTtmlLyrics already handles raw TTML; cleanTTMLTranslations
-      // is an optimization to reorder translated lines for better grouping
-      // Only override if no YRC data yet, or TTML has priority
-      if (
-        !result.yrcData.length ||
-        settings.lyricPriority === "ttml" ||
-        settings.lyricPriority === "auto"
-      ) {
-        result.yrcData = ttmlLines;
-        ttmlAdopted = true;
-      }
+      result.yrcData = ttmlLines;
+      ttmlAdopted = true;
     };
 
     // ── adoptLRC (Netease API: YRC + LRC with translations) ─────────
     const adoptLRC = async () => {
-      // Skip if QQ Music already provided word-level lyrics
-      if (qqMusicAdopted && result.yrcData.length > 0) return;
-
       const apiResult = await fetchNeteaseLyric(numericId);
       if (!apiResult) {
         console.log("[lyric] fetchNeteaseLyric returned null for:", numericId);
@@ -288,28 +266,9 @@ class LyricService {
       }
     };
 
-    // ── Execute priority-based strategy ──────────────────────────────
-    const priority = settings.lyricPriority;
-    if (priority === "qm") {
-      await adoptQQMusic();
-      if (!qqMusicAdopted) {
-        await Promise.all([adoptTTML(), adoptLRC()]);
-      }
-    } else if (priority === "official") {
-      await adoptLRC();
-    } else if (priority === "ttml") {
-      await adoptTTML();
-      await adoptLRC();
-      if (!ttmlAdopted && !result.lrcData.length) {
-        await adoptQQMusic();
-      }
-    } else {
-      // "auto": QQ Music (if enabled) → TTML + LRC in parallel
-      if (settings.enableQQMusicLyric) {
-        await adoptQQMusic();
-      }
-      await Promise.all([adoptTTML(), adoptLRC()]);
-    }
+    // ── Strategy: AMLL TTML first → Netease API fallback ───────────
+    await adoptTTML();
+    await adoptLRC();
 
     // ── Dedupe fake translations ──
     dedupeTranslations(result.yrcData);
@@ -352,7 +311,8 @@ class LyricService {
     console.log("[lyric:local] local LRC parsed:", localLines?.length ?? 0, "lines",
       "with trans:", localLines?.filter((l) => l.translatedLyric).length ?? 0);
 
-    if (settings.enableAmllDb) {
+    // 非本地优先
+    if (!settings.localLyricFirst) {
       const query = song.artistsName ? `${song.name} ${song.artistsName}` : song.name;
       const results = await searchNeteaseSong(query, 5);
       console.log("[lyric:local] Netease search for:", query, "→", results.length, "results");
@@ -375,6 +335,7 @@ class LyricService {
       }
     }
 
+    // 本地优先
     if (localLines && localLines.length > 0) {
       this.lyricSource = { source: LyricSourceType.local };
       console.log("[lyric:local] falling back to local LRC:", localLines.length, "lines");

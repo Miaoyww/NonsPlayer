@@ -3,6 +3,13 @@
   import "@applemusic-like-lyrics/core/style.css";
   import { onMount } from "svelte";
 
+  interface SpringParams {
+    mass?: number;
+    resistance?: number;
+    stiffness?: number;
+    softClamp?: boolean;
+  }
+
   interface Props {
     lyricLines: LyricLine[];
     currentTime: number;
@@ -17,6 +24,8 @@
     wordFadeWidth?: number;
     showLyricTran?: boolean;
     showLyricRoma?: boolean;
+    posYSpringParams?: SpringParams;
+    scaleSpringParams?: SpringParams;
     onLineClick?: (lineIndex: number, line: LyricLine) => void;
   }
 
@@ -34,6 +43,8 @@
     wordFadeWidth = 0.5,
     showLyricTran = true,
     showLyricRoma = true,
+    posYSpringParams = undefined,
+    scaleSpringParams = undefined,
     onLineClick = undefined,
   }: Props = $props();
 
@@ -92,6 +103,12 @@
   $effect(() => { player?.setEnableScale(enableScale); });
   $effect(() => { player?.setHidePassedLines(hidePassedLines); });
   $effect(() => { player?.setWordFadeWidth(wordFadeWidth); });
+  $effect(() => {
+    if (player && posYSpringParams) player.setLinePosYSpringParams(posYSpringParams);
+  });
+  $effect(() => {
+    if (player && scaleSpringParams) player.setLineScaleSpringParams(scaleSpringParams);
+  });
 
   // Play state -> animation loop
   $effect(() => {

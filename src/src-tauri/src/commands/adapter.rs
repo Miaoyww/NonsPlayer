@@ -60,10 +60,6 @@ pub async fn init_adapters(
     let netease = NeteaseAdapter::new();
     // Bootstrap a fresh anonymous token before registering.
     // The hardcoded default token expires periodically; this fetches a new one.
-    match netease.bootstrap().await {
-        Ok(()) => log::info!("[init_adapters] netease anonymous token bootstrapped"),
-        Err(e) => log::warn!("[init_adapters] failed to bootstrap netease anonymous token: {}", e),
-    }
     state.adapters.register(netease);
 
     let list = state.adapters.list();
