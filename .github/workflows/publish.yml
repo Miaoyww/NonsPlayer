@@ -69,7 +69,7 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: ./src/src-tauri -> target
+          workspaces: ./src-tauri -> target
 
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -82,8 +82,7 @@ jobs:
             patchelf
 
       - name: Install frontend dependencies
-        working-directory: ./src
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build and release Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -91,7 +90,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
         with:
-          projectPath: ./src
           tagName: ${{ github.ref_name }}
           releaseName: v${{ needs.version.outputs.version }}
           releaseDraft: true
@@ -112,11 +110,6 @@ jobs:
           REPO="${{ github.repository }}"
           TAG="${{ github.ref_name }}"
 
-          # Fetch release assets from the draft release
-          RELEASE_ID=$(gh release view "$TAG" --json id -q ".id")
-          ASSETS=$(gh release view "$TAG" --json assets)
-
-          # Build latest.json manifest
           echo "{\"version\":\"$VERSION\",\"notes\":\"See https://github.com/$REPO/releases/tag/$TAG\",\"pub_date\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"platforms\":{}}" > latest.json
 
           gh release upload "$TAG" latest.json --clobber
