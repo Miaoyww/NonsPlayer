@@ -24,20 +24,16 @@ body::-webkit-scrollbar {
 
 @font-face {
 	font-family: 'HarmonyOS SansSC';
-	src:
-		url('/fonts/HarmonyOS_SansSC_Regular') format('ttf'),
-		url('/fonts/HarmonyOS_SansSC_Regular') format('ttf');
+	src: url('/fonts/HarmonyOS_SansSC_Regular.ttf') format('truetype');
 	font-weight: 400;
 	font-style: normal;
 }
 
 @font-face {
 	font-family: 'HarmonyOS SansSC';
-	src:
-		url('/fonts/HarmonyOS_SansSC_Bold') format('ttf'),
-		url('/fonts/HarmonyOS_SansSC_Bold') format('ttf');
+	src: url('/fonts/HarmonyOS_SansSC_Bold.ttf') format('truetype');
 	font-weight: 700;
-	font-style: bold;
+	font-style: normal;
 }
 
 @layer base {

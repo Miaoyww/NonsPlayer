@@ -1,6 +1,6 @@
 [package]
 name = "Nonsplayer"
-version = "0.5.8-next-alpha"
+version = "0.5.9"
 description = "NonsPlayer"
 authors = ["Miaoyww"]
 edition = "2021"

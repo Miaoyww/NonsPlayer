@@ -12,6 +12,9 @@ const config = {
     adapter: adapter({
       fallback: "index.html",
     }),
+    files: {
+      assets: "src/static",
+    },
     csrf: {
       checkOrigin: false,
     },
