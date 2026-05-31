@@ -1,10 +1,20 @@
 <script lang="ts">
   import {
-    Play, Pause, SkipBack, SkipForward,
-    Volume2, VolumeX, ListMusic, Shuffle, Repeat, Repeat1,
+    Play,
+    Pause,
+    SkipBack,
+    SkipForward,
+    Volume2,
+    VolumeX,
+    ListMusic,
+    Shuffle,
+    Repeat,
+    Repeat1,
   } from "@lucide/svelte";
   import Button from "$lib/components/ui/button/button.svelte";
   import { playerService } from "$lib/services/player-service.svelte";
+  import { goto } from "$app/navigation";
+  import { playerUI } from "$lib/stores/player-ui-store.svelte";
 
   interface Props {
     light?: boolean;
@@ -25,7 +35,9 @@
 
   const progress = $derived(
     playerService.duration > 0
-      ? (dragging ? dragPercent : (playerService.position / playerService.duration) * 100)
+      ? dragging
+        ? dragPercent
+        : (playerService.position / playerService.duration) * 100
       : 0,
   );
 
@@ -62,19 +74,20 @@
 
   // ── Play mode ──
   function cyclePlayMode() {
-    const modes: Array<"sequential" | "shuffle" | "single_loop" | "list_loop"> = [
-      "sequential", "shuffle", "single_loop", "list_loop",
-    ];
+    const modes: Array<"sequential" | "shuffle" | "single_loop" | "list_loop"> =
+      ["sequential", "shuffle", "single_loop", "list_loop"];
     const idx = modes.indexOf(playerService.playMode);
     playerService.setPlayMode(modes[(idx + 1) % modes.length]);
   }
 
-  const playModeIcon = $derived({
-    sequential: Repeat,
-    shuffle: Shuffle,
-    single_loop: Repeat1,
-    list_loop: Repeat,
-  }[playerService.playMode]);
+  const playModeIcon = $derived(
+    {
+      sequential: Repeat,
+      shuffle: Shuffle,
+      single_loop: Repeat1,
+      list_loop: Repeat,
+    }[playerService.playMode],
+  );
 
   const hasSong = $derived(playerService.currentSong != null);
 
@@ -86,7 +99,10 @@
   const progressFill = $derived(light ? "bg-white" : "bg-primary");
 </script>
 
-<svelte:window onmousemove={onProgressMouseMove} onmouseup={onProgressMouseUp} />
+<svelte:window
+  onmousemove={onProgressMouseMove}
+  onmouseup={onProgressMouseUp}
+/>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
@@ -96,7 +112,9 @@
 >
   <!-- Progress bar -->
   <div class="flex items-center gap-3 text-xs {textColor}">
-    <span class="tabular-nums w-10 text-right">{formatTime(playerService.position)}</span>
+    <span class="tabular-nums w-10 text-right"
+      >{formatTime(playerService.position)}</span
+    >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       bind:this={progressBar}
@@ -111,7 +129,9 @@
       aria-valuemin="0"
       aria-valuemax="100"
     >
-      <div class="absolute inset-y-0 -top-1 left-0 right-0 group-hover:h-3 transition-all">
+      <div
+        class="absolute inset-y-0 -top-1 left-0 right-0 group-hover:h-3 transition-all"
+      >
         <div
           class="h-full rounded-full transition-[width] duration-75 {progressFill}"
           style="width: {progress}%"
@@ -129,32 +149,53 @@
   <div class="flex items-center justify-between">
     <!-- Left: play mode -->
     <div class="flex items-center gap-2 w-32">
-      <Button variant="ghost" size="icon" class="{textColor} cursor-pointer hover:text-white" onclick={cyclePlayMode}>
+      <Button
+        variant="ghost"
+        size="icon"
+        class="{textColor} cursor-pointer hover:text-white"
+        onclick={cyclePlayMode}
+      >
         <svelte:component this={playModeIcon} class="size-4" />
       </Button>
     </div>
 
     <!-- Center: transport -->
     <div class="flex items-center gap-3">
-      <Button variant="ghost" size="icon" class="{textColor} cursor-pointer hover:text-white" disabled={!hasSong} onclick={() => playerService.prev()}>
+      <Button
+        variant="ghost"
+        size="icon"
+        class="{textColor} cursor-pointer hover:text-white"
+        disabled={!hasSong}
+        onclick={() => playerService.prev()}
+      >
         <SkipBack class="size-6" />
       </Button>
 
       <Button
         variant="ghost"
         size="icon"
-        class="cursor-pointer rounded-full size-14 {light ? 'bg-white/20 hover:bg-white/30' : 'bg-primary text-primary-foreground hover:bg-primary/90'}"
+        class="cursor-pointer rounded-full size-14 {light
+          ? 'bg-white/20 hover:bg-white/30'
+          : 'bg-primary text-primary-foreground hover:bg-primary/90'}"
         disabled={!hasSong}
         onclick={() => playerService.togglePlayback()}
       >
         {#if playerService.isPlaying}
           <Pause class="size-7 fill-current {light ? 'text-white' : ''}" />
         {:else}
-          <Play class="size-7 fill-current ml-0.5 {light ? 'text-white' : ''}" />
+          <Play
+            class="size-7 fill-current ml-0.5 {light ? 'text-white' : ''}"
+          />
         {/if}
       </Button>
 
-      <Button variant="ghost" size="icon" class="{textColor} cursor-pointer hover:text-white" disabled={!hasSong} onclick={() => playerService.next()}>
+      <Button
+        variant="ghost"
+        size="icon"
+        class="{textColor} cursor-pointer hover:text-white"
+        disabled={!hasSong}
+        onclick={() => playerService.next()}
+      >
         <SkipForward class="size-6" />
       </Button>
     </div>
@@ -170,7 +211,8 @@
           variant="ghost"
           size="icon"
           class="{textColor} cursor-pointer hover:text-white"
-          onclick={() => playerService.setVolume(playerService.volume > 0 ? 0 : 0.8)}
+          onclick={() =>
+            playerService.setVolume(playerService.volume > 0 ? 0 : 0.8)}
         >
           {#if playerService.volume === 0}
             <VolumeX class="size-5" />
@@ -180,13 +222,16 @@
         </Button>
 
         {#if showVolume}
-          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 rounded-lg bg-black/80 border border-white/20">
+          <div
+            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 rounded-lg bg-black/80 border border-white/20"
+          >
             <input
               type="range"
               min="0"
               max="100"
               value={playerService.volume * 100}
-              oninput={(e) => playerService.setVolume(Number(e.currentTarget.value) / 100)}
+              oninput={(e) =>
+                playerService.setVolume(Number(e.currentTarget.value) / 100)}
               class="h-20 w-6 cursor-pointer appearance-none rounded-full"
               style="-webkit-appearance: slider-vertical; writing-mode: vertical-lr; direction: rtl;"
             />
@@ -198,7 +243,10 @@
         variant="ghost"
         size="icon"
         class="{textColor} cursor-pointer hover:text-white"
-        href="/playqueue"
+        onclick={() => {
+          goto("/playqueue");
+          playerUI.showFullPlayer = false;
+        }}
       >
         <ListMusic class="size-5" />
       </Button>

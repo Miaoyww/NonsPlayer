@@ -158,7 +158,7 @@
             </div>
 
             <!-- 控制栏（左侧面板内） -->
-            <div class="w-full max-w-[50vh]">
+            <div class="w-full max-w-[70vh]">
               <PlayerControl
                 light={true}
                 onMouseEnter={() => {
