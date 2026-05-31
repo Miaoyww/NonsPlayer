@@ -15,7 +15,9 @@
   import logo from "$lib/assets/logo.svg";
   import { isTauri } from "@tauri-apps/api/core";
   import { attachConsole } from "@tauri-apps/plugin-log";
+  import { checkForUpdate } from "$lib/services/update-service";
   import { ModeWatcher } from "mode-watcher";
+  import { Toaster } from "svelte-sonner";
 
   let { children } = $props();
 
@@ -38,6 +40,9 @@
     } catch (e) {
       console.warn("Failed to initialize adapters:", e);
     }
+
+    // Check for app updates (silent, runs in background)
+    checkForUpdate();
   });
 </script>
 
@@ -46,6 +51,8 @@
   <meta name="title" content={NONSPLAYER_NAME} />
   <link rel="icon" type="image/x-icon" href={logo} />
 </svelte:head>
+
+<Toaster richColors position="bottom-right" />
 
 <ModeWatcher />
 <SettingsDialog />

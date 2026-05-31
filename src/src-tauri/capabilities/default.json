@@ -1,33 +1,20 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
-  "windows": [
-    "main"
-  ],
+  "description": "Default capabilities for the main window",
+  "windows": ["main"],
   "permissions": [
     "core:default",
-    "core:window:allow-start-dragging",
-    "core:window:allow-minimize",
-    "core:window:allow-toggle-maximize",
-    "core:window:allow-close",
-    "core:window:allow-is-maximized",
-    "core:window:allow-set-focus",
-    "fs:allow-exists",
-    "fs:allow-read-dir",
-    "fs:allow-read-text-file",
-    "fs:allow-write-text-file",
-    "fs:allow-write-file",
-    "fs:allow-read-file",
-    "fs:allow-remove",
-    "fs:allow-mkdir",
-    "dialog:allow-open",
-    {
-      "identifier": "opener:allow-open-url",
-      "allow": [
-        { "url": "https://*" },
-        { "url": "http://*" }
-      ]
-    }
+    "opener:default",
+    "fs:default",
+    "log:default",
+    "dialog:default",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download",
+    "updater:allow-install",
+    "updater:allow-download-and-install",
+    "process:default",
+    "process:allow-restart"
   ]
 }

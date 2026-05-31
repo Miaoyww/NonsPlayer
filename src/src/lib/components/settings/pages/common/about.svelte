@@ -1,6 +1,6 @@
 <script lang="ts">
   // 引入了 MessageCircle 作为联系我们的图标
-  import { ExternalLink, FileText, MessageCircle } from "@lucide/svelte";
+  import { ExternalLink, FileText, MessageCircle, RefreshCw } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
   import SettingCard from "$lib/components/cards/settings-card.svelte";
@@ -9,17 +9,50 @@
   import { isTauri } from "@tauri-apps/api/core";
   import { openUrl as tauriOpenUrl } from "@tauri-apps/plugin-opener";
   import { fly } from "svelte/transition";
+  import { checkForUpdateInteractive } from "$lib/services/update-service";
+  import { toast } from "svelte-sonner";
   const version = __APP_VERSION__;
 
-  const API_URL =
-    "https://api.github.com/repos/Miaoyww/NonsPlayer/releases/latest";
   import favicon from "$lib/assets/favicon.png";
 
   function openUrl(url: string) {
     tauriOpenUrl(url);
   }
 
-  async function checkForUpdates() {}
+  let checking = $state(false);
+
+  async function checkForUpdates() {
+    if (checking) return;
+    checking = true;
+    const toastId = toast.loading("正在检查更新...");
+
+    await checkForUpdateInteractive({
+      onStatus(status) {
+        switch (status.stage) {
+          case "none":
+            toast.success("已是最新版本", { id: toastId });
+            checking = false;
+            break;
+          case "available":
+            toast.success(`发现新版本 v${status.version}`, { id: toastId });
+            break;
+          case "downloading":
+            toast.loading(`正在下载更新 ${status.progress}%`, { id: toastId });
+            break;
+          case "installing":
+            toast.loading("正在安装更新...", { id: toastId });
+            break;
+          case "done":
+            toast.success("更新完成，即将重启", { id: toastId });
+            break;
+          case "error":
+            toast.error(`更新失败: ${status.message}`, { id: toastId });
+            checking = false;
+            break;
+        }
+      },
+    });
+  }
 </script>
 
 <div
@@ -114,9 +147,10 @@
 
       {#if isTauri()}
         <SettingCard title="检查更新" description="跟上新版本!">
-          <Button variant="outline" size="sm" onclick={checkForUpdates}
-            >检查更新</Button
-          >
+          <Button variant="outline" size="sm" disabled={checking} onclick={checkForUpdates}>
+            <RefreshCw size={13} class={`mr-1.5 ${checking ? "animate-spin" : ""}`} />
+            {checking ? "检查中..." : "检查更新"}
+          </Button>
         </SettingCard>
       {/if}
     </div>
