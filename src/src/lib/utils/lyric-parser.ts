@@ -190,7 +190,6 @@ export function parseSmartLrc(content: string): { format: LrcFormat; lines: Lyri
       lines = (parseLrc(content) as LyricLine[]) || [];
   }
 
-  console.log(`[LyricParser] format: ${format}, ${lines.length} lines`);
   return { format, lines };
 }
 
@@ -201,22 +200,17 @@ export function alignLyrics(
   otherLyrics: readonly LyricLine[],
   key: "translatedLyric" | "romanLyric",
 ): LyricLine[] {
-  if (!lyrics.length || !otherLyrics.length) {
-    console.log("[alignLyrics] early return — lyrics:", lyrics.length, "otherLyrics:", otherLyrics.length);
-    return cloneLines(lyrics);
-  }
+  if (!lyrics.length || !otherLyrics.length) return cloneLines(lyrics);
 
   const result = cloneLines(lyrics);
   let i = 0;
   let j = 0;
-  let matched = 0;
 
   while (i < result.length && j < otherLyrics.length) {
     const diff = result[i].startTime - otherLyrics[j].startTime;
 
     if (Math.abs(diff) <= ALIGN_TOLERANCE_MS) {
       result[i][key] = otherLyrics[j].words.map((w) => w.word).join("");
-      matched++;
       i++;
       j++;
     } else if (diff < 0) {
@@ -224,13 +218,6 @@ export function alignLyrics(
     } else {
       j++;
     }
-  }
-
-  console.log("[alignLyrics]", key, "—", lyrics.length, "main,", otherLyrics.length, "sub →", matched, "matched, tolerance:", ALIGN_TOLERANCE_MS, "ms");
-  if (matched === 0 && lyrics.length > 0 && otherLyrics.length > 0) {
-    console.log("[alignLyrics] WARNING: zero matches! first main startTime:", lyrics[0].startTime,
-      "first sub startTime:", otherLyrics[0].startTime,
-      "diff:", lyrics[0].startTime - otherLyrics[0].startTime);
   }
 
   return result;

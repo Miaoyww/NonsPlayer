@@ -42,13 +42,11 @@ class SongManager {
     // Local files — use Tauri asset protocol
     if (song.url && song.url.startsWith("file://")) {
       const assetUrl = toPlayableUrl(song.url);
-      console.log(`[SongManager] Local file converted: "${song.url}" → "${assetUrl}"`);
       return { id: song.id, url: assetUrl, isLocal: true, source: "local" };
     }
 
     // Prefetch cache hit
     if (this.nextPrefetch && this.nextPrefetch.id === song.id) {
-      console.log(`[SongManager] Using prefetched URL for "${song.name}"`);
       const cached = this.nextPrefetch;
       this.nextPrefetch = null;
       return cached;
@@ -66,14 +64,11 @@ class SongManager {
         return { id: song.id, url: undefined };
       }
 
-      // Check if the adapter returned a local file:// URL
       if (url.startsWith("file://")) {
         const assetUrl = toPlayableUrl(url);
-        console.log(`[SongManager] Adapter returned local: "${url}" → "${assetUrl}"`);
         return { id: song.id, url: assetUrl, isLocal: true, source: "local" };
       }
 
-      console.log(`[SongManager] Resolved URL for "${song.name}"`);
       return { id: song.id, url, isLocal: false, source: song.adapterSlug };
     } catch (e) {
       console.error(`[SongManager] Failed to get URL for "${song.name}":`, e);
@@ -112,7 +107,6 @@ class SongManager {
           url: url.startsWith("file://") ? toPlayableUrl(url) : url,
           isLocal: url.startsWith("file://"),
         };
-        console.log(`[SongManager] Prefetched "${song.name}"`);
       }
     } catch (e) {
       console.warn(`[SongManager] Prefetch failed for "${song.name}":`, e);

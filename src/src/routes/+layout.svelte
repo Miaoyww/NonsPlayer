@@ -20,10 +20,8 @@
   let { children } = $props();
 
   onMount(async () => {
-    // Forward Rust logs to browser devtools console
     if (isTauri()) {
       attachConsole()
-        .then(() => console.log("[log] Rust log forwarding attached"))
         .catch((e) => console.error("[log] Failed to attach console:", e));
     }
 
@@ -32,7 +30,6 @@
       return;
     }
 
-    console.log("App started with settings:", $globalSettings);
     // Initialize adapters from stored config
     try {
       await adapterStore.initialize({

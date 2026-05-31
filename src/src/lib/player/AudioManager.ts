@@ -107,10 +107,6 @@ class AudioManager extends EventTarget implements IPlaybackEngine {
       fadeCurve?: FadeCurve;
     },
   ): Promise<void> {
-    console.log(
-      `[AudioManager] Crossfade (duration: ${options.duration}s, type: ${options.mixType})`,
-    );
-
     this.clearPendingSwitch();
     this.isCrossfading = true;
 
@@ -171,7 +167,6 @@ class AudioManager extends EventTarget implements IPlaybackEngine {
     });
 
     const commitSwitch = () => {
-      console.log("[AudioManager] Committing crossfade switch");
       if (this.cleanupListeners) {
         this.cleanupListeners();
         this.cleanupListeners = null;
@@ -345,7 +340,6 @@ export const useAudioManager = (): AudioManager => {
   const win = window as Window & { [AUDIO_MANAGER_KEY]?: AudioManager };
   if (!win[AUDIO_MANAGER_KEY]) {
     win[AUDIO_MANAGER_KEY] = new AudioManager();
-    console.log(`[AudioManager] Created, engine: ${win[AUDIO_MANAGER_KEY]!.engineType}`);
   }
   return win[AUDIO_MANAGER_KEY]!;
 };

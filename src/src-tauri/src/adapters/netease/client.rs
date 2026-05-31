@@ -180,23 +180,6 @@ impl NeteaseClient {
             CryptoType::Api => "api",
         };
 
-        // ── Detailed request logging at info level ──
-        log::info!("[netease] ── REQUEST ──────────────────────────────");
-        log::info!("[netease] POST {}", url);
-        log::info!("[netease] crypto  = {}", crypto_label);
-        log::info!("[netease] payload = {}", json_text);
-        log::info!("[netease] cookie  = {}", cookie);
-        log::info!("[netease] ua      = {}", ua);
-        if !form_pairs.is_empty() {
-            let form_str = form_pairs
-                .iter()
-                .map(|(k, v)| format!("{}={}", k, if v.len() > 120 { &v[..120] } else { v }))
-                .collect::<Vec<_>>()
-                .join("&");
-            log::info!("[netease] form    = {}", form_str);
-        }
-        log::info!("[netease] ────────────────────────────────────────");
-
         let resp = self
             .http
             .post(url)
@@ -209,7 +192,6 @@ impl NeteaseClient {
             .map_err(Error::Http)?;
 
         let status = resp.status();
-        log::info!("[netease] response status = {}", status);
 
         // If the upstream returned an error, read as text so we can log the reason
         if !status.is_success() {
@@ -229,24 +211,14 @@ impl NeteaseClient {
             //   2. If that fails, try JSON.parse on raw bytes
             let bytes = resp.bytes().await.map_err(|e| Error::Other(format!("read error: {}", e)))?;
 
-            log::info!("[netease] response len = {} bytes", bytes.len());
-
-            // First, try the raw bytes as plain JSON (most common case when
-            // the server doesn't encrypt the response).
             let raw_text = String::from_utf8_lossy(&bytes);
             if let Ok(json) = serde_json::from_slice::<serde_json::Value>(&bytes) {
-                let preview: String = raw_text.chars().take(500).collect();
-                log::info!("[netease] response body (plain JSON, {} chars): {}", raw_text.len(), preview);
                 return Ok(json);
             }
 
-            // Not valid JSON — maybe it's encrypted (block-aligned binary).
             if bytes.len() % 16 == 0 {
                 match crypto::eapi_decrypt(&bytes) {
                     Ok(decrypted) => {
-                        let dec_str = String::from_utf8_lossy(&decrypted);
-                        let preview: String = dec_str.chars().take(500).collect();
-                        log::info!("[netease] response body (decrypted, {} chars): {}", dec_str.len(), preview);
                         return serde_json::from_slice(&decrypted)
                             .map_err(|e| Error::Other(format!("parse error after decrypt: {}", e)));
                     }
@@ -262,8 +234,6 @@ impl NeteaseClient {
             )))
         } else {
             let text = resp.text().await.map_err(|e| Error::Other(format!("read error: {}", e)))?;
-            let preview: String = text.chars().take(500).collect();
-            log::info!("[netease] response body ({} chars): {}", text.len(), preview);
             let json: serde_json::Value =
                 serde_json::from_str(&text).map_err(|e| Error::Other(format!("parse error: {}", e)))?;
             Ok(json)

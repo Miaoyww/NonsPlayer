@@ -574,7 +574,6 @@ export const usePlayerController = (): PlayerController => {
   const win = window as Window & { [PLAYER_CONTROLLER_KEY]?: PlayerController };
   if (!win[PLAYER_CONTROLLER_KEY]) {
     win[PLAYER_CONTROLLER_KEY] = new PlayerController();
-    console.log("[PlayerController] Created");
-  }
+    }
   return win[PLAYER_CONTROLLER_KEY]!;
 };

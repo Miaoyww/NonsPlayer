@@ -17,7 +17,6 @@
   let isActive = $derived($page.url.pathname === href);
 
   function onClick() {
-    console.log("Navigating to", href);
     goto(href);
   }
 </script>
