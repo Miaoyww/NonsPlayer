@@ -17,7 +17,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={onopenchange}>
-	<Dialog.Content class="sm:max-w-lg max-h-[80vh] flex flex-col">
+	<Dialog.Content class="sm:max-w-lg max-h-[90vh] flex flex-col">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2">
 				<Tags class="size-4" />
@@ -28,7 +28,7 @@
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<ScrollArea class="flex-1 min-h-0">
+		<ScrollArea class="flex-1 min-h-0 max-h-[65vh] overflow-auto">
 			<div class="flex flex-col gap-4 pr-2">
 				<!-- "全部歌单" option -->
 				<div class="flex flex-wrap gap-1.5">
