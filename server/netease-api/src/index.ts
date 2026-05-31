@@ -9,7 +9,7 @@ const BASE_PORT = parseInt(process.argv.find(a => a.startsWith("--port="))?.spli
 const MAX_PORT = BASE_PORT + 2; // try 3 ports
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 // ── Helpers ─────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 use std::io::{BufRead, BufReader};
 use std::process::{Child, Command};
 
-const DEFAULT_PORT: u16 = 25884;
+const DEFAULT_PORT: u16 = 37562;
 
 /// Attempt to start the Netease API Express server as a child process.
 /// Returns the child handle and the actual port on success.
