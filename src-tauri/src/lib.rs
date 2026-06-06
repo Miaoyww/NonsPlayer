@@ -2,10 +2,14 @@ mod adapters;
 mod commands;
 mod error;
 mod models;
+mod netease;
 mod services;
 
 use adapters::AdapterManager;
+use commands::netease_proxy::NeteaseClientState;
+use netease::{load_cookie_jar, NeteaseClient};
 use services::http;
+use tokio::sync::Mutex;
 use tauri_plugin_log::{Target, TargetKind};
 
 pub struct AppState {
@@ -28,6 +32,13 @@ pub fn run() {
     let adapters = AdapterManager::new();
     let http_client = http::create_client();
 
+    // Initialize NeteaseClient with persisted cookies
+    let netease_cookies = load_cookie_jar();
+    let netease = NeteaseClient::new(http_client.clone(), netease_cookies);
+    let netease_state = NeteaseClientState {
+        client: Mutex::new(netease),
+    };
+
     let state = AppState {
         adapters,
         http_client,
@@ -35,6 +46,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(state)
+        .manage(netease_state)
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -78,6 +90,10 @@ pub fn run() {
             commands::lyric_cache::save_lyric_cache,
             commands::lyric_cache::get_lyric_cache,
             commands::lyric_cache::clear_lyric_cache,
+            // netease proxy (HTTP tunnel)
+            commands::netease_proxy::netease_tunnel,
+            commands::netease_proxy::netease_get_cookies,
+            commands::netease_proxy::netease_set_cookies,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

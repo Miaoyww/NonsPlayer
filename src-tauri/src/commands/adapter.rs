@@ -30,6 +30,10 @@ pub fn scan_local(
 
 /// Initialize all adapters from config. Called once at app startup.
 /// Returns metadata for all registered adapters.
+///
+/// Note: The "netease" adapter is handled entirely on the frontend via
+/// `netease_request` / `netease_get_cookies` / `netease_set_cookies` commands.
+/// No Rust-side adapter registration is needed.
 #[tauri::command]
 pub async fn init_adapters(
     config: AdapterConfig,

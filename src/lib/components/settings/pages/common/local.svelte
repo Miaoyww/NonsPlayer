@@ -2,7 +2,15 @@
   import SettingCard from "$lib/components/cards/settings-card.svelte";
   import { Button } from "$lib/components/ui/button";
   import { globalSettings } from "$lib/stores/global-settings-store";
-  import { Folder, Plus, Trash2, FolderOpen, Settings, Cloud, CloudOff } from "@lucide/svelte";
+  import {
+    Folder,
+    Plus,
+    Trash2,
+    FolderOpen,
+    Settings,
+    Cloud,
+    CloudOff,
+  } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
   import { open } from "@tauri-apps/plugin-dialog";
@@ -24,7 +32,9 @@
       localFolders = [...s.localMusicFolders];
       localLyricFirst = s.localLyricFirst;
     });
-    setTimeout(() => { initialized = true; }, 0);
+    setTimeout(() => {
+      initialized = true;
+    }, 0);
     return unsub;
   });
 
@@ -50,7 +60,6 @@
     localFolders = localFolders.filter((_, i) => i !== index);
     persist();
   }
-
 </script>
 
 <div in:fly={{ y: 16, duration: 300, opacity: 0 }}>
@@ -80,7 +89,7 @@
               添加或移除本地音乐文件夹。已添加的文件夹会被自动扫描。
             </Dialog.Description>
           </Dialog.Header>
-          <div class="flex flex-col gap-3 py-4">
+          <div class="flex flex-col gap-3 py-4 ">
             {#if localFolders.length === 0}
               <div
                 class="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-4 py-8"
@@ -89,7 +98,9 @@
                 <p class="text-sm text-muted-foreground">暂未添加文件夹</p>
               </div>
             {:else}
-              <div class="flex max-h-80 flex-col gap-2 overflow-y-auto">
+              <div
+                class="flex max-h-80 flex-col gap-2 overflow-y-auto "
+              >
                 {#each localFolders as folder, i}
                   <div
                     class="flex items-center gap-2.5 rounded-lg border bg-background px-3 py-2"
@@ -114,7 +125,12 @@
             {/if}
           </div>
           <Dialog.Footer>
-            <Button variant="outline" size="sm" class="w-full" onclick={addFolder}>
+            <Button
+              variant="outline"
+              size="sm"
+              class="w-full"
+              onclick={addFolder}
+            >
               <Plus class="size-4" />
               添加文件夹
             </Button>
@@ -124,15 +140,14 @@
     </SettingCard>
 
     <!-- ── 歌词设置 ── -->
-    <SettingCard
-      title="歌词来源"
-      description="首选歌词来源"
-    >
+    <SettingCard title="歌词来源" description="首选歌词来源">
       <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
         <Button
           variant={localLyricFirst ? "secondary" : "ghost"}
           size="sm"
-          class="flex items-center gap-1.5 rounded-md {!localLyricFirst ? 'text-muted-foreground' : ''}"
+          class="flex items-center gap-1.5 rounded-md {!localLyricFirst
+            ? 'text-muted-foreground'
+            : ''}"
           onclick={() => (localLyricFirst = true)}
         >
           <CloudOff class="size-4" />
@@ -141,7 +156,9 @@
         <Button
           variant={!localLyricFirst ? "secondary" : "ghost"}
           size="sm"
-          class="flex items-center gap-1.5 rounded-md {localLyricFirst ? 'text-muted-foreground' : ''}"
+          class="flex items-center gap-1.5 rounded-md {localLyricFirst
+            ? 'text-muted-foreground'
+            : ''}"
           onclick={() => (localLyricFirst = false)}
         >
           <Cloud class="size-4" />

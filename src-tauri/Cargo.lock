@@ -6,7 +6,9 @@ version = 4
 name = "Nonsplayer"
 version = "0.5.9"
 dependencies = [
+ "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "lofty",
  "log",
  "reqwest 0.12.28",
@@ -21,6 +23,7 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-updater",
  "thiserror 2.0.18",
+ "tokio",
  "walkdir",
 ]
 

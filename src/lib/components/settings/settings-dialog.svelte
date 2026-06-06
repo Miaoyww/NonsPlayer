@@ -41,7 +41,7 @@
   <Dialog.Portal>
     <Dialog.Overlay />
     <Dialog.Content
-      class="w-[1024px] max-w-[calc(100vw-40px)] sm:max-w-[1024px] h-[85vh] p-0 gap-0 z-[1005]"
+      class="w-[1024px] max-w-[calc(100vw-40px)] sm:max-w-[1024px] h-[85vh] p-0 gap-0 "
       showCloseButton={false}
     >
       <div class="flex h-full w-full overflow-hidden rounded-lg">

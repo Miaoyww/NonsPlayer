@@ -16,7 +16,7 @@ import * as neteaseApi from "./netease-api";
 
 // ── Frontend adapter slugs ────────────────────────────────────────────
 
-/** Adapters that run entirely on the front-end via HTTP (no Rust backend). */
+/** Adapters that run on the frontend via Tauri IPC (netease proxy). */
 const FRONTEND_ADAPTERS = new Set(["netease"]);
 
 function isFrontend(adapter: string): boolean {
