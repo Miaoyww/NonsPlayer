@@ -103,15 +103,30 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Generate latest.json
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update latest.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          TAG="${{ github.ref_name }}"
+          gh release download "$TAG" --pattern "latest.json" --clobber 2>/dev/null || true
+
+          if [ ! -f latest.json ]; then
+            echo '{"version":"","notes":"","pub_date":"","platforms":{}}' > latest.json
+          fi
+
           VERSION="${{ needs.version.outputs.version }}"
           REPO="${{ github.repository }}"
-          TAG="${{ github.ref_name }}"
 
-          echo "{\"version\":\"$VERSION\",\"notes\":\"See https://github.com/$REPO/releases/tag/$TAG\",\"pub_date\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"platforms\":{}}" > latest.json
+          # Update version/notes/pub_date, preserve platforms from tauri-action
+          tmp="$(mktemp)"
+          jq --arg ver "$VERSION" \
+             --arg notes "See https://github.com/$REPO/releases/tag/$TAG" \
+             --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+             '.version = $ver | .notes = $notes | .pub_date = $date' \
+             latest.json > "$tmp" && mv "$tmp" latest.json
 
           gh release upload "$TAG" latest.json --clobber
           echo "Uploaded latest.json to $TAG"
