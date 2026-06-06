@@ -44,6 +44,16 @@
     // Check for app updates (silent, runs in background)
     checkForUpdate();
   });
+
+  // ── Global font application (like SPlayer Provider.vue) ──
+  $effect(() => {
+    const raw = $globalSettings.fontFamily;
+    const fontFamily =
+      raw === "default"
+        ? `'Figtree Variable', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"`
+        : `${raw}, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"`;
+    document.documentElement.style.setProperty("--font-sans", fontFamily);
+  });
 </script>
 
 <svelte:head>

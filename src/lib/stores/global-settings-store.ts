@@ -13,6 +13,16 @@ export interface GlobalSettings {
 	localMusicFolders: string[];
 	/** 界面语言 */
 	language: 'zh-cn' | 'en';
+	/** 全局字体（CSS font-family 字符串，"default" 表示使用默认字体） */
+	fontFamily: string;
+	/** 歌词区域字体（"follow" = 跟随全局字体，否则为 CSS font-family 字符串） */
+	lyricFontFamily: string;
+	/** 英文歌词字体（"follow" = 跟随歌词字体） */
+	englishLyricFont: string;
+	/** 日语歌词字体（"follow" = 跟随歌词字体） */
+	japaneseLyricFont: string;
+	/** 韩语歌词字体（"follow" = 跟随歌词字体） */
+	koreanLyricFont: string;
 	/** 本地歌词优先 (true) vs 在线优先 (false) */
 	localLyricFirst: boolean;
 	/** 显示歌词翻译行 */
@@ -75,6 +85,11 @@ const DEFAULTS: GlobalSettings = {
 	theme: 'system',
 	localMusicFolders: [],
 	language: 'zh-cn',
+	fontFamily: 'default',
+	lyricFontFamily: 'follow',
+	englishLyricFont: 'follow',
+	japaneseLyricFont: 'follow',
+	koreanLyricFont: 'follow',
 	localLyricFirst: true,
 	showLyricTran: true,
 	showLyricRoma: true,

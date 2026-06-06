@@ -14,7 +14,6 @@ body {
 	overscroll-behavior: none;
 	overflow-x: hidden;
 	scrollbar-width: none;
-	font-family: 'HarmonyOS SansSC', sans-serif;
 }
 
 html::-webkit-scrollbar,

@@ -5,9 +5,6 @@ import type {
   LoginStatus,
   SearchResult,
 } from "$lib/types/adapter";
-import type { Song } from "$lib/types/song";
-import type { Album } from "$lib/types/album";
-import type { Artist } from "$lib/types/artist";
 import type { Playlist } from "$lib/types/playlist";
 import type { Account } from "$lib/types/account";
 import type { TopPlaylistGroup } from "$lib/types/top-playlist";
@@ -39,16 +36,6 @@ export function listAdapters(): Promise<AdapterMetadata[]> {
 
 // -- Music --
 
-export function getSong(adapter: string, id: string): Promise<Song> {
-  if (isFrontend(adapter)) return neteaseApi.getSong(id);
-  return invoke("get_song", { adapter, id });
-}
-
-export function getSongs(adapter: string, ids: string[]): Promise<Song[]> {
-  if (isFrontend(adapter)) return neteaseApi.getSongs(ids);
-  return invoke("get_songs", { adapter, ids });
-}
-
 export function getSongUrl(adapter: string, id: string): Promise<string> {
   if (isFrontend(adapter)) return neteaseApi.getSongUrl(id);
   return invoke("get_song_url", { adapter, id });
@@ -65,16 +52,6 @@ export function toggleLike(adapter: string, id: string, like: boolean): Promise<
 }
 
 // -- Album / Artist / Playlist --
-
-export function getAlbum(adapter: string, id: string): Promise<Album> {
-  if (isFrontend(adapter)) return neteaseApi.getAlbum(id);
-  return invoke("get_album", { adapter, id });
-}
-
-export function getArtist(adapter: string, id: string): Promise<Artist> {
-  if (isFrontend(adapter)) return neteaseApi.getArtist(id);
-  return invoke("get_artist", { adapter, id });
-}
 
 export function getPlaylist(adapter: string, id: string): Promise<Playlist> {
   if (isFrontend(adapter)) return neteaseApi.getPlaylist(id);
@@ -173,11 +150,6 @@ export function getRecommendedPlaylists(
 ): Promise<Playlist[]> {
   if (isFrontend(adapter)) return neteaseApi.getRecommendedPlaylists(count);
   return invoke("get_recommended_playlists", { adapter, count });
-}
-
-export function getDailyRecommended(adapter: string): Promise<Song[]> {
-  if (isFrontend(adapter)) return neteaseApi.getDailyRecommended();
-  return invoke("get_daily_recommended", { adapter });
 }
 
 // -- Discover --

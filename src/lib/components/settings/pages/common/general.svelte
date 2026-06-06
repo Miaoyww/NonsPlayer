@@ -73,6 +73,33 @@
           </Button>
         </div>
       </SettingCard>
+
+      <!-- 字体 -->
+      <SettingCard
+        title="全局字体"
+        description="应用于整个应用的字体。输入 CSS font-family 值（如 &quot;HarmonyOS SansSC&quot; 或 &quot;MiSans, Noto Sans SC&quot;）。"
+      >
+        <div class="flex items-center gap-2 min-w-0 max-w-[320px]">
+          <input
+            type="text"
+            class="h-9 flex-1 min-w-0 rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+            placeholder={$globalSettings.fontFamily === "default" ? "Figtree Variable" : ""}
+            value={$globalSettings.fontFamily === "default" ? "" : $globalSettings.fontFamily}
+            oninput={(e) => {
+              const val = (e.target as HTMLInputElement).value.trim();
+              globalSettings.patch({ fontFamily: val || "default" });
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={$globalSettings.fontFamily === "default"}
+            onclick={() => globalSettings.patch({ fontFamily: "default" })}
+          >
+            恢复默认
+          </Button>
+        </div>
+      </SettingCard>
     </div>
   </div>
 

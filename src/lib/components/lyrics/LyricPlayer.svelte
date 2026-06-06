@@ -1,7 +1,9 @@
 <script lang="ts">
   import { LyricPlayer, type LyricLine, LyricLineMouseEvent } from "@applemusic-like-lyrics/core";
   import "@applemusic-like-lyrics/core/style.css";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
+  import { globalSettings } from "$lib/stores/global-settings-store";
+  import { getLyricLanguage, resolveLyricFont } from "$lib/utils/lyric-language";
 
   interface SpringParams {
     mass?: number;
@@ -54,6 +56,51 @@
   let lastFrameTime = 0;
   let timeRef = $state(0);
 
+  // ── Resolved font values ──────────────────────────────────────────
+  let resolvedLyricFont = $derived(
+    resolveLyricFont($globalSettings.lyricFontFamily, $globalSettings.fontFamily),
+  );
+  let resolvedEnFont = $derived(
+    resolveLyricFont($globalSettings.englishLyricFont, resolvedLyricFont || $globalSettings.fontFamily),
+  );
+  let resolvedJaFont = $derived(
+    resolveLyricFont($globalSettings.japaneseLyricFont, resolvedLyricFont || $globalSettings.fontFamily),
+  );
+  let resolvedKoFont = $derived(
+    resolveLyricFont($globalSettings.koreanLyricFont, resolvedLyricFont || $globalSettings.fontFamily),
+  );
+
+  // ── Container style for CSS variables ─────────────────────────────
+  let containerStyle = $derived({
+    "--lyric-font-family": resolvedLyricFont || "",
+    "--en-font-family": resolvedEnFont || "",
+    "--ja-font-family": resolvedJaFont || "",
+    "--ko-font-family": resolvedKoFont || "",
+  });
+
+  // ── Process lyric language & set lang attributes ──────────────────
+  function processLyricLanguage() {
+    if (!player) return;
+    const lyricGroups = (player as any).currentLyricGroups;
+    if (!Array.isArray(lyricGroups) || lyricGroups.length === 0) return;
+
+    for (const group of lyricGroups) {
+      const lyricLine = group.mainLine?.getLine?.();
+      const lyricLineElement = group.mainLine?.getElement?.();
+      if (!lyricLine || !lyricLineElement) continue;
+
+      // Build content from word-level lyrics
+      const content = lyricLine.words.map((w: { word: string }) => w.word).join("");
+      if (!content) continue;
+
+      const lang = getLyricLanguage(content);
+      const mainLineEl = lyricLineElement.firstChild as HTMLElement | null;
+      if (mainLineEl instanceof HTMLElement) {
+        mainLineEl.setAttribute("lang", lang);
+      }
+    }
+  }
+
   onMount(() => {
     player = new LyricPlayer();
 
@@ -92,6 +139,9 @@
         isDuet: l.isDuet,
       }));
       player.setLyricLines(plain);
+
+      // Process language after lyrics are rendered
+      tick().then(() => processLyricLanguage());
     }
   });
 
@@ -149,4 +199,28 @@
   }
 </script>
 
-<div bind:this={containerEl} class="w-full h-full" style="contain: paint layout;"></div>
+<div
+  bind:this={containerEl}
+  class="lyric-player-container w-full h-full"
+  style="contain: paint layout; font-family: var(--lyric-font-family); {Object.entries(containerStyle).map(([k, v]) => v ? `${k}: ${v}` : '').filter(Boolean).join('; ')}"
+></div>
+
+<style>
+  /* Remove mask-image on AMLL emphasized wrappers — the gradient mask
+     clips glyph descenders (g, j, p, q, y). */
+  :global(.lyric-player-container) :global([class*="emphasizeWrapper"]) {
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+
+  /* Per-language font overrides (mirrors SPlayer AMLyric.vue) */
+  :global(.lyric-player-container) :global([lang="ja"]) {
+    font-family: var(--ja-font-family);
+  }
+  :global(.lyric-player-container) :global([lang="en"]) {
+    font-family: var(--en-font-family);
+  }
+  :global(.lyric-player-container) :global([lang="ko"]) {
+    font-family: var(--ko-font-family);
+  }
+</style>

@@ -17,6 +17,10 @@
   let lyricHidePassedLines = $state(false);
   let lyricAlignAnchor = $state<"top" | "bottom" | "center">("center");
   let lyricAlignPosition = $state(0.35);
+  let lyricFontFamily = $state("follow");
+  let englishLyricFont = $state("follow");
+  let japaneseLyricFont = $state("follow");
+  let koreanLyricFont = $state("follow");
   let playerBackgroundFps = $state(30);
   let playerBackgroundFlowSpeed = $state(4);
   let playerBackgroundRenderScale = $state(0.5);
@@ -28,6 +32,7 @@
     showLyricTran; showLyricRoma;
     lyricWordFadeWidth; lyricEnableBlur; lyricEnableSpring; lyricEnableScale;
     lyricHidePassedLines; lyricAlignAnchor; lyricAlignPosition;
+    lyricFontFamily; englishLyricFont; japaneseLyricFont; koreanLyricFont;
     playerBackgroundFps; playerBackgroundFlowSpeed; playerBackgroundRenderScale;
     playerBackgroundStaticMode;
     if (initialized) {
@@ -35,6 +40,7 @@
         showLyricTran, showLyricRoma,
         lyricWordFadeWidth, lyricEnableBlur, lyricEnableSpring, lyricEnableScale,
         lyricHidePassedLines, lyricAlignAnchor, lyricAlignPosition,
+        lyricFontFamily, englishLyricFont, japaneseLyricFont, koreanLyricFont,
         playerBackgroundFps, playerBackgroundFlowSpeed, playerBackgroundRenderScale,
         playerBackgroundStaticMode,
       });
@@ -52,6 +58,10 @@
       lyricHidePassedLines = s.lyricHidePassedLines;
       lyricAlignAnchor = s.lyricAlignAnchor;
       lyricAlignPosition = s.lyricAlignPosition;
+      lyricFontFamily = s.lyricFontFamily ?? "follow";
+      englishLyricFont = s.englishLyricFont ?? "follow";
+      japaneseLyricFont = s.japaneseLyricFont ?? "follow";
+      koreanLyricFont = s.koreanLyricFont ?? "follow";
       playerBackgroundFps = s.playerBackgroundFps;
       playerBackgroundFlowSpeed = s.playerBackgroundFlowSpeed;
       playerBackgroundRenderScale = s.playerBackgroundRenderScale;
@@ -81,6 +91,111 @@
 
     <SettingCard title="显示罗马音" description="在歌词下方显示罗马音行（如果可用）">
       <Switch bind:checked={showLyricRoma} />
+    </SettingCard>
+
+    <!-- ── 歌词字体 ── -->
+    <SettingCard
+      title="歌词区域字体"
+      description="主歌词区域的基础字体。跟随全局则使用全局字体设置。"
+    >
+      <div class="flex items-center gap-2 min-w-0 max-w-[320px]">
+        <input
+          type="text"
+          class="h-9 flex-1 min-w-0 rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+          placeholder="跟随全局"
+          value={lyricFontFamily === "follow" ? "" : lyricFontFamily}
+          oninput={(e) => {
+            const val = (e.target as HTMLInputElement).value.trim();
+            lyricFontFamily = val || "follow";
+          }}
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={lyricFontFamily === "follow"}
+          onclick={() => (lyricFontFamily = "follow")}
+        >
+          跟随全局
+        </Button>
+      </div>
+    </SettingCard>
+
+    <SettingCard
+      title="英文歌词字体"
+      description="歌词包含英文时使用的特定字体。跟随歌词则使用歌词区域字体。"
+    >
+      <div class="flex items-center gap-2 min-w-0 max-w-[320px]">
+        <input
+          type="text"
+          class="h-9 flex-1 min-w-0 rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+          placeholder="跟随歌词"
+          value={englishLyricFont === "follow" ? "" : englishLyricFont}
+          oninput={(e) => {
+            const val = (e.target as HTMLInputElement).value.trim();
+            englishLyricFont = val || "follow";
+          }}
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={englishLyricFont === "follow"}
+          onclick={() => (englishLyricFont = "follow")}
+        >
+          跟随歌词
+        </Button>
+      </div>
+    </SettingCard>
+
+    <SettingCard
+      title="日语歌词字体"
+      description="歌词包含日语（假名）时使用的特定字体。"
+    >
+      <div class="flex items-center gap-2 min-w-0 max-w-[320px]">
+        <input
+          type="text"
+          class="h-9 flex-1 min-w-0 rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+          placeholder="跟随歌词"
+          value={japaneseLyricFont === "follow" ? "" : japaneseLyricFont}
+          oninput={(e) => {
+            const val = (e.target as HTMLInputElement).value.trim();
+            japaneseLyricFont = val || "follow";
+          }}
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={japaneseLyricFont === "follow"}
+          onclick={() => (japaneseLyricFont = "follow")}
+        >
+          跟随歌词
+        </Button>
+      </div>
+    </SettingCard>
+
+    <SettingCard
+      title="韩语歌词字体"
+      description="歌词包含韩语（谚文）时使用的特定字体。"
+    >
+      <div class="flex items-center gap-2 min-w-0 max-w-[320px]">
+        <input
+          type="text"
+          class="h-9 flex-1 min-w-0 rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+          placeholder="跟随歌词"
+          value={koreanLyricFont === "follow" ? "" : koreanLyricFont}
+          oninput={(e) => {
+            const val = (e.target as HTMLInputElement).value.trim();
+            koreanLyricFont = val || "follow";
+          }}
+        />
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={koreanLyricFont === "follow"}
+          onclick={() => (koreanLyricFont = "follow")}
+        >
+          跟随歌词
+        </Button>
+      </div>
     </SettingCard>
 
     <!-- ── 歌词效果 ── -->
