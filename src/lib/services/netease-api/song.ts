@@ -47,7 +47,8 @@ export async function getSongUrl(
         br: String(br),
       },
     );
-    return data?.data?.[0]?.url ?? "";
+    console.log("Netease song URL data:", data);
+    return data?.data?.url ?? "";
   } catch {
     return "";
   }
