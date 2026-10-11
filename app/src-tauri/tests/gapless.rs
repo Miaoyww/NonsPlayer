@@ -1,6 +1,12 @@
 //! Checks decoded PCM, including the seam, rather than listening for a gap.
 use gstreamer::{self as gst, prelude::*};
-use std::sync::{Arc, Mutex};
+use std::sync::{atomic::AtomicBool, Arc, Mutex};
+#[path = "../src/model/mod.rs"]
+#[allow(dead_code)]
+mod model;
+#[path = "../src/playback/transitions.rs"]
+#[allow(dead_code)]
+mod transitions;
 
 fn wav(samples: &[i16]) -> Vec<u8> {
     let bytes = (samples.len() * 2) as u32;
@@ -25,6 +31,11 @@ fn wav(samples: &[i16]) -> Vec<u8> {
 
 #[test]
 fn prepared_wav_transition_preserves_every_pcm_sample() {
+    capture_transition(true);
+    capture_transition(false);
+}
+
+fn capture_transition(enabled: bool) {
     gst::init().unwrap();
     let root = std::env::temp_dir().join(format!("nons-gapless-{}", std::process::id()));
     std::fs::create_dir_all(&root).unwrap();
@@ -51,10 +62,16 @@ fn prepared_wav_transition_preserves_every_pcm_sample() {
         None
     });
     playbin.set_property("audio-sink", &sink);
+    let fade = transitions::FadeFilter::new().unwrap();
+    fade.attach(&playbin);
+    let gapless = Arc::new(AtomicBool::new(enabled));
     let next = Arc::new(Mutex::new(Some(
         url::Url::from_file_path(&files[1]).unwrap().to_string(),
     )));
     playbin.connect("about-to-finish", false, move |values| {
+        if !transitions::gapless_allowed(&gapless) {
+            return None;
+        }
         if let Some(uri) = next.lock().unwrap().take() {
             values[0]
                 .get::<gst::Element>()
@@ -86,7 +103,15 @@ fn prepared_wav_transition_preserves_every_pcm_sample() {
     std::fs::remove_file(&files[1]).unwrap();
     std::fs::remove_dir(&root).unwrap();
     result.unwrap();
-    let expected: Vec<u8> = samples.iter().flat_map(|s| s.to_le_bytes()).collect();
+    let expected_samples = if enabled {
+        &samples[..]
+    } else {
+        &samples[..split]
+    };
+    let expected: Vec<u8> = expected_samples
+        .iter()
+        .flat_map(|s| s.to_le_bytes())
+        .collect();
     assert_eq!(
         *actual.lock().unwrap(),
         expected,

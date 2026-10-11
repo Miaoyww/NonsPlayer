@@ -55,6 +55,13 @@ def bootstrap():
                         raise RuntimeError("Unsafe license path")
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(source.read(entry))
+    generate_import_libraries()
+    (DEST / "VERSION").write_text(VERSION, encoding="utf-8")
+    size = sum(p.stat().st_size for p in DEST.rglob("*") if p.is_file())
+    print(f"Development runtime ready: {DEST} ({size / 1024 / 1024:.1f} MiB). This is not the release bundle.", flush=True)
+
+
+def generate_import_libraries():
     # Rust sys crates have checked-in bindings. MSVC import libraries can be
     # generated with Microsoft's tools from the upstream runtime's DLL exports.
     vswhere = Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Microsoft Visual Studio/Installer/vswhere.exe"
@@ -62,7 +69,7 @@ def bootstrap():
     tools = sorted((Path(installation) / "VC/Tools/MSVC").glob("*/bin/Hostx64/x64"))[-1]
     libdir = DEST / "lib"
     libdir.mkdir(exist_ok=True)
-    for name in ("glib-2.0-0", "gobject-2.0-0", "gio-2.0-0", "gstreamer-1.0-0", "gstbase-1.0-0"):
+    for name in ("glib-2.0-0", "gobject-2.0-0", "gio-2.0-0", "gstreamer-1.0-0", "gstbase-1.0-0", "gstcontroller-1.0-0"):
         dll = DEST / "bin" / f"{name}.dll"
         exports = subprocess.check_output([str(tools / "dumpbin.exe"), "/exports", str(dll)], text=True)
         names = re.findall(r"^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]+\s+(\S+)", exports, re.MULTILINE)
@@ -71,9 +78,6 @@ def bootstrap():
         definition = libdir / f"{name}.def"
         definition.write_text(f"LIBRARY {name}.dll\nEXPORTS\n" + "\n".join(names) + "\n", encoding="utf-8")
         subprocess.run([str(tools / "lib.exe"), "/nologo", "/machine:x64", f"/def:{definition}", f"/out:{libdir / (name + '.lib')}"], check=True, stdout=subprocess.DEVNULL)
-    (DEST / "VERSION").write_text(VERSION, encoding="utf-8")
-    size = sum(p.stat().st_size for p in DEST.rglob("*") if p.is_file())
-    print(f"Development runtime ready: {DEST} ({size / 1024 / 1024:.1f} MiB). This is not the release bundle.", flush=True)
 
 
 if __name__ == "__main__":

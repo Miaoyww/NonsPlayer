@@ -30,6 +30,7 @@ export interface Track {
 }
 export type PlaybackStatus = 'stopped' | 'loading' | 'playing' | 'paused' | 'buffering' | 'error'
 export interface PlayerSnapshot {
+  playbackOptions: { fades: boolean; gapless: boolean }
   privateFmSession: number | null
   privateFmError?: string
   shuffle: boolean
@@ -67,6 +68,7 @@ export interface OutputDevice {
 }
 
 let snapshot: PlayerSnapshot = {
+  playbackOptions: { fades: false, gapless: true },
   privateFmSession: null,
   shuffle: false,
   shuffleOrder: [],

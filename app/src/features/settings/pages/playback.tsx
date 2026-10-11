@@ -19,6 +19,15 @@ export function PlaybackPage() {
   const [devices, setDevices] = useState<OutputDevice[]>([])
   const [error, setError] = useState<string>()
   const [switching, setSwitching] = useState(false)
+  const [savingTransitions, setSavingTransitions] = useState(false)
+  function updateTransitions(patch: Partial<typeof state.playbackOptions>) {
+    if (savingTransitions) return
+    setSavingTransitions(true)
+    setError(undefined)
+    void nativeCall('set_playback_options', { options: { ...state.playbackOptions, ...patch } })
+      .catch((cause) => setError(errorText(cause)))
+      .finally(() => setSavingTransitions(false))
+  }
   useEffect(() => {
     if (!isTauri()) return
     let disposed = false
@@ -41,7 +50,7 @@ export function PlaybackPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h2 className="text-xl font-bold">播放设置</h2>
-        <p className="mt-2 text-sm text-muted-foreground">选择声音的去向与音质偏好。</p>
+        <p className="mt-2 text-sm text-muted-foreground">设置输出设备、音质与播放过渡。</p>
       </div>
       <SettingsCard title="输出设备" description="选择播放设备，或跟随系统默认输出。">
         <Select
@@ -90,6 +99,37 @@ export function PlaybackPage() {
           不可用时允许降低音质
         </label>
       </SettingsCard>
+      <SettingsCard
+        title="渐入渐出"
+        description="播放、继续时渐入，暂停和手动切歌时渐出，过渡时长 300 毫秒。"
+      >
+        <label className="flex items-center gap-2 text-sm">
+          <Switch
+            checked={state.playbackOptions.fades}
+            disabled={!isTauri() || savingTransitions}
+            onCheckedChange={(checked) => updateTransitions({ fades: checked })}
+          />
+          启用渐入渐出
+        </label>
+      </SettingsCard>
+      <SettingsCard
+        title="无缝播放（Gapless）"
+        description="预加载下一首并连续衔接。关闭后在歌曲结束时切换；开启时，自动切歌保留原始歌曲边界，不应用渐入渐出。"
+      >
+        <label className="flex items-center gap-2 text-sm">
+          <Switch
+            checked={state.playbackOptions.gapless}
+            disabled={!isTauri() || savingTransitions}
+            onCheckedChange={(checked) => updateTransitions({ gapless: checked })}
+          />
+          启用无缝播放
+        </label>
+      </SettingsCard>
+      {savingTransitions && (
+        <p role="status" className="text-sm text-muted-foreground">
+          正在保存播放设置…
+        </p>
+      )}
       {(error || optionsError) && (
         <p role="alert" className="text-sm text-destructive">
           {error ?? optionsError}

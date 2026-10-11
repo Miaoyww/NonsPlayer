@@ -15,7 +15,7 @@ PLUGINS = (
     "apetag", "isomp4", "matroska", "ogg", "flac", "mpg123", "opus", "vorbis",
     "wavparse", "wavpack", "aiff", "libav", "audiotestsrc",
 )
-CORE = ("glib-2.0-0.dll", "gobject-2.0-0.dll", "gio-2.0-0.dll", "gstreamer-1.0-0.dll", "gstbase-1.0-0.dll")
+CORE = ("glib-2.0-0.dll", "gobject-2.0-0.dll", "gio-2.0-0.dll", "gstreamer-1.0-0.dll", "gstbase-1.0-0.dll", "gstcontroller-1.0-0.dll")
 
 def dumpbin_tool():
     vswhere = Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Microsoft Visual Studio/Installer/vswhere.exe"

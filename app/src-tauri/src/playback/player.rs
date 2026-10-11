@@ -3,7 +3,8 @@ use crate::model::RepeatMode;
 use crate::{
     media::MediaControls,
     model::{
-        AppResult, OutputDevice, PlaybackStatus, PlayerSnapshot, Progress, ResolvedTrack, Track,
+        AppResult, OutputDevice, PlaybackOptions, PlaybackStatus, PlayerSnapshot, Progress,
+        ResolvedTrack, Track,
     },
     music::{manager::ResourceTicket, service::MusicService},
     storage::Store,
@@ -12,7 +13,7 @@ use gstreamer::{self as gst, prelude::*};
 use sha2::{Digest, Sha256};
 use std::{
     sync::{
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc::{self, Receiver, SyncSender},
         Arc, Mutex, RwLock,
     },
@@ -42,6 +43,7 @@ pub enum Command {
     Seek(u64),
     Volume(f64),
     Device(Option<String>),
+    Options(PlaybackOptions, mpsc::Sender<AppResult<()>>),
     Resolved {
         generation: u64,
         index: usize,
@@ -83,6 +85,13 @@ fn restore_player(mut state: PlayerSnapshot) -> PlayerSnapshot {
     state
 }
 
+fn stored_options(store: &Store, fallback: PlaybackOptions) -> AppResult<PlaybackOptions> {
+    store
+        .setting("playbackOptions")?
+        .map(|value| serde_json::from_str(&value).map_err(|e| e.to_string()))
+        .unwrap_or(Ok(fallback))
+}
+
 pub struct Player {
     sender: SyncSender<Command>,
     snapshot: Arc<RwLock<PlayerSnapshot>>,
@@ -103,11 +112,12 @@ impl Player {
         music: Arc<MusicService>,
         hwnd: isize,
     ) -> AppResult<Self> {
-        let restored = store
+        let mut restored = store
             .setting("player")?
             .and_then(|s| serde_json::from_str::<PlayerSnapshot>(&s).ok())
             .map(restore_player)
             .unwrap_or_default();
+        restored.playback_options = stored_options(&store, restored.playback_options)?;
         let snapshot = Arc::new(RwLock::new(restored));
         let shared = Arc::clone(&snapshot);
         let (sender, receiver) = mpsc::sync_channel(64);
@@ -178,6 +188,14 @@ impl Player {
             .map_err(|_| "查询音频设备超时".to_string())?
     }
 
+    pub fn set_options(&self, options: PlaybackOptions) -> AppResult<()> {
+        let (sender, receiver) = mpsc::channel();
+        self.send(Command::Options(options, sender))?;
+        receiver
+            .recv_timeout(Duration::from_secs(3))
+            .map_err(|_| "保存播放设置超时".to_string())?
+    }
+
     pub fn shutdown(&self) {
         let _ = self.sender.send(Command::Shutdown);
         if let Ok(mut thread) = self.thread.lock() {
@@ -212,6 +230,9 @@ struct Actor {
     last_save: Instant,
     pending_seek: Option<u64>,
     awaiting_first_stream: bool,
+    gapless_enabled: Arc<AtomicBool>,
+    fade: super::transitions::FadeFilter,
+    deferred: Option<(Command, u64, Instant)>,
 }
 
 impl Actor {
@@ -278,10 +299,18 @@ impl Actor {
         let pending = prepared.clone();
         let advancing = armed.clone();
         let current_generation = generation.clone();
+        let gapless_enabled = Arc::new(AtomicBool::new(state.playback_options.gapless));
+        let gapless = gapless_enabled.clone();
+        let fade = super::transitions::FadeFilter::new()?;
+        fade.attach(&playbin);
+        let transition_fade = fade.clone();
         playbin.connect("about-to-finish", false, move |values| {
             // Only consume a prepared URI here. This runs on a streaming thread:
             // no HTTP, database work, events, or channel waits are allowed.
             if let Ok(mut slot) = pending.lock() {
+                if !super::transitions::gapless_allowed(&gapless) {
+                    return None;
+                }
                 if let Some(next) = slot.take().filter(|p| {
                     p.generation == current_generation.load(Ordering::Acquire)
                         && p.resource
@@ -292,6 +321,13 @@ impl Actor {
                         .get::<gst::Element>()
                         .expect("GStreamer signal instance");
                     if let Ok(mut slot) = advancing.lock() {
+                        // Automatic gapless boundaries remain at unity gain.
+                        transition_fade.prepare(
+                            false,
+                            false,
+                            false,
+                            next.resolved.track.duration_ms,
+                        );
                         element.set_property("uri", &next.resolved.uri);
                         *slot = Some(next);
                     }
@@ -324,6 +360,9 @@ impl Actor {
             last_save: Instant::now(),
             pending_seek: None,
             awaiting_first_stream: true,
+            gapless_enabled,
+            fade,
+            deferred: None,
         })
     }
 
@@ -347,6 +386,7 @@ impl Actor {
                 };
                 self.message(&message);
             }
+            self.finish_deferred();
             for _ in 0..8 {
                 let Some(message) = self.monitor.bus().pop() else {
                     break;
@@ -384,6 +424,97 @@ impl Actor {
     }
 
     fn command(&mut self, command: Command) -> AppResult<()> {
+        if matches!(
+            &command,
+            Command::PlayNext(_)
+                | Command::Remove(_, _)
+                | Command::Repeat
+                | Command::Shuffle
+                | Command::Device(_)
+                | Command::Seek(_)
+        ) && self.deferred.take().is_some()
+        {
+            let position = self
+                .playbin
+                .query_position::<gst::ClockTime>()
+                .map_or(self.state.position_ms, |t| t.mseconds());
+            self.fade.resume(position);
+        }
+        let should_fade = matches!(
+            &command,
+            Command::Pause
+                | Command::Stop
+                | Command::Clear
+                | Command::Jump(_)
+                | Command::Next
+                | Command::Previous
+                | Command::Queue(_, _)
+                | Command::FmQueue(_)
+        );
+        if should_fade {
+            match &command {
+                Command::Queue(queue, index)
+                    if queue.is_empty() || queue.len() > 1000 || *index >= queue.len() =>
+                {
+                    return Err("播放队列无效，最多支持 1000 首歌曲".into())
+                }
+                Command::Jump(index) if *index >= self.state.queue.len() => {
+                    return Err("歌曲不在播放队列中".into())
+                }
+                Command::Next if self.state.following(true).is_none() => return Ok(()),
+                Command::Previous if self.state.previous().is_none() => return Ok(()),
+                _ => {}
+            }
+            self.deferred = None;
+            if self.state.playback_options.fades
+                && self.playbin.current_state() == gst::State::Playing
+            {
+                if let Some(next) = self.clear_next()? {
+                    self.load(next.index, self.desired_playing)?;
+                    return self.command_now(command);
+                }
+                let position = self
+                    .playbin
+                    .query_position::<gst::ClockTime>()
+                    .map_or(self.state.position_ms, |t| t.mseconds());
+                let end = self.fade.fade_out(position);
+                self.deferred = Some((command, end, Instant::now()));
+                return Ok(());
+            }
+        }
+        self.command_now(command)
+    }
+
+    fn finish_deferred(&mut self) {
+        let ready = self.deferred.as_ref().is_some_and(|(_, end, started)| {
+            self.playbin
+                .query_position::<gst::ClockTime>()
+                .is_some_and(|t| t.mseconds() >= *end)
+                || started.elapsed() >= Duration::from_millis(super::transitions::FADE_MS + 100)
+        });
+        if ready {
+            let (command, _, _) = self.deferred.take().unwrap();
+            if let Err(error) = self.command_now(command) {
+                self.fade.reset();
+                self.state.error = Some(error);
+                self.publish();
+            }
+        }
+    }
+
+    fn clear_next(&mut self) -> AppResult<Option<Prepared>> {
+        let mut prepared = self.prepared.lock().map_err(|_| "预加载状态不可用")?;
+        *prepared = None;
+        let armed = self.armed.lock().map_err(|_| "预加载状态不可用")?.take();
+        if let Some(job) = self.next_job.take() {
+            job.abort();
+        }
+        self.next_attempt = None;
+        self.next_attempts = 0;
+        Ok(armed)
+    }
+
+    fn command_now(&mut self, command: Command) -> AppResult<()> {
         match command {
             Command::Queue(queue, index) => {
                 if queue.is_empty() || queue.len() > 1000 || index >= queue.len() {
@@ -398,7 +529,7 @@ impl Actor {
                 self.load(index, true)?;
             }
             Command::FmQueue(queue) => {
-                self.command(Command::Queue(queue, 0))?;
+                self.command_now(Command::Queue(queue, 0))?;
                 self.state.shuffle = false;
                 self.state.shuffle_order.clear();
                 self.state.repeat_mode = crate::model::RepeatMode::Off;
@@ -550,7 +681,7 @@ impl Actor {
             }
             Command::Previous => {
                 if let Some(command) = previous_command(&self.state) {
-                    self.command(command)?;
+                    self.command_now(command)?;
                 }
             }
             Command::Pause => {
@@ -562,6 +693,13 @@ impl Actor {
                 self.publish();
             }
             Command::Resume => {
+                self.deferred = None;
+                self.fade.prepare(
+                    self.state.playback_options.fades,
+                    true,
+                    !self.state.playback_options.gapless,
+                    self.state.duration_ms,
+                );
                 if self.state.current().is_some() {
                     if matches!(
                         self.state.status,
@@ -577,6 +715,11 @@ impl Actor {
                         self.load_at(self.state.index.unwrap_or(0), true, position)?;
                     } else {
                         self.desired_playing = true;
+                        let position = self
+                            .playbin
+                            .query_position::<gst::ClockTime>()
+                            .map_or(self.state.position_ms, |t| t.mseconds());
+                        self.fade.resume(position);
                         if self.pending_seek.is_none() {
                             self.playbin
                                 .set_state(gst::State::Playing)
@@ -618,6 +761,11 @@ impl Actor {
                 self.publish();
             }
             Command::Device(id) => self.select_device(id)?,
+            Command::Options(options, reply) => {
+                let result = self.apply_options(options);
+                let _ = reply.send(result.clone());
+                result?;
+            }
             Command::Resolved {
                 generation,
                 index,
@@ -629,7 +777,9 @@ impl Actor {
                     return Ok(());
                 }
                 if next {
-                    if self.state.following(false) != Some(index)
+                    if !self.state.playback_options.gapless
+                        || self.deferred.is_some()
+                        || self.state.following(false) != Some(index)
                         || self
                             .state
                             .queue
@@ -699,6 +849,58 @@ impl Actor {
         Ok(())
     }
 
+    fn apply_options(&mut self, options: PlaybackOptions) -> AppResult<()> {
+        // Persist before changing live behavior; a failed write preserves both switches.
+        self.store.set_setting(
+            "playbackOptions",
+            &serde_json::to_string(&options).map_err(|e| e.to_string())?,
+        )?;
+        self.state.playback_options = options;
+        if !options.fades {
+            if let Some((command, _, _)) = self.deferred.take() {
+                self.command_now(command)?;
+            }
+        }
+        let transitioning = {
+            let mut prepared = self.prepared.lock().map_err(|_| "预加载状态不可用")?;
+            self.gapless_enabled
+                .store(options.gapless, Ordering::Release);
+            if !options.gapless {
+                *prepared = None;
+                self.armed.lock().map_err(|_| "预加载状态不可用")?.take()
+            } else {
+                None
+            }
+        };
+        if !options.gapless {
+            if let Some(job) = self.next_job.take() {
+                job.abort();
+            }
+            self.next_attempt = None;
+            self.next_attempts = 0;
+        }
+        if let Some(next) = transitioning {
+            self.load(next.index, self.desired_playing)?;
+        }
+        self.fade.prepare(
+            options.fades,
+            true,
+            !options.gapless,
+            self.state.duration_ms,
+        );
+        if !options.fades {
+            self.fade.reset();
+        } else if self.deferred.is_none() {
+            let position = self
+                .playbin
+                .query_position::<gst::ClockTime>()
+                .map_or(self.state.position_ms, |t| t.mseconds());
+            self.fade.resume(position);
+        }
+        self.publish();
+        Ok(())
+    }
+
     fn load(&mut self, index: usize, playing: bool) -> AppResult<()> {
         self.load_at(index, playing, 0)
     }
@@ -711,6 +913,12 @@ impl Actor {
             .cloned()
             .ok_or("歌曲不在播放队列中")?;
         self.cancel_jobs();
+        self.fade.prepare(
+            self.state.playback_options.fades,
+            true,
+            !self.state.playback_options.gapless,
+            track.duration_ms,
+        );
         self.playbin
             .set_state(gst::State::Null)
             .map_err(|e| e.to_string())?;
@@ -774,6 +982,7 @@ impl Actor {
     }
 
     fn cancel_jobs(&mut self) {
+        self.deferred = None;
         self.generation.fetch_add(1, Ordering::AcqRel);
         if let Some(job) = self.current_job.take() {
             job.abort();
@@ -792,6 +1001,13 @@ impl Actor {
     }
 
     fn seek(&mut self, ms: u64) -> AppResult<()> {
+        self.deferred = None;
+        self.fade.prepare(
+            self.state.playback_options.fades,
+            true,
+            !self.state.playback_options.gapless,
+            self.state.duration_ms,
+        );
         if self.state.current().is_none() || self.state.duration_ms == 0 {
             return Err("当前歌曲尚不可定位".into());
         }
@@ -880,8 +1096,20 @@ impl Actor {
                     .playbin
                     .query_duration::<gst::ClockTime>()
                     .map_or(self.state.duration_ms, |t| t.mseconds());
+                if self.deferred.is_none() {
+                    self.fade
+                        .update_duration(self.state.position_ms, self.state.duration_ms);
+                }
             }
             MessageView::Eos(_) => {
+                if let Some((command, _, _)) = self.deferred.take() {
+                    if let Err(error) = self.command_now(command) {
+                        self.state.error = Some(error);
+                        self.state.status = PlaybackStatus::Error;
+                        self.publish();
+                    }
+                    return;
+                }
                 if let Some(index) = self.state.following(false) {
                     if let Err(error) = self.load(index, true) {
                         self.state.error = Some(error);
@@ -938,6 +1166,10 @@ impl Actor {
                 .playbin
                 .query_duration::<gst::ClockTime>()
                 .map_or(self.state.duration_ms, |t| t.mseconds());
+            if self.deferred.is_none() {
+                self.fade
+                    .update_duration(self.state.position_ms, self.state.duration_ms);
+            }
             if let Ok(mut shared) = self.shared.write() {
                 shared.position_ms = self.state.position_ms;
                 shared.duration_ms = self.state.duration_ms;
@@ -952,7 +1184,9 @@ impl Actor {
                     status: self.state.status,
                 },
             );
-            if self.state.status == PlaybackStatus::Playing
+            if self.state.playback_options.gapless
+                && self.deferred.is_none()
+                && self.state.status == PlaybackStatus::Playing
                 && self
                     .state
                     .duration_ms
@@ -1054,6 +1288,37 @@ impl Actor {
 mod tests {
     use super::*;
     use crate::model::TrackSource;
+
+    #[test]
+    fn playback_options_restore_defaults_and_persist_both_switches_independently() {
+        let directory = crate::test_support::TestDir::new();
+        let path = directory.0.join("options.sqlite3");
+        let store = Store::open(&path).unwrap();
+        assert_eq!(
+            stored_options(&store, PlaybackOptions::default()).unwrap(),
+            PlaybackOptions {
+                fades: false,
+                gapless: true
+            }
+        );
+        assert_eq!(
+            serde_json::from_str::<PlaybackOptions>("{}").unwrap(),
+            PlaybackOptions::default()
+        );
+        for fades in [false, true] {
+            for gapless in [false, true] {
+                let options = PlaybackOptions { fades, gapless };
+                store
+                    .set_setting("playbackOptions", &serde_json::to_string(&options).unwrap())
+                    .unwrap();
+                let reopened = Store::open(&path).unwrap();
+                assert_eq!(
+                    stored_options(&reopened, PlaybackOptions::default()).unwrap(),
+                    options
+                );
+            }
+        }
+    }
 
     fn snapshot(index: usize, position_ms: u64, mode: RepeatMode) -> PlayerSnapshot {
         PlayerSnapshot {

@@ -16,9 +16,27 @@ pub enum PlaybackStatus {
     Error,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PlaybackOptions {
+    pub fades: bool,
+    pub gapless: bool,
+}
+
+impl Default for PlaybackOptions {
+    fn default() -> Self {
+        Self {
+            fades: false,
+            gapless: true,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerSnapshot {
+    #[serde(default)]
+    pub playback_options: PlaybackOptions,
     #[serde(default)]
     pub shuffle: bool,
     #[serde(default)]
@@ -43,6 +61,7 @@ pub struct PlayerSnapshot {
 impl Default for PlayerSnapshot {
     fn default() -> Self {
         Self {
+            playback_options: PlaybackOptions::default(),
             shuffle: false,
             shuffle_order: vec![],
             repeat_mode: RepeatMode::Off,

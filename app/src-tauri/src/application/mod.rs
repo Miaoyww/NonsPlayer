@@ -682,6 +682,16 @@ fn player_device(device_id: Option<String>, backend: State<'_, Backend>) -> AppR
     backend.player.send(Command::Device(device_id))
 }
 #[tauri::command]
+async fn set_playback_options(
+    options: model::PlaybackOptions,
+    backend: State<'_, Backend>,
+) -> AppResult<()> {
+    let player = backend.player.clone();
+    tauri::async_runtime::spawn_blocking(move || player.set_options(options))
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
 async fn output_devices(backend: State<'_, Backend>) -> AppResult<Vec<OutputDevice>> {
     let player = backend.player.clone();
     tauri::async_runtime::spawn_blocking(move || player.devices())
@@ -1046,6 +1056,7 @@ pub fn run() {
             player_seek,
             player_volume,
             player_device,
+            set_playback_options,
             output_devices,
             track_lyrics,
             lyric_sources,
