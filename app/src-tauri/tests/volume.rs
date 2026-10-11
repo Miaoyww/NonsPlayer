@@ -7,6 +7,9 @@ mod audio;
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;
+#[path = "../src/playback/transitions.rs"]
+#[allow(dead_code)]
+mod transitions;
 
 #[test]
 #[cfg(windows)]
@@ -20,6 +23,8 @@ fn windows_output_reload_keeps_selected_volume() {
         .downcast::<gst::Bin>()
         .unwrap();
     bin.set_property_from_str("flags", "audio+soft-volume+buffering");
+    let fade = transitions::FadeFilter::new().unwrap();
+    fade.attach(bin.upcast_ref()).unwrap();
     let uri = url::Url::from_file_path(&path).unwrap().to_string();
     let mut actual = Vec::new();
     for track in 0..2 {
@@ -47,36 +52,25 @@ fn windows_output_reload_keeps_selected_volume() {
 }
 
 #[test]
-fn track_reload_keeps_selected_volume() {
+fn track_and_output_reload_keep_selected_volume() {
     gst::init().unwrap();
     let path = wav_fixture("software", 10000);
 
     let playbin = gst::ElementFactory::make("playbin3").build().unwrap();
     playbin.set_property_from_str("flags", "audio+soft-volume+buffering");
-    let sink = gst::ElementFactory::make("fakesink")
-        .property("signal-handoffs", true)
-        .property("sync", false)
-        .build()
-        .unwrap();
     let peaks = Arc::new(Mutex::new(Vec::<i16>::new()));
-    let captured = peaks.clone();
-    sink.connect("handoff", false, move |values| {
-        let buffer = values[1].get::<gst::Buffer>().unwrap();
-        let data = buffer.map_readable().unwrap();
-        let peak = data
-            .as_slice()
-            .chunks_exact(2)
-            .map(|s| i16::from_le_bytes([s[0], s[1]]).abs())
-            .max()
-            .unwrap_or(0);
-        captured.lock().unwrap().push(peak);
-        None
-    });
+    let sink = recording_sink(peaks.clone());
     playbin.set_property("audio-sink", &sink);
+    let fade = transitions::FadeFilter::new().unwrap();
+    fade.attach(&playbin).unwrap();
     let uri = url::Url::from_file_path(&path).unwrap().to_string();
     let bus = playbin.bus().unwrap();
     let mut actual = Vec::new();
-    for _ in 0..2 {
+    for track in 0..3 {
+        if track == 2 {
+            fade.set_output(&playbin, recording_sink(peaks.clone()))
+                .unwrap();
+        }
         audio::start_stream(&playbin, &uri, 0.45, gst::State::Playing).unwrap();
         loop {
             let message = bus
@@ -101,6 +95,32 @@ fn track_reload_keeps_selected_volume() {
         (actual[1] - 4500).abs() <= 5,
         "next track must stay at 45%: {actual:?}"
     );
+    assert!(
+        (actual[2] - 4500).abs() <= 5,
+        "new output must stay at 45%: {actual:?}"
+    );
+}
+
+fn recording_sink(peaks: Arc<Mutex<Vec<i16>>>) -> gst::Element {
+    let sink = gst::ElementFactory::make("fakesink")
+        .property("signal-handoffs", true)
+        .property("sync", false)
+        .build()
+        .unwrap();
+    let captured = peaks;
+    sink.connect("handoff", false, move |values| {
+        let buffer = values[1].get::<gst::Buffer>().unwrap();
+        let data = buffer.map_readable().unwrap();
+        let peak = data
+            .as_slice()
+            .chunks_exact(2)
+            .map(|s| i16::from_le_bytes([s[0], s[1]]).abs())
+            .max()
+            .unwrap_or(0);
+        captured.lock().unwrap().push(peak);
+        None
+    });
+    sink
 }
 
 fn wav_fixture(name: &str, sample: i16) -> std::path::PathBuf {

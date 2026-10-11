@@ -302,7 +302,7 @@ impl Actor {
         let gapless_enabled = Arc::new(AtomicBool::new(state.playback_options.gapless));
         let gapless = gapless_enabled.clone();
         let fade = super::transitions::FadeFilter::new()?;
-        fade.attach(&playbin);
+        fade.attach(&playbin)?;
         let transition_fade = fade.clone();
         playbin.connect("about-to-finish", false, move |values| {
             // Only consume a prepared URI here. This runs on a streaming thread:
@@ -1254,7 +1254,7 @@ impl Actor {
         self.playbin
             .set_state(gst::State::Null)
             .map_err(|e| e.to_string())?;
-        self.playbin.set_property("audio-sink", sink);
+        self.fade.set_output(&self.playbin, sink)?;
         self.state.device_id = id;
         // Device changes restart the pipeline. The normal resolver and state
         // messages remain the sole source of truth; never promise gapless here.

@@ -32,16 +32,20 @@ pub struct FadeFilter {
 
 impl FadeFilter {
     pub fn new() -> AppResult<Self> {
-        let element = gst::ElementFactory::make("volume")
+        let element = gst::ElementFactory::make("audioamplify")
             .name("nons-fade")
             .build()
             .map_err(|e| e.to_string())?;
         let source = InterpolationControlSource::new();
         source.set_mode(InterpolationMode::Linear);
-        // Absolute binding avoids scaling unity gain to volume's 10x maximum.
+        // Absolute binding keeps the gain in 0..1 regardless of the property range.
+        // audioamplify does not implement StreamVolume, so playbin cannot mistake
+        // the fade gain for the user volume when scanning our output bin.
         element
             .add_control_binding(&DirectControlBinding::new_absolute(
-                &element, "volume", &source,
+                &element,
+                "amplification",
+                &source,
             ))
             .map_err(|e| e.to_string())?;
         let this = Self {
@@ -56,49 +60,116 @@ impl FadeFilter {
         this.element
             .static_pad("sink")
             .ok_or("渐变音量入口不可用")?
-            .add_probe(gst::PadProbeType::EVENT_DOWNSTREAM, move |_, info| {
-                if let Some(gst::PadProbeData::Event(event)) = &info.data {
-                    if let gst::EventView::Segment(segment) = event.view() {
-                        if let Some(segment) = segment.segment().downcast_ref::<gst::ClockTime>() {
-                            let Some(element) = element.upgrade() else {
-                                return gst::PadProbeReturn::Ok;
-                            };
-                            let filter = Self {
-                                element,
-                                source: source.clone(),
-                                plan: plan.clone(),
-                            };
-                            let position =
-                                segment.time().unwrap_or(gst::ClockTime::ZERO).mseconds();
-                            let plan = {
-                                let mut plans =
-                                    filter.plan.lock().unwrap_or_else(|e| e.into_inner());
-                                if plans.first_segment {
-                                    plans.first_segment = false;
-                                } else if let Some(duration) = plans.next_duration.take() {
-                                    plans.current.duration_ms = duration;
+            .add_probe(
+                gst::PadProbeType::EVENT_DOWNSTREAM | gst::PadProbeType::BUFFER,
+                move |pad, info| {
+                    if let Some(gst::PadProbeData::Buffer(buffer)) = &info.data {
+                        // audioamplify bypasses its transform at unity gain. Sync here
+                        // so it can leave passthrough for a newly scheduled fade and
+                        // the natural tail, even after a long stretch at full gain.
+                        let enabled = plan
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner())
+                            .current
+                            .enabled;
+                        if enabled {
+                            if let Some(time) = buffer.pts().and_then(|pts| {
+                                pad.sticky_event::<gst::event::Segment>(0)
+                                    .and_then(|event| {
+                                        event
+                                            .segment()
+                                            .downcast_ref::<gst::ClockTime>()
+                                            .and_then(|segment| segment.to_stream_time(pts))
+                                    })
+                            }) {
+                                if let Some(element) = element.upgrade() {
+                                    let _ = element.sync_values(time);
                                 }
-                                plans.current
-                            };
-                            filter.envelope(
-                                position,
-                                if plan.enabled && plan.fade_in {
-                                    0.0
-                                } else {
-                                    1.0
-                                },
-                                plan,
-                            );
+                            }
                         }
                     }
-                }
-                gst::PadProbeReturn::Ok
-            });
+                    if let Some(gst::PadProbeData::Event(event)) = &info.data {
+                        if let gst::EventView::Segment(segment) = event.view() {
+                            if let Some(segment) =
+                                segment.segment().downcast_ref::<gst::ClockTime>()
+                            {
+                                let Some(element) = element.upgrade() else {
+                                    return gst::PadProbeReturn::Ok;
+                                };
+                                let filter = Self {
+                                    element,
+                                    source: source.clone(),
+                                    plan: plan.clone(),
+                                };
+                                let position =
+                                    segment.time().unwrap_or(gst::ClockTime::ZERO).mseconds();
+                                let plan = {
+                                    let mut plans =
+                                        filter.plan.lock().unwrap_or_else(|e| e.into_inner());
+                                    if plans.first_segment {
+                                        plans.first_segment = false;
+                                    } else if let Some(duration) = plans.next_duration.take() {
+                                        plans.current.duration_ms = duration;
+                                    }
+                                    plans.current
+                                };
+                                filter.envelope(
+                                    position,
+                                    if plan.enabled && plan.fade_in {
+                                        0.0
+                                    } else {
+                                        1.0
+                                    },
+                                    plan,
+                                );
+                            }
+                        }
+                    }
+                    gst::PadProbeReturn::Ok
+                },
+            );
         Ok(this)
     }
 
-    pub fn attach(&self, playbin: &gst::Element) {
-        playbin.set_property("audio-filter", &self.element);
+    pub fn attach(&self, playbin: &gst::Element) -> AppResult<()> {
+        let sink = match playbin.property::<Option<gst::Element>>("audio-sink") {
+            Some(sink) => sink,
+            None => gst::ElementFactory::make("autoaudiosink")
+                .build()
+                .map_err(|e| e.to_string())?,
+        };
+        self.set_output(playbin, sink)
+    }
+
+    /// Call while playbin is NULL. The output bin sits after playsink's audio
+    /// queue; audio-filter runs before that queue and cannot fade queued PCM.
+    pub fn set_output(&self, playbin: &gst::Element, sink: gst::Element) -> AppResult<()> {
+        let input = gst::ElementFactory::make("audioconvert")
+            .build()
+            .map_err(|e| e.to_string())?;
+        let output = gst::ElementFactory::make("audioconvert")
+            .build()
+            .map_err(|e| e.to_string())?;
+        let bin = gst::Bin::new();
+        if let Some(parent) = self
+            .element
+            .parent()
+            .and_then(|p| p.downcast::<gst::Bin>().ok())
+        {
+            parent.remove(&self.element).map_err(|e| e.to_string())?;
+        }
+        bin.add_many([&input, &self.element, &output, &sink])
+            .map_err(|e| e.to_string())?;
+        gst::Element::link_many([&input, &self.element, &output, &sink])
+            .map_err(|e| e.to_string())?;
+        let pad = input.static_pad("sink").ok_or("音频输出入口不可用")?;
+        let ghost = gst::GhostPad::builder_with_target(&pad)
+            .map_err(|e| e.to_string())?
+            .name("sink")
+            .build();
+        bin.add_pad(&ghost).map_err(|e| e.to_string())?;
+        playbin.set_property("audio-sink", &bin);
+        Ok(())
     }
 
     pub fn prepare(&self, enabled: bool, fade_in: bool, fade_out: bool, duration_ms: u64) {
@@ -133,7 +204,7 @@ impl FadeFilter {
     pub fn reset(&self) {
         self.source.unset_all();
         self.source.set(gst::ClockTime::ZERO, 1.0);
-        self.element.set_property("volume", 1.0f64);
+        self.element.set_property("amplification", 1.0f32);
     }
 
     pub fn update_duration(&self, position_ms: u64, duration_ms: u64) {
@@ -207,7 +278,7 @@ impl FadeFilter {
             self.source
                 .set(gst::ClockTime::from_mseconds(plan.duration_ms), 0.0);
         }
-        self.element.set_property("volume", gain);
+        self.element.set_property("amplification", gain as f32);
     }
 }
 

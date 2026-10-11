@@ -58,7 +58,7 @@ fn capture_transition(enabled: bool, fades: bool) {
     std::fs::write(&files[0], wav(&samples[..split])).unwrap();
     std::fs::write(&files[1], wav(&samples[split..])).unwrap();
     let playbin = gst::ElementFactory::make("playbin3").build().unwrap();
-    playbin.set_property_from_str("flags", "audio");
+    playbin.set_property_from_str("flags", "audio+soft-volume+buffering");
     let sink = gst::ElementFactory::make("fakesink")
         .property("signal-handoffs", true)
         .property("sync", true)
@@ -74,7 +74,7 @@ fn capture_transition(enabled: bool, fades: bool) {
     });
     playbin.set_property("audio-sink", &sink);
     let fade = transitions::FadeFilter::new().unwrap();
-    fade.attach(&playbin);
+    fade.attach(&playbin).unwrap();
     fade.prepare(fades, true, true, if fades { 3000 } else { 1000 });
     let gapless = Arc::new(AtomicBool::new(enabled));
     let next = Arc::new(Mutex::new(Some(
@@ -162,5 +162,101 @@ fn capture_transition(enabled: bool, fades: bool) {
         *actual.lock().unwrap(),
         expected,
         "decoded PCM must contain neither added silence nor repeated/dropped samples"
+    );
+}
+
+#[test]
+fn live_pause_and_resume_change_pcm_gain_during_the_transition() {
+    use std::time::{Duration, Instant};
+    gst::init().unwrap();
+    let file = std::env::temp_dir().join(format!("nons-live-fade-{}.wav", std::process::id()));
+    std::fs::write(&file, wav(&vec![10000; 96000 * 8])).unwrap();
+    let playbin = gst::ElementFactory::make("playbin3").build().unwrap();
+    playbin.set_property_from_str("flags", "audio+soft-volume+buffering");
+    let sink = gst::ElementFactory::make("fakesink")
+        .property("signal-handoffs", true)
+        .property("sync", true)
+        .build()
+        .unwrap();
+    let actual = Arc::new(Mutex::new(Vec::<(u64, f64)>::new()));
+    let capture = actual.clone();
+    sink.connect("handoff", false, move |values| {
+        let buffer = values[1].get::<gst::Buffer>().unwrap();
+        let map = buffer.map_readable().unwrap();
+        let mean = map
+            .as_slice()
+            .chunks_exact(2)
+            .map(|b| i16::from_le_bytes(b.try_into().unwrap()).unsigned_abs() as f64)
+            .sum::<f64>()
+            / (map.size() / 2) as f64;
+        capture
+            .lock()
+            .unwrap()
+            .push((buffer.pts().unwrap().mseconds(), mean / 6000.0));
+        None
+    });
+    playbin.set_property("audio-sink", &sink);
+    let fade = transitions::FadeFilter::new().unwrap();
+    fade.attach(&playbin).unwrap();
+    fade.prepare(true, true, true, 8000);
+    playbin.set_property("volume", 0.6f64);
+    playbin.set_property("uri", url::Url::from_file_path(&file).unwrap().to_string());
+    playbin.set_state(gst::State::Playing).unwrap();
+    let wait_until = |target: u64| {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let pos = playbin
+                .query_position::<gst::ClockTime>()
+                .map_or(0, |p| p.mseconds());
+            if pos >= target {
+                return pos;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "playback position did not advance"
+            );
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    };
+    let start = wait_until(1500);
+    let end = fade.fade_out(start);
+    wait_until(end);
+    playbin.set_state(gst::State::Paused).unwrap();
+    let (_, state, _) = playbin.state(gst::ClockTime::from_seconds(2));
+    assert_eq!(state, gst::State::Paused);
+    let paused = playbin
+        .query_position::<gst::ClockTime>()
+        .unwrap()
+        .mseconds();
+    fade.resume(paused);
+    playbin.set_state(gst::State::Playing).unwrap();
+    wait_until(paused + 900);
+    playbin.set_state(gst::State::Null).unwrap();
+    std::fs::remove_file(file).unwrap();
+    let records = actual.lock().unwrap();
+    let average = |from: u64, to: u64| {
+        let window: Vec<_> = records
+            .iter()
+            .filter(|(ms, _)| *ms >= from && *ms < to)
+            .collect();
+        assert!(!window.is_empty(), "no PCM in window {from}..{to}");
+        window.iter().map(|(_, gain)| gain).sum::<f64>() / window.len() as f64
+    };
+    let out_mid = average(start + 300, start + 500);
+    let out_end = average(start + 650, end);
+    let in_mid = average(paused + 300, paused + 500);
+    let in_end = average(paused + 750, paused + 900);
+    assert!((0.3..0.7).contains(&out_mid), "pause must gradually lower actual PCM, midpoint gain={out_mid}, end={out_end}; {records:?}");
+    assert!(
+        out_end < 0.25,
+        "PCM must become quiet before pausing: {out_end}"
+    );
+    assert!(
+        (0.3..0.7).contains(&in_mid),
+        "resume must gradually raise actual PCM: {in_mid}"
+    );
+    assert!(
+        in_end > 0.9,
+        "resume must recover the original gain: {in_end}"
     );
 }
