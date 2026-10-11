@@ -35,3 +35,11 @@ NonsPlayer的诞生离不开以下优秀产品的启发：
 Copyright Miaoyww 2026.
 
 Distributed under the terms of the [GPL-3.0 license](https://github.com/Miaoyww/Nons/blob/main/LICENSE).
+
+## 实机演示
+
+以下为 Windows 桌面端的实际运行截图。
+
+![NonsPlayer 实机截图：音乐库](docs/release-assets/library.png)
+
+![NonsPlayer 实机截图：发现页](docs/release-assets/discovery.png)
