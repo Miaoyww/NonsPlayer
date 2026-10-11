@@ -48,6 +48,61 @@ def release_notes(root, tag):
     raise ValueError(f"No release notes found in CHANGELOG.md for [{version}]")
 
 
+def portable_name(root, version):
+    product = read_json(root / "app/src-tauri/tauri.conf.json")["productName"]
+    return f"{product}_{version}_windows_x64_portable"
+
+
+def build_portable(root, tag, output):
+    version = validate_version(root, tag)
+    native = root / "app/src-tauri"
+    config = read_json(native / "tauri.conf.json")
+    windows = read_json(native / "tauri.windows.conf.json")
+    name = portable_name(root, version)
+    executable = native / "target/release" / f"{config['mainBinaryName']}.exe"
+    files = {executable.name: executable}
+    # Use the same resource mappings as the Windows installers, never the entire target directory.
+    resources = {**config["bundle"]["resources"], **windows["bundle"]["resources"]}
+    for source, destination in resources.items():
+        directory = (native / source).resolve()
+        if not directory.is_dir():
+            raise ValueError(f"Missing portable resource directory: {directory}")
+        for path in sorted(directory.rglob("*")):
+            if not path.is_file() or path.name == ".gitkeep":
+                continue
+            relative = (Path(destination) / path.relative_to(directory)).as_posix()
+            if Path(relative).is_absolute() or ".." in Path(relative).parts or relative in files:
+                raise ValueError(f"Invalid or duplicate portable resource path: {relative}")
+            files[relative] = path
+    if "runtime/manifest.json" not in files:
+        raise ValueError("Missing portable resource: runtime/manifest.json")
+    manifest = read_json(files["runtime/manifest.json"])
+    required = ["runtime/gst-plugin-scanner.exe", "bundled-plugins/netease-island.zip"]
+    required += [f"runtime/gstreamer-1.0/gst{plugin}.dll" for plugin in manifest["plugins"]]
+    for relative in [*manifest["files"], *required]:
+        if relative not in files:
+            raise ValueError(f"Missing portable resource: {relative}")
+    if not executable.is_file():
+        raise ValueError(f"Missing portable executable: {executable}")
+    output.mkdir(parents=True, exist_ok=True)
+    target = output / f"{name}.zip"
+    readme = (
+        f"Nons {version} Windows x64 免安装版\n\n"
+        f"请完整解压整个目录，再运行 {executable.name}；不要在压缩包内直接启动或单独移动 EXE。\n"
+        "需要 Microsoft Edge WebView2 Runtime；缺失时请先从微软官方网站安装：\n"
+        "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
+        "包含私有音频运行时和随包插件，无需另行安装 GStreamer。\n"
+        "设置、账号、曲库和缓存仍保存到 Windows 用户数据目录，与安装版共用；不会写入解压目录。\n"
+        "音频运行时随附文件沿用安装包的资源映射，上游提供的许可文件会一并打包。\n"
+    )
+    with zipfile.ZipFile(target, "x", compression=zipfile.ZIP_DEFLATED) as archive:
+        for relative, source in sorted(files.items()):
+            archive.write(source, f"{name}/{relative}")
+        archive.writestr(f"{name}/README.txt", readme)
+    print(f"Portable: {target}")
+    return target
+
+
 def collect_files(root, tag, output):
     version = validate_version(root, tag)
     native = root / "app/src-tauri"
@@ -60,6 +115,10 @@ def collect_files(root, tag, output):
         if len(matches) != 1:
             raise ValueError(f"Expected one {directory} installer for {version}, found {len(matches)}")
         sources.append((matches[0], matches[0].name))
+    portable = bundle / "portable" / f"{portable_name(root, version)}.zip"
+    if not portable.is_file():
+        raise ValueError(f"Missing portable archive: {portable}")
+    sources.append((portable, portable.name))
     plugin = native / "bundled-plugins/netease-island.zip"
     with zipfile.ZipFile(plugin) as archive:
         manifest = json.loads(archive.read("manifest.json"))
@@ -85,7 +144,7 @@ def collect_files(root, tag, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["notes", "files"])
+    parser.add_argument("command", choices=["notes", "portable", "files"])
     parser.add_argument("tag")
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
@@ -94,6 +153,8 @@ def main():
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(notes, encoding="utf-8")
         print(f"Release notes: {args.output}")
+    elif args.command == "portable":
+        build_portable(ROOT, args.tag, args.output)
     else:
         collect_files(ROOT, args.tag, args.output)
 

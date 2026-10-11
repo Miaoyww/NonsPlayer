@@ -19,7 +19,13 @@ class ReleaseTests(unittest.TestCase):
         self.native = self.root / "app/src-tauri"
         self.native.mkdir(parents=True)
         self.write_json(self.root / "app/package.json", {"version": "1.0.0"})
-        self.write_json(self.native / "tauri.conf.json", {"version": "1.0.0", "productName": "Nons"})
+        self.write_json(self.native / "tauri.conf.json", {
+            "version": "1.0.0", "productName": "Nons", "mainBinaryName": "Nons",
+            "bundle": {"resources": {"bundled-plugins/": "bundled-plugins/"}},
+        })
+        self.write_json(self.native / "tauri.windows.conf.json", {
+            "bundle": {"resources": {"../../.local/gstreamer-bundle/root/": ""}},
+        })
         (self.native / "Cargo.toml").write_text('[package]\nname = "nons"\nversion = "1.0.0"\n')
         (self.native / "Cargo.lock").write_text('[[package]]\nname = "nons"\nversion = "1.0.0"\n')
         (self.root / "CHANGELOG.md").write_text(
@@ -43,6 +49,64 @@ class ReleaseTests(unittest.TestCase):
         folder.mkdir()
         with zipfile.ZipFile(folder / "netease-island.zip", "w") as archive:
             archive.writestr("manifest.json", json.dumps(manifest))
+        executable = self.native / "target/release/Nons.exe"
+        executable.write_bytes(b"executable fixture")
+        executable.with_suffix(".pdb").write_bytes(b"debug symbols")
+        (folder / ".gitkeep").touch()
+        runtime = self.root / ".local/gstreamer-bundle/root"
+        paths = ["gstreamer-1.0-0.dll", "runtime/gst-plugin-scanner.exe",
+                 "runtime/gstreamer-1.0/gstplayback.dll", "runtime/licenses/gstreamer/LICENSE"]
+        for relative in paths:
+            path = runtime / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"runtime fixture")
+        self.write_json(runtime / "runtime/manifest.json", {"plugins": ["playback"], "files": paths})
+        return release.build_portable(self.root, "v1.0.0", self.native / "target/release/bundle/portable")
+
+    def test_portable_contains_executable_resources_and_licenses_only(self):
+        portable = self.assets()
+        with zipfile.ZipFile(portable) as archive:
+            prefix = "Nons_1.0.0_windows_x64_portable/"
+            names = archive.namelist()
+            for relative in ["Nons.exe", "gstreamer-1.0-0.dll", "runtime/manifest.json",
+                             "runtime/gst-plugin-scanner.exe", "runtime/gstreamer-1.0/gstplayback.dll",
+                             "runtime/licenses/gstreamer/LICENSE", "bundled-plugins/netease-island.zip", "README.txt"]:
+                self.assertIn(prefix + relative, names)
+            self.assertFalse(any(name.endswith((".pdb", ".msi", ".gitkeep")) for name in names))
+            self.assertIn("WebView2", archive.read(prefix + "README.txt").decode())
+            extracted = self.root / "extracted"
+            archive.extractall(extracted)
+            self.assertEqual((extracted / prefix / "Nons.exe").read_bytes(), b"executable fixture")
+
+    def test_portable_missing_runtime_fails_before_writing_archive(self):
+        portable = self.assets()
+        portable.unlink()
+        (self.root / ".local/gstreamer-bundle/root/runtime/gst-plugin-scanner.exe").unlink()
+        with self.assertRaisesRegex(ValueError, "Missing portable resource"):
+            release.build_portable(self.root, "v1.0.0", portable.parent)
+        self.assertFalse(portable.exists())
+
+    def test_missing_portable_blocks_release_collection(self):
+        portable = self.assets()
+        portable.unlink()
+        with self.assertRaisesRegex(ValueError, "Missing portable archive"):
+            release.collect_files(self.root, "v1.0.0", self.output)
+        self.assertFalse(self.output.exists())
+
+    def test_portable_missing_executable_fails(self):
+        portable = self.assets()
+        portable.unlink()
+        (self.native / "target/release/Nons.exe").unlink()
+        with self.assertRaisesRegex(ValueError, "Missing portable executable"):
+            release.build_portable(self.root, "v1.0.0", portable.parent)
+        self.assertFalse(portable.exists())
+
+    def test_existing_portable_is_not_overwritten(self):
+        portable = self.assets()
+        original = portable.read_bytes()
+        with self.assertRaises(FileExistsError):
+            release.build_portable(self.root, "v1.0.0", portable.parent)
+        self.assertEqual(portable.read_bytes(), original)
 
     def test_notes_select_only_tagged_version(self):
         self.assertEqual(release.release_notes(self.root, "v1.0.0"), "### Added\n\n- First release\n")
@@ -68,7 +132,7 @@ class ReleaseTests(unittest.TestCase):
     def test_assets_exclude_old_versions_and_have_valid_checksums(self):
         self.assets()
         release.collect_files(self.root, "v1.0.0", self.output)
-        self.assertEqual(len(list(self.output.iterdir())), 4)
+        self.assertEqual(len(list(self.output.iterdir())), 5)
         sums = (self.output / "SHA256SUMS.txt").read_bytes()
         self.assertNotIn(b"\r", sums)
         for line in sums.decode().splitlines():

@@ -98,6 +98,16 @@ jobs:
       - name: Verify bundled audio runtime
         run: python scripts/smoke-audio-runtime.py app/src-tauri/target/release --skip-audio-output
 
+      - name: Build portable archive
+        run: python scripts/release.py portable $env:RELEASE_TAG app/src-tauri/target/release/bundle/portable
+
+      - name: Verify extracted portable audio runtime
+        run: |
+          $nonsPortable = Get-ChildItem app/src-tauri/target/release/bundle/portable/*_windows_x64_portable.zip
+          if (@($nonsPortable).Count -ne 1) { throw 'Expected one portable archive' }
+          Expand-Archive -LiteralPath $nonsPortable.FullName -DestinationPath .local/portable-smoke
+          python scripts/smoke-audio-runtime.py ".local/portable-smoke/$($nonsPortable.BaseName)" --skip-audio-output
+
       - name: Collect release files and checksums
         run: python scripts/release.py files $env:RELEASE_TAG .local/release-files
 
