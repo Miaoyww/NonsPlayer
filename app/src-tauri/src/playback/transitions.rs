@@ -6,7 +6,7 @@ use gstreamer_controller::{
 };
 use std::sync::{Arc, Mutex};
 
-pub const FADE_MS: u64 = 300;
+pub const FADE_MS: u64 = 800;
 
 #[derive(Clone, Copy, Default)]
 struct Plan {
@@ -16,11 +16,18 @@ struct Plan {
     duration_ms: u64,
 }
 
+#[derive(Default)]
+struct Plans {
+    current: Plan,
+    next_duration: Option<u64>,
+    first_segment: bool,
+}
+
 #[derive(Clone)]
 pub struct FadeFilter {
     element: gst::Element,
     source: InterpolationControlSource,
-    plan: Arc<Mutex<Plan>>,
+    plan: Arc<Mutex<Plans>>,
 }
 
 impl FadeFilter {
@@ -40,7 +47,7 @@ impl FadeFilter {
         let this = Self {
             element,
             source,
-            plan: Arc::new(Mutex::new(Plan::default())),
+            plan: Arc::new(Mutex::new(Plans::default())),
         };
         this.reset();
         let element = this.element.downgrade();
@@ -63,7 +70,16 @@ impl FadeFilter {
                             };
                             let position =
                                 segment.time().unwrap_or(gst::ClockTime::ZERO).mseconds();
-                            let plan = *filter.plan.lock().unwrap_or_else(|e| e.into_inner());
+                            let plan = {
+                                let mut plans =
+                                    filter.plan.lock().unwrap_or_else(|e| e.into_inner());
+                                if plans.first_segment {
+                                    plans.first_segment = false;
+                                } else if let Some(duration) = plans.next_duration.take() {
+                                    plans.current.duration_ms = duration;
+                                }
+                                plans.current
+                            };
                             filter.envelope(
                                 position,
                                 if plan.enabled && plan.fade_in {
@@ -86,12 +102,32 @@ impl FadeFilter {
     }
 
     pub fn prepare(&self, enabled: bool, fade_in: bool, fade_out: bool, duration_ms: u64) {
-        *self.plan.lock().unwrap_or_else(|e| e.into_inner()) = Plan {
-            enabled,
-            fade_in,
-            fade_out,
-            duration_ms,
+        *self.plan.lock().unwrap_or_else(|e| e.into_inner()) = Plans {
+            current: Plan {
+                enabled,
+                fade_in,
+                fade_out,
+                duration_ms,
+            },
+            next_duration: None,
+            first_segment: true,
         };
+    }
+
+    // Keep the outgoing envelope intact until the next audio segment arrives.
+    pub fn prepare_next(&self, duration_ms: u64) {
+        self.plan
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .next_duration = Some(duration_ms);
+    }
+
+    pub fn set_enabled(&self, enabled: bool) {
+        self.plan
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .current
+            .enabled = enabled;
     }
 
     pub fn reset(&self) {
@@ -102,7 +138,12 @@ impl FadeFilter {
 
     pub fn update_duration(&self, position_ms: u64, duration_ms: u64) {
         let changed = {
-            let mut plan = self.plan.lock().unwrap_or_else(|e| e.into_inner());
+            let mut plans = self.plan.lock().unwrap_or_else(|e| e.into_inner());
+            // playbin can report the next URI's duration before the audio seam.
+            if plans.next_duration.is_some() {
+                return;
+            }
+            let plan = &mut plans.current;
             if plan.duration_ms == duration_ms {
                 false
             } else {
@@ -116,7 +157,7 @@ impl FadeFilter {
     }
 
     pub fn resume(&self, position_ms: u64) {
-        let plan = *self.plan.lock().unwrap_or_else(|e| e.into_inner());
+        let plan = self.plan.lock().unwrap_or_else(|e| e.into_inner()).current;
         let gain = gst::prelude::ControlSourceExt::value(
             &self.source,
             gst::ClockTime::from_mseconds(position_ms),
@@ -185,14 +226,14 @@ mod tests {
         gst::init().unwrap();
         for enabled in [false, true] {
             let fade = FadeFilter::new().unwrap();
-            fade.prepare(enabled, true, true, 1000);
+            fade.prepare(enabled, true, true, 3000);
             let pipeline = gst::Pipeline::new();
             let source = gst::ElementFactory::make("audiotestsrc")
                 .property_from_str("wave", "square")
                 .property("freq", 1000.0f64)
                 .property("volume", 0.5f64)
                 .property("samplesperbuffer", 480i32)
-                .property("num-buffers", 100i32)
+                .property("num-buffers", 300i32)
                 .build()
                 .unwrap();
             let caps = gst::ElementFactory::make("capsfilter")
@@ -242,13 +283,13 @@ mod tests {
                 "{message:?}"
             );
             let samples = samples.lock().unwrap();
-            assert_eq!(samples.len(), 48000);
+            assert_eq!(samples.len(), 144000);
             if enabled {
                 assert!(samples[0].abs() < 0.001);
-                assert!((samples[7200].abs() - 0.25).abs() < 0.025);
-                assert!((samples[24000].abs() - 0.5).abs() < 0.001);
-                assert!((samples[40800].abs() - 0.25).abs() < 0.025);
-                assert!(samples[47999].abs() < 0.025);
+                assert!((samples[19200].abs() - 0.25).abs() < 0.025);
+                assert!((samples[72000].abs() - 0.5).abs() < 0.001);
+                assert!((samples[124800].abs() - 0.25).abs() < 0.025);
+                assert!(samples[143999].abs() < 0.025);
             } else {
                 assert!(samples
                     .iter()
@@ -265,7 +306,7 @@ mod tests {
             enabled: true,
             fade_in: true,
             fade_out: true,
-            duration_ms: 2000,
+            duration_ms: 4000,
         };
         fade.envelope(0, 0.0, plan);
         let value = |ms| {
@@ -273,22 +314,22 @@ mod tests {
                 .unwrap()
         };
         assert_eq!(value(0), 0.0);
-        assert!((value(150) - 0.5).abs() < 1e-6);
+        assert!((value(400) - 0.5).abs() < 1e-6);
         assert_eq!(value(1000), 1.0);
-        assert!((value(1850) - 0.5).abs() < 1e-6);
-        assert_eq!(value(2000), 0.0);
-        fade.prepare(true, true, true, 2000);
+        assert!((value(3600) - 0.5).abs() < 1e-6);
+        assert_eq!(value(4000), 0.0);
+        fade.prepare(true, true, true, 4000);
         fade.fade_out(1000);
-        assert!((value(1150) - 0.5).abs() < 1e-6);
-        fade.resume(1150);
-        assert!((value(1150) - 0.5).abs() < 1e-6);
-        assert_eq!(value(1450), 1.0);
+        assert!((value(1400) - 0.5).abs() < 1e-6);
+        fade.resume(1400);
+        assert!((value(1400) - 0.5).abs() < 1e-6);
+        assert_eq!(value(2200), 1.0);
         fade.reset();
         assert_eq!(value(2000), 1.0);
     }
 
     #[test]
-    fn short_tracks_unknown_duration_and_gapless_do_not_stay_silent() {
+    fn short_tracks_and_unknown_duration_do_not_stay_silent() {
         gst::init().unwrap();
         let fade = FadeFilter::new().unwrap();
         for duration_ms in [0, 100, 2000] {

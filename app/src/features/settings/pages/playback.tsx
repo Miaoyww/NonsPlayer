@@ -101,7 +101,7 @@ export function PlaybackPage() {
       </SettingsCard>
       <SettingsCard
         title="渐入渐出"
-        description="播放、继续时渐入，暂停和手动切歌时渐出，过渡时长 300 毫秒。"
+        description="播放、继续时渐入，暂停、停止时渐出；手动与自动切歌均先渐出再渐入，每段 800 毫秒。"
       >
         <label className="flex items-center gap-2 text-sm">
           <Switch
@@ -114,7 +114,7 @@ export function PlaybackPage() {
       </SettingsCard>
       <SettingsCard
         title="无缝播放（Gapless）"
-        description="预加载下一首并连续衔接。关闭后在歌曲结束时切换；开启时，自动切歌保留原始歌曲边界，不应用渐入渐出。"
+        description="预加载下一首并连续衔接，可与渐入渐出同时开启。关闭后在歌曲结束时切换。"
       >
         <label className="flex items-center gap-2 text-sm">
           <Switch

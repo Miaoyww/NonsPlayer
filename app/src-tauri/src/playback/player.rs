@@ -321,13 +321,7 @@ impl Actor {
                         .get::<gst::Element>()
                         .expect("GStreamer signal instance");
                     if let Ok(mut slot) = advancing.lock() {
-                        // Automatic gapless boundaries remain at unity gain.
-                        transition_fade.prepare(
-                            false,
-                            false,
-                            false,
-                            next.resolved.track.duration_ms,
-                        );
+                        transition_fade.prepare_next(next.resolved.track.duration_ms);
                         element.set_property("uri", &next.resolved.uri);
                         *slot = Some(next);
                     }
@@ -694,12 +688,6 @@ impl Actor {
             }
             Command::Resume => {
                 self.deferred = None;
-                self.fade.prepare(
-                    self.state.playback_options.fades,
-                    true,
-                    !self.state.playback_options.gapless,
-                    self.state.duration_ms,
-                );
                 if self.state.current().is_some() {
                     if matches!(
                         self.state.status,
@@ -882,12 +870,7 @@ impl Actor {
         if let Some(next) = transitioning {
             self.load(next.index, self.desired_playing)?;
         }
-        self.fade.prepare(
-            options.fades,
-            true,
-            !options.gapless,
-            self.state.duration_ms,
-        );
+        self.fade.set_enabled(options.fades);
         if !options.fades {
             self.fade.reset();
         } else if self.deferred.is_none() {
@@ -916,7 +899,7 @@ impl Actor {
         self.fade.prepare(
             self.state.playback_options.fades,
             true,
-            !self.state.playback_options.gapless,
+            true,
             track.duration_ms,
         );
         self.playbin
@@ -1005,7 +988,7 @@ impl Actor {
         self.fade.prepare(
             self.state.playback_options.fades,
             true,
-            !self.state.playback_options.gapless,
+            true,
             self.state.duration_ms,
         );
         if self.state.current().is_none() || self.state.duration_ms == 0 {

@@ -31,18 +31,29 @@ fn wav(samples: &[i16]) -> Vec<u8> {
 
 #[test]
 fn prepared_wav_transition_preserves_every_pcm_sample() {
-    capture_transition(true);
-    capture_transition(false);
+    capture_transition(true, false);
+    capture_transition(false, false);
 }
 
-fn capture_transition(enabled: bool) {
+#[test]
+fn gapless_transition_fades_both_tracks_without_adding_or_dropping_samples() {
+    capture_transition(true, true);
+}
+
+fn capture_transition(enabled: bool, fades: bool) {
     gst::init().unwrap();
     let root = std::env::temp_dir().join(format!("nons-gapless-{}", std::process::id()));
     std::fs::create_dir_all(&root).unwrap();
-    let samples: Vec<i16> = (0..96000 * 2)
-        .map(|i| ((i * 37) % 20001) as i16 - 10000)
-        .collect();
-    let split = samples.len() / 2;
+    let (samples, split): (Vec<i16>, usize) = if fades {
+        (vec![10000; 96000 * 7], 96000 * 3)
+    } else {
+        (
+            (0..96000 * 2)
+                .map(|i| ((i * 37) % 20001) as i16 - 10000)
+                .collect(),
+            96000,
+        )
+    };
     let files = [root.join("one.wav"), root.join("two.wav")];
     std::fs::write(&files[0], wav(&samples[..split])).unwrap();
     std::fs::write(&files[1], wav(&samples[split..])).unwrap();
@@ -64,6 +75,7 @@ fn capture_transition(enabled: bool) {
     playbin.set_property("audio-sink", &sink);
     let fade = transitions::FadeFilter::new().unwrap();
     fade.attach(&playbin);
+    fade.prepare(fades, true, true, if fades { 3000 } else { 1000 });
     let gapless = Arc::new(AtomicBool::new(enabled));
     let next = Arc::new(Mutex::new(Some(
         url::Url::from_file_path(&files[1]).unwrap().to_string(),
@@ -73,6 +85,7 @@ fn capture_transition(enabled: bool) {
             return None;
         }
         if let Some(uri) = next.lock().unwrap().take() {
+            fade.prepare_next(if fades { 4000 } else { 1000 });
             values[0]
                 .get::<gst::Element>()
                 .unwrap()
@@ -112,6 +125,39 @@ fn capture_transition(enabled: bool) {
         .iter()
         .flat_map(|s| s.to_le_bytes())
         .collect();
+    if fades {
+        let actual = actual.lock().unwrap();
+        let pcm: Vec<i16> = actual
+            .chunks_exact(2)
+            .map(|b| i16::from_le_bytes(b.try_into().unwrap()))
+            .collect();
+        assert_eq!(
+            pcm.len(),
+            samples.len(),
+            "fades must not change the sample count"
+        );
+        for (start, duration) in [(0, 3000), (split, 4000)] {
+            let at = |ms: usize| pcm[start + ms * 96];
+            assert!(at(0).abs() < 500, "track start must fade in: {}", at(0));
+            assert!(
+                (at(400) - 5000).abs() < 700,
+                "800 ms fade-in midpoint: {}",
+                at(400)
+            );
+            assert!((at(1500) - 10000).abs() < 10, "middle must keep unity gain");
+            assert!(
+                (at(duration - 400) - 5000).abs() < 700,
+                "800 ms fade-out midpoint: {}",
+                at(duration - 400)
+            );
+            assert!(
+                at(duration - 10).abs() < 700,
+                "track end must fade out: {}",
+                at(duration - 10)
+            );
+        }
+        return;
+    }
     assert_eq!(
         *actual.lock().unwrap(),
         expected,
