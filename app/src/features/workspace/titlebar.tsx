@@ -2,7 +2,16 @@ import { useEffect, useState, type MouseEvent } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { UnlistenFn } from '@tauri-apps/api/event'
-import { ChevronLeft, ChevronRight, ChevronDown, Copy, Minus, Square, X } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Copy,
+  Minus,
+  Square,
+  Wrench,
+  X
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SettingsDialog } from '@/features/settings/settings-dialog'
 import { AccountMenu } from '@/features/account/account-menu'
@@ -27,6 +36,14 @@ export function Titlebar({
   )
   const native = isTauri()
   const { page, navigate, back, forward, canBack, canForward } = useMusicNavigation()
+  const toolsSelected =
+    page.view === 'tools' ||
+    (page.view === 'plugin' &&
+      plugins.some(
+        (plugin) =>
+          plugin.manifest.contributes.navigation.some((item) => item.category === 'tool') &&
+          page.query.startsWith(`/plugins/${plugin.manifest.id}/`)
+      ))
   const [maximized, setMaximized] = useState(false)
   const [focused, setFocused] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -113,6 +130,18 @@ export function Titlebar({
               </Button>
             ) : null}
             <PlaylistSidebar hidden={playerMode} />
+            {!playerMode && hasTools && (
+              <Button
+                variant={toolsSelected ? 'secondary' : 'ghost'}
+                size="icon-sm"
+                aria-label="工具"
+                title="工具"
+                aria-current={toolsSelected ? 'page' : undefined}
+                onClick={() => navigate('tools')}
+              >
+                <Wrench aria-hidden="true" />
+              </Button>
+            )}
           </div>
 
           {!playerMode && (
@@ -148,49 +177,32 @@ export function Titlebar({
               [
                 ['library', '音乐库'],
                 ['discover', '发现'],
-                ['local', '本地'],
-                ['tools', '工具']
+                ['local', '本地']
               ] as const
-            )
-              .filter(([view]) => view !== 'tools' || hasTools)
-              .map(([view, label]) => (
-                <Button
-                  key={view}
-                  variant={
-                    page.view === view ||
-                    (view === 'library' && ['collection', 'accounts'].includes(page.view)) ||
-                    (view === 'discover' && page.view === 'search') ||
-                    (view === 'local' && page.view.startsWith('local-')) ||
-                    (view === 'tools' &&
-                      page.view === 'plugin' &&
-                      plugins.some(
-                        (p) =>
-                          p.manifest.contributes.navigation.some((n) => n.category === 'tool') &&
-                          page.query.startsWith(`/plugins/${p.manifest.id}/`)
-                      ))
-                      ? 'secondary'
-                      : 'ghost'
-                  }
-                  aria-current={
-                    page.view === view ||
-                    (view === 'library' && ['collection', 'accounts'].includes(page.view)) ||
-                    (view === 'discover' && page.view === 'search') ||
-                    (view === 'local' && page.view.startsWith('local-')) ||
-                    (view === 'tools' &&
-                      page.view === 'plugin' &&
-                      plugins.some(
-                        (p) =>
-                          p.manifest.contributes.navigation.some((n) => n.category === 'tool') &&
-                          page.query.startsWith(`/plugins/${p.manifest.id}/`)
-                      ))
-                      ? 'page'
-                      : undefined
-                  }
-                  onClick={() => navigate(view)}
-                >
-                  {label}
-                </Button>
-              ))}
+            ).map(([view, label]) => (
+              <Button
+                key={view}
+                variant={
+                  page.view === view ||
+                  (view === 'library' && ['collection', 'accounts'].includes(page.view)) ||
+                  (view === 'discover' && page.view === 'search') ||
+                  (view === 'local' && page.view.startsWith('local-'))
+                    ? 'secondary'
+                    : 'ghost'
+                }
+                aria-current={
+                  page.view === view ||
+                  (view === 'library' && ['collection', 'accounts'].includes(page.view)) ||
+                  (view === 'discover' && page.view === 'search') ||
+                  (view === 'local' && page.view.startsWith('local-'))
+                    ? 'page'
+                    : undefined
+                }
+                onClick={() => navigate(view)}
+              >
+                {label}
+              </Button>
+            ))}
             {plugins
               .filter((p) => p.loaded)
               .flatMap((plugin) =>
