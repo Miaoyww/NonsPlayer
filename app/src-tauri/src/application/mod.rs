@@ -858,6 +858,8 @@ pub fn run() {
         context
     };
     let app = tauri::Builder::default()
+        // Claim the instance before other plugins or backend initialization.
+        .plugin(desktop::single_instance())
         .plugin(
             tauri_plugin_autostart::Builder::new()
                 .app_name(autostart::ENTRY_NAME)

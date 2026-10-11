@@ -47,6 +47,20 @@ fn open_main(app: &AppHandle) -> AppResult<()> {
     super::main_webview::open(app, false)
 }
 
+pub(crate) fn single_instance() -> tauri::plugin::TauriPlugin<tauri::Wry> {
+    tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        let handle = app.clone();
+        // Defer callbacks received during startup until application setup completes.
+        if let Err(error) = app.run_on_main_thread(move || {
+            if let Err(error) = open_main(&handle) {
+                eprintln!("唤醒已有实例失败：{error}");
+            }
+        }) {
+            eprintln!("唤醒已有实例失败：{error}");
+        }
+    })
+}
+
 fn menu_action(app: &AppHandle, action: &str) -> AppResult<()> {
     match action {
         "open" => open_main(app)?,
