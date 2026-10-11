@@ -87,7 +87,11 @@ jobs:
           pnpm --dir app plugins:fixtures
 
       - name: Prepare GStreamer runtime
-        run: python scripts/bootstrap-gstreamer.py
+        run: |
+          python scripts/bootstrap-gstreamer.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Tauri's native test build also resolves the Windows bundle resources.
+          python scripts/bundle-gstreamer.py --destination app/src-tauri/target/debug
 
       - name: Test native code
         run: ./scripts/native.ps1 -Task test -ExtraArgs @('--locked', '--lib', '--tests', '--', '--test-threads=1')
