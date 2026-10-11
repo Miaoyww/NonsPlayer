@@ -8,7 +8,7 @@ import { SettingsDialog } from '@/features/settings/settings-dialog'
 import { AccountMenu } from '@/features/account/account-menu'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { MusicSearch } from '@/features/search/music-search'
-import appIcon from '@/assets/icon.png'
+import { PlaylistSidebar } from '@/features/library/playlist-sidebar'
 import { usePlugins } from '@/plugins/host'
 import { pluginPath } from '@/plugins/types'
 
@@ -95,8 +95,8 @@ export function Titlebar({
       >
         <div className={`flex h-full min-w-0 ${playerMode ? 'flex-1' : 'items-center'}`}>
           <div
-            className={`flex h-full min-w-0 items-center gap-2.5 ${playerMode ? 'flex-1' : 'pl-4 pr-4'}`}
-            onMouseDown={drag}
+            className={`flex h-full min-w-0 items-center gap-2.5 ${playerMode ? 'flex-1' : 'pl-4 pr-1'}`}
+            onMouseDown={playerMode ? drag : undefined}
           >
             {playerMode ? (
               <Button
@@ -111,12 +111,8 @@ export function Titlebar({
               >
                 <ChevronDown aria-hidden="true" />
               </Button>
-            ) : (
-              <>
-                <img src={appIcon} alt="" className="size-7" draggable={false} />
-                <span className="text-sm font-semibold">NonsPlayer</span>
-              </>
-            )}
+            ) : null}
+            <PlaylistSidebar hidden={playerMode} />
           </div>
 
           {!playerMode && (
@@ -141,6 +137,7 @@ export function Titlebar({
                   <ChevronRight aria-hidden="true" />
                 </Button>
               </div>
+              {!page.view.startsWith('local') && <MusicSearch />}
               <div className="h-full min-w-2 flex-1" onMouseDown={drag} />
             </>
           )}
@@ -222,8 +219,6 @@ export function Titlebar({
           </nav>
         )}
         <div className="flex h-full min-w-0 items-center justify-end pl-3">
-          {!playerMode && !page.view.startsWith('local') && <MusicSearch />}
-
           <div className="flex h-full shrink-0 items-center gap-1 pr-1.5">
             <div className={playerMode ? 'hidden' : 'flex items-center gap-1'}>
               <AccountMenu />

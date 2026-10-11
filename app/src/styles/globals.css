@@ -423,18 +423,19 @@
   max-width: 220px;
   flex: 1 1 220px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 .titlebar-search {
   display: flex;
   align-items: center;
-  width: 36px;
+  width: 100%;
   max-width: 100%;
   flex-shrink: 0;
   height: 36px;
   padding: 2px;
   overflow: hidden;
   border-radius: 10px;
+  background: var(--muted);
   transition:
     width 240ms cubic-bezier(0.22, 1, 0.36, 1),
     background-color 160ms;
@@ -443,7 +444,7 @@
   width: 180px;
   min-width: 0;
   flex: 1 1 180px;
-  opacity: 0;
+  opacity: 1;
   padding-inline: 6px;
   border: 0;
   background: transparent;

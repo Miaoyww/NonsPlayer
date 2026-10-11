@@ -86,7 +86,7 @@ export function MusicSearch() {
     navigate(local ? 'local' : 'search', value.trim())
   }
   return (
-    <div className="titlebar-search-slot mr-2">
+    <div className="titlebar-search-slot ml-2">
       <Primitive.Root
         items={items}
         filter={null}
