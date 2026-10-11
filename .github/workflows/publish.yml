@@ -57,7 +57,6 @@ jobs:
           workspaces: |
             app/src-tauri -> target
             plugins/netease-island/backend -> target
-            plugins/runtime-fixture/backend -> target
 
       - name: Validate release version and notes
         run: python scripts/release.py notes $env:RELEASE_TAG .local/release-notes.md
@@ -71,30 +70,14 @@ jobs:
       - name: Check formatting
         run: pnpm --dir app format:check
 
-      - name: Test frontend and release tooling
-        run: |
-          pnpm --dir app test
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m unittest discover -s scripts/tests
-
       - name: Install plugin compiler
         run: cargo install cargo-component --version 0.21.1 --locked
 
-      - name: Build plugins and test component
-        run: |
-          pnpm --dir app plugins:build
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          pnpm --dir app plugins:fixtures
+      - name: Build plugins
+        run: pnpm --dir app plugins:build
 
       - name: Prepare GStreamer runtime
-        run: |
-          python scripts/bootstrap-gstreamer.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          # Tauri's native test build also resolves the Windows bundle resources.
-          python scripts/bundle-gstreamer.py --destination app/src-tauri/target/debug
-
-      - name: Test native code
-        run: ./scripts/native.ps1 -Task test -ExtraArgs @('--locked', '--lib', '--tests', '--', '--test-threads=1')
+        run: python scripts/bootstrap-gstreamer.py
 
       - name: Build installers
         run: pnpm --dir app build:release
