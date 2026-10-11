@@ -68,7 +68,7 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
   })
   const matches = (item: MusicCollection) =>
     item.name.toLocaleLowerCase().includes(keyword.trim().toLocaleLowerCase())
-  const recentItems = recent.userId === userId ? recent.items.filter(matches).slice(0, 5) : []
+  const recentItems = recent.userId === userId ? recent.items.filter(matches).slice(0, 2) : []
   function openPlaylist(item: MusicCollection) {
     navigate('collection', '', item)
     setOpen(false)
