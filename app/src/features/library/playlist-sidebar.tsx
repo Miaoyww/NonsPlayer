@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
 import { isTauri } from '@tauri-apps/api/core'
-import { ArrowRight, PanelLeft, Search } from 'lucide-react'
+import { ArrowRight, ListVideo, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Cover } from '@/components/music/cover'
 import { InfiniteLoad } from '@/components/music/infinite-load'
@@ -104,13 +104,13 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
           />
         }
       >
-        <PanelLeft aria-hidden="true" />
+        <ListVideo aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={12} className="z-40">
-          <Popover.Popup className="glass-surface flex w-72 max-w-[calc(100vw-24px)] max-h-[calc(100dvh-80px)] flex-col gap-3 overflow-y-auto rounded-2xl border border-border p-3 shadow-xl outline-none">
+          <Popover.Popup className="playlist-sidebar glass-surface flex w-72 max-w-[calc(100vw-24px)] flex-col gap-3 overflow-hidden rounded-2xl border border-border p-3 shadow-xl outline-none">
             <Popover.Title className="sr-only">歌单侧栏</Popover.Title>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-muted px-3 py-2">
                 <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                 <input
@@ -128,7 +128,7 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
               />
             </div>
             {!profile ? (
-              <div className="py-5 text-center text-sm text-muted-foreground">
+              <div className="flex flex-1 items-center justify-center py-5 text-center text-sm text-muted-foreground">
                 {loading ? (
                   '正在读取账号…'
                 ) : (
@@ -145,9 +145,9 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
               </div>
             ) : (
               <>
-                <section aria-label="我的歌单">
+                <section aria-label="我的歌单" className="flex min-h-0 flex-1 flex-col">
                   <h2 className="px-2 pb-2 text-sm font-semibold">我的歌单</h2>
-                  <div className="max-h-72 overflow-y-auto">
+                  <div className="playlist-sidebar-scroll min-h-0 flex-1 overflow-y-auto">
                     {playlists.items.filter(matches).map(row)}
                     {playlists.busy && playlists.items.length === 0 && (
                       <div aria-label="正在加载歌单" role="status" className="space-y-2">
@@ -172,20 +172,25 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
                     />
                   </div>
                 </section>
-                <section aria-label="最近打开" className="border-t border-border pt-3">
+                <section
+                  aria-label="最近打开"
+                  className="flex max-h-[40%] min-h-0 shrink flex-col border-t border-border pt-3"
+                >
                   <h2 className="px-2 pb-2 text-sm font-semibold">最近打开</h2>
-                  {recentItems.map(row)}
-                  {!recentItems.length && (
-                    <p className="px-2 py-3 text-xs text-muted-foreground">
-                      {keyword ? '没有匹配的最近歌单' : '打开的歌单会显示在这里'}
-                    </p>
-                  )}
+                  <div className="playlist-sidebar-scroll min-h-0 overflow-y-auto">
+                    {recentItems.map(row)}
+                    {!recentItems.length && (
+                      <p className="px-2 py-3 text-xs text-muted-foreground">
+                        {keyword ? '没有匹配的最近歌单' : '打开的歌单会显示在这里'}
+                      </p>
+                    )}
+                  </div>
                 </section>
               </>
             )}
             <Button
               variant="secondary"
-              className="w-full"
+              className="w-full shrink-0"
               onClick={() => {
                 navigate('library')
                 setOpen(false)

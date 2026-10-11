@@ -465,6 +465,39 @@
   outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
+.playlist-sidebar {
+  height: min(calc(100dvh - 80px), var(--available-height, calc(100dvh - 80px)));
+}
+.playlist-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent) transparent;
+}
+@supports selector(::-webkit-scrollbar) {
+  .playlist-sidebar-scroll {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  .playlist-sidebar-scroll::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .playlist-sidebar-scroll::-webkit-scrollbar-track,
+  .playlist-sidebar-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  .playlist-sidebar-scroll::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+  }
+  .playlist-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+  .playlist-sidebar-scroll::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
 .titlebar-search-suggestions {
   width: max-content;
   min-width: min(360px, var(--available-width));
