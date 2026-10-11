@@ -100,8 +100,8 @@ export function PlaybackPage() {
         </label>
       </SettingsCard>
       <SettingsCard
-        title="渐入渐出"
-        description="播放、继续时渐入，暂停、停止时渐出；手动与自动切歌均先渐出再渐入，每段 800 毫秒。"
+        title="播放/暂停渐变"
+        description="播放、继续与暂停使用 200 毫秒渐变。快速切换会从当前音量平滑反转；切歌不再等待淡出。"
       >
         <label className="flex items-center gap-2 text-sm">
           <Switch
@@ -109,12 +109,12 @@ export function PlaybackPage() {
             disabled={!isTauri() || savingTransitions}
             onCheckedChange={(checked) => updateTransitions({ fades: checked })}
           />
-          启用渐入渐出
+          启用播放/暂停渐变
         </label>
       </SettingsCard>
       <SettingsCard
         title="无缝播放（Gapless）"
-        description="预加载下一首并连续衔接，可与渐入渐出同时开启。关闭后在歌曲结束时切换。"
+        description="预加载下一首并连续衔接，可与播放/暂停渐变同时开启。自动衔接不淡出、不重新渐入；关闭后在歌曲结束时切换。"
       >
         <label className="flex items-center gap-2 text-sm">
           <Switch

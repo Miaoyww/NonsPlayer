@@ -49,7 +49,7 @@ export function PlaybackTransport({
         className="now-playing-toggle"
         disabled={disabled}
         aria-label={playing ? '暂停' : '播放'}
-        onClick={() => action(playing ? 'pause' : 'resume')}
+        onClick={() => action('toggle')}
       >
         {playing ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
       </ActionButton>

@@ -272,19 +272,11 @@ pub(crate) fn background_shortcut(
 }
 
 fn background_control(app: &AppHandle, action: &str) -> AppResult<()> {
-    use crate::{model::PlaybackStatus, player::Command};
+    use crate::player::Command;
     let player = &app.state::<Backend>().player;
     let snapshot = player.snapshot()?;
     let command = match action {
-        "toggle"
-            if matches!(
-                snapshot.status,
-                PlaybackStatus::Playing | PlaybackStatus::Loading | PlaybackStatus::Buffering
-            ) =>
-        {
-            Command::Pause
-        }
-        "toggle" => Command::Resume,
+        "toggle" => Command::Toggle,
         "previous" => Command::Previous,
         "next" => Command::Next,
         "volumeUp" => Command::Volume((snapshot.volume + 0.05).min(1.0)),

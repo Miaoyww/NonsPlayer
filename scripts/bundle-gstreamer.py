@@ -11,7 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 PLUGINS = (
     "coreelements", "playback", "typefindfunctions", "audioconvert", "audioresample",
-    "volume", "audiofx", "autodetect", "wasapi", "wasapi2", "audioparsers", "id3demux",
+    "volume", "audiofx", "audiobuffersplit", "autodetect", "wasapi", "wasapi2", "audioparsers", "id3demux",
     "apetag", "isomp4", "matroska", "ogg", "flac", "mpg123", "opus", "vorbis",
     "wavparse", "wavpack", "aiff", "libav", "audiotestsrc",
 )

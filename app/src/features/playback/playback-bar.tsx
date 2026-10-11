@@ -57,7 +57,7 @@ export function PlaybackBar({
             className="capsule-play"
             aria-label={playing ? '暂停' : '播放'}
             disabled={!track || !isTauri()}
-            onClick={() => action(playing ? 'pause' : 'resume')}
+            onClick={() => action('toggle')}
           >
             {playing ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
           </ActionButton>

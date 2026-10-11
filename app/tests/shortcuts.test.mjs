@@ -205,7 +205,7 @@ test('all six playback actions reuse playback commands, clamp volume and favorit
   assert.deepEqual(
     app.calls.map(({ command, args }) => [command, args.action ?? args.volume]),
     [
-      ['player_action', 'pause'],
+      ['player_action', 'toggle'],
       ['player_action', 'previous'],
       ['player_action', 'next'],
       ['player_volume', 1]
@@ -220,7 +220,7 @@ test('all six playback actions reuse playback commands, clamp volume and favorit
   app.render()
   app.dispatch('toggle')
   app.dispatch('volumeDown')
-  assert.equal(app.calls.at(-2).args.action, 'resume')
+  assert.equal(app.calls.at(-2).args.action, 'toggle')
   assert.equal(app.calls.at(-1).args.volume, 0)
   app.state.queue = [{ source: { kind: 'local' } }]
   app.render()
@@ -259,7 +259,7 @@ test('Space after clicking a button controls playback and prevents button handle
   }
   assert.equal(activations, 0)
   assert.equal(app.calls.length, 1)
-  assert.equal(app.calls[0].args.action, 'pause')
+  assert.equal(app.calls[0].args.action, 'toggle')
 })
 
 function loadKeys() {

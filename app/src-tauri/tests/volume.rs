@@ -23,7 +23,7 @@ fn windows_output_reload_keeps_selected_volume() {
         .downcast::<gst::Bin>()
         .unwrap();
     bin.set_property_from_str("flags", "audio+soft-volume+buffering");
-    let fade = transitions::FadeFilter::new().unwrap();
+    let fade = transitions::PlaybackFade::new().unwrap();
     fade.attach(bin.upcast_ref()).unwrap();
     let uri = url::Url::from_file_path(&path).unwrap().to_string();
     let mut actual = Vec::new();
@@ -61,7 +61,7 @@ fn track_and_output_reload_keep_selected_volume() {
     let peaks = Arc::new(Mutex::new(Vec::<i16>::new()));
     let sink = recording_sink(peaks.clone());
     playbin.set_property("audio-sink", &sink);
-    let fade = transitions::FadeFilter::new().unwrap();
+    let fade = transitions::PlaybackFade::new().unwrap();
     fade.attach(&playbin).unwrap();
     let uri = url::Url::from_file_path(&path).unwrap().to_string();
     let bus = playbin.bus().unwrap();

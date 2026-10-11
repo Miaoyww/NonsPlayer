@@ -81,14 +81,14 @@ test('playback switches wait for native persistence and retain the previous sett
       .querySelector('input')
   try {
     await React.act(async () => root.render(React.createElement(exports.PlaybackPage)))
-    assert.equal(input('启用渐入渐出').checked, false)
+    assert.equal(input('启用播放/暂停渐变').checked, false)
     assert.equal(input('启用无缝播放').checked, true)
-    await React.act(async () => input('启用渐入渐出').click())
-    assert.equal(input('启用渐入渐出').checked, false)
+    await React.act(async () => input('启用播放/暂停渐变').click())
+    assert.equal(input('启用播放/暂停渐变').checked, false)
     assert.equal(input('启用无缝播放').disabled, true)
     assert.match(document.body.textContent, /正在保存/)
     await React.act(async () => pending.resolve())
-    assert.equal(input('启用渐入渐出').checked, true)
+    assert.equal(input('启用播放/暂停渐变').checked, true)
     await React.act(async () => input('启用无缝播放').click())
     await React.act(async () => pending.reject(Error('无法保存设置')))
     assert.equal(input('启用无缝播放').checked, true)
@@ -96,7 +96,7 @@ test('playback switches wait for native persistence and retain the previous sett
     await React.act(async () => input('启用无缝播放').click())
     await React.act(async () => pending.resolve())
     assert.equal(input('启用无缝播放').checked, false)
-    assert.equal(input('启用渐入渐出').checked, true)
+    assert.equal(input('启用播放/暂停渐变').checked, true)
     assert.deepEqual(JSON.parse(JSON.stringify(calls.at(-1))), [
       'set_playback_options',
       { options: { fades: true, gapless: false } }

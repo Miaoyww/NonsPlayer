@@ -30,7 +30,7 @@ def smoke(payload, skip_audio_output=False):
             result = subprocess.run([str(temporary / name), *args], env=env, cwd=temporary, capture_output=True, text=True, timeout=30)
             if result.returncode: raise RuntimeError(result.stdout + result.stderr)
             return result.stdout
-        factories = ["playbin3", "autoaudiosink", "wasapi2sink", "audioconvert", "audioresample", "flacdec", "mpg123audiodec", "opusdec", "vorbisdec", "wavparse", "wavpackdec", "avdec_aac", "avdec_ape", "qtdemux"]
+        factories = ["playbin3", "autoaudiosink", "wasapi2sink", "audioconvert", "audioresample", "audioamplify", "audiobuffersplit", "flacdec", "mpg123audiodec", "opusdec", "vorbisdec", "wavparse", "wavpackdec", "avdec_aac", "avdec_ape", "qtdemux"]
         for factory in factories: run("gst-inspect-1.0.exe", [factory])
         sample = temporary / "silence.wav"
         with wave.open(str(sample), "wb") as audio:

@@ -1,134 +1,105 @@
-//! Gain envelopes run in GStreamer's streaming thread, independent of UI/tick rate.
+//! Transport gain runs after the playback queue and uses running time across song boundaries.
 use crate::model::AppResult;
 use gstreamer::{self as gst, prelude::*};
-use gstreamer_controller::{
-    prelude::*, DirectControlBinding, InterpolationControlSource, InterpolationMode,
-};
+use gstreamer_controller::{prelude::*, InterpolationControlSource, InterpolationMode};
 use std::sync::{Arc, Mutex};
 
-pub const FADE_MS: u64 = 800;
+pub const PLAYBACK_FADE_MS: u64 = 200;
+// Let the device/mixer consume the final quiet buffers before suspending it.
+pub const PAUSE_GRACE_MS: u64 = 80;
+const OUTPUT_LEAD_MS: u64 = 30;
+const CLOCK_WAIT_MS: u64 = 5;
 
-#[derive(Clone, Copy, Default)]
-struct Plan {
+struct Envelope {
+    source: InterpolationControlSource,
     enabled: bool,
-    fade_in: bool,
-    fade_out: bool,
-    duration_ms: u64,
+    pending_in: bool,
 }
 
-#[derive(Default)]
-struct Plans {
-    current: Plan,
-    next_duration: Option<u64>,
-    first_segment: bool,
+impl Envelope {
+    fn gain(&self, time: gst::ClockTime) -> f64 {
+        gst::prelude::ControlSourceExt::value(&self.source, time).unwrap_or(1.0)
+    }
+
+    fn hold(&mut self, gain: f64) {
+        self.pending_in = false;
+        self.source.unset_all();
+        self.source.set(gst::ClockTime::ZERO, gain);
+    }
+
+    fn ramp(&mut self, time: gst::ClockTime, target: f64) -> gst::ClockTime {
+        let gain = self.gain(time);
+        self.hold(gain);
+        let end = time + gst::ClockTime::from_mseconds(PLAYBACK_FADE_MS);
+        self.source.set(time, gain);
+        self.source.set(end, target);
+        end
+    }
 }
 
 #[derive(Clone)]
-pub struct FadeFilter {
+pub struct PlaybackFade {
     element: gst::Element,
-    source: InterpolationControlSource,
-    plan: Arc<Mutex<Plans>>,
+    envelope: Arc<Mutex<Envelope>>,
 }
 
-impl FadeFilter {
+impl PlaybackFade {
     pub fn new() -> AppResult<Self> {
         let element = gst::ElementFactory::make("audioamplify")
-            .name("nons-fade")
+            .name("nons-playback-fade")
             .build()
             .map_err(|e| e.to_string())?;
         let source = InterpolationControlSource::new();
         source.set_mode(InterpolationMode::Linear);
-        // Absolute binding keeps the gain in 0..1 regardless of the property range.
-        // audioamplify does not implement StreamVolume, so playbin cannot mistake
-        // the fade gain for the user volume when scanning our output bin.
-        element
-            .add_control_binding(&DirectControlBinding::new_absolute(
-                &element,
-                "amplification",
-                &source,
-            ))
-            .map_err(|e| e.to_string())?;
-        let this = Self {
-            element,
+        source.set(gst::ClockTime::ZERO, 1.0);
+        let envelope = Arc::new(Mutex::new(Envelope {
             source,
-            plan: Arc::new(Mutex::new(Plans::default())),
-        };
-        this.reset();
-        let element = this.element.downgrade();
-        let source = this.source.clone();
-        let plan = this.plan.clone();
-        this.element
+            enabled: false,
+            pending_in: false,
+        }));
+        let weak_element = element.downgrade();
+        let shared = envelope.clone();
+        element
             .static_pad("sink")
-            .ok_or("渐变音量入口不可用")?
-            .add_probe(
-                gst::PadProbeType::EVENT_DOWNSTREAM | gst::PadProbeType::BUFFER,
-                move |pad, info| {
-                    if let Some(gst::PadProbeData::Buffer(buffer)) = &info.data {
-                        // audioamplify bypasses its transform at unity gain. Sync here
-                        // so it can leave passthrough for a newly scheduled fade and
-                        // the natural tail, even after a long stretch at full gain.
-                        let enabled = plan
-                            .lock()
-                            .unwrap_or_else(|e| e.into_inner())
-                            .current
-                            .enabled;
-                        if enabled {
-                            if let Some(time) = buffer.pts().and_then(|pts| {
-                                pad.sticky_event::<gst::event::Segment>(0)
-                                    .and_then(|event| {
-                                        event
-                                            .segment()
-                                            .downcast_ref::<gst::ClockTime>()
-                                            .and_then(|segment| segment.to_stream_time(pts))
-                                    })
-                            }) {
-                                if let Some(element) = element.upgrade() {
-                                    let _ = element.sync_values(time);
-                                }
-                            }
-                        }
+            .ok_or("播放渐变入口不可用")?
+            .add_probe(gst::PadProbeType::BUFFER, move |pad, info| {
+                let Some(gst::PadProbeData::Buffer(buffer)) = &info.data else {
+                    return gst::PadProbeReturn::Ok;
+                };
+                let time = buffer.pts().and_then(|pts| {
+                    pad.sticky_event::<gst::event::Segment>(0)
+                        .and_then(|event| {
+                            event
+                                .segment()
+                                .downcast_ref::<gst::ClockTime>()
+                                .and_then(|segment| segment.to_running_time(pts))
+                        })
+                });
+                if let (Some(element), Some(time)) = (weak_element.upgrade(), time) {
+                    pace_output(&element, pad, time);
+                }
+                let mut envelope = shared.lock().unwrap_or_else(|e| e.into_inner());
+                if !envelope.enabled {
+                    return gst::PadProbeReturn::Ok;
+                }
+                let gain = if let Some(time) = time {
+                    if envelope.pending_in {
+                        envelope.ramp(time, 1.0);
                     }
-                    if let Some(gst::PadProbeData::Event(event)) = &info.data {
-                        if let gst::EventView::Segment(segment) = event.view() {
-                            if let Some(segment) =
-                                segment.segment().downcast_ref::<gst::ClockTime>()
-                            {
-                                let Some(element) = element.upgrade() else {
-                                    return gst::PadProbeReturn::Ok;
-                                };
-                                let filter = Self {
-                                    element,
-                                    source: source.clone(),
-                                    plan: plan.clone(),
-                                };
-                                let position =
-                                    segment.time().unwrap_or(gst::ClockTime::ZERO).mseconds();
-                                let plan = {
-                                    let mut plans =
-                                        filter.plan.lock().unwrap_or_else(|e| e.into_inner());
-                                    if plans.first_segment {
-                                        plans.first_segment = false;
-                                    } else if let Some(duration) = plans.next_duration.take() {
-                                        plans.current.duration_ms = duration;
-                                    }
-                                    plans.current
-                                };
-                                filter.envelope(
-                                    position,
-                                    if plan.enabled && plan.fade_in {
-                                        0.0
-                                    } else {
-                                        1.0
-                                    },
-                                    plan,
-                                );
-                            }
-                        }
-                    }
-                    gst::PadProbeReturn::Ok
-                },
-            );
-        Ok(this)
+                    envelope.gain(time)
+                } else {
+                    // Untimestamped audio must remain playable rather than held silent forever.
+                    envelope.hold(1.0);
+                    1.0
+                };
+                if let Some(element) = weak_element.upgrade() {
+                    // BaseTransform syncs bound properties in stream time. Read the Controller
+                    // explicitly in running time so a new track/seek cannot restart this ramp.
+                    element.set_property("amplification", gain as f32);
+                }
+                gst::PadProbeReturn::Ok
+            });
+        Ok(Self { element, envelope })
     }
 
     pub fn attach(&self, playbin: &gst::Element) -> AppResult<()> {
@@ -141,8 +112,7 @@ impl FadeFilter {
         self.set_output(playbin, sink)
     }
 
-    /// Call while playbin is NULL. The output bin sits after playsink's audio
-    /// queue; audio-filter runs before that queue and cannot fade queued PCM.
+    /// Call in NULL. This bin is after playsink's queue, so queued PCM can still fade.
     pub fn set_output(&self, playbin: &gst::Element, sink: gst::Element) -> AppResult<()> {
         let input = gst::ElementFactory::make("audioconvert")
             .build()
@@ -150,7 +120,14 @@ impl FadeFilter {
         let output = gst::ElementFactory::make("audioconvert")
             .build()
             .map_err(|e| e.to_string())?;
-        let bin = gst::Bin::new();
+        // Decoder block sizes can exceed a third of the whole ramp. Bound control
+        // granularity without inserting silence or discarding a short final block.
+        let split = gst::ElementFactory::make("audiobuffersplit")
+            .property("output-buffer-duration", gst::Fraction::new(1, 200))
+            .property("gapless", false)
+            .property("strict-buffer-size", false)
+            .build()
+            .map_err(|e| e.to_string())?;
         if let Some(parent) = self
             .element
             .parent()
@@ -158,132 +135,94 @@ impl FadeFilter {
         {
             parent.remove(&self.element).map_err(|e| e.to_string())?;
         }
-        bin.add_many([&input, &self.element, &output, &sink])
+        // Pacing must not depend on a device clock that waits for its ring buffer
+        // to fill. AudioBaseSink slaves its device clock to this monotonic clock.
+        let pipeline = playbin
+            .downcast_ref::<gst::Pipeline>()
+            .ok_or("播放管线不可用")?;
+        pipeline.use_clock(Some(&gst::SystemClock::obtain()));
+        let bin = gst::Bin::new();
+        bin.add_many([&input, &split, &self.element, &output, &sink])
             .map_err(|e| e.to_string())?;
-        gst::Element::link_many([&input, &self.element, &output, &sink])
+        gst::Element::link_many([&input, &split, &self.element, &output, &sink])
             .map_err(|e| e.to_string())?;
         let pad = input.static_pad("sink").ok_or("音频输出入口不可用")?;
         let ghost = gst::GhostPad::builder_with_target(&pad)
             .map_err(|e| e.to_string())?
-            .name("sink")
             .build();
         bin.add_pad(&ghost).map_err(|e| e.to_string())?;
         playbin.set_property("audio-sink", &bin);
         Ok(())
     }
 
-    pub fn prepare(&self, enabled: bool, fade_in: bool, fade_out: bool, duration_ms: u64) {
-        *self.plan.lock().unwrap_or_else(|e| e.into_inner()) = Plans {
-            current: Plan {
-                enabled,
-                fade_in,
-                fade_out,
-                duration_ms,
-            },
-            next_duration: None,
-            first_segment: true,
-        };
-    }
-
-    // Keep the outgoing envelope intact until the next audio segment arrives.
-    pub fn prepare_next(&self, duration_ms: u64) {
-        self.plan
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .next_duration = Some(duration_ms);
-    }
-
     pub fn set_enabled(&self, enabled: bool) {
-        self.plan
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .current
-            .enabled = enabled;
+        let mut envelope = self.envelope.lock().unwrap_or_else(|e| e.into_inner());
+        envelope.enabled = enabled;
+        if !enabled {
+            envelope.hold(1.0);
+            self.element.set_property("amplification", 1.0f32);
+        }
     }
 
     pub fn reset(&self) {
-        self.source.unset_all();
-        self.source.set(gst::ClockTime::ZERO, 1.0);
+        let mut envelope = self.envelope.lock().unwrap_or_else(|e| e.into_inner());
+        envelope.hold(1.0);
         self.element.set_property("amplification", 1.0f32);
     }
 
-    pub fn update_duration(&self, position_ms: u64, duration_ms: u64) {
-        let changed = {
-            let mut plans = self.plan.lock().unwrap_or_else(|e| e.into_inner());
-            // playbin can report the next URI's duration before the audio seam.
-            if plans.next_duration.is_some() {
-                return;
-            }
-            let plan = &mut plans.current;
-            if plan.duration_ms == duration_ms {
-                false
-            } else {
-                plan.duration_ms = duration_ms;
-                plan.enabled && plan.fade_out
-            }
-        };
-        if changed {
-            self.resume(position_ms);
+    /// Mute before starting, then ramp from the first buffer's running time (also after preroll).
+    pub fn prepare_start(&self) {
+        let mut envelope = self.envelope.lock().unwrap_or_else(|e| e.into_inner());
+        if envelope.enabled {
+            envelope.hold(0.0);
+            envelope.pending_in = true;
+            self.element.set_property("amplification", 0.0f32);
         }
     }
 
-    pub fn resume(&self, position_ms: u64) {
-        let plan = self.plan.lock().unwrap_or_else(|e| e.into_inner()).current;
-        let gain = gst::prelude::ControlSourceExt::value(
-            &self.source,
-            gst::ClockTime::from_mseconds(position_ms),
-        )
-        .unwrap_or(1.0);
-        self.envelope(position_ms, gain, plan);
+    pub fn fade_out(&self, time: gst::ClockTime) -> gst::ClockTime {
+        self.envelope
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .ramp(time, 0.0)
     }
 
-    pub fn fade_out(&self, position_ms: u64) -> u64 {
-        let gain = gst::prelude::ControlSourceExt::value(
-            &self.source,
-            gst::ClockTime::from_mseconds(position_ms),
-        )
-        .unwrap_or(1.0);
-        let end = position_ms.saturating_add(FADE_MS);
-        self.source.unset_all();
-        self.source.set(gst::ClockTime::ZERO, gain);
-        self.source
-            .set(gst::ClockTime::from_mseconds(position_ms), gain);
-        self.source.set(gst::ClockTime::from_mseconds(end), 0.0);
-        end
-    }
-
-    fn envelope(&self, position: u64, gain: f64, plan: Plan) {
-        if !plan.enabled {
-            self.reset();
-            return;
-        }
-        let remaining = plan.duration_ms.saturating_sub(position);
-        let natural_end = plan.fade_out && remaining > 0;
-        let width = if natural_end {
-            FADE_MS.min(remaining / 2)
-        } else {
-            FADE_MS
-        };
-        self.source.unset_all();
-        self.source.set(gst::ClockTime::ZERO, gain);
-        self.source
-            .set(gst::ClockTime::from_mseconds(position), gain);
-        self.source.set(
-            gst::ClockTime::from_mseconds(position.saturating_add(width)),
-            1.0,
-        );
-        if natural_end {
-            self.source
-                .set(gst::ClockTime::from_mseconds(plan.duration_ms - width), 1.0);
-            self.source
-                .set(gst::ClockTime::from_mseconds(plan.duration_ms), 0.0);
-        }
-        self.element.set_property("amplification", gain as f32);
+    pub fn reverse_pause(&self, time: gst::ClockTime) {
+        self.envelope
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .ramp(time, 1.0);
     }
 }
 
-/// The same gate used by the streaming callback; disabling takes effect while
-/// holding its prepared lock, so an old preload cannot bypass the setting.
+// WASAPI2 keeps a fixed 500 ms ring buffer even in low-latency mode. Pace
+// before gain with a small feeding margin. clocksync marks the stream live and
+// blocks preroll in this nested output bin; preserve non-live preroll here.
+fn pace_output(element: &gst::Element, pad: &gst::Pad, time: gst::ClockTime) {
+    while element.current_state() == gst::State::Playing
+        && !pad.pad_flags().contains(gst::PadFlags::FLUSHING)
+        && !matches!(
+            element.pending_state(),
+            gst::State::Paused | gst::State::Ready | gst::State::Null
+        )
+    {
+        let Some(now) = element.current_running_time() else {
+            break;
+        };
+        let lead = time.saturating_sub(now).mseconds();
+        if lead <= OUTPUT_LEAD_MS {
+            break;
+        }
+        let Some(clock) = element.clock() else {
+            break;
+        };
+        // Bounded waits let state changes and flush interrupt a future timestamp.
+        let deadline = clock.time()
+            + gst::ClockTime::from_mseconds((lead - OUTPUT_LEAD_MS).min(CLOCK_WAIT_MS));
+        let _ = clock.new_single_shot_id(deadline).wait();
+    }
+}
+
 pub fn gapless_allowed(enabled: &std::sync::atomic::AtomicBool) -> bool {
     enabled.load(std::sync::atomic::Ordering::Acquire)
 }
@@ -293,156 +232,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn decoded_pcm_has_faded_edges_and_disabled_filter_keeps_original_gain() {
+    fn pause_reverses_from_current_gain_without_a_step() {
         gst::init().unwrap();
-        for enabled in [false, true] {
-            let fade = FadeFilter::new().unwrap();
-            fade.prepare(enabled, true, true, 3000);
-            let pipeline = gst::Pipeline::new();
-            let source = gst::ElementFactory::make("audiotestsrc")
-                .property_from_str("wave", "square")
-                .property("freq", 1000.0f64)
-                .property("volume", 0.5f64)
-                .property("samplesperbuffer", 480i32)
-                .property("num-buffers", 300i32)
-                .build()
-                .unwrap();
-            let caps = gst::ElementFactory::make("capsfilter")
-                .property(
-                    "caps",
-                    gst::Caps::builder("audio/x-raw")
-                        .field("format", "F32LE")
-                        .field("rate", 48000i32)
-                        .field("channels", 1i32)
-                        .build(),
-                )
-                .build()
-                .unwrap();
-            let sink = gst::ElementFactory::make("fakesink")
-                .property("sync", false)
-                .property("signal-handoffs", true)
-                .build()
-                .unwrap();
-            let samples = Arc::new(Mutex::new(Vec::<f32>::new()));
-            let capture = samples.clone();
-            sink.connect("handoff", false, move |values| {
-                let buffer = values[1].get::<gst::Buffer>().unwrap();
-                let data = buffer.map_readable().unwrap();
-                capture.lock().unwrap().extend(
-                    data.as_slice()
-                        .chunks_exact(4)
-                        .map(|bytes| f32::from_le_bytes(bytes.try_into().unwrap())),
-                );
-                None
-            });
-            pipeline
-                .add_many([&source, &caps, &fade.element, &sink])
-                .unwrap();
-            gst::Element::link_many([&source, &caps, &fade.element, &sink]).unwrap();
-            pipeline.set_state(gst::State::Playing).unwrap();
-            let message = pipeline
-                .bus()
-                .unwrap()
-                .timed_pop_filtered(
-                    gst::ClockTime::from_seconds(5),
-                    &[gst::MessageType::Eos, gst::MessageType::Error],
-                )
-                .expect("PCM capture timeout");
-            pipeline.set_state(gst::State::Null).unwrap();
-            assert!(
-                matches!(message.view(), gst::MessageView::Eos(_)),
-                "{message:?}"
-            );
-            let samples = samples.lock().unwrap();
-            assert_eq!(samples.len(), 144000);
-            if enabled {
-                assert!(samples[0].abs() < 0.001);
-                assert!((samples[19200].abs() - 0.25).abs() < 0.025);
-                assert!((samples[72000].abs() - 0.5).abs() < 0.001);
-                assert!((samples[124800].abs() - 0.25).abs() < 0.025);
-                assert!(samples[143999].abs() < 0.025);
-            } else {
-                assert!(samples
-                    .iter()
-                    .all(|value| (value.abs() - 0.5).abs() < 0.001));
-            }
-        }
+        let fade = PlaybackFade::new().unwrap();
+        fade.set_enabled(true);
+        fade.fade_out(gst::ClockTime::from_seconds(1));
+        let at = gst::ClockTime::from_mseconds(1100);
+        assert!((fade.envelope.lock().unwrap().gain(at) - 0.5).abs() < 1e-6);
+        fade.reverse_pause(at);
+        let envelope = fade.envelope.lock().unwrap();
+        assert!((envelope.gain(at) - 0.5).abs() < 1e-6);
+        assert!((envelope.gain(gst::ClockTime::from_mseconds(1200)) - 0.75).abs() < 1e-6);
+        assert_eq!(envelope.gain(gst::ClockTime::from_mseconds(1300)), 1.0);
     }
 
     #[test]
-    fn envelopes_are_bounded_interruptible_and_do_not_scale_user_volume() {
+    fn disabling_or_resetting_cancels_silence_and_pending_start() {
         gst::init().unwrap();
-        let fade = FadeFilter::new().unwrap();
-        let plan = Plan {
-            enabled: true,
-            fade_in: true,
-            fade_out: true,
-            duration_ms: 4000,
-        };
-        fade.envelope(0, 0.0, plan);
-        let value = |ms| {
-            gst::prelude::ControlSourceExt::value(&fade.source, gst::ClockTime::from_mseconds(ms))
-                .unwrap()
-        };
-        assert_eq!(value(0), 0.0);
-        assert!((value(400) - 0.5).abs() < 1e-6);
-        assert_eq!(value(1000), 1.0);
-        assert!((value(3600) - 0.5).abs() < 1e-6);
-        assert_eq!(value(4000), 0.0);
-        fade.prepare(true, true, true, 4000);
-        fade.fade_out(1000);
-        assert!((value(1400) - 0.5).abs() < 1e-6);
-        fade.resume(1400);
-        assert!((value(1400) - 0.5).abs() < 1e-6);
-        assert_eq!(value(2200), 1.0);
+        let fade = PlaybackFade::new().unwrap();
+        fade.set_enabled(true);
+        fade.prepare_start();
         fade.reset();
-        assert_eq!(value(2000), 1.0);
-    }
-
-    #[test]
-    fn short_tracks_and_unknown_duration_do_not_stay_silent() {
-        gst::init().unwrap();
-        let fade = FadeFilter::new().unwrap();
-        for duration_ms in [0, 100, 2000] {
-            fade.envelope(
-                0,
-                0.0,
-                Plan {
-                    enabled: true,
-                    fade_in: true,
-                    fade_out: true,
-                    duration_ms,
-                },
-            );
-            let peak = if duration_ms == 0 {
-                FADE_MS
-            } else {
-                FADE_MS.min(duration_ms / 2)
-            };
-            assert_eq!(
-                gst::prelude::ControlSourceExt::value(
-                    &fade.source,
-                    gst::ClockTime::from_mseconds(peak)
-                ),
-                Some(1.0)
-            );
-        }
-        fade.envelope(
-            0,
-            1.0,
-            Plan {
-                enabled: true,
-                fade_in: false,
-                fade_out: false,
-                duration_ms: 2000,
-            },
-        );
-        assert_eq!(
-            gst::prelude::ControlSourceExt::value(
-                &fade.source,
-                gst::ClockTime::from_mseconds(2000)
-            ),
-            Some(1.0)
-        );
+        assert!(!fade.envelope.lock().unwrap().pending_in);
+        fade.fade_out(gst::ClockTime::ZERO);
+        fade.set_enabled(false);
+        let envelope = fade.envelope.lock().unwrap();
+        assert!(!envelope.enabled);
+        assert_eq!(envelope.gain(gst::ClockTime::from_seconds(1)), 1.0);
+        assert_eq!(fade.element.property::<f32>("amplification"), 1.0);
     }
 }

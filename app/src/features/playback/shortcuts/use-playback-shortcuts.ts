@@ -34,12 +34,7 @@ export function usePlaybackShortcuts(onError: (cause: unknown) => void) {
       operation = account.toggleLike(current.source.id)
     } else
       operation = nativeCall('player_action', {
-        action:
-          name === 'toggle'
-            ? ['playing', 'buffering', 'loading'].includes(state.status)
-              ? 'pause'
-              : 'resume'
-            : name
+        action: name
       })
     void operation.catch(onError)
   }

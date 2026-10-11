@@ -652,6 +652,7 @@ fn append_queue(keys: Vec<String>, backend: State<'_, Backend>) -> AppResult<()>
 #[tauri::command]
 fn player_action(action: &str, backend: State<'_, Backend>) -> AppResult<()> {
     let command = match action {
+        "toggle" => Command::Toggle,
         "pause" => Command::Pause,
         "resume" => Command::Resume,
         "stop" => Command::Stop,
