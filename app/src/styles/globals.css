@@ -83,7 +83,7 @@
 .now-playing-back {
   width: 44px;
   height: 44px;
-  margin-left: 12px;
+  margin: 12px;
 }
 .now-playing-back svg {
   width: 26px;

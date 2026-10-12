@@ -107,7 +107,7 @@ export function Titlebar({
   return (
     <>
       <header
-        className={`titlebar relative z-10 h-12 shrink-0 select-none items-center ${playerMode ? 'flex bg-transparent' : 'glass-surface grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'}`}
+        className={`titlebar relative z-10 shrink-0 select-none items-center ${playerMode ? 'flex h-[68px] bg-transparent' : 'glass-surface grid h-12 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'}`}
         data-focused={focused}
       >
         <div className={`flex h-full min-w-0 ${playerMode ? 'flex-1' : 'items-center'}`}>
