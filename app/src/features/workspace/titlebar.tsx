@@ -101,6 +101,10 @@ export function Titlebar({
 
   function drag(event: MouseEvent<HTMLDivElement>) {
     if (event.button !== 0) return
+    const target = event.target as Element | null
+    // Portaled popups (e.g. the playlist sidebar) bubble through React but live outside this DOM node.
+    if (target && event.currentTarget && !event.currentTarget.contains(target)) return
+    if (target?.closest?.('button, a, input, select, textarea, [role="button"]')) return
     void windowAction(event.detail === 2 ? 'toggleMaximize' : 'startDragging')
   }
 
@@ -113,7 +117,7 @@ export function Titlebar({
         <div className={`flex h-full min-w-0 ${playerMode ? 'flex-1' : 'items-center'}`}>
           <div
             className={`flex h-full min-w-0 items-center gap-2.5 ${playerMode ? 'flex-1' : 'pl-4 pr-1'}`}
-            onMouseDown={playerMode ? drag : undefined}
+            onMouseDown={drag}
           >
             {playerMode ? (
               <Button

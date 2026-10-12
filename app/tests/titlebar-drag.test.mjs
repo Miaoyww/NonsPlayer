@@ -40,7 +40,8 @@ function harness(playerMode = false) {
   )
   const header = exports.Titlebar({ playerMode }).props.children[0]
   const right = header.props.children.at(-1)
-  return { actions, right }
+  const left = header.props.children[0].props.children[0]
+  return { actions, right, left }
 }
 
 test('blank space to the right of music navigation drags and double-clicks maximize', () => {
@@ -54,6 +55,19 @@ test('blank space to the right of music navigation drags and double-clicks maxim
   assert.deepEqual(actions, ['drag', 'maximize'])
   assert.equal(right.props.onMouseDown, undefined, 'control events must not bubble into dragging')
   assert.equal(children.at(-1).props.onMouseDown, undefined)
+})
+
+test('left titlebar padding drags, but buttons and portaled popups do not', () => {
+  const { actions, left } = harness()
+  const inside = { closest: () => null }
+  const button = { closest: () => ({}) }
+  const container = { contains: (node) => node === inside || node === button }
+  const outside = { closest: () => null }
+  left.props.onMouseDown({ button: 0, detail: 1, target: inside, currentTarget: container })
+  left.props.onMouseDown({ button: 0, detail: 2, target: inside, currentTarget: container })
+  left.props.onMouseDown({ button: 0, detail: 1, target: button, currentTarget: container })
+  left.props.onMouseDown({ button: 0, detail: 1, target: outside, currentTarget: container })
+  assert.deepEqual(actions, ['drag', 'maximize'])
 })
 
 test('fullscreen window controls keep their existing compact layout', () => {
