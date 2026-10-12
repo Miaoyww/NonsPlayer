@@ -1,6 +1,7 @@
 import { parseLrc, parseQrc, parseTTML, parseYrc } from '@applemusic-like-lyrics/lyric'
 import type { LyricLine } from '@applemusic-like-lyrics/core'
 import type { Lyrics } from '@/lib/player'
+import { matchAuxiliary } from './auxiliary-matching'
 
 export class EmptyLyricsError extends Error {}
 
@@ -31,46 +32,22 @@ function auxiliary(text: string) {
   return lines
     .map((line) => ({
       start: line.startTime,
-      text: cleanAuxiliary(
-        line.words
-          .map((word) => word.word)
-          .join('')
-          .trim()
-      )
+      text: line.words
+        .map((word) => word.word)
+        .join('')
+        .trim()
     }))
     .filter((line) => Number.isFinite(line.start) && line.text)
     .sort((left, right) => left.start - right.start)
-}
-
-// Like AF-Media-Bar, attach the nearest auxiliary line within 500 ms.
-// Binary search avoids scanning all translations for every lyric line.
-function nearbyText(lines: ReturnType<typeof auxiliary> | undefined, start: number) {
-  if (!lines?.length) return undefined
-  let low = 0,
-    high = lines.length
-  while (low < high) {
-    const middle = (low + high) >>> 1
-    if (lines[middle].start < start) low = middle + 1
-    else high = middle
-  }
-  const before = lines[low - 1],
-    after = lines[low]
-  const nearest = !before
-    ? after
-    : !after
-      ? before
-      : start - before.start < after.start - start
-        ? before
-        : after
-  return nearest && Math.abs(nearest.start - start) <= 500 ? nearest.text : undefined
 }
 
 export function parseLyrics(value: Lyrics, duration: number): LyricLine[] {
   const result = parseLyricsContent(value).filter((line) =>
     line.words.some((word) => word.word.trim())
   )
-  const translations = value.translation ? auxiliary(value.translation) : undefined
-  const romans = value.romanization ? auxiliary(value.romanization) : undefined
+  const starts = result.map((line) => line.startTime)
+  const translations = matchAuxiliary(starts, value.translation ? auxiliary(value.translation) : [])
+  const romans = matchAuxiliary(starts, value.romanization ? auxiliary(value.romanization) : [])
   if (!result.length) throw new EmptyLyricsError()
   return result.map((line, index) => {
     const end =
@@ -98,10 +75,10 @@ export function parseLyrics(value: Lyrics, duration: number): LyricLine[] {
       })),
       translatedLyric: cleanAuxiliary(line.translatedLyric).trim()
         ? line.translatedLyric
-        : (nearbyText(translations, line.startTime) ?? ''),
+        : cleanAuxiliary(translations[index] ?? ''),
       romanLyric: cleanAuxiliary(line.romanLyric).trim()
         ? line.romanLyric
-        : (nearbyText(romans, line.startTime) ?? '')
+        : cleanAuxiliary(romans[index] ?? '')
     }
   })
 }

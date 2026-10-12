@@ -32,6 +32,7 @@
     "@tauri-apps/plugin-opener": "^2.7.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
+    "fastpriorityqueue": "^0.8.0",
     "lru-cache": "^11.5.3",
     "lucide-react": "^1.48.0",
     "motion": "^13.4.4",

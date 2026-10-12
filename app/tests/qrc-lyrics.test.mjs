@@ -4,6 +4,16 @@ import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 import * as amll from '@applemusic-like-lyrics/lyric'
+import FastPriorityQueue from 'fastpriorityqueue'
+
+const matching = {}
+runInNewContext(
+  ts.transpileModule(
+    readFileSync(new URL('../src/features/lyrics/auxiliary-matching.ts', import.meta.url), 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS } }
+  ).outputText,
+  { exports: matching, require: () => FastPriorityQueue }
+)
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/qrc.json', import.meta.url), 'utf8'))
 const exports = {}
@@ -11,7 +21,10 @@ const { outputText } = ts.transpileModule(
   readFileSync(new URL('../src/features/lyrics/parse-lyrics.ts', import.meta.url), 'utf8'),
   { compilerOptions: { module: ts.ModuleKind.CommonJS } }
 )
-runInNewContext(outputText, { exports, require: () => amll })
+runInNewContext(outputText, {
+  exports,
+  require: (name) => (name === './auxiliary-matching' ? matching : amll)
+})
 const lyrics = {
   source: 'qq',
   format: 'qrc',
@@ -144,4 +157,101 @@ test('slash placeholders disappear from translation and romanization without cha
   assert.equal(result[1].translatedLyric, '译文 // 内容')
   assert.equal(result[1].words[0].word, 'A // B')
   assert.equal(result[1].romanLyric, 'words / words')
+})
+
+test('dense production credits never borrow the next vocal line translation', () => {
+  const times = [23910, 23920, 23921, 23924, 23928, 23930, 29880]
+  const result = exports.parseLyrics(
+    {
+      ...lyrics,
+      content: times.map((time, index) => `[${time},100]Line ${index}(${time},100)`).join('\n'),
+      translation:
+        '[00:23.910]//\n[00:23.920]//\n[00:23.920]//\n[00:23.920]//\n[00:23.920]//\n[00:23.930]译文一\n[00:29.880]译文二',
+      romanization: null
+    },
+    31000
+  )
+  assert.deepEqual(
+    Array.from(result, (line) => line.translatedLyric),
+    ['', '', '', '', '', '译文一', '译文二']
+  )
+})
+
+test('equal timestamps pair translations and romanization in source order exactly once', () => {
+  const result = exports.parseLyrics(
+    {
+      ...lyrics,
+      content:
+        '[1000,500]Voice A(1000,500)\n[1000,500]Voice B(1000,500)\n[1100,500]Untranslated(1100,500)',
+      translation: '[00:01.00]甲\n[00:01.00]乙',
+      romanization: '[00:01.00]A\n[00:01.00]B'
+    },
+    2000
+  )
+  assert.deepEqual(
+    Array.from(result, (line) => line.translatedLyric),
+    ['甲', '乙', '']
+  )
+  assert.deepEqual(
+    Array.from(result, (line) => line.romanLyric),
+    ['A', 'B', '']
+  )
+})
+
+test('exact matches win over earlier nearby lines even without placeholder entries', () => {
+  const result = exports.parseLyrics(
+    {
+      ...lyrics,
+      format: 'lrc',
+      content: '[00:01.00]Credit\n[00:01.10]Vocal',
+      translation: '[00:01.10]译文',
+      romanization: null
+    },
+    2000
+  )
+  assert.deepEqual(
+    Array.from(result, (line) => line.translatedLyric),
+    ['', '译文']
+  )
+})
+
+test('bounded matching agrees with exhaustive nearest-pair ordering including ties and missing lines', () => {
+  let seed = 12345
+  const next = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0
+    return seed
+  }
+  for (let sample = 0; sample < 500; sample++) {
+    const starts = Array.from({ length: next() % 15 }, () => (next() % 20) * 100)
+    const entries = Array.from({ length: next() % 15 }, (_, i) => ({
+      start: (next() % 20) * 100,
+      text: `${i}`
+    }))
+    const pairs = starts
+      .flatMap((start, line) =>
+        entries.map((entry, index) => ({
+          line,
+          entry: index,
+          distance: Math.abs(start - entry.start)
+        }))
+      )
+      .filter((pair) => pair.distance <= 500)
+      .sort((a, b) => a.distance - b.distance || a.line - b.line || a.entry - b.entry)
+    const expected = Array(starts.length).fill(undefined)
+    const used = new Set()
+    for (const pair of pairs) {
+      if (expected[pair.line] !== undefined || used.has(pair.entry)) continue
+      expected[pair.line] = entries[pair.entry].text
+      used.add(pair.entry)
+    }
+    assert.deepEqual(Array.from(matching.matchAuxiliary(starts, entries)), expected)
+  }
+})
+
+test('large equal-time groups preserve order without a pair matrix', () => {
+  const entries = Array.from({ length: 20000 }, (_, i) => ({ start: 1000, text: `${i}` }))
+  const result = matching.matchAuxiliary(Array(20001).fill(1000), entries)
+  assert.equal(result[0], '0')
+  assert.equal(result[19999], '19999')
+  assert.equal(result[20000], undefined)
 })
