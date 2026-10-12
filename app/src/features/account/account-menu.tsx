@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
-import { LogOut, UserPlus, ArrowRight } from 'lucide-react'
+import { LogOut, UserPlus } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { musicClient } from '@/features/music/client'
-import { sourcePreferences } from '@/features/music/source-preferences'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { sourceLabel } from '@/features/music/source-label'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
@@ -47,9 +46,7 @@ export function AccountMenu() {
         render={<ActionButton variant="ghost" size="sm" className="gap-2" aria-label="音乐账号" />}
       >
         <AccountAvatar avatar={adapter?.current?.avatar} />
-        <span className="max-w-48 truncate">
-          {name} · {adapter?.current?.displayName ?? '未登录'}
-        </span>
+        <span className="max-w-48 truncate">{adapter?.current?.displayName ?? '未登录'}</span>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="end" sideOffset={8} className="z-50">
@@ -67,43 +64,10 @@ export function AccountMenu() {
             {adapters.map((item) => {
               const { source, displayName } = item.descriptor
               return (
-                <section
-                  key={source}
-                  className="mt-4 border-t border-border pt-3"
-                  aria-label={`${displayName}账号`}
-                >
-                  <div className="flex items-center gap-3">
-                    <AccountAvatar avatar={item.current?.avatar} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">
-                        {displayName}
-                        {source === current ? ' · 当前来源' : ''}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {!item.enabled
-                          ? '已停用，保存账号保留'
-                          : item.current
-                            ? `${item.current.displayName} · 已登录`
-                            : '未登录'}
-                      </p>
-                    </div>
-                    <ActionButton
-                      variant="ghost"
-                      size="sm"
-                      disabled={busy || !item.enabled}
-                      onClick={() =>
-                        void act(async () => {
-                          const intent = await sourcePreferences.beginIntent()
-                          await sourcePreferences.use(source, intent)
-                        })
-                      }
-                    >
-                      <ArrowRight aria-hidden="true" />
-                      使用此来源
-                    </ActionButton>
-                  </div>
+                <section key={source} className="mt-4" aria-label={`${displayName}账号`}>
                   <SavedAccounts
                     open={open}
+                    showSeparator={false}
                     source={source}
                     sourceName={displayName}
                     current={item.current?.reference}

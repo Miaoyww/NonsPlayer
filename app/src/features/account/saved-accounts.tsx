@@ -12,6 +12,7 @@ export function SavedAccounts({
   source,
   sourceName,
   current,
+  showSeparator = true,
   enabled = true,
   onChanged
 }: {
@@ -19,6 +20,7 @@ export function SavedAccounts({
   source: string
   sourceName: string
   current?: AccountRef
+  showSeparator?: boolean
   enabled?: boolean
   onChanged?: () => void
 }) {
@@ -85,7 +87,10 @@ export function SavedAccounts({
   }
   if (!open) return null
   return (
-    <section aria-label={`保存的${sourceName}账号`} className="mt-4 border-t border-border pt-3">
+    <section
+      aria-label={`保存的${sourceName}账号`}
+      className={showSeparator ? 'mt-4 border-t border-border pt-3' : undefined}
+    >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">保存的账号</p>
         <ActionButton
