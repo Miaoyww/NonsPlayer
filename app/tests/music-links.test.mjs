@@ -26,6 +26,18 @@ function harness() {
   return { ...exports, navigations }
 }
 
+test('uniform artist and album navigation preserve source and opaque reference instead of numeric IDs', () => {
+  const app = harness()
+  const artist = { source: 'qqmusic', kind: 'artist', id: 'artist/雪:1' }
+  const album = { source: 'qqmusic', kind: 'album', id: 'album/雪:1' }
+  const tree = app.ArtistLinks({ artists: [{ name: 'Singer', reference: artist }] })
+  tree.props.children[0].props.children[1].props.onClick({ stopPropagation() {} })
+  app.AlbumLink({ reference: album, name: 'Album' }).props.onClick({ stopPropagation() {} })
+  assert.equal(app.navigations[0][2].reference, artist)
+  assert.equal(app.navigations[1][2].reference, album)
+  assert.equal(app.navigations[0][2].id, 0)
+})
+
 test('each structured artist navigates independently and preserves slash-containing names', () => {
   const app = harness()
   const tree = app.ArtistLinks({

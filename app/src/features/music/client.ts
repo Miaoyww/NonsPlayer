@@ -1,4 +1,5 @@
 import { nativeCall } from '@/lib/player'
+import type { Track } from '@/lib/player'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import type {
   AccountPresentation,
@@ -28,6 +29,8 @@ async function scoped<T>(
 }
 export const musicClient: MusicSourceClient & {
   sources(): Promise<SourceDescriptor[]>
+  queueTrack(reference: EntityRef): Promise<Track>
+  queueTracks(source: string, tracks: MusicTrack[]): Promise<Track[]>
   accounts(source: string): Promise<AccountRecord[]>
   currentAccount(source: string): Promise<AccountRecord | null>
   account(source: string, request: AccountRequest): Promise<AccountPresentation>
@@ -39,6 +42,8 @@ export const musicClient: MusicSourceClient & {
   ): Promise<Exclude<MusicResponse, { type: 'write' }>>
 } = {
   sources: () => nativeCall('music_sources'),
+  queueTrack: (reference) => scoped(reference.source, 'music_queue_track', { reference }),
+  queueTracks: (source, tracks) => scoped(source, 'music_queue_tracks', { tracks }),
   getTrack: (reference: EntityRef) =>
     scoped<MusicTrack>(reference.source, 'music_read_track', { reference }),
   query: (source, request) => scoped(source, 'music_query', { request }),

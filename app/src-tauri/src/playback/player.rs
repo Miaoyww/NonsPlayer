@@ -594,12 +594,12 @@ impl Actor {
                     }
                     .await;
                     let _ = tauri::async_runtime::spawn_blocking(move || {
-                        sender.send(Command::CollectionReady {
+                        let _ = sender.send(Command::CollectionReady {
                             serial,
                             scope,
                             result,
                             reply,
-                        })
+                        });
                     })
                     .await;
                 }));
@@ -1083,13 +1083,13 @@ impl Actor {
             let result = music.resolve(track, &quality, downgrade, generation).await;
             // Bounded channel delivery is performed off the audio thread.
             let _ = tauri::async_runtime::spawn_blocking(move || {
-                sender.send(Command::Resolved {
+                let _ = sender.send(Command::Resolved {
                     generation,
                     index,
                     key,
                     result: Box::new(result),
                     next,
-                })
+                });
             })
             .await;
         });

@@ -51,6 +51,9 @@ export function TrackIdentity({
         >
           <TrackArtists track={track} />
           {showSource && track.source.kind === 'local' && <span className="ml-2">· 本地</span>}
+          {showSource && track.source.kind === 'online' && (
+            <span className="ml-2">· {track.source.track.reference.source}</span>
+          )}
         </p>
       </div>
     </div>

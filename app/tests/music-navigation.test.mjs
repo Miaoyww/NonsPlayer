@@ -70,6 +70,28 @@ function harness() {
   }
   return { render, mouse, unmount, close }
 }
+test('opaque entity references distinguish cross-source history and remain intact when going back', () => {
+  const app = harness()
+  const first = {
+    id: 0,
+    kind: 'album',
+    name: 'Same album',
+    cover: '',
+    subtitle: '',
+    trackCount: 0,
+    reference: { source: 'qqmusic', kind: 'album', id: 'album/雪:1' }
+  }
+  const second = { ...first, reference: { ...first.reference, source: 'other' } }
+  app.render().navigate('album', '', first)
+  app.render().navigate('album', '', second)
+  assert.equal(app.render().page.collection.reference.source, 'other')
+  app.render().back()
+  assert.equal(app.render().page.collection.reference.source, 'qqmusic')
+  assert.equal(app.render().page.collection.reference.id, 'album/雪:1')
+  app.render().forward()
+  assert.equal(app.render().page.collection.reference.source, 'other')
+  app.close()
+})
 test('mouse back and forward navigate application history exactly once per click', () => {
   const app = harness()
   app.render().navigate('discover')

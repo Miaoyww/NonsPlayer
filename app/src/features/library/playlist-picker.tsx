@@ -85,7 +85,12 @@ export function PlaylistPicker({
     scroll.current?.scrollTo({ top: 0 })
   }, [query])
   async function collect(item: MusicCollection) {
-    const id = track?.source.kind === 'netease' ? track.source.id : track?.source.neteaseId
+    const id =
+      track?.source.kind === 'netease'
+        ? track.source.id
+        : track?.source.kind === 'local'
+          ? track.source.neteaseId
+          : undefined
     if (!id || pending.current || !profile) return
     const userId = profile.userId
     pending.current = true

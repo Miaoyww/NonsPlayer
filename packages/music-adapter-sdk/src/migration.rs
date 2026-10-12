@@ -33,7 +33,19 @@ fn netease_reference(kind: EntityKind, id: u64) -> MusicResult<EntityRef> {
 }
 
 pub fn convert_track(track: Track) -> MusicResult<MigratedTrack> {
+    if let TrackSource::Online { track: music } = &track.source {
+        music.validate(&music.reference)?;
+        if music.reference.source.as_str() == "local" || track.key != music.reference.key() {
+            return Err(ErrorCode::InvalidData.into());
+        }
+        return Ok(MigratedTrack {
+            legacy_key: track.key,
+            track: *music.clone(),
+            local_binding: None,
+        });
+    }
     let (identity, local_binding, associations, online) = match &track.source {
+        TrackSource::Online { .. } => unreachable!("handled above"),
         TrackSource::Netease { id } => (
             netease_reference(EntityKind::Track, *id)?,
             None,

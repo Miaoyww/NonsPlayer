@@ -71,6 +71,57 @@ async fn music_read_track(
     Ok(track)
 }
 #[tauri::command]
+fn music_queue_tracks(
+    source: crate::music::identity::SourceId,
+    scope: String,
+    tracks: Vec<crate::music::identity::MusicTrack>,
+    backend: State<'_, Backend>,
+) -> crate::music::MusicResult<Vec<Track>> {
+    if tracks.len() > 100
+        || tracks.iter().any(|track| track.reference.source != source)
+        || serde_json::to_vec(&tracks)
+            .map_err(|_| crate::music::ErrorCode::InvalidData)?
+            .len()
+            > 2 * 1024 * 1024
+    {
+        return Err(crate::music::ErrorCode::InvalidData.into());
+    }
+    if backend.music.adapters.cache_identity(&source)? != scope {
+        return Err(crate::music::ErrorCode::StaleContext.into());
+    }
+    let tracks = tracks
+        .into_iter()
+        .map(Track::from_music)
+        .collect::<crate::music::MusicResult<Vec<_>>>()?;
+    backend
+        .store
+        .save_tracks(&tracks)
+        .map_err(|_| crate::music::ErrorCode::Internal)?;
+    Ok(tracks)
+}
+
+#[tauri::command]
+async fn music_queue_track(
+    reference: crate::music::identity::EntityRef,
+    scope: String,
+    backend: State<'_, Backend>,
+) -> crate::music::MusicResult<Track> {
+    if backend.music.adapters.cache_identity(&reference.source)? != scope {
+        return Err(crate::music::ErrorCode::StaleContext.into());
+    }
+    let music = backend.music.adapters.read_track(&reference).await?;
+    let track = Track::from_music(music)?;
+    if backend.music.adapters.cache_identity(&reference.source)? != scope {
+        return Err(crate::music::ErrorCode::StaleContext.into());
+    }
+    backend
+        .store
+        .save_tracks(std::slice::from_ref(&track))
+        .map_err(|_| crate::music::ErrorCode::Internal)?;
+    Ok(track)
+}
+
+#[tauri::command]
 async fn music_write(
     source: crate::music::identity::SourceId,
     request: crate::music::business::BusinessRequest,
@@ -1022,6 +1073,8 @@ pub fn run() {
             music_query,
             music_write,
             music_read_track,
+            music_queue_track,
+            music_queue_tracks,
             music_account,
             music_accounts,
             music_current_account,

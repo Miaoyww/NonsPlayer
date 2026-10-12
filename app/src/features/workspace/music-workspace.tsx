@@ -31,6 +31,7 @@ const AlbumPage = lazy(() => import('@/features/library/album-page'))
 const Discovery = lazy(() => import('@/features/discovery/discovery'))
 const AccountLoginPage = lazy(() => import('@/features/account/account-login-page'))
 const MusicLibrary = lazy(() => import('@/features/library/music-library'))
+const EntityPage = lazy(() => import('@/features/music/entity-page'))
 interface ImportReport {
   imported: number
   skipped: number
@@ -236,7 +237,17 @@ export function MusicWorkspace({
                   )}
                 </div>
               )}
-              {(view === 'artist' || view === 'album') && page.collection ? (
+              {page.collection?.reference && ['artist', 'album', 'collection'].includes(view) ? (
+                <Suspense
+                  fallback={<MusicPageSkeleton view="collection" collection={page.collection} />}
+                >
+                  <EntityPage
+                    key={JSON.stringify(page.collection.reference)}
+                    collection={page.collection}
+                    onError={onError}
+                  />
+                </Suspense>
+              ) : (view === 'artist' || view === 'album') && page.collection ? (
                 <Suspense
                   fallback={<MusicPageSkeleton view="collection" collection={page.collection} />}
                 >

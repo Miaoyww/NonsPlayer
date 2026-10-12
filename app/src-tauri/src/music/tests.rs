@@ -18,6 +18,107 @@ fn track_ref(provider: &str, value: &str) -> EntityRef {
         id: id(value),
     }
 }
+
+#[test]
+fn uniform_tracks_survive_real_storage_and_mixed_queue_restore() {
+    use crate::model::{PlayerSnapshot, Track, TrackSource};
+    let music = |provider: &str, value: &str| MusicTrack {
+        reference: track_ref(provider, value),
+        title: "Same song".into(),
+        aliases: vec![],
+        artist: "Singer".into(),
+        artists: vec![MusicCredit {
+            name: "Singer".into(),
+            reference: Some(EntityRef {
+                source: source(provider),
+                kind: EntityKind::Artist,
+                id: id("artist/雪"),
+            }),
+        }],
+        album: "Album".into(),
+        album_reference: Some(EntityRef {
+            source: source(provider),
+            kind: EntityKind::Album,
+            id: id("album:雪"),
+        }),
+        duration_ms: 1000,
+        cover: String::new(),
+        associations: vec![track_ref("netease", "123")],
+    };
+    let a = Track::from_music(music("qqmusic", "same/雪:1")).unwrap();
+    let b = Track::from_music(music("other", "same/雪:1")).unwrap();
+    assert_ne!(a.key, b.key);
+    assert_eq!(a.source_id(), "qqmusic");
+    let old: Track =
+        serde_json::from_value(legacy(json!({"kind":"netease","id":1}), "netease:1")).unwrap();
+    let local: Track = serde_json::from_value(legacy(
+        json!({"kind":"local","path":"music.wav","neteaseId":null}),
+        "local:old",
+    ))
+    .unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("library.sqlite3");
+    let store = crate::storage::Store::open(&path).unwrap();
+    let queue = vec![old.clone(), a.clone(), local, b.clone()];
+    store.save_tracks(&queue).unwrap();
+    let saved = PlayerSnapshot {
+        queue,
+        index: Some(1),
+        position_ms: 400,
+        ..Default::default()
+    };
+    store.save_player(&saved).unwrap();
+    drop(store);
+    let restored = crate::storage::Store::open(&path).unwrap();
+    let track = restored.track(&a.key).unwrap();
+    assert_eq!(track.source_id(), "qqmusic");
+    let uniform = legacy_track(&serde_json::to_string(&track).unwrap())
+        .unwrap()
+        .track;
+    assert_eq!(uniform, music("qqmusic", "same/雪:1"));
+    let snapshot: PlayerSnapshot =
+        serde_json::from_str(&restored.setting("player").unwrap().unwrap()).unwrap();
+    assert_eq!(snapshot.queue.len(), 4);
+    assert_eq!(snapshot.index, Some(1));
+    assert_eq!(snapshot.position_ms, 400);
+    assert!(matches!(
+        snapshot.queue[0].source,
+        TrackSource::Netease { id: 1 }
+    ));
+    assert!(matches!(
+        snapshot.queue[2].source,
+        TrackSource::Local { .. }
+    ));
+    let db = restored.0.lock().unwrap();
+    let stored_source: String = db
+        .query_row("SELECT source FROM tracks WHERE key=?1", [&a.key], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(stored_source, "qqmusic");
+    drop(db);
+    let mut invalid = a;
+    invalid.key = b.key;
+    assert!(restored.save_tracks(&[invalid]).is_err());
+}
+
+#[test]
+fn queue_bridge_preserves_netease_legacy_keys_and_rejects_local_uniform_entries() {
+    use crate::model::{Track, TrackSource};
+    let mut music =
+        legacy_track(&legacy(json!({"kind":"netease","id":1}), "netease:1").to_string())
+            .unwrap()
+            .track;
+    let track = Track::from_music(music.clone()).unwrap();
+    assert_eq!(track.key, "netease:1");
+    assert!(matches!(track.source, TrackSource::Netease { id: 1 }));
+    assert_eq!(track.artists[0].id, Some(12));
+    assert_eq!(track.album_id, Some(20));
+    music.reference.source = source("local");
+    music.artists.clear();
+    music.album_reference = None;
+    assert!(Track::from_music(music).is_err());
+}
 fn context() -> RequestContext {
     RequestContext {
         session: SessionContext {

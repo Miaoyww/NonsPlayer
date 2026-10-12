@@ -16,7 +16,25 @@ export function SongIdentity({ song }: { song: PluginMenuSong }) {
   const track: Track = {
     ...song,
     source:
-      song.source.kind === 'netease' ? song.source : { kind: 'local', path: '', neteaseId: null }
+      song.source.kind === 'netease'
+        ? song.source
+        : song.source.kind === 'online'
+          ? {
+              kind: 'online',
+              track: {
+                reference: song.source.reference,
+                title: song.title,
+                aliases: song.aliases ?? [],
+                artist: song.artist,
+                artists: [],
+                album: song.album,
+                albumReference: null,
+                durationMs: song.durationMs,
+                cover: song.cover,
+                associations: []
+              }
+            }
+          : { kind: 'local', path: '', neteaseId: null }
   }
   return <TrackIdentity track={track} />
 }

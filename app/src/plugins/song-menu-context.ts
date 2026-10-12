@@ -20,6 +20,8 @@ export function publicMenuSong(track: Track) {
     source:
       track.source.kind === 'netease'
         ? { kind: 'netease' as const, id: track.source.id }
-        : { kind: 'local' as const }
+        : track.source.kind === 'online'
+          ? { kind: 'online' as const, reference: track.source.track.reference }
+          : { kind: 'local' as const }
   }
 }

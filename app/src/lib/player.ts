@@ -11,10 +11,13 @@ import {
 } from '@/lib/runtime-cache'
 
 export type TrackSource =
-  { kind: 'netease'; id: number } | { kind: 'local'; path: string; neteaseId: number | null }
+  | { kind: 'online'; track: import('@/features/music/types').MusicTrack }
+  | { kind: 'netease'; id: number }
+  | { kind: 'local'; path: string; neteaseId: number | null }
 export interface MusicCredit {
   name: string
   id?: number | null
+  reference?: import('@/features/music/types').EntityRef | null
 }
 export interface Track {
   key: string

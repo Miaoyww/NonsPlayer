@@ -1,4 +1,4 @@
-//! Temporary host facade over the uniform contract; legacy queue DTOs remain intact.
+//! Playback routing for uniform online identities and compatible Netease/local queues.
 use super::{
     manager::{AdapterManager, ResourceTicket},
     resource::ResolveRequest,
@@ -31,12 +31,10 @@ impl MusicService {
                 .await
                 .map(|resolved| (resolved, None));
         }
-        let reference = super::migration::legacy_track(
-            &serde_json::to_string(&track).map_err(|e| e.to_string())?,
-        )
-        .map_err(|e| e.to_string())?
-        .track
-        .reference;
+        let reference = nons_music_adapter_sdk::migration::convert_track(track.clone())
+            .map_err(|e| e.to_string())?
+            .track
+            .reference;
         let ticket = self
             .adapters
             .resolve_playback(

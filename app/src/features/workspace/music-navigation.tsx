@@ -16,6 +16,7 @@ export type MusicView =
   | 'local-album'
   | 'local-playlist'
 export interface MusicCollection {
+  reference?: import('@/features/music/types').EntityRef
   localId?: string
   id: number
   kind: 'playlist' | 'album' | 'artist'
@@ -123,6 +124,7 @@ export function MusicNavigationProvider({ children }: { children: ReactNode }) {
         current.collection?.id === collection?.id &&
         current.collection?.kind === collection?.kind &&
         current.collection?.localId === collection?.localId &&
+        JSON.stringify(current.collection?.reference) === JSON.stringify(collection?.reference) &&
         current.collection?.name === collection?.name
       )
         return previous

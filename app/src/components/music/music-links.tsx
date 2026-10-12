@@ -21,14 +21,15 @@ export function ArtistLinks({
       {credits.map((artist, index) => (
         <Fragment key={`${artist.id ?? artist.name}:${index}`}>
           {index > 0 && <span className="music-credit-separator"> {separator} </span>}
-          {artist.id ? (
+          {artist.id || artist.reference ? (
             <button
               type="button"
               className="music-entity-link"
               onClick={(event: MouseEvent) => {
                 event.stopPropagation()
                 navigate('artist', '', {
-                  id: artist.id!,
+                  id: artist.id ?? 0,
+                  reference: artist.reference ?? undefined,
                   kind: 'artist',
                   name: artist.name,
                   cover: '',
@@ -50,21 +51,31 @@ export function ArtistLinks({
 
 export function AlbumLink({
   id,
+  reference,
   name,
   cover = ''
 }: {
   id?: number | null
+  reference?: import('@/features/music/types').EntityRef | null
   name: string
   cover?: string
 }) {
   const { navigate } = useMusicNavigation()
-  return id ? (
+  return id || reference ? (
     <button
       type="button"
       className="music-entity-link"
       onClick={(event) => {
         event.stopPropagation()
-        navigate('album', '', { id, kind: 'album', name, cover, subtitle: '', trackCount: 0 })
+        navigate('album', '', {
+          id: id ?? 0,
+          reference: reference ?? undefined,
+          kind: 'album',
+          name,
+          cover,
+          subtitle: '',
+          trackCount: 0
+        })
       }}
     >
       {name}
@@ -79,6 +90,8 @@ export function TrackArtists({ track }: { track: Track }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   if (track.source.kind === 'local') return <LocalTrackArtists track={track} />
+  if (track.source.kind === 'online')
+    return <ArtistLinks artists={track.source.track.artists} name={track.artist} />
   const onlineId = track.source.id
   if (track.artists?.length || !onlineId)
     return <ArtistLinks artists={track.artists} name={track.artist} />
@@ -132,6 +145,14 @@ export function TrackAlbum({ track }: { track: Track }) {
   const { navigate } = useMusicNavigation()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
+  if (track.source.kind === 'online')
+    return (
+      <AlbumLink
+        reference={track.source.track.albumReference}
+        name={track.album}
+        cover={track.cover}
+      />
+    )
   if (track.source.kind === 'local')
     return (
       <button

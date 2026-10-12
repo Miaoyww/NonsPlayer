@@ -180,7 +180,10 @@ export interface PluginMenuSong {
   album: string
   durationMs: number
   cover: string
-  source: { kind: 'netease'; id: number } | { kind: 'local' }
+  source:
+    | { kind: 'netease'; id: number }
+    | { kind: 'local' }
+    | { kind: 'online'; reference: import('./music').EntityRef }
 }
 export interface PluginTransfer {
   id: number

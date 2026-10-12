@@ -109,6 +109,25 @@ fn resolve(id: &str) -> ResolveRequest {
 }
 
 #[tokio::test]
+async fn real_component_routes_uniform_queue_track_through_playback_service() {
+    let (manager, session, _) = setup().await;
+    let reference = reference("音乐:α/001");
+    let music = manager.read_track(&reference).await.unwrap();
+    let track = crate::model::Track::from_music(music).unwrap();
+    let key = track.key.clone();
+    let service = crate::music::service::MusicService::new(manager.clone());
+    let (resolved, ticket) = service.resolve(track, "fixture", false, 11).await.unwrap();
+    assert_eq!(resolved.track.key, key);
+    assert_eq!(resolved.track.source_id(), "fixture-radio");
+    let ticket = ticket.unwrap();
+    ticket.check(11).unwrap();
+    session.fetch_add(1, Ordering::AcqRel);
+    assert_eq!(ticket.check(11).unwrap_err().code, ErrorCode::StaleContext);
+    // Revocation does not delete the stable queue identity.
+    assert_eq!(resolved.track.key, key);
+}
+
+#[tokio::test]
 async fn real_component_opaque_ids_two_pages_missing_capability_and_account_switch() {
     let (manager, session, _) = setup().await;
     let track = manager.read_track(&reference("音乐:α/001")).await.unwrap();

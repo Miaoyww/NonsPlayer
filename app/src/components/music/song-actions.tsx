@@ -51,7 +51,12 @@ interface SongInformation {
   publishedAt: number | null
 }
 export function songLink(track: Track) {
-  const id = track.source.kind === 'netease' ? track.source.id : track.source.neteaseId
+  const id =
+    track.source.kind === 'netease'
+      ? track.source.id
+      : track.source.kind === 'local'
+        ? track.source.neteaseId
+        : undefined
   return id ? `https://music.163.com/#/song?id=${id}` : ''
 }
 export function songCopyName(track: Track) {
@@ -190,7 +195,9 @@ export function SongActionsProvider({
               '歌曲 ID',
               (track.source.kind === 'netease'
                 ? track.source.id
-                : track.source.neteaseId
+                : track.source.kind === 'local'
+                  ? track.source.neteaseId
+                  : track.source.track.reference.id
               )?.toString() ?? ''
             ],
             ['时长', formatTime(track.durationMs)],
