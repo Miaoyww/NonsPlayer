@@ -141,8 +141,8 @@ impl LyricService {
             "{:x}",
             Sha256::digest(serde_json::to_vec(&(&track, &separators)).map_err(|e| e.to_string())?)
         );
-        let qrc_key = format!("qq:qrc-v2:{digest}");
-        let lrc_key = format!("qq:lrc-v2:{digest}");
+        let qrc_key = format!("qq:qrc-v3:{digest}");
+        let lrc_key = format!("qq:lrc-v3:{digest}");
         let search_key = format!("netease:search-v1:{digest}");
         let qq_key = if skips.qrc { &lrc_key } else { &qrc_key };
         if refresh {

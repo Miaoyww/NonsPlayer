@@ -11,7 +11,28 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use quick_xml::{events::Event, Reader};
 use regex::Regex;
 use serde_json::{json, Value};
-use std::{sync::LazyLock, time::Duration};
+use std::{
+    sync::LazyLock,
+    time::{Duration, Instant},
+};
+
+#[cfg(test)]
+#[path = "qq_lyrics/fallback_tests.rs"]
+mod fallback_tests;
+#[path = "qq_lyrics/play_lyric.rs"]
+mod play_lyric;
+
+struct LyricEndpoints<'a> {
+    qrc: &'a str,
+    musicu: &'a str,
+    lrc: &'a str,
+}
+
+const LYRIC_ENDPOINTS: LyricEndpoints<'static> = LyricEndpoints {
+    qrc: "https://c.y.qq.com/qqmusic/fcgi-bin/lyric_download.fcg",
+    musicu: "https://u.y.qq.com/cgi-bin/musicu.fcg",
+    lrc: "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg",
+};
 
 pub const MINIMUM_SCORE: u32 = crate::lyric_matching::PREFERRED_MINIMUM_SCORE;
 
@@ -46,6 +67,7 @@ async fn lookup_inner(
     skip_qrc: bool,
     separators: &[String],
 ) -> AppResult<Option<Lyrics>> {
+    let started = Instant::now();
     if track.title.trim().is_empty() || track.artist.trim().is_empty() {
         return Ok(None);
     }
@@ -96,10 +118,30 @@ async fn lookup_inner(
             Ok(None)
         };
     };
+    let budget = Duration::from_secs(6)
+        .saturating_sub(started.elapsed())
+        .saturating_sub(Duration::from_millis(25));
+    let mut lyrics =
+        fetch_candidate(client, &candidate, skip_qrc, &LYRIC_ENDPOINTS, budget).await?;
+    if let Some(value) = &mut lyrics {
+        value.match_score = Some(score);
+    }
+    Ok(lyrics)
+}
+
+async fn fetch_candidate(
+    client: &reqwest::Client,
+    candidate: &Candidate,
+    skip_qrc: bool,
+    endpoints: &LyricEndpoints<'_>,
+    budget: Duration,
+) -> AppResult<Option<Lyrics>> {
+    let started = Instant::now();
+    let mut primary = None;
     if let Some(id) = candidate.id.filter(|_| !skip_qrc) {
         // Reserve time for the legacy LRC request within the shared 6-second budget.
         let request = client
-            .post("https://c.y.qq.com/qqmusic/fcgi-bin/lyric_download.fcg")
+            .post(endpoints.qrc)
             .header("Referer", "https://c.y.qq.com/")
             .form(&[
                 ("version", "15"),
@@ -113,16 +155,49 @@ async fn lookup_inner(
                 .await
                 .map_err(|e| e.to_string())?
         };
-        if let Ok(Ok(Some(mut lyrics))) =
-            tokio::time::timeout(Duration::from_millis(900), qrc).await
-        {
-            lyrics.match_score = Some(score);
-            return Ok(Some(lyrics));
+        if let Ok(Ok(Some(lyrics))) = tokio::time::timeout(Duration::from_millis(900), qrc).await {
+            if lyrics.translation.is_some() {
+                return Ok(Some(lyrics));
+            }
+            primary = Some(lyrics);
         }
     }
-    // QRC missing, damaged or unavailable: keep the matched song's legacy LRC.
+    // Leave room for LRC, or return the already usable QRC before the outer deadline.
+    let reserve = if primary.is_some() {
+        Duration::from_millis(25)
+    } else {
+        Duration::from_millis(1400)
+    };
+    let modern_budget = budget
+        .saturating_sub(started.elapsed())
+        .saturating_sub(reserve);
+    let modern = if candidate.id.is_some() && !modern_budget.is_zero() {
+        tokio::time::timeout(
+            modern_budget,
+            play_lyric::fetch(client, candidate, skip_qrc, endpoints.musicu),
+        )
+        .await
+        .ok()
+        .and_then(Result::ok)
+        .flatten()
+    } else {
+        None
+    };
+    if let Some(mut lyrics) = primary {
+        if let Some(extra) = modern {
+            supplement(&mut lyrics, extra);
+        }
+        return Ok(Some(lyrics));
+    }
+    if modern
+        .as_ref()
+        .is_some_and(|l| !skip_qrc || l.format != "qrc")
+    {
+        return Ok(modern);
+    }
+    // Exhaust the richer endpoint before falling back to the legacy songmid LRC.
     let request = client
-        .get("https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg")
+        .get(endpoints.lrc)
         .header("Referer", "https://c.y.qq.com/")
         .query(&[
             ("songmid", candidate.mid.as_str()),
@@ -137,9 +212,28 @@ async fn lookup_inner(
         ]);
     let mut lyrics = decode_lyrics(read_json(request).await?)?;
     if let Some(value) = &mut lyrics {
-        value.match_score = Some(score);
+        if let Some(extra) = modern {
+            supplement(value, extra);
+        }
     }
     Ok(lyrics)
+}
+
+fn supplement(lyrics: &mut Lyrics, extra: Lyrics) {
+    let mut bytes = lyrics.content.len()
+        + lyrics.translation.as_ref().map_or(0, String::len)
+        + lyrics.romanization.as_ref().map_or(0, String::len);
+    for (target, candidate) in [
+        (&mut lyrics.translation, extra.translation),
+        (&mut lyrics.romanization, extra.romanization),
+    ] {
+        if target.is_none() {
+            if let Some(text) = candidate.filter(|s| bytes + s.len() <= MAX_LYRIC_BYTES) {
+                bytes += text.len();
+                *target = Some(text);
+            }
+        }
+    }
 }
 
 async fn read_json(request: reqwest::RequestBuilder) -> AppResult<Value> {
@@ -300,8 +394,8 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
 }
 
 fn decode_qrc_field(text: &str) -> AppResult<String> {
-    // Some lyric_download fields contain plaintext LRC rather than ciphertext.
-    let text = if text.trim_start().starts_with('[') {
+    // Some fields contain plaintext LRC or QRC XML rather than ciphertext.
+    let text = if text.trim_start().starts_with('[') || text.trim_start().starts_with('<') {
         text.to_owned()
     } else {
         crate::qrc_decrypt::decrypt(text)?
@@ -317,12 +411,13 @@ fn decode_qrc_field(text: &str) -> AppResult<String> {
                 for attribute in e.attributes() {
                     let attribute = attribute.map_err(|_| "QRC 正文属性无效")?;
                     if attribute.key.as_ref() == b"LyricContent" {
-                        content = Some(
-                            attribute
-                                .decode_and_unescape_value(reader.decoder())
-                                .map_err(|_| "QRC 正文编码无效")?
-                                .into_owned(),
-                        );
+                        let raw = reader
+                            .decoder()
+                            .decode(attribute.value.as_ref())
+                            .map_err(|_| "QRC 正文编码无效")?;
+                        // QQ can leave literal '&' in this attribute. Decode valid entities
+                        // while preserving that text instead of rejecting the whole QRC.
+                        content = Some(html_escape::decode_html_entities(&raw).into_owned());
                     }
                 }
             }
@@ -386,6 +481,14 @@ fn select_candidate(best: Option<(Candidate, u32)>) -> Option<(Candidate, u32)> 
 mod tests {
     use super::*;
     use crate::model::TrackSource;
+    #[test]
+    fn qrc_attributes_preserve_bare_ampersands_and_decode_valid_entities() {
+        let xml = "<QrcInfos><LyricInfo><Lyric_1 LyricContent=\"[ti:A & B]\n[1000,1000]A &amp; B &#39;x&#39; &unknown;(1000,1000)\"/></LyricInfo></QrcInfos>";
+        assert_eq!(
+            decode_qrc_field(xml).unwrap(),
+            "[ti:A & B]\n[1000,1000]A & B 'x' &unknown;(1000,1000)"
+        );
+    }
     #[test]
     fn low_qq_candidate_is_retained_for_fallback_comparison() {
         assert!(select_candidate(Some((candidate(), 79))).is_some());
@@ -454,7 +557,7 @@ mod tests {
             source: TrackSource::Netease { id: 1 },
         }
     }
-    fn candidate() -> Candidate {
+    pub(super) fn candidate() -> Candidate {
         Candidate {
             id: Some(97773),
             mid: "abc".into(),
