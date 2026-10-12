@@ -497,21 +497,23 @@ async fn play_library_collection(
     key: Option<String>,
     backend: State<'_, Backend>,
 ) -> AppResult<bool> {
-    let mut page = backend.music.library_queue(&kind, id).await?;
-    save_library_tracks(&mut page.tracks, &backend)?;
-    if page.tracks.is_empty() {
-        return Err("这个收藏还没有可播放的歌曲".into());
+    if id == 0 || !matches!(kind.as_str(), "playlist" | "album" | "artist") {
+        return Err("收藏参数无效".into());
     }
-    let index = match key {
-        Some(key) => page
-            .tracks
-            .iter()
-            .position(|t| t.key == key)
-            .ok_or("歌曲已不在收藏中，请刷新")?,
-        None => 0,
-    };
-    backend.player.send(Command::Queue(page.tracks, index))?;
-    Ok(page.more)
+    let track = key
+        .as_deref()
+        .map(|key| backend.store.track(key))
+        .transpose()?;
+    let (reply, completion) = tokio::sync::oneshot::channel();
+    backend.player.send(Command::Collection {
+        kind,
+        id,
+        track,
+        fallback_cover: backend.fallback_cover.clone(),
+        reply,
+    })?;
+    // Superseded requests are silent; their actor-owned preparation task drops the sender.
+    completion.await.unwrap_or(Ok(false))
 }
 
 #[tauri::command]

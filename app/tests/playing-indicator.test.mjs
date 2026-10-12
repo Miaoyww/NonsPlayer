@@ -15,7 +15,8 @@ function harness() {
       useReducedMotion: () => state.reduced
     },
     '@/lib/player': { usePlayer: () => state },
-    '@/components/animate-ui/icons/audio-lines': { AudioLines: 'AudioLines' }
+    '@/components/animate-ui/icons/audio-lines': { AudioLines: 'AudioLines' },
+    '@/components/ui/spinner': { Spinner: 'Spinner' }
   }
   const exports = {}
   const { outputText } = ts.transpileModule(
@@ -30,12 +31,32 @@ test('the playback indicator animates only during actual playback and resumes af
   const h = harness()
   assert.equal(h.render().props.children.props.animate, true)
   assert.equal(h.render().props['aria-label'], '正在播放')
-  for (const status of ['paused', 'loading', 'buffering', 'error', 'stopped']) {
+  for (const status of ['paused', 'error', 'stopped']) {
     h.state.status = status
     assert.equal(h.render().props.children.props.animate, false, status)
   }
   h.state.status = 'playing'
   assert.equal(h.render().props.children.props.animate, true)
+})
+
+test('loading and buffering expose immediate loading feedback instead of playback animation', () => {
+  const h = harness()
+  for (const status of ['loading', 'buffering']) {
+    h.state.status = status
+    assert.equal(h.render().props['aria-label'], '正在加载')
+    assert.equal(h.render().props.children.type, 'Spinner')
+    assert.equal(h.render().props.children.props.style.animationPlayState, 'running')
+  }
+})
+
+test('loading icons stop animating offscreen and for reduced motion', () => {
+  const h = harness()
+  h.state.status = 'loading'
+  h.state.visible = false
+  assert.equal(h.render().props.children.props.style.animationPlayState, 'paused')
+  h.state.visible = true
+  h.state.reduced = true
+  assert.equal(h.render().props.children.props.style.animationPlayState, 'paused')
 })
 
 test('offscreen and reduced-motion playback indicators stay static', () => {

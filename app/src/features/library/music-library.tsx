@@ -17,7 +17,7 @@ import { SongContextMenu } from '@/components/music/song-actions'
 import { TrackTitle } from '@/components/music/track-title'
 // Layout and interaction adapted from YesPlayMusic src/views/library.vue.
 // Copyright (c) 2020-2023 qier222, MIT. See notices/YesPlayMusic-LICENSE.txt.
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Play, RefreshCw, UserRound } from 'lucide-react'
 import { errorText, nativeCall, usePlayer, type Track } from '@/lib/player'
@@ -128,6 +128,7 @@ export default function MusicLibrary({
   const [week, setWeek] = useState(true)
   const collection = page.collection
   const [playing, setPlaying] = useState(false)
+  const playRequest = useRef(0)
   const [refresh, setRefresh] = useState(0)
   const showingDetail = page.view === 'collection' && !!collection
 
@@ -206,16 +207,17 @@ export default function MusicLibrary({
     navigate('collection', '', item)
   }
   async function playCollection(item: MusicCollection, key?: string) {
-    if (playing) return
+    if (playing && !key) return
+    const request = ++playRequest.current
     setPlaying(true)
     try {
       const truncated = await playLibraryCollection(item, key)
-      if (truncated)
+      if (request === playRequest.current && truncated)
         onNotice('已将前 1000 首歌曲加入播放队列。其余歌曲可在收藏详情中继续浏览并播放。')
     } catch (cause) {
-      onError(cause)
+      if (request === playRequest.current) onError(cause)
     } finally {
-      setPlaying(false)
+      if (request === playRequest.current) setPlaying(false)
     }
   }
   function playPage(tracks: Track[], index: number) {
@@ -402,7 +404,6 @@ export default function MusicLibrary({
                     <SongContextMenu
                       key={track.key}
                       track={track}
-                      busy={playing}
                       onPlay={() => {
                         if (liked) void playCollection(liked, track.key)
                       }}
@@ -416,16 +417,11 @@ export default function MusicLibrary({
                         <div
                           role="group"
                           onClick={(event) => {
-                            if (
-                              !playing &&
-                              liked &&
-                              !(event.target as HTMLElement).closest('button')
-                            )
+                            if (liked && !(event.target as HTMLElement).closest('button'))
                               void playCollection(liked, track.key)
                           }}
                           onKeyDown={(event) => {
                             if (
-                              !playing &&
                               liked &&
                               event.target === event.currentTarget &&
                               ['Enter', ' '].includes(event.key)
@@ -442,7 +438,6 @@ export default function MusicLibrary({
                     >
                       <button
                         type="button"
-                        disabled={playing}
                         aria-label={`播放 ${track.title}`}
                         onClick={() => {
                           if (liked) void playCollection(liked, track.key)
@@ -454,7 +449,6 @@ export default function MusicLibrary({
                         <button
                           type="button"
                           className="block max-w-full truncate text-left font-semibold"
-                          disabled={playing}
                           onClick={() => {
                             if (liked) void playCollection(liked, track.key)
                           }}

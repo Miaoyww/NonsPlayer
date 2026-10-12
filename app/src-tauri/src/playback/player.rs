@@ -22,6 +22,19 @@ use std::{
 use tauri::Emitter;
 
 pub enum Command {
+    Collection {
+        kind: String,
+        id: u64,
+        track: Option<Track>,
+        fallback_cover: String,
+        reply: tokio::sync::oneshot::Sender<AppResult<bool>>,
+    },
+    CollectionReady {
+        serial: u64,
+        scope: (crate::music::account::SessionContext, u64),
+        result: AppResult<(Vec<Track>, bool)>,
+        reply: tokio::sync::oneshot::Sender<AppResult<bool>>,
+    },
     Queue(Vec<Track>, usize),
     FmQueue(Vec<Track>),
     AppendFm {
@@ -224,6 +237,8 @@ struct Actor {
     armed: Arc<Mutex<Option<Prepared>>>,
     decoded_audio: Option<Arc<tempfile::NamedTempFile>>,
     current_job: Option<tauri::async_runtime::JoinHandle<()>>,
+    collection_job: Option<tauri::async_runtime::JoinHandle<()>>,
+    collection_request: super::collection::CollectionRequest,
     next_job: Option<tauri::async_runtime::JoinHandle<()>>,
     next_attempt: Option<Instant>,
     next_attempts: u8,
@@ -347,6 +362,8 @@ impl Actor {
             armed,
             decoded_audio: None,
             current_job: None,
+            collection_job: None,
+            collection_request: Default::default(),
             next_job: None,
             next_attempt: None,
             next_attempts: 0,
@@ -426,6 +443,7 @@ impl Actor {
             });
         }
         if matches!(&command, Command::Pause) {
+            self.cancel_collection();
             // A repeated pause must not extend a running fade-out.
             if self.deferred.is_some() {
                 return Ok(());
@@ -460,6 +478,7 @@ impl Actor {
                 | Command::Jump(_)
                 | Command::Next
                 | Command::Queue(_, _)
+                | Command::Collection { .. }
                 | Command::FmQueue(_)
         ) && self.deferred.take().is_some()
         {
@@ -501,7 +520,104 @@ impl Actor {
     }
 
     fn command_now(&mut self, command: Command) -> AppResult<()> {
+        if matches!(
+            &command,
+            Command::PlayNext(_) | Command::Pause | Command::Next | Command::Previous
+        ) {
+            self.cancel_collection();
+        }
         match command {
+            Command::Collection {
+                kind,
+                id,
+                track,
+                fallback_cover,
+                reply,
+            } => {
+                let scope = self.music.legacy_stamp()?;
+                let key = track.as_ref().map(|track| track.key.clone());
+                if let Some(track) = track {
+                    self.command_now(Command::Queue(vec![track], 0))?;
+                } else {
+                    self.command_now(Command::Clear)?;
+                    self.state.status = PlaybackStatus::Loading;
+                    self.desired_playing = true;
+                    self.publish();
+                }
+                let serial = self.collection_request.begin(key);
+                let music = self.music.clone();
+                let store = self.store.clone();
+                let sender = self.sender.clone();
+                self.collection_job = Some(tauri::async_runtime::spawn(async move {
+                    let result = async {
+                        let mut page = music.library_queue(&kind, id).await?;
+                        for track in &mut page.tracks {
+                            if track.cover.is_empty() {
+                                track.cover = fallback_cover.clone();
+                            }
+                        }
+                        // Metadata persistence must not block the audio actor.
+                        let tracks = page.tracks.clone();
+                        tauri::async_runtime::spawn_blocking(move || store.save_tracks(&tracks))
+                            .await
+                            .map_err(|error| error.to_string())??;
+                        Ok((page.tracks, page.more))
+                    }
+                    .await;
+                    let _ = tauri::async_runtime::spawn_blocking(move || {
+                        sender.send(Command::CollectionReady {
+                            serial,
+                            scope,
+                            result,
+                            reply,
+                        })
+                    })
+                    .await;
+                }));
+            }
+            Command::CollectionReady {
+                serial,
+                scope,
+                result,
+                reply,
+            } => {
+                let Some(key) = self.collection_request.take(serial) else {
+                    let _ = reply.send(Ok(false));
+                    return Ok(());
+                };
+                self.collection_job = None;
+                if self.music.legacy_stamp().ok().as_ref() != Some(&scope) {
+                    if self.state.current().is_none() {
+                        self.desired_playing = false;
+                        self.state.status = PlaybackStatus::Stopped;
+                        self.publish();
+                    }
+                    let _ = reply.send(Ok(false));
+                    return Ok(());
+                }
+                let result = result.and_then(|(tracks, more)| {
+                    if tracks.is_empty() {
+                        return Err("这个收藏还没有可播放的歌曲".into());
+                    }
+                    if let Some(key) = key {
+                        super::collection::hydrate(&mut self.state, &key, tracks)?;
+                        self.publish();
+                    } else {
+                        self.command_now(Command::Queue(tracks, 0))?;
+                    }
+                    Ok(more)
+                });
+                if let Err(error) = &result {
+                    // A known song remains playable even if its collection cannot be expanded.
+                    self.state.error = Some(format!("歌单准备失败：{error}"));
+                    if self.state.current().is_none() {
+                        self.state.status = PlaybackStatus::Error;
+                        self.desired_playing = false;
+                    }
+                    self.publish();
+                }
+                let _ = reply.send(result);
+            }
             Command::Queue(queue, index) => {
                 if queue.is_empty() || queue.len() > 1000 || index >= queue.len() {
                     return Err("播放队列无效，最多支持 1000 首歌曲".into());
@@ -951,6 +1067,7 @@ impl Actor {
     }
 
     fn cancel_jobs(&mut self) {
+        self.cancel_collection();
         self.deferred = None;
         self.generation.fetch_add(1, Ordering::AcqRel);
         if let Some(job) = self.current_job.take() {
@@ -967,6 +1084,13 @@ impl Actor {
         }
         self.next_attempt = None;
         self.next_attempts = 0;
+    }
+
+    fn cancel_collection(&mut self) {
+        self.collection_request.cancel();
+        if let Some(job) = self.collection_job.take() {
+            job.abort();
+        }
     }
 
     fn seek(&mut self, ms: u64) -> AppResult<()> {
@@ -1149,6 +1273,7 @@ impl Actor {
                 },
             );
             if self.state.playback_options.gapless
+                && !self.collection_request.is_pending()
                 && self.deferred.is_none()
                 && self.state.status == PlaybackStatus::Playing
                 && self
