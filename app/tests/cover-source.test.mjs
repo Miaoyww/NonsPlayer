@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
-function harness() {
+function harness({ intersecting = true } = {}) {
   const slots = [],
     effects = [],
     requests = [],
@@ -83,7 +83,7 @@ function harness() {
         this.callback = callback
       }
       observe() {
-        this.callback([{ isIntersecting: true }])
+        this.callback([{ isIntersecting: intersecting }])
       }
       disconnect() {}
     }
@@ -91,9 +91,9 @@ function harness() {
   return {
     requests,
     deleted,
-    renderCover(cover, full = false) {
+    renderCover(cover, full = false, props = {}) {
       cursor = 0
-      const tree = components.Cover({ cover })
+      const tree = components.Cover({ cover, ...props })
       effects.splice(0).forEach((fn) => fn())
       return full ? tree : tree.props.children.find((child) => child?.type === 'img')
     },
@@ -110,6 +110,29 @@ const settle = async () => {
   await Promise.resolve()
   await Promise.resolve()
 }
+
+test('eager fullscreen cover loads and becomes visible without an intersection notification', async () => {
+  const h = harness({ intersecting: false })
+  const props = { loading: 'eager' }
+  h.renderCover(cover, true, props)
+  h.renderCover(cover, true, props)
+  assert.equal(h.requests.length, 1, 'fullscreen cover must request its image during slide-in')
+  h.requests[0].resolve('data:image/jpeg;base64,ready')
+  await settle()
+  const image = h.renderCover(cover, false, props)
+  assert.equal(image.props.loading, 'eager', 'do not defer the already visible player image again')
+  image.props.onLoad()
+  const tree = h.renderCover(cover, true, props)
+  assert.equal(tree.props.children[0].props['data-ready'], true)
+  assert.equal(tree.props.children[1].props['data-ready'], true)
+})
+
+test('list covers still wait for intersection before requesting images', () => {
+  const h = harness({ intersecting: false })
+  h.renderCover(cover)
+  h.renderCover(cover)
+  assert.equal(h.requests.length, 0)
+})
 
 test('the actual Cover component recovers from a cached image error', async () => {
   const h = harness()

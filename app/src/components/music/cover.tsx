@@ -3,11 +3,19 @@ import { Music2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useCoverImageSource } from '@/components/music/use-cover-source'
 
-export function Cover({ cover, className = '' }: { cover?: string; className?: string }) {
+export function Cover({
+  cover,
+  className = '',
+  loading = 'lazy'
+}: {
+  cover?: string
+  className?: string
+  loading?: 'eager' | 'lazy'
+}) {
   const host = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   useEffect(() => {
-    if (!host.current) return
+    if (loading === 'eager' || !host.current) return
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -19,20 +27,21 @@ export function Cover({ cover, className = '' }: { cover?: string; className?: s
     )
     observer.observe(host.current)
     return () => observer.disconnect()
-  }, [])
+  }, [loading])
   const [readySource, setReadySource] = useState<string>()
-  const { source, onError, pending } = useCoverImageSource(cover, visible)
-  const loading = pending || (!!source && readySource !== source) || (!!cover && !visible)
+  const enabled = loading === 'eager' || visible
+  const { source, onError, pending } = useCoverImageSource(cover, enabled)
+  const pendingImage = pending || (!!source && readySource !== source) || (!!cover && !enabled)
   return (
     <div
       ref={host}
       className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted ${className}`}
     >
-      {(loading || !!source) && (
+      {(pendingImage || !!source) && (
         <Skeleton
           key={`skeleton:${source ?? cover}`}
-          data-ready={!loading}
-          className={`music-cover-skeleton pointer-events-none absolute inset-0 rounded-[inherit] ${loading ? '' : 'opacity-0'}`}
+          data-ready={!pendingImage}
+          className={`music-cover-skeleton pointer-events-none absolute inset-0 rounded-[inherit] ${pendingImage ? '' : 'opacity-0'}`}
         />
       )}
       {source ? (
@@ -40,13 +49,13 @@ export function Cover({ cover, className = '' }: { cover?: string; className?: s
           key={source}
           src={source}
           alt=""
-          loading="lazy"
+          loading={loading}
           data-ready={readySource === source}
           className={`music-cover-image h-full w-full object-cover ${readySource === source ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setReadySource(source)}
           onError={onError}
         />
-      ) : !loading ? (
+      ) : !pendingImage ? (
         <Music2 className="size-5 text-muted-foreground" aria-hidden="true" />
       ) : null}
     </div>

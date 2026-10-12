@@ -206,6 +206,7 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
           <div className="now-playing-cover-slot">
             <Cover
               cover={track?.cover}
+              loading="eager"
               className="now-playing-cover aspect-square rounded-xl shadow-2xl"
             />
           </div>
