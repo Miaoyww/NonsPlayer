@@ -231,6 +231,7 @@ export function Titlebar({
           </nav>
         )}
         <div className="flex h-full min-w-0 items-center justify-end pl-3">
+          {!playerMode && <div className="h-full min-w-0 flex-1" onMouseDown={drag} />}
           <div className="flex h-full shrink-0 items-center gap-1 pr-1.5">
             <div className={playerMode ? 'hidden' : 'flex items-center gap-1'}>
               <AccountMenu />
