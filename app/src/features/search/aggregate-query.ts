@@ -27,6 +27,8 @@ export class AggregateQuery<T> {
   private generation = 0
   private listeners = new Set<() => void>()
   private seen = new Set<string>()
+  private progress: SourceProgress[]
+  private items: { source: string; item: T }[] = []
   private state: AggregateSnapshot<T>
   constructor(
     sources: SearchSource[],
@@ -35,17 +37,15 @@ export class AggregateQuery<T> {
     private describeError: (cause: unknown) => string,
     private limit = 1000
   ) {
-    this.state = {
-      items: [],
-      sources: sources.map((value) => ({
-        ...value,
-        cursor: null,
-        count: 0,
-        busy: false,
-        more: !value.unavailable,
-        capped: false
-      }))
-    }
+    this.progress = sources.map((value) => ({
+      ...value,
+      cursor: null,
+      count: 0,
+      busy: false,
+      more: !value.unavailable,
+      capped: false
+    }))
+    this.state = { items: this.items, sources: this.progress.map((value) => ({ ...value })) }
   }
   getSnapshot = () => this.state
   subscribe = (listener: () => void) => {
@@ -61,20 +61,17 @@ export class AggregateQuery<T> {
   dispose() {
     this.active = false
     this.generation++
-    this.state = {
-      ...this.state,
-      sources: this.state.sources.map((value) => ({ ...value, busy: false }))
-    }
+    this.progress = this.progress.map((value) => ({ ...value, busy: false }))
   }
   private publish() {
     this.state = {
-      items: this.state.items,
-      sources: this.state.sources.map((value) => ({ ...value }))
+      items: this.items,
+      sources: this.progress.map((value) => ({ ...value }))
     }
     this.listeners.forEach((listener) => listener())
   }
   async load(source: string, retry = false) {
-    const progress = this.state.sources.find((value) => value.source === source)
+    const progress = this.progress.find((value) => value.source === source)
     if (!this.active || !progress || progress.busy || !progress.more || (progress.error && !retry))
       return
     progress.busy = true
@@ -94,7 +91,7 @@ export class AggregateQuery<T> {
         appended.push({ source, item })
         progress.count++
       }
-      this.state.items = [...this.state.items, ...appended]
+      this.items = [...this.items, ...appended]
       progress.cursor = batch.nextCursor
       progress.capped = progress.count >= this.limit && batch.nextCursor !== null
       progress.more = batch.nextCursor !== null && !progress.capped
@@ -102,15 +99,13 @@ export class AggregateQuery<T> {
       if (this.active && generation === this.generation) progress.error = this.describeError(cause)
     } finally {
       if (this.active && generation === this.generation) {
-        // publish clones the progress records; use the live copy for settlement.
-        const live = this.state.sources.find((value) => value.source === source)!
-        Object.assign(live, progress, { busy: false })
+        progress.busy = false
         this.publish()
       }
     }
   }
   loadVisible(filter: string) {
-    for (const progress of this.state.sources)
+    for (const progress of this.progress)
       if (filter === 'all' || progress.source === filter) void this.load(progress.source)
   }
 }
