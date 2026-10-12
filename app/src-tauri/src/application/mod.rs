@@ -823,6 +823,16 @@ fn bind_local_lyrics(
 }
 
 #[tauri::command]
+async fn local_track_lyrics(
+    key: String,
+    skip_embedded: Option<bool>,
+    backend: State<'_, Backend>,
+) -> AppResult<Option<Lyrics>> {
+    let track = backend.store.track(&key)?;
+    lyrics::local_lyrics::get(track, skip_embedded.unwrap_or(false)).await
+}
+
+#[tauri::command]
 fn lyric_sources(backend: State<'_, Backend>) -> AppResult<lyrics::LyricSources> {
     backend.lyrics.sources()
 }
@@ -1153,6 +1163,7 @@ pub fn run() {
             set_playback_options,
             output_devices,
             track_lyrics,
+            local_track_lyrics,
             lyric_sources,
             set_lyric_sources,
             bind_local_lyrics,

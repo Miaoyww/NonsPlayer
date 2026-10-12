@@ -1,4 +1,12 @@
 import { Switch } from '@/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
@@ -27,6 +35,7 @@ export function LocalCachePage() {
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
   const { showCovers, setShowCovers } = useLocalOptions()
+  const { sources, ready, busy: sourceBusy, error: sourceError, setSources } = useLyricSources()
   const desktop = isTauri()
   async function reload() {
     if (!desktop) return
@@ -78,6 +87,36 @@ export function LocalCachePage() {
         <h3 id="local-heading" className="text-base font-semibold">
           本地歌曲
         </h3>
+        <SettingsCard
+          title="来源"
+          description="本地读取音频内嵌歌词或同目录同名 LRC；在线按歌曲信息匹配。所选来源无歌词时不切换另一来源，流媒体歌曲始终在线取词。"
+        >
+          <Select
+            items={[
+              { value: 'online', label: '在线' },
+              { value: 'local', label: '本地' }
+            ]}
+            value={sources.localSource}
+            disabled={!ready || sourceBusy || !desktop}
+            onValueChange={(value) => {
+              if (value === 'local' || value === 'online')
+                void setSources({ ...sources, localSource: value })
+            }}
+          >
+            <SelectTrigger className="w-40" aria-label="本地歌曲歌词来源">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectItem value="online">在线</SelectItem>
+              <SelectItem value="local">本地</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingsCard>
+        {sourceError && (
+          <p role="alert" className="text-sm text-destructive">
+            {sourceError}
+          </p>
+        )}
         <SettingsCard title="显示本地歌曲封面" description="显示内嵌封面，关闭可减少图片加载。">
           <label className="flex items-center gap-2 text-sm">
             <Switch

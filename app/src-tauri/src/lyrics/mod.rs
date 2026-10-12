@@ -1,3 +1,4 @@
+pub(crate) mod local_lyrics;
 pub(crate) mod lyric_matching;
 pub(crate) mod netease_lyrics;
 pub(crate) mod qq_lyrics;
@@ -26,13 +27,24 @@ const MISS_TTL: i64 = 86400;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LyricSources {
+    #[serde(default)]
+    pub local_source: LocalLyricSource,
     pub amll: bool,
     pub qq: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum LocalLyricSource {
+    #[default]
+    Online,
+    Local,
 }
 
 impl Default for LyricSources {
     fn default() -> Self {
         Self {
+            local_source: LocalLyricSource::Online,
             amll: true,
             qq: true,
         }
@@ -579,6 +591,17 @@ pub fn valid_ttml(content: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn old_source_settings_keep_online_default_and_local_selection_roundtrips() {
+        let old: LyricSources = serde_json::from_str(r#"{"amll":true,"qq":false}"#).unwrap();
+        assert_eq!(old.local_source, LocalLyricSource::Online);
+        let mut selected = old;
+        selected.local_source = LocalLyricSource::Local;
+        let restored: LyricSources =
+            serde_json::from_str(&serde_json::to_string(&selected).unwrap()).unwrap();
+        assert_eq!(restored.local_source, LocalLyricSource::Local);
+        assert!(restored.amll && !restored.qq);
+    }
     #[test]
     fn server_error_pages_and_truncated_xml_are_not_lyrics() {
         assert!(!valid_ttml("<html><body>Unavailable</body></html>"));

@@ -58,6 +58,24 @@ function harness() {
 }
 const summary = { likedPlaylist: { id: 1, kind: 'playlist' }, likedTracks: [], likedError: null }
 
+test('local file reads remain fresh and cannot replace cached online lyrics for the same track', async () => {
+  const { player, requests } = harness()
+  const args = { key: 'local:disney' }
+  const online = { source: 'amll', format: 'ttml', content: 'words', translation: 'translation' }
+  const stream = player.nativeCall('track_lyrics', args)
+  requests.at(-1).resolve(online)
+  assert.equal(await stream, online)
+  for (const content of ['original', 'changed']) {
+    const count = requests.length
+    const pending = player.nativeCall('local_track_lyrics', args)
+    assert.equal(requests.length, count + 1)
+    requests.at(-1).resolve({ source: 'local', content })
+    assert.equal((await pending).content, content)
+  }
+  assert.equal(await player.nativeCall('track_lyrics', args), online)
+  assert.equal(requests.length, 3)
+})
+
 test('same-song local and streaming lyrics remain independent through a local-to-stream-to-local switch', async () => {
   const { player, requests } = harness()
   const local = { source: 'qq', format: 'lrc', content: 'line lyrics', translation: null }

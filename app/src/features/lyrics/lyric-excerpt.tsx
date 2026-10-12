@@ -3,7 +3,7 @@ import { useLocalPreferences } from '@/features/local/use-local-preferences'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall, type Track } from '@/lib/player'
-import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
+import { getLyricSources, useLyricSources } from '@/features/lyrics/use-lyric-sources'
 import { loadLyrics } from '@/features/lyrics/load-lyrics'
 import { Heart } from 'lucide-react'
 
@@ -14,24 +14,25 @@ export function LyricExcerpt({ tracks, enabled = true }: { tracks?: Track[]; ena
   const [error, setError] = useState('')
   useEffect(() => {
     let disposed = false
+    const isCurrent = () => !disposed && getLyricSources() === sources
     setLines([])
     setError('')
     if (!enabled || !isTauri()) return
     const load = async () => {
       const failures: string[] = []
       for (const track of (tracks ?? []).slice(0, 2)) {
-        if (disposed) return
+        if (!isCurrent()) return
         try {
           const { parseLyrics } = await import('@/features/lyrics/parse-lyrics')
-          if (disposed) return
+          if (!isCurrent()) return
           const result = await loadLyrics(
             track,
             false,
             sources,
             (value) => (value ? parseLyrics(value, track.durationMs) : []),
-            () => !disposed
+            isCurrent
           )
-          if (disposed) return
+          if (!isCurrent()) return
           const excerpt =
             result?.parsed
               .map((line) =>
@@ -51,14 +52,14 @@ export function LyricExcerpt({ tracks, enabled = true }: { tracks?: Track[]; ena
           failures.push(`「${track.title}」歌词读取失败：${errorText(cause)}`)
         }
       }
-      if (disposed) return
+      if (!isCurrent()) return
       try {
         const quote = (await nativeCall<string>('discovery_hitokoto')).trim()
-        if (disposed) return
+        if (!isCurrent()) return
         if (!quote) throw new Error('返回内容为空')
         setLines([quote])
       } catch (cause) {
-        if (!disposed) setError([...failures, `一言获取失败：${errorText(cause)}`].join('；'))
+        if (isCurrent()) setError([...failures, `一言获取失败：${errorText(cause)}`].join('；'))
       }
     }
     void load()

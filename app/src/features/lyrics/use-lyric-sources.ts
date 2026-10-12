@@ -3,17 +3,19 @@ import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall } from '@/lib/player'
 
 export interface LyricSources {
+  localSource: 'online' | 'local'
   amll: boolean
   qq: boolean
 }
 const listeners = new Set<() => void>()
 let state = {
-  sources: { amll: true, qq: true } as LyricSources,
+  sources: { localSource: 'online', amll: true, qq: true } as LyricSources,
   ready: false,
   busy: false,
   error: ''
 }
 let initial: Promise<void> | undefined
+export const getLyricSources = () => state.sources
 const subscribe = (fn: () => void) => {
   listeners.add(fn)
   return () => {

@@ -43,7 +43,10 @@ function harness() {
       jsxs: (type, props) => ({ type, props })
     },
     '@tauri-apps/api/core': { isTauri: () => true },
-    '@/features/lyrics/use-lyric-sources': { useLyricSources: () => ({ sources }) },
+    '@/features/lyrics/use-lyric-sources': {
+      useLyricSources: () => ({ sources }),
+      getLyricSources: () => sources
+    },
     'lucide-react': { Heart: 'heart' },
     '@/features/lyrics/parse-lyrics': {
       parseLyrics: (value) => {

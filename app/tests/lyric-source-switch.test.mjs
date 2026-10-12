@@ -16,14 +16,15 @@ const streamed = {
   durationMs: 136000,
   source: { kind: 'netease', id: 1 }
 }
-const localLyrics = { source: 'qq', format: 'lrc', content: 'local line lyrics' }
+const localLyrics = { source: 'local', format: 'lrc', content: 'local line lyrics' }
 const streamLyrics = {
   source: 'netease',
   format: 'yrc',
   content: 'stream word lyrics with translation'
 }
 
-function harness(track, settle = true) {
+function harness(track, settle = true, localSource = 'local') {
+  let sources = { localSource, amll: true, qq: true }
   let present = true
   let player = { queue: [track], index: 0, status: 'playing', revision: 0 }
   const states = []
@@ -76,7 +77,8 @@ function harness(track, settle = true) {
     },
     '@/features/local/use-local-preferences': { useLocalPreferences: () => ({ options: {} }) },
     '@/features/lyrics/use-lyric-sources': {
-      useLyricSources: () => ({ sources: { amll: true, qq: true } })
+      useLyricSources: () => ({ sources }),
+      getLyricSources: () => sources
     },
     '@tauri-apps/api/core': { isTauri: () => true },
     '@tauri-apps/api/event': {
@@ -113,6 +115,9 @@ function harness(track, settle = true) {
     pending,
     events,
     render,
+    selectSource: (localSource) => {
+      sources = { ...sources, localSource }
+    },
     switchTo: (next) => {
       player = { ...player, queue: [next], revision: player.revision + 1 }
     }
@@ -156,18 +161,45 @@ test('a local lyrics response cannot replace stream lyrics after playback switch
   assert.equal(app.parsed.length, 0, 'late local lyrics were applied while the stream was active')
 })
 
-test('local background lyrics updates are rejected immediately when the active source switches to streaming', async () => {
-  const app = harness(local)
-  app.pending[0](localLyrics)
+test('local songs online background updates are rejected immediately when playback switches to streaming', async () => {
+  const app = harness(local, true, 'online')
+  const lyrics = { ...localLyrics, source: 'qq' }
+  app.pending[0](lyrics)
   await Promise.resolve()
   assert.equal(app.parsed.length, 1)
   app.switchTo(streamed)
-  app.events[0]({ payload: { key: local.key, lyrics: localLyrics } })
+  app.events[0]({ payload: { key: local.key, lyrics } })
   assert.equal(
     app.parsed.length,
     1,
     'old local listener replaced the stream before its cleanup ran'
   )
+})
+
+test('source selection changes reject online background updates before effect cleanup', async () => {
+  const app = harness(local, true, 'online')
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  app.selectSource('local')
+  app.events[0]({ payload: { key: local.key, lyrics: streamLyrics } })
+  assert.deepEqual(app.parsed, [streamLyrics])
+})
+
+test('selection changes reject pending lyrics before effect cleanup', async () => {
+  const app = harness(local)
+  app.selectSource('online')
+  app.pending[0](localLyrics)
+  await Promise.resolve()
+  assert.equal(app.parsed.length, 0)
+})
+
+test('local selection rejects online background updates even with the same song key', async () => {
+  const app = harness(local)
+  app.pending[0](localLyrics)
+  await Promise.resolve()
+  app.events[0]({ payload: { key: local.key, lyrics: { ...streamLyrics, source: 'local' } } })
+  app.events[0]({ payload: { key: local.key, lyrics: streamLyrics } })
+  assert.deepEqual(app.parsed, [localLyrics])
 })
 
 test('stream lyrics responses are likewise rejected after switching to a local source', async () => {

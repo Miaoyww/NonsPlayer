@@ -6,6 +6,7 @@ import ts from 'typescript'
 
 function harness(responses, kind = 'netease') {
   const calls = []
+  const commands = []
   const exports = {}
   const { outputText } = ts.transpileModule(
     readFileSync(new URL('../src/features/lyrics/load-lyrics.ts', import.meta.url), 'utf8'),
@@ -15,6 +16,7 @@ function harness(responses, kind = 'netease') {
     exports,
     require: () => ({
       nativeCall: async (_command, args) => {
+        commands.push(_command)
         calls.push(args)
         return responses.shift()
       }
@@ -22,6 +24,7 @@ function harness(responses, kind = 'netease') {
   })
   return {
     calls,
+    commands,
     load: (sources = { amll: true, qq: true }, current) =>
       exports.loadLyrics(
         { key: `${kind}:1`, source: { kind } },
@@ -53,6 +56,43 @@ test('semantic failures continue through AMLL, QQ and NetEase once', async () =>
   )
 })
 
+test('local selection reads only local lyrics, including when none are available', async () => {
+  const app = harness([null, { source: 'netease', content: 'online' }], 'local')
+  assert.equal((await app.load({ localSource: 'local', amll: true, qq: true })).lyrics, null)
+  assert.deepEqual(app.commands, ['local_track_lyrics'])
+})
+
+test('invalid embedded lyrics can try the sidecar but never online lyrics', async () => {
+  const app = harness(
+    [
+      { source: 'local', content: 'broken' },
+      { source: 'local', content: 'usable' }
+    ],
+    'local'
+  )
+  assert.equal((await app.load({ localSource: 'local', amll: true, qq: true })).parsed, 'usable')
+  assert.deepEqual(app.commands, ['local_track_lyrics', 'local_track_lyrics'])
+  assert.equal(app.calls[1].skipEmbedded, true)
+})
+
+test('local selection never changes streaming lyrics routing or their translation', async () => {
+  for (const kind of ['netease', 'online']) {
+    const app = harness(
+      [{ source: 'netease', format: 'yrc', content: 'words', translation: 'translation' }],
+      kind
+    )
+    const result = await app.load({ localSource: 'local', amll: true, qq: true })
+    assert.equal(result.lyrics.translation, 'translation')
+    assert.deepEqual(app.commands, ['track_lyrics'])
+  }
+})
+
+test('online selection never reads local files when online lyrics are missing', async () => {
+  const app = harness([null], 'local')
+  assert.equal((await app.load({ localSource: 'online', amll: true, qq: true })).lyrics, null)
+  assert.deepEqual(app.commands, ['track_lyrics'])
+})
+
 test('disabled online sources are skipped for every combination', async () => {
   for (const amll of [false, true])
     for (const qq of [false, true]) {
@@ -64,7 +104,10 @@ test('disabled online sources are skipped for every combination', async () => {
 
 test('late responses are discarded and final-source failures do not loop', async () => {
   const stale = harness([{ source: 'amll', content: 'broken' }])
-  assert.equal(await stale.load(undefined, () => false), null)
+  let current = true
+  const pending = stale.load(undefined, () => current)
+  current = false
+  assert.equal(await pending, null)
   assert.equal(stale.calls.length, 1)
   const terminal = harness([{ source: 'netease', content: 'broken' }])
   await assert.rejects(terminal.load(), /invalid lyrics/)

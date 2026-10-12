@@ -15,7 +15,7 @@ export function LyricsPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h2 className="text-xl font-bold">歌词设置</h2>
-        <p className="mt-2 text-sm text-muted-foreground">调整歌词显示与在线歌词来源。</p>
+        <p className="mt-2 text-sm text-muted-foreground">调整歌词显示与来源。</p>
       </div>
       <section aria-labelledby="lyrics-display-heading" className="flex flex-col gap-8">
         <h3 id="lyrics-display-heading" className="text-base font-semibold">
@@ -80,10 +80,10 @@ export function LyricsPage() {
       <section aria-labelledby="lyrics-sources-heading" className="flex flex-col gap-8">
         <div>
           <h3 id="lyrics-sources-heading" className="text-base font-semibold">
-            歌词来源
+            来源
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            所有歌曲的歌词均在线获取，依次尝试 AMLL DB、QQ 音乐、网易云音乐。
+            流媒体歌曲始终在线获取歌词，依次尝试 AMLL DB、QQ 音乐、网易云音乐。
           </p>
         </div>
         <SettingsCard title="AMLL DB" description="优先获取 TTML 逐字歌词，失败时尝试下一来源。">

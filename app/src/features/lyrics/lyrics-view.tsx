@@ -12,7 +12,11 @@ import { Cover } from '@/components/music/cover'
 import { AlbumBackground } from '@/features/lyrics/album-background'
 import { NowPlayingControls } from '@/features/playback/now-playing-controls'
 import { NowPlayingMenu } from '@/features/playback/now-playing-menu'
-import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
+import {
+  getLyricSources,
+  useLyricSources,
+  type LyricSources
+} from '@/features/lyrics/use-lyric-sources'
 import { loadLyrics } from '@/features/lyrics/load-lyrics'
 import { EmptyLyricsError, parseLyrics } from '@/features/lyrics/parse-lyrics'
 import { LyricLoading } from './lyric-loading'
@@ -46,17 +50,22 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
   const rendering = isPresent && (entered || !!reduced)
   const state = usePlayer()
   const track = state.index !== null ? state.queue[state.index] : undefined
+  const { sources } = useLyricSources()
   const [display, setDisplay] = useState<{
     key: string
     revision: number
     lines: LyricLine[]
     source?: string
+    selection: LyricSources
   }>()
   const currentDisplay =
-    display?.key === track?.key && display?.revision === state.revision ? display : undefined
+    display?.key === track?.key &&
+    display?.revision === state.revision &&
+    display?.selection === sources
+      ? display
+      : undefined
   const lines = currentDisplay?.lines ?? []
   const source = currentDisplay?.source
-  const { sources } = useLyricSources()
   const { options: localPreferences } = useLocalPreferences()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
@@ -77,13 +86,14 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
       setDisplay({
         key,
         revision,
+        selection: sources,
         lines: parsed,
         source: value
-          ? { amll: 'AMLL DB', qq: 'QQ 音乐', netease: '网易云音乐' }[value.source]
+          ? { amll: 'AMLL DB', qq: 'QQ 音乐', netease: '网易云音乐', local: '本地' }[value.source]
           : undefined
       })
     },
-    []
+    [sources]
   )
   useEffect(() => {
     const serial = ++generation.current
@@ -95,7 +105,9 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
     setLoading(true)
     // Native playback can switch before React's passive-effect cleanup runs.
     const isCurrent = () =>
-      generation.current === serial && isCurrentPlayback(track.key, state.revision)
+      generation.current === serial &&
+      getLyricSources() === sources &&
+      isCurrentPlayback(track.key, state.revision)
     const load = async () => {
       await loadLyrics(
         track,
@@ -123,6 +135,9 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
     void listen<{ key: string; lyrics: Lyrics }>('lyrics-updated', ({ payload }) => {
       if (
         !disposed &&
+        getLyricSources() === sources &&
+        !(track.source.kind === 'local' && sources.localSource === 'local') &&
+        payload.lyrics.source !== 'local' &&
         isCurrentPlayback(track.key, state.revision) &&
         appliedSource.current === payload.lyrics.source &&
         payload.key === track.key &&
