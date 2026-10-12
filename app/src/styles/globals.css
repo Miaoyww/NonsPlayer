@@ -1223,6 +1223,21 @@
   color: var(--foreground);
   background: var(--accent);
 }
+.playback-mode-button {
+  position: relative;
+}
+.playback-mode-button[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--music-accent);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
 .playback-capsule .capsule-center .player-slider > div {
   min-height: 16px;
 }

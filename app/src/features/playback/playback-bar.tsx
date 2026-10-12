@@ -108,6 +108,7 @@ export function PlaybackBar({
               variant="ghost"
               size="icon-sm"
               aria-label="随机播放"
+              className="playback-mode-button"
               title={state.shuffle ? '关闭随机播放' : '开启随机播放'}
               aria-pressed={state.shuffle}
               disabled={!isTauri()}
@@ -119,6 +120,7 @@ export function PlaybackBar({
               variant="ghost"
               size="icon-sm"
               aria-label={`播放模式：${repeatLabel}，点击切换`}
+              className="playback-mode-button"
               title={repeatLabel}
               disabled={!isTauri()}
               aria-pressed={looping}
