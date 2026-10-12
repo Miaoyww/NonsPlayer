@@ -1,0 +1,1079 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nons · 聚合搜索与来源切换设计</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.5 0 0);
+        --border: oklch(0.922 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --accent: oklch(0.54 0.23 264);
+        --accent-bg: oklch(0.96 0.025 264);
+        --destructive: oklch(0.577 0.245 27.325);
+        --card: var(--background);
+      }
+      .dark {
+        color-scheme: dark;
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.76 0 0);
+        --border: oklch(1 0 0 / 14%);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --accent: oklch(0.76 0.13 264);
+        --accent-bg: oklch(0.26 0.055 264);
+        --destructive: oklch(0.704 0.191 22.216);
+        --card: oklch(0.205 0 0);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        height: 100dvh;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        font:
+          14px/1.5 'Segoe UI',
+          'Microsoft YaHei',
+          sans-serif;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid transparent;
+        background: transparent;
+        border-radius: 8px;
+        padding: 8px 12px;
+        min-height: 36px;
+      }
+      button:hover {
+        background: var(--muted);
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        vertical-align: middle;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .muted {
+        color: var(--muted-foreground);
+      }
+      .demo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 24px;
+        background: var(--muted);
+        border-bottom: 1px solid var(--border);
+      }
+      .demo small {
+        margin-right: auto;
+      }
+      .demo select {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 5px 8px;
+      }
+      .app {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 28px;
+        border-bottom: 1px solid var(--border);
+      }
+      .brand {
+        font-weight: 750;
+        font-size: 18px;
+        letter-spacing: -0.6px;
+      }
+      .topnav {
+        display: flex;
+        gap: 4px;
+      }
+      .searchform {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 100px;
+        max-width: 270px;
+        margin-left: auto;
+        background: var(--muted);
+        padding: 4px 8px;
+        border-radius: 10px;
+      }
+      .searchform input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        padding: 4px;
+        outline-offset: 2px;
+      }
+      .searchform button {
+        padding: 4px;
+        min-height: 30px;
+      }
+      .account-anchor {
+        position: relative;
+      }
+      .account-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+      }
+      .avatar {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--muted);
+        font-size: 12px;
+      }
+      .popover {
+        position: absolute;
+        right: 0;
+        top: 48px;
+        width: 320px;
+        max-width: calc(100vw - 32px);
+        padding: 18px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        box-shadow: 0 14px 42px rgb(0 0 0 / 12%);
+        z-index: 10;
+      }
+      .popover h2 {
+        font-size: 16px;
+        margin: 0 0 12px;
+      }
+      .platform-choice {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 12px 8px;
+        text-align: left;
+      }
+      .platform-choice .avatar {
+        width: 36px;
+        height: 36px;
+      }
+      .platform-choice .info {
+        flex: 1;
+      }
+      .platform-choice .info small {
+        display: block;
+        color: var(--muted-foreground);
+      }
+      .tag {
+        font-size: 12px;
+        color: var(--muted-foreground);
+        background: var(--muted);
+        padding: 3px 8px;
+        border-radius: 5px;
+        white-space: nowrap;
+      }
+      .tag.active {
+        color: var(--accent);
+        background: var(--accent-bg);
+      }
+      .content {
+        overflow-y: auto;
+        min-height: 0;
+        padding: 36px clamp(24px, 7vw, 112px) 44px;
+      }
+      .page-heading {
+        margin-bottom: 28px;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(30px, 3.5vw, 42px);
+        letter-spacing: -0.035em;
+        line-height: 1.25;
+      }
+      .page-heading p {
+        margin: 8px 0 0;
+      }
+      .sectionbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 24px;
+        margin: 24px 0 18px;
+      }
+      .sectionbar h2 {
+        font-size: 26px;
+        letter-spacing: -0.02em;
+        margin: 0 auto 0 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 10px;
+        background: var(--muted);
+      }
+      .tabs button {
+        padding: 6px 12px;
+      }
+      .tabs button[aria-pressed='true'] {
+        background: var(--background);
+        box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+      }
+      .filters {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 0 0 18px;
+      }
+      .filters button {
+        border-color: var(--border);
+      }
+      .filters button[aria-pressed='true'] {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-color: var(--primary);
+      }
+      .filters .configure {
+        margin-left: auto;
+        border: 0;
+        color: var(--muted-foreground);
+      }
+      .source-status {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        align-items: center;
+        font-size: 12px;
+        color: var(--muted-foreground);
+        margin-bottom: 16px;
+      }
+      .source-status button {
+        color: var(--foreground);
+        font-size: 12px;
+        min-height: 28px;
+        padding: 2px 8px;
+        border-color: var(--border);
+      }
+      .error {
+        color: var(--destructive);
+      }
+      .table {
+        width: 100%;
+        border-spacing: 0 4px;
+        table-layout: fixed;
+      }
+      th {
+        font-weight: 400;
+        text-align: left;
+        font-size: 12px;
+        color: var(--muted-foreground);
+        padding: 8px;
+      }
+      td {
+        padding: 10px 8px;
+        overflow-wrap: anywhere;
+      }
+      td:first-child {
+        border-radius: 12px 0 0 12px;
+      }
+      td:last-child {
+        border-radius: 0 12px 12px 0;
+      }
+      tr:hover td,
+      tr[data-playing='true'] td {
+        background: var(--muted);
+      }
+      .identity {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .cover {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+        background: var(--accent-bg);
+        flex-shrink: 0;
+      }
+      .trackname {
+        display: block;
+        padding: 0;
+        text-align: left;
+        min-height: 24px;
+        font-weight: 600;
+      }
+      .identity small {
+        display: block;
+        color: var(--muted-foreground);
+        margin-top: 2px;
+      }
+      .mobile-source {
+        display: none;
+      }
+      .row-actions {
+        white-space: nowrap;
+      }
+      .row-actions button {
+        padding: 6px;
+      }
+      .empty {
+        text-align: center;
+        padding: 60px 12px;
+        color: var(--muted-foreground);
+      }
+      .empty svg {
+        width: 36px;
+        height: 36px;
+        margin-bottom: 8px;
+      }
+      .end {
+        text-align: center;
+        color: var(--muted-foreground);
+        padding: 20px 0;
+        font-size: 12px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 24px;
+      }
+      .collection .art {
+        aspect-ratio: 1;
+        border-radius: 12px;
+        background: var(--accent-bg);
+        color: var(--accent);
+        display: grid;
+        place-items: center;
+      }
+      .collection .art svg {
+        width: 48px;
+        height: 48px;
+      }
+      .collection strong {
+        display: block;
+        margin-top: 12px;
+      }
+      .collection small {
+        display: block;
+        margin: 4px 0 8px;
+        color: var(--muted-foreground);
+      }
+      .account-layout {
+        display: grid;
+        grid-template-columns: 170px minmax(0, 1fr);
+        gap: 24px;
+      }
+      .platform-nav {
+        display: grid;
+        align-content: start;
+        gap: 8px;
+      }
+      .platform-nav button {
+        text-align: left;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+      .platform-nav button[aria-pressed='true'] {
+        color: var(--accent);
+        border-color: var(--accent);
+        background: var(--accent-bg);
+      }
+      .account-card,
+      .settings-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+        background: var(--card);
+      }
+      .account-card h2,
+      .settings-card h2 {
+        margin: 0 0 6px;
+        font-size: 20px;
+      }
+      .account-card .avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+        margin: 24px 0 12px;
+      }
+      .primary {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+      .primary:hover {
+        background: var(--primary);
+        opacity: 0.9;
+      }
+      .outline {
+        border-color: var(--border);
+      }
+      .account-card hr {
+        border: 0;
+        border-top: 1px solid var(--border);
+        margin: 24px 0;
+      }
+      .settings-card {
+        margin: 18px 0;
+      }
+      .settings-card select {
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--background);
+      }
+      .player {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        border-top: 1px solid var(--border);
+        background: var(--card);
+        padding: 16px clamp(24px, 5vw, 72px);
+      }
+      .player-meta {
+        min-width: 0;
+        flex: 1;
+      }
+      .player-meta strong,
+      .player-meta small {
+        display: block;
+      }
+      .player-meta small {
+        color: var(--muted-foreground);
+        margin-top: 4px;
+      }
+      .player-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .player .play {
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        width: 40px;
+        height: 40px;
+        padding: 10px;
+      }
+      .progress {
+        width: 120px;
+        height: 3px;
+        background: var(--muted);
+        border-radius: 8px;
+      }
+      .progress:before {
+        content: '';
+        display: block;
+        width: 32%;
+        height: 100%;
+        background: var(--accent);
+      }
+      .toast {
+        min-height: 22px;
+        margin-top: 14px;
+        color: var(--accent);
+        font-size: 13px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 850px) {
+        .topbar {
+          gap: 8px;
+          padding-inline: 18px;
+          flex-wrap: wrap;
+        }
+        .topnav {
+          margin-left: auto;
+        }
+        .searchform {
+          order: 3;
+          width: 100%;
+          max-width: none;
+          margin: 0;
+        }
+        .content {
+          padding: 28px 24px;
+        }
+        .col-album {
+          display: none;
+        }
+        .sectionbar {
+          gap: 14px;
+        }
+        .player .progress {
+          display: none;
+        }
+      }
+      @media (max-width: 540px) {
+        .demo {
+          padding-inline: 16px;
+        }
+        .demo small {
+          width: 100%;
+        }
+        .brand {
+          display: none;
+        }
+        .topnav {
+          margin-left: 0;
+          gap: 0;
+        }
+        .topnav button {
+          padding-inline: 8px;
+        }
+        .account-anchor {
+          margin-left: auto;
+        }
+        .account-trigger {
+          font-size: 12px;
+          padding-inline: 6px;
+        }
+        .account-trigger .avatar {
+          display: none;
+        }
+        .content {
+          padding: 24px 16px;
+        }
+        .sectionbar h2 {
+          width: 100%;
+          font-size: 22px;
+        }
+        .tabs {
+          width: 100%;
+          justify-content: space-between;
+          gap: 0;
+        }
+        .tabs button {
+          padding-inline: 8px;
+        }
+        .col-source,
+        .col-duration {
+          display: none;
+        }
+        .mobile-source {
+          display: inline;
+        }
+        .identity {
+          gap: 8px;
+        }
+        .filters .configure {
+          margin-left: 0;
+        }
+        .account-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .platform-nav {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .account-card {
+          padding: 18px;
+        }
+        .player {
+          padding: 12px 16px;
+          gap: 10px;
+        }
+        .player .cover,
+        .player-actions .secondary-control {
+          display: none;
+        }
+        .player-meta small {
+          font-size: 11px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg aria-hidden="true" style="display: none">
+      <defs>
+        <symbol id="i-search" viewBox="0 0 24 24">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 5 5" />
+        </symbol>
+        <symbol id="i-note" viewBox="0 0 24 24">
+          <path d="M9 18V5l11-2v13M9 8l11-2" />
+          <ellipse cx="6" cy="18" rx="3" ry="2" />
+          <ellipse cx="17" cy="16" rx="3" ry="2" />
+        </symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z" /></symbol>
+        <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" /></symbol>
+        <symbol id="i-heart" viewBox="0 0 24 24">
+          <path
+            d="M20.8 4.6c-2-2-5.2-1.7-7 .4L12 7l-1.8-2c-1.8-2.1-5-2.4-7-.4-2.1 2.2-1.8 5.5.5 7.8L12 21l8.3-8.6c2.3-2.3 2.6-5.6.5-7.8z"
+          />
+        </symbol>
+        <symbol id="i-next" viewBox="0 0 24 24"><path d="m5 5 10 7-10 7zM19 5v14" /></symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24">
+          <path d="M4 7h16M4 17h16" />
+          <circle cx="9" cy="7" r="3" />
+          <circle cx="16" cy="17" r="3" />
+        </symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24">
+          <path d="M20 7v5h-5M4 17v-5h5M19 11a7 7 0 0 0-12-5M5 13a7 7 0 0 0 12 5" />
+        </symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      </defs>
+    </svg>
+    <div class="demo">
+      <small>
+        <strong>交互设计稿</strong>
+        · 示例数据，不代表平台曲库或服务可用性
+      </small>
+      <label class="row">
+        场景
+        <select id="scenario">
+          <option value="normal">正常结果</option>
+          <option value="partial">QQ 请求失败</option>
+          <option value="empty">暂无结果</option>
+          <option value="guest">QQ 未登录</option>
+        </select>
+      </label>
+      <button id="theme" class="outline">切换深色</button>
+    </div>
+    <div class="app">
+      <header class="topbar">
+        <span class="brand">Nons</span>
+        <nav class="topnav" aria-label="工作区">
+          <button data-page="search">搜索</button>
+          <button data-page="accounts">账号</button>
+          <button data-page="settings">适配器</button>
+        </nav>
+        <form class="searchform" id="search-form">
+          <button aria-label="搜索音乐">
+            <svg aria-hidden="true"><use href="#i-search" /></svg>
+          </button>
+          <input
+            id="keyword"
+            value="周杰伦"
+            placeholder="搜索音乐"
+            aria-label="搜索音乐"
+            maxlength="85"
+          />
+        </form>
+        <div class="account-anchor">
+          <button
+            class="account-trigger"
+            id="account-trigger"
+            aria-expanded="false"
+            aria-controls="account-popup"
+          >
+            <span class="avatar">M</span>
+            <span id="account-label"></span>
+          </button>
+          <section class="popover" id="account-popup" aria-label="切换音乐来源与账号" hidden>
+            <h2>音乐账号</h2>
+            <div id="account-choices"></div>
+            <button id="add-account" class="outline" style="width: 100%; margin-top: 12px">
+              <svg aria-hidden="true"><use href="#i-plus" /></svg>
+              添加账号
+            </button>
+          </section>
+        </div>
+      </header>
+      <main class="content" id="content">
+        <section id="search-page">
+          <header class="page-heading">
+            <h1 id="query-title">周杰伦</h1>
+            <p class="muted">聚合搜索 · 网易云音乐、QQ 音乐</p>
+          </header>
+          <div class="sectionbar">
+            <h2>搜索结果</h2>
+            <div class="tabs" role="group" aria-label="搜索结果类型">
+              <button data-kind="song" aria-pressed="true">单曲</button>
+              <button data-kind="playlist" aria-pressed="false">歌单</button>
+              <button data-kind="artist" aria-pressed="false">歌手</button>
+              <button data-kind="album" aria-pressed="false">专辑</button>
+            </div>
+          </div>
+          <div class="filters" role="group" aria-label="筛选音乐来源">
+            <button data-filter="all" aria-pressed="true">综合</button>
+            <button data-filter="netease" aria-pressed="false">网易云音乐</button>
+            <button data-filter="qqmusic" aria-pressed="false">QQ 音乐</button>
+            <button class="configure" data-page="settings">
+              <svg aria-hidden="true"><use href="#i-settings" /></svg>
+              管理来源
+            </button>
+          </div>
+          <div class="source-status" id="source-status" aria-live="polite"></div>
+          <div id="results"></div>
+          <div class="end" id="list-end">演示只展示首批；正式页面在滚动末尾自动续载</div>
+        </section>
+        <section id="accounts-page" hidden>
+          <header class="page-heading">
+            <h1>连接你的音乐</h1>
+            <p class="muted">登录或选择保存的账号，同时切换当前来源。</p>
+          </header>
+          <div class="account-layout">
+            <nav class="platform-nav" aria-label="账号平台">
+              <button data-inspect="netease" aria-pressed="true">网易云音乐</button>
+              <button data-inspect="qqmusic" aria-pressed="false">QQ 音乐</button>
+            </nav>
+            <section class="account-card" id="account-card"></section>
+          </div>
+        </section>
+        <section id="settings-page" hidden>
+          <header class="page-heading">
+            <h1>音乐适配器</h1>
+            <p class="muted">平台账号独立保留，播放音源按平台配置。</p>
+          </header>
+          <h2>音乐平台</h2>
+          <div class="settings-card">
+            <strong>网易云音乐 · QQ 音乐</strong>
+            <p class="muted">均参与聚合搜索；切换当前来源不会停用另一个平台。</p>
+          </div>
+          <h2>播放音源</h2>
+          <div class="settings-card">
+            <h2>音源服务待选</h2>
+            <p class="muted">首阶段接一个服务，只负责已知曲目的播放资源解析。</p>
+            <label class="row">
+              示例资源配置
+              <select id="resolver">
+                <option value="native">平台原生</option>
+                <option value="service">演示音源服务</option>
+              </select>
+            </label>
+            <p class="muted">选择只作用于后续播放，正在播放的曲目保持原资源。</p>
+          </div>
+        </section>
+        <p class="toast" id="notice" role="status" aria-live="polite"></p>
+      </main>
+      <footer class="player">
+        <span class="cover">
+          <svg aria-hidden="true"><use href="#i-note" /></svg>
+        </span>
+        <div class="player-meta">
+          <strong id="playing-title">晴天 · 周杰伦</strong>
+          <small id="playing-source">曲目：QQ 音乐 · 音源：平台原生 · 示例播放状态</small>
+        </div>
+        <div class="player-actions">
+          <button class="secondary-control" aria-label="上一首（演示）" id="previous">
+            <svg aria-hidden="true" style="transform: rotate(180deg)"><use href="#i-next" /></svg>
+          </button>
+          <button class="play" id="play-toggle" aria-label="暂停">
+            <svg aria-hidden="true"><use href="#i-pause" /></svg>
+          </button>
+          <button class="secondary-control" aria-label="下一首（演示）" id="next">
+            <svg aria-hidden="true"><use href="#i-next" /></svg>
+          </button>
+        </div>
+        <span class="progress" aria-hidden="true"></span>
+        <span class="muted">01:24</span>
+      </footer>
+    </div>
+    <script>
+      // Durable design reference only. All data and actions stay in memory.
+      const names = { netease: '网易云音乐', qqmusic: 'QQ 音乐' }
+      const state = {
+        current: 'netease',
+        inspected: 'netease',
+        page: 'search',
+        filter: 'all',
+        kind: 'song',
+        scenario: 'normal',
+        resolver: 'native',
+        playingResolver: 'native',
+        playingSource: 'qqmusic',
+        playingTitle: '晴天',
+        paused: false,
+        accounts: { netease: true, qqmusic: true }
+      }
+      const tracks = [
+        {
+          id: 'demo-n1',
+          title: '晴天（现场版）',
+          album: '现场演出 · 示例',
+          duration: '04:42',
+          source: 'netease'
+        },
+        {
+          id: 'demo-q1',
+          title: '晴天',
+          album: '叶惠美 · 示例',
+          duration: '04:29',
+          source: 'qqmusic'
+        },
+        {
+          id: 'demo-q2',
+          title: '七里香',
+          album: '七里香 · 示例',
+          duration: '04:59',
+          source: 'qqmusic'
+        },
+        {
+          id: 'demo-n2',
+          title: '稻香（翻唱版）',
+          album: '翻唱录音 · 示例',
+          duration: '03:40',
+          source: 'netease'
+        },
+        {
+          id: 'demo-q3',
+          title: '稻香',
+          album: '魔杰座 · 示例',
+          duration: '03:43',
+          source: 'qqmusic'
+        }
+      ]
+      const el = (id) => document.getElementById(id)
+      const icon = (name) => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`
+      const notice = (text) => {
+        el('notice').textContent = text
+      }
+      let deliveryOrder = tracks.map((track) => track.id)
+      const visible = () =>
+        deliveryOrder
+          .map((id) => tracks.find((track) => track.id === id))
+          .filter(
+            (track) =>
+              state.scenario !== 'empty' &&
+              !(state.scenario === 'partial' && track.source === 'qqmusic') &&
+              (state.filter === 'all' || track.source === state.filter)
+          )
+      function setPage(page) {
+        state.page = page
+        render()
+        el('content').scrollTop = 0
+        el('account-popup').hidden = true
+        el('account-trigger').setAttribute('aria-expanded', 'false')
+      }
+      function switchSource(source) {
+        state.current = source
+        state.inspected = source
+        notice(`已切换到${names[source]}；当前音频和队列继续保留。`)
+        render()
+        el('account-popup').hidden = true
+        el('account-trigger').setAttribute('aria-expanded', 'false')
+      }
+      function playTrack(id) {
+        const track = tracks.find((item) => item.id === id)
+        if (!track) return
+        state.playingTitle = track.title
+        state.playingSource = track.source
+        state.playingResolver = state.resolver
+        state.paused = false
+        notice(
+          `示例：播放${names[track.source]}的「${track.title}」，当前来源仍为${names[state.current]}。`
+        )
+        render()
+      }
+      function render() {
+        for (const page of ['search', 'accounts', 'settings'])
+          el(`${page}-page`).hidden = state.page !== page
+        el('account-label').textContent =
+          `${names[state.current]} · ${state.accounts[state.current] ? 'Miaoyww' : '未登录'}`
+        el('playing-title').textContent = `${state.playingTitle} · 周杰伦`
+        el('playing-source').textContent =
+          `曲目：${names[state.playingSource]} · 音源：${state.playingResolver === 'native' ? '平台原生' : '演示音源服务'} · 示例播放状态`
+        el('play-toggle').innerHTML = icon(state.paused ? 'play' : 'pause')
+        el('play-toggle').setAttribute('aria-label', state.paused ? '继续播放' : '暂停')
+        document
+          .querySelectorAll('[data-filter]')
+          .forEach((button) =>
+            button.setAttribute('aria-pressed', button.dataset.filter === state.filter)
+          )
+        document
+          .querySelectorAll('[data-kind]')
+          .forEach((button) =>
+            button.setAttribute('aria-pressed', button.dataset.kind === state.kind)
+          )
+        document
+          .querySelectorAll('[data-inspect]')
+          .forEach((button) =>
+            button.setAttribute('aria-pressed', button.dataset.inspect === state.inspected)
+          )
+        el('account-choices').innerHTML = Object.keys(names)
+          .map(
+            (source) =>
+              `<button class="platform-choice" data-account="${source}"><span class="avatar">${source === 'netease' ? '网' : 'Q'}</span><span class="info"><strong>${names[source]}</strong><small>${state.accounts[source] ? 'Miaoyww · 已登录' : '未登录 · 前往连接'}</small></span><span class="tag ${state.current === source ? 'active' : ''}">${state.current === source ? '当前来源' : '使用此来源'}</span></button>`
+          )
+          .join('')
+        const source = state.inspected
+        el('account-card').innerHTML =
+          `<h2>${names[source]}</h2><p class="muted">仅查看此卡片不会切换当前来源。</p><span class="avatar">${source === 'netease' ? '网' : 'Q'}</span><p><strong>${state.accounts[source] ? 'Miaoyww' : '尚未连接账号'}</strong> <span class="tag ${source === state.current ? 'active' : ''}">${source === state.current ? '当前来源' : state.accounts[source] ? '已登录' : '未登录'}</span></p><div class="row"><button class="primary" id="use-account">${state.accounts[source] ? '使用此账号' : '模拟登录成功并切换'}</button><button class="outline" id="guest-source">使用此来源浏览</button></div><hr><button class="outline" id="logout" ${state.accounts[source] ? '' : 'disabled'}>退出此平台当前账号</button><p class="muted">退出保留账号记录；其他平台的登录状态不受影响。</p>`
+        const status = Object.keys(names)
+          .filter((key) => state.filter === 'all' || state.filter === key)
+          .map((key) =>
+            key === 'qqmusic' && state.scenario === 'partial'
+              ? `<span class="row"><span class="error">QQ 音乐 · 请求失败</span><button id="retry">${icon('refresh')} 重试</button></span>`
+              : `<span>${names[key]} · ${state.scenario === 'empty' ? '暂无结果' : `已加载 ${visible().filter((track) => track.source === key).length} 项`}${state.accounts[key] ? '' : ' · 游客'}</span>`
+          )
+        el('source-status').innerHTML = status.join('')
+        const items = visible()
+        if (!items.length) {
+          el('results').innerHTML =
+            `<div class="empty">${icon('search')}<p>${state.scenario === 'partial' ? '所选来源请求失败' : '没有找到匹配结果'}</p><small>${state.scenario === 'partial' ? '请重试，或查看其他来源已加载的结果。' : '试试其他关键词，或切换搜索类型。'}</small></div>`
+        } else if (state.kind === 'song') {
+          el('results').innerHTML =
+            `<table class="table"><colgroup><col style="width:46%"><col class="col-album" style="width:22%"><col class="col-source" style="width:16%"><col class="col-duration" style="width:8%"><col style="width:8%"></colgroup><thead><tr><th>歌曲</th><th class="col-album">专辑</th><th class="col-source">来源</th><th class="col-duration">时长</th><th><span class="muted">操作</span></th></tr></thead><tbody>${items.map((track) => `<tr data-playing="${track.title === state.playingTitle && track.source === state.playingSource}"><td><div class="identity"><button class="cover" data-play="${track.id}" aria-label="播放${names[track.source]}的${track.title}">${icon('play')}</button><div><button class="trackname" data-play="${track.id}">${track.title}</button><small>周杰伦 <span class="mobile-source">· ${names[track.source]}</span></small></div></div></td><td class="col-album muted">${track.album}</td><td class="col-source"><span class="tag">${names[track.source]}</span></td><td class="col-duration muted">${track.duration}</td><td class="row-actions"><button data-like="${track.id}" aria-label="收藏到${names[track.source]}">${icon('heart')}</button></td></tr>`).join('')}</tbody></table>`
+        } else {
+          const title = {
+            playlist: '周杰伦精选 · 示例歌单',
+            artist: '周杰伦 · 示例歌手',
+            album: '精选专辑 · 示例'
+          }[state.kind]
+          el('results').innerHTML =
+            `<div class="cards">${[...new Set(items.map((track) => track.source))].map((key) => `<article class="collection"><div class="art">${icon('note')}</div><strong>${title}</strong><small>平台内容详情 · 示例</small><span class="tag">${names[key]}</span></article>`).join('')}</div>`
+        }
+      }
+      document.addEventListener('click', (event) => {
+        const button = event.target.closest('button')
+        if (!button) return
+        if (button.dataset.page) setPage(button.dataset.page)
+        if (button.dataset.filter) {
+          state.filter = button.dataset.filter
+          notice('来源筛选只改变搜索范围，当前来源保持不变。')
+          render()
+        }
+        if (button.dataset.kind) {
+          state.kind = button.dataset.kind
+          notice('按所选类型分别查询支持该能力的平台。')
+          render()
+        }
+        if (button.dataset.inspect) {
+          state.inspected = button.dataset.inspect
+          render()
+        }
+        if (button.dataset.account) {
+          if (state.accounts[button.dataset.account]) switchSource(button.dataset.account)
+          else {
+            state.inspected = button.dataset.account
+            setPage('accounts')
+          }
+        }
+        if (button.dataset.play) playTrack(button.dataset.play)
+        if (button.dataset.like) {
+          const track = tracks.find((item) => item.id === button.dataset.like)
+          notice(
+            state.accounts[track.source]
+              ? `示例：收藏归属${names[track.source]}，不写入${names[state.current]}的其他平台账号。`
+              : `请先登录${names[track.source]}，再收藏此来源曲目。`
+          )
+        }
+        if (button.id === 'account-trigger') {
+          el('account-popup').hidden = !el('account-popup').hidden
+          button.setAttribute('aria-expanded', !el('account-popup').hidden)
+        }
+        if (button.id === 'add-account') setPage('accounts')
+        if (button.id === 'use-account') {
+          state.accounts[state.inspected] = true
+          switchSource(state.inspected)
+        }
+        if (button.id === 'guest-source') switchSource(state.inspected)
+        if (button.id === 'logout') {
+          state.accounts[state.inspected] = false
+          notice(`已退出${names[state.inspected]}，当前来源保持不变。`)
+          render()
+        }
+        if (button.id === 'retry') {
+          deliveryOrder = [
+            ...tracks.filter((track) => track.source === 'netease'),
+            ...tracks.filter((track) => track.source === 'qqmusic')
+          ].map((track) => track.id)
+          state.scenario = 'normal'
+          el('scenario').value = 'normal'
+          notice('示例：只重试失败来源，已有结果继续保留，恢复的结果追加到末尾。')
+          render()
+        }
+        if (button.id === 'play-toggle') {
+          state.paused = !state.paused
+          render()
+        }
+        if (button.id === 'previous' || button.id === 'next') {
+          const index = tracks.findIndex(
+            (track) => track.title === state.playingTitle && track.source === state.playingSource
+          )
+          playTrack(
+            tracks[(index + (button.id === 'next' ? 1 : tracks.length - 1)) % tracks.length].id
+          )
+        }
+        if (button.id === 'theme') {
+          document.documentElement.classList.toggle('dark')
+          button.textContent = document.documentElement.classList.contains('dark')
+            ? '切换浅色'
+            : '切换深色'
+        }
+      })
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          el('account-popup').hidden = true
+          el('account-trigger').setAttribute('aria-expanded', 'false')
+          el('account-trigger').focus()
+        }
+      })
+      el('scenario').addEventListener('change', (event) => {
+        deliveryOrder = tracks.map((track) => track.id)
+        state.scenario = event.target.value
+        state.accounts.qqmusic = state.scenario !== 'guest'
+        notice('已切换演示场景，所有操作仅影响示例状态。')
+        render()
+      })
+      el('resolver').addEventListener('change', (event) => {
+        state.resolver = event.target.value
+        notice('后续曲目使用新音源，当前播放资源保持不变。')
+      })
+      el('search-form').addEventListener('submit', (event) => {
+        event.preventDefault()
+        const query = el('keyword').value.trim()
+        if (!query) return
+        el('query-title').textContent = query
+        setPage('search')
+        notice('演示保留固定示例结果；正式实现会按关键词重建查询。')
+      })
+      render()
+    </script>
+  </body>
+</html>
