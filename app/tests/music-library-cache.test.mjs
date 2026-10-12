@@ -340,6 +340,22 @@ test('song details coalesce, and playlist deletion invalidates collection and li
   assert.equal((await player.nativeCall('song_information', { key: 'netease:1' })).albumId, 3)
 })
 
+test('a source revision bump after a write does not surface an aborted fetch to concurrent library reads', async () => {
+  const { library, requests, setScope } = harness()
+  const first = library.getMusicLibrary(1)
+  requests.at(-1).resolve(summary)
+  await first
+  // Liking a song succeeds and the backend bumps the source revision.
+  setScope('account-a:instance-2')
+  library.invalidateMusicLibrary()
+  // The like handler and the library page both reload the same key at once.
+  const reads = [library.getMusicLibrary(1), library.getMusicLibrary(1)]
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  for (const request of requests.filter((item) => item.command === 'music_library'))
+    request.resolve(summary)
+  assert.deepEqual(await Promise.all(reads), [summary, summary])
+})
+
 test('source settings invalidate cached and in-flight lyrics only after a successful write', async () => {
   const { player, requests } = harness()
   const read = player.nativeCall('track_lyrics', { key: 'netease:1' })

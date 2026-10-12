@@ -175,6 +175,8 @@ const onlineCachedCommands = new Set([
   'song_information'
 ])
 let onlineCacheScope: string | undefined
+// Bumped whenever a changed source scope clears the online cache, so reads already waiting on a cleared in-flight fetch can tell.
+let onlineCacheEpoch = 0
 
 export async function nativeCall<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   if (!isTauri()) throw new Error('请在 NonsPlayer 桌面应用中使用此功能。')
@@ -182,6 +184,7 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
     return coverCache.get(requestKey(command, args), () => invoke<T>(command, args))
   if (cachedCommands.has(command)) {
     const key = requestKey(command, args)
+    const epoch = onlineCacheEpoch
     if (args?.refresh) requestCache.delete(key)
     const online =
       onlineCachedCommands.has(command) &&
@@ -210,12 +213,24 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
       const changed = onlineCacheScope !== undefined && onlineCacheScope !== scope.value
       onlineCacheScope = scope.value
       if (changed) {
+        onlineCacheEpoch++
         invalidateNativeCache([...onlineCachedCommands])
         void valuePromise.catch(() => {})
         return nativeCall<T>(command, { ...args, refresh: true })
       }
     }
-    const value = await valuePromise
+    let value: T
+    try {
+      value = await valuePromise
+    } catch (cause) {
+      // A concurrent read saw the new source scope (e.g. after a like bumps it) and cleared the
+      // shared in-flight fetch; read the refreshed entry instead of reporting the aborted request.
+      if (online && epoch !== onlineCacheEpoch) {
+        const { refresh: _refresh, ...retryArgs } = args ?? {}
+        return nativeCall<T>(command, retryArgs)
+      }
+      throw cause
+    }
     if (
       scope?.value !== undefined &&
       scope.value !== (await invoke<string>('music_context', { source: 'netease' }))
