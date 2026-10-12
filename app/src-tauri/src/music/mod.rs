@@ -11,5 +11,6 @@ pub mod manager;
 pub mod migration;
 pub mod service;
 pub(crate) mod settings;
+pub(crate) mod source_preferences;
 #[cfg(test)]
 mod tests;

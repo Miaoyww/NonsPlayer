@@ -9,6 +9,7 @@ import { SettingsCard } from '@/features/settings/settings-card'
 import type { SourceDescriptor } from '@/features/music/types'
 import { errorText, nativeCall } from '@/lib/player'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
+import { SourcePreferencesCard } from '@/features/music/source-preferences-card'
 
 interface AdapterStatus {
   descriptor: SourceDescriptor
@@ -123,6 +124,7 @@ export function AdaptersPage() {
         </p>
       )}
       {loading && <TextSkeleton />}
+      <SourcePreferencesCard />
       {adapters.map(({ descriptor, enabled }) => (
         <div key={descriptor.source} className="flex flex-col gap-3">
           <SettingsCard

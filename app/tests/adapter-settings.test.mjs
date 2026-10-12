@@ -23,6 +23,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
   let unsubscribed = false
   let invalidations = 0
   const modules = {
+    '@/features/music/source-preferences-card': { SourcePreferencesCard: () => null },
     '@/components/music/loading': { TextSkeleton: 'div' },
     react: React,
     'react/jsx-runtime': jsx,

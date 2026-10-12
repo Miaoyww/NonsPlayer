@@ -922,6 +922,12 @@ pub fn run() {
                 store.clone(),
                 music.adapters.clone(),
             )?));
+            app.manage(Arc::new(
+                crate::music::source_preferences::SourceSettings::new(
+                    store.clone(),
+                    music.adapters.clone(),
+                )?,
+            ));
             let cache = Arc::new(ttml_cache::TtmlCache::new(
                 store.clone(),
                 app.path().app_cache_dir()?,
@@ -1009,6 +1015,8 @@ pub fn run() {
             crate::music::settings::adapter_list,
             crate::music::settings::adapter_set_enabled,
             crate::music::settings::adapter_reload,
+            crate::music::source_preferences::music_source_preferences,
+            crate::music::source_preferences::music_set_source_preferences,
             music_sources,
             music_context,
             music_query,
