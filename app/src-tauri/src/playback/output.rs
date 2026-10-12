@@ -2,6 +2,10 @@
 use crate::model::{AppResult, AudioOutputMode};
 use gstreamer::{self as gst, prelude::*};
 
+#[cfg(windows)]
+#[path = "output/windows.rs"]
+mod windows;
+
 pub fn available_modes() -> Vec<AudioOutputMode> {
     if cfg!(windows) {
         vec![AudioOutputMode::Shared, AudioOutputMode::Exclusive]
@@ -11,35 +15,16 @@ pub fn available_modes() -> Vec<AudioOutputMode> {
 }
 
 pub fn create_sink(device: Option<&gst::Device>, mode: AudioOutputMode) -> AppResult<gst::Element> {
-    if mode == AudioOutputMode::Exclusive && !cfg!(windows) {
+    if mode == AudioOutputMode::Exclusive {
+        #[cfg(windows)]
+        return windows::create_exclusive_sink(device);
+        #[cfg(not(windows))]
         return Err("WASAPI 独占模式仅支持 Windows".into());
     }
     let selected = device
         .map(|device| device.create_element(Some("nons-output")))
         .transpose()
         .map_err(|e| e.to_string())?;
-    if mode == AudioOutputMode::Exclusive {
-        // WASAPI2 1.28 can fall back to shared after exclusive initialization fails.
-        // wasapisink instead fails explicitly, and playbin keeps software volume.
-        let endpoint = selected
-            .as_ref()
-            .map(|sink| {
-                if !sink.factory().is_some_and(|factory| {
-                    matches!(factory.name().as_str(), "wasapisink" | "wasapi2sink")
-                }) {
-                    return Err("该输出设备不支持 WASAPI 独占模式".to_string());
-                }
-                Ok(sink.property::<Option<String>>("device"))
-            })
-            .transpose()?
-            .flatten();
-        return gst::ElementFactory::make("wasapisink")
-            .name("nons-output")
-            .property("device", endpoint)
-            .property("exclusive", true)
-            .build()
-            .map_err(|e| format!("无法创建 WASAPI 独占输出：{e}"));
-    }
     let sink = match selected {
         Some(sink) => sink,
         None => gst::ElementFactory::make(if cfg!(windows) {
@@ -79,13 +64,22 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
+    #[ignore = "requires a Windows device advertising exclusive output formats"]
     fn windows_modes_use_explicit_sinks_without_shared_fallback() {
         gst::init().unwrap();
         let shared = create_sink(None, AudioOutputMode::Shared).unwrap();
         assert_eq!(shared.factory().unwrap().name(), "wasapi2sink");
         assert!(!shared.property::<bool>("exclusive"));
         let exclusive = create_sink(None, AudioOutputMode::Exclusive).unwrap();
-        assert_eq!(exclusive.factory().unwrap().name(), "wasapisink");
+        let bin = exclusive.downcast_ref::<gst::Bin>().unwrap();
+        assert_eq!(
+            bin.by_name("nons-exclusive-device")
+                .unwrap()
+                .factory()
+                .unwrap()
+                .name(),
+            "wasapi2sink"
+        );
         assert!(exclusive.property::<bool>("exclusive"));
         assert!(exclusive.find_property("volume").is_none());
     }
