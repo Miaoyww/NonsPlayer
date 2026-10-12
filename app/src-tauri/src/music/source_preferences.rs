@@ -19,6 +19,7 @@ pub struct SourceSettings {
     store: Arc<Store>,
     adapters: Arc<AdapterManager>,
     state: Mutex<SourcePreferences>,
+    intent: Mutex<u64>,
 }
 
 impl SourceSettings {
@@ -39,6 +40,7 @@ impl SourceSettings {
             store,
             adapters,
             state: Mutex::new(state),
+            intent: Mutex::new(0),
         })
     }
 
@@ -70,6 +72,48 @@ impl SourceSettings {
         supplementary: Vec<SourceId>,
         revision: u64,
     ) -> AppResult<SourcePreferences> {
+        self.update_intent(current, supplementary, revision, None)
+    }
+
+    pub fn begin_intent(&self) -> AppResult<u64> {
+        let mut intent = self.intent.lock().map_err(|_| "来源操作锁不可用")?;
+        *intent = intent.checked_add(1).ok_or("来源操作代次已耗尽")?;
+        Ok(*intent)
+    }
+
+    pub fn use_source(&self, current: SourceId, intent: u64) -> AppResult<SourcePreferences> {
+        if !self
+            .adapters
+            .statuses()
+            .map_err(|e| e.to_string())?
+            .iter()
+            .any(|status| status.enabled && status.descriptor.source == current)
+        {
+            return Err("当前来源不存在或已停用".into());
+        }
+        let saved = self.get()?;
+        let mut supplementary = saved.supplementary.clone();
+        if saved.current != current && supplementary.contains(&current) {
+            supplementary.retain(|source| source != &current);
+            supplementary.insert(0, saved.current);
+        }
+        self.update_intent(current, supplementary, saved.revision, Some(intent))
+    }
+
+    fn update_intent(
+        &self,
+        current: SourceId,
+        supplementary: Vec<SourceId>,
+        revision: u64,
+        expected_intent: Option<u64>,
+    ) -> AppResult<SourcePreferences> {
+        // Keep intent checking and publication in one critical section. A delayed login
+        // cannot win after a newer login, saved-account selection or explicit switch.
+        let mut intent = self.intent.lock().map_err(|_| "来源操作锁不可用")?;
+        if expected_intent.is_some_and(|expected| expected != *intent) {
+            return Err("来源操作已被更新的操作取代".into());
+        }
+        let next_intent = intent.checked_add(1).ok_or("来源操作代次已耗尽")?;
         let mut state = self.state.lock().map_err(|_| "音乐来源配置锁不可用")?;
         if state.revision != revision {
             return Err("音乐来源配置已变化，请刷新后重试".into());
@@ -87,7 +131,7 @@ impl SourceSettings {
                 return Err("音乐来源不存在或已停用".into());
             }
         }
-        if current != state.current
+        if (expected_intent.is_some() || current != state.current)
             && !statuses
                 .iter()
                 .any(|item| item.enabled && item.descriptor.source == current)
@@ -95,6 +139,7 @@ impl SourceSettings {
             return Err("当前来源不存在或已停用".into());
         }
         if state.current == current && state.supplementary == supplementary {
+            *intent = next_intent;
             return Ok(state.clone());
         }
         let next = SourcePreferences {
@@ -110,8 +155,30 @@ impl SourceSettings {
             &serde_json::to_string(&next).map_err(|e| e.to_string())?,
         )?;
         *state = next.clone();
+        *intent = next_intent;
         Ok(next)
     }
+}
+
+#[tauri::command]
+pub fn music_source_intent(settings: tauri::State<'_, Arc<SourceSettings>>) -> AppResult<u64> {
+    settings.begin_intent()
+}
+
+#[tauri::command]
+pub async fn music_use_source(
+    current: SourceId,
+    intent: u64,
+    settings: tauri::State<'_, Arc<SourceSettings>>,
+    app: tauri::AppHandle,
+) -> AppResult<SourcePreferences> {
+    use tauri::Emitter;
+    let settings = settings.inner().clone();
+    let next = tauri::async_runtime::spawn_blocking(move || settings.use_source(current, intent))
+        .await
+        .map_err(|_| "来源切换任务失败")??;
+    let _ = app.emit("music-source-preferences-changed", &next);
+    Ok(next)
 }
 
 #[tauri::command]
@@ -232,5 +299,26 @@ mod tests {
             .unwrap();
         assert!(settings.update(source("netease"), vec![], 0).is_err());
         assert_eq!(settings.get().unwrap(), saved);
+    }
+    #[test]
+    fn newer_intent_and_noop_explicit_switch_reject_old_login() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Arc::new(Store::open(&directory.path().join("settings.sqlite3")).unwrap());
+        let settings = settings(store);
+        let old = settings.begin_intent().unwrap();
+        let latest = settings.begin_intent().unwrap();
+        assert!(settings.use_source(source("netease"), old).is_err());
+        assert!(settings.use_source(source("netease"), latest).is_ok());
+        assert!(settings.use_source(source("netease"), latest).is_err());
+        let pending = settings.begin_intent().unwrap();
+        settings.update(source("netease"), vec![], 0).unwrap();
+        assert!(settings.use_source(source("netease"), pending).is_err());
+        let pending = settings.begin_intent().unwrap();
+        settings
+            .adapters
+            .set_enabled(&source("netease"), false)
+            .unwrap();
+        assert!(settings.use_source(source("netease"), pending).is_err());
+        assert_eq!(settings.get().unwrap().revision, 0);
     }
 }

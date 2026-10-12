@@ -23,6 +23,8 @@ import { ToolsPage } from '@/features/tools/tools-page'
 import { PluginPageHost } from '@/plugins/host'
 import { useInterfaceDensity } from '@/features/settings/use-interface-density'
 import LyricsView from '@/features/lyrics/lyrics-view'
+import { useMusicSources } from '@/features/music/use-music-sources'
+import { sourceLabel } from '@/features/music/source-label'
 
 const LocalPage = lazy(() => import('@/features/local/local-page'))
 const SearchPage = lazy(() => import('@/features/search/search-page'))
@@ -32,6 +34,7 @@ const Discovery = lazy(() => import('@/features/discovery/discovery'))
 const AccountLoginPage = lazy(() => import('@/features/account/account-login-page'))
 const MusicLibrary = lazy(() => import('@/features/library/music-library'))
 const EntityPage = lazy(() => import('@/features/music/entity-page'))
+const SourceWorkspace = lazy(() => import('@/features/music/source-workspace'))
 interface ImportReport {
   imported: number
   skipped: number
@@ -54,6 +57,9 @@ export function MusicWorkspace({
   const [density] = useInterfaceDensity()
   const { page, navigate } = useMusicNavigation()
   const view = page.view
+  const sources = useMusicSources()
+  const currentSource = sources.preferences?.current
+  const currentStatus = sources.statuses.find((item) => item.descriptor.source === currentSource)
   const previousPage = useRef(page)
   useEffect(() => {
     if (previousPage.current !== page) {
@@ -283,6 +289,41 @@ export function MusicWorkspace({
                 <Suspense fallback={<MusicPageSkeleton view="search" title={page.query} />}>
                   <SearchPage key={page.query} onError={onError} onNotice={showNotice} />
                 </Suspense>
+              ) : (view === 'discover' || view === 'library') &&
+                isTauri() &&
+                (!currentSource || !currentStatus?.enabled) ? (
+                <MusicPage>
+                  <p role="status" className="py-6 text-sm text-muted-foreground">
+                    {sources.error ||
+                      (currentSource
+                        ? `${sourceLabel(currentSource)}当前不可用，请选择其他来源或在设置中启用。`
+                        : '正在读取音乐来源…')}
+                  </p>
+                  <ActionButton variant="outline" onClick={() => navigate('accounts')}>
+                    选择音乐来源
+                  </ActionButton>
+                </MusicPage>
+              ) : (view === 'discover' || view === 'library') &&
+                currentSource &&
+                currentSource !== 'netease' ? (
+                <Suspense
+                  fallback={
+                    view === 'library' ? (
+                      <LibraryPageSkeleton />
+                    ) : (
+                      <MusicPageSkeleton view="discover" />
+                    )
+                  }
+                >
+                  <SourceWorkspace
+                    key={`${currentSource}:${view}:${sources.revision}`}
+                    source={currentSource}
+                    name={currentStatus?.descriptor.displayName ?? currentSource}
+                    discovery={view === 'discover'}
+                    onError={onError}
+                    onNotice={showNotice}
+                  />
+                </Suspense>
               ) : view === 'discover' ? (
                 <Suspense
                   fallback={
@@ -293,7 +334,11 @@ export function MusicWorkspace({
                     />
                   }
                 >
-                  <Discovery onError={onError} onNotice={showNotice} />
+                  <Discovery
+                    key={`${currentSource}:${sources.revision}`}
+                    onError={onError}
+                    onNotice={showNotice}
+                  />
                 </Suspense>
               ) : view === 'library' || view === 'collection' ? (
                 <Suspense
@@ -305,7 +350,11 @@ export function MusicWorkspace({
                     )
                   }
                 >
-                  <MusicLibrary onError={onError} onNotice={showNotice} />
+                  <MusicLibrary
+                    key={view === 'library' ? `${currentSource}:${sources.revision}` : undefined}
+                    onError={onError}
+                    onNotice={showNotice}
+                  />
                 </Suspense>
               ) : (
                 <Suspense fallback={<MusicPageSkeleton view="local" />}>

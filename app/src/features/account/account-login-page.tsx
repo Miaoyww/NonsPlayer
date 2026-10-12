@@ -5,6 +5,7 @@ import { Check, ChevronRight, QrCode, RefreshCw, UserPlus } from 'lucide-react'
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
 import { ActionButton } from '@/components/music/action-button'
 import { musicClient } from '@/features/music/client'
+import { sourcePreferences } from '@/features/music/source-preferences'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { errorText } from '@/lib/player'
 import { AccountAvatar } from './account-avatar'
@@ -28,32 +29,45 @@ function AdapterLoginCard({
   const initialLogin = useRef(startLogin || !adapter.current)
   const previousAccount = useRef(adapter.current?.reference.id)
   const generation = useRef(0)
+  const intent = useRef<number | undefined>(undefined)
+  const challenge = useRef<string | undefined>(undefined)
+  const cancel = useCallback(() => {
+    const key = challenge.current
+    challenge.current = undefined
+    if (key) void musicClient.cancelLogin(source, key).catch(() => {})
+  }, [source])
   const generate = useCallback(async () => {
     const serial = ++generation.current
+    cancel()
     setAdding(true)
     setBusy(true)
     setQr(undefined)
     setMessage('正在生成二维码…')
     try {
+      const nextIntent = await sourcePreferences.beginIntent()
+      if (serial !== generation.current) return
+      intent.current = nextIntent
       const result = await musicClient.account(source, { operation: 'beginLogin' })
       if (result.type !== 'challenge') throw new Error('此来源暂未提供可展示的登录方式。')
       if (serial === generation.current) {
+        challenge.current = result.data.key
         setQr(result.data)
         setMessage(`使用${displayName}扫码，并确认登录。`)
-      }
+      } else void musicClient.cancelLogin(source, result.data.key).catch(() => {})
     } catch (cause) {
       if (serial === generation.current) setMessage(errorText(cause))
     } finally {
       if (serial === generation.current) setBusy(false)
     }
-  }, [source, displayName])
+  }, [source, displayName, cancel])
 
   useEffect(() => {
     if (adapter.enabled && isTauri() && initialLogin.current) void generate()
     return () => {
       generation.current++
+      cancel()
     }
-  }, [adapter.enabled, generate])
+  }, [adapter.enabled, generate, cancel])
 
   useEffect(() => {
     if (!qr || !adapter.enabled) return
@@ -67,6 +81,14 @@ function AdapterLoginCard({
         if (result.type !== 'progress') throw new Error('登录状态响应无效。')
         setMessage(result.data.message)
         if (result.data.code === 803) {
+          try {
+            await sourcePreferences.use(source, intent.current!)
+          } catch (cause) {
+            if (!disposed && serial === generation.current)
+              setMessage(`登录成功，切换来源失败：${errorText(cause)}。可点击“使用此来源”重试。`)
+          }
+          if (disposed || serial !== generation.current) return
+          challenge.current = undefined
           setQr(undefined)
           setAdding(false)
           onChanged()
@@ -96,6 +118,7 @@ function AdapterLoginCard({
   useEffect(() => {
     if (adapter.current?.reference.id === previousAccount.current) return
     previousAccount.current = adapter.current?.reference.id
+    if (challenge.current) return
     generation.current++
     setQr(undefined)
     setBusy(false)
@@ -129,6 +152,26 @@ function AdapterLoginCard({
             <Check className="size-4" aria-hidden="true" />
             当前账号已登录
           </p>
+          {message.includes('切换来源失败') && (
+            <p role="alert" className="text-sm text-destructive">
+              {message}
+            </p>
+          )}
+          <ActionButton
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true)
+              void sourcePreferences
+                .beginIntent()
+                .then((value) => sourcePreferences.use(source, value))
+                .then(() => setMessage(''))
+                .catch((cause) => setMessage(`切换来源失败：${errorText(cause)}`))
+                .finally(() => setBusy(false))
+            }}
+          >
+            使用此来源
+          </ActionButton>
           <ActionButton
             variant="secondary"
             onClick={() => void generate()}

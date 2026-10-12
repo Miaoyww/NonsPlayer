@@ -39,6 +39,7 @@ function harness() {
     }
   })
   const library = load('../src/features/library/library-api.ts', {
+    '@/features/music/client': { musicClient: {} },
     '@/lib/player': player,
     '@/lib/runtime-cache': cache
   })

@@ -3,6 +3,7 @@ import type { Track } from '@/lib/player'
 import { Cover } from './cover'
 import { TrackArtists } from './music-links'
 import { TrackTitle, trackDisplayTitle } from './track-title'
+import { sourceLabel, trackSource } from '@/features/music/source-label'
 import {
   useInterfaceDensity,
   type InterfaceDensity
@@ -50,10 +51,7 @@ export function TrackIdentity({
           title={track.artist}
         >
           <TrackArtists track={track} />
-          {showSource && track.source.kind === 'local' && <span className="ml-2">· 本地</span>}
-          {showSource && track.source.kind === 'online' && (
-            <span className="ml-2">· {track.source.track.reference.source}</span>
-          )}
+          {showSource && <span className="ml-2">· {sourceLabel(trackSource(track))}</span>}
         </p>
       </div>
     </div>

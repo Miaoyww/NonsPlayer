@@ -35,6 +35,7 @@ export const musicClient: MusicSourceClient & {
   currentAccount(source: string): Promise<AccountRecord | null>
   account(source: string, request: AccountRequest): Promise<AccountPresentation>
   selectAccount(reference: AccountRef): Promise<void>
+  cancelLogin(source: string, key: string): Promise<void>
   removeAccount(reference: AccountRef): Promise<void>
   refresh(
     source: string,
@@ -65,5 +66,6 @@ export const musicClient: MusicSourceClient & {
     return result
   },
   selectAccount: (reference) => nativeCall('music_select_account', { reference }),
+  cancelLogin: (source, key) => nativeCall('music_cancel_login', { source, key }),
   removeAccount: (reference) => nativeCall('music_remove_account', { reference })
 }

@@ -13,7 +13,7 @@ import {
 } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { nativeCall, errorText } from '@/lib/player'
-import { getLibraryTracks } from '@/features/library/library-api'
+import { getLibraryTracks, playMusicCollection } from '@/features/library/library-api'
 import {
   Dialog,
   DialogClose,
@@ -93,10 +93,7 @@ export function CollectionActionsProvider({
     pending.current = true
     setBusy(true)
     try {
-      const truncated = await nativeCall<boolean>(
-        next ? 'append_library_collection' : 'play_library_collection',
-        { kind: item.kind, id: item.id, ...(next ? {} : { key: null }) }
-      )
+      const truncated = await playMusicCollection(item, next)
       onNotice(
         `${next ? '已按顺序加入下一首播放' : '已替换播放列表'}${truncated ? '（前 1000 首）' : ''}。`
       )
@@ -254,7 +251,8 @@ export function CollectionContextMenu({
   const unavailable = busy || actions.busy || !isTauri()
   if (item?.kind === 'artist' || (!item && ((!onPlay && !onNext) || unavailable)))
     return cloneElement(render, undefined, children)
-  const editable = !!item && !!profile && item.creatorId === profile.userId && !item.liked
+  const editable =
+    !!item && !item.reference && !!profile && item.creatorId === profile.userId && !item.liked
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger render={render} tabIndex={0}>

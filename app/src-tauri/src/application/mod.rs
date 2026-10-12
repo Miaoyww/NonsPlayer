@@ -171,6 +171,15 @@ fn music_current_account(
         .ok_or(crate::music::ErrorCode::Internal)?
         .current_record(&source)
 }
+
+#[tauri::command]
+fn music_cancel_login(
+    source: crate::music::identity::SourceId,
+    key: String,
+    backend: State<'_, Backend>,
+) -> crate::music::MusicResult<()> {
+    backend.music.adapters.cancel_login(&source, &key)
+}
 #[tauri::command]
 fn music_accounts(
     source: crate::music::identity::SourceId,
@@ -1068,6 +1077,9 @@ pub fn run() {
             crate::music::settings::adapter_reload,
             crate::music::source_preferences::music_source_preferences,
             crate::music::source_preferences::music_set_source_preferences,
+            crate::music::source_preferences::music_source_intent,
+            crate::music::source_preferences::music_use_source,
+            music_cancel_login,
             music_sources,
             music_context,
             music_query,

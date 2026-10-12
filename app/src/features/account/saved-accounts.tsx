@@ -3,6 +3,7 @@ import { Check, RefreshCw, Trash2 } from 'lucide-react'
 import { AccountAvatar } from './account-avatar'
 import { ActionButton } from '@/components/music/action-button'
 import { musicClient } from '@/features/music/client'
+import { sourcePreferences } from '@/features/music/source-preferences'
 import type { AccountRecord, AccountRef } from '@/features/music/types'
 import { errorText } from '@/lib/player'
 
@@ -27,11 +28,18 @@ export function SavedAccounts({
   const [removing, setRemoving] = useState<string>()
   const [revision, setRevision] = useState(0)
   const generation = useRef(0)
+  const operationGeneration = useRef(0)
+  useEffect(() => {
+    operationGeneration.current++
+    setError('')
+    return () => {
+      operationGeneration.current++
+    }
+  }, [open, source])
   useEffect(() => {
     const serial = ++generation.current
     if (!open) return
     setBusy(true)
-    setError('')
     setRemoving(undefined)
     setRecords([])
     void musicClient
@@ -50,21 +58,29 @@ export function SavedAccounts({
     }
   }, [open, source, current?.source, current?.id, revision])
   async function change(record: AccountRecord, remove = false) {
-    const serial = generation.current
+    const serial = operationGeneration.current
     setBusy(true)
     setError('')
     try {
       if (remove) await musicClient.removeAccount(record.reference)
-      else await musicClient.selectAccount(record.reference)
-      if (serial === generation.current) {
+      else {
+        const intent = await sourcePreferences.beginIntent()
+        await musicClient.selectAccount(record.reference)
+        try {
+          await sourcePreferences.use(source, intent)
+        } catch (cause) {
+          throw new Error(`账号选择成功，切换来源失败：${errorText(cause)}。可点击账号重试。`)
+        }
+      }
+      if (serial === operationGeneration.current) {
         setRemoving(undefined)
         setRevision((value) => value + 1)
         onChanged?.()
       }
     } catch (cause) {
-      if (serial === generation.current) setError(errorText(cause))
+      if (serial === operationGeneration.current) setError(errorText(cause))
     } finally {
-      if (serial === generation.current) setBusy(false)
+      if (serial === operationGeneration.current) setBusy(false)
     }
   }
   if (!open) return null
@@ -99,12 +115,7 @@ export function SavedAccounts({
               <ActionButton
                 variant="ghost"
                 className="min-w-0 flex-1 justify-start"
-                disabled={
-                  busy ||
-                  !enabled ||
-                  (record.reference.source === current?.source &&
-                    record.reference.id === current?.id)
-                }
+                disabled={busy || !enabled}
                 aria-pressed={
                   record.reference.source === current?.source && record.reference.id === current?.id
                 }

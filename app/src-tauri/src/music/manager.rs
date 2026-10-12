@@ -85,6 +85,15 @@ impl ResourceTicket {
     }
 }
 impl AdapterManager {
+    pub fn cancel_login(&self, source: &SourceId, key: &str) -> MusicResult<()> {
+        let entry = self.entry(source)?;
+        entry
+            .login_challenges
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(key);
+        Ok(())
+    }
     pub fn statuses(&self) -> MusicResult<Vec<AdapterStatus>> {
         Ok(self
             .entries
@@ -412,8 +421,25 @@ impl AdapterManager {
             let worker = accounts.clone();
             let mutation_context = context.clone();
             let migration = outcome.migration;
+            let login_entry = entry.clone();
+            let login_key = match request {
+                AccountRequest::PollLogin { key } => Some(key.clone()),
+                _ => None,
+            };
             worker
                 .blocking(move |accounts| {
+                    // Cancellation also guards the backend persistence boundary, not
+                    // only the WebUI callback. Keep the challenge locked until saved.
+                    let challenges = login_entry
+                        .login_challenges
+                        .lock()
+                        .map_err(|_| ErrorCode::Internal)?;
+                    if login_key
+                        .as_ref()
+                        .is_some_and(|key| !challenges.contains_key(key))
+                    {
+                        return Err(ErrorCode::Cancelled.into());
+                    }
                     accounts.accept_context(&mutation_context, record, credential, migration)
                 })
                 .await?;
@@ -608,6 +634,48 @@ mod tests {
         expiry: Option<u64>,
     }
     impl MusicAdapter for TestAdapter {
+        fn account<'a>(
+            &'a self,
+            request: &'a super::super::business::AccountRequest,
+            _: &'a RequestContext,
+        ) -> AdapterFuture<'a, super::super::business::AccountOutcome> {
+            use super::super::{account::*, business::*};
+            Box::pin(async move {
+                if matches!(request, AccountRequest::BeginLogin) {
+                    return Ok(AccountOutcome {
+                        presentation: AccountPresentation::Challenge {
+                            key: "challenge".into(),
+                            image: "data:image/png;base64,dGVzdA==".into(),
+                        },
+                        credential: None,
+                        migration: false,
+                    });
+                }
+                if !matches!(request, AccountRequest::PollLogin { .. }) {
+                    return Err(ErrorCode::Unsupported.into());
+                }
+                self.entered.notify_one();
+                self.release.notified().await;
+                Ok(AccountOutcome {
+                    presentation: AccountPresentation::Progress {
+                        code: 803,
+                        message: "登录成功".into(),
+                    },
+                    credential: Some((
+                        AccountRecord {
+                            reference: AccountRef {
+                                source: source(),
+                                id: OpaqueId::try_from("listener".to_owned())?,
+                            },
+                            display_name: "Listener".into(),
+                            avatar: String::new(),
+                        },
+                        OpaqueCredential::new(b"test-secret".to_vec())?,
+                    )),
+                    migration: false,
+                })
+            })
+        }
         fn descriptor(&self) -> &SourceDescriptor {
             &self.descriptor
         }
@@ -791,6 +859,58 @@ mod tests {
                 .code,
             ErrorCode::InvalidData
         );
+    }
+
+    #[tokio::test]
+    async fn cancelled_login_cannot_publish_late_credentials() {
+        use super::super::{accounts::*, business::*};
+        struct Secrets;
+        impl CredentialStore for Secrets {
+            fn read(&self, _: &str) -> MusicResult<Option<Vec<u8>>> {
+                Ok(None)
+            }
+            fn write(&self, _: &str, _: &[u8]) -> MusicResult<()> {
+                panic!("cancelled login must not write credentials")
+            }
+            fn delete(&self, _: &str) -> MusicResult<()> {
+                Ok(())
+            }
+        }
+        let directory = tempfile::tempdir().unwrap();
+        let store = Arc::new(
+            crate::storage::Store::open(&directory.path().join("accounts.sqlite3")).unwrap(),
+        );
+        let accounts = Arc::new(AccountManager::new(store, Arc::new(Secrets)).unwrap());
+        let mut provider = adapter(false);
+        provider.descriptor.capabilities.insert(Capability::Account);
+        let (manager, _, provider) = setup(provider);
+        accounts.bind(&manager);
+        manager
+            .account(&source(), &AccountRequest::BeginLogin, &accounts)
+            .await
+            .unwrap();
+        let worker = manager.clone();
+        let worker_accounts = accounts.clone();
+        let poll = tokio::spawn(async move {
+            worker
+                .account(
+                    &source(),
+                    &AccountRequest::PollLogin {
+                        key: "challenge".into(),
+                    },
+                    &worker_accounts,
+                )
+                .await
+        });
+        provider.entered.notified().await;
+        manager.cancel_login(&source(), "challenge").unwrap();
+        provider.release.notify_one();
+        assert_eq!(
+            poll.await.unwrap().err().unwrap().code,
+            ErrorCode::Cancelled
+        );
+        assert!(accounts.records(&source()).unwrap().is_empty());
+        assert!(accounts.session(&source()).account.is_none());
     }
     #[tokio::test]
     async fn pending_queries_are_cancelled_without_adapter_cooperation() {

@@ -42,6 +42,22 @@ function harness(saved = '[]', storageUnavailable = false) {
     }
   }
   const modules = {
+    '@/features/music/use-music-sources': {
+      useMusicSources: () => ({ preferences: { current: 'netease' }, revision: 0 })
+    },
+    '@/features/music/client': {
+      musicClient: {
+        query: (source, request) =>
+          new Promise((resolve, reject) =>
+            requests.push({
+              command: 'music_query',
+              args: { source, keyword: request.keyword },
+              resolve: (items) => resolve({ type: 'suggestions', data: items }),
+              reject
+            })
+          )
+      }
+    },
     react,
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'lucide-react': { Search: 'icon', History: 'history-icon' },

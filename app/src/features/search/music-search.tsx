@@ -4,8 +4,9 @@ import { Combobox as Primitive } from '@base-ui/react/combobox'
 import { History, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ComboboxContent, ComboboxItem, ComboboxList } from '@/components/ui/combobox'
-import { nativeCall } from '@/lib/player'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
+import { useMusicSources } from '@/features/music/use-music-sources'
+import { musicClient } from '@/features/music/client'
 
 const historyKey = 'nons-search-history'
 function readHistory(): string[] {
@@ -30,6 +31,8 @@ function readHistory(): string[] {
 export function MusicSearch() {
   const { page, navigate } = useMusicNavigation()
   const local = page.view === 'local'
+  const { preferences, revision } = useMusicSources()
+  const source = preferences?.current
   const [keyword, setKeyword] = useState(page.view === 'search' || local ? page.query : '')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [history, setHistory] = useState(readHistory)
@@ -51,10 +54,12 @@ export function MusicSearch() {
       setOpen(focused && !local && !composing)
       return
     }
-    if (local || !focused || composing || !keyword.trim() || !isTauri()) return
+    if (local || !focused || composing || !keyword.trim() || !isTauri() || !source) return
     const timer = window.setTimeout(() => {
-      void nativeCall<string[]>('search_suggestions', { keyword: keyword.trim() })
-        .then((items) => {
+      void musicClient
+        .query(source, { operation: 'suggestions', keyword: keyword.trim() })
+        .then((response) => {
+          const items = response.type === 'suggestions' ? response.data : []
           if (!disposed) {
             setSuggestions(items.slice(0, 5))
             setOpen(items.length > 0)
@@ -68,7 +73,7 @@ export function MusicSearch() {
       disposed = true
       window.clearTimeout(timer)
     }
-  }, [keyword, local, focused, composing])
+  }, [keyword, local, focused, composing, source, revision])
   function search(value: string) {
     if (!value.trim() || composing) return
     if (!local) {
@@ -125,8 +130,8 @@ export function MusicSearch() {
           </Button>
           <Primitive.Input
             ref={input}
-            aria-label={local ? '搜索本地曲库' : '搜索网易云音乐'}
-            placeholder={local ? '搜索本地曲库' : '搜索网易云音乐'}
+            aria-label={local ? '搜索本地曲库' : '搜索音乐'}
+            placeholder={local ? '搜索本地曲库' : '搜索音乐'}
             maxLength={85}
             onFocus={() => {
               setFocused(true)

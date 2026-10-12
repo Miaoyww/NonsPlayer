@@ -96,6 +96,11 @@ async function harness(run) {
     '@/features/account/account': {
       useAccount: () => ({ likedIds: new Set(), pendingLikes: new Set() })
     },
+    '@/features/music/source-label': {
+      sourceLabel: (source) => (source === 'netease' ? '网易云音乐' : source),
+      trackSource: (track) =>
+        track.source.kind === 'online' ? track.source.track.reference.source : track.source.kind
+    },
     '@/features/settings/use-interface-density': { useInterfaceDensity: () => ['compact'] },
     '@/lib/player': { errorText: String, formatTime: String },
     'lucide-react': Object.fromEntries(

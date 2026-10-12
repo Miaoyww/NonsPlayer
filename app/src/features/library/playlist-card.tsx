@@ -14,12 +14,14 @@ export function PlaylistCard({
   item,
   busy,
   showPlayCount = true,
+  sourceName,
   onOpen,
   onPlay
 }: {
   item: MusicCollection
   busy: boolean
   showPlayCount?: boolean
+  sourceName?: string
   onOpen: (item: MusicCollection) => void
   onPlay: (item: MusicCollection) => void
 }) {
@@ -63,6 +65,7 @@ export function PlaylistCard({
           {item.subtitle}
         </p>
       )}
+      {sourceName && <p className="library-cover-subtitle">{sourceName}</p>}
     </CollectionContextMenu>
   )
 }

@@ -7,6 +7,9 @@ export interface SourcePreferences {
 }
 
 export const sourcePreferences = {
+  beginIntent: () => nativeCall<number>('music_source_intent'),
+  use: (current: string, intent: number) =>
+    nativeCall<SourcePreferences>('music_use_source', { current, intent }),
   get: () => nativeCall<SourcePreferences>('music_source_preferences'),
   set: (preferences: SourcePreferences) =>
     nativeCall<SourcePreferences>('music_set_source_preferences', { ...preferences })

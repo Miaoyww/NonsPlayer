@@ -45,14 +45,20 @@ const wrapper = ({ children }) => React.createElement('div', {}, children)
 const button = ({ children, variant, size, ...props }) =>
   React.createElement('button', props, children)
 const base = {
+  '@/features/music/source-preferences': {
+    sourcePreferences: { beginIntent: async () => 1, use: async () => {} }
+  },
+  '@/features/music/use-music-sources': {
+    useMusicSources: () => ({ preferences: { current: 'other' }, error: '' })
+  },
+  '@/features/music/source-label': { sourceLabel: String },
   react: React,
   'react/jsx-runtime': jsx,
   '@tauri-apps/api/core': { isTauri: () => true },
   'lucide-react': Object.fromEntries(
-    ['Check', 'ChevronRight', 'QrCode', 'RefreshCw', 'UserPlus', 'LogOut'].map((name) => [
-      name,
-      () => null
-    ])
+    ['Check', 'ChevronRight', 'QrCode', 'RefreshCw', 'UserPlus', 'LogOut', 'ArrowRight'].map(
+      (name) => [name, () => null]
+    )
   ),
   '@/components/music/action-button': { ActionButton: button },
   '@/components/music/music-page': {
@@ -94,6 +100,7 @@ test('aggregate login switches adapters, discards old QR and poll responses, and
         },
         '@/features/music/client': {
           musicClient: {
+            cancelLogin: async () => {},
             account: (source, request) =>
               new Promise((resolve) => requests.push({ source, request, resolve }))
           }
@@ -173,6 +180,7 @@ test('add-account route generates login even when the adapter already has a sele
         },
         '@/features/music/client': {
           musicClient: {
+            cancelLogin: async () => {},
             account: async (source, request) => {
               requests.push({ source, request })
               return {
@@ -189,6 +197,84 @@ test('add-account route generates login even when the adapter already has a sele
     assert.equal(requests[0].source, 'other')
     assert.equal(requests[0].request.operation, 'beginLogin')
     assert.ok(document.querySelector('[alt="Other登录二维码"]'))
+  })
+})
+
+test('login switches source only after success and exposes a persisted-account switch failure', async () => {
+  await withDom(async (root) => {
+    const timers = new Map()
+    let timerId = 0
+    let nextIntent = 0
+    const switches = []
+    const requests = []
+    const refresh = () => {}
+    const adapter = {
+      descriptor: { source: 'other', displayName: 'Other' },
+      enabled: true,
+      current: null
+    }
+    const Page = load(
+      '../src/features/account/account-login-page.tsx',
+      {
+        ...base,
+        '@/features/music/source-preferences': {
+          sourcePreferences: {
+            beginIntent: async () => ++nextIntent,
+            use: async (source, intent) => {
+              switches.push({ source, intent })
+              throw new Error('disk failed')
+            }
+          }
+        },
+        './use-account-adapters': {
+          useAccountAdapters: () => ({
+            adapters: [adapter],
+            loading: false,
+            error: '',
+            refresh
+          })
+        },
+        '@/features/workspace/music-navigation': {
+          useMusicNavigation: () => ({ page: { view: 'accounts', query: 'other' }, navigate() {} })
+        },
+        '@/features/music/client': {
+          musicClient: {
+            cancelLogin: async () => {},
+            account: (source, request) =>
+              new Promise((resolve) => requests.push({ source, request, resolve }))
+          }
+        }
+      },
+      {
+        setTimeout: (callback) => {
+          timers.set(++timerId, callback)
+          return timerId
+        },
+        clearTimeout: (id) => timers.delete(id)
+      }
+    ).default
+    await act(async () => root.render(React.createElement(Page)))
+    assert.equal(switches.length, 0)
+    await act(async () =>
+      requests[0].resolve({
+        type: 'challenge',
+        data: { key: 'qr', image: 'data:image/png;base64,dGVzdA==' }
+      })
+    )
+    await act(async () => {
+      const [id, poll] = [...timers][0]
+      timers.delete(id)
+      void poll()
+    })
+    // Simulate the account-change event arriving before the poll Promise completes.
+    adapter.current = { reference: { source: 'other', id: 'listener' }, displayName: 'Listener' }
+    await act(async () => root.render(React.createElement(Page)))
+    await act(async () =>
+      requests[1].resolve({ type: 'progress', data: { code: 803, message: '登录成功' } })
+    )
+    assert.deepEqual(switches, [{ source: 'other', intent: 1 }])
+    assert.match(document.querySelector('[role="alert"]').textContent, /登录成功，切换来源失败/)
+    assert.match(document.body.textContent, /使用此来源/)
   })
 })
 
@@ -255,7 +341,9 @@ test('account menu and signed-out trigger navigate to the aggregate page without
     const click = (button) =>
       act(async () => button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })))
     await act(async () => root.render(React.createElement(Menu)))
-    await click(document.querySelector('[aria-label="登录音乐账号"]'))
+    await click(
+      [...document.querySelectorAll('button')].find((item) => item.textContent.includes('登录账号'))
+    )
     assert.deepEqual(navigations[0], ['accounts', 'other'])
     current = { reference: { source: 'other', id: 'opaque' }, displayName: 'User' }
     await act(async () => root.render(React.createElement(Menu)))

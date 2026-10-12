@@ -11,11 +11,13 @@ import { useEntityDetail } from '@/features/library/music-entities'
 export function AlbumCard({
   item,
   busy,
+  sourceName,
   onOpen,
   onPlay
 }: {
   item: MusicCollection
   busy: boolean
+  sourceName?: string
   onOpen: (item: MusicCollection) => void
   onPlay: (item: MusicCollection) => void
 }) {
@@ -32,7 +34,11 @@ export function AlbumCard({
     observer.observe(host.current)
     return () => observer.disconnect()
   }, [item.id, item.publishedAt])
-  const { detail, busy: dateBusy } = useEntityDetail(item, 0, visible && !item.publishedAt)
+  const { detail, busy: dateBusy } = useEntityDetail(
+    item,
+    0,
+    visible && !item.publishedAt && !item.reference
+  )
   const publishedAt =
     item.publishedAt || (detail?.item.id === item.id ? detail.item.publishedAt : undefined)
   return (
@@ -78,6 +84,7 @@ export function AlbumCard({
           '发行日期未知'
         )}
       </div>
+      {sourceName && <p className="library-cover-subtitle">{sourceName}</p>}
     </CollectionContextMenu>
   )
 }

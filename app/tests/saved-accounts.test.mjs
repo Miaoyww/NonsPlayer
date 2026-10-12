@@ -22,6 +22,9 @@ test('saved accounts select references, confirm deletion and ignore responses af
   const request = (operation, reference) =>
     new Promise((resolve, reject) => requests.push({ operation, reference, resolve, reject }))
   const modules = {
+    '@/features/music/source-preferences': {
+      sourcePreferences: { beginIntent: async () => 1, use: async () => {} }
+    },
     react: React,
     'react/jsx-runtime': jsx,
     'lucide-react': {
@@ -83,7 +86,11 @@ test('saved accounts select references, confirm deletion and ignore responses af
     await render(true)
     assert.equal(requests[0].reference, 'netease')
     await act(async () => requests[0].resolve(records))
-    assert.equal(button('User 1').disabled, true)
+    assert.equal(
+      button('User 1').disabled,
+      false,
+      'selected accounts can switch the workspace source again'
+    )
     assert.equal(button('User 1').querySelector('img').src, records[0].avatar)
     await click(button('User 2'))
     assert.equal(requests[1].operation, 'select')
