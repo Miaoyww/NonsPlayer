@@ -32,6 +32,7 @@ function harness(track, settle = true, localSource = 'local') {
   const events = []
   const pending = []
   const parsed = []
+  const requests = []
   let cursor = 0
   const jsx = (type, props) => ({ type, props })
   const modules = {
@@ -62,12 +63,14 @@ function harness(track, settle = true, localSource = 'local') {
     '@/features/lyrics/load-lyrics': {
       loadLyrics: (_track, _refresh, _sources, apply, isCurrent) =>
         new Promise((resolve) => {
+          requests.push({ key: _track.key, refresh: _refresh })
           pending.push((value) => {
             if (isCurrent()) apply(value)
             resolve(null)
           })
         })
     },
+    '@/features/playback/now-playing-menu': { NowPlayingMenu: 'NowPlayingMenu' },
     '@/features/lyrics/parse-lyrics': {
       EmptyLyricsError: class extends Error {},
       parseLyrics: (value) => {
@@ -113,6 +116,7 @@ function harness(track, settle = true, localSource = 'local') {
     },
     parsed,
     pending,
+    requests,
     events,
     render,
     selectSource: (localSource) => {
@@ -123,6 +127,61 @@ function harness(track, settle = true, localSource = 'local') {
     }
   }
 }
+
+function menu(node) {
+  if (!node || typeof node !== 'object') return
+  if (node.type === 'NowPlayingMenu') return node.props
+  for (const child of [node.props?.children].flat()) {
+    const found = menu(child)
+    if (found) return found
+  }
+}
+
+test('menu refresh bypasses lyric caches, preserves lyrics during loading and rejects late delivery after a switch', async () => {
+  const app = harness(streamed)
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  menu(app.render()).onRefresh()
+  assert.deepEqual(app.requests, [
+    { key: streamed.key, refresh: false },
+    { key: streamed.key, refresh: true }
+  ])
+  assert.equal(menu(app.render()).source, '网易云音乐')
+  assert.equal(menu(app.render()).loading, true)
+  app.switchTo(local)
+  app.pending[1]({ ...streamLyrics, source: 'qq' })
+  await Promise.resolve()
+  assert.deepEqual(app.parsed, [streamLyrics])
+  assert.equal(menu(app.render()).source, undefined)
+})
+
+test('a stale menu refresh cannot start a request for the previous playback instance', () => {
+  const app = harness(local)
+  const oldMenu = menu(app.render())
+  app.switchTo(streamed)
+  oldMenu.onRefresh()
+  assert.equal(app.requests.length, 1)
+})
+
+test('a stale menu cannot refresh the previous lyrics selection', () => {
+  const app = harness(local)
+  const oldMenu = menu(app.render())
+  app.selectSource('online')
+  oldMenu.onRefresh()
+  assert.equal(app.requests.length, 1)
+})
+
+test('new refresh results win over an older request for the same song', async () => {
+  const app = harness(streamed)
+  menu(app.render()).onRefresh()
+  const refreshed = { ...streamLyrics, source: 'amll', format: 'ttml' }
+  app.pending[1](refreshed)
+  await Promise.resolve()
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  assert.deepEqual(app.parsed, [refreshed])
+  assert.equal(menu(app.render()).source, 'AMLL DB')
+})
 
 test('opening a song reserves the same lyrics layout before and after loading starts', () => {
   const app = harness(streamed)

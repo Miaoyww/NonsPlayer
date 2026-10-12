@@ -95,39 +95,44 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
     },
     [sources]
   )
-  useEffect(() => {
-    const serial = ++generation.current
-    appliedSource.current = undefined
-    setDisplay(undefined)
-    setError(undefined)
-    setLoading(false)
-    if (!track || !isTauri()) return
-    setLoading(true)
-    // Native playback can switch before React's passive-effect cleanup runs.
-    const isCurrent = () =>
-      generation.current === serial &&
-      getLyricSources() === sources &&
-      isCurrentPlayback(track.key, state.revision)
-    const load = async () => {
-      await loadLyrics(
-        track,
-        false,
-        sources,
-        (value) => apply(value, track.durationMs, track.key, state.revision),
-        isCurrent
-      )
-    }
-    void load()
-      .catch((cause) => {
+  const requestLyrics = useCallback(
+    async (refresh = false) => {
+      if (getLyricSources() !== sources) return
+      if (track && !isCurrentPlayback(track.key, state.revision)) return
+      const serial = ++generation.current
+      appliedSource.current = undefined
+      if (!refresh) setDisplay(undefined)
+      setError(undefined)
+      setLoading(false)
+      if (!track || !isTauri()) return
+      setLoading(true)
+      // Native playback can switch before React's passive-effect cleanup runs.
+      const isCurrent = () =>
+        generation.current === serial &&
+        getLyricSources() === sources &&
+        isCurrentPlayback(track.key, state.revision)
+      try {
+        await loadLyrics(
+          track,
+          refresh,
+          sources,
+          (value) => apply(value, track.durationMs, track.key, state.revision),
+          isCurrent
+        )
+      } catch (cause) {
         if (isCurrent() && !(cause instanceof EmptyLyricsError)) setError(errorText(cause))
-      })
-      .finally(() => {
+      } finally {
         if (isCurrent()) setLoading(false)
-      })
+      }
+    },
+    [track?.key, state.revision, apply, sources, localPreferences]
+  )
+  useEffect(() => {
+    void requestLyrics()
     return () => {
       generation.current++
     }
-  }, [track?.key, state.revision, apply, sources, localPreferences])
+  }, [requestLyrics])
   useEffect(() => {
     if (!isTauri() || !track) return
     let disposed = false
@@ -234,7 +239,12 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
                 {track ? <TrackArtists track={track} /> : '选择一首喜欢的音乐'}
               </p>
             </div>
-            <NowPlayingMenu disabled={!track} source={source} />
+            <NowPlayingMenu
+              track={track}
+              source={source}
+              loading={loading}
+              onRefresh={() => void requestLyrics(true)}
+            />
           </div>
           <NowPlayingControls onQueue={onQueue} onError={(cause) => setError(errorText(cause))} />
           {(error || state.error || state.mediaError) && (

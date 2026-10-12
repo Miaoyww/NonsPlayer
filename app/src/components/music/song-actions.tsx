@@ -78,6 +78,12 @@ export function useSongTitleCopy() {
   return (title: string) => actions?.copy(title)
 }
 
+export function useSongActions() {
+  const actions = useContext(SongActionsContext)
+  if (!actions) throw new Error('SongActionsProvider is required')
+  return actions
+}
+
 export function SongActionsProvider({
   children,
   onError,
@@ -343,9 +349,8 @@ export function SongContextMenu({
   onRemove?: () => void | Promise<unknown>
   removeLabel?: string
 }) {
-  const actions = useContext(SongActionsContext)
+  const actions = useSongActions()
   const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
-  if (!actions) throw new Error('SongActionsProvider is required')
   const id = track.source.kind === 'netease' ? track.source.id : undefined
   const liked = id !== undefined && likedIds.has(id)
   const unavailable = busy || !isTauri()
