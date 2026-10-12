@@ -29,6 +29,7 @@ export interface Track {
   source: TrackSource
 }
 export type PlaybackStatus = 'stopped' | 'loading' | 'playing' | 'paused' | 'buffering' | 'error'
+export type AudioOutputMode = 'shared' | 'exclusive'
 export interface PlayerSnapshot {
   playbackOptions: { fades: boolean; gapless: boolean }
   privateFmSession: number | null
@@ -44,6 +45,7 @@ export interface PlayerSnapshot {
   durationMs: number
   volume: number
   deviceId: string | null
+  audioOutputMode: AudioOutputMode
   actualQuality: string | null
   error: string | null
   mediaError: string | null
@@ -81,6 +83,7 @@ let snapshot: PlayerSnapshot = {
   durationMs: 0,
   volume: 0.8,
   deviceId: null,
+  audioOutputMode: 'shared',
   actualQuality: null,
   error: null,
   mediaError: null

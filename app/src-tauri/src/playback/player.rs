@@ -3,8 +3,8 @@ use crate::model::RepeatMode;
 use crate::{
     media::MediaControls,
     model::{
-        AppResult, OutputDevice, PlaybackOptions, PlaybackStatus, PlayerSnapshot, Progress,
-        ResolvedTrack, Track,
+        AppResult, AudioOutputMode, OutputDevice, PlaybackOptions, PlaybackStatus, PlayerSnapshot,
+        Progress, ResolvedTrack, Track,
     },
     music::{manager::ResourceTicket, service::MusicService},
     storage::Store,
@@ -57,6 +57,7 @@ pub enum Command {
     Seek(u64),
     Volume(f64),
     Device(Option<String>),
+    OutputMode(AudioOutputMode, mpsc::Sender<AppResult<()>>),
     Options(PlaybackOptions, mpsc::Sender<AppResult<()>>),
     Resolved {
         generation: u64,
@@ -106,6 +107,16 @@ fn stored_options(store: &Store, fallback: PlaybackOptions) -> AppResult<Playbac
         .unwrap_or(Ok(fallback))
 }
 
+fn stored_output_mode(store: &Store, fallback: AudioOutputMode) -> AppResult<AudioOutputMode> {
+    if !cfg!(windows) {
+        return Ok(AudioOutputMode::Shared);
+    }
+    store
+        .setting("audioOutputMode")?
+        .map(|value| serde_json::from_str(&value).map_err(|e| e.to_string()))
+        .unwrap_or(Ok(fallback))
+}
+
 pub struct Player {
     sender: SyncSender<Command>,
     snapshot: Arc<RwLock<PlayerSnapshot>>,
@@ -132,6 +143,7 @@ impl Player {
             .map(restore_player)
             .unwrap_or_default();
         restored.playback_options = stored_options(&store, restored.playback_options)?;
+        restored.audio_output_mode = stored_output_mode(&store, restored.audio_output_mode)?;
         let snapshot = Arc::new(RwLock::new(restored));
         let shared = Arc::clone(&snapshot);
         let (sender, receiver) = mpsc::sync_channel(64);
@@ -208,6 +220,14 @@ impl Player {
         receiver
             .recv_timeout(Duration::from_secs(3))
             .map_err(|_| "保存播放设置超时".to_string())?
+    }
+
+    pub fn set_output_mode(&self, mode: AudioOutputMode) -> AppResult<()> {
+        let (sender, receiver) = mpsc::channel();
+        self.send(Command::OutputMode(mode, sender))?;
+        receiver
+            .recv_timeout(Duration::from_secs(3))
+            .map_err(|_| "切换音频输出模式超时".to_string())?
     }
 
     pub fn shutdown(&self) {
@@ -293,7 +313,8 @@ impl Actor {
                 format!("{:x}", Sha256::digest(identity.as_bytes())) == *id
             });
             if let Some(device) = device {
-                if let Ok(sink) = device.create_element(Some("nons-output")) {
+                if let Ok(sink) = super::output::create_sink(Some(&device), state.audio_output_mode)
+                {
                     playbin.set_property("audio-sink", sink);
                 } else {
                     state.device_id = None;
@@ -301,6 +322,13 @@ impl Actor {
             } else {
                 state.device_id = None;
             }
+        }
+        if playbin
+            .property::<Option<gst::Element>>("audio-sink")
+            .is_none()
+        {
+            let sink = super::output::create_sink(None, state.audio_output_mode)?;
+            playbin.set_property("audio-sink", sink);
         }
         let media = match MediaControls::new(hwnd, sender.clone()) {
             Ok(m) => Some(m),
@@ -491,6 +519,7 @@ impl Actor {
                 | Command::Repeat
                 | Command::Shuffle
                 | Command::Device(_)
+                | Command::OutputMode(_, _)
                 | Command::Seek(_)
         ) && self.deferred.take().is_some()
         {
@@ -862,6 +891,11 @@ impl Actor {
                 self.publish();
             }
             Command::Device(id) => self.select_device(id)?,
+            Command::OutputMode(mode, reply) => {
+                let result = self.select_output_mode(mode);
+                let _ = reply.send(result.clone());
+                result?;
+            }
             Command::Options(options, reply) => {
                 let result = self.apply_options(options);
                 let _ = reply.send(result.clone());
@@ -1220,7 +1254,16 @@ impl Actor {
                 self.cancel_jobs();
                 self.desired_playing = false;
                 self.state.status = PlaybackStatus::Error;
-                self.state.error = Some(format!("音频播放失败：{}", error.error()));
+                self.state.error = Some(
+                    if self.state.audio_output_mode == AudioOutputMode::Exclusive {
+                        format!(
+                            "独占模式播放失败，请检查设备独占权限或切回共享模式：{}",
+                            error.error()
+                        )
+                    } else {
+                        format!("音频播放失败：{}", error.error())
+                    },
+                );
                 let _ = self.playbin.set_state(gst::State::Null);
                 self.fade.reset();
                 self.publish();
@@ -1339,23 +1382,69 @@ impl Actor {
             .collect()
     }
 
-    fn select_device(&mut self, id: Option<String>) -> AppResult<()> {
-        let sink = match &id {
-            Some(id) => self
-                .devices()
-                .into_iter()
-                .find(|(info, _)| &info.id == id)
-                .ok_or("该设备已断开，请选择其他设备")?
-                .1
-                .create_element(Some("nons-output"))
-                .map_err(|e| e.to_string())?,
-            None => gst::ElementFactory::make("autoaudiosink")
-                .build()
-                .map_err(|e| e.to_string())?,
+    fn output_sink(&self, id: &Option<String>, mode: AudioOutputMode) -> AppResult<gst::Element> {
+        let device = match id {
+            Some(id) => Some(
+                self.devices()
+                    .into_iter()
+                    .find(|(info, _)| &info.id == id)
+                    .ok_or("该设备已断开，请选择其他设备")?
+                    .1,
+            ),
+            None => None,
         };
+        super::output::create_sink(device.as_ref(), mode)
+    }
+
+    fn select_device(&mut self, id: Option<String>) -> AppResult<()> {
+        let sink = self.output_sink(&id, self.state.audio_output_mode)?;
+        self.replace_output(sink, id)
+    }
+
+    fn select_output_mode(&mut self, mode: AudioOutputMode) -> AppResult<()> {
+        if !super::output::available_modes().contains(&mode) {
+            return Err("WASAPI 输出模式仅支持 Windows".into());
+        }
+        if mode == self.state.audio_output_mode {
+            return Ok(());
+        }
+        let id = self.state.device_id.clone();
+        let sink = self.output_sink(&id, mode)?;
+        let previous = self.state.audio_output_mode;
+        // A failed settings write must leave the running output untouched.
+        self.store.set_setting(
+            "audioOutputMode",
+            &serde_json::to_string(&mode).map_err(|e| e.to_string())?,
+        )?;
+        self.state.audio_output_mode = mode;
+        if let Err(error) = self.replace_output(sink, id.clone()) {
+            self.state.audio_output_mode = previous;
+            let rollback = self.store.set_setting(
+                "audioOutputMode",
+                &serde_json::to_string(&previous).map_err(|e| e.to_string())?,
+            );
+            if let Ok(sink) = self.output_sink(&id, previous) {
+                let _ = self.replace_output(sink, id);
+            }
+            self.publish();
+            rollback.map_err(|e| format!("{error}；恢复输出设置失败：{e}"))?;
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    fn replace_output(&mut self, sink: gst::Element, id: Option<String>) -> AppResult<()> {
         let playing = self.desired_playing;
         let index = self.state.index;
-        let position = self.state.position_ms;
+        let active = !matches!(
+            self.state.status,
+            PlaybackStatus::Stopped | PlaybackStatus::Error
+        );
+        let position = self.pending_seek.unwrap_or_else(|| {
+            self.playbin
+                .query_position::<gst::ClockTime>()
+                .map_or(self.state.position_ms, |time| time.mseconds())
+        });
         self.cancel_jobs();
         self.playbin
             .set_state(gst::State::Null)
@@ -1364,9 +1453,11 @@ impl Actor {
         self.state.device_id = id;
         // Device changes restart the pipeline. The normal resolver and state
         // messages remain the sole source of truth; never promise gapless here.
-        if let Some(index) = index {
+        if let Some(index) = index.filter(|_| active) {
             self.load_at(index, playing, position)?;
         } else {
+            self.state.error = None;
+            self.state.status = PlaybackStatus::Stopped;
             self.publish();
         }
         Ok(())
@@ -1377,6 +1468,28 @@ impl Actor {
 mod tests {
     use super::*;
     use crate::model::TrackSource;
+
+    #[test]
+    #[cfg(windows)]
+    fn output_mode_setting_overrides_snapshot_and_survives_restart() {
+        let directory = crate::test_support::TestDir::new();
+        let path = directory.0.join("output.sqlite3");
+        let store = Store::open(&path).unwrap();
+        assert_eq!(
+            stored_output_mode(&store, AudioOutputMode::Shared).unwrap(),
+            AudioOutputMode::Shared
+        );
+        for mode in [AudioOutputMode::Exclusive, AudioOutputMode::Shared] {
+            store
+                .set_setting("audioOutputMode", &serde_json::to_string(&mode).unwrap())
+                .unwrap();
+            let reopened = Store::open(&path).unwrap();
+            assert_eq!(
+                stored_output_mode(&reopened, AudioOutputMode::Shared).unwrap(),
+                mode
+            );
+        }
+    }
 
     #[test]
     fn playback_options_restore_defaults_and_persist_both_switches_independently() {
