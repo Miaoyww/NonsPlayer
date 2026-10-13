@@ -2,34 +2,23 @@ import { Slider } from '@/components/ui/slider'
 import { Volume1, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { nativeCall, usePlayer } from '@/lib/player'
+import { useVolumeControl } from './use-volume-control'
 import { ActionButton } from '@/components/music/action-button'
 
 export function VolumeControl({ onError }: { onError: (error: unknown) => void }) {
-  const state = usePlayer()
-  const [volume, setVolume] = useState(state.volume)
-  const currentVolume = useRef(state.volume)
+  const { volume, changeVolume, commitVolume } = useVolumeControl(onError)
+  const currentVolume = useRef(volume)
   const control = useRef<HTMLDivElement>(null)
-  const previousVolume = useRef(state.volume > 0 ? state.volume : 0.8)
-  const request = useRef(0)
+  const previousVolume = useRef(volume > 0 ? volume : 0.8)
   const [dismissed, setDismissed] = useState(false)
   useEffect(() => {
-    currentVolume.current = state.volume
-    setVolume(state.volume)
-    if (state.volume > 0) previousVolume.current = state.volume
-  }, [state.volume])
-  function changeVolume(value: number) {
+    currentVolume.current = volume
+    if (volume > 0) previousVolume.current = volume
+  }, [volume])
+  function change(value: number, immediate = false) {
     currentVolume.current = value
     if (value > 0) previousVolume.current = value
-    setVolume(value)
-    const serial = ++request.current
-    void nativeCall('player_volume', { volume: value }).catch((error) => {
-      if (serial === request.current) {
-        currentVolume.current = state.volume
-        setVolume(state.volume)
-      }
-      onError(error)
-    })
+    changeVolume(value, immediate)
   }
   useEffect(() => {
     const element = control.current
@@ -45,7 +34,7 @@ export function VolumeControl({ onError }: { onError: (error: unknown) => void }
           Math.round((currentVolume.current + (event.deltaY < 0 ? 0.05 : -0.05)) * 100) / 100
         )
       )
-      if (value !== currentVolume.current) changeVolume(value)
+      if (value !== currentVolume.current) change(value)
     }
     // React wheel handlers are passive; a native listener can prevent page scrolling.
     element.addEventListener('wheel', handleWheel, { passive: false })
@@ -75,7 +64,7 @@ export function VolumeControl({ onError }: { onError: (error: unknown) => void }
         aria-pressed={volume === 0}
         aria-describedby="playback-volume-value"
         disabled={!isTauri()}
-        onClick={() => changeVolume(volume === 0 ? previousVolume.current : 0)}
+        onClick={() => change(volume === 0 ? previousVolume.current : 0, true)}
       >
         {volume === 0 ? (
           <VolumeX aria-hidden="true" />
@@ -96,7 +85,8 @@ export function VolumeControl({ onError }: { onError: (error: unknown) => void }
             step={0.01}
             value={volume}
             disabled={!isTauri()}
-            onValueChange={(value) => changeVolume(Number(value))}
+            onValueChange={(value) => change(Number(value))}
+            onValueCommitted={(value) => commitVolume(Number(value))}
             className="volume-range"
           />
           <output id="playback-volume-value" className="volume-percentage tabular-nums">

@@ -16,6 +16,9 @@ function harness(state) {
     '@/features/playback/playback-timeline': {},
     '@/features/playback/player-slider': {},
     '@/features/playback/playback-transport': { PlaybackTransport: 'transport' },
+    './use-volume-control': {
+      useVolumeControl: () => ({ volume: state.volume, changeVolume() {}, commitVolume() {} })
+    },
     react: { useEffect() {}, useState: (value) => [value, () => {}] },
     '@/lib/player': {
       usePlayer: () => state,
@@ -82,6 +85,14 @@ test('shuffle leaves the repeat button unselected even with a legacy all-repeat 
 
 test('frontend shuffle navigation wraps both ends even when the repeat button is off', () => {
   const exports = {}
+  const store = {}
+  runInNewContext(
+    ts.transpileModule(
+      readFileSync(new URL('../src/features/playback/player-store.ts', import.meta.url), 'utf8'),
+      { compilerOptions: { module: ts.ModuleKind.CommonJS } }
+    ).outputText,
+    { exports: store }
+  )
   runInNewContext(
     ts.transpileModule(readFileSync(new URL('../src/lib/player.ts', import.meta.url), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS }
@@ -89,7 +100,11 @@ test('frontend shuffle navigation wraps both ends even when the repeat button is
     {
       exports,
       require: (name) =>
-        name === '@/features/music/scoped-query' ? { ScopedMusicQueries: class {} } : {}
+        name === '@/features/music/scoped-query'
+          ? { ScopedMusicQueries: class {} }
+          : name === '@/features/playback/player-store'
+            ? store
+            : {}
     }
   )
   const state = {

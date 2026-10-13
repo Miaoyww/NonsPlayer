@@ -20,7 +20,7 @@ export function PersistentPlaybackBar({
   onError: (error: unknown) => void
   notice?: PlaybackNoticeMessage
 }) {
-  const state = usePlayer()
+  const state = usePlayer('actualQuality', 'index', 'queue', 'status')
   const track = state.index === null ? undefined : state.queue[state.index]
   const title = track ? trackDisplayTitle(track) : '选择一首音乐'
   return (

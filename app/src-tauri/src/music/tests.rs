@@ -62,7 +62,7 @@ fn uniform_tracks_survive_real_storage_and_mixed_queue_restore() {
     let queue = vec![old.clone(), a.clone(), local, b.clone()];
     store.save_tracks(&queue).unwrap();
     let saved = PlayerSnapshot {
-        queue,
+        queue: queue.into(),
         index: Some(1),
         position_ms: 400,
         ..Default::default()

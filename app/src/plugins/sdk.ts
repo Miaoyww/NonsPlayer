@@ -344,7 +344,7 @@ export function usePluginFiles() {
 }
 export function usePlayer() {
   const scope = useScope('player:read')
-  const state = useHostPlayer()
+  const state = useHostPlayer('index', 'queue', 'status', 'volume')
   const progress = useProgress()
   return useMemo(() => {
     const track = state.index === null ? undefined : state.queue[state.index]

@@ -1,10 +1,11 @@
+use super::publication::{PlayerBootstrap, Publication};
 #[cfg(test)]
 use crate::model::RepeatMode;
 use crate::{
     media::MediaControls,
     model::{
         AppResult, AudioOutputMode, OutputDevice, PlaybackOptions, PlaybackStatus, PlayerSnapshot,
-        Progress, ResolvedTrack, Track,
+        ResolvedTrack, Track,
     },
     music::{manager::ResourceTicket, service::MusicService},
     storage::Store,
@@ -119,7 +120,7 @@ fn stored_output_mode(store: &Store, fallback: AudioOutputMode) -> AppResult<Aud
 
 pub struct Player {
     sender: SyncSender<Command>,
-    snapshot: Arc<RwLock<PlayerSnapshot>>,
+    snapshot: Arc<RwLock<Publication>>,
     thread: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 
@@ -144,7 +145,7 @@ impl Player {
             .unwrap_or_default();
         restored.playback_options = stored_options(&store, restored.playback_options)?;
         restored.audio_output_mode = stored_output_mode(&store, restored.audio_output_mode)?;
-        let snapshot = Arc::new(RwLock::new(restored));
+        let snapshot = Arc::new(RwLock::new(Publication::new(restored)));
         let shared = Arc::clone(&snapshot);
         let (sender, receiver) = mpsc::sync_channel(64);
         let actor_sender = sender.clone();
@@ -163,9 +164,14 @@ impl Player {
                     Ok(mut actor) => actor.run(receiver),
                     Err(error) => {
                         if let Ok(mut state) = shared.write() {
-                            state.status = PlaybackStatus::Error;
-                            state.error = Some(error);
-                            let _ = app.emit("player-state", state.clone());
+                            let mut failed = state.snapshot.clone();
+                            failed.status = PlaybackStatus::Error;
+                            failed.error = Some(error);
+                            let (event, _, progress) = state.update(&failed);
+                            let _ = app.emit("player-state", event);
+                            if let Some(progress) = progress {
+                                let _ = app.emit("player-progress", progress);
+                            }
                         }
                     }
                 }
@@ -187,7 +193,14 @@ impl Player {
     pub fn snapshot(&self) -> AppResult<PlayerSnapshot> {
         self.snapshot
             .read()
-            .map(|s| s.clone())
+            .map(|s| s.snapshot.clone())
+            .map_err(|_| "播放状态不可用".into())
+    }
+
+    pub fn bootstrap(&self) -> AppResult<PlayerBootstrap> {
+        self.snapshot
+            .read()
+            .map(|s| s.bootstrap())
             .map_err(|_| "播放状态不可用".into())
     }
 
@@ -195,6 +208,7 @@ impl Player {
         self.snapshot
             .read()
             .map(|state| {
+                let state = &state.snapshot;
                 state.private_fm_session.is_some()
                     && matches!(
                         state.status,
@@ -244,7 +258,7 @@ struct Actor {
     app: tauri::AppHandle,
     store: Arc<Store>,
     music: Arc<MusicService>,
-    shared: Arc<RwLock<PlayerSnapshot>>,
+    shared: Arc<RwLock<Publication>>,
     sender: SyncSender<Command>,
     state: PlayerSnapshot,
     playbin: gst::Element,
@@ -276,7 +290,7 @@ impl Actor {
         app: tauri::AppHandle,
         store: Arc<Store>,
         music: Arc<MusicService>,
-        shared: Arc<RwLock<PlayerSnapshot>>,
+        shared: Arc<RwLock<Publication>>,
         sender: SyncSender<Command>,
         hwnd: isize,
     ) -> AppResult<Self> {
@@ -300,7 +314,11 @@ impl Actor {
         monitor
             .start()
             .map_err(|e| format!("无法监视音频设备：{e}"))?;
-        let mut state = shared.read().map_err(|_| "播放状态不可用")?.clone();
+        let mut state = shared
+            .read()
+            .map_err(|_| "播放状态不可用")?
+            .snapshot
+            .clone();
         if let Some(id) = &state.device_id {
             let device = monitor.devices().into_iter().find(|device| {
                 let identity = format!(
@@ -652,7 +670,7 @@ impl Actor {
                     return Err("播放队列无效，最多支持 1000 首歌曲".into());
                 }
                 self.state.private_fm_session = None;
-                self.state.queue = queue;
+                self.state.queue = queue.into();
                 self.state.index = Some(index);
                 self.state.deduplicate_queue();
                 let index = self.state.index.unwrap_or(0);
@@ -662,7 +680,7 @@ impl Actor {
             Command::FmQueue(queue) => {
                 self.command_now(Command::Queue(queue, 0))?;
                 self.state.shuffle = false;
-                self.state.shuffle_order.clear();
+                self.state.shuffle_order = Arc::default();
                 self.state.repeat_mode = crate::model::RepeatMode::Off;
                 self.state.private_fm_session = Some(self.state.revision);
                 self.publish();
@@ -868,8 +886,8 @@ impl Actor {
                 self.decoded_audio = None;
                 if clear {
                     self.state.private_fm_session = None;
-                    self.state.queue.clear();
-                    self.state.shuffle_order.clear();
+                    self.state.queue = Arc::default();
+                    self.state.shuffle_order = Arc::default();
                     self.state.index = None;
                     self.state.duration_ms = 0;
                     self.state.actual_quality = None;
@@ -1301,20 +1319,10 @@ impl Actor {
                 .playbin
                 .query_duration::<gst::ClockTime>()
                 .map_or(self.state.duration_ms, |t| t.mseconds());
-            if let Ok(mut shared) = self.shared.write() {
-                shared.position_ms = self.state.position_ms;
-                shared.duration_ms = self.state.duration_ms;
-            }
             self.update_media();
-            let _ = self.app.emit(
-                "player-progress",
-                Progress {
-                    revision: self.state.revision,
-                    position_ms: self.state.position_ms,
-                    duration_ms: self.state.duration_ms,
-                    status: self.state.status,
-                },
-            );
+            if let Ok(mut shared) = self.shared.write() {
+                let _ = self.app.emit("player-progress", shared.tick(&self.state));
+            }
             if self.state.playback_options.gapless
                 && !self.collection_request.is_pending()
                 && self.deferred.is_none()
@@ -1346,9 +1354,15 @@ impl Actor {
     fn publish(&mut self) {
         self.update_media();
         if let Ok(mut shared) = self.shared.write() {
-            *shared = self.state.clone();
+            let (state, queue, progress) = shared.update(&self.state);
+            if let Some(queue) = queue {
+                let _ = self.app.emit("player-queue", queue);
+            }
+            let _ = self.app.emit("player-state", state);
+            if let Some(progress) = progress {
+                let _ = self.app.emit("player-progress", progress);
+            }
         }
-        let _ = self.app.emit("player-state", self.state.clone());
     }
 
     fn update_media(&mut self) {
@@ -1537,7 +1551,8 @@ mod tests {
                     cover: String::new(),
                     source: TrackSource::Netease { id },
                 })
-                .collect(),
+                .collect::<Vec<_>>()
+                .into(),
             index: Some(index),
             position_ms,
             duration_ms: 180_000,
@@ -1582,7 +1597,7 @@ mod tests {
         assert_eq!(restored.position_ms, 0);
         assert_eq!(restored.duration_ms, 0);
         let mut saved = snapshot(1, 42_000, RepeatMode::Off);
-        saved.queue[1].duration_ms = 0;
+        Arc::make_mut(&mut saved.queue)[1].duration_ms = 0;
         let restored = restore_player(saved);
         assert_eq!(restored.duration_ms, 180_000);
         assert_eq!(restored.position_ms, 42_000);
@@ -1692,7 +1707,7 @@ mod tests {
         }
         assert!(previous_command(&PlayerSnapshot::default()).is_none());
         let mut state = snapshot(0, 179_000, RepeatMode::All);
-        state.queue.clear();
+        state.queue = Arc::default();
         assert!(previous_command(&state).is_none());
         state = snapshot(3, 179_000, RepeatMode::All);
         assert!(previous_command(&state).is_none());

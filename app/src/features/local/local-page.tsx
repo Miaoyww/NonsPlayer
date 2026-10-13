@@ -82,7 +82,7 @@ function BrowseResults(props: Omit<ResultProps, 'list'>) {
 
 function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: ResultProps) {
   const { navigate } = useMusicNavigation()
-  const player = usePlayer()
+  const player = usePlayer('index', 'queue')
   const [playing, setPlaying] = useState(false)
   async function play(item: LocalEntity) {
     if (playing) return
@@ -316,7 +316,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
     [collection?.kind, collection?.localId, refresh, revision]
   )
   const list = usePagedList<Track>(loader, 100, isTauri() && !!collection)
-  const player = usePlayer()
+  const player = usePlayer('index', 'queue')
   const [playing, setPlaying] = useState(false)
   async function play() {
     if (!collection || playing) return

@@ -52,7 +52,7 @@ export function MusicWorkspace({
   onNowPlayingChange: (value: boolean) => void
   onPlayerExitComplete: () => void
 }) {
-  const state = usePlayer()
+  const state = usePlayer('error', 'mediaError')
   const [barMode] = usePlaybackBarMode()
   const [density] = useInterfaceDensity()
   const { page, navigate } = useMusicNavigation()

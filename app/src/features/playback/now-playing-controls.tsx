@@ -1,7 +1,6 @@
 import { ListMusic, Volume1, Volume2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { nativeCall, usePlayer } from '@/lib/player'
+import { useVolumeControl } from './use-volume-control'
 import { ActionButton } from '@/components/music/action-button'
 import { QualitySelect } from '@/features/playback/music-options'
 import { PlaybackTimeline } from '@/features/playback/playback-timeline'
@@ -15,9 +14,7 @@ export function NowPlayingControls({
   onQueue: () => void
   onError: (error: unknown) => void
 }) {
-  const state = usePlayer()
-  const [volume, setVolume] = useState(state.volume)
-  useEffect(() => setVolume(state.volume), [state.volume])
+  const { volume, changeVolume, commitVolume } = useVolumeControl(onError)
   return (
     <div className="now-playing-controls flex shrink-0 flex-col" aria-label="正在播放控制">
       <PlaybackTimeline layout="below" onError={onError} />
@@ -32,11 +29,8 @@ export function NowPlayingControls({
           step={0.01}
           value={volume}
           disabled={!isTauri()}
-          onValueChange={(next) => {
-            const value = Number(next)
-            setVolume(value)
-            void nativeCall('player_volume', { volume: value }).catch(onError)
-          }}
+          onValueChange={(next) => changeVolume(Number(next))}
+          onValueCommitted={(next) => commitVolume(Number(next))}
         />
         <Volume2 className="size-5 shrink-0" aria-hidden="true" />
       </div>

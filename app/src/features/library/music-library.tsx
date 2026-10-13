@@ -118,7 +118,7 @@ export default function MusicLibrary({
   } = useAccount()
   const { revision: collectionRevision } = useCollectionActions()
   const { page, navigate } = useMusicNavigation()
-  const player = usePlayer()
+  const player = usePlayer('index', 'queue')
   const currentKey = player.index !== null ? player.queue[player.index]?.key : undefined
   const [summary, setSummary] = useState<LibrarySummary>()
   const [summaryBusy, setSummaryBusy] = useState(false)

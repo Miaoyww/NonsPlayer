@@ -34,7 +34,7 @@ export default function AlbumPage({
   const [playing, setPlaying] = useState(false)
   const { detail, error, busy } = useEntityDetail(collection, refresh)
   const album = detail?.item ?? collection
-  const player = usePlayer()
+  const player = usePlayer('index', 'queue')
   const currentKey = player.index !== null ? player.queue[player.index]?.key : undefined
   const loader = useCallback(
     async (offset: number) => {

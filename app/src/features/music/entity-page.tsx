@@ -50,7 +50,7 @@ function EntityResults({ collection, onError }: EntityPageProps) {
   const [error, setError] = useState<string>()
   const [title, setTitle] = useState(collection.name)
   const [description, setDescription] = useState<string>()
-  const player = usePlayer()
+  const player = usePlayer('index', 'queue')
   const active = useRef(false)
   const query = useRef({ cursor: null as string | null, more: true, busy: false })
   const load = useCallback(async () => {

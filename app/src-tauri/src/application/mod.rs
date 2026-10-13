@@ -4,7 +4,7 @@ use crate::{
 };
 
 use crate::platform::{autostart, desktop, main_webview};
-use model::{AppResult, Lyrics, OutputDevice, PlayerSnapshot, Track, TrackSource};
+use model::{AppResult, Lyrics, OutputDevice, Track, TrackSource};
 use netease::{AccountProfile, CollectionPage, LibrarySummary, LoginStatus, QrLogin, TrackPage};
 use player::{Command, Player};
 use std::{path::PathBuf, sync::Arc};
@@ -353,8 +353,10 @@ async fn runtime_cover(url: String, backend: State<'_, Backend>) -> AppResult<St
 }
 
 #[tauri::command]
-fn player_snapshot(backend: State<'_, Backend>) -> AppResult<PlayerSnapshot> {
-    backend.player.snapshot()
+fn player_snapshot(
+    backend: State<'_, Backend>,
+) -> AppResult<crate::playback::publication::PlayerBootstrap> {
+    backend.player.bootstrap()
 }
 
 #[tauri::command]

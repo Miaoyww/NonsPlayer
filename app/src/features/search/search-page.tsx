@@ -40,7 +40,7 @@ function Results({
   onNotice: (message: string) => void
 }) {
   const { navigate } = useMusicNavigation()
-  const player = usePlayer()
+  const player = usePlayer('index', 'queue')
   const [filter, setFilter] = useState('all')
   const [playing, setPlaying] = useState(false)
   const query = useMemo(

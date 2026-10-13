@@ -90,7 +90,7 @@ function QueueCardList({
   onError: (error: unknown) => void
   onPage: () => void
 }) {
-  const state = usePlayer()
+  const state = usePlayer('index', 'queue')
   const [density] = useInterfaceDensity()
   const parent = useRef<HTMLDivElement>(null)
   const [locate, setLocate] = useState(0)

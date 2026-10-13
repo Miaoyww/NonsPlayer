@@ -20,7 +20,7 @@ import {
 import { SettingsCard } from '@/features/settings/settings-card'
 
 export function PlaybackPage() {
-  const state = usePlayer()
+  const state = usePlayer('audioOutputMode', 'deviceId', 'error', 'playbackOptions')
   const { options, busy, error: optionsError, update } = useMusicOptions()
   const [devices, setDevices] = useState<OutputDevice[]>([])
   const [error, setError] = useState<string>()

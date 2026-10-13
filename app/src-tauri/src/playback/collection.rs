@@ -41,7 +41,7 @@ pub(super) fn hydrate(state: &mut PlayerSnapshot, key: &str, tracks: Vec<Track>)
         .iter()
         .position(|track| track.key == key)
         .ok_or("歌曲已不在收藏中，请刷新")?;
-    state.queue = tracks;
+    state.queue = tracks.into();
     state.index = Some(index);
     state.deduplicate_queue();
     state.reset_shuffle_order(state.index);
@@ -95,7 +95,7 @@ mod tests {
             let mut serials = vec![];
             let mut state = PlayerSnapshot::default();
             for key in ["A", "B", "C"] {
-                state.queue = vec![track(key)];
+                state.queue = vec![track(key)].into();
                 state.index = Some(0);
                 serials.push(request.begin(Some(key.into())));
             }
@@ -116,7 +116,7 @@ mod tests {
         let mut request = CollectionRequest::default();
         let serial = request.begin(Some("A".into()));
         let mut state = PlayerSnapshot {
-            queue: vec![track("A"), track("custom")],
+            queue: vec![track("A"), track("custom")].into(),
             index: Some(0),
             ..Default::default()
         };
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn hydration_repositions_current_track_without_restarting_audio() {
         let mut state = PlayerSnapshot {
-            queue: vec![track("B")],
+            queue: vec![track("B")].into(),
             index: Some(0),
             revision: 7,
             position_ms: 4200,
@@ -151,7 +151,7 @@ mod tests {
     #[test]
     fn missing_or_changed_selection_preserves_the_playable_queue() {
         let mut state = PlayerSnapshot {
-            queue: vec![track("B")],
+            queue: vec![track("B")].into(),
             index: Some(0),
             ..Default::default()
         };

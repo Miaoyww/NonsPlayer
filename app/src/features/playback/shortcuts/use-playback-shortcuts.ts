@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { useAccount } from '@/features/account/account'
-import { nativeCall, usePlayer } from '@/lib/player'
+import { getPlayer, nativeCall, usePlayer } from '@/lib/player'
+import { changePlayerVolume, playerVolume } from '../use-volume-control'
 import {
   initializeShortcuts,
   isPlaybackSpace,
@@ -10,19 +11,19 @@ import {
 } from '@/features/playback/shortcuts/shortcuts'
 
 export function usePlaybackShortcuts(onError: (cause: unknown) => void) {
-  const state = usePlayer()
+  const state = usePlayer('index')
   const account = useAccount()
   const action = useRef<(action: ShortcutAction) => void>(() => {})
   const [resumedShortcut, setResumedShortcut] = useState<ShortcutAction>()
   action.current = (name) => {
     if (!isTauri()) return
-    const current = state.index === null ? undefined : state.queue[state.index]
+    const live = getPlayer()
+    const current = live.index === null ? undefined : live.queue[live.index]
     let operation: Promise<unknown>
-    if (name === 'volumeUp' || name === 'volumeDown')
-      operation = nativeCall('player_volume', {
-        volume: Math.max(0, Math.min(1, state.volume + (name === 'volumeUp' ? 0.05 : -0.05)))
-      })
-    else if (!current) return
+    if (name === 'volumeUp' || name === 'volumeDown') {
+      changePlayerVolume(playerVolume() + (name === 'volumeUp' ? 0.05 : -0.05), onError)
+      return
+    } else if (!current) return
     else if (name === 'like') {
       if (
         current.source.kind !== 'netease' ||

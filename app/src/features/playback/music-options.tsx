@@ -74,7 +74,7 @@ export function useMusicOptions() {
 
 export function QualitySelect() {
   const { options, busy, error, update } = useMusicOptions()
-  const { actualQuality } = usePlayer()
+  const { actualQuality } = usePlayer('actualQuality')
   const [open, setOpen] = useState(false)
   return (
     <div className="quality-control flex flex-col gap-1" data-open={open}>

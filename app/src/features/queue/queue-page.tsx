@@ -5,7 +5,7 @@ import { QueueControls } from '@/features/queue/queue-controls'
 import { TrackList } from '@/components/music/track-list'
 
 export function QueuePage({ onError }: { onError: (error: unknown) => void }) {
-  const state = usePlayer()
+  const state = usePlayer('index', 'queue')
   const [query, setQuery] = useState('')
   const [locate, setLocate] = useState(0)
   const matches = useMemo(() => {

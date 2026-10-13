@@ -50,8 +50,7 @@ pub fn legacy_queue(json: &str) -> MusicResult<MigratedQueue> {
         return Err(ErrorCode::InvalidData.into());
     }
     state.restore_shuffle_order();
-    let tracks = state
-        .queue
+    let tracks = std::sync::Arc::unwrap_or_clone(state.queue)
         .into_iter()
         .map(convert_track)
         .collect::<MusicResult<Vec<_>>>()?;
@@ -60,7 +59,7 @@ pub fn legacy_queue(json: &str) -> MusicResult<MigratedQueue> {
         tracks: tracks.iter().map(|t| t.track.clone()).collect(),
         index: state.index,
         shuffle: state.shuffle,
-        shuffle_order: state.shuffle_order,
+        shuffle_order: std::sync::Arc::unwrap_or_clone(state.shuffle_order),
         repeat_mode: match state.repeat_mode {
             crate::model::RepeatMode::Off => QueueRepeatMode::Off,
             crate::model::RepeatMode::All => QueueRepeatMode::All,

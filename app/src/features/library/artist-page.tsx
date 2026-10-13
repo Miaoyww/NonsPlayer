@@ -38,7 +38,7 @@ export default function ArtistPage({
   const tabButtons = useRef<(HTMLButtonElement | null)[]>([])
   const { detail, error, busy } = useEntityDetail(collection, refresh)
   const artist = detail?.item ?? collection
-  const player = usePlayer()
+  const player = usePlayer('index', 'queue')
   const currentKey = player.index !== null ? player.queue[player.index]?.key : undefined
   const songLoader = useCallback(
     async (offset: number) => {

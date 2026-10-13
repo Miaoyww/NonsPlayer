@@ -5,7 +5,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { usePlayer } from '@/lib/player'
 
 export function PlayingIndicator() {
-  const { status } = usePlayer()
+  const { status } = usePlayer('status')
   const host = useRef<HTMLSpanElement>(null)
   const visible = useInView(host)
   const reducedMotion = useReducedMotion()

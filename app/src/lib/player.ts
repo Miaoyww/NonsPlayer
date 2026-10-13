@@ -2,7 +2,15 @@ import { ScopedMusicQueries } from '@/features/music/scoped-query'
 import { createPrivateFm } from '@/features/discovery/private-fm'
 import { invoke, isTauri, convertFileSrc } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { useSyncExternalStore } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
+import {
+  createPlayerStore,
+  selectPlayerFields,
+  type PlayerBootstrap,
+  type PlayerStateEvent,
+  type PlayerQueueEvent,
+  type PlayerProgressEvent
+} from '@/features/playback/player-store'
 import {
   cachedCommands,
   coverCache,
@@ -73,7 +81,7 @@ export interface OutputDevice {
   name: string
 }
 
-let snapshot: PlayerSnapshot = {
+const initialSnapshot: PlayerSnapshot = {
   playbackOptions: { fades: false, gapless: true },
   privateFmSession: null,
   shuffle: false,
@@ -92,37 +100,29 @@ let snapshot: PlayerSnapshot = {
   error: null,
   mediaError: null
 }
-let progress: Progress = {
-  revision: 0,
-  positionMs: 0,
-  durationMs: 0,
-  status: 'stopped',
-  receivedAt: 0
+const playerStore = createPlayerStore(initialSnapshot)
+export function usePlayer(): PlayerSnapshot
+export function usePlayer<K extends keyof PlayerSnapshot>(...fields: K[]): Pick<PlayerSnapshot, K>
+export function usePlayer(...fields: (keyof PlayerSnapshot)[]) {
+  const fieldKey = fields.join('|')
+  const getSnapshot = useMemo(
+    () =>
+      fields.length ? selectPlayerFields(playerStore.getSnapshot, fields) : playerStore.getSnapshot,
+    [fieldKey]
+  )
+  return useSyncExternalStore(playerStore.subscribeState, getSnapshot)
 }
-let updateSerial = 0
-const stateListeners = new Set<() => void>()
-const progressListeners = new Set<() => void>()
-const subscribeState = (listener: () => void) => {
-  stateListeners.add(listener)
-  return () => {
-    stateListeners.delete(listener)
-  }
-}
-const subscribeProgress = (listener: () => void) => {
-  progressListeners.add(listener)
-  return () => {
-    progressListeners.delete(listener)
-  }
-}
-export const usePlayer = () => useSyncExternalStore(subscribeState, () => snapshot)
 const subscribeNothing = (_listener: () => void) => () => {}
 export const useProgress = (enabled = true) =>
-  useSyncExternalStore(enabled ? subscribeProgress : subscribeNothing, () => progress)
-export const getPlayer = () => snapshot
-export const getProgress = () => progress
+  useSyncExternalStore(
+    enabled ? playerStore.subscribeProgress : subscribeNothing,
+    playerStore.getProgress
+  )
+export const getPlayer = playerStore.getSnapshot
+export const getProgress = playerStore.getProgress
 
 export function adjacentIndex(
-  state: PlayerSnapshot,
+  state: Pick<PlayerSnapshot, 'index' | 'queue' | 'shuffle' | 'shuffleOrder' | 'repeatMode'>,
   direction: 'previous' | 'next'
 ): number | null {
   if (state.index === null || !state.queue[state.index]) return null
@@ -136,34 +136,6 @@ export function adjacentIndex(
     target = (target + count) % count
   }
   return order ? order[target] : target
-}
-
-function updateProgress(value: Omit<Progress, 'receivedAt'>) {
-  if (value.revision !== snapshot.revision) return
-  progress = { ...value, receivedAt: performance.now() }
-  progressListeners.forEach((notify) => notify())
-}
-
-function updateState(value: PlayerSnapshot) {
-  if (value.revision < snapshot.revision) return
-  snapshot = {
-    ...value,
-    privateFmError:
-      value.privateFmSession === snapshot.privateFmSession ? snapshot.privateFmError : undefined
-  }
-  updateSerial++
-  // State events can repeat the last native position (for example while changing
-  // volume). Only a new timeline value should reset the interpolation clock;
-  // player-progress events remain authoritative samples even at the same position.
-  if (
-    value.revision !== progress.revision ||
-    value.positionMs !== progress.positionMs ||
-    value.durationMs !== progress.durationMs ||
-    value.status !== progress.status
-  )
-    updateProgress(value)
-  stateListeners.forEach((notify) => notify())
-  privateFm?.update()
 }
 
 const onlineCachedCommands = new Set([
@@ -308,39 +280,61 @@ export function retryPrivateFm() {
 
 export async function connectPlayer(): Promise<UnlistenFn> {
   if (!isTauri()) return () => {}
-  const fm = createPrivateFm(
-    () => snapshot,
-    nativeCall,
-    (privateFmError) => {
-      snapshot = { ...snapshot, privateFmError }
-      stateListeners.forEach((notify) => notify())
-    }
-  )
+  const fm = createPrivateFm(getPlayer, nativeCall, playerStore.privateFmError)
   privateFm = fm
   const listeners: UnlistenFn[] = []
+  let disposed = false
+  let syncing: Promise<void> | undefined
+  function synchronize() {
+    return (syncing ??= nativeCall<PlayerBootstrap>('player_snapshot')
+      .then((value) => {
+        if (!disposed) playerStore.bootstrap(value)
+      })
+      .finally(() => {
+        syncing = undefined
+      }))
+  }
+  function recover() {
+    if (playerStore.needsSnapshot)
+      void synchronize().catch(() => {
+        // A later event can retry; retain the last consistent view on IPC failure.
+      })
+  }
   try {
     listeners.push(
-      await listen<PlayerSnapshot>('player-state', ({ payload }) => updateState(payload))
+      await listen<PlayerStateEvent>('player-state', ({ payload }) => {
+        if (disposed) return
+        playerStore.state(payload)
+        recover()
+      })
     )
     listeners.push(
-      await listen<Omit<Progress, 'receivedAt'>>('player-progress', ({ payload }) =>
-        updateProgress(payload)
-      )
+      await listen<PlayerQueueEvent>('player-queue', ({ payload }) => {
+        if (disposed) return
+        playerStore.queue(payload)
+      })
     )
+    listeners.push(
+      await listen<PlayerProgressEvent>('player-progress', ({ payload }) => {
+        if (!disposed) playerStore.progress(payload)
+      })
+    )
+    listeners.push(playerStore.subscribeState(() => fm.update()))
     listeners.push(await listen('lyrics-updated', () => invalidateNativeCache(['track_lyrics'])))
     listeners.push(await listen('music-changed', () => invalidateNativeCache()))
     listeners.push(
       await listen('music-account-changed', () => invalidateNativeCache(undefined, 'context'))
     )
-    const serial = updateSerial
-    const initial = await nativeCall<PlayerSnapshot>('player_snapshot')
-    if (serial === updateSerial) updateState(initial)
+    await synchronize()
+    recover()
     return () => {
+      disposed = true
       fm.dispose()
       if (privateFm === fm) privateFm = undefined
       listeners.forEach((unlisten) => unlisten())
     }
   } catch (error) {
+    disposed = true
     fm.dispose()
     if (privateFm === fm) privateFm = undefined
     listeners.forEach((unlisten) => unlisten())
@@ -349,6 +343,7 @@ export async function connectPlayer(): Promise<UnlistenFn> {
 }
 
 export function currentPosition(now = performance.now()): number {
+  const progress = getProgress()
   const advance =
     progress.status === 'playing' ? Math.min(500, Math.max(0, now - progress.receivedAt)) : 0
   return Math.round(

@@ -144,6 +144,7 @@ test('the global player connection replenishes without mounting the discovery pa
     calls = []
   const state = {
     revision: 1,
+    playbackOptions: { fades: false, gapless: true },
     privateFmSession: 7,
     queue: [1, 2, 3].map(track),
     index: 0,
@@ -151,6 +152,7 @@ test('the global player connection replenishes without mounting the discovery pa
     shuffle: false
   }
   const player = load('../src/lib/player.ts', {
+    '@/features/playback/player-store': load('../src/features/playback/player-store.ts'),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
     '@/features/discovery/private-fm': load('../src/features/discovery/private-fm.ts'),
     '@/lib/runtime-cache': { cachedCommands: new Set() },
@@ -164,13 +166,26 @@ test('the global player connection replenishes without mounting the discovery pa
       isTauri: () => true,
       invoke: async (command, args) => {
         calls.push({ command, args })
-        if (command === 'player_snapshot') return state
+        if (command === 'player_snapshot')
+          return {
+            state: { ...state, sequence: 0, queueRevision: 0 },
+            queue: { queue: state.queue, shuffleOrder: [], queueRevision: 0, sequence: 0 },
+            progress: {
+              revision: 1,
+              sequence: 0,
+              positionMs: 0,
+              durationMs: 180000,
+              status: 'playing'
+            }
+          }
         if (command === 'discovery_tracks') return [4, 5, 6].map(track)
       }
     }
   })
   const disconnect = await player.connectPlayer()
-  listeners.get('player-state')({ payload: { ...state, revision: 2, index: 1 } })
+  listeners.get('player-state')({
+    payload: { ...state, sequence: 1, queueRevision: 0, revision: 2, index: 1 }
+  })
   await settle()
   assert.deepEqual(
     calls.map((call) => call.command),

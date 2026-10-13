@@ -10,7 +10,7 @@ export function PlaybackTransport({
   onError: (error: unknown) => void
   withModes?: boolean
 }) {
-  const state = usePlayer()
+  const state = usePlayer('index', 'queue', 'repeatMode', 'shuffle', 'shuffleOrder', 'status')
   const playing = ['playing', 'buffering', 'loading'].includes(state.status)
   const disabled = !isTauri() || state.index === null
   const action = (action: string) => void nativeCall('player_action', { action }).catch(onError)

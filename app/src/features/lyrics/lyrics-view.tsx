@@ -48,7 +48,7 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
   const isPresent = useIsPresent()
   const [entered, setEntered] = useState(!!reduced)
   const rendering = isPresent && (entered || !!reduced)
-  const state = usePlayer()
+  const state = usePlayer('error', 'index', 'mediaError', 'queue', 'revision', 'status')
   const track = state.index !== null ? state.queue[state.index] : undefined
   const { sources } = useLyricSources()
   const [display, setDisplay] = useState<{

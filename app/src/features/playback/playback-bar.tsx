@@ -23,7 +23,15 @@ export function PlaybackBar({
   onQueue: () => void
   onError: (error: unknown) => void
 }) {
-  const state = usePlayer()
+  const state = usePlayer(
+    'actualQuality',
+    'index',
+    'queue',
+    'repeatMode',
+    'shuffle',
+    'shuffleOrder',
+    'status'
+  )
   const track = state.index !== null ? state.queue[state.index] : undefined
   const playing = ['playing', 'buffering', 'loading'].includes(state.status)
   const [preview, setPreview] = useState<'previous' | 'next' | null>(null)

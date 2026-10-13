@@ -4,6 +4,7 @@ pub use nons_music_adapter_sdk::legacy::{
     Lyrics, MusicCredit, Track, TrackSource, MAX_LYRIC_BYTES,
 };
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum PlaybackStatus {
@@ -48,13 +49,13 @@ pub struct PlayerSnapshot {
     #[serde(default)]
     pub shuffle: bool,
     #[serde(default)]
-    pub shuffle_order: Vec<usize>,
+    pub shuffle_order: Arc<Vec<usize>>,
     #[serde(default)]
     pub repeat_mode: RepeatMode,
     #[serde(default, skip_deserializing)]
     pub private_fm_session: Option<u64>,
     pub revision: u64,
-    pub queue: Vec<Track>,
+    pub queue: Arc<Vec<Track>>,
     pub index: Option<usize>,
     pub status: PlaybackStatus,
     pub position_ms: u64,
@@ -73,11 +74,11 @@ impl Default for PlayerSnapshot {
         Self {
             playback_options: PlaybackOptions::default(),
             shuffle: false,
-            shuffle_order: vec![],
+            shuffle_order: Arc::default(),
             repeat_mode: RepeatMode::Off,
             private_fm_session: None,
             revision: 0,
-            queue: vec![],
+            queue: Arc::default(),
             index: None,
             status: PlaybackStatus::Stopped,
             position_ms: 0,
@@ -97,7 +98,7 @@ impl PlayerSnapshot {
         let mut indices = std::collections::HashMap::new();
         let mut remap = Vec::with_capacity(self.queue.len());
         let mut queue = Vec::with_capacity(self.queue.len());
-        for track in std::mem::take(&mut self.queue) {
+        for track in Arc::unwrap_or_clone(std::mem::take(&mut self.queue)) {
             let index = *indices.entry(track.key.clone()).or_insert_with(|| {
                 queue.push(track);
                 queue.len() - 1
@@ -111,8 +112,9 @@ impl PlayerSnapshot {
             .iter()
             .filter_map(|i| remap.get(*i).copied())
             .filter(|i| seen.insert(*i))
-            .collect();
-        self.queue = queue;
+            .collect::<Vec<_>>()
+            .into();
+        self.queue = queue.into();
     }
 
     pub fn toggle_shuffle(&mut self, current: Option<usize>) {
@@ -131,20 +133,20 @@ impl PlayerSnapshot {
         };
         if self.repeat_mode != RepeatMode::Off {
             self.shuffle = false;
-            self.shuffle_order.clear();
+            self.shuffle_order = Arc::default();
         }
     }
 
     pub fn reset_shuffle_order(&mut self, current: Option<usize>) {
-        self.shuffle_order.clear();
+        let mut order = Vec::new();
         if self.shuffle {
-            self.shuffle_order
-                .extend((0..self.queue.len()).filter(|i| Some(*i) != current));
-            fastrand::shuffle(&mut self.shuffle_order);
+            order.extend((0..self.queue.len()).filter(|i| Some(*i) != current));
+            fastrand::shuffle(&mut order);
             if let Some(index) = current.filter(|i| *i < self.queue.len()) {
-                self.shuffle_order.insert(0, index);
+                order.insert(0, index);
             }
         }
+        self.shuffle_order = order.into();
     }
 
     pub fn restore_shuffle_order(&mut self) {
@@ -152,13 +154,13 @@ impl PlayerSnapshot {
         if self.shuffle {
             self.repeat_mode = RepeatMode::Off;
         }
-        let mut sorted = self.shuffle_order.clone();
+        let mut sorted = self.shuffle_order.as_ref().clone();
         sorted.sort_unstable();
         if sorted != (0..self.queue.len()).collect::<Vec<_>>() {
             self.reset_shuffle_order(self.index);
         }
         if !self.shuffle {
-            self.shuffle_order.clear();
+            self.shuffle_order = Arc::default();
         }
     }
 
@@ -225,17 +227,18 @@ impl PlayerSnapshot {
         if trim > self.index.unwrap_or(0) {
             return Err("播放队列最多支持 1000 首歌曲".into());
         }
-        self.queue.drain(..trim);
+        Arc::make_mut(&mut self.queue).drain(..trim);
         self.index = self.index.map(|i| i - trim);
         self.shuffle_order = self
             .shuffle_order
             .iter()
             .filter_map(|i| i.checked_sub(trim))
-            .collect();
+            .collect::<Vec<_>>()
+            .into();
         let start = self.queue.len();
-        self.queue.extend(tracks);
+        Arc::make_mut(&mut self.queue).extend(tracks);
         if self.shuffle {
-            self.shuffle_order.extend(start..self.queue.len());
+            Arc::make_mut(&mut self.shuffle_order).extend(start..self.queue.len());
         }
         Ok(Some(trim))
     }
@@ -272,16 +275,15 @@ impl PlayerSnapshot {
                 .index
                 .and_then(|current| self.shuffle_order.iter().position(|i| *i == current))
                 .map_or(0, |i| i + 1);
-            for index in &mut self.shuffle_order {
+            for index in Arc::make_mut(&mut self.shuffle_order) {
                 if *index >= position {
                     *index += count;
                 }
             }
-            self.shuffle_order
-                .splice(slot..slot, position..position + count);
+            Arc::make_mut(&mut self.shuffle_order).splice(slot..slot, position..position + count);
         }
         self.private_fm_session = None;
-        self.queue.splice(position..position, tracks);
+        Arc::make_mut(&mut self.queue).splice(position..position, tracks);
         if self.index.is_none() && !self.queue.is_empty() {
             self.index = Some(0);
             self.duration_ms = self.queue[0].duration_ms;
@@ -302,9 +304,9 @@ impl PlayerSnapshot {
             })
             .flatten();
         self.private_fm_session = None;
-        self.queue.remove(index);
-        self.shuffle_order.retain(|i| *i != index);
-        for entry in &mut self.shuffle_order {
+        Arc::make_mut(&mut self.queue).remove(index);
+        Arc::make_mut(&mut self.shuffle_order).retain(|i| *i != index);
+        for entry in Arc::make_mut(&mut self.shuffle_order) {
             if *entry > index {
                 *entry -= 1;
             }
@@ -396,7 +398,7 @@ mod tests {
     #[test]
     fn playback_modes_are_mutually_exclusive_and_restore_consistently() {
         let mut state = PlayerSnapshot {
-            queue: (0..4).map(track).collect(),
+            queue: (0..4).map(track).collect::<Vec<_>>().into(),
             index: Some(2),
             ..Default::default()
         };
@@ -436,7 +438,7 @@ mod tests {
     fn shuffle_navigation_visits_each_entry_and_respects_repeat() {
         let mut state = PlayerSnapshot {
             shuffle: true,
-            queue: (0..5).map(track).collect(),
+            queue: (0..5).map(track).collect::<Vec<_>>().into(),
             index: Some(2),
             ..Default::default()
         };
@@ -483,9 +485,9 @@ mod tests {
     fn shuffle_edits_preserve_next_insertion_and_valid_indices() {
         let mut state = PlayerSnapshot {
             shuffle: true,
-            queue: (0..4).map(track).collect(),
+            queue: (0..4).map(track).collect::<Vec<_>>().into(),
             index: Some(2),
-            shuffle_order: vec![2, 0, 3, 1],
+            shuffle_order: vec![2, 0, 3, 1].into(),
             ..Default::default()
         };
         state.insert_next(vec![track(8), track(9)]).unwrap();
@@ -496,10 +498,10 @@ mod tests {
         assert_eq!(state.index, Some(2));
         assert_eq!(state.following(true), Some(3));
         state.remove_track(2, "8").unwrap();
-        let mut sorted = state.shuffle_order.clone();
+        let mut sorted = state.shuffle_order.as_ref().clone();
         sorted.sort_unstable();
         assert_eq!(sorted, (0..state.queue.len()).collect::<Vec<_>>());
-        state.shuffle_order = vec![99, 99];
+        state.shuffle_order = vec![99, 99].into();
         state.restore_shuffle_order();
         assert_eq!(state.shuffle_order[0], state.index.unwrap());
         let restored: PlayerSnapshot =
@@ -525,9 +527,9 @@ mod tests {
     fn removing_current_in_shuffle_uses_play_order_instead_of_list_position() {
         let mut state = PlayerSnapshot {
             shuffle: true,
-            queue: (0..4).map(track).collect(),
+            queue: (0..4).map(track).collect::<Vec<_>>().into(),
             index: Some(1),
-            shuffle_order: vec![1, 3, 0, 2],
+            shuffle_order: vec![1, 3, 0, 2].into(),
             ..Default::default()
         };
         state.remove_track(1, "1").unwrap();
@@ -559,10 +561,10 @@ mod tests {
     fn next_insertion_moves_existing_tracks_and_keeps_current_and_shuffle_order() {
         for shuffle in [false, true] {
             let mut state = PlayerSnapshot {
-                queue: (1..=5).map(track).collect(),
+                queue: (1..=5).map(track).collect::<Vec<_>>().into(),
                 index: Some(2),
                 shuffle,
-                shuffle_order: if shuffle { vec![2, 4, 0, 3, 1] } else { vec![] },
+                shuffle_order: (if shuffle { vec![2, 4, 0, 3, 1] } else { vec![] }).into(),
                 position_ms: 500,
                 status: PlaybackStatus::Playing,
                 ..Default::default()
@@ -587,7 +589,7 @@ mod tests {
             assert_eq!(state.status, PlaybackStatus::Playing);
             assert_eq!(state.following(true), Some(2));
             if shuffle {
-                assert_eq!(state.shuffle_order, vec![1, 2, 3, 4, 0]);
+                assert_eq!(*state.shuffle_order, vec![1, 2, 3, 4, 0]);
             }
             state.insert_next(vec![track(3)]).unwrap();
             assert_eq!(state.queue.len(), 5);
@@ -598,7 +600,7 @@ mod tests {
     #[test]
     fn full_queue_allows_moves_and_checks_unique_additions_atomically() {
         let mut state = PlayerSnapshot {
-            queue: (0..1000).map(track).collect(),
+            queue: (0..1000).map(track).collect::<Vec<_>>().into(),
             index: Some(500),
             ..Default::default()
         };
@@ -630,10 +632,10 @@ mod tests {
     #[test]
     fn queue_deduplication_remaps_selected_duplicate_and_shuffle_indices() {
         let mut state = PlayerSnapshot {
-            queue: vec![track(1), track(2), track(1), track(3)],
+            queue: vec![track(1), track(2), track(1), track(3)].into(),
             index: Some(2),
             shuffle: true,
-            shuffle_order: vec![2, 3, 0, 1],
+            shuffle_order: vec![2, 3, 0, 1].into(),
             position_ms: 500,
             ..Default::default()
         };
@@ -641,14 +643,14 @@ mod tests {
         assert_eq!(state.queue.len(), 3);
         assert_eq!(state.index, Some(0));
         assert_eq!(state.current().unwrap().key, "1");
-        assert_eq!(state.shuffle_order, vec![0, 2, 1]);
+        assert_eq!(*state.shuffle_order, vec![0, 2, 1]);
         assert_eq!(state.position_ms, 500);
     }
 
     #[test]
     fn next_insertion_preserves_current_playback_and_batch_order() {
         let mut state = PlayerSnapshot {
-            queue: vec![track(1), track(2), track(3)],
+            queue: vec![track(1), track(2), track(3)].into(),
             index: Some(1),
             position_ms: 500,
             status: PlaybackStatus::Playing,
@@ -683,7 +685,7 @@ mod tests {
     #[test]
     fn removing_queue_entries_preserves_current_playback_and_checks_identity() {
         let mut state = PlayerSnapshot {
-            queue: vec![track(1), track(2), track(1), track(3)],
+            queue: vec![track(1), track(2), track(1), track(3)].into(),
             index: Some(2),
             position_ms: 500,
             status: PlaybackStatus::Playing,
@@ -702,7 +704,7 @@ mod tests {
     #[test]
     fn removing_current_selects_next_then_previous_and_supports_empty_queue() {
         let mut state = PlayerSnapshot {
-            queue: vec![track(1), track(2), track(3)],
+            queue: vec![track(1), track(2), track(3)].into(),
             index: Some(1),
             ..PlayerSnapshot::default()
         };

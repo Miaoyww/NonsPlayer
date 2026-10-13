@@ -127,6 +127,8 @@ WIT Host 的 `call(operation, args-json)` 返回 JSON 或业务错误，身份�
 
 SDK 不要求手写 pluginId。所有 SDK 请求经过 `nativeCall` 和 scoped IPC；禁用／reload 后即使 Promise 晚返回，SDK 也拒绝旧结果。事件内部命名为 `plugin:<id>:<event>`，共用 Tauri transport，但 SDK 只读取自身 Scope。订阅在实例卸载时删除；每实例只保留有界的最新事件，不承诺持久历史或初始化之前的事件重放。
 
+宿主播放同步将轻量状态、队列与进度分别发布，队列仅在修改曲目或播放顺序时传输；初始化和主 WebView 重连读取同一时点的完整快照，再按事件序号和队列版本合并并发更新。公开 SDK `usePlayer()` 的返回结构和权限不变，由宿主按需订阅状态及进度后组装，插件无需直接订阅内部播放事件。
+
 ### API 1.3.0：文件工具与任意文件权限
 
 manifest 的可选 `fileRoots: ["*"]` 须同时声明 `files:selected`。启用界面明确提示可读取、创建、修改和删除当前用户能够访问的任意文件，具备网络权限时可能发送文件内容；扩大到 `*` 需要重新授权。省略或 `[]` 沿用已有目录授权，专属数据目录仍由 `files:data` 控制。当前只支持 `*`，不支持路径 glob 或固定目录声明。

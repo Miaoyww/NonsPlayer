@@ -162,7 +162,7 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (value: 
 function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
   const { navigate } = useMusicNavigation()
   const { profile } = useAccount()
-  const player = usePlayer()
+  const player = usePlayer('index', 'privateFmError', 'privateFmSession', 'queue', 'status')
   const [tracks, setTracks] = useState<Track[]>([])
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
@@ -366,7 +366,7 @@ export default function Discovery({
 }) {
   const { profile } = useAccount()
   const { page, navigate } = useMusicNavigation()
-  const player = usePlayer()
+  const player = usePlayer('index', 'privateFmError', 'privateFmSession', 'queue', 'status')
   const current = player.index !== null ? player.queue[player.index] : undefined
   const [radarInfo, setRadarInfo] = useState<MusicCollection>(radar)
   useEffect(() => {
