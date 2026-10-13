@@ -25,12 +25,12 @@ export function QueuePage({ onError }: { onError: (error: unknown) => void }) {
   return (
     <>
       <header className="queue-page-header flex flex-wrap shrink-0 items-center justify-between gap-4 px-8 pb-6 pt-8">
-        <div>
+        <div className="queue-page-summary">
           <h1 className="text-2xl font-semibold tracking-tight">播放列表</h1>
           <p className="mt-2 text-sm text-muted-foreground">{state.queue.length} 首歌</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 rounded-lg border border-input px-3 py-2 focus-within:ring-2 focus-within:ring-ring">
+        <div className="queue-page-tools flex flex-wrap items-center gap-3">
+          <label className="queue-page-search flex items-center gap-2 rounded-lg border border-input px-3 py-2 focus-within:ring-2 focus-within:ring-ring">
             <Search aria-hidden="true" className="size-4 text-muted-foreground" />
             <input
               type="search"
