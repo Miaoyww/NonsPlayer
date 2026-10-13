@@ -60,6 +60,7 @@ async function harness({ delayed = false } = {}) {
     return exports
   }
   const modules = {
+    '@/lib/platform': { isAndroid: () => false },
     '@/features/playback/player-store': compile('../src/features/playback/player-store.ts'),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
     '@/features/discovery/private-fm': { createPrivateFm: () => ({ update() {}, dispose() {} }) },

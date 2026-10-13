@@ -1,9 +1,10 @@
 import { useSyncExternalStore } from 'react'
+import { isAndroid } from '@/lib/platform'
 
 export type InterfaceDensity = 'standard' | 'compact'
 const storageKey = 'nons-interface-density'
 const listeners = new Set<() => void>()
-let mode: InterfaceDensity = 'standard'
+let mode: InterfaceDensity = isAndroid() ? 'compact' : 'standard'
 function isMode(value: unknown): value is InterfaceDensity {
   return value === 'standard' || value === 'compact'
 }

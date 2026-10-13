@@ -101,11 +101,13 @@ test('frontend shuffle navigation wraps both ends even when the repeat button is
     {
       exports,
       require: (name) =>
-        name === '@/features/music/scoped-query'
-          ? { ScopedMusicQueries: class {} }
-          : name === '@/features/playback/player-store'
-            ? store
-            : {}
+        name === '@/lib/platform'
+          ? { isAndroid: () => false }
+          : name === '@/features/music/scoped-query'
+            ? { ScopedMusicQueries: class {} }
+            : name === '@/features/playback/player-store'
+              ? store
+              : {}
     }
   )
   const state = {

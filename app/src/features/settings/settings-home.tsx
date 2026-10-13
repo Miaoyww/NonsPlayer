@@ -4,6 +4,7 @@ import { AccountAvatar } from '@/features/account/account-avatar'
 import { useAccountAdapters } from '@/features/account/use-account-adapters'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { settingsSections } from './settings-sections'
+import { isAndroid } from '@/lib/platform'
 
 export function SettingsHome({
   onSelect
@@ -52,7 +53,12 @@ export function SettingsHome({
           <h2 className="settings-home-heading">一般设置</h2>
           <nav aria-label="设置分类" className="mobile-settings-categories">
             {settingsSections
-              .filter((item) => item.id !== 'plugins' && item.id !== 'about')
+              .filter(
+                (item) =>
+                  item.id !== 'plugins' &&
+                  item.id !== 'about' &&
+                  !(isAndroid() && item.id === 'shortcuts')
+              )
               .map(card)}
           </nav>
         </section>

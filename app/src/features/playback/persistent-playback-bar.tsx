@@ -9,6 +9,9 @@ import { QueuePopover } from '@/features/queue/queue-popover'
 import { trackDisplayTitle } from '@/components/music/track-title'
 import { VolumeControl } from '@/features/playback/volume-control'
 import { isAndroid } from '@/lib/platform'
+import { useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ActionButton } from '@/components/music/action-button'
 
 export function PersistentPlaybackBar({
   onLyrics,
@@ -24,38 +27,75 @@ export function PersistentPlaybackBar({
   const state = usePlayer('actualQuality', 'index', 'queue', 'status')
   const track = state.index === null ? undefined : state.queue[state.index]
   const title = track ? trackDisplayTitle(track) : '选择一首音乐'
+  const mobile = isAndroid()
+  const [expanded, setExpanded] = useState(false)
+  const identity = (
+    <div className="persistent-track">
+      <button
+        type="button"
+        className="persistent-cover"
+        aria-label="打开正在播放"
+        title="打开全屏播放器"
+        onClick={onLyrics}
+      >
+        <Cover cover={track?.cover} className="size-12" />
+      </button>
+      <div className="persistent-track-text">
+        <p className="persistent-track-title" title={title}>
+          {title}
+        </p>
+        <p className="persistent-track-artist" title={track?.artist}>
+          {track?.artist || 'Nons'}
+        </p>
+      </div>
+    </div>
+  )
   return (
-    <footer className="persistent-playback" aria-label="常驻播放栏">
+    <footer
+      className="persistent-playback"
+      data-mobile-expanded={mobile ? expanded : undefined}
+      aria-label="常驻播放栏"
+    >
       <PlaybackNotice notice={notice} />
+      {mobile && (
+        <div
+          id="mobile-playback-details"
+          className="mobile-playback-details glass-surface"
+          inert={!expanded}
+          aria-hidden={!expanded}
+        >
+          {identity}
+          <div className="persistent-options">
+            <CurrentTrackLike track={track} onError={onError} />
+            <QueuePopover onPage={onQueue} onError={onError} />
+          </div>
+        </div>
+      )}
       <div className="persistent-playback-surface">
         <div className="capsule-glass glass-surface" aria-hidden="true" />
         {!isAndroid() && <PlaybackTimeline layout="edge" showTimeOnHover onError={onError} />}
-        <div className="persistent-track">
-          <button
-            type="button"
-            className="persistent-cover"
-            aria-label="打开正在播放"
-            title="打开全屏播放器"
-            onClick={onLyrics}
-          >
-            <Cover cover={track?.cover} className="size-12" />
-          </button>
-          <div className="persistent-track-text">
-            <p className="persistent-track-title" title={title}>
-              {title}
-            </p>
-            <p className="persistent-track-artist" title={track?.artist}>
-              {track?.artist || 'Nons'}
-            </p>
-          </div>
-        </div>
+        {!mobile && identity}
         <PlaybackTransport withModes onError={onError} />
-        <div className="persistent-options">
-          {!isAndroid() && <QualitySelect />}
-          <CurrentTrackLike track={track} onError={onError} />
-          {!isAndroid() && <VolumeControl onError={onError} />}
-          <QueuePopover onPage={onQueue} onError={onError} />
-        </div>
+        {mobile ? (
+          <ActionButton
+            variant="ghost"
+            size="icon-lg"
+            className="mobile-playback-expand"
+            aria-label={expanded ? '收起播放栏' : '展开播放栏'}
+            aria-expanded={expanded}
+            aria-controls="mobile-playback-details"
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? <ChevronDown aria-hidden="true" /> : <ChevronUp aria-hidden="true" />}
+          </ActionButton>
+        ) : (
+          <div className="persistent-options">
+            {!isAndroid() && <QualitySelect />}
+            <CurrentTrackLike track={track} onError={onError} />
+            {!isAndroid() && <VolumeControl onError={onError} />}
+            <QueuePopover onPage={onQueue} onError={onError} />
+          </div>
+        )}
         <span className="sr-only">
           {statusLabels[state.status]}
           {state.actualQuality && ` · 实际音质 ${state.actualQuality}`}

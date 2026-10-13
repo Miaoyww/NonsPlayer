@@ -8,7 +8,7 @@ const source = readFileSync(
   new URL('../src/features/playback/use-playback-bar-mode.ts', import.meta.url),
   'utf8'
 )
-function session(saved, unavailable = false) {
+function session(saved, unavailable = false, android = false) {
   const exports = {},
     values = new Map(saved === undefined ? [] : [['nons-playback-bar-mode', saved]])
   const notifications = []
@@ -16,12 +16,15 @@ function session(saved, unavailable = false) {
     ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText,
     {
       exports,
-      require: () => ({
-        useSyncExternalStore: (subscribe, get) => {
-          subscribe(() => notifications.push(get()))
-          return get()
-        }
-      }),
+      require: (name) =>
+        name === '@/lib/platform'
+          ? { isAndroid: () => android }
+          : {
+              useSyncExternalStore: (subscribe, get) => {
+                subscribe(() => notifications.push(get()))
+                return get()
+              }
+            },
       localStorage: {
         getItem: (key) => {
           if (unavailable) throw Error('unavailable')
@@ -48,6 +51,16 @@ test('playback bar defaults to collapsible and shares persisted mode immediately
   assert.equal(session(app.values.get('nons-playback-bar-mode')).read()[0], 'off')
   assert.ok(app.notifications.includes('persistent'))
   assert.ok(app.notifications.includes('off'))
+})
+
+test('Android always exposes the persistent bar even with a saved off or collapsible mode', () => {
+  for (const saved of [undefined, 'off', 'collapsible', 'persistent']) {
+    const app = session(saved, false, true)
+    assert.equal(app.read()[0], 'persistent')
+    app.read()[1]('off')
+    assert.equal(app.read()[0], 'persistent')
+    assert.equal(app.values.get('nons-playback-bar-mode'), saved)
+  }
 })
 test('invalid or unavailable storage preserves defaults and session changes', () => {
   for (const value of ['', 'unknown', 'null', 42])

@@ -79,6 +79,10 @@ fn previous_command(state: &PlayerSnapshot) -> Option<Command> {
 }
 
 fn restore_player(mut state: PlayerSnapshot) -> PlayerSnapshot {
+    // Android volume is controlled by the system, including for older saved sessions.
+    if cfg!(target_os = "android") {
+        state.volume = 1.0;
+    }
     state.deduplicate_queue();
     state.status = PlaybackStatus::Stopped;
     state.error = None;
@@ -908,6 +912,11 @@ impl Actor {
                 if !value.is_finite() || !(0.0..=1.0).contains(&value) {
                     return Err("音量必须介于 0 和 1".into());
                 }
+                let value = if cfg!(target_os = "android") {
+                    1.0
+                } else {
+                    value
+                };
                 self.playbin.set_property("volume", value);
                 self.state.volume = value;
                 self.publish();

@@ -1,4 +1,5 @@
 import { ScopedMusicQueries } from '@/features/music/scoped-query'
+import { isAndroid } from '@/lib/platform'
 import { createPrivateFm } from '@/features/discovery/private-fm'
 import { invoke, isTauri, convertFileSrc } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
@@ -93,7 +94,7 @@ const initialSnapshot: PlayerSnapshot = {
   status: 'stopped',
   positionMs: 0,
   durationMs: 0,
-  volume: 0.8,
+  volume: isAndroid() ? 1 : 0.8,
   deviceId: null,
   audioOutputMode: 'shared',
   actualQuality: null,

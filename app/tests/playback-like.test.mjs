@@ -121,7 +121,9 @@ test('failed playback like reaches the visible error handler and keeps the liked
 
 test('persistent player puts the shared favorite directly after quality and uses the same like state', async () => {
   const app = harness({ bar: 'persistent' })
-  const surface = app.renderBar().props.children[1]
+  const surface = app
+    .renderBar()
+    .props.children.find((child) => child.props?.className === 'persistent-playback-surface')
   const options = surface.props.children.find(
     (child) => child.props?.className === 'persistent-options'
   )

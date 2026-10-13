@@ -83,7 +83,11 @@ impl Default for PlayerSnapshot {
             status: PlaybackStatus::Stopped,
             position_ms: 0,
             duration_ms: 0,
-            volume: 0.8,
+            volume: if cfg!(target_os = "android") {
+                1.0
+            } else {
+                0.8
+            },
             device_id: None,
             audio_output_mode: AudioOutputMode::Shared,
             actual_quality: None,

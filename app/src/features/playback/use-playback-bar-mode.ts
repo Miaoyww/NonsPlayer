@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { isAndroid } from '@/lib/platform'
 
 export type PlaybackBarMode = 'collapsible' | 'persistent' | 'off'
 const storageKey = 'nons-playback-bar-mode'
@@ -20,6 +21,7 @@ const subscribe = (listener: () => void) => {
   }
 }
 function setMode(value: PlaybackBarMode) {
+  if (isAndroid()) return
   if (!isMode(value) || value === mode) return
   mode = value
   try {
@@ -30,5 +32,8 @@ function setMode(value: PlaybackBarMode) {
   listeners.forEach((notify) => notify())
 }
 export function usePlaybackBarMode() {
-  return [useSyncExternalStore(subscribe, () => mode), setMode] as const
+  return [
+    useSyncExternalStore(subscribe, () => (isAndroid() ? 'persistent' : mode)),
+    setMode
+  ] as const
 }
