@@ -11,6 +11,7 @@ function harness(state) {
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'lucide-react': {},
     '@tauri-apps/api/core': { isTauri: () => true },
+    '@/lib/platform': { isAndroid: () => false },
     '@/components/music/action-button': { ActionButton: 'button' },
     '@/features/playback/music-options': {},
     '@/features/playback/playback-timeline': {},

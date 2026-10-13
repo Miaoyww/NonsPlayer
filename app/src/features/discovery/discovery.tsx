@@ -7,6 +7,7 @@ import { TrackArtists, TrackAlbum } from '@/components/music/music-links'
 import { GreetingQuote } from '@/features/discovery/greeting-quote'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
+import { isAndroid } from '@/lib/platform'
 import {
   CalendarDays,
   ChevronDown,
@@ -514,7 +515,9 @@ export default function Discovery({
                   />
                 }
               >
-                <Cover cover={profile?.avatarUrl} className="discover-shortcut-cover" />
+                {!isAndroid() && (
+                  <Cover cover={profile?.avatarUrl} className="discover-shortcut-cover" />
+                )}
                 <span className="discover-shortcut-copy">
                   <span className="discover-shortcut-title">
                     <CalendarDays aria-hidden="true" />
@@ -535,7 +538,9 @@ export default function Discovery({
                   />
                 }
               >
-                <Cover cover={radarInfo.cover} className="discover-shortcut-cover" />
+                {!isAndroid() && (
+                  <Cover cover={radarInfo.cover} className="discover-shortcut-cover" />
+                )}
                 <span className="discover-shortcut-copy">
                   <span className="discover-shortcut-title">
                     <Radio aria-hidden="true" />

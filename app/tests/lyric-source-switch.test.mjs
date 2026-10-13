@@ -36,6 +36,9 @@ function harness(track, settle = true, localSource = 'local') {
   let cursor = 0
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    './use-mobile-lyrics-page': {
+      useMobileLyricsPage: () => ({ mobile: false, lyricsPage: false })
+    },
     react: {
       useState(initial) {
         const index = cursor++

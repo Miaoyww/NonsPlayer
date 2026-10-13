@@ -135,7 +135,14 @@ export function Titlebar({
                 aria-label="返回音乐"
                 title="返回音乐"
                 onMouseDown={(event) => event.stopPropagation()}
-                onClick={onBack}
+                onClick={() => {
+                  if (isAndroid()) {
+                    const event = new Event('nons-android-back', { cancelable: true })
+                    window.dispatchEvent(event)
+                    if (event.defaultPrevented) return
+                  }
+                  onBack?.()
+                }}
               >
                 <ChevronDown aria-hidden="true" />
               </Button>

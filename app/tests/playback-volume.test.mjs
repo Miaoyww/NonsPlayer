@@ -17,6 +17,7 @@ function volumeControl({ failure, desktop = true, fullscreen = false } = {}) {
   const timers = new Map()
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/lib/platform': { isAndroid: () => false },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     react: {
       useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),

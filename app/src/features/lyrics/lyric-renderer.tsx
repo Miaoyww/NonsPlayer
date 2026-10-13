@@ -6,6 +6,7 @@ import { isTauri } from '@tauri-apps/api/core'
 import { useReducedMotion } from 'motion/react'
 import { currentPosition, nativeCall, useProgress } from '@/lib/player'
 import { useFontSettings } from '@/features/settings/use-font-settings'
+import { isAndroid } from '@/lib/platform'
 
 export default function LyricRenderer({
   lines,
@@ -99,7 +100,7 @@ export default function LyricRenderer({
       playing={playing}
       currentTime={progress.positionMs}
       onLyricLineClick={(event) => {
-        if (!isTauri()) return
+        if (!isTauri() || isAndroid()) return
         void nativeCall('player_seek', { positionMs: event.line.getLine().startTime }).catch(
           onError
         )

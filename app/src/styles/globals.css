@@ -3036,6 +3036,180 @@
 .track-list[data-mobile='true'] .track-identity-cell {
   padding-right: 0;
 }
+.track-list[data-mobile='true'] .track-row td:first-child {
+  padding-left: 12px;
+}
+:root[data-platform='android'] .library-cover-grid,
+:root[data-platform='android'] .discover-playlist-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 12px;
+}
+:root[data-platform='android'] .library-cover-title {
+  font-size: 14px;
+}
+:root[data-platform='android'] .library-cover-subtitle {
+  font-size: 12px;
+}
+:root[data-platform='android'] .library-tabs-row {
+  margin: 32px 0 16px;
+  gap: 8px;
+}
+:root[data-platform='android'] .library-tabs {
+  width: 100%;
+  min-width: 0;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+:root[data-platform='android'] .library-tabs::-webkit-scrollbar {
+  display: none;
+}
+:root[data-platform='android'] .library-tab {
+  height: 44px;
+  padding: 8px 10px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+:root[data-platform='android'] .library-tabs > * {
+  flex-shrink: 0;
+}
+:root[data-platform='android'] .discover-featured {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+:root[data-platform='android'] .discover-shortcuts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+:root[data-platform='android'] .discover-shortcut {
+  padding: 10px;
+  gap: 8px;
+}
+:root[data-platform='android'] .discover-shortcut-cover {
+  display: none;
+}
+:root[data-platform='android'] .discover-shortcut-title {
+  font-size: 14px;
+  white-space: nowrap;
+  gap: 6px;
+}
+:root[data-platform='android'] .discover-shortcut-title svg {
+  width: 16px;
+  height: 16px;
+}
+:root[data-platform='android'] .discover-shortcut-desc {
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+:root[data-platform='android'] .discover-shortcut-arrow {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: transparent;
+}
+:root[data-platform='android'] .discover-fm {
+  gap: 16px;
+  padding: 16px;
+}
+:root[data-platform='android'] .discover-fm-cover {
+  width: clamp(96px, 36%, 144px);
+}
+:root[data-platform='android'] .discover-fm-info h2 {
+  font-size: 18px;
+}
+:root[data-platform='android'] .discover-fm-meta {
+  height: 18px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+:root[data-platform='android'] .discover-fm-bottom {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 8px;
+}
+:root[data-platform='android'] .discover-fm-controls {
+  gap: 4px;
+}
+:root[data-platform='android'] .discover-fm-controls > button:not(.discover-fm-play) {
+  width: 40px;
+  height: 44px;
+}
+:root[data-platform='android'] .discover-fm-play {
+  width: 48px;
+  height: 48px;
+}
+:root[data-platform='android'] .discover-fm-label {
+  align-self: flex-end;
+  font-size: 10px;
+}
+:root[data-platform='android'] .nons-lyrics[data-mobile-view] .now-playing-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 24px calc(32px + env(safe-area-inset-bottom));
+  justify-content: flex-start;
+  overflow-y: auto;
+}
+:root[data-platform='android'] .nons-lyrics[data-mobile-view] .now-playing-details {
+  justify-content: flex-start;
+  max-width: 420px;
+  overflow: visible;
+  flex: 1;
+  height: 100%;
+  min-height: min-content;
+  gap: 20px;
+}
+:root[data-platform='android'] .now-playing-cover-slot {
+  width: 100%;
+  height: min(420px, 45dvh, calc(100vw - 48px));
+  flex: none;
+}
+.now-playing-cover-open {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.now-playing-cover-open:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+:root[data-platform='android'] .now-playing-controls .now-playing-transport {
+  gap: clamp(4px, 2vw, 12px);
+}
+:root[data-platform='android'] .nons-lyrics[data-mobile-view='overview'] .now-playing-controls {
+  margin-top: auto;
+}
+:root[data-platform='android'] .now-playing > .titlebar:not(:has(nav)) {
+  position: absolute;
+  inset: 0 0 auto;
+  background: transparent;
+}
+:root[data-platform='android'] .nons-lyrics[data-mobile-view] {
+  padding-top: calc(68px + env(safe-area-inset-top));
+}
+:root[data-platform='android'] .nons-lyrics[data-mobile-view='lyrics'] .now-playing-layout {
+  overflow: hidden;
+  padding: 48px 16px 16px;
+}
+:root[data-platform='android'] .now-playing-lyrics {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+}
+:root[data-platform='android'] .lyrics-display-controls {
+  top: calc(68px + env(safe-area-inset-top));
+  right: 16px;
+  opacity: 1;
+}
 :root[data-platform='android'] .mobile-settings-page {
   --music-page-bottom: calc(24px + env(safe-area-inset-bottom));
 }

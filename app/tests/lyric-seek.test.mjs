@@ -4,11 +4,12 @@ import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
-function lyricControl({ failure, desktop = true } = {}) {
+function lyricControl({ failure, desktop = true, android = false } = {}) {
   const calls = []
   const errors = []
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/lib/platform': { isAndroid: () => android },
     '@/features/local/use-local-preferences': {
       useLocalPreferences: () => ({ options: { artistSeparators: [] } })
     },
@@ -86,5 +87,11 @@ test('lyric seek errors reach the visible playback error handler', async () => {
 test('browser preview does not invoke native seek', () => {
   const control = lyricControl({ desktop: false })
   control.click(25000)
+  assert.equal(control.calls.length, 0)
+})
+
+test('Android lyric taps never seek native playback', () => {
+  const control = lyricControl({ android: true })
+  control.click(75250)
   assert.equal(control.calls.length, 0)
 })
