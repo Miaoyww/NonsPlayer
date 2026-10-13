@@ -13,6 +13,8 @@ rustup target add aarch64-linux-android
 
 引导脚本下载并校验 Google Android Command-line Tools 与 GStreamer 1.28.7 官方 Android SDK，只提取 ARM64 运行时。Android SDK/NDK 安装前由 `sdkmanager` 交互展示许可。工具保存在忽略目录 `.local/android`，不进入 Git。
 
+Release CI 在版本标签上自动构建并上传 ARM64 试用 APK，流程见 [GitHub Release CI](release.md)。CI 使用 `bootstrap-android.py --accept-licenses` 非交互接受 SDK 许可，本地默认仍保留交互确认。CI 的临时调试证书与本地或其他 CI 运行不同，签名冲突时需要卸载旧包（会清除应用数据）；正式签名与跨版本覆盖升级仍待接入。
+
 下载较慢时，可手动下载 [GStreamer 安装包](https://gstreamer.freedesktop.org/data/pkg/android/1.28.7/gstreamer-1.0-android-universal-1.28.7.tar.xz)，不用解压，放到 `.local/android/gstreamer-1.0-android-universal-1.28.7.tar.xz`，再执行引导脚本。已有完整包通过官方 SHA256 校验后复用。
 
 Android 工程已提交在 `app/src-tauri/gen/android`；不要重新执行 `android init` 覆盖其中的原生源码路径和 GStreamer 初始化。Android 原生能力源码在 `app/src-tauri/android/kotlin`，音频插件选择在 `app/src-tauri/android/audio`。
@@ -56,7 +58,7 @@ python scripts/verify-android-apk.py app/src-tauri/gen/android/app/build/outputs
 - 播放核心在加载、缓冲和播放期间启动原生 `mediaPlayback` 前台服务，通知显示当前歌名与歌手并可返回应用；持有 CPU 部分唤醒锁，暂停、停止、清空、错误和核心退出时释放。状态更新来自 Rust 播放核心，不依赖后台 WebView 的计时器。音频输出使用设备时钟，不套用桌面 WASAPI 的 30ms 输出限速；切歌等待音频预滚及网络缓冲完成后再启动输出。
 - 后台和息屏播放已做短时真机回归，仍属试用版；锁屏/通知栏播放控制、音频焦点与耳机事件尚未接入，长时间锁屏、厂商省电策略和电话打断仍需进一步验收。
 - Android 本地音乐的 MediaStore/SAF、插件目录授权和剪贴板监听尚未接入；当前不能视为完整移动端版本。
-- 尚无 Google Play 上架、正式发布签名、Android CI 或真机性能结论。最低版本、登录、切歌、歌词、弱网和安装升级均需真机验收。
+- 已接入 Android Release CI；尚无 Google Play 上架、正式发布签名或真机性能结论。最低版本、登录、切歌、歌词、弱网和安装升级均需真机验收。
 
 ## 真机验证（2026-10-13）
 

@@ -16,6 +16,7 @@ if (-not $JavaHome -or -not (Test-Path -LiteralPath (Join-Path $JavaHome 'bin/ja
 }
 $env:JAVA_HOME = $JavaHome
 $env:ANDROID_HOME = Join-Path $nonsAndroid 'sdk'
+$env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
 $env:NDK_HOME = Join-Path $env:ANDROID_HOME "ndk/$nonsNdkVersion"
 $env:GRADLE_USER_HOME = Join-Path $nonsAndroid 'gradle'
 $env:CARGO_PROFILE_DEV_DEBUG = '0'

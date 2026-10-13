@@ -1,7 +1,7 @@
 """Install a project-local Android command-line SDK and ARM64 GStreamer SDK.
 
 The JDK is supplied by JAVA_HOME. No Android Studio or machine-wide settings
-are installed. SDK license acceptance is handled interactively by sdkmanager.
+are installed. SDK license acceptance is interactive unless --accept-licenses is supplied.
 """
 
 import argparse
@@ -63,9 +63,18 @@ def download(url, destination, digest):
     partial.replace(destination)
 
 
+def install_sdk(manager, accept_licenses=False):
+    if not os.environ.get("JAVA_HOME"):
+        raise RuntimeError("Set JAVA_HOME to a JDK before running sdkmanager")
+    license_input = {"input": "y\n" * 100, "text": True} if accept_licenses else {}
+    subprocess.run([str(manager), f"--sdk_root={SDK}", "--licenses"], check=True, **license_input)
+    subprocess.run([str(manager), f"--sdk_root={SDK}", "platform-tools", "platforms;android-37.0", "build-tools;37.0.0", f"ndk;{NDK}"], check=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--download-only", action="store_true")
+    parser.add_argument("--accept-licenses", action="store_true", help="Accept Android SDK licenses non-interactively for CI")
     options = parser.parse_args()
     BASE.mkdir(parents=True, exist_ok=True)
     manager = SDK / "cmdline-tools" / "latest" / "bin" / "sdkmanager.bat"
@@ -87,10 +96,7 @@ def main():
             members = [member for member in package.getmembers() if member.name.lstrip("./").startswith("arm64/")]
             package.extractall(gst, members=members, filter="data")
     if not options.download_only:
-        if not os.environ.get("JAVA_HOME"):
-            raise RuntimeError("Set JAVA_HOME to a JDK before running sdkmanager")
-        subprocess.run([str(manager), f"--sdk_root={SDK}", "--licenses"], check=True)
-        subprocess.run([str(manager), f"--sdk_root={SDK}", "platform-tools", "platforms;android-37.0", "build-tools;37.0.0", f"ndk;{NDK}"], check=True)
+        install_sdk(manager, options.accept_licenses)
     print(f"ANDROID_HOME={SDK}\nNDK_HOME={SDK / 'ndk' / NDK}", flush=True)
 
 

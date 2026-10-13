@@ -162,6 +162,53 @@ class ReleaseTests(unittest.TestCase):
             release.collect_files(self.root, "v1.0.0", self.output)
         self.assertEqual(existing.read_text(), "keep")
 
+    def android_asset(self):
+        folder = self.root / ".local/android"
+        folder.mkdir(parents=True)
+        apk = folder / "Nons-1.0.0-android-arm64-debug.apk"
+        apk.write_bytes(b"verified apk fixture")
+        checksum = hashlib.sha256(apk.read_bytes()).hexdigest()
+        apk.with_suffix(".apk.sha256").write_text(f"{checksum}  {apk.name}\n", encoding="ascii")
+        (folder / "Nons-0.1.0-android-arm64-debug.apk").write_bytes(b"old apk")
+        (folder / "Nons-1.0.0-android-arm64-debug-compat.apk").write_bytes(apk.read_bytes())
+        return apk
+
+    def test_android_collection_only_includes_verified_current_apk(self):
+        apk = self.android_asset()
+        release.collect_android_files(self.root, "v1.0.0", self.output)
+        self.assertEqual({p.name for p in self.output.iterdir()}, {apk.name, "SHA256SUMS-android.txt"})
+        checksums = (self.output / "SHA256SUMS-android.txt").read_bytes()
+        self.assertNotIn(b"\r", checksums)
+        digest, name = checksums.decode().strip().split("  ")
+        self.assertEqual(digest, hashlib.sha256((self.output / name).read_bytes()).hexdigest())
+
+    def test_missing_android_apk_or_checksum_blocks_collection(self):
+        apk = self.android_asset()
+        apk.unlink()
+        with self.assertRaisesRegex(ValueError, "Missing verified Android"):
+            release.collect_android_files(self.root, "v1.0.0", self.output)
+        apk.write_bytes(b"fixture")
+        apk.with_suffix(".apk.sha256").unlink()
+        with self.assertRaisesRegex(ValueError, "Missing verified Android"):
+            release.collect_android_files(self.root, "v1.0.0", self.output)
+        self.assertFalse(self.output.exists())
+
+    def test_android_mutated_after_build_is_rejected(self):
+        apk = self.android_asset()
+        apk.write_bytes(b"modified apk")
+        with self.assertRaisesRegex(ValueError, "checksum does not match"):
+            release.collect_android_files(self.root, "v1.0.0", self.output)
+        self.assertFalse(self.output.exists())
+
+    def test_android_collection_preserves_existing_output(self):
+        self.android_asset()
+        self.output.mkdir()
+        existing = self.output / "existing.txt"
+        existing.write_text("keep")
+        with self.assertRaisesRegex(ValueError, "must be empty"):
+            release.collect_android_files(self.root, "v1.0.0", self.output)
+        self.assertEqual(existing.read_text(), "keep")
+
 
 if __name__ == "__main__":
     unittest.main()

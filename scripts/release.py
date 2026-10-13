@@ -1,4 +1,4 @@
-"""Validate release metadata and collect Nons Windows release assets."""
+"""Validate release metadata and collect Nons Windows and Android release assets."""
 import argparse
 import hashlib
 import json
@@ -128,6 +128,23 @@ def collect_files(root, tag, output):
     if manifest["engines"]["app"] != f"^{version.split('.')[0]}.0.0":
         raise ValueError("Bundled plugin must declare compatibility with the release major version")
     sources.append((plugin, f"netease-island-{manifest['version']}.zip"))
+    write_assets(output, sources)
+
+
+def collect_android_files(root, tag, output):
+    version = validate_version(root, tag)
+    apk = root / ".local/android" / f"Nons-{version}-android-arm64-debug.apk"
+    checksum = apk.with_suffix(".apk.sha256")
+    if not apk.is_file() or not checksum.is_file():
+        raise ValueError(f"Missing verified Android APK or checksum: {apk}")
+    with apk.open("rb") as stream:
+        digest = hashlib.file_digest(stream, "sha256").hexdigest()
+    if checksum.read_text(encoding="ascii").strip() != f"{digest}  {apk.name}":
+        raise ValueError("Android APK checksum does not match the verified build")
+    write_assets(output, [(apk, apk.name)], "SHA256SUMS-android.txt")
+
+
+def write_assets(output, sources, checksum_name="SHA256SUMS.txt"):
     if output.exists() and any(output.iterdir()):
         raise ValueError(f"Release output must be empty: {output}")
     output.mkdir(parents=True, exist_ok=True)
@@ -139,12 +156,12 @@ def collect_files(root, tag, output):
             digest = hashlib.file_digest(stream, "sha256").hexdigest()
         checksums.append(f"{digest}  {name}\n")
         print(f"Collect: {name}")
-    (output / "SHA256SUMS.txt").write_text("".join(checksums), encoding="utf-8", newline="\n")
+    (output / checksum_name).write_text("".join(checksums), encoding="utf-8", newline="\n")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["notes", "portable", "files"])
+    parser.add_argument("command", choices=["notes", "portable", "files", "android-files"])
     parser.add_argument("tag")
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
@@ -155,6 +172,8 @@ def main():
         print(f"Release notes: {args.output}")
     elif args.command == "portable":
         build_portable(ROOT, args.tag, args.output)
+    elif args.command == "android-files":
+        collect_android_files(ROOT, args.tag, args.output)
     else:
         collect_files(ROOT, args.tag, args.output)
 
