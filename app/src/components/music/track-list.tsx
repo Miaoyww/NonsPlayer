@@ -26,6 +26,7 @@ import { useSongTitleCopy, SongContextMenu } from '@/components/music/song-actio
 import { TrackIdentity } from '@/components/music/track-identity'
 import type { ReactNode } from 'react'
 import { useInterfaceDensity } from '@/features/settings/use-interface-density'
+import { isAndroid } from '@/lib/platform'
 
 type SortKey = 'default' | 'title' | 'artist' | 'album' | 'duration'
 
@@ -107,8 +108,10 @@ export const TrackList = memo(function TrackList({
   sortable = false,
   searchable = false,
   hasMore = false,
-  showDuration = true
+  showDuration: durationColumn = true
 }: Props) {
+  const mobile = isAndroid()
+  const showDuration = !mobile && durationColumn
   const findElement = useRef<HTMLDivElement>(null)
   const [findTarget, setFindTarget] = useState<{ index: number; serial: number }>()
   const [selectedKey, setSelectedKey] = useState<string>()
@@ -158,7 +161,7 @@ export const TrackList = memo(function TrackList({
       })
       .filter(
         ({ track }) =>
-          !searchable ||
+          (!searchable && externalQuery === undefined) ||
           !keyword ||
           [track.title, track.artist, track.album, ...(track.aliases ?? [])].some((value) =>
             value.toLocaleLowerCase().includes(keyword)
@@ -178,7 +181,7 @@ export const TrackList = memo(function TrackList({
       })
     }
     return result
-  }, [tracks, searchQuery, searchable, sortable, sort, descending])
+  }, [tracks, searchQuery, searchable, externalQuery, sortable, sort, descending])
   const visibleTracks = useMemo(() => entries.map(({ track }) => track), [entries])
   const [cardMode] = useInterfaceDensity()
   const { profile, likedIds, likesReady, likesError, pendingLikes, reloadLikes, toggleLike } =
@@ -263,12 +266,13 @@ export const TrackList = memo(function TrackList({
       cancelAnimationFrame(frame)
     }
   }, [findTarget])
-  const showLikes = likesColumn ?? tracks.some((track) => track.source.kind === 'netease')
+  const showLikes =
+    !mobile && (likesColumn ?? tracks.some((track) => track.source.kind === 'netease'))
   const sizingSpecs = useMemo(
     () => [
-      { id: 'index', label: '序号', size: 48, minSize: 36 },
-      { id: 'title', label: '标题', size: 480, minSize: 180 },
-      { id: 'album', label: '专辑', size: 200, minSize: 100 },
+      ...(!mobile ? [{ id: 'index', label: '序号', size: 48, minSize: 36 }] : []),
+      { id: 'title', label: '标题', size: 480, minSize: mobile ? 0 : 180 },
+      ...(!mobile ? [{ id: 'album', label: '专辑', size: 200, minSize: 100 }] : []),
       ...(showLikes ? [{ id: 'likes', label: '喜欢', size: 48, minSize: 40 }] : []),
       ...(showDuration ? [{ id: 'duration', label: '时长', size: 80, minSize: 64 }] : []),
       ...extraColumns.map((column, index) => ({
@@ -279,11 +283,15 @@ export const TrackList = memo(function TrackList({
       })),
       ...(onAppend ? [{ id: 'append', label: '加入队列', size: 48, minSize: 40 }] : [])
     ],
-    [showLikes, showDuration, extraColumns, onAppend]
+    [mobile, showLikes, showDuration, extraColumns, onAppend]
   )
   const columnSizing = useTrackColumnSizing(sizingSpecs)
   const columns =
-    3 + Number(showDuration) + extraColumns.length + Number(showLikes) + Number(!!onAppend)
+    (mobile ? 1 : 3) +
+    Number(showDuration) +
+    extraColumns.length +
+    Number(showLikes) +
+    Number(!!onAppend)
   const rows = virtualizer.getVirtualItems()
   const top = rows.length ? Math.max(0, rows[0].start - scrollMargin) : 0
   const bottom = rows.length
@@ -291,7 +299,7 @@ export const TrackList = memo(function TrackList({
     : 0
   return (
     <>
-      {searchable && externalQuery === undefined && (
+      {searchable && externalQuery === undefined && !mobile && (
         <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
           {hasMore && (
             <span className="text-xs text-muted-foreground">
@@ -314,7 +322,7 @@ export const TrackList = memo(function TrackList({
           </label>
         </div>
       )}
-      {searchable && !loading && !entries.length && (
+      {(searchable || externalQuery !== undefined) && !loading && !entries.length && (
         <p role="status" className="py-8 text-center text-sm text-muted-foreground">
           没有匹配的歌曲。
         </p>
@@ -335,12 +343,14 @@ export const TrackList = memo(function TrackList({
           columnSizing.container.current = element
         }}
         className="track-table-container"
+        data-mobile={mobile}
       >
         <table
           className="track-list w-full table-fixed text-left text-sm"
           data-mode={cardMode}
+          data-mobile={mobile}
           aria-busy={loading}
-          style={{ minWidth: columnSizing.total }}
+          style={{ minWidth: mobile ? undefined : columnSizing.total }}
         >
           <colgroup>
             {columnSizing.columns.map((column) => (
@@ -353,26 +363,28 @@ export const TrackList = memo(function TrackList({
           <caption className="sr-only">歌曲列表</caption>
           <thead className="bg-background text-xs text-muted-foreground">
             <tr className="border-b border-border">
-              <th className="py-3 text-center" scope="col">
-                {sortable ? (
-                  <button
-                    type="button"
-                    className="track-sequence-header"
-                    aria-label="按序排列"
-                    title="按序排列"
-                    aria-pressed={sort === 'default'}
-                    onClick={() => {
-                      setSort('default')
-                      setDescending(false)
-                    }}
-                  >
-                    #
-                  </button>
-                ) : (
-                  '#'
-                )}
-                {columnSizing.handle('index')}
-              </th>
+              {!mobile && (
+                <th className="py-3 text-center" scope="col">
+                  {sortable ? (
+                    <button
+                      type="button"
+                      className="track-sequence-header"
+                      aria-label="按序排列"
+                      title="按序排列"
+                      aria-pressed={sort === 'default'}
+                      onClick={() => {
+                        setSort('default')
+                        setDescending(false)
+                      }}
+                    >
+                      #
+                    </button>
+                  ) : (
+                    '#'
+                  )}
+                  {!mobile && columnSizing.handle('index')}
+                </th>
+              )}
               <th className="py-3" scope="col" aria-sort={ariaSort(sortable && titleActive)}>
                 {sortable ? (
                   <SortHeader
@@ -392,27 +404,29 @@ export const TrackList = memo(function TrackList({
                 ) : (
                   '标题'
                 )}
-                {columnSizing.handle('title')}
+                {!mobile && columnSizing.handle('title')}
               </th>
-              <th className="py-3" scope="col" aria-sort={ariaSort(sortable && sort === 'album')}>
-                {sortable ? (
-                  <SortHeader
-                    label="专辑"
-                    active={sort === 'album'}
-                    descending={descending}
-                    detail={sort === 'album' ? (descending ? '降序' : '升序') : '默认'}
-                    next={nextLabel('album')}
-                    onClick={() => cycleSort('album')}
-                  />
-                ) : (
-                  '专辑'
-                )}
-                {columnSizing.handle('album')}
-              </th>
+              {!mobile && (
+                <th className="py-3" scope="col" aria-sort={ariaSort(sortable && sort === 'album')}>
+                  {sortable ? (
+                    <SortHeader
+                      label="专辑"
+                      active={sort === 'album'}
+                      descending={descending}
+                      detail={sort === 'album' ? (descending ? '降序' : '升序') : '默认'}
+                      next={nextLabel('album')}
+                      onClick={() => cycleSort('album')}
+                    />
+                  ) : (
+                    '专辑'
+                  )}
+                  {!mobile && columnSizing.handle('album')}
+                </th>
+              )}
               {showLikes && (
                 <th scope="col">
                   <span className="sr-only">喜欢</span>
-                  {columnSizing.handle('likes')}
+                  {!mobile && columnSizing.handle('likes')}
                 </th>
               )}
               {showDuration && (
@@ -434,13 +448,13 @@ export const TrackList = memo(function TrackList({
                   ) : (
                     '时长'
                   )}
-                  {columnSizing.handle('duration')}
+                  {!mobile && columnSizing.handle('duration')}
                 </th>
               )}
               {extraColumns.map((column, index) => (
                 <th key={column.label} className="py-3" scope="col">
                   {column.label}
-                  {columnSizing.handle(`extra-${index}`)}
+                  {!mobile && columnSizing.handle(`extra-${index}`)}
                 </th>
               ))}
               {onAppend && (
@@ -454,9 +468,11 @@ export const TrackList = memo(function TrackList({
             {loading &&
               Array.from({ length: skeletonCount }, (_, index) => (
                 <tr key={`loading-${index}`} className="track-row" aria-hidden="true">
-                  <td className="text-center">
-                    <Skeleton className="mx-auto h-3 w-3" />
-                  </td>
+                  {!mobile && (
+                    <td className="text-center">
+                      <Skeleton className="mx-auto h-3 w-3" />
+                    </td>
+                  )}
                   <td className="track-identity-cell pr-4">
                     <div className="track-identity flex min-w-0 items-center" data-mode={cardMode}>
                       <Skeleton className="track-identity-cover shrink-0 rounded-lg" />
@@ -470,9 +486,11 @@ export const TrackList = memo(function TrackList({
                       </div>
                     </div>
                   </td>
-                  <td className="pr-4">
-                    <Skeleton className="h-3 w-2/3" />
-                  </td>
+                  {!mobile && (
+                    <td className="pr-4">
+                      <Skeleton className="h-3 w-2/3" />
+                    </td>
+                  )}
                   {showLikes && (
                     <td>
                       <Skeleton className="mx-auto size-4 rounded-full" />
@@ -550,17 +568,19 @@ export const TrackList = memo(function TrackList({
                       />
                     }
                   >
-                    <td className="text-center tabular-nums text-muted-foreground">
-                      {(
-                        currentIndex === undefined
-                          ? track.key === currentKey
-                          : index === currentIndex
-                      ) ? (
-                        <PlayingIndicator />
-                      ) : (
-                        offset + row.index + 1
-                      )}
-                    </td>
+                    {!mobile && (
+                      <td className="text-center tabular-nums text-muted-foreground">
+                        {(
+                          currentIndex === undefined
+                            ? track.key === currentKey
+                            : index === currentIndex
+                        ) ? (
+                          <PlayingIndicator />
+                        ) : (
+                          offset + row.index + 1
+                        )}
+                      </td>
+                    )}
                     <td className="track-identity-cell pr-4">
                       <TrackIdentity
                         track={track}
@@ -585,11 +605,13 @@ export const TrackList = memo(function TrackList({
                         }
                       />
                     </td>
-                    <td className="pr-4 text-muted-foreground" title={track.album}>
-                      <div className="track-album-text">
-                        <TrackAlbum track={track} />
-                      </div>
-                    </td>
+                    {!mobile && (
+                      <td className="pr-4 text-muted-foreground" title={track.album}>
+                        <div className="track-album-text">
+                          <TrackAlbum track={track} />
+                        </div>
+                      </td>
+                    )}
                     {showLikes && (
                       <td>
                         {track.source.kind === 'netease' && (

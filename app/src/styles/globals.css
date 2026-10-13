@@ -3005,6 +3005,37 @@
   min-width: 48px;
   min-height: 48px;
 }
+.mobile-page-title-row,
+.mobile-collection-search-row {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+}
+.mobile-collection-search-field {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+.mobile-collection-search-field input {
+  height: 48px;
+  padding-inline: 0;
+  font-size: 1rem;
+}
+.track-table-container[data-mobile='true'] {
+  overflow-x: hidden;
+  margin-inline: 0;
+  padding-inline: 0;
+}
+.track-list[data-mobile='true'] .track-identity-cell {
+  padding-right: 0;
+}
 :root[data-platform='android'] .mobile-settings-page {
   --music-page-bottom: calc(24px + env(safe-area-inset-bottom));
 }

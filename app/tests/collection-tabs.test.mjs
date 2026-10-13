@@ -124,6 +124,7 @@ test('collection tabs default to songs, match loaded scopes and return to songs 
     return React.createElement('p', {}, `歌曲搜索：${React.useContext(searchContext)}`)
   }
   const { CollectionTabs } = load('../src/features/library/collection-tabs.tsx', {
+    '@/lib/platform': { isAndroid: () => false },
     react: React,
     'react/jsx-runtime': jsx,
     'lucide-react': { Music2: () => null, Search: () => null },

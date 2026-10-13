@@ -62,6 +62,9 @@ function harness(initialMode = 'collapsible') {
     './use-android-back': { useAndroidBack() {} },
     './use-primary-music-page': { usePrimaryMusicPage: () => true },
     './mobile-page-header': { MobilePageHeader: 'MobilePageHeader' },
+    '@/components/music/track-search-context': {
+      TrackSearchContext: { Provider: 'TrackSearchContext' }
+    },
     '@/features/settings/settings-sections': { settingsSections: [] },
     '@/lib/platform': { isAndroid: () => false },
     '@/components/music/loading': {

@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { Music2, Search } from 'lucide-react'
 import { Tabs, TabsList, TabsTab, TabsPanel } from '@/components/animate-ui/components/base/tabs'
 import { Input } from '@/components/ui/input'
+import { isAndroid } from '@/lib/platform'
 import { TrackSearchContext } from '@/components/music/track-search-context'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import { PluginCollectionTab, usePlugins } from '@/plugins/host'
@@ -44,6 +45,7 @@ export function CollectionTabs({
   const value = active ? active.key : 'songs'
   // Removed/reloaded tabs must not reselect themselves if the same registration returns later.
   if (selected !== value) setSelected(value)
+  if (isAndroid()) return <>{children}</>
   return (
     <Tabs
       value={value}

@@ -33,13 +33,13 @@ export function useTrackColumnSizing(specs: ColumnSpec[]) {
     const fixed = specs
       .filter((column) => column.id !== 'title' && column.id !== 'album')
       .reduce((total, column) => total + column.size, 0)
-    const album = Math.max(100, width * 0.22)
+    const album = specs.some((column) => column.id === 'album') ? Math.max(100, width * 0.22) : 0
     return specs.map((column) => ({
       ...column,
       header: column.label,
       size:
         column.id === 'title'
-          ? Math.max(180, width - fixed - album)
+          ? Math.max(column.minSize, width - fixed - album)
           : column.id === 'album'
             ? album
             : column.size

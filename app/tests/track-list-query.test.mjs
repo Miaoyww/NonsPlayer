@@ -9,7 +9,7 @@ import * as table from '@tanstack/react-table'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 
-async function harness(run) {
+async function harness(run, android = false) {
   const dom = new JSDOM('<div id="root"></div>')
   const previous = {
     window: globalThis.window,
@@ -46,6 +46,7 @@ async function harness(run) {
   }
   const trackSearchContext = React.createContext(undefined)
   const modules = {
+    '@/lib/platform': { isAndroid: () => android },
     './list-find': { useListFind() {} },
     '@/components/ui/skeleton': {
       Skeleton: (props) => React.createElement('div', { 'data-slot': 'skeleton', ...props })
@@ -206,6 +207,31 @@ async function harness(run) {
     })
   }
 }
+
+test('mobile detail filtering removes extra columns and plays the filtered queue without an internal input', async () => {
+  await harness(async ({ render, plays }) => {
+    await render({ externalQuery: 'first', searchable: false, showLikes: true, sortable: true })
+    assert.equal(document.querySelectorAll('input').length, 0)
+    assert.equal(document.querySelectorAll('.track-column-resizer').length, 0)
+    assert.deepEqual(
+      [...document.querySelectorAll('thead th')].map((cell) => cell.textContent.includes('标题')),
+      [true]
+    )
+    assert.equal(document.querySelectorAll('.track-row').length, 1)
+    assert.equal(document.querySelector('.track-row').children.length, 1)
+    assert.equal(document.querySelector('.track-list').style.minWidth, '')
+    await act(async () => document.querySelector('.track-cover').click())
+    assert.deepEqual(
+      plays.at(-1)[1].map((track) => track.key),
+      ['b']
+    )
+    await render({ externalQuery: 'no-match', searchable: false })
+    assert.equal(document.querySelectorAll('.track-row').length, 0)
+    assert.match(document.querySelector('[role="status"]').textContent, /没有匹配/)
+    await render({ externalQuery: '', searchable: false })
+    assert.equal(document.querySelectorAll('.track-row').length, 3)
+  }, true)
+})
 
 test('the playback indicator follows the current queue occurrence through search and sorting', async () => {
   await harness(async ({ render, search }) => {

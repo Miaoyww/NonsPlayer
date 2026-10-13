@@ -31,6 +31,7 @@ import { isAndroid } from '@/lib/platform'
 import { usePrimaryMusicPage } from './use-primary-music-page'
 import { MobilePageHeader } from './mobile-page-header'
 import { settingsSections } from '@/features/settings/settings-sections'
+import { TrackSearchContext } from '@/components/music/track-search-context'
 
 const LocalPage = lazy(() => import('@/features/local/local-page'))
 const SearchPage = lazy(() => import('@/features/search/search-page'))
@@ -67,6 +68,32 @@ export function MusicWorkspace({
   const settingsSection = settingsSections.find((item) => item.id === page.query.split('/')[0])
   useAndroidBack({ nowPlaying, closePlayer: () => onNowPlayingChange(false), back })
   const view = page.view
+  const canSearchList = [
+    'collection',
+    'album',
+    'artist',
+    'local-playlist',
+    'local-album',
+    'local-artist'
+  ].includes(view)
+  const [listQuery, setListQuery] = useState('')
+  const [listSearchOpen, setListSearchOpen] = useState(false)
+  const closeListSearch = () => {
+    setListSearchOpen(false)
+    setListQuery('')
+  }
+  useEffect(() => {
+    closeListSearch()
+  }, [page])
+  useEffect(() => {
+    if (!isAndroid() || !listSearchOpen) return
+    const close = (event: Event) => {
+      event.preventDefault()
+      closeListSearch()
+    }
+    window.addEventListener('nons-android-back', close)
+    return () => window.removeEventListener('nons-android-back', close)
+  }, [listSearchOpen])
   const sources = useMusicSources()
   const currentSource = sources.preferences?.current
   const currentStatus = sources.statuses.find((item) => item.descriptor.source === currentSource)
@@ -254,183 +281,205 @@ export function MusicWorkspace({
                     : undefined
                 }
                 onBack={back}
+                search={
+                  canSearchList
+                    ? {
+                        open: listSearchOpen,
+                        query: listQuery,
+                        onOpen: () => setListSearchOpen(true),
+                        onClose: closeListSearch,
+                        onChange: setListQuery
+                      }
+                    : undefined
+                }
               />
             )}
             <AnimatePresence onExitComplete={onPlayerExitComplete}>
               {nowPlaying && <LyricsView key="now-playing" onQueue={openQueue} />}
             </AnimatePresence>
-            <div className={nowPlaying ? 'hidden' : 'flex min-h-0 flex-1'}>
-              <main
-                id="music-content"
-                className="flex min-h-0 min-w-0 flex-1 flex-col"
-                aria-label="音乐工作区"
-              >
-                {!isTauri() && (
-                  <p
-                    role="status"
-                    className="border-b border-border bg-muted/50 px-8 py-3 text-sm text-muted-foreground"
-                  >
-                    这是界面预览。播放、搜索和导入功能需要在桌面应用中使用。
-                  </p>
-                )}
-                {(error || state.error || state.mediaError) && (
-                  <div
-                    role="alert"
-                    className="flex items-start gap-3 border-b border-border bg-destructive/5 px-8 py-3 text-sm text-destructive"
-                  >
-                    <p className="min-w-0 flex-1">{error ?? state.error ?? state.mediaError}</p>
-                    {error && (
-                      <ActionButton
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="关闭提示"
-                        onClick={() => setError(undefined)}
-                      >
-                        <X aria-hidden="true" />
-                      </ActionButton>
-                    )}
-                  </div>
-                )}
-                {page.collection?.reference && ['artist', 'album', 'collection'].includes(view) ? (
-                  <Suspense
-                    fallback={<MusicPageSkeleton view="collection" collection={page.collection} />}
-                  >
-                    <EntityPage
-                      key={JSON.stringify(page.collection.reference)}
-                      collection={page.collection}
-                      onError={onError}
-                    />
-                  </Suspense>
-                ) : (view === 'artist' || view === 'album') && page.collection ? (
-                  <Suspense
-                    fallback={<MusicPageSkeleton view="collection" collection={page.collection} />}
-                  >
-                    {view === 'artist' ? (
-                      <ArtistPage
-                        key={page.collection.id}
-                        collection={page.collection}
-                        onError={onError}
-                        onNotice={showNotice}
-                      />
-                    ) : (
-                      <AlbumPage
-                        key={page.collection.id}
-                        collection={page.collection}
-                        onError={onError}
-                        onNotice={showNotice}
-                      />
-                    )}
-                  </Suspense>
-                ) : view === 'accounts' ? (
-                  <Suspense fallback={<MusicPageSkeleton view="accounts" />}>
-                    <AccountLoginPage />
-                  </Suspense>
-                ) : view === 'tools' ? (
-                  <ToolsPage />
-                ) : view === 'plugin' ? (
-                  <MusicPage>
-                    <PluginPageHost path={page.query} />
-                  </MusicPage>
-                ) : view === 'queue' ? (
-                  <QueuePage key={queueVisit} onError={onError} />
-                ) : view === 'settings' ? (
-                  <Suspense
-                    fallback={
-                      <MusicPage>
-                        <p role="status">正在加载设置…</p>
-                      </MusicPage>
-                    }
-                  >
-                    <SettingsPage />
-                  </Suspense>
-                ) : view === 'search' ? (
-                  <Suspense fallback={<MusicPageSkeleton view="search" title={page.query} />}>
-                    <SearchPage
-                      key={isAndroid() ? 'mobile-search' : page.query}
-                      onError={onError}
-                      onNotice={showNotice}
-                    />
-                  </Suspense>
-                ) : (view === 'discover' || view === 'library') &&
-                  isTauri() &&
-                  (!currentSource || !currentStatus?.enabled) ? (
-                  <MusicPage>
-                    <p role="status" className="py-6 text-sm text-muted-foreground">
-                      {sources.error ||
-                        (currentSource
-                          ? `${sourceLabel(currentSource)}当前不可用，请选择其他来源或在设置中启用。`
-                          : '正在读取音乐来源…')}
+            <TrackSearchContext.Provider
+              value={isAndroid() && canSearchList ? listQuery : undefined}
+            >
+              <div className={nowPlaying ? 'hidden' : 'flex min-h-0 flex-1'}>
+                <main
+                  id="music-content"
+                  className="flex min-h-0 min-w-0 flex-1 flex-col"
+                  aria-label="音乐工作区"
+                >
+                  {!isTauri() && (
+                    <p
+                      role="status"
+                      className="border-b border-border bg-muted/50 px-8 py-3 text-sm text-muted-foreground"
+                    >
+                      这是界面预览。播放、搜索和导入功能需要在桌面应用中使用。
                     </p>
-                    <ActionButton variant="outline" onClick={() => navigate('accounts')}>
-                      选择音乐来源
-                    </ActionButton>
-                  </MusicPage>
-                ) : (view === 'discover' || view === 'library') &&
-                  currentSource &&
-                  currentSource !== 'netease' ? (
-                  <Suspense
-                    fallback={
-                      view === 'library' ? (
-                        <LibraryPageSkeleton />
-                      ) : (
-                        <MusicPageSkeleton view="discover" />
-                      )
-                    }
-                  >
-                    <SourceWorkspace
-                      key={`${currentSource}:${view}:${sources.revision}`}
-                      source={currentSource}
-                      name={currentStatus?.descriptor.displayName ?? currentSource}
-                      discovery={view === 'discover'}
-                      onError={onError}
-                      onNotice={showNotice}
-                    />
-                  </Suspense>
-                ) : view === 'discover' ? (
-                  <Suspense
-                    fallback={
-                      <MusicPageSkeleton
-                        view="discover"
-                        tracks={page.query === 'daily'}
-                        title="每日推荐"
-                      />
-                    }
-                  >
-                    <Discovery
-                      key={`${currentSource}:${sources.revision}`}
-                      onError={onError}
-                      onNotice={showNotice}
-                    />
-                  </Suspense>
-                ) : view === 'library' || view === 'collection' ? (
-                  <Suspense
-                    fallback={
-                      view === 'library' ? (
-                        <LibraryPageSkeleton />
-                      ) : (
+                  )}
+                  {(error || state.error || state.mediaError) && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-3 border-b border-border bg-destructive/5 px-8 py-3 text-sm text-destructive"
+                    >
+                      <p className="min-w-0 flex-1">{error ?? state.error ?? state.mediaError}</p>
+                      {error && (
+                        <ActionButton
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="关闭提示"
+                          onClick={() => setError(undefined)}
+                        >
+                          <X aria-hidden="true" />
+                        </ActionButton>
+                      )}
+                    </div>
+                  )}
+                  {page.collection?.reference &&
+                  ['artist', 'album', 'collection'].includes(view) ? (
+                    <Suspense
+                      fallback={
                         <MusicPageSkeleton view="collection" collection={page.collection} />
-                      )
-                    }
-                  >
-                    <MusicLibrary
-                      key={view === 'library' ? `${currentSource}:${sources.revision}` : undefined}
-                      onError={onError}
-                      onNotice={showNotice}
-                    />
-                  </Suspense>
-                ) : (
-                  <Suspense fallback={<MusicPageSkeleton view="local" />}>
-                    <LocalPage
-                      refresh={refresh}
-                      importing={importing}
-                      onImport={() => void importMusic(false)}
-                      onError={onError}
-                      onNotice={showNotice}
-                    />
-                  </Suspense>
-                )}
-              </main>
-            </div>
+                      }
+                    >
+                      <EntityPage
+                        key={JSON.stringify(page.collection.reference)}
+                        collection={page.collection}
+                        onError={onError}
+                      />
+                    </Suspense>
+                  ) : (view === 'artist' || view === 'album') && page.collection ? (
+                    <Suspense
+                      fallback={
+                        <MusicPageSkeleton view="collection" collection={page.collection} />
+                      }
+                    >
+                      {view === 'artist' ? (
+                        <ArtistPage
+                          key={page.collection.id}
+                          collection={page.collection}
+                          onError={onError}
+                          onNotice={showNotice}
+                        />
+                      ) : (
+                        <AlbumPage
+                          key={page.collection.id}
+                          collection={page.collection}
+                          onError={onError}
+                          onNotice={showNotice}
+                        />
+                      )}
+                    </Suspense>
+                  ) : view === 'accounts' ? (
+                    <Suspense fallback={<MusicPageSkeleton view="accounts" />}>
+                      <AccountLoginPage />
+                    </Suspense>
+                  ) : view === 'tools' ? (
+                    <ToolsPage />
+                  ) : view === 'plugin' ? (
+                    <MusicPage>
+                      <PluginPageHost path={page.query} />
+                    </MusicPage>
+                  ) : view === 'queue' ? (
+                    <QueuePage key={queueVisit} onError={onError} />
+                  ) : view === 'settings' ? (
+                    <Suspense
+                      fallback={
+                        <MusicPage>
+                          <p role="status">正在加载设置…</p>
+                        </MusicPage>
+                      }
+                    >
+                      <SettingsPage />
+                    </Suspense>
+                  ) : view === 'search' ? (
+                    <Suspense fallback={<MusicPageSkeleton view="search" title={page.query} />}>
+                      <SearchPage
+                        key={isAndroid() ? 'mobile-search' : page.query}
+                        onError={onError}
+                        onNotice={showNotice}
+                      />
+                    </Suspense>
+                  ) : (view === 'discover' || view === 'library') &&
+                    isTauri() &&
+                    (!currentSource || !currentStatus?.enabled) ? (
+                    <MusicPage>
+                      <p role="status" className="py-6 text-sm text-muted-foreground">
+                        {sources.error ||
+                          (currentSource
+                            ? `${sourceLabel(currentSource)}当前不可用，请选择其他来源或在设置中启用。`
+                            : '正在读取音乐来源…')}
+                      </p>
+                      <ActionButton variant="outline" onClick={() => navigate('accounts')}>
+                        选择音乐来源
+                      </ActionButton>
+                    </MusicPage>
+                  ) : (view === 'discover' || view === 'library') &&
+                    currentSource &&
+                    currentSource !== 'netease' ? (
+                    <Suspense
+                      fallback={
+                        view === 'library' ? (
+                          <LibraryPageSkeleton />
+                        ) : (
+                          <MusicPageSkeleton view="discover" />
+                        )
+                      }
+                    >
+                      <SourceWorkspace
+                        key={`${currentSource}:${view}:${sources.revision}`}
+                        source={currentSource}
+                        name={currentStatus?.descriptor.displayName ?? currentSource}
+                        discovery={view === 'discover'}
+                        onError={onError}
+                        onNotice={showNotice}
+                      />
+                    </Suspense>
+                  ) : view === 'discover' ? (
+                    <Suspense
+                      fallback={
+                        <MusicPageSkeleton
+                          view="discover"
+                          tracks={page.query === 'daily'}
+                          title="每日推荐"
+                        />
+                      }
+                    >
+                      <Discovery
+                        key={`${currentSource}:${sources.revision}`}
+                        onError={onError}
+                        onNotice={showNotice}
+                      />
+                    </Suspense>
+                  ) : view === 'library' || view === 'collection' ? (
+                    <Suspense
+                      fallback={
+                        view === 'library' ? (
+                          <LibraryPageSkeleton />
+                        ) : (
+                          <MusicPageSkeleton view="collection" collection={page.collection} />
+                        )
+                      }
+                    >
+                      <MusicLibrary
+                        key={
+                          view === 'library' ? `${currentSource}:${sources.revision}` : undefined
+                        }
+                        onError={onError}
+                        onNotice={showNotice}
+                      />
+                    </Suspense>
+                  ) : (
+                    <Suspense fallback={<MusicPageSkeleton view="local" />}>
+                      <LocalPage
+                        refresh={refresh}
+                        importing={importing}
+                        onImport={() => void importMusic(false)}
+                        onError={onError}
+                        onNotice={showNotice}
+                      />
+                    </Suspense>
+                  )}
+                </main>
+              </div>
+            </TrackSearchContext.Provider>
             {!playerVisible &&
               !(isAndroid() && view === 'settings') &&
               (barMode === 'persistent' ? (
