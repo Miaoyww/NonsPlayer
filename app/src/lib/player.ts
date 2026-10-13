@@ -152,7 +152,16 @@ function updateState(value: PlayerSnapshot) {
       value.privateFmSession === snapshot.privateFmSession ? snapshot.privateFmError : undefined
   }
   updateSerial++
-  updateProgress(value)
+  // State events can repeat the last native position (for example while changing
+  // volume). Only a new timeline value should reset the interpolation clock;
+  // player-progress events remain authoritative samples even at the same position.
+  if (
+    value.revision !== progress.revision ||
+    value.positionMs !== progress.positionMs ||
+    value.durationMs !== progress.durationMs ||
+    value.status !== progress.status
+  )
+    updateProgress(value)
   stateListeners.forEach((notify) => notify())
   privateFm?.update()
 }
