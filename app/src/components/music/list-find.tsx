@@ -162,7 +162,7 @@ export function ListFindProvider({
             ref={panel}
             role="region"
             aria-label="快捷搜索列表歌曲"
-            className="absolute left-1/2 top-3 z-50 w-[min(30rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-border bg-background p-3 shadow-xl"
+            className="fixed left-1/2 top-[calc(3rem+1.25rem)] z-50 w-[min(30rem,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-border bg-background p-3 shadow-xl"
           >
             <div className="flex items-center gap-2">
               <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
@@ -185,9 +185,10 @@ export function ListFindProvider({
                 <X aria-hidden="true" />
               </ActionButton>
             </div>
-            <p role="status" className="px-1 py-2 text-xs text-muted-foreground">
-              {query.trim() ? `找到 ${results.length} 首歌曲` : '输入关键词查找当前列表'}
-              {active.hasMore ? ' · 仅搜索已加载歌曲' : ''}
+            <p role="status" className="sr-only">
+              {query.trim()
+                ? `找到 ${results.length} 首歌曲${active.hasMore ? ' · 仅搜索已加载歌曲' : ''}`
+                : ''}
             </p>
             <div
               ref={resultsElement}
