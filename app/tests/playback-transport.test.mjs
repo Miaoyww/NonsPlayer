@@ -86,7 +86,11 @@ test('frontend shuffle navigation wraps both ends even when the repeat button is
     ts.transpileModule(readFileSync(new URL('../src/lib/player.ts', import.meta.url), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS }
     }).outputText,
-    { exports, require: () => ({}) }
+    {
+      exports,
+      require: (name) =>
+        name === '@/features/music/scoped-query' ? { ScopedMusicQueries: class {} } : {}
+    }
   )
   const state = {
     queue: [{}, {}, {}],

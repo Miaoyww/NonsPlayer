@@ -1,5 +1,5 @@
-import { requestCache, requestKey, invalidateNativeCache } from '@/lib/runtime-cache'
-import { nativeCall, type Track } from '@/lib/player'
+import { invalidateNativeCache } from '@/lib/runtime-cache'
+import { nativeCall, peekNativeCall, type Track } from '@/lib/player'
 import type { AccountProfile } from '@/features/account/account'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import { musicClient } from '@/features/music/client'
@@ -28,7 +28,7 @@ export function invalidateMusicLibrary() {
 }
 export function resetAccountCache() {
   accountId = undefined
-  invalidateNativeCache()
+  invalidateNativeCache(undefined, 'context')
 }
 function selectAccount(userId: number) {
   if (accountId !== undefined && accountId !== userId) resetAccountCache()
@@ -36,7 +36,7 @@ function selectAccount(userId: number) {
 }
 export function peekMusicLibrary(userId: number) {
   selectAccount(userId)
-  return requestCache.peek<LibrarySummary>(requestKey('music_library'))
+  return peekNativeCall<LibrarySummary>('music_library')
 }
 export function getMusicLibrary(userId: number): Promise<LibrarySummary> {
   selectAccount(userId)

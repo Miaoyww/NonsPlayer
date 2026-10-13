@@ -151,6 +151,7 @@ test('the global player connection replenishes without mounting the discovery pa
     shuffle: false
   }
   const player = load('../src/lib/player.ts', {
+    '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
     '@/features/discovery/private-fm': load('../src/features/discovery/private-fm.ts'),
     '@/lib/runtime-cache': { cachedCommands: new Set() },
     '@tauri-apps/api/event': {

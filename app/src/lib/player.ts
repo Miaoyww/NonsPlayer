@@ -1,3 +1,4 @@
+import { ScopedMusicQueries } from '@/features/music/scoped-query'
 import { createPrivateFm } from '@/features/discovery/private-fm'
 import { invoke, isTauri, convertFileSrc } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
@@ -174,7 +175,18 @@ const onlineCachedCommands = new Set([
   'liked_song_ids',
   'song_information'
 ])
-let onlineCacheScope: string | undefined
+const musicQueries = new ScopedMusicQueries(requestCache, invoke)
+export function peekNativeCall<T>(command: string, args?: Record<string, unknown>): T | undefined {
+  return musicQueries.peek<T>('netease', command, args)
+}
+export function scopedNativeCall<T>(
+  source: string,
+  command: string,
+  args?: Record<string, unknown>
+): Promise<T> {
+  if (!isTauri()) return Promise.reject(new Error('请在 NonsPlayer 桌面应用中使用此功能。'))
+  return musicQueries.read<T>(source, command, args)
+}
 
 export async function nativeCall<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   if (!isTauri()) throw new Error('请在 NonsPlayer 桌面应用中使用此功能。')
@@ -182,47 +194,18 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
     return coverCache.get(requestKey(command, args), () => invoke<T>(command, args))
   if (cachedCommands.has(command)) {
     const key = requestKey(command, args)
-    if (args?.refresh) requestCache.delete(key)
+
     const online =
       onlineCachedCommands.has(command) &&
       !(command === 'song_information' && String(args?.key ?? '').startsWith('local:'))
-    const scopePromise = online
-      ? invoke<string>('music_context', { source: 'netease' }).then(
-          (value) => ({ value, error: undefined }),
-          (error) => ({ value: undefined, error })
-        )
-      : undefined
-    const valuePromise = requestCache.get<T>(key, async () => {
-      const result = await invoke<T>(command, args)
-      // Partial previews and transient absent lyrics must remain retryable.
-      if (command === 'music_library' && (result as { likedError?: string })?.likedError) {
-        throw new Error((result as { likedError: string }).likedError)
-      }
-      return result
+    if (online) return scopedNativeCall<T>('netease', command, args)
+    if (command === 'music_query' || command === 'music_read_track') {
+      const reference = args?.reference as { source?: string } | undefined
+      return scopedNativeCall<T>(String(args?.source ?? reference?.source), command, args)
+    }
+    const value = await requestCache.get<T>(key, () => invoke<T>(command, args), {
+      refresh: Boolean(args?.refresh)
     })
-    void valuePromise.catch(() => {})
-    const scope = await scopePromise
-    if (scope?.error) {
-      void valuePromise.catch(() => {})
-      throw scope.error
-    }
-    if (scope?.value !== undefined) {
-      const changed = onlineCacheScope !== undefined && onlineCacheScope !== scope.value
-      onlineCacheScope = scope.value
-      if (changed) {
-        invalidateNativeCache([...onlineCachedCommands])
-        void valuePromise.catch(() => {})
-        return nativeCall<T>(command, { ...args, refresh: true })
-      }
-    }
-    const value = await valuePromise
-    if (
-      scope?.value !== undefined &&
-      scope.value !== (await invoke<string>('music_context', { source: 'netease' }))
-    ) {
-      invalidateNativeCache([...onlineCachedCommands])
-      throw new Error('账号或音乐来源状态已变化，请重试')
-    }
     if (command === 'track_lyrics' && value === null) requestCache.delete(key)
     return value
   }
@@ -299,7 +282,13 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
     music_remove_account: [...cachedCommands],
     logout: [...cachedCommands]
   }
-  if (affected[command]) invalidateNativeCache(affected[command])
+  if (affected[command])
+    invalidateNativeCache(
+      affected[command],
+      ['music_select_account', 'music_remove_account', 'logout'].includes(command)
+        ? 'context'
+        : 'refresh'
+    )
   return result
 }
 
@@ -331,7 +320,9 @@ export async function connectPlayer(): Promise<UnlistenFn> {
     )
     listeners.push(await listen('lyrics-updated', () => invalidateNativeCache(['track_lyrics'])))
     listeners.push(await listen('music-changed', () => invalidateNativeCache()))
-    listeners.push(await listen('music-account-changed', () => invalidateNativeCache()))
+    listeners.push(
+      await listen('music-account-changed', () => invalidateNativeCache(undefined, 'context'))
+    )
     const serial = updateSerial
     const initial = await nativeCall<PlayerSnapshot>('player_snapshot')
     if (serial === updateSerial) updateState(initial)

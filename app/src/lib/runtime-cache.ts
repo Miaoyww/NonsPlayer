@@ -4,13 +4,24 @@ export const RUNTIME_TTL = 10 * 60 * 1000
 interface Entry {
   value: unknown
 }
-type Loader = { load: () => Promise<unknown> }
+type Loader = { load: () => Promise<unknown>; invalidate: () => void }
+interface ReadOptions {
+  validate?: () => Promise<void>
+  refresh?: boolean
+}
+
+export class CacheInvalidatedError extends Error {
+  constructor() {
+    super('缓存请求已失效，请重试。')
+  }
+}
 
 // LRUCache owns capacity, TTL and concurrent-fetch coalescing. Wrapping values
 // allows valid null responses without treating them as a cache miss.
 export class RuntimeCache {
   private cache: LRUCache<string, Entry, Loader>
-  private pending = new Map<string, number>()
+  private pending = new Map<string, { readers: number; invalidated: boolean; refresh: boolean }>()
+  contextRevision = 0
   constructor(maxBytes = 48 * 1024 * 1024, ttl = RUNTIME_TTL) {
     this.cache = new LRUCache<string, Entry, Loader>({
       max: 512,
@@ -18,33 +29,67 @@ export class RuntimeCache {
       ttl,
       sizeCalculation: (entry, key) =>
         Math.max(1, (JSON.stringify(entry.value)?.length ?? 0) * 2 + key.length * 2),
-      fetchMethod: async (_key, _stale, { context }) => ({ value: await context.load() })
+      fetchMethod: async (_key, _stale, { context, signal }) => {
+        signal.addEventListener('abort', context.invalidate, { once: true })
+        try {
+          return { value: await context.load() }
+        } finally {
+          signal.removeEventListener('abort', context.invalidate)
+        }
+      }
     })
   }
-  async get<T>(key: string, load: () => Promise<T>): Promise<T> {
-    this.pending.set(key, (this.pending.get(key) ?? 0) + 1)
+  async get<T>(key: string, load: () => Promise<T>, options: ReadOptions = {}): Promise<T> {
+    const active = this.pending.get(key)
+    // Concurrent explicit refreshes share the replacement; the first refresh
+    // cancels an ordinary read that started before it.
+    if (options.refresh && !(active?.refresh && !active.invalidated)) this.delete(key)
+    const current = this.pending.get(key)
+    const pending =
+      current && !current.invalidated
+        ? current
+        : { readers: 0, invalidated: false, refresh: Boolean(options.refresh) }
+    pending.readers++
+    this.pending.set(key, pending)
     try {
-      const result = await this.cache.fetch(key, { context: { load } })
-      if (!result) throw new Error('缓存请求已失效，请重试。')
+      const result = await this.cache.fetch(key, {
+        context: {
+          load,
+          invalidate: () => {
+            pending.invalidated = true
+          }
+        }
+      })
+      if (pending.invalidated || !result) throw new CacheInvalidatedError()
+      await options.validate?.()
+      if (pending.invalidated) throw new CacheInvalidatedError()
       return result.value as T
+    } catch (cause) {
+      if (pending.invalidated) throw new CacheInvalidatedError()
+      throw cause
     } finally {
-      const remaining = (this.pending.get(key) ?? 1) - 1
-      if (remaining) this.pending.set(key, remaining)
-      else this.pending.delete(key)
+      pending.readers--
+      if (!pending.readers && this.pending.get(key) === pending) this.pending.delete(key)
     }
   }
   peek<T>(key: string): T | undefined {
     return this.cache.peek(key, { allowStale: true })?.value as T | undefined
   }
-  invalidate(prefixes?: readonly string[]) {
+  invalidate(prefixes?: readonly string[], reason: 'refresh' | 'context' = 'refresh') {
+    if (reason === 'context') this.contextRevision++
     if (!prefixes) {
+      for (const pending of this.pending.values()) pending.invalidated = true
+      this.pending.clear()
       this.cache.clear()
       return
     }
     for (const key of new Set([...this.cache.keys(), ...this.pending.keys()]))
-      if (prefixes.some((prefix) => key.startsWith(`${prefix}:`))) this.cache.delete(key)
+      if (prefixes.some((prefix) => key.startsWith(`${prefix}:`))) this.delete(key)
   }
   delete(key: string) {
+    const pending = this.pending.get(key)
+    if (pending) pending.invalidated = true
+    this.pending.delete(key)
     this.cache.delete(key)
   }
 }
@@ -88,6 +133,9 @@ export function requestKey(command: string, args?: Record<string, unknown>) {
     )
   )}`
 }
-export function invalidateNativeCache(commands?: readonly string[]) {
-  requestCache.invalidate(commands)
+export function invalidateNativeCache(
+  commands?: readonly string[],
+  reason: 'refresh' | 'context' = 'refresh'
+) {
+  requestCache.invalidate(commands, reason)
 }

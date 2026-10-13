@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 修复点赞、刷新或写入期间并发读取出现“deleted”的问题；音乐库与统一音乐查询按有效来源作用域合并刷新，账号切换后拒绝旧结果，分页失效时保留明确重试提示。
+
 ## [1.1.0] - 2026-10-13
 
 ![NonsPlayer v1.1.0 发布头图](https://raw.githubusercontent.com/Miaoyww/NonsPlayer/v1.1.0/docs/release-assets/header-1.1.0.png)

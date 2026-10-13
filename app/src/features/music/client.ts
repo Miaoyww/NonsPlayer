@@ -1,4 +1,4 @@
-import { nativeCall } from '@/lib/player'
+import { nativeCall, scopedNativeCall } from '@/lib/player'
 import type { Track } from '@/lib/player'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import type {
@@ -21,11 +21,7 @@ async function scoped<T>(
   args: Record<string, unknown>,
   refresh = false
 ): Promise<T> {
-  const scope = await nativeCall<string>('music_context', { source })
-  const result = await nativeCall<T>(command, { ...args, source, scope, refresh })
-  if (scope !== (await nativeCall<string>('music_context', { source })))
-    throw new Error('账号或音乐来源状态已变化，请重试')
-  return result
+  return scopedNativeCall<T>(source, command, { ...args, refresh })
 }
 export const musicClient: MusicSourceClient & {
   sources(): Promise<SourceDescriptor[]>
@@ -62,7 +58,7 @@ export const musicClient: MusicSourceClient & {
   async account(source, request) {
     const result = await nativeCall<AccountPresentation>('music_account', { source, request })
     if (request.operation === 'logout' || (result.type === 'progress' && result.data.code === 803))
-      invalidateNativeCache()
+      invalidateNativeCache(undefined, 'context')
     return result
   },
   selectAccount: (reference) => nativeCall('music_select_account', { reference }),
