@@ -7,5 +7,5 @@ type PlayerSliderProps = Omit<SliderProps, 'value' | 'defaultValue' | 'className
 }
 
 export function PlayerSlider({ className, ...props }: PlayerSliderProps) {
-  return <Slider {...props} className={cn('player-slider', className)} thumbAlignment="center" />
+  return <Slider {...props} className={cn('player-slider', className)} />
 }
