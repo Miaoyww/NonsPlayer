@@ -18,7 +18,7 @@ export function SheetContent({
       <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/20 transition-opacity duration-200 data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 motion-reduce:transition-none" />
       <Dialog.Popup
         className={cn(
-          'settings-sheet glass-surface fixed inset-y-0 left-0 z-50 flex w-[min(360px,90vw)] flex-col overflow-hidden border-r transition-transform duration-200 data-[starting-style]:-translate-x-full data-[ending-style]:-translate-x-full motion-reduce:transition-none',
+          'settings-sheet fixed inset-y-0 left-0 z-50 flex w-[min(360px,90vw)] flex-col overflow-hidden border-r bg-background text-foreground shadow-xl transition-transform duration-200 data-[starting-style]:-translate-x-full data-[ending-style]:-translate-x-full motion-reduce:transition-none',
           className
         )}
         {...props}
