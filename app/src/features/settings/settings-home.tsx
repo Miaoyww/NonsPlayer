@@ -12,7 +12,8 @@ export function SettingsHome({
 }) {
   const { preferences } = useMusicSources()
   const { adapters } = useAccountAdapters()
-  const account = adapters.find((item) => item.descriptor.source === preferences?.current)?.current
+  const adapter = adapters.find((item) => item.descriptor.source === preferences?.current)
+  const account = adapter?.current
   const card = ({ id, label, icon: Icon }: (typeof settingsSections)[number]) => (
     <Button
       key={id}
@@ -28,23 +29,33 @@ export function SettingsHome({
   return (
     <div className="settings-home-content">
       <div className="settings-home-scroll">
-        <Button
-          variant="secondary"
-          className="mobile-settings-account"
-          onClick={() => onSelect('accounts')}
-        >
-          <AccountAvatar avatar={account?.avatar} className="size-10" />
-          <span className="min-w-0 flex-1 truncate text-left">
-            {account?.displayName ?? '音乐账号'}
-          </span>
-          <ChevronRight aria-hidden="true" />
-        </Button>
-        <div role="separator" className="my-6 border-t border-border" />
-        <nav aria-label="设置分类" className="mobile-settings-categories">
-          {settingsSections
-            .filter((item) => item.id !== 'plugins' && item.id !== 'about')
-            .map(card)}
-        </nav>
+        <section className="settings-home-group" aria-label="账号">
+          <h2 className="settings-home-heading">账号</h2>
+          <Button
+            variant="secondary"
+            className="mobile-settings-account"
+            onClick={() => onSelect('accounts')}
+          >
+            <AccountAvatar avatar={account?.avatar} className="size-12" />
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block truncate font-semibold">
+                {account?.displayName ?? '音乐账号'}
+              </span>
+              <span className="mt-2 block truncate text-xs font-normal text-muted-foreground">
+                {adapter ? `适配器：${adapter.descriptor.displayName}` : '尚未选择适配器'}
+              </span>
+            </span>
+            <ChevronRight aria-hidden="true" />
+          </Button>
+        </section>
+        <section className="settings-home-group" aria-label="一般设置">
+          <h2 className="settings-home-heading">一般设置</h2>
+          <nav aria-label="设置分类" className="mobile-settings-categories">
+            {settingsSections
+              .filter((item) => item.id !== 'plugins' && item.id !== 'about')
+              .map(card)}
+          </nav>
+        </section>
       </div>
       <nav aria-label="插件与关于" className="settings-home-footer">
         {['about', 'plugins'].map((id) => card(settingsSections.find((item) => item.id === id)!))}

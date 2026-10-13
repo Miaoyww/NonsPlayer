@@ -3016,7 +3016,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 .mobile-settings-account,
 .mobile-settings-category {
@@ -3064,9 +3064,24 @@
 .settings-sheet {
   padding-top: env(safe-area-inset-top);
 }
-.settings-sheet .mobile-settings-category,
-.settings-sheet .mobile-settings-account {
-  min-height: 56px;
+.settings-home-group + .settings-home-group {
+  margin-top: 24px;
+}
+.settings-home-heading {
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.mobile-settings-account {
+  min-height: 96px;
+  padding: 20px;
+}
+.mobile-settings-category {
+  min-height: 48px;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.875rem;
 }
 :root[data-platform='android'] .titlebar:not(:has(nav)) > .titlebar-settings {
   display: none;
