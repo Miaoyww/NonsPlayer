@@ -2932,6 +2932,25 @@
 }
 
 /* The Android trial reuses the workspace with a touch-sized two-row header. */
+:root[data-platform='android'] .titlebar {
+  position: relative;
+  padding-top: env(safe-area-inset-top);
+}
+:root[data-platform='android'] .music-workspace {
+  padding-top: 0;
+}
+:root[data-platform='android'] .music-page {
+  margin-top: 0;
+}
+:root[data-platform='android'] .library-featured-songs {
+  display: none;
+}
+:root[data-platform='android'] .library-featured {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-platform='android'] .nons-lyrics {
+  padding-top: 0;
+}
 :root[data-platform='android'] .titlebar-control {
   display: none;
 }

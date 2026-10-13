@@ -130,7 +130,7 @@ export function Titlebar({
                 <ChevronDown aria-hidden="true" />
               </Button>
             ) : null}
-            <PlaylistSidebar hidden={playerMode} />
+            {!isAndroid() && <PlaylistSidebar hidden={playerMode} />}
             {!playerMode && hasTools && (
               <Button
                 variant={toolsSelected ? 'secondary' : 'ghost'}
@@ -235,7 +235,7 @@ export function Titlebar({
           {!playerMode && <div className="h-full min-w-0 flex-1" onMouseDown={drag} />}
           <div className="flex h-full shrink-0 items-center gap-1 pr-1.5">
             <div className={playerMode ? 'hidden' : 'flex items-center gap-1'}>
-              <AccountMenu />
+              {!isAndroid() && <AccountMenu />}
               <SettingsDialog />
             </div>
 

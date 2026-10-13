@@ -1,0 +1,33 @@
+import { useEffect, useRef } from 'react'
+import { onBackButtonPress } from '@tauri-apps/api/app'
+import { isTauri, type PluginListener } from '@tauri-apps/api/core'
+import { isAndroid } from '@/lib/platform'
+
+export function useAndroidBack(options: {
+  nowPlaying: boolean
+  closePlayer: () => void
+  back: () => void
+}) {
+  const current = useRef(options)
+  current.current = options
+  useEffect(() => {
+    if (!isTauri() || !isAndroid()) return
+    let disposed = false
+    let listener: PluginListener | undefined
+    void onBackButtonPress(() => {
+      if (disposed) return
+      const { nowPlaying, closePlayer, back } = current.current
+      if (nowPlaying) closePlayer()
+      else back()
+    })
+      .then((registered) => {
+        if (disposed) void registered.unregister()
+        else listener = registered
+      })
+      .catch(console.error)
+    return () => {
+      disposed = true
+      void listener?.unregister()
+    }
+  }, [])
+}

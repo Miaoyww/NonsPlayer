@@ -26,6 +26,7 @@ import { useInterfaceDensity } from '@/features/settings/use-interface-density'
 import LyricsView from '@/features/lyrics/lyrics-view'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { sourceLabel } from '@/features/music/source-label'
+import { useAndroidBack } from './use-android-back'
 
 const LocalPage = lazy(() => import('@/features/local/local-page'))
 const SearchPage = lazy(() => import('@/features/search/search-page'))
@@ -56,7 +57,8 @@ export function MusicWorkspace({
   const state = usePlayer('error', 'mediaError')
   const [barMode] = usePlaybackBarMode()
   const [density] = useInterfaceDensity()
-  const { page, navigate } = useMusicNavigation()
+  const { page, navigate, back } = useMusicNavigation()
+  useAndroidBack({ nowPlaying, closePlayer: () => onNowPlayingChange(false), back })
   const view = page.view
   const sources = useMusicSources()
   const currentSource = sources.preferences?.current

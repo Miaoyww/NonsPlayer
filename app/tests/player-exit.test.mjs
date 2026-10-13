@@ -59,6 +59,7 @@ function harness(initialMode = 'collapsible') {
       useMusicSources: () => ({ preferences: { current: 'netease' }, statuses: [], revision: 0 })
     },
     '@/features/music/source-label': { sourceLabel: String },
+    './use-android-back': { useAndroidBack() {} },
     '@/components/music/loading': {
       MusicPageSkeleton: 'MusicPageSkeleton',
       LibraryPageSkeleton: 'LibraryPageSkeleton'

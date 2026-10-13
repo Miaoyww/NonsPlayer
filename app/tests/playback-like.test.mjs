@@ -31,6 +31,7 @@ function harness({
     'react/jsx-runtime': { jsx, jsxs: jsx },
     react: { useState: (value) => [value, () => {}] },
     '@tauri-apps/api/core': { isTauri: () => desktop },
+    '@/lib/platform': { isAndroid: () => false },
     '@/lib/player': {
       adjacentIndex: () => null,
       usePlayer: () => ({

@@ -8,6 +8,7 @@ import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/
 import { QueuePopover } from '@/features/queue/queue-popover'
 import { trackDisplayTitle } from '@/components/music/track-title'
 import { VolumeControl } from '@/features/playback/volume-control'
+import { isAndroid } from '@/lib/platform'
 
 export function PersistentPlaybackBar({
   onLyrics,
@@ -28,7 +29,7 @@ export function PersistentPlaybackBar({
       <PlaybackNotice notice={notice} />
       <div className="persistent-playback-surface">
         <div className="capsule-glass glass-surface" aria-hidden="true" />
-        <PlaybackTimeline layout="edge" showTimeOnHover onError={onError} />
+        {!isAndroid() && <PlaybackTimeline layout="edge" showTimeOnHover onError={onError} />}
         <div className="persistent-track">
           <button
             type="button"
@@ -50,9 +51,9 @@ export function PersistentPlaybackBar({
         </div>
         <PlaybackTransport withModes onError={onError} />
         <div className="persistent-options">
-          <QualitySelect />
+          {!isAndroid() && <QualitySelect />}
           <CurrentTrackLike track={track} onError={onError} />
-          <VolumeControl onError={onError} />
+          {!isAndroid() && <VolumeControl onError={onError} />}
           <QueuePopover onPage={onQueue} onError={onError} />
         </div>
         <span className="sr-only">
