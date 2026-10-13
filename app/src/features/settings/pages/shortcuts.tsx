@@ -106,6 +106,15 @@ export function ShortcutsPage() {
         <SettingsCard title="播放/暂停音乐" description="应用内生效，固定不可更改。">
           <Kbd>Space</Kbd>
         </SettingsCard>
+        <SettingsCard
+          title="快捷搜索歌曲"
+          description="应用内生效，固定不可更改。在歌曲列表中查找已加载歌曲；发现页、播放队列及没有歌曲列表的页面聚焦顶部搜索框。Mac 可使用 Command+F。"
+        >
+          <KbdGroup>
+            <Kbd>Ctrl</Kbd>
+            <Kbd>F</Kbd>
+          </KbdGroup>
+        </SettingsCard>
       </section>
       <section className="flex flex-col gap-4" aria-labelledby="global-shortcuts">
         <h3 id="global-shortcuts" className="text-base font-semibold">

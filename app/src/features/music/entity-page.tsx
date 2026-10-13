@@ -126,6 +126,7 @@ function EntityResults({ collection, onError }: EntityPageProps) {
       )}
       <TrackList
         tracks={tracks}
+        hasMore={query.current.more}
         loading={busy && tracks.length === 0}
         busy={busy}
         currentKey={player.index === null ? undefined : player.queue[player.index]?.key}

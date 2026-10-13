@@ -160,6 +160,7 @@ function Results({
         kind === 'track' ? (
           <TrackList
             tracks={tracks}
+            hasMore={more}
             busy={false}
             currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
             onPlay={(index, values) => {

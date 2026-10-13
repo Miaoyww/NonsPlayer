@@ -109,6 +109,7 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
         kind === 'song' ? (
           <TrackList
             tracks={tracks}
+            hasMore={list.more}
             sortable
             busy={!isTauri()}
             currentKey={player.index === null ? undefined : player.queue[player.index]?.key}

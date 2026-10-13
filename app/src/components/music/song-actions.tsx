@@ -10,6 +10,7 @@ import {
   Heart,
   Info,
   ListPlus,
+  LocateFixed,
   Play,
   Share2,
   Trash2
@@ -339,7 +340,8 @@ export function SongContextMenu({
   onPlay,
   busy = false,
   onRemove,
-  removeLabel = '从列表删除'
+  removeLabel = '从列表删除',
+  onLocate
 }: {
   track: Track
   render: ReactElement
@@ -348,6 +350,7 @@ export function SongContextMenu({
   busy?: boolean
   onRemove?: () => void | Promise<unknown>
   removeLabel?: string
+  onLocate?: () => void
 }) {
   const actions = useSongActions()
   const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
@@ -362,6 +365,12 @@ export function SongContextMenu({
       <ContextMenu.Portal>
         <ContextMenu.Positioner className="z-[70]" sideOffset={4}>
           <ContextMenu.Popup className="song-context-menu" aria-label={`${track.title} 的歌曲菜单`}>
+            {onLocate && (
+              <ContextMenu.Item onClick={onLocate}>
+                <LocateFixed aria-hidden="true" />
+                定位到
+              </ContextMenu.Item>
+            )}
             {!unavailable && (
               <ContextMenu.Item onClick={() => actions.run(onPlay)}>
                 <Play aria-hidden="true" />

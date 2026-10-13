@@ -129,6 +129,7 @@ export function MusicSearch() {
             <Search aria-hidden="true" />
           </Button>
           <Primitive.Input
+            data-global-music-search
             ref={input}
             aria-label={local ? '搜索本地曲库' : '搜索音乐'}
             placeholder={local ? '搜索本地曲库' : '搜索音乐'}

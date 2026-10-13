@@ -46,6 +46,7 @@ async function harness(run) {
   }
   const trackSearchContext = React.createContext(undefined)
   const modules = {
+    './list-find': { useListFind() {} },
     '@/components/ui/skeleton': {
       Skeleton: (props) => React.createElement('div', { 'data-slot': 'skeleton', ...props })
     },

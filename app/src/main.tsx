@@ -24,6 +24,8 @@ if (!import.meta.env.DEV) {
         (command && (event.shiftKey || event.altKey) && ['i', 'j', 'c'].includes(key))
       if (!browserShortcut) return
       event.preventDefault()
+      // Ctrl/Cmd+F is handled by the workspace list finder in both dev and release.
+      if (command && key === 'f' && !event.altKey && !event.shiftKey) return
       event.stopImmediatePropagation()
     },
     { capture: true }

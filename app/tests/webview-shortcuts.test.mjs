@@ -62,3 +62,20 @@ test('development retains browser debugging shortcuts', () => {
   window.dispatchEvent(event)
   assert.equal(event.defaultPrevented, false)
 })
+
+test('release Ctrl+F reaches the application finder after suppressing browser find', () => {
+  const window = session()
+  let received = false
+  window.document.addEventListener('keydown', () => {
+    received = true
+  })
+  const event = new window.KeyboardEvent('keydown', {
+    key: 'f',
+    ctrlKey: true,
+    bubbles: true,
+    cancelable: true
+  })
+  window.document.querySelector('input').dispatchEvent(event)
+  assert.equal(event.defaultPrevented, true)
+  assert.equal(received, true)
+})

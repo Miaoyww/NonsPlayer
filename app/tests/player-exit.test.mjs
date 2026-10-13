@@ -54,6 +54,7 @@ function harness(initialMode = 'collapsible') {
     '@/plugins/host': { PluginProvider: 'PluginProvider', PluginSlot: 'PluginSlot' }
   }).default
   const MusicWorkspace = load('../src/features/workspace/music-workspace.tsx', {
+    '@/components/music/list-find': { ListFindProvider: 'ListFindProvider' },
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({ preferences: { current: 'netease' }, statuses: [], revision: 0 })
     },

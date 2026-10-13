@@ -1,10 +1,20 @@
+import { useListFind } from './list-find'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { TrackAlbum } from '@/components/music/music-links'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { scrollParent } from '@/components/music/infinite-load'
 import { Heart, ListPlus, Play, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
-import { memo, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { TrackSearchContext } from '@/components/music/track-search-context'
 import { errorText, formatTime, type Track } from '@/lib/player'
 import { ActionButton } from '@/components/music/action-button'
@@ -99,6 +109,8 @@ export const TrackList = memo(function TrackList({
   hasMore = false,
   showDuration = true
 }: Props) {
+  const findElement = useRef<HTMLDivElement>(null)
+  const [findTarget, setFindTarget] = useState<{ index: number; serial: number }>()
   const [selectedKey, setSelectedKey] = useState<string>()
   const copyTitle = useSongTitleCopy()
   const [sort, setSort] = useState<SortKey>('default')
@@ -212,6 +224,45 @@ export const TrackList = memo(function TrackList({
     const visibleIndex = entries.findIndex((entry) => entry.index === currentIndex)
     if (visibleIndex >= 0) virtualizer.scrollToIndex(visibleIndex, { align: 'center' })
   }, [locateRequest, scrollMargin, virtualizer])
+  useListFind(
+    useMemo(
+      () => ({
+        element: findElement,
+        entries: loading ? [] : entries.map((entry, index) => ({ track: entry.track, index })),
+        hasMore,
+        busy,
+        play: (index: number) => onPlay(index, visibleTracks),
+        locate: (index: number) => {
+          setSelectedKey(entries[index]?.rowKey)
+          setFindTarget({ index, serial: Date.now() })
+        },
+        remove: onRemove
+          ? (index: number) => onRemove(entries[index].track, entries[index].index)
+          : undefined,
+        removeLabel
+      }),
+      [loading, entries, hasMore, busy, onPlay, visibleTracks, onRemove, removeLabel]
+    )
+  )
+  useLayoutEffect(() => {
+    if (findTarget) virtualizer.scrollToIndex(findTarget.index, { align: 'center' })
+  }, [findTarget, scrollMargin, virtualizer])
+  useEffect(() => {
+    if (!findTarget) return
+    const timer = window.setTimeout(() => {
+      setSelectedKey(undefined)
+      setFindTarget(undefined)
+    }, 2500)
+    const frame = requestAnimationFrame(() => {
+      findElement.current
+        ?.querySelector<HTMLElement>(`tr[data-index="${findTarget.index}"]`)
+        ?.focus({ preventScroll: true })
+    })
+    return () => {
+      window.clearTimeout(timer)
+      cancelAnimationFrame(frame)
+    }
+  }, [findTarget])
   const showLikes = likesColumn ?? tracks.some((track) => track.source.kind === 'netease')
   const sizingSpecs = useMemo(
     () => [
@@ -278,7 +329,13 @@ export const TrackList = memo(function TrackList({
           )}
         </div>
       )}
-      <div ref={columnSizing.container} className="track-table-container">
+      <div
+        ref={(element) => {
+          findElement.current = element
+          columnSizing.container.current = element
+        }}
+        className="track-table-container"
+      >
         <table
           className="track-list w-full table-fixed text-left text-sm"
           data-mode={cardMode}

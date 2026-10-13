@@ -1,3 +1,4 @@
+import { FindSongGrid } from '@/components/music/list-find'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   TrackListSkeleton,
@@ -399,7 +400,13 @@ export default function MusicLibrary({
               ) : summaryBusy || accountLoading ? (
                 <SongGridSkeleton />
               ) : summary?.likedTracks.length ? (
-                <div className="library-song-grid">
+                <FindSongGrid
+                  tracks={summary.likedTracks}
+                  busy={playing}
+                  onPlay={(track) => {
+                    if (liked) void playCollection(liked, track.key)
+                  }}
+                >
                   {summary.likedTracks.map((track) => (
                     <SongContextMenu
                       key={track.key}
@@ -462,7 +469,7 @@ export default function MusicLibrary({
                       {track.key === currentKey && <PlayingIndicator />}
                     </SongContextMenu>
                   ))}
-                </div>
+                </FindSongGrid>
               ) : (
                 <p className="library-empty text-muted-foreground">喜欢的歌曲会出现在这里。</p>
               )}

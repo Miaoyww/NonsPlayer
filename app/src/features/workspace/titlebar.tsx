@@ -166,7 +166,7 @@ export function Titlebar({
                   <ChevronRight aria-hidden="true" />
                 </Button>
               </div>
-              {!page.view.startsWith('local') && <MusicSearch />}
+              <MusicSearch />
               <div className="h-full min-w-2 flex-1" onMouseDown={drag} />
             </>
           )}
