@@ -28,10 +28,8 @@ plugin-probe = []
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset", "tray-icon", "unstable"] }
+tauri = { version = "2", features = ["protocol-asset", "unstable"] }
 tauri-plugin-opener = "2"
-tauri-plugin-single-instance = "2"
-tauri-plugin-global-shortcut = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 gstreamer = { version = "0.25", features = ["v1_24"] }
@@ -57,15 +55,20 @@ base64 = "0.22"
 regex = "1"
 flate2 = "1"
 hex = "0.4"
-font-kit = "0.14"
 wasmtime = { version = "=46.0.1", default-features = false, features = ["std", "runtime", "cranelift", "component-model", "async"] }
 semver = "1"
 percent-encoding = "2"
 zip = { version = "8", default-features = false, features = ["deflate"] }
-clipboard-rs = { version = "=0.3.5", default-features = false }
 jsonschema = { version = "0.46", default-features = false }
 cap-std = "4"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-global-shortcut = "2"
 tauri-plugin-autostart = "2"
+font-kit = "0.14"
+clipboard-rs = { version = "=0.3.5", default-features = false }
 
 [dev-dependencies]
 aes = "0.8"

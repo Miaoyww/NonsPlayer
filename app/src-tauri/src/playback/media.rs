@@ -1,5 +1,7 @@
+#[cfg(windows)]
+use crate::model::PlaybackStatus;
 use crate::{
-    model::{AppResult, PlaybackStatus, PlayerSnapshot},
+    model::{AppResult, PlayerSnapshot},
     player::Command,
 };
 use std::sync::mpsc::SyncSender;

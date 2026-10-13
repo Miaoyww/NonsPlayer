@@ -12,6 +12,7 @@ function session(development = false) {
     .replaceAll('import.meta.env.DEV', String(development))
   runInNewContext(source, {
     window,
+    isAndroid: () => false,
     initializeFontSettings() {},
     installPluginBridge() {}
   })

@@ -295,6 +295,19 @@ impl ReqwestHttpSrc {
 
         let mut builder = Client::builder().redirect(reqwest::redirect::Policy::none()).cookie_store(true).gzip(true);
 
+        // The Android host uses bundled WebPKI roots, matching its reqwest 0.12
+        // services. Avoid requiring a second JNI certificate-verifier runtime.
+        #[cfg(target_os = "android")]
+        {
+            let roots = rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+            let tls = rustls::ClientConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
+                .with_safe_default_protocol_versions()
+                .map_err(|err| gst::error_msg!(gst::ResourceError::OpenRead, ["TLS configuration failed: {}", err]))?
+                .with_root_certificates(roots)
+                .with_no_client_auth();
+            builder = builder.use_preconfigured_tls(tls);
+        }
+
         if let Some(proxy) = &proxy {
             // Proxy is url-checked on property set but perhaps this might still fail.
             let mut p = reqwest::Proxy::all(proxy).map_err(|err| {

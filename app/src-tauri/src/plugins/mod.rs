@@ -1,5 +1,9 @@
 mod audio_files;
 mod capability;
+#[cfg(desktop)]
+mod clipboard;
+#[cfg(target_os = "android")]
+#[path = "android_clipboard.rs"]
 mod clipboard;
 mod configuration;
 mod database;

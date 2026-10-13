@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "android",
+  "description": "Android main WebView capabilities",
+  "platforms": ["android"],
+  "windows": ["main"],
+  "permissions": ["core:default", "opener:default", "dialog:allow-open"]
+}

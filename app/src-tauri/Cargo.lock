@@ -2239,6 +2239,7 @@ dependencies = [
  "rustls-platform-verifier",
  "tokio",
  "url",
+ "webpki-roots",
 ]
 
 [[package]]

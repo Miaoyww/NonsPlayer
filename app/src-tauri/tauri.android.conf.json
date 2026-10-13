@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "com.miaoyww.nons",
+  "build": {
+    "beforeBuildCommand": "pnpm build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Nons",
+        "decorations": true,
+        "width": 400,
+        "height": 800
+      }
+    ]
+  },
+  "bundle": {
+    "resources": []
+  }
+}

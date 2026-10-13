@@ -3,7 +3,9 @@ use crate::{
     netease, player, plugins, storage, ttml_cache,
 };
 
-use crate::platform::{autostart, desktop, main_webview};
+use crate::platform::main_webview;
+#[cfg(desktop)]
+use crate::platform::{autostart, desktop};
 use model::{AppResult, Lyrics, OutputDevice, Track, TrackSource};
 use netease::{AccountProfile, CollectionPage, LibrarySummary, LoginStatus, QrLogin, TrackPage};
 use player::{Command, Player};
@@ -945,7 +947,9 @@ pub fn run() {
         context.config_mut().app.windows[0].visible = false;
         context
     };
-    let app = tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(desktop)]
+    let builder = builder
         // Claim the instance before other plugins or backend initialization.
         .plugin(desktop::single_instance())
         .plugin(
@@ -953,13 +957,17 @@ pub fn run() {
                 .app_name(autostart::ENTRY_NAME)
                 .build(),
         )
-        .register_uri_scheme_protocol("plugin", plugins::protocol)
-        .plugin(tauri_plugin_opener::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(main_webview::background_shortcut)
                 .build(),
         )
+        .on_window_event(desktop::on_window_event);
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(crate::platform::android::init());
+    let app = builder
+        .register_uri_scheme_protocol("plugin", plugins::protocol)
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             #[cfg(not(feature = "plugin-probe"))]
@@ -1056,15 +1064,21 @@ pub fn run() {
                     .build()?,
                 cover_requests: tokio::sync::Semaphore::new(8),
             });
-            desktop::setup(app)?;
-            main_webview::setup(app)?;
+            #[cfg(desktop)]
+            {
+                desktop::setup(app)?;
+                main_webview::setup(app)?;
+            }
             Ok(())
         })
-        .on_window_event(desktop::on_window_event)
         .invoke_handler(tauri::generate_handler![
+            #[cfg(desktop)]
             autostart::autostart_status,
+            #[cfg(desktop)]
             autostart::set_autostart,
+            #[cfg(desktop)]
             desktop::close_behavior,
+            #[cfg(desktop)]
             desktop::set_close_behavior,
             main_webview::main_webview_ready,
             main_webview::main_sleep_shortcuts,
@@ -1184,6 +1198,7 @@ pub fn run() {
         .expect("无法启动 NonsPlayer");
     app.run(|app, event| {
         if matches!(event, tauri::RunEvent::Exit) {
+            #[cfg(desktop)]
             main_webview::stop(app);
             app.state::<Arc<plugins::PluginManager>>().stop();
             app.state::<Backend>().player.shutdown();

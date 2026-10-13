@@ -1,8 +1,12 @@
 use crate::model::AppResult;
+#[cfg(desktop)]
 use font_kit::source::SystemSource;
 
 #[tauri::command]
 pub async fn system_fonts() -> AppResult<Vec<String>> {
+    #[cfg(target_os = "android")]
+    return Ok(Vec::new());
+    #[cfg(desktop)]
     tauri::async_runtime::spawn_blocking(|| {
         // Only enumerate family names; no font files or glyph data are loaded.
         let mut families = SystemSource::new()

@@ -11,6 +11,7 @@ function harness(playerMode = false) {
     react: { useState: (value) => [value, () => {}], useEffect() {} },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@tauri-apps/api/core': { isTauri: () => true },
+    '@/lib/platform': { isAndroid: () => false },
     '@tauri-apps/api/window': {
       getCurrentWindow: () => ({
         startDragging: async () => actions.push('drag'),

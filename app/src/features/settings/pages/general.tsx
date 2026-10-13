@@ -5,6 +5,7 @@ import { FontPicker } from '@/features/settings/font-picker'
 import { useFontSettings } from '@/features/settings/use-font-settings'
 import { CloseBehaviorSelect } from '@/features/settings/close-behavior-select'
 import { AutostartSwitch } from '@/features/settings/autostart-switch'
+import { isAndroid } from '@/lib/platform'
 
 const themes = [
   { value: 'light', label: '浅色', icon: Sun },
@@ -54,8 +55,8 @@ export function GeneralPage({
           defaultLabel="应用默认字体"
         />
       </SettingsCard>
-      <CloseBehaviorSelect />
-      <AutostartSwitch />
+      {!isAndroid() && <CloseBehaviorSelect />}
+      {!isAndroid() && <AutostartSwitch />}
     </div>
   )
 }

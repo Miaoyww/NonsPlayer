@@ -4,6 +4,9 @@ import App from './App'
 import '@/styles/globals.css'
 import { initializeFontSettings } from '@/features/settings/font-settings'
 import { installPluginBridge } from '@/plugins/host'
+import { isAndroid } from '@/lib/platform'
+
+if (isAndroid()) document.documentElement.dataset.platform = 'android'
 
 initializeFontSettings()
 installPluginBridge()

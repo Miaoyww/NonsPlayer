@@ -1,4 +1,6 @@
 use crate::model::AppResult;
+#[cfg(target_os = "android")]
+use crate::platform::android::credentials as keyring;
 use serde_json::Value;
 
 // Only this plugin's explicitly named secrets; never access the player's account.

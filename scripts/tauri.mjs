@@ -8,9 +8,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const app = join(root, 'app')
 const gst = join(root, '.local', 'gstreamer')
 const env = { ...process.env }
+const args = process.argv.slice(2)
 
 // Match native.ps1's project-local runtime without changing the system environment.
-if (process.platform === 'win32' && existsSync(join(gst, 'VERSION'))) {
+if (process.platform === 'win32' && args[0] !== 'android' && existsSync(join(gst, 'VERSION'))) {
   const pathKey = Object.keys(env).find((key) => key.toLowerCase() === 'path') ?? 'Path'
   const bin = join(gst, 'bin')
   const entries = (env[pathKey] ?? '').split(';')
@@ -34,7 +35,6 @@ if (process.platform === 'win32' && existsSync(join(gst, 'VERSION'))) {
   }
 }
 
-const args = process.argv.slice(2)
 if (process.platform === 'win32' && args[0] === 'build') {
   const metadata = spawnSync('cargo', ['metadata', '--no-deps', '--format-version', '1'], {
     cwd: join(app, 'src-tauri'),

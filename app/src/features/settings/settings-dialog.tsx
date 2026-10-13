@@ -127,7 +127,7 @@ export function SettingsDialog() {
       </DialogTrigger>
       <DialogPopup
         showCloseButton={false}
-        className="overflow-hidden rounded-lg"
+        className="settings-dialog overflow-hidden rounded-lg"
         style={{ width: 1024, maxWidth: 'calc(100vw - 40px)', height: '85dvh', padding: 0, gap: 0 }}
         initial={{ opacity: 0, scale: reducedMotion ? 1 : 0.97 }}
         animate={{ opacity: 1, scale: 1 }}

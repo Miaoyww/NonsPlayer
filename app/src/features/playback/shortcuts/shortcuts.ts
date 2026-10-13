@@ -2,6 +2,7 @@ import { normalizeShortcut } from '@/features/playback/shortcuts/shortcut-keys'
 import { isTauri } from '@tauri-apps/api/core'
 import { register, unregister } from '@tauri-apps/plugin-global-shortcut'
 import { errorText, nativeCall } from '@/lib/player'
+import { isAndroid } from '@/lib/platform'
 
 export const shortcutActions = [
   ['toggle', '播放/暂停音乐'],
@@ -61,7 +62,7 @@ export function setShortcutDispatcher(fn: (action: ShortcutAction) => void) {
 }
 let initialized = false
 export async function initializeShortcuts() {
-  if (initialized || !isTauri()) return
+  if (initialized || !isTauri() || isAndroid()) return
   initialized = true
   await saveShortcuts(settings, false)
 }
@@ -73,7 +74,7 @@ export async function saveShortcuts(next: ShortcutSettings, persist = true) {
   const cleaned = { enabled: next.enabled, bindings: { ...next.bindings } }
   for (const [action] of shortcutActions) cleaned.bindings[action] = cleaned.bindings[action].trim()
   async function install(value: ShortcutSettings) {
-    if (!isTauri() || !value.enabled || recording) return
+    if (!isTauri() || isAndroid() || !value.enabled || recording) return
     for (const [action] of shortcutActions) {
       const binding = value.bindings[action]
       if (!binding) continue
@@ -88,7 +89,7 @@ export async function saveShortcuts(next: ShortcutSettings, persist = true) {
     registered = []
   }
   async function syncSleepBindings(value: ShortcutSettings) {
-    if (isTauri())
+    if (isTauri() && !isAndroid())
       await nativeCall('main_sleep_shortcuts', {
         bindings:
           value.enabled && !recording

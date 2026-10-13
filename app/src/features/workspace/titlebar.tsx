@@ -20,6 +20,7 @@ import { MusicSearch } from '@/features/search/music-search'
 import { PlaylistSidebar } from '@/features/library/playlist-sidebar'
 import { usePlugins } from '@/plugins/host'
 import { pluginPath } from '@/plugins/types'
+import { isAndroid } from '@/lib/platform'
 
 export function Titlebar({
   playerMode = false,
@@ -34,7 +35,7 @@ export function Titlebar({
       loaded.has(plugin.manifest.id) &&
       plugin.manifest.contributes.navigation.some((item) => item.category === 'tool')
   )
-  const native = isTauri()
+  const native = isTauri() && !isAndroid()
   const { page, navigate, back, forward, canBack, canForward } = useMusicNavigation()
   const toolsSelected =
     page.view === 'tools' ||

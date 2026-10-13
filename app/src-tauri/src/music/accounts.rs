@@ -1,5 +1,7 @@
 //! Host-owned account records and opaque system credentials. No platform protocol lives here.
 use super::{account::*, adapter::RequestContext, identity::*, ErrorCode, MusicResult};
+#[cfg(target_os = "android")]
+use crate::platform::android::credentials as keyring;
 pub trait AccountRecordStore: Send + Sync {
     fn load(&self) -> MusicResult<Option<String>>;
     fn save(&self, json: &str) -> MusicResult<()>;

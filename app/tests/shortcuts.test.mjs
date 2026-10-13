@@ -5,7 +5,7 @@ import { runInNewContext } from 'node:vm'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 
-function session(saved) {
+function session(saved, android = false) {
   const dom = new JSDOM(
     '<main><input><button>Play</button><div contenteditable="true"><span></span></div></main>'
   )
@@ -31,18 +31,20 @@ function session(saved) {
           ? keys
           : name === '@tauri-apps/api/core'
             ? { isTauri: () => true }
-            : name === '@/lib/player'
-              ? { errorText: String, nativeCall: async () => {} }
-              : {
-                  async register(key, fn) {
-                    if (key === 'Ctrl+Alt+N') throw Error('occupied')
-                    if (registered.has(key)) throw Error('duplicate')
-                    registered.set(key, fn)
-                  },
-                  async unregister(keys) {
-                    for (const key of keys) registered.delete(key)
+            : name === '@/lib/platform'
+              ? { isAndroid: () => android }
+              : name === '@/lib/player'
+                ? { errorText: String, nativeCall: async () => {} }
+                : {
+                    async register(key, fn) {
+                      if (key === 'Ctrl+Alt+N') throw Error('occupied')
+                      if (registered.has(key)) throw Error('duplicate')
+                      registered.set(key, fn)
+                    },
+                    async unregister(keys) {
+                      for (const key of keys) registered.delete(key)
+                    }
                   }
-                }
     }
   )
   return { ...exports, registered, values, document: dom.window.document, window: dom.window }
@@ -50,6 +52,15 @@ function session(saved) {
 function config(app, bindings, enabled = true) {
   return { enabled, bindings: { ...app.getShortcutStatus().settings.bindings, ...bindings } }
 }
+
+test('Android does not restore desktop global shortcuts', async () => {
+  const saved = JSON.stringify({ enabled: true, bindings: { toggle: 'Ctrl+Alt+P' } })
+  const app = session(saved, true)
+  await app.initializeShortcuts()
+  assert.equal(app.registered.size, 0)
+  await app.saveShortcuts(config(app, { toggle: 'Ctrl+Alt+P' }))
+  assert.equal(app.registered.size, 0)
+})
 
 test('global shortcuts default to disabled and blank, restore on startup and unregister when disabled', async () => {
   const app = session()
