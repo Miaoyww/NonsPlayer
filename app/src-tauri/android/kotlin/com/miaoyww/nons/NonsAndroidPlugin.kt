@@ -5,6 +5,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.webkit.WebView
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
@@ -26,10 +27,34 @@ class CredentialArgs {
     var value: String? = null
 }
 
+@InvokeArg
+class WindowLayoutArgs {
+    var immersive: Boolean = false
+    var dark: Boolean = false
+}
+
 /** Keys stay in Android Keystore; only AES-GCM ciphertext is persisted. */
 @TauriPlugin
 class NonsAndroidPlugin(private val activity: Activity) : Plugin(activity) {
     private val alias = "NonsPlayer.credentials.v1"
+    private var windowLayout: AndroidWindowLayout? = null
+
+    override fun load(webView: WebView) {
+        activity.runOnUiThread { windowLayout = AndroidWindowLayout(activity, webView) }
+    }
+
+    @Command
+    fun windowLayout(invoke: Invoke) {
+        val args = invoke.parseArgs(WindowLayoutArgs::class.java)
+        activity.runOnUiThread {
+            val layout = windowLayout
+            if (layout == null) invoke.reject("Android 窗口尚未就绪")
+            else {
+                layout.update(args.immersive, args.dark)
+                invoke.resolve()
+            }
+        }
+    }
 
     private fun encryptionKey(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }

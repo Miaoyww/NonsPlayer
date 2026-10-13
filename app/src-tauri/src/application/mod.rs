@@ -1072,6 +1072,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            #[cfg(target_os = "android")]
+            crate::platform::android::window_layout::android_window_layout,
             #[cfg(desktop)]
             autostart::autostart_status,
             #[cfg(desktop)]

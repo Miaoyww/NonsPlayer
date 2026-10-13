@@ -49,6 +49,7 @@ python scripts/verify-android-apk.py app/src-tauri/gen/android/app/build/outputs
 
 ## 当前边界
 
+- 窗口采用边到边显示，原生同步系统栏、挖孔安全区与键盘占用；WebView 不再重复消费系统栏留白。全屏播放器及歌词页采用沉浸模式，边缘滑动临时唤出系统栏，退出播放器后恢复；系统栏图标跟随应用明暗主题。旋转、手势／三键导航及各版本 WebView 的实际表现仍需真机验证。
 - 复用统一音乐适配器、网易云业务、Rust 播放核心、歌词及缓存服务。Android 账号凭据采用 Keystore 密钥与 AES-GCM 加密存储，禁止系统备份复制密文到其他设备。
 - GStreamer 通过 Java glue 在 Activity 启动时初始化；音频 HTTP 源在 Android 使用 WebPKI 证书根，与宿主请求保持一致，无额外 TLS JNI 运行时。
 - 隐藏桌面窗口按钮、自启和关闭行为设置；Android 不注册全局快捷键、不执行桌面 WebView 空闲销毁逻辑。

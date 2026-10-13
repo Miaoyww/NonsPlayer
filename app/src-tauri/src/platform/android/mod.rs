@@ -1,5 +1,6 @@
 //! Native Android capabilities; business services keep their existing contracts.
 pub(crate) mod credentials;
+pub(crate) mod window_layout;
 use std::sync::OnceLock;
 use tauri::plugin::{Builder, PluginHandle, TauriPlugin};
 

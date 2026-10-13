@@ -6,6 +6,7 @@ import { MusicNavigationProvider } from '@/features/workspace/music-navigation'
 import { AccountProvider } from '@/features/account/account'
 import { useEffect, useState } from 'react'
 import { PluginProvider, PluginSlot } from '@/plugins/host'
+import { useAndroidWindowLayout } from '@/features/workspace/use-android-window-layout'
 
 function App() {
   const [playerPhase, setPlayerPhase] = useState<'closed' | 'open' | 'closing'>(() => {
@@ -23,6 +24,7 @@ function App() {
     }
   }, [playerPhase])
   const nowPlaying = playerPhase === 'open'
+  useAndroidWindowLayout(playerPhase !== 'closed')
   const setNowPlaying = (value: boolean) =>
     setPlayerPhase((phase) => (value ? 'open' : phase === 'closed' ? 'closed' : 'closing'))
   return (
@@ -32,7 +34,7 @@ function App() {
           <MusicNavigationProvider>
             <PluginProvider>
               <div
-                className={`relative flex h-dvh flex-col overflow-hidden bg-background text-foreground ${nowPlaying ? 'now-playing' : ''}`}
+                className={`app-shell relative flex h-dvh flex-col overflow-hidden bg-background text-foreground ${nowPlaying ? 'now-playing' : ''}`}
               >
                 <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
                 <MusicWorkspace
