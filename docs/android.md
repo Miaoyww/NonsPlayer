@@ -29,7 +29,7 @@ pnpm --dir app build:android
 
 Android 启动器使用项目 Nons 图标，支持传统与自适应图标。调试包显式启用 V1/V2/V3 签名，仍使用同一台机器的 Android 调试证书；构建入口分别验证现代签名、JAR 签名、原生库 16 KB 对齐和 APK ZIP 对齐，全部通过后才导出。
 
-重新生成 Android 图标：`pnpm --dir app icons:android`。此入口直接调用 Tauri 官方 `icon` CLI，使用 `docs/app-icon.png`，并将所有密度、圆形和自适应图标同步到 Android 工程。
+重新生成 Android 图标：`pnpm --dir app icons:android`。此入口调用 Tauri 官方 `icon` CLI，使用 `docs/app-icon.png`，并将所有密度、圆形和自适应图标同步到 Android 工程。自适应前景四边各留出 1/6 的比例间距，将完整原图放入 108dp 图层的中央 72dp 可视区域，保持与桌面版相同的图案比例；普通与圆形入口共用此自适应配置，避免启动器裁切放大。
 
 原生运行时显式包含 GStreamer Base；APK 校验还检查 Rust 库需要的 GStreamer/GLib 动态符号是否由打包的运行时导出，防止编译通过但 Android 动态加载器启动失败。
 
