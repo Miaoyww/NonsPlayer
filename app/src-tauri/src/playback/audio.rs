@@ -1,6 +1,33 @@
 use crate::model::PlaybackStatus;
 use gstreamer::{self as gst, prelude::*};
 
+/// OpenSL ES must receive preroll before playback starts. Buffering completion
+/// and AsyncDone can arrive in either order, and neither alone is sufficient.
+#[derive(Default)]
+pub struct StreamStartGate {
+    pending: bool,
+    buffering: bool,
+}
+
+impl StreamStartGate {
+    pub fn prepare(&mut self, preroll: bool) {
+        self.pending = preroll;
+        self.buffering = false;
+    }
+
+    pub fn complete(&mut self) -> bool {
+        std::mem::take(&mut self.pending)
+    }
+
+    pub fn buffering(&mut self, percent: i32) {
+        self.buffering = percent < 100;
+    }
+
+    pub fn ready(&self) -> bool {
+        !self.pending && !self.buffering
+    }
+}
+
 pub fn update_buffering(
     playbin: &gst::Element,
     percent: i32,
@@ -46,6 +73,33 @@ pub fn seek_stream(playbin: &gst::Element, position_ms: u64) -> Result<(), gst::
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn android_start_waits_for_preroll_and_buffering_in_either_order() {
+        for preroll_first in [true, false] {
+            let mut gate = StreamStartGate::default();
+            gate.prepare(true);
+            gate.buffering(0);
+            assert!(!gate.ready());
+            if preroll_first {
+                assert!(gate.complete());
+            } else {
+                gate.buffering(100);
+            }
+            assert!(!gate.ready(), "one completed stage cannot start the sink");
+            if preroll_first {
+                gate.buffering(100);
+            } else {
+                assert!(gate.complete());
+            }
+            assert!(gate.ready());
+            gate.buffering(10);
+            assert!(!gate.ready(), "resume must respect renewed buffering");
+            gate.prepare(true);
+            gate.buffering(100);
+            assert!(!gate.ready(), "switching tracks requires fresh preroll");
+        }
+    }
 
     #[test]
     fn restored_position_is_applied_before_the_first_playing_buffer() {

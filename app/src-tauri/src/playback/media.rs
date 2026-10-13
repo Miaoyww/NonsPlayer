@@ -197,14 +197,53 @@ impl Drop for MediaControls {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "android")))]
 pub struct MediaControls;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "android")))]
 impl MediaControls {
     pub fn new(_: isize, _: SyncSender<Command>) -> AppResult<Self> {
         Ok(Self)
     }
     pub fn update(&mut self, _: &PlayerSnapshot) -> AppResult<()> {
         Ok(())
+    }
+}
+
+#[cfg(target_os = "android")]
+pub struct MediaControls {
+    last: Option<(bool, String, String)>,
+}
+
+#[cfg(target_os = "android")]
+impl MediaControls {
+    pub fn new(_: isize, _: SyncSender<Command>) -> AppResult<Self> {
+        Ok(Self { last: None })
+    }
+
+    pub fn update(&mut self, state: &PlayerSnapshot) -> AppResult<()> {
+        use crate::model::PlaybackStatus;
+        let active = matches!(
+            state.status,
+            PlaybackStatus::Playing | PlaybackStatus::Loading | PlaybackStatus::Buffering
+        );
+        let track = state.current();
+        let next = (
+            active,
+            track.map_or_else(String::new, |t| t.title.clone()),
+            track.map_or_else(String::new, |t| t.artist.clone()),
+        );
+        // Progress ticks must not cross JNI or refresh the notification every 250 ms.
+        if self.last.as_ref() != Some(&next) {
+            crate::platform::android::playback::update(next.0, &next.1, &next.2)?;
+            self.last = Some(next);
+        }
+        Ok(())
+    }
+}
+
+#[cfg(target_os = "android")]
+impl Drop for MediaControls {
+    fn drop(&mut self) {
+        let _ = crate::platform::android::playback::update(false, "", "");
     }
 }

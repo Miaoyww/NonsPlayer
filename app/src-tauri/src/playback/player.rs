@@ -290,6 +290,7 @@ struct Actor {
     last_save: Instant,
     pending_seek: Option<u64>,
     awaiting_first_stream: bool,
+    start_gate: crate::audio::StreamStartGate,
     gapless_enabled: Arc<AtomicBool>,
     fade: super::transitions::PlaybackFade,
     deferred: Option<(Command, u64, Instant)>,
@@ -423,6 +424,7 @@ impl Actor {
             last_save: Instant::now(),
             pending_seek: None,
             awaiting_first_stream: true,
+            start_gate: Default::default(),
             gapless_enabled,
             fade,
             deferred: None,
@@ -875,7 +877,9 @@ impl Actor {
                         } else if self.playbin.current_state() != gst::State::Playing {
                             self.fade.prepare_start();
                         }
-                        if self.pending_seek.is_none() {
+                        if self.pending_seek.is_none()
+                            && (!cfg!(target_os = "android") || self.start_gate.ready())
+                        {
                             self.playbin
                                 .set_state(gst::State::Playing)
                                 .map_err(|e| e.to_string())?;
@@ -984,7 +988,10 @@ impl Actor {
                                 &self.playbin,
                                 &resolved.uri,
                                 self.state.volume,
-                                if self.desired_playing && self.pending_seek.is_none() {
+                                if self.desired_playing
+                                    && self.pending_seek.is_none()
+                                    && (!cfg!(target_os = "android") || self.start_gate.ready())
+                                {
                                     gst::State::Playing
                                 } else {
                                     gst::State::Paused
@@ -1085,6 +1092,7 @@ impl Actor {
         self.state.error = None;
         self.pending_seek = (self.state.position_ms > 0).then_some(self.state.position_ms);
         self.awaiting_first_stream = true;
+        self.start_gate.prepare(cfg!(target_os = "android"));
         self.state.status = PlaybackStatus::Loading;
         self.desired_playing = playing;
         self.resolve(index, track, false);
@@ -1189,13 +1197,22 @@ impl Actor {
         use gst::MessageView;
         match message.view() {
             MessageView::AsyncDone(_) => {
+                let preroll = self.start_gate.complete();
+                let mut resume = cfg!(target_os = "android") && preroll;
                 if let Some(position) = self.pending_seek.take() {
                     // The resource has finished preroll; seek the pipeline directly.
                     if let Err(error) = crate::audio::seek_stream(&self.playbin, position) {
                         self.state.error = Some(format!("恢复播放位置失败：{error}"));
                     }
-                    if self.desired_playing {
-                        let _ = self.playbin.set_state(gst::State::Playing);
+                    resume = true;
+                }
+                if resume
+                    && self.desired_playing
+                    && (!cfg!(target_os = "android") || self.start_gate.ready())
+                {
+                    if let Err(error) = self.playbin.set_state(gst::State::Playing) {
+                        self.state.error = Some(error.to_string());
+                        self.publish();
                     }
                 }
             }
@@ -1237,9 +1254,19 @@ impl Actor {
                     }
                 }
             }
-            MessageView::Buffering(value)
-                if self.desired_playing && self.pending_seek.is_none() =>
-            {
+            MessageView::Buffering(value) => {
+                self.start_gate.buffering(value.percent());
+                if !self.desired_playing || self.pending_seek.is_some() {
+                    return;
+                }
+                if cfg!(target_os = "android") && !self.start_gate.ready() {
+                    self.state.status = PlaybackStatus::Buffering;
+                    if let Err(error) = self.playbin.set_state(gst::State::Paused) {
+                        self.state.error = Some(error.to_string());
+                    }
+                    self.publish();
+                    return;
+                }
                 match crate::audio::update_buffering(&self.playbin, value.percent()) {
                     Ok(status) => self.state.status = status,
                     Err(error) => self.state.error = Some(error.to_string()),

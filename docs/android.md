@@ -53,7 +53,8 @@ python scripts/verify-android-apk.py app/src-tauri/gen/android/app/build/outputs
 - 复用统一音乐适配器、网易云业务、Rust 播放核心、歌词及缓存服务。Android 账号凭据采用 Keystore 密钥与 AES-GCM 加密存储，禁止系统备份复制密文到其他设备。
 - GStreamer 通过 Java glue 在 Activity 启动时初始化；音频 HTTP 源在 Android 使用 WebPKI 证书根，与宿主请求保持一致，无额外 TLS JNI 运行时。
 - 隐藏桌面窗口按钮、自启和关闭行为设置；Android 不注册全局快捷键、不执行桌面 WebView 空闲销毁逻辑。
-- 仅用于前台试用。后台播放前台服务、锁屏/通知栏媒体控制、音频焦点与耳机事件尚未接入，不能承诺锁屏或切到其他应用后持续播放。
+- 播放核心在加载、缓冲和播放期间启动原生 `mediaPlayback` 前台服务，通知显示当前歌名与歌手并可返回应用；持有 CPU 部分唤醒锁，暂停、停止、清空、错误和核心退出时释放。状态更新来自 Rust 播放核心，不依赖后台 WebView 的计时器。音频输出使用设备时钟，不套用桌面 WASAPI 的 30ms 输出限速；切歌等待音频预滚及网络缓冲完成后再启动输出。
+- 后台和息屏播放已做短时真机回归，仍属试用版；锁屏/通知栏播放控制、音频焦点与耳机事件尚未接入，长时间锁屏、厂商省电策略和电话打断仍需进一步验收。
 - Android 本地音乐的 MediaStore/SAF、插件目录授权和剪贴板监听尚未接入；当前不能视为完整移动端版本。
 - 尚无 Google Play 上架、正式发布签名、Android CI 或真机性能结论。最低版本、登录、切歌、歌词、弱网和安装升级均需真机验收。
 
@@ -63,8 +64,19 @@ python scripts/verify-android-apk.py app/src-tauri/gen/android/app/build/outputs
 
 同一设备上进一步复现并修复播放核心初始化失败：先是音频设备监视器 `Failed to start`，随后是缺少 `audiobuffersplit`。修复包覆盖安装后，在线歌曲进入 `playing`，继续播放约 2.5 秒后进度增长至 2044 ms；暂停后两次读取均为 2066 ms，错误字段为空。此项验证覆盖前台播放状态与暂停/继续操作，未验证实际听感、后台播放、完整歌曲或弱网恢复。
 
+同一设备上复现切歌输出异常：连续切换 6 首在线歌曲时，日志记录 40 次 `correct clock skew`、3 次 `No segment available`；随后捕获进度停在约 30ms。修复输出时钟、供给节奏及预滚启动顺序后，最终包连续切歌 24 次（其中 6 次在加载后立即暂停、100ms 后继续）均正常推进；后台息屏等待 15 秒，前后进度增长 15920ms，上述两类日志均为 0。暂停后前台服务停止、活动 CPU 唤醒锁释放。这是状态与日志回归，不代表完成实际听感、长时间后台、蓝牙切换或弱网验收。
+
+真机回归入口（需要连接一台已解锁设备、打开调试 APK 并准备有可播歌曲的队列；结束后暂停播放）：
+
+```powershell
+node scripts/check-android-playback.mjs 24 15
+```
+
+两个参数分别为切歌次数（1–100）与后台息屏等待秒数（1–60）。脚本检查曲目进度、音频欠载／时钟修正日志，以及暂停后的服务和唤醒锁释放；不输出账号信息、音频地址或完整队列。
+
 ## 参考资料
 
+- [Android 媒体播放前台服务](https://developer.android.com/develop/background-work/services/fgs/service-types#media)
 - [Tauri Android 环境要求](https://v2.tauri.app/start/prerequisites/)
 - [GStreamer Android 集成](https://gstreamer.freedesktop.org/documentation/installing/for-android-development.html)
 - [Android Keystore](https://developer.android.com/privacy-and-security/keystore)

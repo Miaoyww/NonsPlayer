@@ -2,6 +2,8 @@ package com.miaoyww.nons
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import androidx.core.content.ContextCompat
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -33,6 +35,13 @@ class WindowLayoutArgs {
     var dark: Boolean = false
 }
 
+@InvokeArg
+class PlaybackArgs {
+    var active: Boolean = false
+    var title: String = ""
+    var artist: String = ""
+}
+
 /** Keys stay in Android Keystore; only AES-GCM ciphertext is persisted. */
 @TauriPlugin
 class NonsAndroidPlugin(private val activity: Activity) : Plugin(activity) {
@@ -41,6 +50,23 @@ class NonsAndroidPlugin(private val activity: Activity) : Plugin(activity) {
 
     override fun load(webView: WebView) {
         activity.runOnUiThread { windowLayout = AndroidWindowLayout(activity, webView) }
+    }
+
+    @Command
+    fun playback(invoke: Invoke) {
+        val args = invoke.parseArgs(PlaybackArgs::class.java)
+        activity.runOnUiThread {
+            try {
+                val intent = Intent(activity, PlaybackService::class.java)
+                    .putExtra("title", args.title.take(512))
+                    .putExtra("artist", args.artist.take(512))
+                if (args.active) ContextCompat.startForegroundService(activity, intent)
+                else activity.stopService(intent)
+                invoke.resolve()
+            } catch (_: Exception) {
+                invoke.reject("Android 后台播放服务启动失败，请返回应用后重试")
+            }
+        }
     }
 
     @Command
