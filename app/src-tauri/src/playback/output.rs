@@ -6,6 +6,23 @@ use gstreamer::{self as gst, prelude::*};
 #[path = "output/windows.rs"]
 mod windows;
 
+pub fn start_device_monitor() -> AppResult<Option<gst::DeviceMonitor>> {
+    // Android's OpenSL ES sink follows system routing and has no device provider.
+    // Requiring a desktop device monitor would stop the playback actor at startup.
+    #[cfg(target_os = "android")]
+    return Ok(None);
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let monitor = gst::DeviceMonitor::new();
+        monitor.add_filter(Some("Audio/Sink"), None);
+        monitor
+            .start()
+            .map_err(|e| format!("无法监视音频设备：{e}"))?;
+        Ok(Some(monitor))
+    }
+}
+
 pub fn available_modes() -> Vec<AudioOutputMode> {
     if cfg!(windows) {
         vec![AudioOutputMode::Shared, AudioOutputMode::Exclusive]

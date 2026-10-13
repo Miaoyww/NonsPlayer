@@ -185,9 +185,15 @@ impl Player {
     }
 
     pub fn send(&self, command: Command) -> AppResult<()> {
-        self.sender
-            .try_send(command)
-            .map_err(|_| "播放核心忙碌或不可用，请稍后重试".into())
+        self.sender.try_send(command).map_err(|error| match error {
+            mpsc::TrySendError::Full(_) => "播放核心忙碌，请稍后重试".into(),
+            mpsc::TrySendError::Disconnected(_) => self
+                .snapshot
+                .read()
+                .ok()
+                .and_then(|state| state.snapshot.error.clone())
+                .unwrap_or_else(|| "播放核心不可用，请重启应用".into()),
+        })
     }
 
     pub fn snapshot(&self) -> AppResult<PlayerSnapshot> {
@@ -263,7 +269,7 @@ struct Actor {
     state: PlayerSnapshot,
     playbin: gst::Element,
     bus: gst::Bus,
-    monitor: gst::DeviceMonitor,
+    monitor: Option<gst::DeviceMonitor>,
     media: Option<MediaControls>,
     desired_playing: bool,
     generation: Arc<AtomicU64>,
@@ -309,18 +315,14 @@ impl Actor {
             }
             None
         });
-        let monitor = gst::DeviceMonitor::new();
-        monitor.add_filter(Some("Audio/Sink"), None);
-        monitor
-            .start()
-            .map_err(|e| format!("无法监视音频设备：{e}"))?;
+        let monitor = super::output::start_device_monitor()?;
         let mut state = shared
             .read()
             .map_err(|_| "播放状态不可用")?
             .snapshot
             .clone();
         if let Some(id) = &state.device_id {
-            let device = monitor.devices().into_iter().find(|device| {
+            let device = monitor.iter().flat_map(|m| m.devices()).find(|device| {
                 let identity = format!(
                     "{}:{}",
                     device.device_class(),
@@ -445,7 +447,7 @@ impl Actor {
             }
             self.finish_deferred();
             for _ in 0..8 {
-                let Some(message) = self.monitor.bus().pop() else {
+                let Some(message) = self.monitor.as_ref().and_then(|m| m.bus().pop()) else {
                     break;
                 };
                 if let gst::MessageView::DeviceRemoved(_) = message.view() {
@@ -477,7 +479,9 @@ impl Actor {
         self.cancel_jobs();
         let _ = self.store.save_player(&self.state);
         let _ = self.playbin.set_state(gst::State::Null);
-        self.monitor.stop();
+        if let Some(monitor) = &self.monitor {
+            monitor.stop();
+        }
     }
 
     fn command(&mut self, command: Command) -> AppResult<()> {
@@ -1375,8 +1379,8 @@ impl Actor {
 
     fn devices(&self) -> Vec<(OutputDevice, gst::Device)> {
         self.monitor
-            .devices()
-            .into_iter()
+            .iter()
+            .flat_map(|monitor| monitor.devices())
             .map(|device| {
                 let identity = format!(
                     "{}:{}",
@@ -1482,6 +1486,32 @@ impl Actor {
 mod tests {
     use super::*;
     use crate::model::TrackSource;
+
+    #[test]
+    fn command_backpressure_and_initialization_failure_have_distinct_errors() {
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let player = Player {
+            sender,
+            snapshot: Arc::new(RwLock::new(Publication::new(PlayerSnapshot::default()))),
+            thread: Mutex::new(None),
+        };
+        player.send(Command::Pause).unwrap();
+        assert_eq!(
+            player.send(Command::Pause).unwrap_err(),
+            "播放核心忙碌，请稍后重试"
+        );
+        drop(receiver);
+        assert_eq!(
+            player.send(Command::Pause).unwrap_err(),
+            "播放核心不可用，请重启应用"
+        );
+        player.snapshot.write().unwrap().snapshot.error =
+            Some("无法监视音频设备：Failed to start".into());
+        assert_eq!(
+            player.send(Command::Pause).unwrap_err(),
+            "无法监视音频设备：Failed to start"
+        );
+    }
 
     #[test]
     #[cfg(windows)]

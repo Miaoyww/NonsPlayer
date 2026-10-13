@@ -59,6 +59,15 @@ def main():
             missing = sorted(symbol for symbol in required - available if symbol.startswith(("gst_", "g_")))
             if missing:
                 raise RuntimeError("Missing GStreamer runtime exports: " + ", ".join(missing))
+            # Element factories are looked up by name at runtime, so they do not
+            # appear as undefined ELF symbols. Check the mandatory playback plugins too.
+            plugins = ("coreelements", "typefindfunctions", "playback", "audioconvert",
+                       "audioresample", "volume", "autodetect", "opensles", "audiofx",
+                       "audiobuffersplit")
+            missing_plugins = [plugin for plugin in plugins
+                               if f"gst_plugin_{plugin}_register" not in available]
+            if missing_plugins:
+                raise RuntimeError("Missing playback plugins: " + ", ".join(missing_plugins))
     print(f"Verified ARM64 runtime and offline frontend: {args.apk}")
 
 

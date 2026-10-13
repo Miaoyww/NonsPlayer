@@ -33,6 +33,8 @@ Android 启动器使用项目 Nons 图标，支持传统与自适应图标。调
 
 原生运行时显式包含 GStreamer Base；APK 校验还检查 Rust 库需要的 GStreamer/GLib 动态符号是否由打包的运行时导出，防止编译通过但 Android 动态加载器启动失败。
 
+Android 音频输出跟随系统路由，不启动桌面音频设备监视器。播放运行时包含渐变链所需的 `audiofx` 与 `audiobuffersplit`；APK 校验同时检查必需插件的注册符号，避免安装后才发现缺少元素工厂。
+
 把 APK 传到手机，允许对应文件管理器安装未知来源应用；或开启 USB 调试后执行：
 
 ```powershell
@@ -57,6 +59,8 @@ python scripts/verify-android-apk.py app/src-tauri/gen/android/app/build/outputs
 ## 真机验证（2026-10-13）
 
 在 vivo V2502DA、Android 17、ARM64 上，通过 USB 覆盖安装和冷启动验证：原先 `gst_base_src_get_type` 缺失导致的启动闪退已复现并修复；修复包启动后进程存活，主界面及登录二维码加载成功。此验证不代表完成播放、后台行为或性能验收。
+
+同一设备上进一步复现并修复播放核心初始化失败：先是音频设备监视器 `Failed to start`，随后是缺少 `audiobuffersplit`。修复包覆盖安装后，在线歌曲进入 `playing`，继续播放约 2.5 秒后进度增长至 2044 ms；暂停后两次读取均为 2066 ms，错误字段为空。此项验证覆盖前台播放状态与暂停/继续操作，未验证实际听感、后台播放、完整歌曲或弱网恢复。
 
 ## 参考资料
 

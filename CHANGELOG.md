@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 修复 Android 因音频设备监视器无法启动或缺少音频分帧插件而导致播放核心不可用的问题；Android 使用系统默认音频输出，打包时校验播放必需插件，播放核心初始化失败时保留具体错误提示。
+
 - 修复 Android 原生音频库遗漏 GStreamer Base 导出符号导致应用启动即退出的问题；打包时校验 Rust 所需的 GStreamer/GLib 符号，缺失时拒绝导出 APK。Android 图标提供 Tauri icon CLI 生成入口，并声明圆形启动器图标。
 
 - 新增 Android ARM64 前台试用版 APK 构建入口，无需 Android Studio 或开发服务器；接入 Android 音频运行时与加密账号存储，调整手机导航和设置布局，隐藏桌面窗口操作。后台播放和 Android 本地曲库仍待接入。
