@@ -16,6 +16,9 @@ export function useAndroidBack(options: {
     let listener: PluginListener | undefined
     void onBackButtonPress(() => {
       if (disposed) return
+      const request = new Event('nons-android-back', { cancelable: true })
+      window.dispatchEvent(request)
+      if (request.defaultPrevented) return
       const { nowPlaying, closePlayer, back } = current.current
       if (nowPlaying) closePlayer()
       else back()

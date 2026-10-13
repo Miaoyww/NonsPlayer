@@ -9,6 +9,7 @@ import {
   Copy,
   Minus,
   Square,
+  Search,
   Wrench,
   X
 } from 'lucide-react'
@@ -21,6 +22,7 @@ import { PlaylistSidebar } from '@/features/library/playlist-sidebar'
 import { usePlugins } from '@/plugins/host'
 import { pluginPath } from '@/plugins/types'
 import { isAndroid } from '@/lib/platform'
+import { usePrimaryMusicPage } from './use-primary-music-page'
 
 export function Titlebar({
   playerMode = false,
@@ -36,6 +38,7 @@ export function Titlebar({
       plugin.manifest.contributes.navigation.some((item) => item.category === 'tool')
   )
   const native = isTauri() && !isAndroid()
+  const primaryPage = usePrimaryMusicPage()
   const { page, navigate, back, forward, canBack, canForward } = useMusicNavigation()
   const toolsSelected =
     page.view === 'tools' ||
@@ -110,7 +113,14 @@ export function Titlebar({
       <header
         className={`titlebar relative z-10 shrink-0 select-none items-center ${playerMode ? 'flex h-[68px] bg-transparent' : 'glass-surface grid h-12 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'}`}
         data-focused={focused}
+        data-subpage={isAndroid() && !primaryPage && !playerMode}
       >
+        {isAndroid() && (
+          <SettingsDialog
+            onOpenPage={(section = '') => navigate('settings', section)}
+            onOpenAccounts={() => navigate('accounts')}
+          />
+        )}
         <div className={`flex h-full min-w-0 ${playerMode ? 'flex-1' : 'items-center'}`}>
           <div
             className={`flex h-full min-w-0 items-center gap-2.5 ${playerMode ? 'flex-1' : 'pl-4 pr-1'}`}
@@ -145,7 +155,7 @@ export function Titlebar({
             )}
           </div>
 
-          {!playerMode && (
+          {!playerMode && !isAndroid() && (
             <>
               <div className="flex items-center gap-1">
                 <Button
@@ -174,6 +184,15 @@ export function Titlebar({
         </div>
         {!playerMode && (
           <nav aria-label="音乐导航" className="flex shrink-0 items-center gap-1">
+            {isAndroid() && hasTools && (
+              <Button
+                variant={toolsSelected ? 'secondary' : 'ghost'}
+                onClick={() => navigate('tools')}
+              >
+                <Wrench aria-hidden="true" />
+                工具
+              </Button>
+            )}
             {(
               [
                 ['library', '音乐库'],
@@ -236,7 +255,17 @@ export function Titlebar({
           <div className="flex h-full shrink-0 items-center gap-1 pr-1.5">
             <div className={playerMode ? 'hidden' : 'flex items-center gap-1'}>
               {!isAndroid() && <AccountMenu />}
-              <SettingsDialog />
+              {isAndroid() && !playerMode && (
+                <Button
+                  variant="ghost"
+                  size="icon-lg"
+                  aria-label="搜索音乐"
+                  onClick={() => navigate('search')}
+                >
+                  <Search aria-hidden="true" />
+                </Button>
+              )}
+              {!isAndroid() && <SettingsDialog />}
             </div>
 
             {!playerMode && <span className="mx-1.5 h-4 w-px bg-border" aria-hidden="true" />}

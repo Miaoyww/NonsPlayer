@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
-function harness(saved = '[]', storageUnavailable = false) {
+function harness(saved = '[]', storageUnavailable = false, pageMode = false) {
   const storage = new Map([['nons-search-history', saved]])
   const slots = [],
     effects = [],
@@ -64,6 +64,7 @@ function harness(saved = '[]', storageUnavailable = false) {
     '@tauri-apps/api/core': { isTauri: () => true },
     '@base-ui/react/combobox': { Combobox: { Root: 'combo', Input: 'input' } },
     '@/components/ui/button': { Button: 'button' },
+    '@/components/ui/input': { Input: 'input' },
     '@/components/ui/combobox': {
       ComboboxContent: 'popup',
       ComboboxItem: 'item',
@@ -96,6 +97,10 @@ function harness(saved = '[]', storageUnavailable = false) {
         setItem(key, value) {
           if (storageUnavailable) throw Error('unavailable')
           storage.set(key, value)
+        },
+        removeItem(key) {
+          if (storageUnavailable) throw Error('unavailable')
+          storage.delete(key)
         }
       },
       window: {
@@ -112,9 +117,9 @@ function harness(saved = '[]', storageUnavailable = false) {
   )
   const render = () => {
     cursor = 0
-    const tree = exports.MusicSearch()
+    const tree = exports.MusicSearch({ pageMode })
     effects.splice(0).forEach((fn) => fn())
-    return tree.props.children
+    return pageMode ? tree : tree.props.children
   }
   const input = () => render().props.children[0].props.children[1]
   return {
@@ -128,7 +133,8 @@ function harness(saved = '[]', storageUnavailable = false) {
       render()
     },
     type(value) {
-      render().props.onInputValueChange(value, { reason: 'input-change', cancel() {} })
+      if (pageMode) input().props.onChange({ target: { value } })
+      else render().props.onInputValueChange(value, { reason: 'input-change', cancel() {} })
       render()
     },
     tick() {
@@ -142,6 +148,39 @@ const settle = async () => {
   await Promise.resolve()
   await Promise.resolve()
 }
+
+test('mobile search displays twenty unique history terms, submits them and clears stored history', () => {
+  const values = Array.from({ length: 25 }, (_, index) => `term ${index}`)
+  const h = harness(JSON.stringify(values), false, true)
+  h.render()
+  const history = () => h.render().props.children[1]
+  assert.equal(history().props.children[1].props.children.length, 20)
+  history().props.children[1].props.children[0].props.onClick()
+  assert.deepEqual(h.navigations, [['search', 'term 0']])
+  h.type('')
+  history().props.children[0].props.children[1].props.onClick()
+  assert.equal(h.storage.has('nons-search-history'), false)
+  assert.equal(history().props.children[1].type, 'p')
+})
+
+test('mobile completion is bounded to ten and stale requests cannot replace current suggestions', async () => {
+  const h = harness('[]', false, true)
+  h.render()
+  h.input().props.onFocus()
+  h.type('old')
+  h.tick()
+  h.type('new')
+  h.tick()
+  h.requests[1].resolve(Array.from({ length: 15 }, (_, index) => `new ${index}`))
+  await settle()
+  const suggestions = () => h.render().props.children[1].props.children[1]
+  assert.equal(suggestions().length, 10)
+  h.requests[0].resolve(['old result'])
+  await settle()
+  assert.equal(suggestions()[0].props.children[1].props.children, 'new 0')
+  suggestions()[9].props.onClick()
+  assert.deepEqual(h.navigations, [['search', 'new 9']])
+})
 
 test('popup dismissal preserves input before and after submitting search', () => {
   const h = harness()

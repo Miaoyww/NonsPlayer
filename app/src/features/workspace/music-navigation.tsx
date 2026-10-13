@@ -6,6 +6,7 @@ export type MusicView =
   | 'discover'
   | 'local'
   | 'search'
+  | 'settings'
   | 'queue'
   | 'collection'
   | 'artist'
@@ -55,6 +56,7 @@ function restoreHistory(): NavigationHistory {
       'discover',
       'local',
       'search',
+      'settings',
       'queue',
       'collection',
       'artist',

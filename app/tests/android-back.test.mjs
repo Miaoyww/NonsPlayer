@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
-function harness(android = true) {
+function harness(android = true, intercept = false) {
   const effects = [],
     refs = []
   let cursor = 0,
@@ -25,6 +25,13 @@ function harness(android = true) {
     {
       exports,
       console,
+      Event,
+      window: {
+        dispatchEvent: (event) => {
+          if (intercept) event.preventDefault()
+          return !event.defaultPrevented
+        }
+      },
       require: (name) =>
         ({
           react: {
@@ -102,6 +109,20 @@ test('desktop does not intercept the system back button', async () => {
   assert.deepEqual(calls, [])
   await app.close()
   assert.equal(app.removed, 0)
+})
+
+test('an open menu can consume Android back before workspace navigation or player exit', async () => {
+  const app = harness(true, true),
+    calls = []
+  app.render({
+    nowPlaying: true,
+    back: () => calls.push('back'),
+    closePlayer: () => calls.push('close')
+  })
+  await app.mount()
+  app.press()
+  assert.deepEqual(calls, [])
+  await app.close()
 })
 
 test('late Android registration is removed after unmount', async () => {

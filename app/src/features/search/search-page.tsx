@@ -16,6 +16,8 @@ import { musicClient } from '@/features/music/client'
 import { musicCollection } from '@/features/music/entities'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { AggregateQuery, type SearchSource } from './aggregate-query'
+import { MusicSearch } from './music-search'
+import { isAndroid } from '@/lib/platform'
 
 const categories = [
   { value: 'track', label: '单曲', icon: Music2 },
@@ -275,31 +277,40 @@ export default function SearchPage({
   )
   return (
     <MusicPage className="search-page" aria-label="搜索音乐">
-      <MusicPageHeader title={page.query || '搜索音乐'}>
-        <p>
-          {page.query
-            ? `聚合搜索 · ${sources.map((value) => value.name).join('、')}`
-            : '输入歌曲、歌手、歌单或专辑名称开始搜索。'}
-        </p>
-      </MusicPageHeader>
+      {isAndroid() && <MusicSearch pageMode />}
+      {!isAndroid() && (
+        <MusicPageHeader title={page.query || '搜索音乐'}>
+          <p>
+            {page.query
+              ? `聚合搜索 · ${sources.map((value) => value.name).join('、')}`
+              : '输入歌曲、歌手、歌单或专辑名称开始搜索。'}
+          </p>
+        </MusicPageHeader>
+      )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}
-      <Tabs value={kind} onValueChange={(value) => setKind(value as SearchKind)} className="gap-0">
-        <div className="music-page-section-bar">
-          <h2>搜索结果</h2>
-          <TabsList className="music-tabs" aria-label="搜索结果类型">
-            {categories.map(({ value, label, icon: Icon }) => (
-              <TabsTab key={value} value={value}>
-                <Icon aria-hidden="true" />
-                {label}
-              </TabsTab>
-            ))}
-          </TabsList>
-        </div>
-      </Tabs>
+      {(!isAndroid() || page.query) && (
+        <Tabs
+          value={kind}
+          onValueChange={(value) => setKind(value as SearchKind)}
+          className="gap-0"
+        >
+          <div className="music-page-section-bar">
+            <h2>搜索结果</h2>
+            <TabsList className="music-tabs" aria-label="搜索结果类型">
+              {categories.map(({ value, label, icon: Icon }) => (
+                <TabsTab key={value} value={value}>
+                  <Icon aria-hidden="true" />
+                  {label}
+                </TabsTab>
+              ))}
+            </TabsList>
+          </div>
+        </Tabs>
+      )}
       {sources.length > 0 && page.query ? (
         <Results
           key={`${page.query}:${kind}:${revision}`}
@@ -309,13 +320,13 @@ export default function SearchPage({
           onError={onError}
           onNotice={onNotice}
         />
-      ) : (
+      ) : !isAndroid() || page.query ? (
         <div className="search-empty">
           <p>
             {page.query && isTauri() ? '正在读取音乐来源…' : '在顶部搜索框输入关键词开始搜索。'}
           </p>
         </div>
-      )}
+      ) : null}
     </MusicPage>
   )
 }

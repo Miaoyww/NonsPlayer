@@ -27,9 +27,14 @@ import LyricsView from '@/features/lyrics/lyrics-view'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { sourceLabel } from '@/features/music/source-label'
 import { useAndroidBack } from './use-android-back'
+import { isAndroid } from '@/lib/platform'
+import { usePrimaryMusicPage } from './use-primary-music-page'
+import { MobilePageHeader } from './mobile-page-header'
+import { settingsSections } from '@/features/settings/settings-sections'
 
 const LocalPage = lazy(() => import('@/features/local/local-page'))
 const SearchPage = lazy(() => import('@/features/search/search-page'))
+const SettingsPage = lazy(() => import('@/features/settings/settings-page'))
 const ArtistPage = lazy(() => import('@/features/library/artist-page'))
 const AlbumPage = lazy(() => import('@/features/library/album-page'))
 const Discovery = lazy(() => import('@/features/discovery/discovery'))
@@ -58,6 +63,8 @@ export function MusicWorkspace({
   const [barMode] = usePlaybackBarMode()
   const [density] = useInterfaceDensity()
   const { page, navigate, back } = useMusicNavigation()
+  const primaryPage = usePrimaryMusicPage()
+  const settingsSection = settingsSections.find((item) => item.id === page.query.split('/')[0])
   useAndroidBack({ nowPlaying, closePlayer: () => onNowPlayingChange(false), back })
   const view = page.view
   const sources = useMusicSources()
@@ -220,6 +227,35 @@ export function MusicWorkspace({
             data-playback-bar={barMode}
             data-density={density}
           >
+            {isAndroid() && !primaryPage && !playerVisible && (
+              <MobilePageHeader
+                title={
+                  page.view === 'settings'
+                    ? (settingsSection?.label ?? '设置')
+                    : page.view === 'search'
+                      ? '搜索'
+                      : (page.collection?.name ??
+                        (
+                          {
+                            accounts: '音乐账号',
+                            queue: '播放队列',
+                            discover: '发现',
+                            local: '本地音乐',
+                            'local-artist': '本地艺人',
+                            'local-album': '本地专辑',
+                            'local-playlist': '本地歌单'
+                          } as Record<string, string>
+                        )[page.view] ??
+                        '音乐')
+                }
+                description={
+                  page.view === 'settings'
+                    ? (settingsSection?.description ?? '个性化与全局设置')
+                    : undefined
+                }
+                onBack={back}
+              />
+            )}
             <AnimatePresence onExitComplete={onPlayerExitComplete}>
               {nowPlaying && <LyricsView key="now-playing" onQueue={openQueue} />}
             </AnimatePresence>
@@ -297,9 +333,23 @@ export function MusicWorkspace({
                   </MusicPage>
                 ) : view === 'queue' ? (
                   <QueuePage key={queueVisit} onError={onError} />
+                ) : view === 'settings' ? (
+                  <Suspense
+                    fallback={
+                      <MusicPage>
+                        <p role="status">正在加载设置…</p>
+                      </MusicPage>
+                    }
+                  >
+                    <SettingsPage />
+                  </Suspense>
                 ) : view === 'search' ? (
                   <Suspense fallback={<MusicPageSkeleton view="search" title={page.query} />}>
-                    <SearchPage key={page.query} onError={onError} onNotice={showNotice} />
+                    <SearchPage
+                      key={isAndroid() ? 'mobile-search' : page.query}
+                      onError={onError}
+                      onNotice={showNotice}
+                    />
                   </Suspense>
                 ) : (view === 'discover' || view === 'library') &&
                   isTauri() &&
@@ -382,6 +432,7 @@ export function MusicWorkspace({
               </main>
             </div>
             {!playerVisible &&
+              !(isAndroid() && view === 'settings') &&
               (barMode === 'persistent' ? (
                 <PersistentPlaybackBar
                   notice={notice}

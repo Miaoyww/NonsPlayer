@@ -60,6 +60,10 @@ function harness(initialMode = 'collapsible') {
     },
     '@/features/music/source-label': { sourceLabel: String },
     './use-android-back': { useAndroidBack() {} },
+    './use-primary-music-page': { usePrimaryMusicPage: () => true },
+    './mobile-page-header': { MobilePageHeader: 'MobilePageHeader' },
+    '@/features/settings/settings-sections': { settingsSections: [] },
+    '@/lib/platform': { isAndroid: () => false },
     '@/components/music/loading': {
       MusicPageSkeleton: 'MusicPageSkeleton',
       LibraryPageSkeleton: 'LibraryPageSkeleton'
