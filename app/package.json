@@ -11,6 +11,7 @@
     "build": "tsc && vite build",
     "build:release": "node ../scripts/tauri.mjs build --ci --bundles msi nsis -- --locked",
     "build:android": "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/android.ps1 build",
+    "icons:android": "node ../scripts/android-icons.mjs",
     "preview": "vite preview",
     "tauri": "node ../scripts/tauri.mjs",
     "format:prettier": "prettier --write .. --ignore-unknown --ignore-path ../.gitignore --ignore-path ../.prettierignore",

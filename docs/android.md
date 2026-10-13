@@ -29,6 +29,10 @@ pnpm --dir app build:android
 
 Android 启动器使用项目 Nons 图标，支持传统与自适应图标。调试包显式启用 V1/V2/V3 签名，仍使用同一台机器的 Android 调试证书；构建入口分别验证现代签名、JAR 签名、原生库 16 KB 对齐和 APK ZIP 对齐，全部通过后才导出。
 
+重新生成 Android 图标：`pnpm --dir app icons:android`。此入口直接调用 Tauri 官方 `icon` CLI，使用 `docs/app-icon.png`，并将所有密度、圆形和自适应图标同步到 Android 工程。
+
+原生运行时显式包含 GStreamer Base；APK 校验还检查 Rust 库需要的 GStreamer/GLib 动态符号是否由打包的运行时导出，防止编译通过但 Android 动态加载器启动失败。
+
 把 APK 传到手机，允许对应文件管理器安装未知来源应用；或开启 USB 调试后执行：
 
 ```powershell
@@ -50,7 +54,11 @@ python scripts/verify-android-apk.py app/src-tauri/gen/android/app/build/outputs
 - Android 本地音乐的 MediaStore/SAF、插件目录授权和剪贴板监听尚未接入；当前不能视为完整移动端版本。
 - 尚无 Google Play 上架、正式发布签名、Android CI 或真机性能结论。最低版本、登录、切歌、歌词、弱网和安装升级均需真机验收。
 
-## 参考
+## 真机验证（2026-10-13）
+
+在 vivo V2502DA、Android 17、ARM64 上，通过 USB 覆盖安装和冷启动验证：原先 `gst_base_src_get_type` 缺失导致的启动闪退已复现并修复；修复包启动后进程存活，主界面及登录二维码加载成功。此验证不代表完成播放、后台行为或性能验收。
+
+## 参考资料
 
 - [Tauri Android 环境要求](https://v2.tauri.app/start/prerequisites/)
 - [GStreamer Android 集成](https://gstreamer.freedesktop.org/documentation/installing/for-android-development.html)
