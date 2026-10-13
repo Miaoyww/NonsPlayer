@@ -10,7 +10,6 @@ import {
   type RefObject
 } from 'react'
 import { Search, X } from 'lucide-react'
-import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Track } from '@/lib/player'
 import { Input } from '@/components/ui/input'
 import { ActionButton } from './action-button'
@@ -131,21 +130,21 @@ export function ListFindProvider({
   }, [active, close])
   const results = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase()
-    return keyword
-      ? (active?.entries.filter(({ track }) =>
-          [track.title, track.artist, track.album, ...(track.aliases ?? [])].some((value) =>
-            value.toLocaleLowerCase().includes(keyword)
-          )
-        ) ?? [])
-      : []
+    const matches: FindEntry[] = []
+    if (!keyword) return matches
+    for (const entry of active?.entries ?? []) {
+      const { track } = entry
+      if (
+        [track.title, track.artist, track.album, ...(track.aliases ?? [])].some((value) =>
+          value.toLocaleLowerCase().includes(keyword)
+        )
+      ) {
+        matches.push(entry)
+        if (matches.length === 5) break
+      }
+    }
+    return matches
   }, [active, query])
-  const resultList = useVirtualizer({
-    count: results.length,
-    getScrollElement: () => resultsElement.current,
-    estimateSize: () => 112,
-    overscan: 4,
-    getItemKey: (index) => `${results[index].track.key}:${results[index].index}`
-  })
   useEffect(() => {
     if (resultsElement.current) resultsElement.current.scrollTop = 0
   }, [query])
@@ -194,50 +193,22 @@ export function ListFindProvider({
               ref={resultsElement}
               className="max-h-[min(28rem,55vh)] overflow-y-auto overscroll-contain"
             >
-              <div style={{ height: resultList.getTotalSize(), position: 'relative' }}>
-                {resultList.getVirtualItems().map((row) => {
-                  const { track, index } = results[row.index]
-                  return (
-                    <div
-                      key={row.key}
-                      data-index={row.index}
-                      ref={resultList.measureElement}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        transform: `translateY(${row.start}px)`
-                      }}
-                    >
-                      <SongContextMenu
-                        key={`${track.key}:${index}`}
-                        track={track}
-                        busy={active.busy}
-                        onPlay={() => active.play(index)}
-                        onLocate={() => locate(index)}
-                        onRemove={active.remove ? () => active.remove!(index) : undefined}
-                        removeLabel={active.removeLabel}
-                        render={
-                          <div className="rounded-lg px-2 py-2 hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary" />
-                        }
-                      >
-                        <TrackIdentity track={track} showSource />
-                        <p className="ml-12 truncate text-xs text-muted-foreground">
-                          {track.album}
-                        </p>
-                        <button
-                          type="button"
-                          className="mt-1 text-xs text-primary"
-                          onClick={() => locate(index)}
-                        >
-                          定位到歌曲
-                        </button>
-                      </SongContextMenu>
-                    </div>
-                  )
-                })}
-              </div>
+              {results.map(({ track, index }) => (
+                <SongContextMenu
+                  key={`${track.key}:${index}`}
+                  track={track}
+                  busy={active.busy}
+                  onPlay={() => active.play(index)}
+                  onLocate={() => locate(index)}
+                  onRemove={active.remove ? () => active.remove!(index) : undefined}
+                  removeLabel={active.removeLabel}
+                  render={
+                    <div className="rounded-lg px-2 py-2 hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary" />
+                  }
+                >
+                  <TrackIdentity track={track} showSource />
+                </SongContextMenu>
+              ))}
             </div>
           </div>
         )}
