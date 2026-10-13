@@ -18,7 +18,7 @@ export function SettingsHome({
     <Button
       key={id}
       variant="secondary"
-      className="mobile-settings-category"
+      className={`mobile-settings-category ${id === 'about' || id === 'plugins' ? 'glass-surface' : ''}`}
       onClick={() => onSelect('settings', id)}
     >
       <Icon aria-hidden="true" />

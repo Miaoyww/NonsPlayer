@@ -3048,9 +3048,7 @@
   flex-direction: row;
   gap: 12px;
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
-  background: color-mix(in oklch, var(--background) 60%, transparent);
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
+  background: transparent;
 }
 .settings-home-footer .mobile-settings-category {
   flex: 1;
@@ -3060,6 +3058,9 @@
 }
 .settings-home-footer .mobile-settings-category > svg:last-child {
   display: none;
+}
+.settings-home-footer .mobile-settings-category:is(:hover, :focus-visible) {
+  background: color-mix(in oklch, var(--background) 70%, transparent);
 }
 .settings-sheet {
   padding-top: env(safe-area-inset-top);
