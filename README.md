@@ -2,7 +2,7 @@
 
 <img src="docs/app-icon.png" alt="NonsPlayer Logo" height="128" width="128">
 
-# NonsPlayer (Next-Gen)
+# NonsPlayer
 
 [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
 [![Tauri](https://img.shields.io/badge/Tauri-2.0-24C8DB?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
