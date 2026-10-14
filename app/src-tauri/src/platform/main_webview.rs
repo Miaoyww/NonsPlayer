@@ -12,7 +12,7 @@ use std::{
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewBuilder};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-const IDLE_TIMEOUT: Duration = Duration::from_secs(180);
+const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 enum Request {
     Open { show: bool, settings: bool },
@@ -123,7 +123,7 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
                             app.state::<std::sync::Arc<PluginManager>>()
                                 .frontend_detached()?;
                             ready = false;
-                            eprintln!("主面板已隐藏 3 分钟，WebView 已释放");
+                            eprintln!("主面板已隐藏 30 秒，WebView 已释放");
                         }
                     }
                     Ok(())

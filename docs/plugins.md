@@ -203,7 +203,7 @@ view 导出命名 React Component，并在 views 中关联导出与 `main.overla
 - IPC／事件／存储单值最多 64KiB；事件最多 32 次／秒；存储每插件 1MiB；安装最多 1024 文件、64MiB 解压总量，WASM 入口 16MiB，UI／资源单文件 8MiB。
 - SDK、元数据和资源都校验加载代次。trap／超时／资源耗尽撤销该实例，普通 Guest 业务错误保留实例。原播放队列及音频线程不承担插件执行。
 - `plugin://` 服务只允许活跃插件的前端入口、assets 和合成 Host 模块；规范化路径、拒绝链接／junction、限制类型与大小、设置 MIME、no-store 和有限 CORS。不开放通用 filesystem scope。
-- React 前端是受信任代码，与主 UI 共享 WebView。主窗口连续隐藏或最小化 3 分钟后，非私人 FM 自动续播状态下会释放整个 WebView：前端任务（含前端插件的下载、计时器与临时状态）随之停止，插件 WASM 后端保留；重新打开时重新加载前端并发送 ready，剪贴板订阅在释放期间暂停。需要恢复的插件业务应通过 SDK 持久化状态。SDK 身份、存储、事件和路径约束不等于防恶意 JS 沙箱；它仍可能直接操作 DOM、调用其他可见宿主接口或自行创建副作用。单个模块的 JS／浏览器 ESM 缓存无法强制回收，主线程循环也不能由 WASM fuel 终止。只安装可信前端。
+- React 前端是受信任代码，与主 UI 共享 WebView。主窗口连续隐藏或最小化 30 秒后，非私人 FM 自动续播状态下会释放整个 WebView：前端任务（含前端插件的下载、计时器与临时状态）随之停止，插件 WASM 后端保留；重新打开时重新加载前端并发送 ready，剪贴板订阅在释放期间暂停。需要恢复的插件业务应通过 SDK 持久化状态。SDK 身份、存储、事件和路径约束不等于防恶意 JS 沙箱；它仍可能直接操作 DOM、调用其他可见宿主接口或自行创建副作用。单个模块的 JS／浏览器 ESM 缓存无法强制回收，主线程循环也不能由 WASM fuel 终止。只安装可信前端。
 - Store 上限仅覆盖 guest 线性内存等资源，不代表 Wasmtime JIT、Host、WebView 或全进程内存上限。当前没有独立 WASM worker 进程、签名或权限撤销后的 JS 强制终止；频繁 reload 的 ESM 模块记录可能留在 WebView，必要时重启应用。
 - Windows 已验收；macOS/Linux 原生构建、播放与剪贴板观察尚需对应环境验证，Linux 当前为 X11 后端。Release 的 GStreamer 裁剪和打包仍沿用既有未完成状态。
 
