@@ -28,6 +28,7 @@ import {
   getLibraryTracks,
   getMusicLibrary,
   peekMusicLibrary,
+  peekLibraryCollections,
   invalidateMusicLibrary,
   playLibraryCollection,
   type CollectionTracks,
@@ -121,7 +122,10 @@ export default function MusicLibrary({
   const { page, navigate } = useMusicNavigation()
   const player = usePlayer('index', 'queue')
   const currentKey = player.index !== null ? player.queue[player.index]?.key : undefined
-  const [summary, setSummary] = useState<LibrarySummary>()
+  const [summaryState, setSummary] = useState<LibrarySummary | undefined>(() =>
+    profile ? peekMusicLibrary(profile.userId) : undefined
+  )
+  const summary = summaryState?.profile.userId === profile?.userId ? summaryState : undefined
   const [summaryBusy, setSummaryBusy] = useState(false)
   const [summaryError, setSummaryError] = useState<string>()
   const [tab, setTab] = useState<LibraryTab>('playlist')
@@ -141,6 +145,7 @@ export default function MusicLibrary({
       setSummary(undefined)
       return
     }
+    if (showingDetail) return
     const cached = peekMusicLibrary(profile.userId)
     const current = cached ?? (summary?.profile.userId === profile.userId ? summary : undefined)
     setSummary(current)
@@ -162,7 +167,7 @@ export default function MusicLibrary({
     return () => {
       disposed = true
     }
-  }, [profile, refresh, likesRevision, collectionRevision])
+  }, [profile, refresh, likesRevision, collectionRevision, showingDetail])
 
   const listLoader = useCallback(
     async (offset: number) => {
@@ -170,7 +175,7 @@ export default function MusicLibrary({
         const value = await getLibraryHistory(week, offset)
         return { items: value.tracks, more: value.more }
       }
-      const value = await getLibraryCollections(tab, offset, filter)
+      const value = await getLibraryCollections(tab, offset, filter, profile?.userId)
       return { items: value.items, more: value.more }
     },
     [profile, tab, filter, week, refresh, showingDetail, collectionRevision]
@@ -180,7 +185,18 @@ export default function MusicLibrary({
     tab === 'history' ? 100 : 30,
     !!profile && isTauri() && !showingDetail
   )
-  const collections = { items: list.items as MusicCollection[], more: list.more }
+  const preview =
+    profile &&
+    tab === 'playlist' &&
+    filter === 'all' &&
+    !list.items.length &&
+    (list.busy || list.error)
+      ? peekLibraryCollections(profile.userId)
+      : undefined
+  const collections = {
+    items: (preview?.items ?? list.items) as MusicCollection[],
+    more: list.more
+  }
   const history = { tracks: list.items as Track[], more: list.more }
   const listBusy = list.busy
   const detailLoader = useCallback(
@@ -571,7 +587,7 @@ export default function MusicLibrary({
             <p className="library-empty text-muted-foreground">
               登录后查看收藏的歌单、专辑和艺人。
             </p>
-          ) : listBusy && !list.items.length ? (
+          ) : listBusy && !list.items.length && !collections.items.length ? (
             tab === 'history' ? (
               <TrackListSkeleton sortable={false} />
             ) : (

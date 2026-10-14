@@ -57,6 +57,7 @@ test('homepage allows a newer song selection while the previous collection is pr
     '@/lib/use-paged-list': { usePagedList: () => ({ items: [], more: false, busy: false }) },
     '@/features/library/library-api': {
       peekMusicLibrary: () => summary,
+      peekLibraryCollections: () => undefined,
       getMusicLibrary: async () => summary,
       playLibraryCollection: (_collection, key) =>
         new Promise((resolve, reject) => requests.push({ key, resolve, reject }))

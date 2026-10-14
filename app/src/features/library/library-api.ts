@@ -1,3 +1,4 @@
+import { peekLibraryPreview, saveLibraryPreview, clearLibraryPreviews } from './library-preview'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { nativeCall, peekNativeCall, type Track } from '@/lib/player'
 import type { AccountProfile } from '@/features/account/account'
@@ -24,6 +25,7 @@ export interface CollectionTracks {
 }
 let accountId: number | undefined
 export function invalidateMusicLibrary() {
+  clearLibraryPreviews()
   invalidateNativeCache(['music_library', 'library_tracks', 'library_collections'])
 }
 export function resetAccountCache() {
@@ -36,14 +38,33 @@ function selectAccount(userId: number) {
 }
 export function peekMusicLibrary(userId: number) {
   selectAccount(userId)
-  return peekNativeCall<LibrarySummary>('music_library')
+  return peekNativeCall<LibrarySummary>('music_library') ?? peekLibraryPreview(userId)?.summary
 }
 export function getMusicLibrary(userId: number): Promise<LibrarySummary> {
   selectAccount(userId)
-  return nativeCall<LibrarySummary>('music_library')
+  return nativeCall<LibrarySummary>('music_library').then((value) => {
+    if (value.profile.userId === userId && !value.likedError)
+      saveLibraryPreview(userId, { summary: value })
+    return value
+  })
 }
-export const getLibraryCollections = (kind: LibraryTab, offset: number, filter: PlaylistFilter) =>
-  nativeCall<CollectionPage>('library_collections', { kind, offset, filter })
+export function peekLibraryCollections(userId: number) {
+  return peekLibraryPreview(userId)?.collections
+}
+export function getLibraryCollections(
+  kind: LibraryTab,
+  offset: number,
+  filter: PlaylistFilter,
+  userId = accountId
+) {
+  return nativeCall<CollectionPage>('library_collections', { kind, offset, filter }).then(
+    (value) => {
+      if (userId && kind === 'playlist' && offset === 0 && filter === 'all')
+        saveLibraryPreview(userId, { collections: value })
+      return value
+    }
+  )
+}
 export function getLibraryTracks(
   collection: MusicCollection,
   offset: number,

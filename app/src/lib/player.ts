@@ -1,3 +1,4 @@
+import { clearLibraryPreviews } from '@/features/library/library-preview'
 import { coverOriginal, type CoverInput } from '@/features/music/cover-image'
 import { ScopedMusicQueries } from '@/features/music/scoped-query'
 import { isAndroid } from '@/lib/platform'
@@ -346,7 +347,12 @@ export async function connectPlayer(): Promise<UnlistenFn> {
     )
     listeners.push(playerStore.subscribeState(() => fm.update()))
     listeners.push(await listen('lyrics-updated', () => invalidateNativeCache(['track_lyrics'])))
-    listeners.push(await listen('music-changed', () => invalidateNativeCache()))
+    listeners.push(
+      await listen('music-changed', () => {
+        clearLibraryPreviews()
+        invalidateNativeCache()
+      })
+    )
     listeners.push(
       await listen('music-account-changed', () => invalidateNativeCache(undefined, 'context'))
     )

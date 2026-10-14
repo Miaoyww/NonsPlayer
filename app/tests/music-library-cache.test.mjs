@@ -7,7 +7,20 @@ import { LRUCache } from 'lru-cache'
 import ts from 'typescript'
 
 function load(path, modules) {
-  modules = { '@/features/music/cover-image': coverImage, ...modules }
+  modules = {
+    '@/features/music/cover-image': coverImage,
+    '@/features/library/library-preview': {
+      clearLibraryPreviews() {},
+      peekLibraryPreview() {},
+      saveLibraryPreview() {}
+    },
+    './library-preview': {
+      clearLibraryPreviews() {},
+      peekLibraryPreview() {},
+      saveLibraryPreview() {}
+    },
+    ...modules
+  }
   const exports = {}
   const { outputText } = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS }
@@ -78,7 +91,12 @@ function harness() {
     }
   }
 }
-const summary = { likedPlaylist: { id: 1, kind: 'playlist' }, likedTracks: [], likedError: null }
+const summary = {
+  profile: { userId: 1, nickname: 'Saved', avatarUrl: '' },
+  likedPlaylist: { id: 1, kind: 'playlist' },
+  likedTracks: [],
+  likedError: null
+}
 
 test('local file reads remain fresh and cannot replace cached online lyrics for the same track', async () => {
   const { player, requests } = harness()

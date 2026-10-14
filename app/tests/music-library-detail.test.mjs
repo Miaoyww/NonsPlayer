@@ -48,6 +48,7 @@ test('likes refresh the loaded playlist in the background without unmounting its
     },
     '@/features/library/library-api': {
       peekMusicLibrary: () => summary,
+      peekLibraryCollections: () => undefined,
       getMusicLibrary: async () => summary,
       getLibraryTracks: (_collection, offset) =>
         new Promise((resolve, reject) => requests.push({ offset, resolve, reject }))

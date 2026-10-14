@@ -62,6 +62,16 @@ async function harness({ delayed = false } = {}) {
   }
   const modules = {
     '@/features/music/cover-image': coverImage,
+    '@/features/library/library-preview': {
+      clearLibraryPreviews() {},
+      peekLibraryPreview() {},
+      saveLibraryPreview() {}
+    },
+    './library-preview': {
+      clearLibraryPreviews() {},
+      peekLibraryPreview() {},
+      saveLibraryPreview() {}
+    },
     '@/lib/platform': { isAndroid: () => false },
     '@/features/playback/player-store': compile('../src/features/playback/player-store.ts'),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
