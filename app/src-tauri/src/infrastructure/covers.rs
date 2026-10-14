@@ -8,7 +8,7 @@ fn cache() -> &'static Cache<String, String> {
     static CACHE: OnceLock<Cache<String, String>> = OnceLock::new();
     CACHE.get_or_init(|| {
         Cache::builder()
-            .max_capacity(16 * 1024 * 1024)
+            .max_capacity(32 * 1024 * 1024)
             .weigher(|key: &String, value: &String| (key.len() + value.len()) as u32)
             .time_to_live(Duration::from_secs(600))
             .build()

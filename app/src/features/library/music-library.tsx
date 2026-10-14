@@ -314,7 +314,11 @@ export default function MusicLibrary({
         <>
           <header className="library-profile">
             {profile?.avatarUrl ? (
-              <Cover cover={profile.avatarUrl} className="library-avatar rounded-full" />
+              <Cover
+                size="small"
+                cover={profile.avatarUrl}
+                className="library-avatar rounded-full"
+              />
             ) : (
               <UserRound className="library-avatar bg-muted p-2" aria-hidden="true" />
             )}
@@ -450,7 +454,7 @@ export default function MusicLibrary({
                           if (liked) void playCollection(liked, track.key)
                         }}
                       >
-                        <Cover cover={track.cover} className="size-10" />
+                        <Cover size="small" cover={track.cover} className="size-10" />
                       </button>
                       <div className="min-w-0 flex-1">
                         <button

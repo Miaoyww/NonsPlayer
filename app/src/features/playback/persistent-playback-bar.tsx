@@ -38,7 +38,7 @@ export function PersistentPlaybackBar({
         title="打开全屏播放器"
         onClick={onLyrics}
       >
-        <Cover cover={track?.cover} className="size-12" />
+        <Cover size="small" cover={track?.cover} className="size-12" />
       </button>
       <div className="persistent-track-text">
         <p className="persistent-track-title" title={title}>

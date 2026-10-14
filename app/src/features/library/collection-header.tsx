@@ -27,6 +27,7 @@ export function CollectionHeader({
   return (
     <DetailHeader>
       <Cover
+        size="large"
         cover={collection.cover}
         className={`library-detail-cover ${collection.kind === 'artist' ? 'rounded-full' : 'rounded-xl'}`}
       />

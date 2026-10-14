@@ -239,6 +239,7 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
                   disabled={!track}
                 >
                   <Cover
+                    size="original"
                     cover={track?.cover}
                     loading="eager"
                     className="now-playing-cover aspect-square rounded-xl shadow-2xl"
@@ -246,6 +247,7 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
                 </button>
               ) : (
                 <Cover
+                  size="original"
                   cover={track?.cover}
                   loading="eager"
                   className="now-playing-cover aspect-square rounded-xl shadow-2xl"

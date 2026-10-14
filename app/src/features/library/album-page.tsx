@@ -62,7 +62,7 @@ export default function AlbumPage({
   return (
     <MusicPage aria-label="专辑详情">
       <DetailHeader>
-        <Cover cover={album.cover} className="library-detail-cover rounded-xl" />
+        <Cover size="large" cover={album.cover} className="library-detail-cover rounded-xl" />
         <div className="library-detail-info">
           <h1 className="library-detail-title">{album.name}</h1>
           <div className="library-detail-meta">

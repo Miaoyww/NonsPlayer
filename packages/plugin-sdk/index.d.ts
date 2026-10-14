@@ -89,7 +89,11 @@ export function usePluginFiles(): {
 export function usePluginNavigate(): (path?: string) => void
 export function usePluginRoute(): { pathname: string; search: string }
 export function useTheme(): 'light' | 'dark' | 'system'
-export function useCoverSource(cover?: string, enabled?: boolean): string | undefined
+export function useCoverSource(
+  cover?: import('./music').CoverInput,
+  enabled?: boolean,
+  size?: import('./music').CoverSize
+): string | undefined
 export function usePlayer(): {
   status: string
   positionMs: number

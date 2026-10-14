@@ -375,9 +375,13 @@ export function useTheme() {
   const [theme] = useHostTheme()
   return theme
 }
-export function useCoverSource(cover?: string, enabled = true) {
+export function useCoverSource(
+  cover?: import('@/features/music/types').CoverInput,
+  enabled = true,
+  size: import('@/features/music/types').CoverSize = 'normal'
+) {
   useScope('ui')
-  return useHostCoverSource(cover, enabled)
+  return useHostCoverSource(cover, enabled, size)
 }
 
 export interface PluginClient {

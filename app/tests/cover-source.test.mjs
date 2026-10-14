@@ -99,9 +99,9 @@ function harness({ intersecting = true } = {}) {
       effects.splice(0).forEach((fn) => fn())
       return full ? tree : tree.props.children.find((child) => child?.type === 'img')
     },
-    render(cover, enabled = true) {
+    render(cover, enabled = true, size = 'normal') {
       cursor = 0
-      const value = exports.useCoverImageSource(cover, enabled)
+      const value = exports.useCoverImageSource(cover, enabled, size)
       effects.splice(0).forEach((fn) => fn())
       return value
     }
@@ -216,4 +216,61 @@ test('Cover keeps its skeleton until image load, shows it again for a new source
   tree = h.renderCover(next, true)
   assert.equal(tree.props.children[0], false)
   assert.equal(h.requests.length, 2)
+})
+
+const variants = Object.fromEntries(
+  ['small', 'normal', 'large', 'exlarge', 'original'].map((size) => [
+    size,
+    `https://other.example/${size}.jpg`
+  ])
+)
+test('semantic sizes select adapter URLs without adding platform parameters, and only full cover requests original', () => {
+  for (const size of ['small', 'normal', 'large', 'exlarge', 'original']) {
+    const h = harness()
+    h.render(variants, true, size)
+    assert.equal(h.requests[0].args.url, variants[size])
+    assert.equal(h.requests.length, 1)
+  }
+  const h = harness({ intersecting: false })
+  h.renderCover(variants, true, { loading: 'eager', size: 'original' })
+  assert.equal(h.requests[0].args.url, variants.original)
+})
+test('a card degrades to small then original, invalidates decoded errors and never loops', async () => {
+  const h = harness()
+  h.render(variants)
+  h.requests[0].reject(Error('normal unavailable'))
+  await settle()
+  h.render(variants)
+  assert.equal(h.requests[1].args.url, variants.small)
+  h.requests[1].resolve('data:image/jpeg;base64,broken')
+  await settle()
+  h.render(variants).onError()
+  h.render(variants)
+  const original = h.requests.find(
+    (r) => r.command === 'runtime_cover' && r.args.url === variants.original
+  )
+  assert.ok(original)
+  original.resolve('data:image/jpeg;base64,also-broken')
+  await settle()
+  h.render(variants).onError()
+  assert.equal(h.render(variants).source, variants.original)
+  h.render(variants).onError()
+  assert.equal(h.render(variants).source, undefined)
+  assert.equal(h.requests.filter((r) => r.command === 'runtime_cover').length, 3)
+  assert.equal(h.deleted.length, 2)
+})
+test('size changes ignore older in-flight images and original failures can recover through exlarge', async () => {
+  const h = harness()
+  h.render(variants, true, 'small')
+  h.render(variants, true, 'original')
+  h.requests[0].resolve('data:image/jpeg;base64,old-small')
+  await settle()
+  assert.equal(h.render(variants, true, 'original').source, undefined)
+  h.requests[1].reject(Error('original too big'))
+  await settle()
+  h.render(variants, true, 'original')
+  assert.equal(h.requests[2].args.url, variants.exlarge)
+  h.requests[2].resolve('data:image/jpeg;base64,media')
+  await settle()
+  assert.equal(h.render(variants, true, 'original').source, 'data:image/jpeg;base64,media')
 })

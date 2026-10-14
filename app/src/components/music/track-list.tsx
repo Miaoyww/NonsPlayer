@@ -597,7 +597,11 @@ export const TrackList = memo(function TrackList({
                             aria-label={`播放 ${track.title}`}
                             onClick={() => onPlay(row.index, visibleTracks)}
                           >
-                            <Cover cover={track.cover} className="track-identity-cover" />
+                            <Cover
+                              size="small"
+                              cover={track.cover}
+                              className="track-identity-cover"
+                            />
                             <span className="track-cover-play">
                               <Play aria-hidden="true" />
                             </span>

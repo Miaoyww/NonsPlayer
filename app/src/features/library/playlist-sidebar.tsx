@@ -83,7 +83,7 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
         aria-current={selected ? 'page' : undefined}
         onClick={() => openPlaylist(item)}
       >
-        <Cover cover={item.cover} className="size-11" />
+        <Cover size="small" cover={item.cover} className="size-11" />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{item.name}</span>
           <span className="block text-xs text-muted-foreground">{item.trackCount} 首</span>

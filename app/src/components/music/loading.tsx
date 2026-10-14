@@ -118,7 +118,7 @@ export function LibraryPageSkeleton() {
     <MusicPage aria-label="正在加载音乐库" aria-busy="true">
       <header className="library-profile">
         {profile?.avatarUrl ? (
-          <Cover cover={profile.avatarUrl} className="library-avatar rounded-full" />
+          <Cover size="small" cover={profile.avatarUrl} className="library-avatar rounded-full" />
         ) : (
           <Skeleton className="library-avatar" />
         )}

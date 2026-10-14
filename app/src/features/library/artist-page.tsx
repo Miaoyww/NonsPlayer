@@ -90,7 +90,7 @@ export default function ArtistPage({
   return (
     <MusicPage className="artist-page" aria-label="歌手详情">
       <DetailHeader>
-        <Cover cover={artist.cover} className="library-detail-cover rounded-full" />
+        <Cover size="large" cover={artist.cover} className="library-detail-cover rounded-full" />
         <div className="library-detail-info">
           <h1 className="library-detail-title">{artist.name}</h1>
           <div className="library-detail-meta">
@@ -148,7 +148,7 @@ export default function ArtistPage({
               key={album.id}
               onClick={() => openAlbum(album)}
             >
-              <Cover cover={album.cover} className="artist-release-cover rounded-xl" />
+              <Cover size="large" cover={album.cover} className="artist-release-cover rounded-xl" />
               <span className="min-w-0 text-left">
                 <span className="block truncate text-lg font-semibold">{album.name}</span>
                 <span className="mt-2 block text-sm text-muted-foreground">

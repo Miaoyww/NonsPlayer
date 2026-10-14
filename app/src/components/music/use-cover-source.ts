@@ -1,54 +1,71 @@
-import { coverOriginal, type CoverInput } from '@/features/music/cover-image'
+import { coverCandidates, type CoverInput, type CoverSize } from '@/features/music/cover-image'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { coverSource, nativeCall } from '@/lib/player'
 import { coverCache, requestKey } from '@/lib/runtime-cache'
 import { useLocalOptions } from '@/features/local/use-local-options'
 
-export function useCoverSource(input?: CoverInput, enabled = true) {
-  return useCoverImageSource(input, enabled).source
+export function useCoverSource(cover?: CoverInput, enabled = true, size: CoverSize = 'normal') {
+  return useCoverImageSource(cover, enabled, size).source
 }
-
-export function useCoverImageSource(input?: CoverInput, enabled = true) {
-  const cover = coverOriginal(input)
+interface LoadedCover {
+  identity: string
+  url: string
+  source?: string
+  cached: boolean
+}
+export function useCoverImageSource(
+  cover?: CoverInput,
+  enabled = true,
+  size: CoverSize = 'normal'
+) {
+  const candidates = coverCandidates(cover, size)
+  const identity = JSON.stringify(candidates)
+  const [attempt, setAttempt] = useState<{ identity: string; index: number }>()
+  const index = attempt?.identity === identity ? attempt.index : 0
+  const url = candidates[index] ?? ''
   const { showCovers } = useLocalOptions()
-  const remote = !!cover && /^https?:\/\//.test(cover)
-  const visible = enabled && !!cover && (remote || showCovers)
-  const [loaded, setLoaded] = useState<{ cover: string; source?: string }>()
+  const remote = /^https?:\/\//.test(url)
+  const visible = enabled && !!url && (remote || showCovers)
+  const [loaded, setLoaded] = useState<LoadedCover>()
   useEffect(() => {
-    if (!visible || !remote || !isTauri()) return
+    if (!visible) {
+      setAttempt(undefined)
+      setLoaded(undefined)
+      return
+    }
+    if (!remote || !isTauri()) return
     let disposed = false
-    const sized = new URL(cover!)
-    void nativeCall<string>('runtime_cover', { url: sized.toString() })
+    void nativeCall<string>('runtime_cover', { url })
       .then((source) => {
-        if (!disposed) setLoaded({ cover: cover!, source })
+        if (!disposed) setLoaded({ identity, url, source, cached: true })
       })
       .catch(() => {
-        if (!disposed) {
-          const source = coverSource(cover!)
-          setLoaded({ cover: cover!, source })
-        }
+        if (disposed) return
+        if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
+        else setLoaded({ identity, url, source: coverSource(url), cached: false })
       })
     return () => {
       disposed = true
     }
-  }, [cover, visible, remote])
-  const original = cover ? coverSource(cover) : undefined
+  }, [identity, url, index, visible, remote])
+  const current = loaded?.identity === identity && loaded.url === url ? loaded : undefined
   const source = !visible
     ? undefined
-    : loaded?.cover === cover
-      ? loaded.source
+    : current
+      ? current.source
       : remote && isTauri()
         ? undefined
-        : original
+        : coverSource(url)
   const onError = () => {
-    if (!source || !cover) return
-    if (remote && isTauri() && source !== original) {
-      const sized = new URL(cover)
-      coverCache.delete(requestKey('runtime_cover', { url: sized.toString() }))
-      void nativeCall('runtime_cover_invalidate', { url: sized.toString() }).catch(() => {})
-      setLoaded({ cover, source: original })
-    } else setLoaded({ cover, source: undefined })
+    if (!source || !url) return
+    if (remote && isTauri() && current?.cached) {
+      coverCache.delete(requestKey('runtime_cover', { url }))
+      void nativeCall('runtime_cover_invalidate', { url }).catch(() => {})
+    }
+    if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
+    else if (current?.cached) setLoaded({ identity, url, source: coverSource(url), cached: false })
+    else setLoaded({ identity, url, source: undefined, cached: false })
   }
-  return { source, onError, pending: visible && remote && isTauri() && loaded?.cover !== cover }
+  return { source, onError, pending: visible && remote && isTauri() && !current }
 }

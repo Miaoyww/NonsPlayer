@@ -253,7 +253,7 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
       {busy && !track ? (
         <Skeleton className="discover-fm-cover" />
       ) : (
-        <Cover cover={track?.cover} className="discover-fm-cover" />
+        <Cover size="large" cover={track?.cover} className="discover-fm-cover" />
       )}
       <div className="discover-fm-info">
         <h2 title={track?.title}>
@@ -516,7 +516,11 @@ export default function Discovery({
                 }
               >
                 {!isAndroid() && (
-                  <Cover cover={profile?.avatarUrl} className="discover-shortcut-cover" />
+                  <Cover
+                    size="small"
+                    cover={profile?.avatarUrl}
+                    className="discover-shortcut-cover"
+                  />
                 )}
                 <span className="discover-shortcut-copy">
                   <span className="discover-shortcut-title">

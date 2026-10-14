@@ -9,7 +9,7 @@ export function AccountAvatar({
   avatar?: import('@/features/music/types').CoverInput
   className?: string
 }) {
-  const { source, onError } = useCoverImageSource(avatar)
+  const { source, onError } = useCoverImageSource(avatar, true, 'small')
   return source ? (
     <img
       src={source}

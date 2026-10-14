@@ -25,7 +25,11 @@ export function AlbumBackground({
   const { backgroundSpeed } = useLyricsSettings()
   const [visible, setVisible] = useState(document.visibilityState !== 'hidden')
   const [ready, setReady] = useState(false)
-  const { source: album, onError } = useCoverImageSource(cover, visible)
+  const { source: album, onError } = useCoverImageSource(
+    cover,
+    visible && active && enabled,
+    'small'
+  )
   useEffect(() => {
     const changed = () => setVisible(document.visibilityState !== 'hidden')
     document.addEventListener('visibilitychange', changed)

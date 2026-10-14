@@ -6,11 +6,13 @@ import { useCoverImageSource } from '@/components/music/use-cover-source'
 export function Cover({
   cover,
   className = '',
-  loading = 'lazy'
+  loading = 'lazy',
+  size = 'normal'
 }: {
   cover?: import('@/features/music/types').CoverInput
   className?: string
   loading?: 'eager' | 'lazy'
+  size?: import('@/features/music/types').CoverSize
 }) {
   const host = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
@@ -30,7 +32,7 @@ export function Cover({
   }, [loading])
   const [readySource, setReadySource] = useState<string>()
   const enabled = loading === 'eager' || visible
-  const { source, onError, pending } = useCoverImageSource(cover, enabled)
+  const { source, onError, pending } = useCoverImageSource(cover, enabled, size)
   const pendingImage = pending || (!!source && readySource !== source) || (!!cover && !enabled)
   return (
     <div

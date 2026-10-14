@@ -26,7 +26,7 @@ export function TrackIdentity({
   const displayMode = mode ?? preferredMode
   return (
     <div className="track-identity flex min-w-0 items-center" data-mode={displayMode}>
-      {cover ?? <Cover cover={track.cover} className="track-identity-cover" />}
+      {cover ?? <Cover size="small" cover={track.cover} className="track-identity-cover" />}
       <div className="min-w-0 flex-1">
         {onTitleCopy ? (
           <button

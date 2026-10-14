@@ -189,7 +189,11 @@ export function PlaylistPicker({
                       height: row.size
                     }}
                   >
-                    <Cover cover={item.cover} className="size-10 shrink-0 rounded-lg" />
+                    <Cover
+                      size="small"
+                      cover={item.cover}
+                      className="size-10 shrink-0 rounded-lg"
+                    />
                     <span className="min-w-0 text-left">
                       <span className="block truncate text-sm font-medium">{item.name}</span>
                       <span className="mt-1 block text-xs text-muted-foreground">

@@ -95,7 +95,7 @@ export class RuntimeCache {
 }
 
 export const requestCache = new RuntimeCache()
-export const coverCache = new RuntimeCache(32 * 1024 * 1024)
+export const coverCache = new RuntimeCache(48 * 1024 * 1024)
 export const cachedCommands = new Set([
   'music_query',
   'music_read_track',

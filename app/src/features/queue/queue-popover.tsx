@@ -67,7 +67,7 @@ export const QueueTrackCard = memo(function QueueTrackCard({
               onClick={onPlay}
               className="queue-track-cover"
             >
-              <Cover cover={track.cover} className="track-identity-cover" />
+              <Cover size="small" cover={track.cover} className="track-identity-cover" />
               <span className="queue-track-cover-play">
                 <Play aria-hidden="true" />
               </span>
