@@ -65,10 +65,22 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     let unlisten: (() => void) | undefined
     const refresh = () => {
       const serial = ++generation.current
-      void nativeCall<AccountProfile | null>('account_profile')
+      void nativeCall<AccountProfile | null>('account_profile_snapshot')
         .then((value) => {
-          if (!disposed && generation.current === serial) {
-            updateProfile(value)
+          if (disposed || generation.current !== serial) return
+          updateProfile(value)
+          setLoading(false)
+          return nativeCall<AccountProfile | null>('account_profile')
+        })
+        .then((value) => {
+          if (!disposed && generation.current === serial && value !== undefined) {
+            updateProfile((previous) =>
+              previous?.userId === value?.userId &&
+              previous?.nickname === value?.nickname &&
+              JSON.stringify(previous?.avatarUrl) === JSON.stringify(value?.avatarUrl)
+                ? previous
+                : value
+            )
             setError(undefined)
           }
         })

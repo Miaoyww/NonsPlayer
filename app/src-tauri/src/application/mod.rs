@@ -912,6 +912,10 @@ async fn login_session(
     Ok(result)
 }
 #[tauri::command]
+fn account_profile_snapshot(backend: State<'_, Backend>) -> AppResult<Option<AccountProfile>> {
+    backend.music.profile_snapshot()
+}
+#[tauri::command]
 async fn account_profile(backend: State<'_, Backend>) -> AppResult<Option<AccountProfile>> {
     backend.music.profile().await
 }
@@ -1192,6 +1196,7 @@ pub fn run() {
             poll_login,
             login_session,
             account_profile,
+            account_profile_snapshot,
             liked_song_ids,
             set_song_liked,
             logout

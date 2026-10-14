@@ -400,17 +400,25 @@ export function MusicWorkspace({
                   ) : (view === 'discover' || view === 'library') &&
                     isTauri() &&
                     (!currentSource || !currentStatus?.enabled) ? (
-                    <MusicPage>
-                      <p role="status" className="py-6 text-sm text-muted-foreground">
-                        {sources.error ||
-                          (currentSource
-                            ? `${sourceLabel(currentSource)}当前不可用，请选择其他来源或在设置中启用。`
-                            : '正在读取音乐来源…')}
-                      </p>
-                      <ActionButton variant="outline" onClick={() => navigate('accounts')}>
-                        选择音乐来源
-                      </ActionButton>
-                    </MusicPage>
+                    sources.loading && !sources.error ? (
+                      view === 'library' ? (
+                        <LibraryPageSkeleton />
+                      ) : (
+                        <MusicPageSkeleton view="discover" />
+                      )
+                    ) : (
+                      <MusicPage>
+                        <p role="status" className="py-6 text-sm text-muted-foreground">
+                          {sources.error ||
+                            (currentSource
+                              ? `${sourceLabel(currentSource)}当前不可用，请选择其他来源或在设置中启用。`
+                              : '正在读取音乐来源…')}
+                        </p>
+                        <ActionButton variant="outline" onClick={() => navigate('accounts')}>
+                          选择音乐来源
+                        </ActionButton>
+                      </MusicPage>
+                    )
                   ) : (view === 'discover' || view === 'library') &&
                     currentSource &&
                     currentSource !== 'netease' ? (

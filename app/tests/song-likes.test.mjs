@@ -5,7 +5,7 @@ import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
 // Run the real account provider with controlled requests and hook lifecycles.
-function harness() {
+function harness(snapshot = null) {
   const slots = [],
     requests = [],
     effects = [],
@@ -65,6 +65,7 @@ function harness() {
     '@/lib/player': {
       errorText: String,
       nativeCall(command, args) {
+        if (command === 'account_profile_snapshot') return Promise.resolve(snapshot)
         return new Promise((resolve, reject) => requests.push({ command, args, resolve, reject }))
       }
     }
@@ -92,6 +93,7 @@ const settle = () => new Promise((resolve) => setImmediate(resolve))
 async function loggedIn() {
   const app = harness()
   app.render()
+  await settle()
   app.requests[0].resolve({ userId: 1 })
   await settle()
   app.render()
@@ -143,6 +145,7 @@ test('switching account discards old write responses', async () => {
 test('switching account discards old liked list responses', async () => {
   const app = harness()
   app.render()
+  await settle()
   app.requests[0].resolve({ userId: 1 })
   await settle()
   app.render()
@@ -160,6 +163,7 @@ test('backend account changes discard pending likes and reload the selected acco
   const oldWrite = app.render().toggleLike(123)
   app.emit('music-account-changed', 'netease')
   app.render()
+  await settle()
   const profile = app.requests.findLast((request) => request.command === 'account_profile')
   profile.resolve({ userId: 2 })
   await settle()
@@ -173,4 +177,20 @@ test('backend account changes discard pending likes and reload the selected acco
   assert.equal(state.profile.userId, 2)
   assert.deepEqual([...state.likedIds], [456])
   assert.deepEqual(app.libraryRefreshes, [])
+})
+
+test('saved current account appears before remote validation and network failure preserves its display', async () => {
+  const saved = { userId: 7, nickname: 'Saved', avatarUrl: '' }
+  const app = harness(saved)
+  app.render()
+  await settle()
+  const state = app.render()
+  assert.equal(state.profile.userId, 7)
+  assert.equal(state.loading, false)
+  const validation = app.requests.find((request) => request.command === 'account_profile')
+  assert.ok(validation)
+  validation.reject(new Error('offline'))
+  await settle()
+  assert.equal(app.render().profile.userId, 7)
+  assert.match(app.render().error, /offline/)
 })

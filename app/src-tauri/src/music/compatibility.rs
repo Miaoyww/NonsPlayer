@@ -391,6 +391,20 @@ impl MusicService {
             _ => Err("登录响应无效".into()),
         }
     }
+    pub fn profile_snapshot(&self) -> AppResult<Option<old::AccountProfile>> {
+        let source = SourceId::try_from("netease".to_owned()).unwrap();
+        let before = self.adapters.stamp(&source).map_err(|e| e.to_string())?;
+        let record = self
+            .accounts
+            .as_ref()
+            .ok_or("账号管理器不可用")?
+            .current_record(&source)
+            .map_err(|e| e.to_string())?;
+        if self.adapters.stamp(&source).map_err(|e| e.to_string())? != before {
+            return Err("账号或音乐来源状态已变化".into());
+        }
+        record.map(profile).transpose()
+    }
     pub async fn profile(&self) -> AppResult<Option<old::AccountProfile>> {
         match self.account_call(AccountRequest::Profile).await? {
             AccountPresentation::Profile(record) => record.map(profile).transpose(),

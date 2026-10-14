@@ -13,8 +13,8 @@ import { useAccountAdapters } from './use-account-adapters'
 
 export function AccountMenu() {
   const { navigate } = useMusicNavigation()
-  const { adapters, error, refresh } = useAccountAdapters()
-  const { preferences, error: sourceError } = useMusicSources()
+  const { adapters, loading: accountLoading, error, refresh } = useAccountAdapters()
+  const { preferences, loading: sourceLoading, error: sourceError } = useMusicSources()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
@@ -46,7 +46,14 @@ export function AccountMenu() {
         render={<ActionButton variant="ghost" size="sm" className="gap-2" aria-label="音乐账号" />}
       >
         <AccountAvatar avatar={adapter?.current?.avatar} />
-        <span className="max-w-48 truncate">{adapter?.current?.displayName ?? '未登录'}</span>
+        <span className="max-w-48 truncate">
+          {adapter?.current?.displayName ??
+            (accountLoading || sourceLoading
+              ? '正在恢复…'
+              : error || sourceError
+                ? '账号暂不可用'
+                : '未登录')}
+        </span>
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="end" sideOffset={8} className="z-50">
