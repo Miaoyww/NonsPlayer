@@ -23,6 +23,7 @@
   height: auto;
   aspect-ratio: 1;
   border-radius: 16px;
+  transform: translateY(-24px);
 }
 .mobile-fullscreen-cover img {
   object-fit: contain;
@@ -78,6 +79,9 @@
 }
 .mobile-fullscreen-header .playback-like[aria-pressed='true'] svg {
   fill: currentColor;
+}
+.mobile-fullscreen-player .playback-like[aria-pressed] {
+  color: var(--foreground);
 }
 .mobile-fullscreen-content {
   position: relative;
@@ -243,6 +247,9 @@
   }
 }
 @media (max-height: 500px) and (orientation: landscape) {
+  .mobile-fullscreen-cover {
+    transform: none;
+  }
   .mobile-fullscreen-stage {
     flex-basis: 80px;
     min-height: 80px;

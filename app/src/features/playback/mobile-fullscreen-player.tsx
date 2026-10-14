@@ -55,12 +55,7 @@ export function MobileFullscreenPlayer({
       <div className="mobile-fullscreen-header-slot">
         {lyricsPage ? (
           <header className="mobile-fullscreen-header">
-            <ActionButton
-              variant="ghost"
-              size="icon-lg"
-              aria-label="返回音乐"
-              onClick={() => (lyricsPage ? showOverview() : onClose())}
-            >
+            <ActionButton variant="ghost" size="icon-lg" aria-label="返回音乐" onClick={onClose}>
               <ChevronDown aria-hidden="true" />
             </ActionButton>
             <Cover

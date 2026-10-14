@@ -8,6 +8,7 @@ function harness() {
   let lyricsPage = false
   let rendered = 0
   let visited = false
+  let closed = 0
   const details = []
   const jsx = (type, props) => ({ type, props })
   const modules = {
@@ -63,6 +64,9 @@ function harness() {
   return {
     details,
     track,
+    get closed() {
+      return closed
+    },
     get rendered() {
       return rendered
     },
@@ -74,7 +78,9 @@ function harness() {
         onError() {},
         onQueue() {},
         onRefresh() {},
-        onClose() {},
+        onClose() {
+          closed++
+        },
         renderLyrics() {
           rendered++
           return 'lyrics'
@@ -147,4 +153,12 @@ test('full song header appears only for lyrics and cover identity stays above th
   assert.equal(find(cover, (node) => node.type === 'transport').props.withModes, true)
   find(cover, (node) => node.props?.['aria-label'] === '查看歌词').props.onClick()
   assert.ok(find(app.render(), (node) => node.type === 'header'))
+})
+
+test('lyrics header down arrow closes the fullscreen player instead of switching back to the cover', () => {
+  const app = harness()
+  find(app.render(), (node) => node.props?.['aria-label'] === '查看歌词').props.onClick()
+  find(app.render(), (node) => node.props?.['aria-label'] === '返回音乐').props.onClick()
+  assert.equal(app.closed, 1)
+  assert.equal(app.render().props['data-mobile-view'], 'lyrics')
 })
