@@ -1,19 +1,14 @@
-import { FastForward, ListMusic, Pause, Play, Repeat, Repeat1, Rewind, Shuffle } from 'lucide-react'
+import { SkipForward, Pause, Play, Repeat, Repeat1, SkipBack, Shuffle } from 'lucide-react'
 import { isTauri } from '@tauri-apps/api/core'
 import { adjacentIndex, nativeCall, usePlayer } from '@/lib/player'
 import { ActionButton } from '@/components/music/action-button'
-import type { ReactNode } from 'react'
 
 export function PlaybackTransport({
   onError,
-  withModes = false,
-  onQueue,
-  leadingControl
+  withModes = false
 }: {
   onError: (error: unknown) => void
   withModes?: boolean
-  onQueue?: () => void
-  leadingControl?: ReactNode
 }) {
   const state = usePlayer('index', 'queue', 'repeatMode', 'shuffle', 'shuffleOrder', 'status')
   const playing = ['playing', 'buffering', 'loading'].includes(state.status)
@@ -26,7 +21,6 @@ export function PlaybackTransport({
       className="now-playing-transport flex items-center justify-center"
       aria-label="播放控制按钮"
     >
-      {leadingControl}
       {withModes && (
         <ActionButton
           variant="ghost"
@@ -48,7 +42,7 @@ export function PlaybackTransport({
         aria-label="上一首"
         onClick={() => action('previous')}
       >
-        <Rewind className="size-6 fill-current" aria-hidden="true" />
+        <SkipBack className="size-6 fill-current" aria-hidden="true" />
       </ActionButton>
       <ActionButton
         variant="ghost"
@@ -67,7 +61,7 @@ export function PlaybackTransport({
         aria-label="下一首"
         onClick={() => action('next')}
       >
-        <FastForward className="size-6 fill-current" aria-hidden="true" />
+        <SkipForward className="size-6 fill-current" aria-hidden="true" />
       </ActionButton>
       {withModes && (
         <ActionButton
@@ -85,11 +79,6 @@ export function PlaybackTransport({
           ) : (
             <Repeat aria-hidden="true" />
           )}
-        </ActionButton>
-      )}
-      {onQueue && (
-        <ActionButton variant="ghost" size="icon-lg" aria-label="显示播放队列" onClick={onQueue}>
-          <ListMusic aria-hidden="true" />
         </ActionButton>
       )}
     </div>

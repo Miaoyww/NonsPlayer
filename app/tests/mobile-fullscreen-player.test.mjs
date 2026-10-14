@@ -124,11 +124,27 @@ test('cover and lyrics switch through the upper area while controls remain and t
   assert.equal(app.rendered, 2)
 })
 
-test('info opens existing song details and favorite is extracted from the menu', () => {
+test('cover retains the shared favorite and menu without dedicated info or queue buttons', () => {
   const app = harness()
   const tree = app.render()
-  find(tree, (node) => node.props?.['aria-label'] === '查看歌曲信息').props.onClick()
-  assert.deepEqual(app.details, [app.track])
+  assert.equal(
+    find(tree, (node) => node.props?.['aria-label'] === '查看歌曲信息'),
+    undefined
+  )
+  assert.equal(find(tree, (node) => node.type === 'transport').props.onQueue, undefined)
   assert.ok(find(tree, (node) => node.type === 'like'))
   assert.equal(find(tree, (node) => node.type === 'menu').props.showLike, false)
+})
+
+test('full song header appears only for lyrics and cover identity stays above the shared single-row transport', () => {
+  const app = harness()
+  const cover = app.render()
+  assert.equal(
+    find(cover, (node) => node.type === 'header'),
+    undefined
+  )
+  assert.ok(find(cover, (node) => node.props?.className === 'mobile-cover-identity'))
+  assert.equal(find(cover, (node) => node.type === 'transport').props.withModes, true)
+  find(cover, (node) => node.props?.['aria-label'] === '查看歌词').props.onClick()
+  assert.ok(find(app.render(), (node) => node.type === 'header'))
 })

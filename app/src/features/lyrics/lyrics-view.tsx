@@ -237,6 +237,15 @@ export default function LyricsView({
       </div>
     )
   const showLyrics = !!track
+  const albumBackground = (
+    <AlbumBackground
+      cover={track?.cover}
+      playing={state.status === 'playing'}
+      hasLyrics={lines.length > 0}
+      active={rendering}
+      enabled={entered || !!reduced}
+    />
+  )
   return (
     <motion.section
       className="nons-lyrics now-playing absolute inset-0 z-[5] flex flex-col pt-12"
@@ -257,12 +266,12 @@ export default function LyricsView({
     >
       {mobile ? (
         <MobileFullscreenPlayer
+          background={albumBackground}
           track={track}
           present={isPresent}
           source={source}
           loading={loading}
           onRefresh={() => void requestLyrics(true)}
-          onQueue={onQueue}
           onClose={onClose}
           onError={(cause) => setError(errorText(cause))}
           renderLyrics={renderLyrics}
@@ -270,13 +279,7 @@ export default function LyricsView({
         />
       ) : (
         <>
-          <AlbumBackground
-            cover={track?.cover}
-            playing={state.status === 'playing'}
-            hasLyrics={lines.length > 0}
-            active={rendering}
-            enabled={entered || !!reduced}
-          />
+          {albumBackground}
           {lyricControls}
           <div
             className={`now-playing-layout relative min-h-0 flex-1 ${showLyrics ? 'has-lyrics' : ''}`}

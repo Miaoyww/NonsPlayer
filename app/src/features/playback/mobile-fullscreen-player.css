@@ -5,51 +5,45 @@
   flex-direction: column;
   overflow: hidden;
   --mobile-player-gutter: 20px;
-  --mobile-player-background: oklch(0.12 0 0);
-  background: var(--mobile-player-background);
+  background: transparent;
 }
 .mobile-fullscreen-artwork {
   position: absolute;
-  inset: 0;
+  inset: 0 0 72px;
+  container-type: size;
+  display: grid;
+  place-items: center;
   pointer-events: none;
-  background: var(--mobile-player-background);
+  transition:
+    opacity 260ms ease,
+    transform 260ms ease;
 }
 .mobile-fullscreen-cover {
-  position: absolute;
-  top: calc(64px + var(--nons-safe-area-top, env(safe-area-inset-top)));
-  width: 100%;
+  width: min(100cqw, 100cqh, 320px);
   height: auto;
   aspect-ratio: 1;
-  border-radius: 0;
-  mask-image: linear-gradient(180deg, black 45%, transparent 100%);
+  border-radius: 16px;
 }
 .mobile-fullscreen-cover img {
   object-fit: contain;
 }
-.mobile-fullscreen-artwork::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgb(0 0 0 / 20%),
-    transparent 28%,
-    rgb(0 0 0 / 20%) 44%,
-    var(--mobile-player-background) 72%
-  );
-}
 .mobile-fullscreen-player[data-mobile-view='lyrics'] .mobile-fullscreen-artwork {
-  filter: blur(24px);
+  opacity: 0;
+  transform: translateY(-8px);
 }
-.mobile-fullscreen-player[data-mobile-view='lyrics'] .mobile-fullscreen-artwork::after {
-  background: linear-gradient(
-    180deg,
-    rgb(0 0 0 / 40%),
-    rgb(0 0 0 / 55%) 50%,
-    var(--mobile-player-background)
-  );
+.mobile-fullscreen-header-slot {
+  position: relative;
+  flex-shrink: 0;
+  height: calc(76px + var(--nons-safe-area-top, env(safe-area-inset-top)));
+}
+.mobile-cover-dismiss {
+  width: 44px;
+  height: 44px;
+  margin-top: calc(12px + var(--nons-safe-area-top, env(safe-area-inset-top)));
+  margin-left: calc(8px + var(--nons-safe-area-left, env(safe-area-inset-left)));
 }
 .mobile-fullscreen-header {
+  animation: mobile-header-enter 240ms ease both;
   position: relative;
   display: flex;
   align-items: center;
@@ -125,26 +119,47 @@
 .mobile-fullscreen-controls {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 8px;
 }
-.mobile-fullscreen-controls .now-playing-transport {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0;
+.mobile-cover-identity {
+  position: absolute;
+  bottom: calc(100% + 20px);
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  transition:
+    opacity 240ms ease,
+    transform 240ms ease,
+    visibility 0s;
 }
-.mobile-fullscreen-controls .now-playing-transport > button,
-.mobile-fullscreen-controls .now-playing-transport > .now-playing-toggle {
-  width: 100%;
-  height: 56px;
-  min-width: 0;
+.mobile-cover-identity[data-active='false'] {
+  opacity: 0;
+  transform: translateY(12px);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 240ms ease,
+    transform 240ms ease,
+    visibility 0s 240ms;
 }
-.mobile-fullscreen-controls .now-playing-transport > button svg {
-  width: 22px;
-  height: 22px;
+.mobile-cover-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.mobile-fullscreen-controls .now-playing-toggle svg {
-  width: 34px !important;
-  height: 34px !important;
+.mobile-cover-actions button {
+  width: 48px;
+  height: 48px;
+  color: var(--foreground);
+}
+.mobile-cover-actions .playback-like[aria-pressed='true'] svg {
+  fill: currentColor;
+}
+.mobile-timeline-slot {
+  position: relative;
 }
 .mobile-fullscreen-controls .quality-control {
   position: relative;
@@ -180,8 +195,18 @@
   height: 100%;
   overflow: hidden;
   cursor: pointer;
+  transition:
+    opacity 260ms ease,
+    transform 260ms ease,
+    visibility 0s;
 }
 .mobile-fullscreen-lyrics[data-active='false'] {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 260ms ease,
+    transform 260ms ease,
+    visibility 0s 260ms;
   visibility: hidden;
   pointer-events: none;
 }
@@ -227,5 +252,26 @@
   }
   .mobile-fullscreen-content {
     padding-bottom: calc(24px + var(--nons-safe-area-bottom, 0px));
+  }
+}
+
+@keyframes mobile-header-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-fullscreen-artwork,
+  .mobile-fullscreen-lyrics,
+  .mobile-cover-identity {
+    transition: none !important;
+  }
+  .mobile-fullscreen-header {
+    animation: none;
   }
 }
