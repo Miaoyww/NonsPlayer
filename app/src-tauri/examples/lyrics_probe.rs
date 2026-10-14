@@ -1,4 +1,7 @@
 //! Read-only online lyrics probe; optionally pass a local audio file.
+#[path = "support/infrastructure.rs"]
+#[allow(dead_code)]
+mod infrastructure;
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;

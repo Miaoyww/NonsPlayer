@@ -1,4 +1,7 @@
 //! Opt-in read-only live probe. Never prints cookies or expiring media URLs.
+#[path = "support/infrastructure.rs"]
+#[allow(dead_code)]
+mod infrastructure;
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;

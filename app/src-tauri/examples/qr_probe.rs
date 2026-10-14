@@ -1,4 +1,7 @@
 //! Opt-in QR generation probe. Never prints keys, URLs, cookies, or image contents.
+#[path = "support/infrastructure.rs"]
+#[allow(dead_code)]
+mod infrastructure;
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;

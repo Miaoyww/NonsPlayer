@@ -1,4 +1,7 @@
 //! Read-only opt-in library probe; never prints account identifiers or cookies.
+#[path = "support/infrastructure.rs"]
+#[allow(dead_code)]
+mod infrastructure;
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;

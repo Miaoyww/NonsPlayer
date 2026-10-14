@@ -2,6 +2,9 @@
 #[path = "../src/local/encoded_audio.rs"]
 #[allow(dead_code)]
 mod encoded_audio;
+#[path = "support/infrastructure.rs"]
+#[allow(dead_code)]
+mod infrastructure;
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;

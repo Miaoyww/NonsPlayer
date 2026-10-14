@@ -1,4 +1,7 @@
 //! Read-only search smoke test. Prints counts, never account data or cookies.
+#[path = "support/infrastructure.rs"]
+#[allow(dead_code)]
+mod infrastructure;
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;
