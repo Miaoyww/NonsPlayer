@@ -35,7 +35,7 @@ impl Guest for Fixture {
                         core::hint::spin_loop();
                     },
                     "memory" => {
-                        let bytes = vec![1u8; 80 * 1024 * 1024];
+                        let bytes = vec![1u8; 320 * 1024 * 1024];
                         core::hint::black_box(bytes);
                     }
                     "trap" => panic!("fixture trap"),

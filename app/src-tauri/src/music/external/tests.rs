@@ -45,7 +45,9 @@ async fn external_loading_rejects_overload_oversized_files_and_invalid_component
     );
     drop((one, two));
     let file = tempfile::NamedTempFile::new().unwrap();
-    file.as_file().set_len(16 * 1024 * 1024 + 1).unwrap();
+    file.as_file()
+        .set_len(runtime::Budget::ADAPTER.component_bytes as u64 + 1)
+        .unwrap();
     assert_eq!(
         ExternalAdapter::load(file.path(), descriptor())
             .await

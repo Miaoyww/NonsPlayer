@@ -1,0 +1,17 @@
+package nons:crypto@1.0.0;
+
+interface primitives {
+    /// Fixed 128-bit authentication tag, appended to ciphertext. 12-byte nonce.
+    aes-gcm-encrypt: func(key: list<u8>, nonce: list<u8>, data: list<u8>, aad: list<u8>) -> result<list<u8>, string>;
+    aes-gcm-decrypt: func(key: list<u8>, nonce: list<u8>, data: list<u8>, aad: list<u8>) -> result<list<u8>, string>;
+    /// PKCS#7 padding, 16-byte IV; not authenticated encryption.
+    aes-cbc-encrypt: func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
+    aes-cbc-decrypt: func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
+    hkdf-sha256: func(key: list<u8>, salt: list<u8>, info: list<u8>, length: u32) -> result<list<u8>, string>;
+    sha256: func(data: list<u8>) -> result<list<u8>, string>;
+    hmac-sha256: func(key: list<u8>, data: list<u8>) -> result<list<u8>, string>;
+}
+
+world crypto {
+    export primitives;
+}

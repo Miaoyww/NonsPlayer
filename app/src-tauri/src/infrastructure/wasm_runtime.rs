@@ -2,7 +2,7 @@ use crate::model::AppResult;
 use std::{future::Future, path::Path, pin::Pin, sync::Arc, time::Duration};
 use wasmtime::{
     component::{Component, Linker},
-    Config, Engine, Store, StoreLimits, StoreLimitsBuilder,
+    Config, Engine, ResourceLimiter, Store, StoreLimits, StoreLimitsBuilder,
 };
 
 wasmtime::component::bindgen!({
@@ -21,9 +21,102 @@ pub(crate) trait HostHandler: Send + Sync {
 }
 
 const MAX_JSON: usize = 64 * 1024;
+/// Limits depend on the caller's role, never the platform or guest language.
+#[derive(Clone, Copy)]
+pub(crate) struct Budget {
+    pub component_bytes: usize,
+    memory_bytes: usize,
+    memories: usize,
+    fuel: u64,
+    deadline: Duration,
+}
+impl Budget {
+    pub const PLUGIN: Self = Self {
+        component_bytes: 16 * 1024 * 1024,
+        memory_bytes: 64 * 1024 * 1024,
+        memories: 1,
+        fuel: 10_000_000,
+        deadline: Duration::from_secs(5),
+    };
+    // Temporary adapter budget authorized for composition validation.
+    pub const ADAPTER: Self = Self {
+        component_bytes: 32 * 1024 * 1024,
+        memory_bytes: 256 * 1024 * 1024,
+        memories: 4,
+        fuel: 100_000_000,
+        deadline: Duration::from_secs(15),
+    };
+}
+struct MemoryLimits {
+    inner: StoreLimits,
+    maximum: usize,
+    allocated: usize,
+    pending_growth: usize,
+}
+impl MemoryLimits {
+    fn new(budget: Budget) -> Self {
+        Self {
+            inner: StoreLimitsBuilder::new()
+                .memory_size(budget.memory_bytes)
+                .table_elements(10000)
+                .instances(16)
+                .memories(budget.memories)
+                .tables(8)
+                .trap_on_grow_failure(true)
+                .build(),
+            maximum: budget.memory_bytes,
+            allocated: 0,
+            pending_growth: 0,
+        }
+    }
+}
+impl ResourceLimiter for MemoryLimits {
+    fn memory_growing(
+        &mut self,
+        current: usize,
+        desired: usize,
+        maximum: Option<usize>,
+    ) -> wasmtime::Result<bool> {
+        let growth = desired.saturating_sub(current);
+        if growth > self.maximum.saturating_sub(self.allocated) {
+            return Err(wasmtime::Error::msg("WASM 总线性内存超过预算"));
+        }
+        let allowed = self.inner.memory_growing(current, desired, maximum)?;
+        if allowed {
+            self.pending_growth = growth;
+            self.allocated += growth;
+        }
+        Ok(allowed)
+    }
+    fn memory_grow_failed(&mut self, error: wasmtime::Error) -> wasmtime::Result<()> {
+        self.allocated = self.allocated.saturating_sub(self.pending_growth);
+        self.pending_growth = 0;
+        self.inner.memory_grow_failed(error)
+    }
+    fn table_growing(
+        &mut self,
+        current: usize,
+        desired: usize,
+        maximum: Option<usize>,
+    ) -> wasmtime::Result<bool> {
+        self.inner.table_growing(current, desired, maximum)
+    }
+    fn table_grow_failed(&mut self, error: wasmtime::Error) -> wasmtime::Result<()> {
+        self.inner.table_grow_failed(error)
+    }
+    fn instances(&self) -> usize {
+        self.inner.instances()
+    }
+    fn tables(&self) -> usize {
+        self.inner.tables()
+    }
+    fn memories(&self) -> usize {
+        self.inner.memories()
+    }
+}
 struct State {
     host: Arc<dyn HostHandler>,
-    limits: StoreLimits,
+    limits: MemoryLimits,
 }
 impl nons::plugin::host::Host for State {
     async fn call(&mut self, operation: String, args: String) -> Result<String, String> {
@@ -42,6 +135,7 @@ pub struct Runtime {
     store: Store<State>,
     bindings: Plugin,
     pub faulted: bool,
+    budget: Budget,
 }
 impl Runtime {
     pub(crate) async fn load_host(
@@ -49,14 +143,22 @@ impl Runtime {
         path: &Path,
         host: Arc<dyn HostHandler>,
     ) -> AppResult<Self> {
+        Self::load_host_with_budget(engine, path, host, Budget::PLUGIN).await
+    }
+    pub(crate) async fn load_host_with_budget(
+        engine: Engine,
+        path: &Path,
+        host: Arc<dyn HostHandler>,
+        budget: Budget,
+    ) -> AppResult<Self> {
         use std::io::Read;
         let mut bytes = Vec::new();
         std::fs::File::open(path)
             .map_err(|e| e.to_string())?
-            .take(16 * 1024 * 1024 + 1)
+            .take(budget.component_bytes as u64 + 1)
             .read_to_end(&mut bytes)
             .map_err(|e| e.to_string())?;
-        if bytes.len() > 16 * 1024 * 1024 {
+        if bytes.len() > budget.component_bytes {
             return Err("WASM 入口过大".into());
         }
         let compile_engine = engine.clone();
@@ -65,35 +167,29 @@ impl Runtime {
                 .await
                 .map_err(|e| e.to_string())?
                 .map_err(|e| format!("无效 WASM Component: {e}"))?;
-        Self::from_component(engine, &component, host).await
+        Self::from_component_with_budget(engine, &component, host, budget).await
     }
     /// Shared execution machinery; the caller supplies its own capability boundary.
-    pub(crate) async fn from_component(
+    pub(crate) async fn from_component_with_budget(
         engine: Engine,
         component: &Component,
         host: Arc<dyn HostHandler>,
+        budget: Budget,
     ) -> AppResult<Self> {
         let mut linker = Linker::<State>::new(&engine);
         // Only our WIT imports are linked: no WASI filesystem, network or process APIs.
         Plugin::add_to_linker::<_, wasmtime::component::HasSelf<State>>(&mut linker, |state| state)
             .map_err(|e| e.to_string())?;
-        let limits = StoreLimitsBuilder::new()
-            .memory_size(64 * 1024 * 1024)
-            .table_elements(10000)
-            .instances(16)
-            .memories(1)
-            .tables(8)
-            .trap_on_grow_failure(true)
-            .build();
+        let limits = MemoryLimits::new(budget);
         let mut store = Store::new(&engine, State { host, limits });
         store.limiter(|state| &mut state.limits);
-        store.set_fuel(10_000_000).map_err(|e| e.to_string())?;
+        store.set_fuel(budget.fuel).map_err(|e| e.to_string())?;
         store
             .fuel_async_yield_interval(Some(10000))
             .map_err(|e| e.to_string())?;
-        store.set_epoch_deadline(500);
+        store.set_epoch_deadline(budget.deadline.as_millis().div_ceil(10) as u64);
         let bindings = tokio::time::timeout(
-            Duration::from_secs(5),
+            budget.deadline,
             Plugin::instantiate_async(&mut store, component, &linker),
         )
         .await
@@ -103,10 +199,11 @@ impl Runtime {
             store,
             bindings,
             faulted: false,
+            budget,
         };
         runtime.reset_budget()?;
         tokio::time::timeout(
-            Duration::from_secs(5),
+            budget.deadline,
             runtime.bindings.call_initialize(&mut runtime.store),
         )
         .await
@@ -115,8 +212,11 @@ impl Runtime {
         Ok(runtime)
     }
     fn reset_budget(&mut self) -> AppResult<()> {
-        self.store.set_fuel(10_000_000).map_err(|e| e.to_string())?;
-        self.store.set_epoch_deadline(500);
+        self.store
+            .set_fuel(self.budget.fuel)
+            .map_err(|e| e.to_string())?;
+        self.store
+            .set_epoch_deadline(self.budget.deadline.as_millis().div_ceil(10) as u64);
         Ok(())
     }
     pub async fn call(&mut self, method: &str, args: &str) -> AppResult<String> {
@@ -125,7 +225,7 @@ impl Runtime {
         }
         self.reset_budget()?;
         let outcome = tokio::time::timeout(
-            Duration::from_secs(5),
+            self.budget.deadline,
             self.bindings.call_call(&mut self.store, method, args),
         )
         .await;
@@ -133,7 +233,7 @@ impl Runtime {
             Ok(Ok(result)) => result?,
             Ok(Err(error)) => {
                 self.faulted = true;
-                return Err(format!("插件执行失败: {error}"));
+                return Err(format!("插件执行失败: {error:#}"));
             }
             Err(_) => {
                 self.faulted = true;
@@ -165,6 +265,40 @@ impl Runtime {
 mod tests {
     use super::*;
     use std::sync::Mutex;
+    #[test]
+    fn composed_memories_share_one_total_budget() {
+        let mut budget = Budget::ADAPTER;
+        budget.memory_bytes = 4 * 65536;
+        let mut store = Store::new(&engine().unwrap(), MemoryLimits::new(budget));
+        store.limiter(|limits| limits);
+        let first = wasmtime::Memory::new(&mut store, wasmtime::MemoryType::new(3, None)).unwrap();
+        assert!(wasmtime::Memory::new(&mut store, wasmtime::MemoryType::new(2, None)).is_err());
+        assert_eq!(store.data().allocated, 3 * 65536);
+        let second = wasmtime::Memory::new(&mut store, wasmtime::MemoryType::new(1, None)).unwrap();
+        assert!(first.grow(&mut store, 1).is_err());
+        assert!(second.grow(&mut store, 1).is_err());
+        assert_eq!(store.data().allocated, 4 * 65536);
+    }
+    #[test]
+    fn ordinary_plugins_still_allow_only_one_memory() {
+        let engine = engine().unwrap();
+        let module =
+            wasmtime::Module::from_binary(&engine, &[0, 97, 115, 109, 1, 0, 0, 0, 5, 3, 1, 0, 1])
+                .unwrap();
+        let mut store = Store::new(&engine, MemoryLimits::new(Budget::PLUGIN));
+        store.limiter(|limits| limits);
+        wasmtime::Instance::new(&mut store, &module, &[]).unwrap();
+        assert!(wasmtime::Instance::new(&mut store, &module, &[]).is_err());
+    }
+    #[test]
+    fn failed_allocation_returns_reserved_bytes() {
+        let mut limits = MemoryLimits::new(Budget::ADAPTER);
+        assert!(limits.memory_growing(0, 65536, None).unwrap());
+        assert!(limits
+            .memory_grow_failed(wasmtime::Error::msg("allocation failed"))
+            .is_err());
+        assert_eq!(limits.allocated, 0);
+    }
     #[derive(Default)]
     struct FakeHost {
         events: Mutex<Vec<serde_json::Value>>,

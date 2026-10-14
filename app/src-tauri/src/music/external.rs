@@ -71,10 +71,10 @@ impl ExternalAdapter {
             let mut bytes = Vec::new();
             std::fs::File::open(path)
                 .map_err(|_| ErrorCode::InvalidData)?
-                .take(16 * 1024 * 1024 + 1)
+                .take(runtime::Budget::ADAPTER.component_bytes as u64 + 1)
                 .read_to_end(&mut bytes)
                 .map_err(|_| ErrorCode::InvalidData)?;
-            if bytes.len() > 16 * 1024 * 1024 {
+            if bytes.len() > runtime::Budget::ADAPTER.component_bytes {
                 return Err(ErrorCode::InvalidData);
             }
             Component::new(&compile_engine, bytes).map_err(|_| ErrorCode::InvalidData)
@@ -113,10 +113,11 @@ impl ExternalAdapter {
         // Each request owns a fresh Store. Cancellation drops it, so no poisoned instance,
         // credentials, guest state or suspended execution survive into another session.
         // Compilation is shared; initialization and execution remain in the manager deadline.
-        let mut runtime = Runtime::from_component(
+        let mut runtime = Runtime::from_component_with_budget(
             self.engine.clone(),
             &self.component,
             Arc::new(NoCapabilities),
+            runtime::Budget::ADAPTER,
         )
         .await
         .map_err(|_| ErrorCode::Internal)?;

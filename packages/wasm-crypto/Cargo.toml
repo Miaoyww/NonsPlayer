@@ -1,0 +1,24 @@
+[package]
+name = "nons-wasm-crypto"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wit-bindgen = "0.41"
+aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc", "zeroize"] }
+aes = { version = "0.8", features = ["zeroize"] }
+cbc = { version = "0.1", features = ["alloc", "zeroize"] }
+hkdf = "0.12"
+sha2 = "0.10"
+hmac = "0.12"
+zeroize = { version = "1", features = ["alloc"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+panic = "abort"
