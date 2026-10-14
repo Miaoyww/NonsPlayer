@@ -84,6 +84,21 @@ test('shuffle leaves the repeat button unselected even with a legacy all-repeat 
   assert.equal(children.at(-1).props['aria-pressed'], false)
 })
 
+test('mobile transport keeps shuffle and places the queue after next without sending a playback command', () => {
+  const app = harness({ status: 'paused', index: 0, shuffle: false, repeatMode: 'off' })
+  let opened = 0
+  const buttons = app
+    .transport({ withModes: true, onError() {}, onQueue: () => opened++ })
+    .props.children.filter(Boolean)
+  assert.equal(buttons.length, 5)
+  assert.equal(buttons[0].props['aria-label'], '随机播放')
+  assert.equal(buttons.at(-2).props['aria-label'], '下一首')
+  assert.equal(buttons.at(-1).props['aria-label'], '显示播放队列')
+  buttons.at(-1).props.onClick()
+  assert.equal(opened, 1)
+  assert.deepEqual(app.calls, [])
+})
+
 test('frontend shuffle navigation wraps both ends even when the repeat button is off', () => {
   const exports = {}
   const store = {}

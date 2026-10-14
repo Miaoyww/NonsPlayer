@@ -10,12 +10,14 @@ export function NowPlayingMenu({
   track,
   source,
   loading,
-  onRefresh
+  onRefresh,
+  showLike = true
 }: {
   track?: Track
   source?: string
   loading: boolean
   onRefresh: () => void
+  showLike?: boolean
 }) {
   const actions = useSongActions()
   const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
@@ -36,7 +38,7 @@ export function NowPlayingMenu({
       <Menu.Portal>
         <Menu.Positioner className="z-[70]" side="bottom" align="end" sideOffset={6}>
           <Menu.Popup className="song-context-menu" aria-label="歌曲菜单">
-            {id !== undefined && (
+            {showLike && id !== undefined && (
               <Menu.Item
                 disabled={!desktop || !profile || !likesReady || pendingLikes.has(id)}
                 onClick={() => actions.run(() => toggleLike(id))}

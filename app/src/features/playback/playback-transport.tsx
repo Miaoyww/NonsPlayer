@@ -1,14 +1,16 @@
-import { FastForward, Pause, Play, Repeat, Repeat1, Rewind, Shuffle } from 'lucide-react'
+import { FastForward, ListMusic, Pause, Play, Repeat, Repeat1, Rewind, Shuffle } from 'lucide-react'
 import { isTauri } from '@tauri-apps/api/core'
 import { adjacentIndex, nativeCall, usePlayer } from '@/lib/player'
 import { ActionButton } from '@/components/music/action-button'
 
 export function PlaybackTransport({
   onError,
-  withModes = false
+  withModes = false,
+  onQueue
 }: {
   onError: (error: unknown) => void
   withModes?: boolean
+  onQueue?: () => void
 }) {
   const state = usePlayer('index', 'queue', 'repeatMode', 'shuffle', 'shuffleOrder', 'status')
   const playing = ['playing', 'buffering', 'loading'].includes(state.status)
@@ -63,23 +65,29 @@ export function PlaybackTransport({
       >
         <FastForward className="size-6 fill-current" aria-hidden="true" />
       </ActionButton>
-      {withModes && (
-        <ActionButton
-          variant="ghost"
-          size="icon-lg"
-          aria-label={`播放模式：${repeatLabel}，点击切换`}
-          className="playback-mode-button"
-          title={repeatLabel}
-          aria-pressed={!state.shuffle && state.repeatMode !== 'off'}
-          disabled={!isTauri()}
-          onClick={() => action('repeat')}
-        >
-          {state.repeatMode === 'one' ? (
-            <Repeat1 aria-hidden="true" />
-          ) : (
-            <Repeat aria-hidden="true" />
-          )}
+      {onQueue ? (
+        <ActionButton variant="ghost" size="icon-lg" aria-label="显示播放队列" onClick={onQueue}>
+          <ListMusic aria-hidden="true" />
         </ActionButton>
+      ) : (
+        withModes && (
+          <ActionButton
+            variant="ghost"
+            size="icon-lg"
+            aria-label={`播放模式：${repeatLabel}，点击切换`}
+            className="playback-mode-button"
+            title={repeatLabel}
+            aria-pressed={!state.shuffle && state.repeatMode !== 'off'}
+            disabled={!isTauri()}
+            onClick={() => action('repeat')}
+          >
+            {state.repeatMode === 'one' ? (
+              <Repeat1 aria-hidden="true" />
+            ) : (
+              <Repeat aria-hidden="true" />
+            )}
+          </ActionButton>
+        )
       )}
     </div>
   )

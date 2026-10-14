@@ -20,7 +20,9 @@ import {
 import { loadLyrics } from '@/features/lyrics/load-lyrics'
 import { EmptyLyricsError, parseLyrics } from '@/features/lyrics/parse-lyrics'
 import { LyricLoading } from './lyric-loading'
-import { useMobileLyricsPage } from './use-mobile-lyrics-page'
+import { isAndroid } from '@/lib/platform'
+import { MobileFullscreenPlayer } from '@/features/playback/mobile-fullscreen-player'
+import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/playback-notice'
 
 function isCurrentPlayback(key: string, revision: number) {
   const active = getPlayer()
@@ -44,10 +46,18 @@ function LyricRenderer(props: {
   )
 }
 
-export default function LyricsView({ onQueue }: { onQueue: () => void }) {
+export default function LyricsView({
+  onQueue,
+  notice,
+  onNotice
+}: {
+  onQueue: () => void
+  notice?: PlaybackNoticeMessage
+  onNotice: (message: string) => void
+}) {
   const reduced = useReducedMotion()
   const isPresent = useIsPresent()
-  const { mobile, lyricsPage, showLyricsPage, showOverview } = useMobileLyricsPage(isPresent)
+  const mobile = isAndroid()
   const [entered, setEntered] = useState(!!reduced)
   const rendering = isPresent && (entered || !!reduced)
   const state = usePlayer('error', 'index', 'mediaError', 'queue', 'revision', 'status')
@@ -71,6 +81,10 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
   const { options: localPreferences } = useLocalPreferences()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
+  const playbackError = error ?? state.error ?? state.mediaError
+  useEffect(() => {
+    if (playbackError) onNotice(playbackError)
+  }, [playbackError, onNotice])
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
   const hasTranslation = lines.some((line) => !!line.translatedLyric.trim())
@@ -171,12 +185,56 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
     }
   }, [track?.key, state.revision, apply, sources, localPreferences])
 
-  const showLyrics = !!track && (!mobile || lyricsPage)
+  const lyricControls = (
+    <div className="lyrics-display-controls" role="group" aria-label="歌词显示">
+      <ActionButton
+        variant="ghost"
+        size="icon"
+        disabled={!hasTranslation}
+        aria-label="显示歌词翻译"
+        aria-pressed={hasTranslation && showTranslation}
+        title={hasTranslation ? (showTranslation ? '隐藏翻译' : '显示翻译') : '暂无翻译'}
+        onClick={() => setShowTranslation((value) => !value)}
+      >
+        <Languages aria-hidden="true" />
+      </ActionButton>
+      <ActionButton
+        variant="ghost"
+        size="icon"
+        disabled={!hasPronunciation}
+        aria-label="显示歌词发音"
+        aria-pressed={hasPronunciation && showPronunciation}
+        title={hasPronunciation ? (showPronunciation ? '隐藏发音' : '显示发音') : '暂无发音'}
+        onClick={() => setShowPronunciation((value) => !value)}
+      >
+        <AudioLines aria-hidden="true" />
+      </ActionButton>
+    </div>
+  )
+  const renderLyrics = () =>
+    lines.length && rendering ? (
+      <LyricRenderer
+        key={track?.key}
+        lines={lines}
+        showTranslation={showTranslation}
+        showPronunciation={showPronunciation}
+        onError={(cause) => setError(errorText(cause))}
+      />
+    ) : loading || lines.length ? (
+      <LyricLoading />
+    ) : (
+      <div
+        role="status"
+        className="flex h-full items-center justify-center text-sm text-muted-foreground"
+      >
+        暂无歌词
+      </div>
+    )
+  const showLyrics = !!track
   return (
     <motion.section
       className="nons-lyrics now-playing absolute inset-0 z-[5] flex flex-col pt-12"
       aria-label="正在播放"
-      data-mobile-view={mobile ? (lyricsPage ? 'lyrics' : 'overview') : undefined}
       aria-hidden={!isPresent}
       inert={!isPresent}
       initial={{ y: reduced ? 0 : '100%' }}
@@ -191,139 +249,71 @@ export default function LyricsView({ onQueue }: { onQueue: () => void }) {
         transition: { type: 'tween', duration: reduced ? 0 : 0.3, ease: [0.4, 0, 1, 1] }
       }}
     >
-      <AlbumBackground
-        cover={track?.cover}
-        playing={state.status === 'playing'}
-        hasLyrics={lines.length > 0}
-        active={rendering}
-        enabled={entered || !!reduced}
-      />
-      {(!mobile || lyricsPage) && (
-        <div className="lyrics-display-controls" role="group" aria-label="歌词显示">
-          <ActionButton
-            variant="ghost"
-            size="icon"
-            disabled={!hasTranslation}
-            aria-label="显示歌词翻译"
-            aria-pressed={hasTranslation && showTranslation}
-            title={hasTranslation ? (showTranslation ? '隐藏翻译' : '显示翻译') : '暂无翻译'}
-            onClick={() => setShowTranslation((value) => !value)}
+      {mobile ? (
+        <MobileFullscreenPlayer
+          track={track}
+          present={isPresent}
+          source={source}
+          loading={loading}
+          onRefresh={() => void requestLyrics(true)}
+          onQueue={onQueue}
+          onError={(cause) => setError(errorText(cause))}
+          renderLyrics={renderLyrics}
+          lyricControls={lyricControls}
+        />
+      ) : (
+        <>
+          <AlbumBackground
+            cover={track?.cover}
+            playing={state.status === 'playing'}
+            hasLyrics={lines.length > 0}
+            active={rendering}
+            enabled={entered || !!reduced}
+          />
+          {lyricControls}
+          <div
+            className={`now-playing-layout relative min-h-0 flex-1 ${showLyrics ? 'has-lyrics' : ''}`}
           >
-            <Languages aria-hidden="true" />
-          </ActionButton>
-          <ActionButton
-            variant="ghost"
-            size="icon"
-            disabled={!hasPronunciation}
-            aria-label="显示歌词发音"
-            aria-pressed={hasPronunciation && showPronunciation}
-            title={hasPronunciation ? (showPronunciation ? '隐藏发音' : '显示发音') : '暂无发音'}
-            onClick={() => setShowPronunciation((value) => !value)}
-          >
-            <AudioLines aria-hidden="true" />
-          </ActionButton>
-        </div>
-      )}
-      <div
-        className={`now-playing-layout relative min-h-0 flex-1 ${showLyrics ? 'has-lyrics' : ''}`}
-      >
-        {(!mobile || !lyricsPage) && (
-          <div className="now-playing-details flex min-h-0 min-w-0 flex-col justify-center gap-5 overflow-y-auto">
-            <div className="now-playing-cover-slot">
-              {mobile ? (
-                <button
-                  type="button"
-                  className="now-playing-cover-open"
-                  aria-label="查看歌词"
-                  onClick={showLyricsPage}
-                  disabled={!track}
-                >
-                  <Cover
-                    size="original"
-                    cover={track?.cover}
-                    loading="eager"
-                    className="now-playing-cover aspect-square rounded-xl shadow-2xl"
-                  />
-                </button>
-              ) : (
+            <div className="now-playing-details flex min-h-0 min-w-0 flex-col justify-center gap-5 overflow-y-auto">
+              <div className="now-playing-cover-slot">
                 <Cover
                   size="original"
                   cover={track?.cover}
                   loading="eager"
                   className="now-playing-cover aspect-square rounded-xl shadow-2xl"
                 />
-              )}
-            </div>
-            <div className="flex shrink-0 items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h1 className="truncate text-xl font-semibold tracking-tight">
-                  {track?.title ?? '让音乐开始'}
-                </h1>
-                <p className="mt-1 truncate text-muted-foreground">
-                  {track ? <TrackArtists track={track} /> : '选择一首喜欢的音乐'}
-                </p>
               </div>
-              <NowPlayingMenu
-                track={track}
-                source={source}
-                loading={loading}
-                onRefresh={() => void requestLyrics(true)}
-              />
-            </div>
-            <NowPlayingControls onQueue={onQueue} onError={(cause) => setError(errorText(cause))} />
-            {(error || state.error || state.mediaError) && (
-              <p role="alert" className="text-sm">
-                {error ?? state.error ?? state.mediaError}
-              </p>
-            )}
-          </div>
-        )}
-        {showLyrics && (
-          <div
-            className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden"
-            role={mobile ? 'button' : undefined}
-            tabIndex={mobile ? 0 : undefined}
-            aria-label={mobile ? '返回封面与播放控制' : undefined}
-            onClickCapture={
-              mobile
-                ? (event) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    showOverview()
-                  }
-                : undefined
-            }
-            onKeyDown={
-              mobile
-                ? (event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      showOverview()
-                    }
-                  }
-                : undefined
-            }
-          >
-            {lines.length && rendering ? (
-              <LyricRenderer
-                key={track?.key}
-                lines={lines}
-                showTranslation={showTranslation}
-                showPronunciation={showPronunciation}
+              <div className="flex shrink-0 items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h1 className="truncate text-xl font-semibold tracking-tight">
+                    {track?.title ?? '让音乐开始'}
+                  </h1>
+                  <p className="mt-1 truncate text-muted-foreground">
+                    {track ? <TrackArtists track={track} /> : '选择一首喜欢的音乐'}
+                  </p>
+                </div>
+                <NowPlayingMenu
+                  track={track}
+                  source={source}
+                  loading={loading}
+                  onRefresh={() => void requestLyrics(true)}
+                />
+              </div>
+              <NowPlayingControls
+                onQueue={onQueue}
                 onError={(cause) => setError(errorText(cause))}
               />
-            ) : loading || lines.length ? (
-              <LyricLoading />
-            ) : (
-              <div
-                role="status"
-                className="flex h-full items-center justify-center text-sm text-muted-foreground"
-              >
-                暂无歌词
+            </div>
+            {showLyrics && (
+              <div className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden">
+                {renderLyrics()}
               </div>
             )}
           </div>
-        )}
+        </>
+      )}
+      <div className="fullscreen-playback-notice">
+        <PlaybackNotice notice={notice} />
       </div>
     </motion.section>
   )

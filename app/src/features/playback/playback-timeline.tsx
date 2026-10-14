@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { currentPosition, formatTime, getProgress, nativeCall, useProgress } from '@/lib/player'
 import { PlayerSlider } from '@/features/playback/player-slider'
@@ -6,11 +6,13 @@ import { PlayerSlider } from '@/features/playback/player-slider'
 export function PlaybackTimeline({
   onError,
   layout = 'below',
-  showTimeOnHover = false
+  showTimeOnHover = false,
+  timeRowContent
 }: {
   onError: (error: unknown) => void
   layout?: 'below' | 'inline' | 'edge'
   showTimeOnHover?: boolean
+  timeRowContent?: ReactNode
 }) {
   const progress = useProgress()
   const [drag, setDrag] = useState<number | null>(null)
@@ -123,6 +125,9 @@ export function PlaybackTimeline({
             ? `-${formatTime(Math.max(0, progress.durationMs - position))}`
             : formatTime(progress.durationMs)}
         </span>
+      )}
+      {layout === 'below' && timeRowContent && (
+        <div className="timeline-center">{timeRowContent}</div>
       )}
       {showTimeOnHover && (hover !== null || focused || drag !== null) && (
         <span

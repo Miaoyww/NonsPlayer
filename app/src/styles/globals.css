@@ -406,6 +406,16 @@
   grid-row: 2;
   text-align: right;
 }
+.playback-timeline-below:has(.timeline-center) {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.playback-timeline-below:has(.timeline-center) .timeline-duration {
+  grid-column: 3;
+}
+.timeline-center {
+  grid-column: 2;
+  grid-row: 2;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -3313,77 +3323,28 @@
   align-self: flex-end;
   font-size: 10px;
 }
-:root[data-platform='android'] .nons-lyrics[data-mobile-view] .now-playing-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 0 24px calc(32px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom)));
-  padding-left: calc(24px + var(--nons-safe-area-left, env(safe-area-inset-left)));
-  padding-right: calc(24px + var(--nons-safe-area-right, env(safe-area-inset-right)));
-  justify-content: flex-start;
-  overflow-y: auto;
-}
-:root[data-platform='android'] .nons-lyrics[data-mobile-view] .now-playing-details {
-  justify-content: flex-start;
-  max-width: 420px;
-  overflow: visible;
-  flex: 1;
-  height: 100%;
-  min-height: min-content;
-  gap: 20px;
-}
-:root[data-platform='android'] .now-playing-cover-slot {
-  width: 100%;
-  height: min(420px, 45dvh, calc(100vw - 48px));
-  flex: none;
-}
-.now-playing-cover-open {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  place-items: center;
-  border-radius: 12px;
-  cursor: pointer;
-}
-.now-playing-cover-open:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 4px;
-}
-:root[data-platform='android'] .now-playing-controls .now-playing-transport {
-  gap: clamp(4px, 2vw, 12px);
-}
-:root[data-platform='android'] .nons-lyrics[data-mobile-view='overview'] .now-playing-controls {
-  margin-top: auto;
-}
 :root[data-platform='android'] .now-playing > .titlebar:not(:has(nav)) {
   position: absolute;
   inset: 0 0 auto;
   background: transparent;
 }
-:root[data-platform='android'] .nons-lyrics[data-mobile-view] {
-  padding-top: calc(68px + var(--nons-safe-area-top, env(safe-area-inset-top)));
+.fullscreen-playback-notice {
+  --background: oklch(0.23 0.015 260);
+  position: absolute;
+  top: calc(112px + var(--nons-safe-area-top, env(safe-area-inset-top)));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
 }
-:root[data-platform='android'] .nons-lyrics[data-mobile-view='lyrics'] .now-playing-layout {
-  overflow: hidden;
-  padding: 48px 16px calc(16px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom)));
-  padding-left: calc(16px + var(--nons-safe-area-left, env(safe-area-inset-left)));
-  padding-right: calc(16px + var(--nons-safe-area-right, env(safe-area-inset-right)));
+.fullscreen-playback-notice .playback-notice-slot {
+  position: static;
+  transform: none;
 }
 @media (max-width: 359px) {
   :root[data-platform='android'] .persistent-playback[data-mobile-expanded] {
     width: calc(100% - 16px - var(--nons-safe-area-left, 0px) - var(--nons-safe-area-right, 0px));
   }
-}
-:root[data-platform='android'] .now-playing-lyrics {
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  flex: 1;
-}
-:root[data-platform='android'] .lyrics-display-controls {
-  top: calc(68px + var(--nons-safe-area-top, env(safe-area-inset-top)));
-  right: 16px;
-  opacity: 1;
 }
 :root[data-platform='android'] .mobile-settings-page {
   --music-page-bottom: calc(24px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom)));

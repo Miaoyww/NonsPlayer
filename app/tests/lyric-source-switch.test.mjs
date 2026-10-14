@@ -36,9 +36,7 @@ function harness(track, settle = true, localSource = 'local') {
   let cursor = 0
   const jsx = (type, props) => ({ type, props })
   const modules = {
-    './use-mobile-lyrics-page': {
-      useMobileLyricsPage: () => ({ mobile: false, lyricsPage: false })
-    },
+    '@/lib/platform': { isAndroid: () => false },
     react: {
       useState(initial) {
         const index = cursor++
@@ -107,7 +105,7 @@ function harness(track, settle = true, localSource = 'local') {
   runInNewContext(outputText, { exports, require: (name) => modules[name] ?? {} })
   const render = () => {
     cursor = 0
-    return exports.default({ onQueue() {} })
+    return exports.default({ onQueue() {}, onNotice() {} })
   }
   const initial = render()
   if (settle) initial.props.onAnimationComplete?.()
