@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <!-- The controller probe runs in its own process, separate from the native playback host. -->
+    <instrumentation android:name="com.miaoyww.nons.MediaSessionCheck"
+        android:targetPackage="com.miaoyww.nons.media.check.test" tools:replace="android:targetPackage" />
+    <queries><package android:name="com.miaoyww.nons" /></queries>
+</manifest>

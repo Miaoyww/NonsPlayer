@@ -7,6 +7,8 @@ import { AccountProvider } from '@/features/account/account'
 import { useEffect, useState } from 'react'
 import { PluginProvider, PluginSlot } from '@/plugins/host'
 import { useAndroidWindowLayout } from '@/features/workspace/use-android-window-layout'
+import { AndroidMediaLyrics } from '@/features/lyrics/android-media-lyrics'
+import { isAndroid } from '@/lib/platform'
 
 function App() {
   const [playerPhase, setPlayerPhase] = useState<'closed' | 'open' | 'closing'>(() => {
@@ -29,6 +31,7 @@ function App() {
     setPlayerPhase((phase) => (value ? 'open' : phase === 'closed' ? 'closed' : 'closing'))
   return (
     <MotionConfig reducedMotion="user">
+      {isAndroid() && <AndroidMediaLyrics />}
       <AccountProvider>
         <MusicOptionsProvider>
           <MusicNavigationProvider>

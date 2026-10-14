@@ -211,39 +211,59 @@ impl MediaControls {
 
 #[cfg(target_os = "android")]
 pub struct MediaControls {
-    last: Option<(bool, String, String)>,
+    last: Option<crate::platform::android::playback::Snapshot>,
+    last_update: std::time::Instant,
 }
-
 #[cfg(target_os = "android")]
 impl MediaControls {
-    pub fn new(_: isize, _: SyncSender<Command>) -> AppResult<Self> {
-        Ok(Self { last: None })
+    pub fn new(_: isize, sender: SyncSender<Command>) -> AppResult<Self> {
+        crate::platform::android::playback::initialize(sender)?;
+        Ok(Self {
+            last: None,
+            last_update: std::time::Instant::now(),
+        })
     }
-
     pub fn update(&mut self, state: &PlayerSnapshot) -> AppResult<()> {
-        use crate::model::PlaybackStatus;
-        let active = matches!(
-            state.status,
-            PlaybackStatus::Playing | PlaybackStatus::Loading | PlaybackStatus::Buffering
-        );
-        let track = state.current();
-        let next = (
-            active,
-            track.map_or_else(String::new, |t| t.title.clone()),
-            track.map_or_else(String::new, |t| t.artist.clone()),
-        );
-        // Progress ticks must not cross JNI or refresh the notification every 250 ms.
-        if self.last.as_ref() != Some(&next) {
-            crate::platform::android::playback::update(next.0, &next.1, &next.2)?;
+        let next = crate::platform::android::playback::Snapshot::from_player(state);
+        let mut same = next.clone();
+        if let Some(last) = &self.last {
+            same.position_ms = last.position_ms;
+            same.sequence = last.sequence;
+        }
+        let changed = self.last.as_ref() != Some(&same);
+        // State changes/seek corrections are immediate; steady progress crosses JNI at most once/sec.
+        let seek = self.last.as_ref().is_some_and(|last| {
+            let predicted = last.position_ms
+                + if last.status == "playing" {
+                    self.last_update.elapsed().as_millis() as u64
+                } else {
+                    0
+                };
+            predicted.abs_diff(next.position_ms) > 750
+        });
+        if changed
+            || seek
+            || (next.status == "playing"
+                && self.last_update.elapsed() >= std::time::Duration::from_secs(1))
+        {
+            crate::platform::android::playback::update(&next)?;
+            if !next.cover.is_empty()
+                && self
+                    .last
+                    .as_ref()
+                    .is_none_or(|last| last.key != next.key || last.cover != next.cover)
+            {
+                crate::platform::android::playback::artwork(next.key.clone(), next.cover.clone());
+            }
             self.last = Some(next);
+            self.last_update = std::time::Instant::now();
         }
         Ok(())
     }
 }
-
 #[cfg(target_os = "android")]
 impl Drop for MediaControls {
     fn drop(&mut self) {
-        let _ = crate::platform::android::playback::update(false, "", "");
+        crate::platform::android::playback::shutdown();
     }
 }

@@ -10,6 +10,7 @@ import {
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { errorText, nativeCall } from '@/lib/player'
+import { invalidateNativeCache } from '@/lib/runtime-cache'
 import {
   getMusicLibrary,
   invalidateMusicLibrary,
@@ -121,6 +122,25 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     }
   }, [profile, likesRefresh])
   const reloadLikes = useCallback(() => setLikesRefresh((value) => value + 1), [])
+  useEffect(() => {
+    if (!isTauri()) return
+    let disposed = false
+    let unlisten: (() => void) | undefined
+    void listen<string>('media-favorite-changed', ({ payload }) => {
+      if (disposed || payload !== 'netease') return
+      invalidateNativeCache(['liked_song_ids'])
+      invalidateMusicLibrary()
+      setLikesRevision((value) => value + 1)
+      reloadLikes()
+    }).then((cleanup) => {
+      if (disposed) cleanup()
+      else unlisten = cleanup
+    })
+    return () => {
+      disposed = true
+      unlisten?.()
+    }
+  }, [reloadLikes])
   async function toggleLike(id: number) {
     if (!profile || !likesReady || pending.current.has(id)) return
     const serial = likesGeneration.current

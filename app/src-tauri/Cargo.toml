@@ -38,6 +38,7 @@ gst-plugin-reqwest = { path = "vendor/gst-plugin-reqwest", default-features = fa
 nons-music-adapter-sdk = { path = "../../packages/music-adapter-sdk" }
 nons-adapter-netease = { path = "../../adapters/netease" }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+moka = { version = "0.12", features = ["future"] }
 tokio = { version = "1", features = ["sync", "time", "fs", "macros"] }
 rusqlite = { version = "0.38", features = ["bundled"] }
 lofty = "0.25"

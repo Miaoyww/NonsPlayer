@@ -3,7 +3,6 @@ package com.miaoyww.nons
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import androidx.core.content.ContextCompat
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -14,6 +13,8 @@ import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
+import app.tauri.plugin.Channel
+import androidx.media3.common.util.UnstableApi
 import java.security.KeyStore
 import java.security.MessageDigest
 import javax.crypto.Cipher
@@ -36,14 +37,21 @@ class WindowLayoutArgs {
 }
 
 @InvokeArg
-class PlaybackArgs {
-    var active: Boolean = false
-    var title: String = ""
-    var artist: String = ""
-}
+class MediaInitializeArgs { lateinit var commands: Channel }
+@InvokeArg
+class MediaCommandResultArgs { var id = 0L; var snapshot: PlaybackArgs? = null; var error: String? = null }
+@InvokeArg
+class MediaArtworkArgs { var key = ""; var cover = ""; var data = "" }
+@InvokeArg
+class MediaFavoriteArgs { var key = ""; var sequence = 0L; var liked = false; var available = false }
+@InvokeArg
+class MediaLyricLine { var startTime = 0L; var endTime = 0L; var text = ""; var translation = ""; var romanization = "" }
+@InvokeArg
+class MediaLyricsArgs { var key = ""; var sequence = 0L; var lines: List<MediaLyricLine> = emptyList() }
 
 /** Keys stay in Android Keystore; only AES-GCM ciphertext is persisted. */
 @TauriPlugin
+@UnstableApi
 class NonsAndroidPlugin(private val activity: Activity) : Plugin(activity) {
     private val alias = "NonsPlayer.credentials.v1"
     private var windowLayout: AndroidWindowLayout? = null
@@ -53,15 +61,58 @@ class NonsAndroidPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
+    fun mediaInitialize(invoke: Invoke) {
+        val args = invoke.parseArgs(MediaInitializeArgs::class.java)
+        activity.runOnUiThread { MediaSessionBridge.commands = args.commands; invoke.resolve() }
+    }
+
+    @Command
+    fun mediaCommandResult(invoke: Invoke) {
+        val args = invoke.parseArgs(MediaCommandResultArgs::class.java)
+        activity.runOnUiThread {
+            MediaSessionBridge.service?.player?.complete(args.id, args.snapshot, args.error)
+            invoke.resolve()
+        }
+    }
+
+    @Command
+    fun mediaArtwork(invoke: Invoke) {
+        val args = invoke.parseArgs(MediaArtworkArgs::class.java)
+        activity.runOnUiThread {
+            MediaSessionBridge.artwork(args.key, args.cover, args.data)
+            invoke.resolve()
+        }
+    }
+
+    @Command
+    fun mediaFavorite(invoke: Invoke) {
+        val args = invoke.parseArgs(MediaFavoriteArgs::class.java)
+        activity.runOnUiThread { MediaSessionBridge.favorite(args); invoke.resolve() }
+    }
+
+    @Command
+    fun mediaLyrics(invoke: Invoke) {
+        val args = invoke.parseArgs(MediaLyricsArgs::class.java)
+        activity.runOnUiThread { MediaSessionBridge.lyrics(args); invoke.resolve() }
+    }
+    @Command
+    fun mediaStatus(invoke: Invoke) {
+        activity.runOnUiThread {
+            invoke.resolve(MediaSessionBridge.service?.debugStatus() ?: JSObject().put("active", false))
+        }
+    }
+
+    @Command
+    fun mediaShutdown(invoke: Invoke) {
+        activity.runOnUiThread { MediaSessionBridge.shutdown(activity.applicationContext); invoke.resolve() }
+    }
+
+    @Command
     fun playback(invoke: Invoke) {
         val args = invoke.parseArgs(PlaybackArgs::class.java)
         activity.runOnUiThread {
             try {
-                val intent = Intent(activity, PlaybackService::class.java)
-                    .putExtra("title", args.title.take(512))
-                    .putExtra("artist", args.artist.take(512))
-                if (args.active) ContextCompat.startForegroundService(activity, intent)
-                else activity.stopService(intent)
+                MediaSessionBridge.update(activity.applicationContext, args)
                 invoke.resolve()
             } catch (_: Exception) {
                 invoke.reject("Android 后台播放服务启动失败，请返回应用后重试")

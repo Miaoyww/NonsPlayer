@@ -1,5 +1,6 @@
 pub(crate) mod local_lyrics;
 pub(crate) mod lyric_matching;
+pub(crate) mod media_metadata;
 pub(crate) mod netease_lyrics;
 pub(crate) mod qq_lyrics;
 pub(crate) mod qrc_decrypt;

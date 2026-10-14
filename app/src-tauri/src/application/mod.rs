@@ -304,54 +304,11 @@ fn rescan_music_folders(backend: State<'_, Backend>) {
 }
 #[tauri::command]
 async fn runtime_cover(url: String, backend: State<'_, Backend>) -> AppResult<String> {
-    use base64::Engine;
-    let parsed = url::Url::parse(&url).map_err(|_| "封面地址无效")?;
-    let host = parsed.host_str().unwrap_or_default();
-    if !matches!(parsed.scheme(), "https" | "http")
-        || !(host.ends_with(".music.126.net") || host.ends_with(".music.163.com"))
-    {
-        return Err("封面地址不受支持".into());
-    }
-    let _permit = backend
-        .cover_requests
-        .acquire()
-        .await
-        .map_err(|e| e.to_string())?;
-    let mut response = backend
-        .cover_client
-        .get(parsed)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .error_for_status()
-        .map_err(|e| e.to_string())?;
-    let mime = response
-        .headers()
-        .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|h| h.to_str().ok())
-        .unwrap_or_default()
-        .split(';')
-        .next()
-        .unwrap_or_default()
-        .to_string();
-    if !["image/jpeg", "image/png", "image/webp", "image/gif"].contains(&mime.as_str()) {
-        return Err("封面格式不支持".into());
-    }
-    const LIMIT: usize = 4 * 1024 * 1024;
-    if response.content_length().is_some_and(|n| n > LIMIT as u64) {
-        return Err("封面文件过大".into());
-    }
-    let mut bytes = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
-        if bytes.len() + chunk.len() > LIMIT {
-            return Err("封面文件过大".into());
-        }
-        bytes.extend_from_slice(&chunk);
-    }
-    Ok(format!(
-        "data:{mime};base64,{}",
-        base64::engine::general_purpose::STANDARD.encode(bytes)
-    ))
+    crate::infrastructure::covers::fetch(url, &backend).await
+}
+#[tauri::command]
+async fn runtime_cover_invalidate(url: String) {
+    crate::infrastructure::covers::invalidate(&url).await;
 }
 
 #[tauri::command]
@@ -842,6 +799,37 @@ fn lyric_sources(backend: State<'_, Backend>) -> AppResult<lyrics::LyricSources>
 }
 
 #[tauri::command]
+fn android_media_lyrics(
+    key: String,
+    lines: Vec<crate::lyrics::media_metadata::Line>,
+) -> AppResult<()> {
+    crate::lyrics::media_metadata::validate(&lines)?;
+    #[cfg(target_os = "android")]
+    {
+        static SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        let sequence = SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        crate::platform::android::playback::call(
+            "mediaLyrics",
+            serde_json::json!({"key": key, "sequence": sequence, "lines": lines}),
+        )?;
+    }
+    #[cfg(not(target_os = "android"))]
+    let _ = key;
+    Ok(())
+}
+
+#[tauri::command]
+fn android_media_status() -> AppResult<serde_json::Value> {
+    if !cfg!(debug_assertions) {
+        return Err("媒体诊断仅供调试构建使用".into());
+    }
+    #[cfg(target_os = "android")]
+    return crate::platform::android::playback::debug_status();
+    #[cfg(not(target_os = "android"))]
+    Err("仅 Android 支持媒体诊断".into())
+}
+
+#[tauri::command]
 fn set_lyric_sources(sources: lyrics::LyricSources, backend: State<'_, Backend>) -> AppResult<()> {
     backend.lyrics.set_sources(sources)
 }
@@ -1167,6 +1155,7 @@ pub fn run() {
             remove_music_folder,
             rescan_music_folders,
             runtime_cover,
+            runtime_cover_invalidate,
             play_queue,
             play_private_fm,
             append_private_fm,
@@ -1183,6 +1172,8 @@ pub fn run() {
             track_lyrics,
             local_track_lyrics,
             lyric_sources,
+            android_media_lyrics,
+            android_media_status,
             set_lyric_sources,
             bind_local_lyrics,
             music_options,

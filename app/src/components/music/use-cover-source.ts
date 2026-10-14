@@ -46,6 +46,7 @@ export function useCoverImageSource(cover?: string, enabled = true) {
       const sized = new URL(cover)
       sized.searchParams.set('param', '512y512')
       coverCache.delete(requestKey('runtime_cover', { url: sized.toString() }))
+      void nativeCall('runtime_cover_invalidate', { url: sized.toString() }).catch(() => {})
       setLoaded({ cover, source: original })
     } else setLoaded({ cover, source: undefined })
   }

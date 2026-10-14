@@ -23,6 +23,12 @@ use std::{
 use tauri::Emitter;
 
 pub enum Command {
+    #[cfg(target_os = "android")]
+    Media {
+        command: Box<Command>,
+        reply:
+            tokio::sync::oneshot::Sender<AppResult<crate::platform::android::playback::Snapshot>>,
+    },
     Collection {
         kind: String,
         id: u64,
@@ -491,6 +497,17 @@ impl Actor {
     }
 
     fn command(&mut self, command: Command) -> AppResult<()> {
+        #[cfg(target_os = "android")]
+        let command = match command {
+            Command::Media { command, reply } => {
+                let result = self.command(*command);
+                let _ = reply.send(result.clone().map(|_| {
+                    crate::platform::android::playback::Snapshot::from_player(&self.state)
+                }));
+                return result;
+            }
+            command => command,
+        };
         if matches!(&command, Command::Toggle) {
             return self.command(if self.desired_playing {
                 Command::Pause
@@ -584,6 +601,8 @@ impl Actor {
             self.cancel_collection();
         }
         match command {
+            #[cfg(target_os = "android")]
+            Command::Media { .. } => unreachable!("Media commands are unwrapped before dispatch"),
             Command::Collection {
                 kind,
                 id,

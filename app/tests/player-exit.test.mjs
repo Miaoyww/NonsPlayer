@@ -34,6 +34,8 @@ function harness(initialMode = 'collapsible') {
   let barMode = initialMode
   const App = load('../src/App.tsx', {
     '@/features/workspace/use-android-window-layout': { useAndroidWindowLayout() {} },
+    '@/features/lyrics/android-media-lyrics': { AndroidMediaLyrics: 'AndroidMediaLyrics' },
+    '@/lib/platform': { isAndroid: () => false },
     react: {
       useState(initial) {
         phase ??= typeof initial === 'function' ? initial() : initial

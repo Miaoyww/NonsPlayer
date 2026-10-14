@@ -160,7 +160,13 @@ test('cached image load errors invalidate the broken entry and fall back to the 
   assert.match(h.deleted[0], /512y512/)
   image.onError()
   assert.equal(h.render(cover).source, undefined)
-  assert.equal(h.requests.length, 1, 'failure recovery must not cause a request loop')
+  assert.equal(
+    h.requests.filter((r) => r.command === 'runtime_cover').length,
+    1,
+    'failure recovery must not cause a request loop'
+  )
+  assert.equal(h.requests.filter((r) => r.command === 'runtime_cover_invalidate').length, 1)
+  assert.match(h.requests.at(-1).args.url, /512y512/)
 })
 
 test('request errors fall back, reactivation retries, and late previous-cover responses are ignored', async () => {
