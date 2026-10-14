@@ -63,4 +63,4 @@ python scripts/release.py android-files v1.0.0 .local/android-release-files
 
 收集目录必须为空，防止把上次版本的文件一起上传。整个 CI 在 GitHub runner 上执行成功后，才能确认托管环境的构建与发布通过。
 
-便携 ZIP 不覆盖同名文件，重新打包前需先移走已有 ZIP。便携版的设置、账号、曲库和缓存沿用 Windows 用户数据目录，与安装版共用；移动解压目录不会迁移这些数据。
+便携 ZIP 不覆盖同名文件，重新打包前需先移走已有 ZIP。便携包包含 `portable.flag`，启动时以 EXE 所在目录为基准，设置、账号、曲库、插件及其数据统一保存在 `data/`，封面、歌词与音频运行时缓存位于 `data/cache/`，WebView 数据位于 `data/webview/`，临时解码音频位于 `data/temp/`。账号与插件凭据以文件保存到 `data/credentials/`，便于随目录移动，需妥善保管。便携版与安装版独立，旧 AppData 数据和系统凭据不会自动迁移；请完整移动目录并保留标记。程序目录不可写时启动报错，不回退到 AppData；安装版继续使用系统用户目录和凭据库。

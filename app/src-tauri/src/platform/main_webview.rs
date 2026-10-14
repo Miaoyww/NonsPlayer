@@ -156,12 +156,13 @@ fn ensure_webview(app: &AppHandle) -> AppResult<bool> {
     app.global_shortcut()
         .unregister_all()
         .map_err(|e| e.to_string())?;
+    let builder = WebviewBuilder::from_config(config).auto_resize();
+    let builder = match crate::infrastructure::directories::portable() {
+        Some(data) => builder.data_directory(data.join("webview")),
+        None => builder,
+    };
     let webview = window
-        .add_child(
-            WebviewBuilder::from_config(config).auto_resize(),
-            PhysicalPosition::new(0, 0),
-            size,
-        )
+        .add_child(builder, PhysicalPosition::new(0, 0), size)
         .map_err(|e| e.to_string())?;
     configure_browser_shortcuts(&webview)?;
     Ok(true)

@@ -92,12 +92,15 @@ def build_portable(root, tag, output):
         "需要 Microsoft Edge WebView2 Runtime；缺失时请先从微软官方网站安装：\n"
         "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
         "包含私有音频运行时和随包插件，无需另行安装 GStreamer。\n"
-        "设置、账号、曲库和缓存仍保存到 Windows 用户数据目录，与安装版共用；不会写入解压目录。\n"
+        "设置、账号、曲库、插件、缓存和 WebView 数据保存到程序目录的 data 文件夹，与安装版独立。\n\n"
+        "请放在可写目录并保留 portable.flag；移动整个目录可携带数据，旧用户数据不会自动迁移。\n"
+        "账号与插件凭据以文件保存于 data/credentials，请妥善保管整个目录。\n"
         "音频运行时随附文件沿用安装包的资源映射，上游提供的许可文件会一并打包。\n"
     )
     with zipfile.ZipFile(target, "x", compression=zipfile.ZIP_DEFLATED) as archive:
         for relative, source in sorted(files.items()):
             archive.write(source, f"{name}/{relative}")
+        archive.writestr(f"{name}/portable.flag", "")
         archive.writestr(f"{name}/README.txt", readme)
     print(f"Portable: {target}")
     return target

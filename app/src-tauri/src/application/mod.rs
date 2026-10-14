@@ -940,13 +940,23 @@ pub fn run() {
         return;
     }
     #[cfg(not(feature = "plugin-probe"))]
-    let context = tauri::generate_context!();
+    let mut context = tauri::generate_context!();
     #[cfg(feature = "plugin-probe")]
-    let context = {
+    let mut context = {
         let mut context = tauri::generate_context!();
         context.config_mut().app.windows[0].visible = false;
         context
     };
+    if let Err(error) = crate::infrastructure::directories::initialize() {
+        eprintln!("初始化程序数据目录失败：{error}");
+        std::process::exit(1);
+    }
+    if crate::infrastructure::directories::portable().is_some() {
+        // Absolute WebView paths must be supplied through the builder, not WindowConfig.
+        for window in &mut context.config_mut().app.windows {
+            window.create = false;
+        }
+    }
     let builder = tauri::Builder::default();
     #[cfg(desktop)]
     let builder = builder
@@ -970,14 +980,31 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            #[cfg(windows)]
+            if let Some(data) = crate::infrastructure::directories::portable() {
+                for config in &app.config().app.windows {
+                    tauri::WebviewWindowBuilder::from_config(app, config)?
+                        .data_directory(data.join("webview"))
+                        .build()?;
+                }
+            }
             #[cfg(not(feature = "plugin-probe"))]
-            let data = app.path().app_data_dir()?;
+            let data = match crate::infrastructure::directories::portable() {
+                Some(data) => data.to_path_buf(),
+                None => app.path().app_data_dir()?,
+            };
+            let cache_directory = match crate::infrastructure::directories::portable() {
+                Some(data) => data.join("cache"),
+                None => app.path().app_cache_dir()?,
+            };
             #[cfg(feature = "plugin-probe")]
             let data = plugins::probe::directory();
             std::fs::create_dir_all(&data)?;
-            audio_runtime::configure(&app.path().app_cache_dir()?)?;
-            let covers = app.path().app_cache_dir()?.join("covers");
+            std::fs::create_dir_all(&cache_directory)?;
+            audio_runtime::configure(&cache_directory)?;
+            let covers = cache_directory.join("covers");
             std::fs::create_dir_all(&covers)?;
+            app.asset_protocol_scope().allow_directory(&covers, true)?;
             let fallback = covers.join("default.png");
             if !fallback.exists() {
                 std::fs::write(&fallback, include_bytes!("../../icons/128x128.png"))?;
@@ -1008,10 +1035,7 @@ pub fn run() {
                     music.adapters.clone(),
                 )?,
             ));
-            let cache = Arc::new(ttml_cache::TtmlCache::new(
-                store.clone(),
-                app.path().app_cache_dir()?,
-            )?);
+            let cache = Arc::new(ttml_cache::TtmlCache::new(store.clone(), cache_directory)?);
             let lyrics = Arc::new(lyrics::LyricService::new(
                 store.clone(),
                 netease.clone(),

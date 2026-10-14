@@ -70,10 +70,12 @@ class ReleaseTests(unittest.TestCase):
             names = archive.namelist()
             for relative in ["Nons.exe", "gstreamer-1.0-0.dll", "runtime/manifest.json",
                              "runtime/gst-plugin-scanner.exe", "runtime/gstreamer-1.0/gstplayback.dll",
-                             "runtime/licenses/gstreamer/LICENSE", "bundled-plugins/netease-island.zip", "README.txt"]:
+                             "runtime/licenses/gstreamer/LICENSE", "bundled-plugins/netease-island.zip", "README.txt", "portable.flag"]:
                 self.assertIn(prefix + relative, names)
             self.assertFalse(any(name.endswith((".pdb", ".msi", ".gitkeep")) for name in names))
             self.assertIn("WebView2", archive.read(prefix + "README.txt").decode())
+            self.assertIn("data 文件夹", archive.read(prefix + "README.txt").decode())
+            self.assertEqual(archive.read(prefix + "portable.flag"), b"")
             extracted = self.root / "extracted"
             archive.extractall(extracted)
             self.assertEqual((extracted / prefix / "Nons.exe").read_bytes(), b"executable fixture")

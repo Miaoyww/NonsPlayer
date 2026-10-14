@@ -171,7 +171,7 @@ pub fn prepare(path: &str) -> AppResult<Arc<tempfile::NamedTempFile>> {
     let mut file = tempfile::Builder::new()
         .prefix("nons-audio-")
         .suffix(&format!(".{}", decoder.format))
-        .tempfile()
+        .tempfile_in(crate::infrastructure::directories::temporary())
         .map_err(|e| e.to_string())?;
     decoder.copy(&mut file, || Ok(()))?;
     file.flush().map_err(|e| e.to_string())?;
