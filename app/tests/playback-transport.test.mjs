@@ -84,15 +84,22 @@ test('shuffle leaves the repeat button unselected even with a legacy all-repeat 
   assert.equal(children.at(-1).props['aria-pressed'], false)
 })
 
-test('mobile transport keeps shuffle and places the queue after next without sending a playback command', () => {
+test('mobile transport keeps shuffle and keeps repeat and places the queue last without sending a playback command', () => {
   const app = harness({ status: 'paused', index: 0, shuffle: false, repeatMode: 'off' })
   let opened = 0
   const buttons = app
-    .transport({ withModes: true, onError() {}, onQueue: () => opened++ })
+    .transport({
+      withModes: true,
+      leadingControl: { type: 'button', props: { 'aria-label': '查看歌曲信息' } },
+      onError() {},
+      onQueue: () => opened++
+    })
     .props.children.filter(Boolean)
-  assert.equal(buttons.length, 5)
-  assert.equal(buttons[0].props['aria-label'], '随机播放')
-  assert.equal(buttons.at(-2).props['aria-label'], '下一首')
+  assert.equal(buttons.length, 7)
+  assert.equal(buttons[0].props['aria-label'], '查看歌曲信息')
+  assert.equal(buttons[1].props['aria-label'], '随机播放')
+  assert.match(buttons.at(-2).props['aria-label'], /播放模式/)
+  assert.equal(buttons.at(-3).props['aria-label'], '下一首')
   assert.equal(buttons.at(-1).props['aria-label'], '显示播放队列')
   buttons.at(-1).props.onClick()
   assert.equal(opened, 1)

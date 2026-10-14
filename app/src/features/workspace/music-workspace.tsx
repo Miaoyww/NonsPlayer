@@ -308,7 +308,12 @@ export function MusicWorkspace({
                     </div>
                   }
                 >
-                  <LyricsView onQueue={openQueue} notice={notice} onNotice={showNotice} />
+                  <LyricsView
+                    onQueue={openQueue}
+                    notice={notice}
+                    onNotice={showNotice}
+                    onClose={() => onNowPlayingChange(false)}
+                  />
                 </Suspense>
               )}
             </AnimatePresence>

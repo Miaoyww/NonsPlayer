@@ -37,6 +37,8 @@ function LyricRenderer(props: {
   lines: LyricLine[]
   showTranslation: boolean
   showPronunciation: boolean
+  active?: boolean
+  retainWhenHidden?: boolean
   onError: (cause: unknown) => void
 }) {
   return (
@@ -49,11 +51,13 @@ function LyricRenderer(props: {
 export default function LyricsView({
   onQueue,
   notice,
-  onNotice
+  onNotice,
+  onClose
 }: {
   onQueue: () => void
   notice?: PlaybackNoticeMessage
   onNotice: (message: string) => void
+  onClose: () => void
 }) {
   const reduced = useReducedMotion()
   const isPresent = useIsPresent()
@@ -211,13 +215,15 @@ export default function LyricsView({
       </ActionButton>
     </div>
   )
-  const renderLyrics = () =>
+  const renderLyrics = (active = true) =>
     lines.length && rendering ? (
       <LyricRenderer
         key={track?.key}
         lines={lines}
         showTranslation={showTranslation}
         showPronunciation={showPronunciation}
+        active={active}
+        retainWhenHidden={mobile}
         onError={(cause) => setError(errorText(cause))}
       />
     ) : loading || lines.length ? (
@@ -257,6 +263,7 @@ export default function LyricsView({
           loading={loading}
           onRefresh={() => void requestLyrics(true)}
           onQueue={onQueue}
+          onClose={onClose}
           onError={(cause) => setError(errorText(cause))}
           renderLyrics={renderLyrics}
           lyricControls={lyricControls}

@@ -108,6 +108,8 @@ export function Titlebar({
     void windowAction(event.detail === 2 ? 'toggleMaximize' : 'startDragging')
   }
 
+  if (playerMode && isAndroid()) return null
+
   return (
     <>
       <header

@@ -15,6 +15,7 @@ function lyricControl({ failure, desktop = true, android = false } = {}) {
     },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     react: {
+      useRef: (value) => ({ current: value }),
       useState: (initial) => [initial, () => {}],
       useEffect() {},
       useCallback: (fn) => fn,

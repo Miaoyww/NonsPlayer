@@ -7,9 +7,18 @@ import ts from 'typescript'
 function harness() {
   let lyricsPage = false
   let rendered = 0
+  let visited = false
   const details = []
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    react: {
+      useState: () => [
+        visited,
+        (next) => {
+          visited = next
+        }
+      ]
+    },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@tauri-apps/api/core': { isTauri: () => true },
     'lucide-react': {},
@@ -65,6 +74,7 @@ function harness() {
         onError() {},
         onQueue() {},
         onRefresh() {},
+        onClose() {},
         renderLyrics() {
           rendered++
           return 'lyrics'
@@ -76,13 +86,13 @@ function harness() {
 function find(node, predicate) {
   if (!node || typeof node !== 'object') return
   if (predicate(node)) return node
-  for (const child of [node.props?.children].flat()) {
+  for (const child of [node.props?.children, node.props?.leadingControl].flat()) {
     const found = find(child, predicate)
     if (found) return found
   }
 }
 
-test('cover and lyrics switch through the upper area while controls remain and hidden lyrics are not rendered', () => {
+test('cover and lyrics switch through the upper area while controls remain and the retained lyrics become hidden', () => {
   const app = harness()
   let tree = app.render()
   assert.equal(app.rendered, 0)
@@ -103,8 +113,15 @@ test('cover and lyrics switch through the upper area while controls remain and h
     }
   })
   assert.ok(prevented && stopped)
-  assert.equal(app.render().props['data-mobile-view'], 'overview')
-  assert.equal(app.rendered, 1)
+  const overview = app.render()
+  assert.equal(overview.props['data-mobile-view'], 'overview')
+  assert.equal(
+    find(overview, (node) => node.props?.['aria-label'] === '返回封面与播放控制').props[
+      'data-active'
+    ],
+    false
+  )
+  assert.equal(app.rendered, 2)
 })
 
 test('info opens existing song details and favorite is extracted from the menu', () => {

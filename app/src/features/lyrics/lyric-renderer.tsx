@@ -1,7 +1,7 @@
 import { LyricPlayer, type LyricPlayerRef } from '@applemusic-like-lyrics/react'
 import type { LyricLine } from '@applemusic-like-lyrics/core'
 import '@applemusic-like-lyrics/core/style.css'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { useReducedMotion } from 'motion/react'
 import { currentPosition, nativeCall, useProgress } from '@/lib/player'
@@ -12,12 +12,16 @@ export default function LyricRenderer({
   lines,
   showTranslation = true,
   showPronunciation = true,
-  onError
+  onError,
+  active = true,
+  retainWhenHidden = false
 }: {
   lines: LyricLine[]
   showTranslation?: boolean
   showPronunciation?: boolean
   onError: (cause: unknown) => void
+  active?: boolean
+  retainWhenHidden?: boolean
 }) {
   const { fonts } = useFontSettings()
   const lyricFont = fonts.lyrics || fonts.app
@@ -37,16 +41,18 @@ export default function LyricRenderer({
     [lines, showTranslation, showPronunciation]
   )
   const [visible, setVisible] = useState(document.visibilityState !== 'hidden')
-  const progress = useProgress(visible)
+  const enabled = visible && active
+  const progress = useProgress(enabled)
   const [renderer, setRenderer] = useState<LyricPlayerRef | null>(null)
   const retainRenderer = useCallback((value: LyricPlayerRef | null) => setRenderer(value), [])
   const [layoutVersion, setLayoutVersion] = useState(0)
   const reduced = useReducedMotion()
   const playing = progress.status === 'playing'
   const pausedPosition = playing ? 0 : progress.positionMs
+  const lastFont = useRef<string | undefined>(undefined)
   useEffect(() => {
     const player = renderer?.lyricPlayer
-    if (!visible || !player) return
+    if (!enabled || !player || lastFont.current === lyricFont) return
     let disposed = false
     let frame = 0
     // Font metrics affect word masks as well as line positions, including while paused.
@@ -54,6 +60,7 @@ export default function LyricRenderer({
       if (disposed) return
       frame = requestAnimationFrame(() => {
         player.rebuildLyricView()
+        lastFont.current = lyricFont
         setLayoutVersion((version) => version + 1)
       })
     })
@@ -61,21 +68,21 @@ export default function LyricRenderer({
       disposed = true
       cancelAnimationFrame(frame)
     }
-  }, [lyricFont, renderer, visible])
+  }, [lyricFont, renderer, enabled])
   useEffect(() => {
     const changed = () => setVisible(document.visibilityState !== 'hidden')
     document.addEventListener('visibilitychange', changed)
     return () => document.removeEventListener('visibilitychange', changed)
   }, [])
   useEffect(() => {
-    if (!renderer?.wrapperEl || !visible) return
+    if (!renderer?.wrapperEl || !enabled) return
     const observer = new ResizeObserver(() => setLayoutVersion((version) => version + 1))
     observer.observe(renderer.wrapperEl)
     return () => observer.disconnect()
-  }, [renderer, visible])
+  }, [renderer, enabled])
   useEffect(() => {
     const player = renderer?.lyricPlayer
-    if (!visible || !player) return
+    if (!enabled || !player) return
     let frame = 0
     let previous = performance.now()
     const started = previous
@@ -88,16 +95,16 @@ export default function LyricRenderer({
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [visible, playing, pausedPosition, renderer, displayedLines, layoutVersion])
+  }, [enabled, playing, pausedPosition, renderer, displayedLines, layoutVersion])
   // AMLL's automatic frame loop is disabled; only the visible lyric subtree
   // receives an interpolated clock. React does not render on every frame.
-  return visible ? (
+  return retainWhenHidden || visible ? (
     <LyricPlayer
       ref={retainRenderer}
       className="lyric-renderer h-full w-full"
       lyricLines={displayedLines}
       disabled
-      playing={playing}
+      playing={enabled && playing}
       currentTime={progress.positionMs}
       onLyricLineClick={(event) => {
         if (!isTauri() || isAndroid()) return

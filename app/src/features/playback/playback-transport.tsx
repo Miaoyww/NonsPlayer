@@ -2,15 +2,18 @@ import { FastForward, ListMusic, Pause, Play, Repeat, Repeat1, Rewind, Shuffle }
 import { isTauri } from '@tauri-apps/api/core'
 import { adjacentIndex, nativeCall, usePlayer } from '@/lib/player'
 import { ActionButton } from '@/components/music/action-button'
+import type { ReactNode } from 'react'
 
 export function PlaybackTransport({
   onError,
   withModes = false,
-  onQueue
+  onQueue,
+  leadingControl
 }: {
   onError: (error: unknown) => void
   withModes?: boolean
   onQueue?: () => void
+  leadingControl?: ReactNode
 }) {
   const state = usePlayer('index', 'queue', 'repeatMode', 'shuffle', 'shuffleOrder', 'status')
   const playing = ['playing', 'buffering', 'loading'].includes(state.status)
@@ -23,6 +26,7 @@ export function PlaybackTransport({
       className="now-playing-transport flex items-center justify-center"
       aria-label="播放控制按钮"
     >
+      {leadingControl}
       {withModes && (
         <ActionButton
           variant="ghost"
@@ -65,29 +69,28 @@ export function PlaybackTransport({
       >
         <FastForward className="size-6 fill-current" aria-hidden="true" />
       </ActionButton>
-      {onQueue ? (
+      {withModes && (
+        <ActionButton
+          variant="ghost"
+          size="icon-lg"
+          aria-label={`播放模式：${repeatLabel}，点击切换`}
+          className="playback-mode-button"
+          title={repeatLabel}
+          aria-pressed={!state.shuffle && state.repeatMode !== 'off'}
+          disabled={!isTauri()}
+          onClick={() => action('repeat')}
+        >
+          {state.repeatMode === 'one' ? (
+            <Repeat1 aria-hidden="true" />
+          ) : (
+            <Repeat aria-hidden="true" />
+          )}
+        </ActionButton>
+      )}
+      {onQueue && (
         <ActionButton variant="ghost" size="icon-lg" aria-label="显示播放队列" onClick={onQueue}>
           <ListMusic aria-hidden="true" />
         </ActionButton>
-      ) : (
-        withModes && (
-          <ActionButton
-            variant="ghost"
-            size="icon-lg"
-            aria-label={`播放模式：${repeatLabel}，点击切换`}
-            className="playback-mode-button"
-            title={repeatLabel}
-            aria-pressed={!state.shuffle && state.repeatMode !== 'off'}
-            disabled={!isTauri()}
-            onClick={() => action('repeat')}
-          >
-            {state.repeatMode === 'one' ? (
-              <Repeat1 aria-hidden="true" />
-            ) : (
-              <Repeat aria-hidden="true" />
-            )}
-          </ActionButton>
-        )
       )}
     </div>
   )
