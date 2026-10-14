@@ -173,8 +173,31 @@ export function scopedNativeCall<T>(
 
 export async function nativeCall<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   if (!isTauri()) throw new Error('请在 NonsPlayer 桌面应用中使用此功能。')
-  if (command === 'runtime_cover')
-    return coverCache.get(requestKey(command, args), () => invoke<T>(command, args))
+  if (command === 'runtime_cover') {
+    const access = await invoke<string>('runtime_cover_access', { url: args?.url })
+    const key = requestKey(command, args)
+    type CoverEntry = { access: string; data: T }
+    const previous = coverCache.peek<CoverEntry>(key)
+    if (previous && previous.access !== access) coverCache.delete(key)
+    const result = await coverCache.get<CoverEntry>(
+      key,
+      async () => ({
+        access,
+        data: await invoke<T>(command, args)
+      }),
+      {
+        validate: async () => {
+          if ((await invoke<string>('runtime_cover_access', { url: args?.url })) !== access)
+            throw new Error('封面来源状态已变化')
+        }
+      }
+    )
+    if (result.access !== access) {
+      coverCache.delete(key)
+      throw new Error('封面来源状态已变化')
+    }
+    return result.data
+  }
   if (cachedCommands.has(command)) {
     const key = requestKey(command, args)
 

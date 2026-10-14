@@ -134,19 +134,18 @@ impl MediaControls {
                 music
                     .SetAlbumTitle(&HSTRING::from(&track.album))
                     .map_err(|e| e.to_string())?;
-                let thumbnail = if track.cover.starts_with("https://")
-                    || track.cover.starts_with("http://")
-                {
-                    let uri =
-                        Uri::CreateUri(&HSTRING::from(&*track.cover)).map_err(|e| e.to_string())?;
+                let cover = track
+                    .cover
+                    .url(nons_music_adapter_sdk::cover::CoverSize::Exlarge);
+                let thumbnail = if cover.starts_with("https://") || cover.starts_with("http://") {
+                    let uri = Uri::CreateUri(&HSTRING::from(cover)).map_err(|e| e.to_string())?;
                     RandomAccessStreamReference::CreateFromUri(&uri).map_err(|e| e.to_string())?
                 } else {
-                    let file = windows::Storage::StorageFile::GetFileFromPathAsync(&HSTRING::from(
-                        &*track.cover,
-                    ))
-                    .map_err(|e| e.to_string())?
-                    .join()
-                    .map_err(|e| e.to_string())?;
+                    let file =
+                        windows::Storage::StorageFile::GetFileFromPathAsync(&HSTRING::from(cover))
+                            .map_err(|e| e.to_string())?
+                            .join()
+                            .map_err(|e| e.to_string())?;
                     RandomAccessStreamReference::CreateFromFile(&file).map_err(|e| e.to_string())?
                 };
                 updater

@@ -145,6 +145,7 @@ export interface SourceDescriptor {
   source: string
   displayName: string
   contractVersion: number
+  coverHosts?: string[]
   shareLinkTemplates?: Partial<Record<EntityKind, string>>
   capabilities: string[]
 }

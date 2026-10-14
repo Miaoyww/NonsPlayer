@@ -1,40 +1,83 @@
 use crate::model::AppResult;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use moka::future::Cache;
-use std::{sync::OnceLock, time::Duration};
+use std::{
+    sync::{Arc, OnceLock},
+    time::Duration,
+};
+
+struct CoverEntry {
+    access: String,
+    data: String,
+}
 
 // Shared by WebUI runtime_cover and Android MediaSession. Failed reads are not cached.
-fn cache() -> &'static Cache<String, String> {
-    static CACHE: OnceLock<Cache<String, String>> = OnceLock::new();
+fn cache() -> &'static Cache<String, Arc<CoverEntry>> {
+    static CACHE: OnceLock<Cache<String, Arc<CoverEntry>>> = OnceLock::new();
     CACHE.get_or_init(|| {
         Cache::builder()
             .max_capacity(32 * 1024 * 1024)
-            .weigher(|key: &String, value: &String| (key.len() + value.len()) as u32)
+            .weigher(|key: &String, value: &Arc<CoverEntry>| {
+                (key.len() + value.access.len() + value.data.len()) as u32
+            })
             .time_to_live(Duration::from_secs(600))
             .build()
     })
 }
 
 pub(crate) async fn fetch(url: String, backend: &crate::Backend) -> AppResult<String> {
-    cache()
-        .try_get_with(url.clone(), load(&url, backend))
+    let access = backend
+        .music
+        .adapters
+        .cover_access(&url)
+        .map_err(|e| e.to_string())?;
+    if cache()
+        .get(&url)
         .await
-        .map_err(|e| e.to_string())
+        .is_some_and(|entry| entry.access != access)
+    {
+        cache().invalidate(&url).await;
+    }
+    let result = cache()
+        .try_get_with(url.clone(), async {
+            load(&url, backend, &access).await.map(|data| {
+                Arc::new(CoverEntry {
+                    access: access.clone(),
+                    data,
+                })
+            })
+        })
+        .await
+        .map_err(|e| e.to_string())?;
+    if result.access != access
+        || backend
+            .music
+            .adapters
+            .cover_access(&url)
+            .map_err(|e| e.to_string())?
+            != access
+    {
+        return Err("封面来源状态已变化".into());
+    }
+    Ok(result.data.clone())
 }
 
-async fn load(url: &str, backend: &crate::Backend) -> AppResult<String> {
+async fn load(url: &str, backend: &crate::Backend, access: &str) -> AppResult<String> {
     let parsed = url::Url::parse(url).map_err(|_| "封面地址无效")?;
-    let host = parsed.host_str().unwrap_or_default();
-    if !matches!(parsed.scheme(), "https" | "http")
-        || !(host.ends_with(".music.126.net") || host.ends_with(".music.163.com"))
-    {
-        return Err("封面地址不受支持".into());
-    }
     let _permit = backend
         .cover_requests
         .acquire()
         .await
         .map_err(|e| e.to_string())?;
+    if backend
+        .music
+        .adapters
+        .cover_access(url)
+        .map_err(|e| e.to_string())?
+        != access
+    {
+        return Err("封面来源状态已变化".into());
+    }
     let mut response = backend
         .cover_client
         .get(parsed)

@@ -202,6 +202,26 @@ impl AdapterManager {
         serde_json::to_string(&(session, generation, entry.revision.load(Ordering::Acquire)))
             .map_err(|_| ErrorCode::Internal.into())
     }
+    /// Authorization is checked even for public cache hits. Stamp changes on disable/reload.
+    pub fn cover_access(&self, url: &str) -> MusicResult<String> {
+        let entries = self.entries.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut owners = entries
+            .values()
+            .filter_map(|entry| {
+                let generation = entry.generation.load(Ordering::Acquire);
+                let descriptor = entry.adapter.descriptor();
+                (!generation.is_multiple_of(2)
+                    && nons_music_adapter_sdk::cover::checked_url(url, &descriptor.cover_hosts)
+                        .is_ok())
+                .then(|| (descriptor.source.clone(), generation))
+            })
+            .collect::<Vec<_>>();
+        if owners.is_empty() {
+            return Err(ErrorCode::PermissionDenied.into());
+        }
+        owners.sort();
+        serde_json::to_string(&owners).map_err(|_| ErrorCode::InvalidData.into())
+    }
     pub fn descriptors(&self) -> MusicResult<Vec<SourceDescriptor>> {
         Ok(self
             .entries
@@ -247,6 +267,7 @@ impl AdapterManager {
             )
             .await?;
         result.validate(request, source)?;
+        result.validate_cover_hosts(&entry.adapter.descriptor().cover_hosts)?;
         if let BusinessResponse::Summary(summary) = &result {
             if context.session.account.as_ref() != Some(&summary.account.reference.id) {
                 return Err(ErrorCode::InvalidData.into());
@@ -378,10 +399,14 @@ impl AdapterManager {
         }
         entry.check(&context)?;
         if let AccountPresentation::Profile(Some(record)) = &outcome.presentation {
-            record.avatar.validate_adapter()?;
+            record
+                .avatar
+                .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
         }
         if let Some((record, _)) = &outcome.credential {
-            record.avatar.validate_adapter()?;
+            record
+                .avatar
+                .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
         }
         let valid = match (request, &outcome.presentation) {
             (AccountRequest::BeginLogin, AccountPresentation::Challenge { key, image }) => {
@@ -494,7 +519,9 @@ impl AdapterManager {
             )
             .await?;
         track.validate(reference)?;
-        track.cover.validate_adapter()?;
+        track
+            .cover
+            .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
         entry.check(&context)?;
         Ok(track)
     }
@@ -794,6 +821,7 @@ mod tests {
                 source: source(),
                 display_name: "test".into(),
                 contract_version: super::super::CONTRACT_VERSION,
+                cover_hosts: Default::default(),
                 share_link_templates: Default::default(),
                 capabilities: Default::default(),
             },
@@ -830,6 +858,23 @@ mod tests {
         }
     }
 
+    #[test]
+    fn cover_permissions_follow_declared_hosts_and_adapter_instances_not_accounts() {
+        let mut provider = adapter(false);
+        provider.descriptor.cover_hosts = ["*.art.example".into()].into_iter().collect();
+        let (manager, accounts, _) = setup(provider);
+        let url = "https://images.art.example/cover.jpg";
+        let initial = manager.cover_access(url).unwrap();
+        assert!(manager
+            .cover_access("https://other.example/cover.jpg")
+            .is_err());
+        accounts.fetch_add(1, Ordering::AcqRel);
+        assert_eq!(manager.cover_access(url).unwrap(), initial);
+        manager.set_enabled(&source(), false).unwrap();
+        assert!(manager.cover_access(url).is_err());
+        manager.set_enabled(&source(), true).unwrap();
+        assert_ne!(manager.cover_access(url).unwrap(), initial);
+    }
     #[tokio::test]
     async fn registry_validates_and_never_overwrites_a_source() {
         let (manager, _, provider) = setup(adapter(false));

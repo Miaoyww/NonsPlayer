@@ -24,6 +24,8 @@ function harness() {
   const requests = []
   let scope = JSON.stringify([{ source: 'netease', account: 'a', generation: 1 }, 1, 1])
   let enabled = true
+  let coverEnabled = true
+  let coverGeneration = 1
   const cache = load('../src/lib/runtime-cache.ts', { 'lru-cache': { LRUCache } })
   const scoped = load('../src/features/music/scoped-query.ts', { '@/lib/runtime-cache': cache })
   const player = load('../src/lib/player.ts', {
@@ -37,6 +39,10 @@ function harness() {
     '@tauri-apps/api/core': {
       isTauri: () => true,
       invoke(command, args) {
+        if (command === 'runtime_cover_access')
+          return coverEnabled
+            ? Promise.resolve(String(coverGeneration))
+            : Promise.reject(new Error('cover source unavailable'))
         if (command === 'music_context')
           return enabled ? Promise.resolve(scope) : Promise.reject(new Error('source unavailable'))
         return new Promise((resolve, reject) => requests.push({ command, args, resolve, reject }))
@@ -54,6 +60,12 @@ function harness() {
   })
   return {
     requests,
+    disableCovers: () => {
+      coverEnabled = false
+    },
+    reloadCovers: () => {
+      coverGeneration++
+    },
     cache,
     player,
     library,
@@ -691,4 +703,37 @@ test('concurrent explicit refreshes share one replacement backend request', asyn
   assert.equal(requests.length, 2)
   requests.at(-1).resolve(['fresh'])
   assert.deepEqual(await all, [['fresh'], ['fresh'], ['fresh']])
+})
+
+test('public cover cache hits recheck adapter permissions and old deliveries fail after reload', async () => {
+  const h = harness()
+  const args = { url: 'https://covers.example/card.jpg' }
+  const first = h.player.nativeCall('runtime_cover', args)
+  await tick()
+  h.requests[0].resolve('data:image/jpeg;base64,one')
+  assert.equal(await first, 'data:image/jpeg;base64,one')
+  h.disableCovers()
+  await assert.rejects(h.player.nativeCall('runtime_cover', args), /cover source unavailable/)
+  assert.equal(h.requests.length, 1)
+  const next = harness()
+  const pending = next.player.nativeCall('runtime_cover', args)
+  await tick()
+  next.reloadCovers()
+  next.requests[0].resolve('data:image/jpeg;base64,old')
+  await assert.rejects(pending, /封面来源状态已变化/)
+})
+
+test('reloading an adapter replaces an older public cover entry before returning a cache hit', async () => {
+  const h = harness()
+  const args = { url: 'https://covers.example/album.jpg' }
+  const first = h.player.nativeCall('runtime_cover', args)
+  await tick()
+  h.requests[0].resolve('data:image/jpeg;base64,first')
+  await first
+  h.reloadCovers()
+  const next = h.player.nativeCall('runtime_cover', args)
+  await tick()
+  assert.equal(h.requests.length, 2)
+  h.requests[1].resolve('data:image/jpeg;base64,reloaded')
+  assert.equal(await next, 'data:image/jpeg;base64,reloaded')
 })

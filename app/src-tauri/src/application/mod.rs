@@ -303,6 +303,14 @@ fn rescan_music_folders(backend: State<'_, Backend>) {
     backend.folders.rescan();
 }
 #[tauri::command]
+fn runtime_cover_access(url: String, backend: State<'_, Backend>) -> AppResult<String> {
+    backend
+        .music
+        .adapters
+        .cover_access(&url)
+        .map_err(|e| e.to_string())
+}
+#[tauri::command]
 async fn runtime_cover(url: String, backend: State<'_, Backend>) -> AppResult<String> {
     crate::infrastructure::covers::fetch(url, &backend).await
 }
@@ -1155,6 +1163,7 @@ pub fn run() {
             remove_music_folder,
             rescan_music_folders,
             runtime_cover,
+            runtime_cover_access,
             runtime_cover_invalidate,
             play_queue,
             play_private_fm,

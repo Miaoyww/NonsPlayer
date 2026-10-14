@@ -255,6 +255,36 @@ pub enum BusinessResponse {
     Write(WriteImpact),
 }
 impl BusinessResponse {
+    pub fn validate_cover_hosts(
+        &self,
+        hosts: &std::collections::BTreeSet<String>,
+    ) -> MusicResult<()> {
+        match self {
+            Self::Tracks(value) => {
+                for track in &value.page.items {
+                    track.cover.validate_hosts(hosts)?;
+                }
+            }
+            Self::Entities(value) => {
+                for entity in &value.items {
+                    entity.cover.validate_hosts(hosts)?;
+                }
+            }
+            Self::Entity(value) => value.cover.validate_hosts(hosts)?,
+            Self::Detail(value) => value.item.cover.validate_hosts(hosts)?,
+            Self::Summary(value) => {
+                value.account.avatar.validate_hosts(hosts)?;
+                if let Some(entity) = &value.liked_playlist {
+                    entity.cover.validate_hosts(hosts)?;
+                }
+                for track in &value.liked_tracks {
+                    track.cover.validate_hosts(hosts)?;
+                }
+            }
+            _ => (),
+        }
+        Ok(())
+    }
     pub fn validate(&self, request: &BusinessRequest, source: &SourceId) -> MusicResult<()> {
         if serde_json::to_vec(self)
             .map_err(|_| ErrorCode::InvalidData)?

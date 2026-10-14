@@ -13,6 +13,7 @@ fn descriptor() -> SourceDescriptor {
         source: source(),
         display_name: "外部测试来源".into(),
         contract_version: 1,
+        cover_hosts: Default::default(),
         share_link_templates: Default::default(),
         capabilities: [Capability::Search, Capability::Browse]
             .into_iter()

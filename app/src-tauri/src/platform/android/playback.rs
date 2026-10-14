@@ -40,7 +40,11 @@ impl Snapshot {
             title: track.map_or_else(String::new, |t| t.title.clone()),
             artist: track.map_or_else(String::new, |t| t.artist.clone()),
             album: track.map_or_else(String::new, |t| t.album.clone()),
-            cover: track.map_or_else(String::new, |t| t.cover.clone()),
+            cover: track.map_or_else(String::new, |t| {
+                t.cover
+                    .url(nons_music_adapter_sdk::cover::CoverSize::Exlarge)
+                    .to_owned()
+            }),
             status: serde_json::to_value(state.status)
                 .unwrap()
                 .as_str()
@@ -172,25 +176,9 @@ pub(crate) fn artwork(key: String, url: String) {
             return;
         };
         let data = if url.starts_with("http://") || url.starts_with("https://") {
-            let mut sized = url::Url::parse(&url).ok();
-            if let Some(sized) = &mut sized {
-                let pairs = sized
-                    .query_pairs()
-                    .filter(|(key, _)| key != "param")
-                    .map(|(key, value)| (key.into_owned(), value.into_owned()))
-                    .collect::<Vec<_>>();
-                sized
-                    .query_pairs_mut()
-                    .clear()
-                    .extend_pairs(pairs)
-                    .append_pair("param", "512y512");
-            }
-            crate::infrastructure::covers::fetch(
-                sized.map_or_else(|| url.clone(), |u| u.to_string()),
-                &backend,
-            )
-            .await
-            .ok()
+            crate::infrastructure::covers::fetch(url.clone(), &backend)
+                .await
+                .ok()
         } else {
             let path = std::path::PathBuf::from(&url);
             match (

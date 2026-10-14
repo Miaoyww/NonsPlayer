@@ -39,6 +39,9 @@ pub struct SourceDescriptor {
     pub display_name: String,
     pub contract_version: u32,
     pub capabilities: BTreeSet<Capability>,
+    /// Public artwork hosts, independent of playback resource/HTTP permissions.
+    #[serde(default)]
+    pub cover_hosts: BTreeSet<String>,
     /// Public entity links; the host URL-encodes the opaque ID into `{id}`.
     #[serde(default)]
     pub share_link_templates: BTreeMap<super::identity::EntityKind, String>,
@@ -59,6 +62,14 @@ impl SourceDescriptor {
         if self.source.as_str() == "local"
             || self.display_name.trim().is_empty()
             || self.display_name.len() > 256
+        {
+            return Err(ErrorCode::InvalidData.into());
+        }
+        if self.cover_hosts.len() > 32
+            || self
+                .cover_hosts
+                .iter()
+                .any(|host| !crate::cover::valid_host_rule(host))
         {
             return Err(ErrorCode::InvalidData.into());
         }

@@ -274,6 +274,7 @@ fn scoped_access_rejects_cross_source_stale_accounts_and_disabled_instances() {
                     source: source_id,
                     display_name: name.into(),
                     contract_version: super::super::CONTRACT_VERSION,
+                    cover_hosts: Default::default(),
                     share_link_templates: Default::default(),
                     capabilities: Default::default(),
                 })),
@@ -362,6 +363,7 @@ async fn logout_preserves_credentials_and_can_reselect_after_restart() {
         source: source("test"),
         display_name: "test".into(),
         contract_version: super::super::CONTRACT_VERSION,
+        cover_hosts: Default::default(),
         share_link_templates: Default::default(),
         capabilities: [super::super::adapter::Capability::Account]
             .into_iter()
@@ -460,6 +462,7 @@ fn refresh_after_instance_revocation_restores_previous_secret_without_publicatio
                 source: source("test"),
                 display_name: "test".into(),
                 contract_version: super::super::CONTRACT_VERSION,
+                cover_hosts: Default::default(),
                 share_link_templates: Default::default(),
                 capabilities: Default::default(),
             })),
