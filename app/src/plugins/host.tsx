@@ -1,3 +1,4 @@
+import { afterFirstPaint } from '@/lib/after-first-paint'
 import * as React from 'react'
 import * as jsx from 'react/jsx-runtime'
 import {
@@ -177,6 +178,16 @@ export function PluginProvider({ children }: { children: ReactNode }) {
           })
       )
     }
+    let cancelRefresh = () => {}
+    let scheduled = false
+    const scheduleRefresh = () => {
+      if (disposed || scheduled) return
+      scheduled = true
+      cancelRefresh = afterFirstPaint(() => {
+        scheduled = false
+        if (!disposed) void refresh().catch(console.error)
+      })
+    }
     const retain = (cleanup: () => void) => {
       if (disposed) cleanup()
       else cleanups.push(cleanup)
@@ -205,13 +216,14 @@ export function PluginProvider({ children }: { children: ReactNode }) {
       )
       retain(
         await listen('plugins-changed', () => {
-          void refresh().catch(console.error)
+          scheduleRefresh()
         })
       )
-      if (!disposed) await refresh()
+      scheduleRefresh()
     })().catch(console.error)
     return () => {
       disposed = true
+      cancelRefresh()
       cleanups.forEach((fn) => fn())
       loaded.forEach(deactivate)
       loaded.clear()

@@ -1,3 +1,4 @@
+import { afterFirstPaint } from '@/lib/after-first-paint'
 import { coverCandidates, type CoverInput, type CoverSize } from '@/features/music/cover-image'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -36,16 +37,19 @@ export function useCoverImageSource(
     }
     if (!remote || !isTauri()) return
     let disposed = false
-    void nativeCall<string>('runtime_cover', { url })
-      .then((source) => {
-        if (!disposed) setLoaded({ identity, url, source, cached: true })
-      })
-      .catch(() => {
-        if (disposed) return
-        if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
-        else setLoaded({ identity, url, source: coverSource(url), cached: false })
-      })
+    const cancel = afterFirstPaint(() => {
+      void nativeCall<string>('runtime_cover', { url })
+        .then((source) => {
+          if (!disposed) setLoaded({ identity, url, source, cached: true })
+        })
+        .catch(() => {
+          if (disposed) return
+          if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
+          else setLoaded({ identity, url, source: coverSource(url), cached: false })
+        })
+    })
     return () => {
+      cancel()
       disposed = true
     }
   }, [identity, url, index, visible, remote])

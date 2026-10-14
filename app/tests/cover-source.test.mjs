@@ -12,6 +12,12 @@ function harness({ intersecting = true } = {}) {
     deleted = []
   let cursor = 0
   const modules = {
+    '@/lib/after-first-paint': {
+      afterFirstPaint(work) {
+        work()
+        return () => {}
+      }
+    },
     '@/features/music/cover-image': coverImage,
     react: {
       useState(initial) {

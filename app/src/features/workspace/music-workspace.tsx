@@ -23,7 +23,6 @@ import { QueuePage } from '@/features/queue/queue-page'
 import { ToolsPage } from '@/features/tools/tools-page'
 import { PluginPageHost } from '@/plugins/host'
 import { useInterfaceDensity } from '@/features/settings/use-interface-density'
-import LyricsView from '@/features/lyrics/lyrics-view'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { sourceLabel } from '@/features/music/source-label'
 import { useAndroidBack } from './use-android-back'
@@ -33,6 +32,7 @@ import { MobilePageHeader } from './mobile-page-header'
 import { settingsSections } from '@/features/settings/settings-sections'
 import { TrackSearchContext } from '@/components/music/track-search-context'
 
+const LyricsView = lazy(() => import('@/features/lyrics/lyrics-view'))
 const LocalPage = lazy(() => import('@/features/local/local-page'))
 const SearchPage = lazy(() => import('@/features/search/search-page'))
 const SettingsPage = lazy(() => import('@/features/settings/settings-page'))
@@ -295,7 +295,22 @@ export function MusicWorkspace({
               />
             )}
             <AnimatePresence onExitComplete={onPlayerExitComplete}>
-              {nowPlaying && <LyricsView key="now-playing" onQueue={openQueue} />}
+              {nowPlaying && (
+                <Suspense
+                  key="now-playing"
+                  fallback={
+                    <div
+                      className="now-playing absolute inset-0 z-[5] flex items-center justify-center"
+                      role="status"
+                      aria-label="正在加载播放器"
+                    >
+                      <span>正在加载播放器…</span>
+                    </div>
+                  }
+                >
+                  <LyricsView onQueue={openQueue} />
+                </Suspense>
+              )}
             </AnimatePresence>
             <TrackSearchContext.Provider
               value={isAndroid() && canSearchList ? listQuery : undefined}
