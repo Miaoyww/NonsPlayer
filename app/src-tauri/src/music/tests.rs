@@ -162,6 +162,7 @@ fn capability_and_account_restrictions_are_separate() {
         source: source("netease"),
         display_name: "网易云".into(),
         contract_version: CONTRACT_VERSION,
+        share_link_templates: Default::default(),
         capabilities: BTreeSet::from([Capability::Favorites]),
     };
     descriptor.validate().unwrap();

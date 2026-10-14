@@ -36,6 +36,10 @@ function harness() {
       songLink: (track) => `https://music.163.com/#/song?id=${track.source.id}`,
       songCopyName: (track) => `${track.title} - ${track.artist}`,
       useSongActions: () => ({
+        songLink: (track) =>
+          track.source.kind === 'netease'
+            ? `https://music.163.com/#/song?id=${track.source.id}`
+            : '',
         run: (operation) => operation(),
         copy: (value) => calls.push(['copy', value]),
         details: (track) => calls.push(['details', track.key]),

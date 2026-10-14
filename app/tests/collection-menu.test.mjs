@@ -8,6 +8,7 @@ function harness() {
   const calls = []
   let profile = { userId: 7 }
   const actions = {
+    link: () => 'https://source.example/share',
     busy: false,
     play: (...args) => calls.push(['play', ...args]),
     copy: (item) => calls.push(['copy', item]),
@@ -133,7 +134,10 @@ test('song favorite action precedes the divider and unavailable remove actions a
   )
   const modules = {
     '@/components/music/loading': { TextSkeleton: 'div' },
-    react: { createContext: () => ({}), useContext: () => ({}) },
+    react: {
+      createContext: () => ({}),
+      useContext: () => ({ songLink: () => 'https://source.example/share' })
+    },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@base-ui/react/context-menu': { ContextMenu: menu },
     '@tauri-apps/api/core': { isTauri: () => true },

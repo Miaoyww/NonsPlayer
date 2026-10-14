@@ -1,7 +1,7 @@
 import { Menu } from '@base-ui/react/menu'
 import { Copy, Ellipsis, FolderPlus, Heart, Info, RefreshCw, Share2 } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
-import { songCopyName, songLink, useSongActions } from '@/components/music/song-actions'
+import { songCopyName, useSongActions } from '@/components/music/song-actions'
 import { useAccount } from '@/features/account/account'
 import { isTauri } from '@tauri-apps/api/core'
 import type { Track } from '@/lib/player'
@@ -22,7 +22,7 @@ export function NowPlayingMenu({
   const id = track?.source.kind === 'netease' ? track.source.id : undefined
   const liked = id !== undefined && likedIds.has(id)
   const desktop = isTauri()
-  const link = track?.source.kind === 'netease' ? songLink(track) : ''
+  const link = track ? actions.songLink(track) : ''
   return (
     <Menu.Root>
       <Menu.Trigger

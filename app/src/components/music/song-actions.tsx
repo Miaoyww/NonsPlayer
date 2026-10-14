@@ -1,3 +1,5 @@
+import { trackShareLink } from '@/features/music/share-links'
+import { useMusicSources } from '@/features/music/use-music-sources'
 import { TextSkeleton } from '@/components/music/loading'
 import { PluginSongMenuItems } from '@/plugins/song-menu'
 import { LocalPlaylistPicker } from '@/features/local/local-playlist-picker'
@@ -51,20 +53,12 @@ interface SongInformation {
   albumId: number | null
   publishedAt: number | null
 }
-export function songLink(track: Track) {
-  const id =
-    track.source.kind === 'netease'
-      ? track.source.id
-      : track.source.kind === 'local'
-        ? track.source.neteaseId
-        : undefined
-  return id ? `https://music.163.com/#/song?id=${id}` : ''
-}
 export function songCopyName(track: Track) {
   return `${track.title} - ${track.artist}`
 }
 
 const SongActionsContext = createContext<{
+  songLink: (track: Track) => string
   collect: (track: Track) => void
   details: (track: Track) => void
   run: (
@@ -94,6 +88,9 @@ export function SongActionsProvider({
   onError: (error: unknown) => void
   onNotice: (message: string) => void
 }) {
+  const { statuses } = useMusicSources()
+  const sources = statuses.filter((status) => status.enabled).map((status) => status.descriptor)
+  const songLink = (track: Track) => trackShareLink(track, sources)
   const [collectTrack, setCollectTrack] = useState<Track>()
   const [track, setTrack] = useState<Track>()
   const [localInformation, setLocalInformation] = useState<LocalInformation>()
@@ -242,6 +239,7 @@ export function SongActionsProvider({
   return (
     <SongActionsContext.Provider
       value={{
+        songLink,
         collect: setCollectTrack,
         details: (value) => {
           setRetry(0)
@@ -408,7 +406,7 @@ export function SongContextMenu({
                 添加到本地歌单
               </ContextMenu.Item>
             )}
-            {!unavailable && track.source.kind === 'netease' && profile && songLink(track) && (
+            {!unavailable && track.source.kind === 'netease' && profile && (
               <ContextMenu.Item onClick={() => actions.collect(track)}>
                 <FolderPlus aria-hidden="true" />
                 收藏到歌单
@@ -439,8 +437,8 @@ export function SongContextMenu({
                 <ContextMenu.Portal>
                   <ContextMenu.Positioner className="z-[71]" sideOffset={4}>
                     <ContextMenu.Popup className="song-context-menu">
-                      {songLink(track) && (
-                        <ContextMenu.Item onClick={() => actions.copy(songLink(track))}>
+                      {actions.songLink(track) && (
+                        <ContextMenu.Item onClick={() => actions.copy(actions.songLink(track))}>
                           <Copy aria-hidden="true" />
                           复制歌曲链接
                         </ContextMenu.Item>

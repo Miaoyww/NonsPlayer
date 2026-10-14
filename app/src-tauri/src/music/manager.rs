@@ -787,6 +787,7 @@ mod tests {
                 source: source(),
                 display_name: "test".into(),
                 contract_version: super::super::CONTRACT_VERSION,
+                share_link_templates: Default::default(),
                 capabilities: Default::default(),
             },
             blocked,

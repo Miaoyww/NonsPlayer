@@ -6,7 +6,7 @@ use super::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     future::Future,
     pin::Pin,
     sync::{
@@ -39,6 +39,9 @@ pub struct SourceDescriptor {
     pub display_name: String,
     pub contract_version: u32,
     pub capabilities: BTreeSet<Capability>,
+    /// Public entity links; the host URL-encodes the opaque ID into `{id}`.
+    #[serde(default)]
+    pub share_link_templates: BTreeMap<super::identity::EntityKind, String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,6 +61,23 @@ impl SourceDescriptor {
             || self.display_name.len() > 256
         {
             return Err(ErrorCode::InvalidData.into());
+        }
+        for template in self.share_link_templates.values() {
+            if template.len() > 2048 || template.matches("{id}").count() != 1 {
+                return Err(ErrorCode::InvalidData.into());
+            }
+            let parsed = url::Url::parse(&template.replace("{id}", "entity-id"))
+                .map_err(|_| ErrorCode::InvalidData)?;
+            if !matches!(parsed.scheme(), "http" | "https")
+                || parsed.host_str().is_none()
+                || !parsed.username().is_empty()
+                || parsed.password().is_some()
+                || parsed
+                    .host_str()
+                    .is_some_and(|host| host.contains("entity-id"))
+            {
+                return Err(ErrorCode::InvalidData.into());
+            }
         }
         Ok(())
     }
@@ -246,4 +266,41 @@ pub trait MusicAdapter: Send + Sync {
         request: &'a ResolveRequest,
         context: &'a RequestContext,
     ) -> AdapterFuture<'a, PlaybackResource>;
+}
+
+#[cfg(test)]
+mod share_link_tests {
+    use super::*;
+    use crate::identity::EntityKind;
+
+    #[test]
+    fn validates_public_templates_and_defaults_legacy_descriptors() {
+        let mut descriptor: SourceDescriptor = serde_json::from_str(
+            r#"{"source":"fixture","displayName":"Fixture","contractVersion":1,"capabilities":[]}"#,
+        )
+        .unwrap();
+        assert!(descriptor.share_link_templates.is_empty());
+        assert!(descriptor.validate().is_ok());
+        for template in [
+            "https://example.com/song/{id}",
+            "https://example.com/#/song?id={id}",
+        ] {
+            descriptor
+                .share_link_templates
+                .insert(EntityKind::Track, template.into());
+            assert!(descriptor.validate().is_ok());
+        }
+        for template in [
+            "https://example.com/song",
+            "https://example.com/{id}/{id}",
+            "file:///{id}",
+            "https://user:secret@example.com/{id}",
+            "https://{id}.example.com/song",
+        ] {
+            descriptor
+                .share_link_templates
+                .insert(EntityKind::Track, template.into());
+            assert!(descriptor.validate().is_err(), "{template}");
+        }
+    }
 }

@@ -135,6 +135,7 @@ export interface SourceDescriptor {
   source: string
   displayName: string
   contractVersion: number
+  shareLinkTemplates?: Partial<Record<EntityKind, string>>
   capabilities: string[]
 }
 export interface MusicSourceClient {

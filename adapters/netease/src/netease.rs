@@ -69,6 +69,26 @@ impl NeteaseAdapter {
                 source: SourceId::try_from("netease".to_owned()).expect("reserved source"),
                 display_name: "网易云音乐".into(),
                 contract_version: super::CONTRACT_VERSION,
+                share_link_templates: [
+                    (
+                        EntityKind::Track,
+                        "https://music.163.com/#/song?id={id}".into(),
+                    ),
+                    (
+                        EntityKind::Playlist,
+                        "https://music.163.com/#/playlist?id={id}".into(),
+                    ),
+                    (
+                        EntityKind::Album,
+                        "https://music.163.com/#/album?id={id}".into(),
+                    ),
+                    (
+                        EntityKind::Artist,
+                        "https://music.163.com/#/artist?id={id}".into(),
+                    ),
+                ]
+                .into_iter()
+                .collect(),
                 // Only the implemented optional groups are advertised.
                 capabilities: [
                     Capability::Search,

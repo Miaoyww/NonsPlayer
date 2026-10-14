@@ -11,6 +11,8 @@ function harness() {
   let cursor = 0
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
+    '@/features/music/share-links': { trackShareLink: () => '' },
     '@/components/music/loading': { TextSkeleton: 'div' },
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
     react: {

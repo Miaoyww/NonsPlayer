@@ -1,3 +1,5 @@
+import { collectionShareLink } from '@/features/music/share-links'
+import { useMusicSources } from '@/features/music/use-music-sources'
 import { TextSkeleton } from '@/components/music/loading'
 import { ContextMenu } from '@base-ui/react/context-menu'
 import { Copy, ListPlus, Pencil, Play, Trash2 } from 'lucide-react'
@@ -26,6 +28,7 @@ import { useAccount } from '@/features/account/account'
 import { useMusicNavigation, type MusicCollection } from '@/features/workspace/music-navigation'
 
 const CollectionActions = createContext<{
+  link: (item: MusicCollection) => string
   revision: number
   changed: () => void
   edit: (item: MusicCollection) => void
@@ -48,6 +51,9 @@ export function CollectionActionsProvider({
   onError: (error: unknown) => void
   onNotice: (message: string) => void
 }) {
+  const { statuses } = useMusicSources()
+  const sources = statuses.filter((status) => status.enabled).map((status) => status.descriptor)
+  const link = (item: MusicCollection) => collectionShareLink(item, sources)
   const { profile } = useAccount()
   const { page, navigate } = useMusicNavigation()
   const [revision, setRevision] = useState(0)
@@ -135,6 +141,7 @@ export function CollectionActionsProvider({
   return (
     <CollectionActions.Provider
       value={{
+        link,
         revision,
         changed,
         edit: (item) => setTarget({ item, deleting: false }),
@@ -144,9 +151,9 @@ export function CollectionActionsProvider({
         },
         busy,
         copy: (item) => {
-          void navigator.clipboard
-            .writeText(`https://music.163.com/#/${item.kind}?id=${item.id}`)
-            .then(() => onNotice('已复制分享链接。'), onError)
+          const url = link(item)
+          if (!url) return
+          void navigator.clipboard.writeText(url).then(() => onNotice('已复制分享链接。'), onError)
         }
       }}
     >
@@ -287,7 +294,7 @@ export function CollectionContextMenu({
               </ContextMenu.Item>
             )}
             {!unavailable && item && <ContextMenu.Separator />}
-            {item && (
+            {item && actions.link(item) && (
               <ContextMenu.Item onClick={() => actions.copy(item)}>
                 <Copy aria-hidden="true" />
                 复制链接
