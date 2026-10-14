@@ -173,7 +173,7 @@ pub fn index_track(db: &Connection, track: &Track, options: &LocalPreferences) -
     entities.push(("album", album_id, track.album.clone(), album_artist));
     for (kind, id, name, subtitle) in entities {
         // The first known cover remains the artist's avatar across scans and restarts.
-        db.execute("INSERT OR IGNORE INTO local_entities(kind,id,name,cover,subtitle) VALUES(?1,?2,?3,?4,?5)", params![kind,id,name,track.cover,subtitle]).map_err(|e| e.to_string())?;
+        db.execute("INSERT OR IGNORE INTO local_entities(kind,id,name,cover,subtitle) VALUES(?1,?2,?3,?4,?5)", params![kind,id,name,track.cover.to_string(),subtitle]).map_err(|e| e.to_string())?;
         db.execute(
             "INSERT INTO local_members(key,kind,id) VALUES(?1,?2,?3)",
             params![track.key, kind, id],

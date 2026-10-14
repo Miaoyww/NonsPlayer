@@ -1,3 +1,4 @@
+import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -10,7 +11,7 @@ runInNewContext(
     readFileSync(new URL('../src/features/library/recent-playlists.ts', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS } }
   ).outputText,
-  { exports }
+  { exports, require: () => coverImage }
 )
 const { parseRecentPlaylists, rememberPlaylist, recentPlaylistKey } = exports
 const playlist = (id) => ({

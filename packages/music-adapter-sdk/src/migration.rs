@@ -69,7 +69,7 @@ pub fn convert_track(track: Track) -> MusicResult<MigratedTrack> {
                 Some(LocalBinding {
                     reference: identity,
                     path: path.clone(),
-                    cover: track.cover.clone(),
+                    cover: track.cover.to_string(),
                 }),
                 association.into_iter().collect(),
                 false,
@@ -114,7 +114,11 @@ pub fn convert_track(track: Track) -> MusicResult<MigratedTrack> {
             album_reference,
             duration_ms: track.duration_ms,
             // Host resolves local artwork using the binding, never a public file path.
-            cover: if online { track.cover } else { String::new() },
+            cover: if online {
+                track.cover
+            } else {
+                Default::default()
+            },
             associations,
         },
         local_binding,

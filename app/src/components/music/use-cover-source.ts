@@ -1,14 +1,16 @@
+import { coverOriginal, type CoverInput } from '@/features/music/cover-image'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { coverSource, nativeCall } from '@/lib/player'
 import { coverCache, requestKey } from '@/lib/runtime-cache'
 import { useLocalOptions } from '@/features/local/use-local-options'
 
-export function useCoverSource(cover?: string, enabled = true) {
-  return useCoverImageSource(cover, enabled).source
+export function useCoverSource(input?: CoverInput, enabled = true) {
+  return useCoverImageSource(input, enabled).source
 }
 
-export function useCoverImageSource(cover?: string, enabled = true) {
+export function useCoverImageSource(input?: CoverInput, enabled = true) {
+  const cover = coverOriginal(input)
   const { showCovers } = useLocalOptions()
   const remote = !!cover && /^https?:\/\//.test(cover)
   const visible = enabled && !!cover && (remote || showCovers)
@@ -17,7 +19,6 @@ export function useCoverImageSource(cover?: string, enabled = true) {
     if (!visible || !remote || !isTauri()) return
     let disposed = false
     const sized = new URL(cover!)
-    sized.searchParams.set('param', '512y512')
     void nativeCall<string>('runtime_cover', { url: sized.toString() })
       .then((source) => {
         if (!disposed) setLoaded({ cover: cover!, source })
@@ -44,7 +45,6 @@ export function useCoverImageSource(cover?: string, enabled = true) {
     if (!source || !cover) return
     if (remote && isTauri() && source !== original) {
       const sized = new URL(cover)
-      sized.searchParams.set('param', '512y512')
       coverCache.delete(requestKey('runtime_cover', { url: sized.toString() }))
       void nativeCall('runtime_cover_invalidate', { url: sized.toString() }).catch(() => {})
       setLoaded({ cover, source: original })

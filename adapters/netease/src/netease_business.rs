@@ -24,7 +24,8 @@ pub fn reference(kind: EntityKind, id: u64) -> MusicResult<EntityRef> {
         id: OpaqueId::try_from(id.to_string())?,
     })
 }
-pub(super) fn track(value: Track) -> MusicResult<MusicTrack> {
+pub(super) fn track(mut value: Track) -> MusicResult<MusicTrack> {
+    value.cover = crate::cover::image(&value.cover);
     super::migration::legacy_track(
         &serde_json::to_string(&value).map_err(|_| ErrorCode::InvalidData)?,
     )

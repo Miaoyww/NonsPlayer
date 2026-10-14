@@ -8,7 +8,7 @@ export function Cover({
   className = '',
   loading = 'lazy'
 }: {
-  cover?: string
+  cover?: import('@/features/music/types').CoverInput
   className?: string
   loading?: 'eager' | 'lazy'
 }) {

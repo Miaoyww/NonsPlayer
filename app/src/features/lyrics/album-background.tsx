@@ -11,7 +11,7 @@ export function AlbumBackground({
   active = true,
   enabled = true
 }: {
-  cover?: string
+  cover?: import('@/features/music/types').CoverInput
   playing: boolean
   hasLyrics: boolean
   active?: boolean

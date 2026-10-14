@@ -1,3 +1,4 @@
+import { coverOriginal } from '@/features/music/cover-image'
 import type { Track } from '@/lib/player'
 import type { PluginManifest } from './types'
 
@@ -7,6 +8,7 @@ export function songMenuContributions(manifest: PluginManifest, track: Track) {
   )
 }
 export function publicMenuSong(track: Track) {
+  const cover = coverOriginal(track.cover)
   return {
     key: track.key,
     title: track.title,
@@ -16,7 +18,7 @@ export function publicMenuSong(track: Track) {
     artist: track.artist,
     album: track.album,
     durationMs: track.durationMs,
-    cover: track.cover.startsWith('http') ? track.cover : '',
+    cover: cover.startsWith('http') ? cover : '',
     source:
       track.source.kind === 'netease'
         ? { kind: 'netease' as const, id: track.source.id }

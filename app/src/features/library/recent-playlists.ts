@@ -1,3 +1,4 @@
+import { validCoverInput } from '@/features/music/cover-image'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 
 export const recentPlaylistLimit = 20
@@ -16,7 +17,7 @@ export function parseRecentPlaylists(saved: string | null): MusicCollection[] {
           !Number.isSafeInteger(item.id) ||
           item.id <= 0 ||
           typeof item.name !== 'string' ||
-          typeof item.cover !== 'string' ||
+          !validCoverInput(item.cover) ||
           typeof item.subtitle !== 'string' ||
           !Number.isFinite(item.trackCount) ||
           item.trackCount < 0 ||

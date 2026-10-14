@@ -20,7 +20,7 @@ import {
 export interface AccountProfile {
   userId: number
   nickname: string
-  avatarUrl: string
+  avatarUrl: import('@/features/music/types').CoverInput
 }
 const AccountContext = createContext<{
   profile: AccountProfile | null

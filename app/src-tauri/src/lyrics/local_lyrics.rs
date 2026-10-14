@@ -116,7 +116,7 @@ mod tests {
             album_id: None,
             album: String::new(),
             duration_ms: 0,
-            cover: String::new(),
+            cover: Default::default(),
             source: TrackSource::Netease { id: 1 },
         };
         assert!(get(track, false).await.unwrap().is_none());

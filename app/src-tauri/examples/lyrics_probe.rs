@@ -40,7 +40,7 @@ async fn main() -> Result<(), String> {
             aliases: vec![],
             artists: vec![],
             album_id: None,
-            cover: String::new(),
+            cover: Default::default(),
             source: model::TrackSource::Local {
                 path,
                 netease_id: None,
@@ -56,7 +56,7 @@ async fn main() -> Result<(), String> {
             aliases: vec![],
             artists: vec![],
             album_id: None,
-            cover: String::new(),
+            cover: Default::default(),
             source: model::TrackSource::Local {
                 path: String::new(),
                 netease_id: None,

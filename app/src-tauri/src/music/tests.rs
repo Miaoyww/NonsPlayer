@@ -42,7 +42,7 @@ fn uniform_tracks_survive_real_storage_and_mixed_queue_restore() {
             id: id("album:雪"),
         }),
         duration_ms: 1000,
-        cover: String::new(),
+        cover: Default::default(),
         associations: vec![track_ref("netease", "123")],
     };
     let a = Track::from_music(music("qqmusic", "same/雪:1")).unwrap();

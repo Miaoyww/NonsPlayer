@@ -1,3 +1,4 @@
+import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -60,6 +61,7 @@ async function harness({ delayed = false } = {}) {
     return exports
   }
   const modules = {
+    '@/features/music/cover-image': coverImage,
     '@/lib/platform': { isAndroid: () => false },
     '@/features/playback/player-store': compile('../src/features/playback/player-store.ts'),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },

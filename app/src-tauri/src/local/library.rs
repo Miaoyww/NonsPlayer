@@ -190,7 +190,7 @@ fn read_track(
             .map(|s| s.into_owned())
             .unwrap_or_else(|| "未知专辑".into()),
         duration_ms: tagged.properties().duration().as_millis() as u64,
-        cover,
+        cover: cover.into(),
         source: TrackSource::Local { path, netease_id },
     };
     if let Some(info) = ncm_info {

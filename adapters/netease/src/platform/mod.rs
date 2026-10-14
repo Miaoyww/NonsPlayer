@@ -44,7 +44,7 @@ pub struct LoginStatus {
 pub struct AccountProfile {
     pub user_id: u64,
     pub nickname: String,
-    pub avatar_url: String,
+    pub avatar_url: nons_music_adapter_sdk::cover::CoverImage,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -487,11 +487,12 @@ fn account_profile(body: &Value) -> Option<AccountProfile> {
             .filter(|name| !name.is_empty())
             .unwrap_or("网易云用户")
             .into(),
-        avatar_url: profile
-            .get("avatarUrl")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .into(),
+        avatar_url: crate::cover::image(
+            profile
+                .get("avatarUrl")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+        ),
     })
 }
 
@@ -613,11 +614,12 @@ fn track_from_json(song: &Value) -> Option<Track> {
             .or_else(|| song.get("duration"))
             .and_then(Value::as_u64)
             .unwrap_or(0),
-        cover: album
-            .and_then(|v| v.get("picUrl"))
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .into(),
+        cover: crate::cover::image(
+            album
+                .and_then(|v| v.get("picUrl"))
+                .and_then(Value::as_str)
+                .unwrap_or(""),
+        ),
         source: TrackSource::Netease { id },
     })
 }

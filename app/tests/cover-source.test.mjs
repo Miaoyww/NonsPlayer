@@ -1,3 +1,4 @@
+import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -11,6 +12,7 @@ function harness({ intersecting = true } = {}) {
     deleted = []
   let cursor = 0
   const modules = {
+    '@/features/music/cover-image': coverImage,
     react: {
       useState(initial) {
         const i = cursor++
@@ -157,7 +159,7 @@ test('cached image load errors invalidate the broken entry and fall back to the 
   image = h.render(cover)
   assert.equal(image.source, cover)
   assert.equal(h.deleted.length, 1)
-  assert.match(h.deleted[0], /512y512/)
+  assert.ok(h.deleted[0].includes(cover))
   image.onError()
   assert.equal(h.render(cover).source, undefined)
   assert.equal(
@@ -166,7 +168,7 @@ test('cached image load errors invalidate the broken entry and fall back to the 
     'failure recovery must not cause a request loop'
   )
   assert.equal(h.requests.filter((r) => r.command === 'runtime_cover_invalidate').length, 1)
-  assert.match(h.requests.at(-1).args.url, /512y512/)
+  assert.equal(h.requests.at(-1).args.url, cover)
 })
 
 test('request errors fall back, reactivation retries, and late previous-cover responses are ignored', async () => {

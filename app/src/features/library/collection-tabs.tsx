@@ -1,3 +1,4 @@
+import { coverOriginal } from '@/features/music/cover-image'
 import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { Music2, Search } from 'lucide-react'
 import { Tabs, TabsList, TabsTab, TabsPanel } from '@/components/animate-ui/components/base/tabs'
@@ -31,7 +32,9 @@ export function CollectionTabs({
     id: collection.localId ?? collection.id,
     name: collection.name,
     subtitle: collection.subtitle,
-    cover: /^https?:\/\//.test(collection.cover) ? collection.cover : '',
+    cover: /^https?:\/\//.test(coverOriginal(collection.cover))
+      ? coverOriginal(collection.cover)
+      : '',
     trackCount: collection.trackCount
   }
   const tabs = entries.filter(

@@ -79,7 +79,7 @@ pub fn legacy_account(profile: &str) -> MusicResult<super::account::AccountRecor
     struct LegacyProfile {
         user_id: u64,
         nickname: String,
-        avatar_url: String,
+        avatar_url: nons_music_adapter_sdk::cover::CoverImage,
     }
     if profile.len() > 64 * 1024 {
         return Err(ErrorCode::InvalidData.into());

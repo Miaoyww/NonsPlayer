@@ -22,7 +22,7 @@ export interface MusicCollection {
   id: number
   kind: 'playlist' | 'album' | 'artist'
   name: string
-  cover: string
+  cover: import('@/features/music/types').CoverInput
   subtitle: string
   trackCount: number
   creatorId?: number

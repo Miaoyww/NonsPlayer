@@ -138,11 +138,11 @@ impl MediaControls {
                     || track.cover.starts_with("http://")
                 {
                     let uri =
-                        Uri::CreateUri(&HSTRING::from(&track.cover)).map_err(|e| e.to_string())?;
+                        Uri::CreateUri(&HSTRING::from(&*track.cover)).map_err(|e| e.to_string())?;
                     RandomAccessStreamReference::CreateFromUri(&uri).map_err(|e| e.to_string())?
                 } else {
                     let file = windows::Storage::StorageFile::GetFileFromPathAsync(&HSTRING::from(
-                        &track.cover,
+                        &*track.cover,
                     ))
                     .map_err(|e| e.to_string())?
                     .join()

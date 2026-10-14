@@ -43,7 +43,7 @@ pub struct Track {
     pub album_id: Option<u64>,
     pub album: String,
     pub duration_ms: u64,
-    pub cover: String,
+    pub cover: crate::cover::CoverImage,
     pub source: TrackSource,
 }
 

@@ -65,7 +65,7 @@ fn record(source_id: &str, id: &str) -> AccountRecord {
             id: OpaqueId::try_from(id.to_owned()).unwrap(),
         },
         display_name: "user".into(),
-        avatar: String::new(),
+        avatar: Default::default(),
     }
 }
 fn secret(value: &[u8]) -> OpaqueCredential {

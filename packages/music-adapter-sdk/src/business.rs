@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct MusicEntity {
     pub reference: EntityRef,
     pub name: String,
-    pub cover: String,
+    pub cover: crate::cover::CoverImage,
     pub subtitle: String,
     pub track_count: u64,
     pub creator: Option<AccountRef>,
@@ -264,6 +264,7 @@ impl BusinessResponse {
             return Err(ErrorCode::InvalidData.into());
         }
         let entity = |e: &MusicEntity| -> MusicResult<()> {
+            e.cover.validate_adapter()?;
             if &e.reference.source == source
                 && e.reference.kind != EntityKind::Track
                 && e.creator.as_ref().is_none_or(|c| &c.source == source)
@@ -282,6 +283,7 @@ impl BusinessResponse {
             if &t.reference.source != source {
                 return Err(ErrorCode::InvalidData.into());
             }
+            t.cover.validate_adapter()?;
             t.validate(&t.reference)
         };
         match self {
@@ -312,6 +314,7 @@ impl BusinessResponse {
                 }
             }
             Self::Summary(s) => {
+                s.account.avatar.validate_adapter()?;
                 if &s.account.reference.source != source || s.liked_tracks.len() > 100 {
                     return Err(ErrorCode::InvalidData.into());
                 }

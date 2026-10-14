@@ -2,6 +2,7 @@
 pub mod account;
 pub mod adapter;
 pub mod business;
+pub mod cover;
 pub mod identity;
 pub mod legacy;
 pub mod migration;

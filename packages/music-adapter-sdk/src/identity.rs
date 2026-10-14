@@ -92,7 +92,7 @@ pub struct MusicTrack {
     pub album: String,
     pub album_reference: Option<EntityRef>,
     pub duration_ms: u64,
-    pub cover: String,
+    pub cover: crate::cover::CoverImage,
     /// Matching/lyric links do not replace reference, including for local tracks.
     pub associations: Vec<EntityRef>,
 }

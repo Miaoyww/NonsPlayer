@@ -1,3 +1,4 @@
+import { coverOriginal } from '@/features/music/cover-image'
 import { useCallback, useContext, useMemo, useSyncExternalStore } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { nativeCall, usePlayer as useHostPlayer, useProgress } from '@/lib/player'
@@ -359,7 +360,7 @@ export function usePlayer() {
             artist: track.artist,
             album: track.album,
             durationMs: track.durationMs,
-            cover: /^https?:/.test(track.cover) ? track.cover : ''
+            cover: /^https?:/.test(coverOriginal(track.cover)) ? coverOriginal(track.cover) : ''
           }
         : null,
       control: (action: 'pause' | 'resume' | 'next' | 'previous' | 'stop') => {

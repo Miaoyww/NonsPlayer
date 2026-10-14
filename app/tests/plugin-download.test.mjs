@@ -1,3 +1,4 @@
+import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -15,6 +16,7 @@ import { md5 } from '../../plugins/netease-download/node_modules/@noble/hashes/l
 import { bytesToHex } from '../../plugins/netease-download/node_modules/@noble/hashes/utils.js'
 
 function load(path, modules = {}, globals = {}) {
+  modules = { '@/features/music/cover-image': coverImage, ...modules }
   const exports = {}
   const { outputText } = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }

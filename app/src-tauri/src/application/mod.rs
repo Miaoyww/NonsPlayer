@@ -327,7 +327,7 @@ async fn search_music(
     let mut tracks = backend.music.search(&keyword, offset.min(10_000)).await?;
     for track in &mut tracks {
         if track.cover.is_empty() {
-            track.cover = backend.fallback_cover.clone();
+            track.cover = backend.fallback_cover.clone().into();
         }
     }
     backend.store.save_tracks(&tracks)?;
@@ -505,7 +505,7 @@ async fn library_history(
 fn save_library_tracks(tracks: &mut [Track], backend: &Backend) -> AppResult<()> {
     for track in tracks.iter_mut() {
         if track.cover.is_empty() {
-            track.cover = backend.fallback_cover.clone();
+            track.cover = backend.fallback_cover.clone().into();
         }
     }
     backend.store.save_tracks(tracks)

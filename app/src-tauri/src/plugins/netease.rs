@@ -131,5 +131,5 @@ impl SongService {
     }
 }
 fn song_value(id: u64, track: &Track) -> Value {
-    json!({"id":id,"key":track.key,"title":track.title,"artist":track.artist,"artists":track.artists,"album":track.album,"durationMs":track.duration_ms,"cover":track.cover})
+    json!({"id":id,"key":track.key,"title":track.title,"artist":track.artist,"artists":track.artists,"album":track.album,"durationMs":track.duration_ms,"cover":track.cover.to_string()})
 }

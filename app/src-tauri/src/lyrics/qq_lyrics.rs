@@ -553,7 +553,7 @@ mod tests {
             artist: "周杰伦 / 杨瑞代".into(),
             album: "叶惠美".into(),
             duration_ms: 269000,
-            cover: String::new(),
+            cover: Default::default(),
             source: TrackSource::Netease { id: 1 },
         }
     }

@@ -629,7 +629,7 @@ impl Actor {
                         let mut page = music.library_queue(&kind, id).await?;
                         for track in &mut page.tracks {
                             if track.cover.is_empty() {
-                                track.cover = fallback_cover.clone();
+                                track.cover = fallback_cover.clone().into();
                             }
                         }
                         // Metadata persistence must not block the audio actor.
@@ -1633,7 +1633,7 @@ mod tests {
                     album_id: None,
                     album: String::new(),
                     duration_ms: 180_000,
-                    cover: String::new(),
+                    cover: Default::default(),
                     source: TrackSource::Netease { id },
                 })
                 .collect::<Vec<_>>()

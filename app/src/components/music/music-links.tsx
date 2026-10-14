@@ -58,7 +58,7 @@ export function AlbumLink({
   id?: number | null
   reference?: import('@/features/music/types').EntityRef | null
   name: string
-  cover?: string
+  cover?: import('@/features/music/types').CoverInput
 }) {
   const { navigate } = useMusicNavigation()
   return id || reference ? (

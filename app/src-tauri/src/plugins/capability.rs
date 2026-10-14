@@ -326,7 +326,7 @@ impl Context {
             "player.read" => {
                 self.check(Some("player:read"))?;
                 let state = self.player.snapshot()?;
-                json!({"status":state.status,"positionMs":state.position_ms,"durationMs":state.duration_ms,"volume":state.volume,"track":state.current().map(|t| json!({"title":t.title,"artist":t.artist,"album":t.album,"durationMs":t.duration_ms,"cover":if t.cover.starts_with("http") { &t.cover } else { "" }}))})
+                json!({"status":state.status,"positionMs":state.position_ms,"durationMs":state.duration_ms,"volume":state.volume,"track":state.current().map(|t| json!({"title":t.title,"artist":t.artist,"album":t.album,"durationMs":t.duration_ms,"cover":if t.cover.starts_with("http") { &*t.cover } else { "" }}))})
             }
             "netease.play-song" | "player.play-song" => {
                 self.check(Some("player:control"))?;

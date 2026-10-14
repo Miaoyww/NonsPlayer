@@ -2,7 +2,13 @@ import { UserRound } from 'lucide-react'
 import { useCoverImageSource } from '@/components/music/use-cover-source'
 import { cn } from '@/lib/utils'
 
-export function AccountAvatar({ avatar, className }: { avatar?: string; className?: string }) {
+export function AccountAvatar({
+  avatar,
+  className
+}: {
+  avatar?: import('@/features/music/types').CoverInput
+  className?: string
+}) {
   const { source, onError } = useCoverImageSource(avatar)
   return source ? (
     <img

@@ -119,7 +119,7 @@ mod tests {
                 id: OpaqueId::try_from("42".to_owned()).unwrap(),
             },
             display_name: "Listener".into(),
-            avatar: String::new(),
+            avatar: Default::default(),
         };
         accounts
             .accept(

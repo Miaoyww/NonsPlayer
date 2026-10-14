@@ -1,3 +1,4 @@
+import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
@@ -14,6 +15,7 @@ import ts from 'typescript'
 import { buildFrontend } from '../../scripts/plugin-build-ui.mjs'
 
 function load(path, modules) {
+  modules = { '@/features/music/cover-image': coverImage, ...modules }
   const exports = {}
   const { outputText } = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }

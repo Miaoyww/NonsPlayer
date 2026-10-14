@@ -377,6 +377,12 @@ impl AdapterManager {
             return Err(ErrorCode::InvalidData.into());
         }
         entry.check(&context)?;
+        if let AccountPresentation::Profile(Some(record)) = &outcome.presentation {
+            record.avatar.validate_adapter()?;
+        }
+        if let Some((record, _)) = &outcome.credential {
+            record.avatar.validate_adapter()?;
+        }
         let valid = match (request, &outcome.presentation) {
             (AccountRequest::BeginLogin, AccountPresentation::Challenge { key, image }) => {
                 !key.is_empty()
@@ -488,6 +494,7 @@ impl AdapterManager {
             )
             .await?;
         track.validate(reference)?;
+        track.cover.validate_adapter()?;
         entry.check(&context)?;
         Ok(track)
     }
@@ -668,7 +675,7 @@ mod tests {
                                 id: OpaqueId::try_from("listener".to_owned())?,
                             },
                             display_name: "Listener".into(),
-                            avatar: String::new(),
+                            avatar: Default::default(),
                         },
                         OpaqueCredential::new(b"test-secret".to_vec())?,
                     )),
@@ -746,7 +753,7 @@ mod tests {
                     album: "album".into(),
                     album_reference: None,
                     duration_ms: 1000,
-                    cover: String::new(),
+                    cover: Default::default(),
                     associations: vec![],
                 })
             })

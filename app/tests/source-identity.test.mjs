@@ -1,3 +1,4 @@
+import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -10,7 +11,7 @@ test('plugin song menus preserve online references and never classify unknown pl
     readFileSync(new URL('../src/plugins/song-menu-context.ts', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS } }
   ).outputText
-  runInNewContext(code, { exports })
+  runInNewContext(code, { exports, require: () => coverImage })
   const reference = { source: 'qqmusic', kind: 'track', id: 'music/雪:1' }
   const track = {
     key: JSON.stringify(['qqmusic', 'track', reference.id]),

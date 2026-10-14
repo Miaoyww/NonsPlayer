@@ -4,6 +4,7 @@ pub use nons_music_adapter_sdk::{
     account, adapter, business, identity, migration, resource, ErrorCode, MusicError, MusicResult,
     CONTRACT_VERSION,
 };
+mod cover;
 mod netease;
 mod netease_business;
 pub mod platform;

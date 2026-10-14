@@ -557,7 +557,7 @@ mod tests {
             artist: String::new(),
             album: String::new(),
             duration_ms: 1000,
-            cover: String::new(),
+            cover: Default::default(),
             source: TrackSource::Netease { id },
         }
     }

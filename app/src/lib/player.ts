@@ -1,3 +1,4 @@
+import { coverOriginal, type CoverInput } from '@/features/music/cover-image'
 import { ScopedMusicQueries } from '@/features/music/scoped-query'
 import { isAndroid } from '@/lib/platform'
 import { createPrivateFm } from '@/features/discovery/private-fm'
@@ -38,7 +39,7 @@ export interface Track {
   artists?: MusicCredit[]
   albumId?: number | null
   durationMs: number
-  cover: string
+  cover: CoverInput
   source: TrackSource
 }
 export type PlaybackStatus = 'stopped' | 'loading' | 'playing' | 'paused' | 'buffering' | 'error'
@@ -352,7 +353,8 @@ export function currentPosition(now = performance.now()): number {
   )
 }
 
-export function coverSource(cover: string): string | undefined {
+export function coverSource(input: CoverInput): string | undefined {
+  const cover = coverOriginal(input)
   if (!cover) return undefined
   if (cover.startsWith('https://') || cover.startsWith('http://')) return cover
   return isTauri() ? convertFileSrc(cover) : undefined

@@ -16,7 +16,7 @@ pub struct AccountRef {
 pub struct AccountRecord {
     pub reference: AccountRef,
     pub display_name: String,
-    pub avatar: String,
+    pub avatar: crate::cover::CoverImage,
 }
 
 /// Issued by AccountManager, never accepted from a plugin-supplied identity.

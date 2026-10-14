@@ -234,7 +234,7 @@ mod tests {
             aliases: vec![],
             artists: vec![],
             album_id: None,
-            cover: String::new(),
+            cover: Default::default(),
             source: TrackSource::Local {
                 path: String::new(),
                 netease_id: None,

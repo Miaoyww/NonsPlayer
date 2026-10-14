@@ -1,3 +1,13 @@
+export type CoverSize = 'small' | 'normal' | 'large' | 'exlarge' | 'original'
+export interface CoverImage {
+  original: string
+  small: string
+  normal: string
+  large: string
+  exlarge: string
+}
+/** Strings are compatibility artwork from saved state or local paths. */
+export type CoverInput = CoverImage | string
 /** ADR 0006 v1 source-neutral music DTOs; IDs and cursors are opaque strings. */
 export type EntityKind = 'track' | 'playlist' | 'album' | 'artist'
 export interface EntityRef {
@@ -12,7 +22,7 @@ export interface AccountRef {
 export interface AccountRecord {
   reference: AccountRef
   displayName: string
-  avatar: string
+  avatar: CoverInput
 }
 export interface MusicCredit {
   name: string
@@ -27,13 +37,13 @@ export interface MusicTrack {
   album: string
   albumReference: EntityRef | null
   durationMs: number
-  cover: string
+  cover: CoverInput
   associations: EntityRef[]
 }
 export interface MusicEntity {
   reference: EntityRef
   name: string
-  cover: string
+  cover: CoverInput
   subtitle: string
   trackCount: number
   creator: AccountRef | null

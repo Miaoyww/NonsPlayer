@@ -13,7 +13,7 @@ pub struct Collection {
     pub id: u64,
     pub kind: String,
     pub name: String,
-    pub cover: String,
+    pub cover: nons_music_adapter_sdk::cover::CoverImage,
     pub subtitle: String,
     pub track_count: u64,
     pub creator_id: u64,
@@ -495,12 +495,13 @@ pub(super) fn collection(value: &Value, kind: &str) -> Option<Collection> {
         id,
         kind: kind.into(),
         name: text(value, "name").into(),
-        cover: ["img1v1Url", "picUrl", "coverImgUrl"]
-            .iter()
-            .map(|key| text(value, key))
-            .find(|s| !s.is_empty())
-            .unwrap_or_default()
-            .into(),
+        cover: crate::cover::image(
+            ["img1v1Url", "picUrl", "coverImgUrl"]
+                .iter()
+                .map(|key| text(value, key))
+                .find(|s| !s.is_empty())
+                .unwrap_or_default(),
+        ),
         subtitle,
         track_count: value
             .get("trackCount")
