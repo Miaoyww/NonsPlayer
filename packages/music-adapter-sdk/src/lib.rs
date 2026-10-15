@@ -6,6 +6,7 @@ pub mod cover;
 pub mod identity;
 pub mod legacy;
 pub mod migration;
+pub mod provider;
 pub mod resource;
 use serde::{Deserialize, Serialize};
 
