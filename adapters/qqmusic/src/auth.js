@@ -18,6 +18,7 @@ import {
 } from 'nons:host/transport@1.0.0'
 import { mqttConnect, drive, dispatch, closeSockets } from './runtime/platform.js'
 import { accountRecord, fail } from './model.js'
+import { playbackDiagnostics } from './protocol-diagnostics.js'
 
 const encoder = new TextEncoder()
 let issued = null
@@ -27,7 +28,20 @@ let currentMethod = null
 let published = false
 let device = null
 const listeners = new Map()
-const http = createFetchAuthHttpClient()
+const transport = createFetchAuthHttpClient()
+async function observePlayback(response, request) {
+  for (const diagnostic of playbackDiagnostics(response.data, request)) {
+    try {
+      hostCall('diagnostic.report', JSON.stringify(diagnostic))
+    } catch {}
+  }
+  return response
+}
+const http = {
+  ...transport,
+  request: async (config) => observePlayback(await transport.request(config), config.data),
+  post: async (url, data, config) => observePlayback(await transport.post(url, data, config), data)
+}
 export const authHttp = http
 export async function session() {
   if (issued) return issued

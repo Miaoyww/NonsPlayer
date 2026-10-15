@@ -104,10 +104,13 @@ async function component({
                       midurlinfo: [
                         {
                           songmid: 'SongMID',
+                          result: resource === 'empty' ? 1000 : 0,
                           purl:
-                            resource === 'preview'
-                              ? 'RS02SongMID.m4a'
-                              : value.req_0.param.filename[0]
+                            resource === 'empty'
+                              ? ''
+                              : resource === 'preview'
+                                ? 'RS02SongMID.m4a'
+                                : value.req_0.param.filename[0]
                         }
                       ]
                     }
@@ -615,6 +618,28 @@ test('plaintext resources report actual quality and reject previews, unknown siz
     }
   }
 })
+test('empty playback addresses preserve the upstream per-song result without logging credentials or URLs', async () => {
+  const fixture = await component({ credential: await credentialFixture(), resource: 'empty' })
+  try {
+    const result = fixture.call('music.resolve-playback', {
+      track: { source: 'qqmusic', kind: 'track', id: 'SongMID' },
+      preferredQuality: 'standard',
+      allowDowngrade: false
+    })
+    assert.equal(result.status, 'error')
+    assert.ok(
+      fixture.diagnostics.some(
+        (entry) => entry.stage === 'playback.vkey-empty.M500' && entry.code === 'upstream-1000'
+      ),
+      JSON.stringify(fixture.diagnostics)
+    )
+    assert.ok(!JSON.stringify(fixture.diagnostics).includes('fixture-sensitive-key'))
+    assert.ok(!JSON.stringify(fixture.diagnostics).includes('https://'))
+  } finally {
+    fixture.instance.shutdown()
+  }
+})
+
 test('a disconnected QR channel fails explicitly and releases its transport', async () => {
   const fixture = await component()
   try {
