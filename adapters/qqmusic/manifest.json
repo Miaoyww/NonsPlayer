@@ -1,0 +1,29 @@
+{
+  "descriptor": {
+    "source": "qqmusic",
+    "displayName": "QQ 音乐",
+    "contractVersion": 1,
+    "loginMethods": [
+      { "id": "qq", "label": "QQ 音乐扫码" },
+      { "id": "wechat", "label": "微信扫码" }
+    ],
+    "capabilities": ["search", "browse", "account", "userLibrary"],
+    "coverHosts": ["y.gtimg.cn", "*.qpic.cn", "*.qlogo.cn", "*.qq.com"],
+    "shareLinkTemplates": {}
+  },
+  "permissions": {
+    "httpHosts": [
+      "u.y.qq.com",
+      "c.y.qq.com",
+      "api.tencentmusic.com",
+      "open.weixin.qq.com",
+      "lp.open.weixin.qq.com",
+      "*.stream.qqmusic.qq.com",
+      "*.qqmusic.tc.qq.com"
+    ],
+    "websocketHosts": ["mu.y.qq.com"],
+    "system": true,
+    "state": true,
+    "credentials": true
+  }
+}

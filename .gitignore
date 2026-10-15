@@ -19,6 +19,8 @@ dist-ssr
 __pycache__/
 app/src-tauri/bundled-plugins/*
 !app/src-tauri/bundled-plugins/.gitkeep
+app/src-tauri/bundled-adapters/*
+!app/src-tauri/bundled-adapters/.gitkeep
 plugins/*/backend/target/
 plugins/*/backend/src/bindings.rs
 *.local

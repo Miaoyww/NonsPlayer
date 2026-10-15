@@ -1,0 +1,17 @@
+{
+  "name": "@nons/adapter-qqmusic",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bundle": "node scripts/bundle.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@yakult-green-tea/qq-music-api": "3.1.4",
+    "buffer": "6.0.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

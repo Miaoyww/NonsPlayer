@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "plugins:build": "node ../scripts/build-plugin.mjs",
+    "adapters:build": "node ../adapters/qqmusic/scripts/build.mjs",
     "plugins:fixtures": "cargo component build --manifest-path ../plugins/runtime-fixture/backend/Cargo.toml --release --target wasm32-unknown-unknown --locked && cargo component build --manifest-path ../plugins/music-fixture/backend/Cargo.toml --release --target wasm32-unknown-unknown --locked",
     "test": "node --test tests/*.test.mjs",
-    "dev": "pnpm plugins:build && vite",
+    "dev": "pnpm adapters:build && pnpm plugins:build && vite",
     "build": "tsc && vite build",
     "build:release": "node ../scripts/tauri.mjs build --ci --bundles msi nsis -- --locked",
     "build:android": "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/android.ps1 build",
