@@ -159,7 +159,14 @@ test('the global player connection replenishes without mounting the discovery pa
       ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
         compilerOptions: { module: ts.ModuleKind.CommonJS }
       }).outputText,
-      { exports, performance: { now: () => 0 }, require: (name) => modules[name] ?? {} }
+      {
+        exports,
+        performance: { now: () => 0 },
+        require: (name) =>
+          name === '@/lib/diagnostics'
+            ? { diagnosticInvoke: modules['@tauri-apps/api/core']?.invoke }
+            : (modules[name] ?? {})
+      }
     )
     return exports
   }

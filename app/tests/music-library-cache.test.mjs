@@ -23,6 +23,8 @@ function load(path, modules) {
     ...modules
   }
   const exports = {}
+  if (modules['@tauri-apps/api/core'])
+    modules['@/lib/diagnostics'] = { diagnosticInvoke: modules['@tauri-apps/api/core'].invoke }
   const { outputText } = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS }
   })

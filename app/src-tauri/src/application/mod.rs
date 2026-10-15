@@ -77,7 +77,7 @@ fn music_queue_tracks(
     scope: String,
     tracks: Vec<crate::music::identity::MusicTrack>,
     backend: State<'_, Backend>,
-) -> crate::music::MusicResult<Vec<Track>> {
+) -> Result<Vec<Track>, crate::infrastructure::diagnostics::CommandError> {
     if tracks.len() > 100
         || tracks.iter().any(|track| track.reference.source != source)
         || serde_json::to_vec(&tracks)
@@ -94,10 +94,9 @@ fn music_queue_tracks(
         .into_iter()
         .map(Track::from_music)
         .collect::<crate::music::MusicResult<Vec<_>>>()?;
-    backend
-        .store
-        .save_tracks(&tracks)
-        .map_err(|_| crate::music::ErrorCode::Internal)?;
+    backend.store.save_tracks(&tracks).map_err(|error| {
+        crate::infrastructure::diagnostics::internal_error("save_queue_tracks", &error)
+    })?;
     Ok(tracks)
 }
 
@@ -106,7 +105,7 @@ async fn music_queue_track(
     reference: crate::music::identity::EntityRef,
     scope: String,
     backend: State<'_, Backend>,
-) -> crate::music::MusicResult<Track> {
+) -> Result<Track, crate::infrastructure::diagnostics::CommandError> {
     if backend.music.adapters.cache_identity(&reference.source)? != scope {
         return Err(crate::music::ErrorCode::StaleContext.into());
     }
@@ -118,7 +117,9 @@ async fn music_queue_track(
     backend
         .store
         .save_tracks(std::slice::from_ref(&track))
-        .map_err(|_| crate::music::ErrorCode::Internal)?;
+        .map_err(|error| {
+            crate::infrastructure::diagnostics::internal_error("save_queue_track", &error)
+        })?;
     Ok(track)
 }
 
@@ -715,6 +716,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            crate::infrastructure::diagnostics::initialize(app.handle());
             #[cfg(windows)]
             if let Some(data) = crate::infrastructure::directories::portable() {
                 for config in &app.config().app.windows {
@@ -735,6 +737,11 @@ pub fn run() {
             #[cfg(feature = "plugin-probe")]
             let data = plugins::probe::directory();
             std::fs::create_dir_all(&data)?;
+            log::info!(target: "nons::lifecycle", "application_started version={} logs={}", env!("CARGO_PKG_VERSION"), match crate::infrastructure::directories::portable() { Some(data) => data.join("logs"), None => app.path().app_log_dir()? }.display());
+            std::panic::set_hook(Box::new(move |info| {
+                log::error!(target: "nons::panic", "{}", info);
+                log::logger().flush();
+            }));
             std::fs::create_dir_all(&cache_directory)?;
             audio_runtime::configure(&cache_directory)?;
             let covers = cache_directory.join("covers");
@@ -860,6 +867,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            crate::infrastructure::diagnostics::diagnostic_report,
             #[cfg(target_os = "android")]
             crate::platform::android::window_layout::android_window_layout,
             #[cfg(desktop)]

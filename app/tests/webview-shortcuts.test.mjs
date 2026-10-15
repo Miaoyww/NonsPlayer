@@ -14,6 +14,7 @@ function session(development = false) {
     window,
     isAndroid: () => false,
     initializeFontSettings() {},
+    installDiagnostics() {},
     installPluginBridge() {}
   })
   return window

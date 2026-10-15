@@ -82,6 +82,7 @@ fn record(profile: legacy::AccountProfile) -> MusicResult<AccountRecord> {
 }
 /// Stable public error codes; legacy human text is never passed through the uniform interface.
 fn error(message: String) -> super::MusicError {
+    log::warn!(target: "nons_adapter_netease::business", "platform_failure reason={message}");
     for code in [
         ErrorCode::Unauthenticated,
         ErrorCode::NotFound,

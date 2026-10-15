@@ -250,6 +250,18 @@ impl AdapterManager {
         source: &SourceId,
         request: &super::business::BusinessRequest,
     ) -> MusicResult<super::business::BusinessResponse> {
+        crate::infrastructure::diagnostics::observe(
+            source.as_str(),
+            request.operation(),
+            self.business_inner(source, request),
+        )
+        .await
+    }
+    async fn business_inner(
+        &self,
+        source: &SourceId,
+        request: &super::business::BusinessRequest,
+    ) -> MusicResult<super::business::BusinessResponse> {
         use super::business::*;
         request.validate(source)?;
         let entry = self.entry(source)?;
@@ -302,6 +314,26 @@ impl AdapterManager {
         Ok(result)
     }
     pub async fn account(
+        &self,
+        source: &SourceId,
+        request: &super::business::AccountRequest,
+        accounts: &Arc<super::accounts::AccountManager>,
+    ) -> MusicResult<super::business::AccountPresentation> {
+        use super::business::AccountRequest;
+        let operation = match request {
+            AccountRequest::BeginLogin { .. } => "beginLogin",
+            AccountRequest::PollLogin { .. } => "pollLogin",
+            AccountRequest::Profile => "profile",
+            AccountRequest::Logout => "logout",
+        };
+        crate::infrastructure::diagnostics::observe(
+            source.as_str(),
+            operation,
+            self.account_inner(source, request, accounts),
+        )
+        .await
+    }
+    async fn account_inner(
         &self,
         source: &SourceId,
         request: &super::business::AccountRequest,
@@ -530,6 +562,14 @@ impl AdapterManager {
         Ok(outcome.presentation)
     }
     pub async fn read_track(&self, reference: &EntityRef) -> MusicResult<MusicTrack> {
+        crate::infrastructure::diagnostics::observe(
+            reference.source.as_str(),
+            "readTrack",
+            self.read_track_inner(reference),
+        )
+        .await
+    }
+    async fn read_track_inner(&self, reference: &EntityRef) -> MusicResult<MusicTrack> {
         let entry = self.entry(&reference.source)?;
         let context = Self::context(&entry, Duration::from_secs(3));
         context.check_reference(reference)?;
@@ -553,6 +593,18 @@ impl AdapterManager {
         Ok(track)
     }
     pub async fn resolve_playback(
+        &self,
+        request: &ResolveRequest,
+        playback_generation: u64,
+    ) -> MusicResult<Arc<ResourceTicket>> {
+        crate::infrastructure::diagnostics::observe(
+            request.track.source.as_str(),
+            "resolvePlayback",
+            self.resolve_playback_inner(request, playback_generation),
+        )
+        .await
+    }
+    async fn resolve_playback_inner(
         &self,
         request: &ResolveRequest,
         playback_generation: u64,

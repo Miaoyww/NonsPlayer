@@ -126,6 +126,32 @@ pub enum BusinessRequest {
     },
 }
 impl BusinessRequest {
+    /// Stable diagnostic label; never serialize request bodies into logs.
+    pub fn operation(&self) -> &'static str {
+        match self {
+            Self::Search { .. } => "search",
+            Self::Suggestions { .. } => "suggestions",
+            Self::Detail { .. } => "detail",
+            Self::Tracks { .. } => "tracks",
+            Self::ArtistAlbums { .. } => "artistAlbums",
+            Self::ArtistTracks { .. } => "artistTracks",
+            Self::TrackInformation { .. } => "trackInformation",
+            Self::LibrarySummary => "librarySummary",
+            Self::LibraryCollections { .. } => "libraryCollections",
+            Self::History { .. } => "history",
+            Self::Favorites => "favorites",
+            Self::SetFavorite { .. } => "setFavorite",
+            Self::CreatePlaylist { .. } => "createPlaylist",
+            Self::UpdatePlaylist { .. } => "updatePlaylist",
+            Self::DeletePlaylist { .. } => "deletePlaylist",
+            Self::PlaylistTrack { .. } => "playlistTrack",
+            Self::RecommendedPlaylists { .. } => "recommendedPlaylists",
+            Self::Categories => "categories",
+            Self::Radar => "radar",
+            Self::RecommendedTracks { .. } => "recommendedTracks",
+            Self::Dislike { .. } => "dislike",
+        }
+    }
     pub fn capability(&self) -> Capability {
         match self {
             Self::Search { .. } | Self::Suggestions { .. } => Capability::Search,

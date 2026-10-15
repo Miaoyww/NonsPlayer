@@ -53,6 +53,8 @@ async function harness({ delayed = false } = {}) {
         exports,
         performance: { now: () => now },
         require: (name) => {
+          if (name === '@/lib/diagnostics')
+            return { diagnosticInvoke: modules['@tauri-apps/api/core'].invoke }
           assert.ok(Object.hasOwn(modules, name), `unexpected dependency: ${name}`)
           return modules[name]
         }

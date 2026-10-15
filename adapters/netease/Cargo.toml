@@ -12,4 +12,5 @@ tokio = { version = "1", features = ["sync", "rt", "time", "macros"] }
 base64 = "0.22"
 url = "2"
 cookie = "0.18"
+log = "0.4"
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }

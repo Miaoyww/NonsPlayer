@@ -156,6 +156,7 @@ impl SourceSettings {
         )?;
         *state = next.clone();
         *intent = next_intent;
+        log::info!(target: "nons::sources", "current={} supplementary_count={} revision={}", next.current.as_str(), next.supplementary.len(), next.revision);
         Ok(next)
     }
 }

@@ -159,10 +159,7 @@ impl HostHandler for Context {
                 return Err("rateLimited".into());
             }
             budget.1 += 1;
-            eprintln!(
-                "Adapter diagnostic [{}]: {value:?}",
-                self.services.descriptor.source.as_str()
-            );
+            log::warn!(target: "nons::adapter", "source={} stage={} class={} code={}", self.services.descriptor.source.as_str(), value.get("stage").map(String::as_str).unwrap_or("-"), value.get("class").map(String::as_str).unwrap_or("-"), value.get("code").map(String::as_str).unwrap_or("-"));
             Ok("null".into())
         })
     }

@@ -65,7 +65,7 @@ impl Sessions {
         let slot = Arc::new(slot);
         {
             let mut slots = self.slots.lock().map_err(|error| {
-                eprintln!("Adapter runtime failure: {error}");
+                log::error!(target: "nons::adapter", "runtime_failure reason={error}");
                 ErrorCode::Internal
             })?;
             if slots.len() >= 4 || slots.contains_key(&key) {
@@ -157,7 +157,7 @@ impl ExternalAdapter {
                 )
                 .await
                 .map_err(|error| {
-                    eprintln!("Adapter runtime failure: {error}");
+                    log::error!(target: "nons::adapter", "runtime_failure reason={error}");
                     ErrorCode::Internal
                 })?;
                 // Each generic phase gets one invocation budget. The UI receives no
@@ -166,7 +166,7 @@ impl ExternalAdapter {
                     .call("music.prepare-login", &Self::arguments(request, context)?)
                     .await
                     .map_err(|error| {
-                        eprintln!("Adapter login preparation failure: {error}");
+                        log::error!(target: "nons::adapter", "login_preparation_failure reason={error}");
                         ErrorCode::Internal
                     })?;
                 match serde_json::from_str::<Reply<()>>(&preparation)
@@ -179,7 +179,7 @@ impl ExternalAdapter {
                     .call("music.account", &Self::arguments(request, context)?)
                     .await
                     .map_err(|error| {
-                        eprintln!("Adapter runtime failure: {error}");
+                        log::error!(target: "nons::adapter", "runtime_failure reason={error}");
                         ErrorCode::Internal
                     })?;
                 let presentation = match serde_json::from_str::<Reply<AccountPresentation>>(&reply)
@@ -225,7 +225,7 @@ impl ExternalAdapter {
                     .call("music.account", &Self::arguments(request, context)?)
                     .await
                     .map_err(|error| {
-                        eprintln!("Adapter runtime failure: {error}");
+                        log::error!(target: "nons::adapter", "runtime_failure reason={error}");
                         ErrorCode::Internal
                     })?;
                 let presentation = match serde_json::from_str::<Reply<AccountPresentation>>(&reply)
@@ -239,7 +239,7 @@ impl ExternalAdapter {
                     AccountPresentation::Progress { code: 803, .. }
                 ) {
                     let pending = slot.host.pending.lock().map_err(|error| {
-                        eprintln!("Adapter runtime failure: {error}");
+                        log::error!(target: "nons::adapter", "runtime_failure reason={error}");
                         ErrorCode::Internal
                     })?;
                     let (record, credential) = pending.as_ref().ok_or(ErrorCode::InvalidData)?;

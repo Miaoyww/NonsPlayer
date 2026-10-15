@@ -82,7 +82,7 @@ impl ExternalAdapter {
             .try_acquire()
             .map_err(|_| ErrorCode::RateLimited)?;
         let engine = runtime::engine().map_err(|error| {
-            eprintln!("Adapter runtime failure: {error}");
+            log::error!(target: "nons::adapter", "runtime_failure reason={error}");
             ErrorCode::Internal
         })?;
         let compile_engine = engine.clone();
@@ -163,11 +163,11 @@ impl ExternalAdapter {
         )
         .await
         .map_err(|error| {
-            eprintln!("Adapter runtime failure: {error}");
+            log::error!(target: "nons::adapter", "runtime_failure reason={error}");
             ErrorCode::Internal
         })?;
         let response = runtime.call(method, args).await.map_err(|error| {
-            eprintln!("Adapter runtime failure: {error}");
+            log::error!(target: "nons::adapter", "runtime_failure reason={error}");
             ErrorCode::Internal
         })?;
         match serde_json::from_str::<Reply<T>>(&response).map_err(|_| ErrorCode::InvalidData)? {

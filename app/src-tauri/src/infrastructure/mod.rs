@@ -1,5 +1,6 @@
 pub(crate) mod covers;
 pub(crate) mod credentials;
+pub(crate) mod diagnostics;
 pub(crate) mod directories;
 pub(crate) mod http;
 pub(crate) mod storage;
