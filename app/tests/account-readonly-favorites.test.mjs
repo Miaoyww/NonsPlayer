@@ -251,6 +251,7 @@ test('closing an error dismisses all current origins and still allows a later ne
 test('page source selection preserves every platform account and routes favorites to the song source', async () => {
   await withDom(async (root, dom) => {
     let current = 'netease'
+    let legacy = false
     const writes = [],
       reads = [],
       listeners = new Map()
@@ -314,10 +315,12 @@ test('page source selection preserves every platform account and routes favorite
       accounts = account.useAccount()
       return React.createElement(CurrentTrackLike, {
         track: {
-          source: {
-            kind: 'online',
-            track: { reference: { source: 'netease', kind: 'track', id: 'song' } }
-          }
+          source: legacy
+            ? { kind: 'netease', id: 123 }
+            : {
+                kind: 'online',
+                track: { reference: { source: 'netease', kind: 'track', id: 'song' } }
+              }
         },
         onError: (error) => {
           throw error
@@ -348,6 +351,13 @@ test('page source selection preserves every platform account and routes favorite
     current = 'netease'
     await render()
     assert.equal(document.querySelector('button').getAttribute('aria-pressed'), 'true')
+    legacy = true
+    current = 'qqmusic'
+    await render()
+    assert.equal(document.querySelector('button').disabled, false)
+    await click()
+    assert.equal(writes[1].source, 'netease')
+    assert.equal(writes[1].request.track.id, '123')
     assert.deepEqual(reads.sort(), ['netease', 'qqmusic'])
     await act(async () => accounts.getAccount('netease').setProfile(null))
     assert.equal(accounts.getAccount('qqmusic').profile.reference.source, 'qqmusic')

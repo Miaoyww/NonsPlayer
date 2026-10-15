@@ -1,6 +1,6 @@
 import { useListFind } from './list-find'
 import { Skeleton } from '@/components/ui/skeleton'
-import { favoriteId } from '@/features/music/legacy-reference'
+import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
 import { Input } from '@/components/ui/input'
 import { TrackAlbum } from '@/components/music/music-links'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -267,7 +267,7 @@ export const TrackList = memo(function TrackList({
     }
   }, [findTarget])
   const showLikes =
-    !mobile && (likesColumn ?? tracks.some((track) => track.source.kind === 'online'))
+    !mobile && (likesColumn ?? tracks.some((track) => onlineReference(track) !== null))
   const sizingSpecs = useMemo(
     () => [
       ...(!mobile ? [{ id: 'index', label: '序号', size: 48, minSize: 36 }] : []),
@@ -528,9 +528,7 @@ export const TrackList = memo(function TrackList({
             {!loading &&
               rows.map((row) => {
                 const { index, track, rowKey } = entries[row.index]
-                const account = getAccount(
-                  track.source.kind === 'online' ? track.source.track.reference.source : ''
-                )
+                const account = getAccount(onlineReference(track)?.source ?? '')
                 const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } =
                   account
                 const favorite = favoriteId(track, profile?.reference)

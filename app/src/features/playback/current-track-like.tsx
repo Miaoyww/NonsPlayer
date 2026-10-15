@@ -1,5 +1,5 @@
 import { Heart } from 'lucide-react'
-import { favoriteId } from '@/features/music/legacy-reference'
+import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
 import { isTauri } from '@tauri-apps/api/core'
 import type { Track } from '@/lib/player'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,7 @@ export function CurrentTrackLike({
   showLabel?: boolean
 }) {
   const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } = useAccount(
-    track?.source.kind === 'online' ? track.source.track.reference.source : undefined
+    track ? onlineReference(track)?.source : undefined
   )
   const songId = track ? favoriteId(track, profile?.reference) : undefined
   const liked = songId !== undefined && likedIds.has(songId)

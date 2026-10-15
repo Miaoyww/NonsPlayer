@@ -1,4 +1,4 @@
-import { favoriteId } from '@/features/music/legacy-reference'
+import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
 import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { useAccount } from '@/features/account/account'
@@ -14,9 +14,7 @@ import {
 export function usePlaybackShortcuts(onError: (cause: unknown) => void) {
   const state = usePlayer('index', 'queue')
   const track = state.index === null ? undefined : state.queue[state.index]
-  const account = useAccount(
-    track?.source.kind === 'online' ? track.source.track.reference.source : undefined
-  )
+  const account = useAccount(track ? onlineReference(track)?.source : undefined)
   const action = useRef<(action: ShortcutAction) => void>(() => {})
   const [resumedShortcut, setResumedShortcut] = useState<ShortcutAction>()
   action.current = (name) => {
