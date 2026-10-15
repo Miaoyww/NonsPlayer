@@ -217,10 +217,10 @@ test('mobile detail filtering removes extra columns and plays the filtered queue
     assert.equal(document.querySelectorAll('.track-column-resizer').length, 0)
     assert.deepEqual(
       [...document.querySelectorAll('thead th')].map((cell) => cell.textContent.includes('标题')),
-      [true]
+      [true, false]
     )
     assert.equal(document.querySelectorAll('.track-row').length, 1)
-    assert.equal(document.querySelector('.track-row').children.length, 1)
+    assert.equal(document.querySelector('.track-row').children.length, 2)
     assert.equal(document.querySelector('.track-list').style.minWidth, '')
     await act(async () => document.querySelector('.track-cover').click())
     assert.deepEqual(
@@ -556,12 +556,35 @@ test('loading uses the same table, headers, columns and identity spacing as load
     )
     assert.equal(document.querySelector('thead').textContent, headers)
     assert.equal(document.querySelectorAll('tbody .track-identity-cell').length, 8)
-    assert.equal(document.querySelector('tbody tr').children.length, 6)
+    assert.equal(document.querySelector('tbody tr').children.length, 7)
     assert.equal(document.querySelector('table').getAttribute('aria-busy'), 'true')
     assert.doesNotMatch(document.body.textContent, /没有匹配/)
     assert.equal(
       document.querySelector('tbody .track-identity-cover')?.getAttribute('data-slot'),
       'skeleton'
     )
+  })
+})
+
+test('track sources have a dedicated column and never appear in the artist text', async () => {
+  await harness(async ({ render, tracks }) => {
+    await render({
+      tracks: tracks.map((track, index) => ({
+        ...track,
+        source:
+          index === 0
+            ? {
+                kind: 'online',
+                track: { reference: { source: 'netease', kind: 'track', id: 'song' } }
+              }
+            : { kind: 'local', path: 'example.mp3' }
+      }))
+    })
+    assert.match(document.querySelector('thead').textContent, /来源/)
+    const rows = [...document.querySelectorAll('tbody tr')]
+    assert.equal(rows[0].querySelector('.track-source').textContent, '网易云音乐')
+    assert.equal(rows[1].querySelector('.track-source').textContent, 'local')
+    for (const row of rows)
+      assert.equal(row.querySelector('.track-identity-artist .track-source'), null)
   })
 })

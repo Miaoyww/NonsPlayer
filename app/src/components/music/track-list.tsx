@@ -24,7 +24,7 @@ import { PlayingIndicator } from '@/components/music/playing-indicator'
 import { useAccount } from '@/features/account/account'
 import { useTrackColumnSizing } from './track-column-sizing'
 import { useSongTitleCopy, SongContextMenu } from '@/components/music/song-actions'
-import { TrackIdentity } from '@/components/music/track-identity'
+import { TrackIdentity, TrackSourceLabel } from '@/components/music/track-identity'
 import type { ReactNode } from 'react'
 import { useInterfaceDensity } from '@/features/settings/use-interface-density'
 import { isAndroid } from '@/lib/platform'
@@ -273,6 +273,7 @@ export const TrackList = memo(function TrackList({
       ...(!mobile ? [{ id: 'index', label: '序号', size: 48, minSize: 36 }] : []),
       { id: 'title', label: '标题', size: 480, minSize: mobile ? 0 : 180 },
       ...(!mobile ? [{ id: 'album', label: '专辑', size: 200, minSize: 100 }] : []),
+      { id: 'source', label: '来源', size: mobile ? 80 : 104, minSize: 64 },
       ...(showLikes ? [{ id: 'likes', label: '喜欢', size: 48, minSize: 40 }] : []),
       ...(showDuration ? [{ id: 'duration', label: '时长', size: 80, minSize: 64 }] : []),
       ...extraColumns.map((column, index) => ({
@@ -287,7 +288,7 @@ export const TrackList = memo(function TrackList({
   )
   const columnSizing = useTrackColumnSizing(sizingSpecs)
   const columns =
-    (mobile ? 1 : 3) +
+    (mobile ? 2 : 4) +
     Number(showDuration) +
     extraColumns.length +
     Number(showLikes) +
@@ -423,6 +424,9 @@ export const TrackList = memo(function TrackList({
                   {!mobile && columnSizing.handle('album')}
                 </th>
               )}
+              <th className="py-3" scope="col">
+                来源{!mobile && columnSizing.handle('source')}
+              </th>
               {showLikes && (
                 <th scope="col">
                   <span className="sr-only">喜欢</span>
@@ -491,6 +495,9 @@ export const TrackList = memo(function TrackList({
                       <Skeleton className="h-3 w-2/3" />
                     </td>
                   )}
+                  <td>
+                    <Skeleton className="h-3 w-12" />
+                  </td>
                   {showLikes && (
                     <td>
                       <Skeleton className="mx-auto size-4 rounded-full" />
@@ -591,7 +598,6 @@ export const TrackList = memo(function TrackList({
                       <TrackIdentity
                         track={track}
                         mode={cardMode}
-                        showSource
                         onTitleCopy={
                           selectedKey === rowKey ? () => copyTitle(track.title) : undefined
                         }
@@ -626,6 +632,9 @@ export const TrackList = memo(function TrackList({
                         </div>
                       </td>
                     )}
+                    <td className="pr-3">
+                      <TrackSourceLabel track={track} />
+                    </td>
                     {showLikes && (
                       <td>
                         {favorite !== undefined && (

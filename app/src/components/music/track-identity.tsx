@@ -23,7 +23,6 @@ export function TrackIdentity({
   mode?: InterfaceDensity
   onTitleCopy?: () => void
 }) {
-  const { statuses } = useMusicSources()
   const [preferredMode] = useInterfaceDensity()
   const displayMode = mode ?? preferredMode
   return (
@@ -58,17 +57,30 @@ export function TrackIdentity({
               · 不可用
             </span>
           )}
-          {showSource && (
-            <span className="ml-2">
-              ·{' '}
-              {sourceLabel(
-                trackSource(track),
-                statuses.map((value) => value.descriptor)
-              )}
-            </span>
-          )}
         </p>
       </div>
+      {showSource && (
+        <span className="ml-3 max-w-24 shrink-0">
+          <TrackSourceLabel track={track} />
+        </span>
+      )}
     </div>
+  )
+}
+
+export function TrackSourceLabel({ track }: { track: Track }) {
+  const { statuses } = useMusicSources()
+  const name = sourceLabel(
+    trackSource(track),
+    statuses.map((value) => value.descriptor)
+  )
+  return (
+    <span
+      className="track-source block truncate text-xs text-muted-foreground"
+      title={name}
+      aria-label={`歌曲来源：${name}`}
+    >
+      {name}
+    </span>
   )
 }
