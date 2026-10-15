@@ -41,6 +41,9 @@ const fixtureTrack = {
 async function component({
   credential = null,
   rejectRefresh = false,
+  searchRejections = 0,
+  searchFailureCode = 2001,
+  searchFailureLevel = 'root',
   resource = 'full',
   flacSize = 4096,
   songDetail = fixtureTrack,
@@ -61,6 +64,7 @@ async function component({
     sockets = new Set(),
     diagnostics = []
   let subscribed = false,
+    searchCalls = 0,
     confirmed = false,
     published = null,
     replaced = null,
@@ -192,6 +196,14 @@ async function component({
                     : { body: { item_song: [fixtureTrack] }, meta: { sum: 1 } }
             }
           }
+      }
+      if (url.hostname === 'u.y.qq.com') {
+        const sent = JSON.parse(new TextDecoder().decode(request.body))
+        if (sent.request?.method === 'DoSearchForQQMusicLite' && searchCalls++ < searchRejections)
+          body =
+            searchFailureLevel === 'root'
+              ? { code: searchFailureCode }
+              : { code: 0, request: { code: searchFailureCode } }
       }
       const bytes =
         body instanceof Uint8Array
@@ -361,6 +373,58 @@ test('actual Component search leaves Content-Length to Host and keeps stable mid
   }
   fixture.instance.shutdown()
 })
+for (const searchFailureLevel of ['root', 'request'])
+  test(`actual Component first search recovers upstream 2001 at ${searchFailureLevel} without waiting or reloading`, async () => {
+    const fixture = await component({ searchRejections: 1, searchFailureLevel })
+    try {
+      const request = {
+        operation: 'search',
+        kind: 'track',
+        keyword: '测试',
+        page: { limit: 5, cursor: null }
+      }
+      const response = fixture.call('music.business', request)
+      assert.equal(response.status, 'ok', JSON.stringify(response))
+      assert.equal(response.data.data.items[0].reference.id, 'SongMID')
+      assert.equal(fixture.requests.length, 2)
+      const [first, retry] = fixture.requests.map((value) =>
+        JSON.parse(new TextDecoder().decode(value.body))
+      )
+      assert.ok(first.comm)
+      assert.equal(retry.comm, undefined)
+      assert.deepEqual(retry.request, first.request)
+      assert.ok(
+        fixture.diagnostics.some(
+          (value) => value.stage === 'search.retry-public' && value.code === 'upstream-2001'
+        )
+      )
+    } finally {
+      fixture.instance.shutdown()
+    }
+  })
+
+for (const [searchFailureCode, attempts] of [
+  [2001, 2],
+  [500, 1]
+])
+  test(`actual Component bounds search retries and preserves upstream ${searchFailureCode} failure`, async () => {
+    const fixture = await component({ searchRejections: 3, searchFailureCode })
+    try {
+      const response = fixture.call('music.business', {
+        operation: 'search',
+        kind: 'track',
+        keyword: '测试',
+        page: { limit: 5, cursor: null }
+      })
+      assert.equal(response.status, 'error')
+      assert.equal(response.data.code, 'sourceUnavailable')
+      assert.equal(fixture.requests.length, attempts)
+      assert.equal(fixture.diagnostics.at(-1).stage, `rpc.upstream-${searchFailureCode}`)
+    } finally {
+      fixture.instance.shutdown()
+    }
+  })
+
 for (const method of ['qq', 'wechat'])
   test(`actual Component ${method} QR bootstrap uses Rust crypto and excludes session keys from device state`, async () => {
     const fixture = await component()

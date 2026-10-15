@@ -20,20 +20,47 @@ export async function rpc(module, method, param, requiresAuth = false) {
     if (!auth) fail('unauthenticated')
     return authenticated(() => adapterMusicu(authHttp, auth, module, method, param))
   }
-  const response = await hostFetch('https://u.y.qq.com/cgi-bin/musicu.fcg', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Cookie: 'tmeLoginType=-1;',
-      'User-Agent': 'okhttp/3.14.9'
-    },
-    body: JSON.stringify({
-      comm: { ct: 11, cv: '1003006', v: '1003006', tmeAppID: 'qqmusiclight', uid: '0', udid: '0' },
-      request: { module, method, param }
+  const request = { module, method, param }
+  const send = async (comm) => {
+    const response = await hostFetch('https://u.y.qq.com/cgi-bin/musicu.fcg', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: 'tmeLoginType=-1;',
+        'User-Agent': 'okhttp/3.14.9'
+      },
+      body: JSON.stringify({ comm, request })
     })
+    if (!response.ok) fail(response.status === 429 ? 'rateLimited' : 'network')
+    return response.json()
+  }
+  let value = await send({
+    ct: 11,
+    cv: '1003006',
+    v: '1003006',
+    tmeAppID: 'qqmusiclight',
+    uid: '0',
+    udid: '0'
   })
-  if (!response.ok) fail(response.status === 429 ? 'rateLimited' : 'network')
-  const value = await response.json()
+  if (
+    module === 'music.search.SearchCgiService' &&
+    method === 'DoSearchForQQMusicLite' &&
+    (value.code === 2001 || (value.code === 0 && value.request?.code === 2001))
+  ) {
+    // The client context is intermittently rejected while the same public
+    // search works without it. Retry once within the original Host deadline.
+    try {
+      hostCall(
+        'diagnostic.report',
+        JSON.stringify({
+          stage: 'search.retry-public',
+          class: 'UpstreamRejected',
+          code: 'upstream-2001'
+        })
+      )
+    } catch {}
+    value = await send(undefined)
+  }
   // This endpoint returns request code 500 plus an empty track for absent numeric IDs.
   if (
     method === 'get_song_detail_yqq' &&
