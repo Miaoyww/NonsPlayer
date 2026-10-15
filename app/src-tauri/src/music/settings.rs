@@ -12,6 +12,25 @@ pub struct AdapterSettings {
     mutation: Mutex<()>,
 }
 impl AdapterSettings {
+    pub(crate) fn set_resource_enabled(&self, id: SourceId, enabled: bool) -> AppResult<()> {
+        let _guard = self.mutation.lock().map_err(|_| "适配器设置锁不可用")?;
+        if !self
+            .adapters
+            .resource_provider_statuses()
+            .map_err(|e| e.to_string())?
+            .iter()
+            .any(|s| s.descriptor.id == id && !s.loading && s.load_error.is_none())
+        {
+            return Err("音源不存在".into());
+        }
+        self.store.set_setting(
+            &format!("resourceProviderEnabledV1:{}", id.as_str()),
+            if enabled { "true" } else { "false" },
+        )?;
+        self.adapters
+            .set_resource_provider_enabled(&id, enabled)
+            .map_err(|e| e.to_string())
+    }
     pub fn new(store: Arc<Store>, adapters: Arc<AdapterManager>) -> AppResult<Self> {
         let settings = Self {
             store,

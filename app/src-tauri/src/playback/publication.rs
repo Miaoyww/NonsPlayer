@@ -21,6 +21,7 @@ pub struct PlayerState {
     pub device_id: Option<String>,
     pub audio_output_mode: AudioOutputMode,
     pub actual_quality: Option<String>,
+    pub playback_source: Option<crate::music::manager::PlaybackSource>,
     pub error: Option<String>,
     pub media_error: Option<String>,
 }
@@ -91,6 +92,7 @@ impl Publication {
                 device_id: s.device_id.clone(),
                 audio_output_mode: s.audio_output_mode,
                 actual_quality: s.actual_quality.clone(),
+                playback_source: s.playback_source.clone(),
                 error: s.error.clone(),
                 media_error: s.media_error.clone(),
             },

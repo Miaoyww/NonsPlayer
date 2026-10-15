@@ -23,6 +23,17 @@ use std::{
 use tauri::Emitter;
 
 pub enum Command {
+    SourceAttempt {
+        generation: u64,
+        index: usize,
+        key: String,
+        source: crate::music::manager::PlaybackSource,
+    },
+    SelectSource {
+        revision: u64,
+        selection: crate::music::service::PlaybackSelection,
+        reply: tokio::sync::oneshot::Sender<AppResult<()>>,
+    },
     #[cfg(target_os = "android")]
     Media {
         command: Box<Command>,
@@ -94,6 +105,7 @@ fn restore_player(mut state: PlayerSnapshot) -> PlayerSnapshot {
     state.media_error = None;
     state.revision = 0;
     state.actual_quality = None;
+    state.playback_source = None;
     if let Some(track) = state.current() {
         if track.duration_ms > 0 {
             state.duration_ms = track.duration_ms;
@@ -138,6 +150,7 @@ struct Prepared {
     index: usize,
     resolved: ResolvedTrack,
     resource: Option<Arc<ResourceTicket>>,
+    source: Option<crate::music::manager::PlaybackSource>,
 }
 
 impl Player {
@@ -270,6 +283,7 @@ impl Player {
 }
 
 struct Actor {
+    selections: std::collections::BTreeMap<String, crate::music::service::PlaybackSelection>,
     app: tauri::AppHandle,
     store: Arc<Store>,
     music: Arc<MusicService>,
@@ -404,6 +418,7 @@ impl Actor {
         });
         playbin.set_property("volume", state.volume.clamp(0.0, 1.0));
         Ok(Self {
+            selections: Default::default(),
             app,
             store,
             music,
@@ -701,6 +716,7 @@ impl Actor {
                     return Err("播放队列无效，最多支持 1000 首歌曲".into());
                 }
                 self.state.private_fm_session = None;
+                self.selections.clear();
                 self.state.queue = queue.into();
                 self.state.index = Some(index);
                 self.state.deduplicate_queue();
@@ -749,6 +765,14 @@ impl Actor {
                     (trim, displaced)
                 };
                 if trim > 0 {
+                    let retained: std::collections::HashSet<_> = self
+                        .state
+                        .queue
+                        .iter()
+                        .map(|track| track.key.as_str())
+                        .collect();
+                    self.selections
+                        .retain(|key, _| retained.contains(key.as_str()));
                     if let Some(job) = self.next_job.take() {
                         job.abort();
                     }
@@ -799,6 +823,7 @@ impl Actor {
             }
             Command::Remove(index, key) => {
                 let removed_current = self.state.remove_track(index, &key)?;
+                self.selections.remove(&key);
                 let loading = self.state.status == PlaybackStatus::Loading;
                 // Use the same lock order as the streaming callback, so it cannot
                 // arm a removed next track between checking and invalidating it.
@@ -821,6 +846,44 @@ impl Actor {
                         self.publish();
                     }
                 } else {
+                    self.publish();
+                }
+            }
+            Command::SelectSource {
+                revision,
+                selection,
+                reply,
+            } => {
+                let result = (|| {
+                    if revision != self.state.revision {
+                        return Err("播放歌曲已变化，请重新选择音源".into());
+                    }
+                    let index = self.state.index.ok_or("没有正在播放的歌曲")?;
+                    let current = self.state.current().ok_or("没有正在播放的歌曲")?;
+                    if matches!(current.source, crate::model::TrackSource::Local { .. }) {
+                        return Err("本地歌曲不切换在线音源".into());
+                    }
+                    self.selections.insert(current.key.clone(), selection);
+                    self.load_at(
+                        index,
+                        self.desired_playing || self.state.status == PlaybackStatus::Error,
+                        self.state.position_ms,
+                    )
+                })();
+                let _ = reply.send(result.clone());
+                result?;
+            }
+            Command::SourceAttempt {
+                generation,
+                index,
+                key,
+                source,
+            } => {
+                if generation == self.generation.load(Ordering::Acquire)
+                    && self.state.index == Some(index)
+                    && self.state.current().is_some_and(|track| track.key == key)
+                {
+                    self.state.playback_source = Some(source);
                     self.publish();
                 }
             }
@@ -918,12 +981,14 @@ impl Actor {
                 self.fade.reset();
                 self.decoded_audio = None;
                 if clear {
+                    self.selections.clear();
                     self.state.private_fm_session = None;
                     self.state.queue = Arc::default();
                     self.state.shuffle_order = Arc::default();
                     self.state.index = None;
                     self.state.duration_ms = 0;
                     self.state.actual_quality = None;
+                    self.state.playback_source = None;
                     self.state.media_error = None;
                     self.state.revision += 1;
                 }
@@ -979,7 +1044,7 @@ impl Actor {
                         return Ok(());
                     }
                     self.next_job = None;
-                    if let Ok((resolved, resource)) = *result {
+                    if let Ok((resolved, resource, source)) = *result {
                         if resource
                             .as_ref()
                             .is_some_and(|r| r.check(generation).is_err())
@@ -991,20 +1056,23 @@ impl Actor {
                             index,
                             resolved,
                             resource,
+                            source,
                         });
                     }
                 } else {
                     self.current_job = None;
-                    let result = (*result).and_then(|(resolved, resource)| {
+                    let result = (*result).and_then(|(resolved, resource, source)| {
                         if let Some(resource) = &resource {
                             resource.check(generation).map_err(|e| e.to_string())?;
                         }
-                        Ok((resolved, resource))
+                        Ok((resolved, resource, source))
                     });
                     match result {
-                        Ok((resolved, resource)) => {
+                        Ok((resolved, resource, source)) => {
                             let _resource = resource;
                             self.state.actual_quality = resolved.quality;
+                            self.state.playback_source = source;
+                            self.publish();
                             crate::audio::start_stream(
                                 &self.playbin,
                                 &resolved.uri,
@@ -1110,6 +1178,7 @@ impl Actor {
         };
         self.state.duration_ms = track.duration_ms;
         self.state.actual_quality = None;
+        self.state.playback_source = None;
         self.state.error = None;
         self.pending_seek = (self.state.position_ms > 0).then_some(self.state.position_ms);
         self.awaiting_first_stream = true;
@@ -1124,6 +1193,7 @@ impl Actor {
     fn resolve(&mut self, index: usize, track: Track, next: bool) {
         let generation = self.generation.load(Ordering::Acquire);
         let music = self.music.clone();
+        let selection = self.selections.get(&track.key).cloned();
         let sender = self.sender.clone();
         let quality = self
             .store
@@ -1140,7 +1210,23 @@ impl Actor {
             != Some("false");
         let task = tauri::async_runtime::spawn(async move {
             let key = track.key.clone();
-            let result = music.resolve(track, &quality, downgrade, generation).await;
+            let progress_sender = sender.clone();
+            let progress_key = key.clone();
+            let notify = move |source| {
+                if !next {
+                    let _ = progress_sender.try_send(Command::SourceAttempt {
+                        generation,
+                        index,
+                        key: progress_key.clone(),
+                        source,
+                    });
+                }
+            };
+            let result = music
+                .resolve_selected_notifying(
+                    track, &quality, downgrade, generation, selection, &notify,
+                )
+                .await;
             // Bounded channel delivery is performed off the audio thread.
             let _ = tauri::async_runtime::spawn_blocking(move || {
                 let _ = sender.send(Command::Resolved {
@@ -1255,6 +1341,7 @@ impl Actor {
                     self.state.position_ms = 0;
                     self.state.duration_ms = next.resolved.track.duration_ms;
                     self.state.actual_quality = next.resolved.quality;
+                    self.state.playback_source = next.source;
                     self.decoded_audio = next.resolved.decoded_audio;
                 }
                 self.publish();

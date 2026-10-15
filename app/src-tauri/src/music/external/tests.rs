@@ -121,7 +121,7 @@ async fn real_component_routes_uniform_queue_track_through_playback_service() {
     let track = crate::model::Track::from_music(music).unwrap();
     let key = track.key.clone();
     let service = crate::music::service::MusicService::new(manager.clone());
-    let (resolved, ticket) = service.resolve(track, "fixture", false, 11).await.unwrap();
+    let (resolved, ticket, _) = service.resolve(track, "fixture", false, 11).await.unwrap();
     assert_eq!(resolved.track.key, key);
     assert_eq!(resolved.track.source_id(), "fixture-radio");
     let ticket = ticket.unwrap();

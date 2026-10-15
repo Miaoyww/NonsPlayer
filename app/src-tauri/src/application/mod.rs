@@ -872,6 +872,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            crate::music::provider_commands::resource_provider_list,
+            crate::music::provider_commands::resource_provider_set_enabled,
+            crate::music::provider_commands::resource_search,
+            crate::music::provider_commands::player_select_source,
             crate::infrastructure::diagnostics::diagnostic_report,
             #[cfg(target_os = "android")]
             crate::platform::android::window_layout::android_window_layout,

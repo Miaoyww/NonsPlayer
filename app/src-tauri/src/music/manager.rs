@@ -12,6 +12,9 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::Semaphore;
+mod providers;
+pub use super::provider::PlaybackSource;
+pub use providers::ResourceProviderStatus;
 
 pub(crate) fn now_ms() -> u64 {
     SystemTime::now()
@@ -43,6 +46,8 @@ impl Entry {
 }
 #[derive(Default)]
 pub struct AdapterManager {
+    providers: Mutex<BTreeMap<SourceId, Arc<providers::ProviderEntry>>>,
+    provider_loading: Mutex<BTreeMap<SourceId, ResourceProviderStatus>>,
     entries: Mutex<BTreeMap<SourceId, Arc<Entry>>>,
     loading: Mutex<BTreeMap<SourceId, AdapterStatus>>,
     resources: Mutex<BTreeMap<String, Weak<ResourceTicket>>>,
@@ -50,7 +55,8 @@ pub struct AdapterManager {
 }
 /// This ownership token is backend-only. Access is never serialized or logged.
 pub struct ResourceTicket {
-    entry: Arc<Entry>,
+    entry: Option<Arc<Entry>>,
+    provider: Option<providers::ProviderLease>,
     lease: ResourceLease,
     resource: PlaybackResource,
 }
@@ -62,17 +68,16 @@ impl std::fmt::Debug for ResourceTicket {
 impl ResourceTicket {
     /// Lightweight atomic checks are safe at the gapless handoff; no network/IO.
     pub fn check(&self, playback_generation: u64) -> MusicResult<()> {
-        if self
-            .entry
-            .generation
-            .load(Ordering::Acquire)
-            .is_multiple_of(2)
-        {
+        if let Some(provider) = &self.provider {
+            return provider.check(&self.lease, playback_generation);
+        }
+        let entry = self.entry.as_ref().ok_or(ErrorCode::Internal)?;
+        if entry.generation.load(Ordering::Acquire).is_multiple_of(2) {
             return Err(ErrorCode::SourceUnavailable.into());
         }
         self.lease.check(
-            &(self.entry.session)(),
-            self.entry.generation.load(Ordering::Acquire),
+            &(entry.session)(),
+            entry.generation.load(Ordering::Acquire),
             playback_generation,
         )
     }
@@ -151,6 +156,14 @@ impl AdapterManager {
     ) -> MusicResult<()> {
         adapter.descriptor().validate()?;
         let source = adapter.descriptor().source.clone();
+        if self
+            .providers
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .contains_key(&source)
+        {
+            return Err(ErrorCode::InvalidData.into());
+        }
         if (session)().source != source {
             return Err(ErrorCode::InvalidData.into());
         }
@@ -217,6 +230,9 @@ impl AdapterManager {
             .ok_or_else(|| ErrorCode::SourceUnavailable.into())
     }
     pub fn stamp(&self, source: &SourceId) -> MusicResult<(SessionContext, u64)> {
+        if let Some(stamp) = self.provider_stamp(source)? {
+            return Ok(stamp);
+        }
         let entry = self.entry(source)?;
         if entry.generation.load(Ordering::Acquire).is_multiple_of(2) {
             return Err(ErrorCode::SourceUnavailable.into());
@@ -271,6 +287,20 @@ impl AdapterManager {
                 .then(|| (descriptor.source.clone(), generation))
             })
             .collect::<Vec<_>>();
+        for provider in self
+            .providers
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .values()
+        {
+            let generation = provider.generation.load(Ordering::Acquire);
+            let descriptor = provider.adapter.descriptor();
+            if !generation.is_multiple_of(2)
+                && nons_music_adapter_sdk::cover::checked_url(url, &descriptor.cover_hosts).is_ok()
+            {
+                owners.push((descriptor.id.clone(), generation));
+            }
+        }
         if owners.is_empty() {
             return Err(ErrorCode::PermissionDenied.into());
         }
@@ -687,7 +717,8 @@ impl AdapterManager {
             self.next_handle.fetch_add(1, Ordering::Relaxed)
         ))?;
         let ticket = Arc::new(ResourceTicket {
-            entry: entry.clone(),
+            entry: Some(entry.clone()),
+            provider: None,
             lease: ResourceLease {
                 handle,
                 context,

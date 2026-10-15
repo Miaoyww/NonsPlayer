@@ -12,7 +12,8 @@ pub(super) fn default_source() -> SourceId {
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ComponentPackage {
-    descriptor: SourceDescriptor,
+    descriptor: Option<SourceDescriptor>,
+    resource_provider: Option<super::provider::ResourceProviderDescriptor>,
     permissions: super::external::host::Permissions,
 }
 pub(crate) struct PreparedComponent {
@@ -51,13 +52,25 @@ pub(crate) fn prepare_components(
         }
         let package: ComponentPackage =
             serde_json::from_slice(&bytes).map_err(|_| "随包适配器描述无效")?;
-        package.descriptor.validate().map_err(|e| e.to_string())?;
+        match (&package.descriptor, &package.resource_provider) {
+            (Some(descriptor), None) => descriptor.validate(),
+            (None, Some(descriptor)) => descriptor.validate(),
+            _ => Err(ErrorCode::InvalidData.into()),
+        }
+        .map_err(|e| e.to_string())?;
         prepared.push(PreparedComponent { directory, package });
     }
     for item in &prepared {
-        adapters
-            .begin_loading(item.package.descriptor.clone())
-            .map_err(|e| e.to_string())?;
+        if let Some(descriptor) = &item.package.descriptor {
+            adapters
+                .begin_loading(descriptor.clone())
+                .map_err(|e| e.to_string())?;
+        }
+        if let Some(descriptor) = &item.package.resource_provider {
+            adapters
+                .begin_resource_loading(descriptor.clone())
+                .map_err(|e| e.to_string())?;
+        }
     }
     Ok(prepared)
 }
@@ -71,7 +84,61 @@ pub(crate) async fn load_components(
     let accounts = music.accounts.clone().ok_or("账号服务未就绪")?;
     let mut failures = Vec::new();
     for PreparedComponent { directory, package } in packages {
-        let source = package.descriptor.source.clone();
+        if let Some(descriptor) = package.resource_provider {
+            let result: crate::model::AppResult<()> = async {
+                // This descriptor binds only the generic Host identity. It is never
+                // registered as a catalog source, account source or workspace choice.
+                let host_identity = SourceDescriptor {
+                    source: descriptor.id.clone(),
+                    display_name: descriptor.display_name.clone(),
+                    contract_version: descriptor.contract_version,
+                    login_methods: vec![],
+                    capabilities: Default::default(),
+                    cover_hosts: descriptor.cover_hosts.clone(),
+                    share_link_templates: Default::default(),
+                };
+                let services = Arc::new(super::external::host::Services::new(
+                    accounts.clone(),
+                    Arc::downgrade(&music.adapters),
+                    store.clone(),
+                    http.clone(),
+                    package.permissions,
+                    host_identity,
+                )?);
+                let adapter = super::external::ResourceComponent::load(
+                    &directory.join("adapter.component.wasm"),
+                    descriptor.clone(),
+                    services,
+                )
+                .await
+                .map_err(|e| e.to_string())?;
+                let enabled = store
+                    .setting(&format!(
+                        "resourceProviderEnabledV1:{}",
+                        descriptor.id.as_str()
+                    ))?
+                    .as_deref()
+                    != Some("false");
+                music
+                    .adapters
+                    .register_resource_provider_with_enabled(Arc::new(adapter), enabled)
+                    .map_err(|e| e.to_string())?;
+                Ok(())
+            }
+            .await;
+            if let Err(error) = result {
+                music
+                    .adapters
+                    .resource_loading_failed(&descriptor.id, &error);
+                failures.push(format!(
+                    "音源 {} 加载失败：{}",
+                    descriptor.display_name, error
+                ));
+            }
+            continue;
+        }
+        let descriptor = package.descriptor.ok_or("适配器描述缺失")?;
+        let source = descriptor.source.clone();
         let started = std::time::Instant::now();
         log::info!(target: "nons::adapter", "source={} stage=load_component state=start", source.as_str());
         let result: crate::model::AppResult<()> = async {
@@ -81,7 +148,7 @@ pub(crate) async fn load_components(
                 store.clone(),
                 http.clone(),
                 package.permissions,
-                package.descriptor,
+                descriptor,
             )?);
             let adapter = super::external::ExternalAdapter::load_with_host(
                 &directory.join("adapter.component.wasm"),

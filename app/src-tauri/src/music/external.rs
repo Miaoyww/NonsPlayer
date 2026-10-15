@@ -55,18 +55,19 @@ pub struct ExternalAdapter {
 impl ExternalAdapter {
     /// Explicit backend loading only. No auto-discovery, frontend, WASI or credential access.
     pub async fn load(path: &Path, expected: SourceDescriptor) -> MusicResult<Self> {
-        Self::load_inner(path, expected, None).await
+        Self::load_inner(path, expected, None, None).await
     }
     pub(crate) async fn load_with_host(
         path: &Path,
         services: Arc<host::Services>,
     ) -> MusicResult<Self> {
-        Self::load_inner(path, services.descriptor.clone(), Some(services)).await
+        Self::load_inner(path, services.descriptor.clone(), Some(services), None).await
     }
     async fn load_inner(
         path: &Path,
         expected: SourceDescriptor,
         services: Option<Arc<host::Services>>,
+        resource_descriptor: Option<&super::provider::ResourceProviderDescriptor>,
     ) -> MusicResult<Self> {
         expected.validate()?;
         // The initial external ABI has no login, lyrics or download methods.
@@ -123,13 +124,28 @@ impl ExternalAdapter {
             sessions: Arc::new(sessions::Sessions::default()),
         };
         let initialize_started = std::time::Instant::now();
-        let actual: SourceDescriptor = adapter
-            .invoke("music.descriptor", "null", false, None)
-            .await?;
-        actual.validate()?;
+        let (actual, expected) = if let Some(descriptor) = resource_descriptor {
+            let actual: super::provider::ResourceProviderDescriptor = adapter
+                .invoke("music.resource-descriptor", "null", false, None)
+                .await?;
+            actual.validate()?;
+            (
+                serde_json::to_value(actual),
+                serde_json::to_value(descriptor),
+            )
+        } else {
+            let actual: SourceDescriptor = adapter
+                .invoke("music.descriptor", "null", false, None)
+                .await?;
+            actual.validate()?;
+            (
+                serde_json::to_value(actual),
+                serde_json::to_value(&adapter.descriptor),
+            )
+        };
         log::info!(target: "nons::adapter", "source={} stage=initialize elapsed_ms={}", adapter.descriptor.source.as_str(), initialize_started.elapsed().as_millis());
-        if serde_json::to_value(actual).map_err(|_| ErrorCode::InvalidData)?
-            != serde_json::to_value(&adapter.descriptor).map_err(|_| ErrorCode::InvalidData)?
+        if actual.map_err(|_| ErrorCode::InvalidData)?
+            != expected.map_err(|_| ErrorCode::InvalidData)?
         {
             return Err(ErrorCode::InvalidData.into());
         }
@@ -202,6 +218,88 @@ impl ExternalAdapter {
             "adapterGeneration": context.adapter_generation,
         }))
         .map_err(|_| ErrorCode::InvalidData.into())
+    }
+}
+
+/// Uses the shared Component executor and Host, without registering a music platform.
+pub(crate) struct ResourceComponent {
+    runtime: ExternalAdapter,
+    descriptor: super::provider::ResourceProviderDescriptor,
+}
+impl ResourceComponent {
+    pub(crate) async fn load(
+        path: &Path,
+        descriptor: super::provider::ResourceProviderDescriptor,
+        services: Arc<host::Services>,
+    ) -> MusicResult<Self> {
+        descriptor.validate()?;
+        if services.permissions.credentials
+            || services.permissions.state
+            || !services.permissions.websocket_hosts.is_empty()
+        {
+            return Err(ErrorCode::PermissionDenied.into());
+        }
+        let runtime = ExternalAdapter::load_inner(
+            path,
+            services.descriptor.clone(),
+            Some(services),
+            Some(&descriptor),
+        )
+        .await?;
+        Ok(Self {
+            runtime,
+            descriptor,
+        })
+    }
+}
+impl super::provider::ResourceProvider for ResourceComponent {
+    fn descriptor(&self) -> &super::provider::ResourceProviderDescriptor {
+        &self.descriptor
+    }
+    fn resolve<'a>(
+        &'a self,
+        request: &'a super::provider::ResourceRequest,
+        context: &'a RequestContext,
+    ) -> AdapterFuture<'a, PlaybackResource> {
+        Box::pin(async move {
+            request.validate(&self.descriptor)?;
+            let wire: WireResource = self
+                .runtime
+                .invoke(
+                    "music.resolve-resource",
+                    &ExternalAdapter::arguments(request, context)?,
+                    true,
+                    Some(context),
+                )
+                .await?;
+            let services = self.runtime.services.as_ref().ok_or(ErrorCode::Internal)?;
+            crate::infrastructure::http::checked_url(&services.permissions.http_hosts, &wire.url)
+                .map_err(|_| ErrorCode::PermissionDenied)?;
+            Ok(PlaybackResource {
+                metadata: wire.metadata,
+                access: ResourceAccess::Http(HttpAccess {
+                    url: wire.url,
+                    headers: wire.headers,
+                }),
+            })
+        })
+    }
+    fn search<'a>(
+        &'a self,
+        request: &'a super::provider::ResourceSearchRequest,
+        context: &'a RequestContext,
+    ) -> AdapterFuture<'a, Page<MusicTrack>> {
+        Box::pin(async move {
+            request.validate(&self.descriptor)?;
+            self.runtime
+                .invoke(
+                    "music.search-resources",
+                    &ExternalAdapter::arguments(request, context)?,
+                    false,
+                    Some(context),
+                )
+                .await
+        })
     }
 }
 impl MusicAdapter for ExternalAdapter {

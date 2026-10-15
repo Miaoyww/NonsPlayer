@@ -65,6 +65,8 @@ pub struct PlayerSnapshot {
     #[serde(default)]
     pub audio_output_mode: AudioOutputMode,
     pub actual_quality: Option<String>,
+    #[serde(default, skip_deserializing)]
+    pub playback_source: Option<nons_music_adapter_sdk::provider::PlaybackSource>,
     pub error: Option<String>,
     pub media_error: Option<String>,
 }
@@ -91,6 +93,7 @@ impl Default for PlayerSnapshot {
             device_id: None,
             audio_output_mode: AudioOutputMode::Shared,
             actual_quality: None,
+            playback_source: None,
             error: None,
             media_error: None,
         }

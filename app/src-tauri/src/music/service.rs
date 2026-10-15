@@ -1,12 +1,18 @@
 //! Playback routing for uniform online identities and compatible Netease/local queues.
-use super::{
-    manager::{AdapterManager, ResourceTicket},
-    resource::ResolveRequest,
-};
+use super::manager::{AdapterManager, ResourceTicket};
 use crate::model::{AppResult, ResolvedTrack, Track, TrackSource};
 use std::sync::Arc;
 
-pub type ResolvedPlayback = (ResolvedTrack, Option<Arc<ResourceTicket>>);
+pub type ResolvedPlayback = (
+    ResolvedTrack,
+    Option<Arc<ResourceTicket>>,
+    Option<super::manager::PlaybackSource>,
+);
+#[derive(Clone, Default)]
+pub struct PlaybackSelection {
+    pub provider: Option<String>,
+    pub track: Option<Track>,
+}
 pub struct CollectionQueue {
     pub tracks: Vec<Track>,
     pub more: bool,
@@ -98,27 +104,75 @@ impl MusicService {
         downgrade: bool,
         generation: u64,
     ) -> AppResult<ResolvedPlayback> {
+        self.resolve_selected(track, quality, downgrade, generation, None)
+            .await
+    }
+    pub async fn resolve_selected(
+        &self,
+        original: Track,
+        quality: &str,
+        downgrade: bool,
+        generation: u64,
+        selection: Option<PlaybackSelection>,
+    ) -> AppResult<ResolvedPlayback> {
+        self.resolve_selected_notifying(
+            original,
+            quality,
+            downgrade,
+            generation,
+            selection,
+            &|_| {},
+        )
+        .await
+    }
+    pub async fn resolve_selected_notifying(
+        &self,
+        original: Track,
+        quality: &str,
+        downgrade: bool,
+        generation: u64,
+        selection: Option<PlaybackSelection>,
+        notify: &(dyn Fn(super::manager::PlaybackSource) + Send + Sync),
+    ) -> AppResult<ResolvedPlayback> {
+        let original_key = original.key.clone();
+        let mut track = selection
+            .as_ref()
+            .and_then(|s| s.track.clone())
+            .unwrap_or(original);
         if matches!(track.source, TrackSource::Local { .. }) {
             return crate::playback_resource::resolve(track)
                 .await
-                .map(|resolved| (resolved, None));
+                .map(|resolved| (resolved, None, None));
         }
-        let reference = nons_music_adapter_sdk::migration::convert_track(track.clone())
+        let mut metadata = nons_music_adapter_sdk::migration::convert_track(track.clone())
             .map_err(|e| e.to_string())?
-            .track
-            .reference;
-        let ticket = self
+            .track;
+        // Some searchable audio services omit duration. Hydrate only the selected
+        // track through the ordinary catalog contract, never every search result.
+        if metadata.duration_ms == 0 {
+            if let Ok(enriched) = self.adapters.read_track(&metadata.reference).await {
+                metadata = enriched;
+                track.duration_ms = metadata.duration_ms;
+            }
+        }
+        let (ticket, mut source) = self
             .adapters
-            .resolve_playback(
-                &ResolveRequest {
-                    track: reference,
+            .resolve_with_providers_notifying(
+                &super::provider::ResourceRequest {
+                    track: metadata,
                     preferred_quality: quality.into(),
                     allow_downgrade: downgrade,
                 },
+                selection.as_ref().and_then(|s| s.provider.as_deref()),
                 generation,
+                &|mut source| {
+                    source.changed |= track.key != original_key;
+                    notify(source);
+                },
             )
             .await
             .map_err(|e| e.to_string())?;
+        source.changed |= track.key != original_key;
         Ok((
             ResolvedTrack {
                 decoded_audio: None,
@@ -127,6 +181,7 @@ impl MusicService {
                 quality: Some(ticket.quality().into()),
             },
             Some(ticket),
+            Some(source),
         ))
     }
 }

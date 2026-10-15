@@ -8,6 +8,19 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
+/// Public playback attribution; access URLs and headers stay backend-only.
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaybackSource {
+    pub provider: String,
+    pub display_name: String,
+    pub platform: SourceId,
+    pub changed: bool,
+    pub track: crate::identity::EntityRef,
+    pub title: String,
+    pub artist: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ResourceProviderDescriptor {
@@ -26,7 +39,7 @@ impl ResourceProviderDescriptor {
         if self.contract_version != CONTRACT_VERSION {
             return Err(ErrorCode::Unsupported.into());
         }
-        if self.id.as_str() == "local"
+        if matches!(self.id.as_str(), "local" | "official")
             || self.display_name.trim().is_empty()
             || self.display_name.len() > 256
             || self.platforms.is_empty()
@@ -118,6 +131,9 @@ mod tests {
         descriptor.search_platforms.clear();
         assert!(descriptor.validate().is_ok());
         descriptor.platforms.insert(descriptor.id.clone());
+        assert!(descriptor.validate().is_err());
+        descriptor.platforms = [SourceId::try_from("netease".to_owned()).unwrap()].into();
+        descriptor.id = SourceId::try_from("official".to_owned()).unwrap();
         assert!(descriptor.validate().is_err());
     }
 }

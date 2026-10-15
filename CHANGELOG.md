@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 播放资源获取失败时，支持按顺序尝试独立备用音源；保留歌曲所属平台，音源停用及账号变化使旧请求与预加载资源失效。
+
 ## [1.3.3]
 
 ![NonsPlayer v1.3.3 适配器修复与改进发布头图](https://raw.githubusercontent.com/Miaoyww/NonsPlayer/v1.3.3/docs/release-assets/header-1.3.3.png)
