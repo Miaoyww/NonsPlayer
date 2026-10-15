@@ -113,6 +113,7 @@ export async function diagnosticInvoke<T>(
 export function installDiagnostics() {
   if (isTauri()) {
     void listen<{ level: number; message: string }>('log://log', ({ payload }) => {
+      if (payload.message.includes(' nons::webview ')) return
       // Already sanitized by the native logger; never report back and create a logging loop.
       const level = payload.level >= 5 ? 'error' : payload.level === 4 ? 'warn' : 'info'
       console[level]('[NonsPlayer native]', payload.message)

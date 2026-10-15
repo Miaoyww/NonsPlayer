@@ -125,6 +125,29 @@ fn queue_bridge_preserves_netease_legacy_keys_and_rejects_local_uniform_entries(
     );
     assert_eq!(track.artists[0].id, None);
     assert_eq!(track.album_id, None);
+    let folder = tempfile::tempdir().unwrap();
+    let store = crate::storage::Store::open(&folder.path().join("library.sqlite3")).unwrap();
+    let mut canonical_key = track.clone();
+    canonical_key.key = music.reference.key();
+    store
+        .save_tracks(&[canonical_key])
+        .expect("相同元数据改用标准引用编码后应能保存");
+    store
+        .save_tracks(&[track.clone()])
+        .expect("网易云统一曲目必须能经音乐库／搜索的队列转换路径保存");
+    assert_eq!(store.track(&track.key).unwrap().key, "netease:1");
+    assert_eq!(
+        nons_music_adapter_sdk::migration::convert_track(track.clone())
+            .unwrap()
+            .track,
+        music
+    );
+    let mut wrong = track;
+    wrong.key = "netease:2".into();
+    assert!(store
+        .save_tracks(&[wrong])
+        .unwrap_err()
+        .contains("rule=queue.key"));
     music.reference.source = source("local");
     music.artists.clear();
     music.album_reference = None;

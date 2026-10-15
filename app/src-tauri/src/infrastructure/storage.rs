@@ -94,11 +94,11 @@ impl Store {
         {
             let mut insert = tx.prepare_cached("INSERT INTO tracks(key,source,title,artist,value) VALUES(?1,?2,?3,?4,?5)
                 ON CONFLICT(key) DO UPDATE SET title=excluded.title,artist=excluded.artist,value=excluded.value").map_err(|e| e.to_string())?;
-            for track in tracks {
+            for (index, track) in tracks.iter().enumerate() {
                 let source = track.source_id();
                 if matches!(track.source, crate::model::TrackSource::Online { .. }) {
-                    nons_music_adapter_sdk::migration::convert_track(track.clone())
-                        .map_err(|e| e.to_string())?;
+                    nons_music_adapter_sdk::migration::validate_online_queue_track(track)
+                        .map_err(|reason| format!("online_track_validation index={index} source={source} rule={reason}"))?;
                 }
                 insert
                     .execute(params![

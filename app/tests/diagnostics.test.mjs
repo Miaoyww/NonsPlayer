@@ -95,4 +95,8 @@ test('native reasons reach the browser console without being submitted back to t
   })
   assert.equal(app.calls.length, 0)
   assert.match(app.consoleLogs[0][1], /database table missing/)
+  app.handlers.get('log://log')({
+    payload: { level: 5, message: '2026-10-15 ERROR nons::webview command=music_queue_tracks' }
+  })
+  assert.equal(app.consoleLogs.length, 1)
 })

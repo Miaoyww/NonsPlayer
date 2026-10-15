@@ -48,10 +48,7 @@ fn netease_reference(kind: EntityKind, id: u64) -> MusicResult<EntityRef> {
 
 pub fn convert_track(track: Track) -> MusicResult<MigratedTrack> {
     if let TrackSource::Online { track: music } = &track.source {
-        music.validate(&music.reference)?;
-        if music.reference.source.as_str() == "local" || track.key != music.reference.key() {
-            return Err(ErrorCode::InvalidData.into());
-        }
+        validate_online_queue_track(&track).map_err(|_| ErrorCode::InvalidData)?;
         return Ok(MigratedTrack {
             legacy_key: track.key,
             track: *music.clone(),
@@ -139,6 +136,23 @@ pub fn convert_track(track: Track) -> MusicResult<MigratedTrack> {
     };
     result.track.validate(&result.track.reference)?;
     Ok(result)
+}
+
+/// The same identity validation serves persistence and queue migration, with safe diagnostic rules.
+pub fn validate_online_queue_track(track: &Track) -> Result<(), &'static str> {
+    let TrackSource::Online { track: music } = &track.source else {
+        return Err("queue.source.kind: must be online");
+    };
+    music.validate_with_reason(&music.reference)?;
+    if music.reference.source.as_str() == "local" {
+        return Err("queue.source: local references cannot be online tracks");
+    }
+    if track.key != music.reference.key()
+        && historical_key(&music.reference).as_deref() != Some(track.key.as_str())
+    {
+        return Err("queue.key: must match the canonical reference key or the matching historical Netease key");
+    }
+    Ok(())
 }
 
 pub fn legacy_track(json: &str) -> MusicResult<MigratedTrack> {

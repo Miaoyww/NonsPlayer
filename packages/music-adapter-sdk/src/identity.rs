@@ -99,31 +99,48 @@ pub struct MusicTrack {
 
 impl MusicTrack {
     pub fn validate(&self, requested: &EntityRef) -> super::MusicResult<()> {
+        self.validate_with_reason(requested)
+            .map_err(|_| ErrorCode::InvalidData.into())
+    }
+    /// Static field/rule diagnostics; never includes metadata, URLs or credentials.
+    pub fn validate_with_reason(&self, requested: &EntityRef) -> Result<(), &'static str> {
         let same_source_kind = |reference: &EntityRef, kind| {
             reference.source == requested.source && reference.kind == kind
         };
-        if &self.reference != requested
-            || requested.kind != EntityKind::Track
-            || self.artists.iter().any(|credit| {
-                credit
-                    .reference
-                    .as_ref()
-                    .is_some_and(|reference| !same_source_kind(reference, EntityKind::Artist))
-            })
-            || self
-                .album_reference
+        if &self.reference != requested {
+            return Err("track.reference: must equal the requested reference");
+        }
+        if requested.kind != EntityKind::Track {
+            return Err("track.reference.kind: must be track");
+        }
+        if self.artists.iter().any(|credit| {
+            credit
+                .reference
                 .as_ref()
-                .is_some_and(|reference| !same_source_kind(reference, EntityKind::Album))
-            || self
-                .associations
-                .iter()
-                .any(|reference| reference.kind != EntityKind::Track)
-            || serde_json::to_vec(self)
-                .map_err(|_| MusicError::from(ErrorCode::InvalidData))?
-                .len()
-                > 64 * 1024
+                .is_some_and(|reference| !same_source_kind(reference, EntityKind::Artist))
+        }) {
+            return Err("track.artists.reference: must use the track source and artist kind");
+        }
+        if self
+            .album_reference
+            .as_ref()
+            .is_some_and(|reference| !same_source_kind(reference, EntityKind::Album))
         {
-            return Err(ErrorCode::InvalidData.into());
+            return Err("track.albumReference: must use the track source and album kind");
+        }
+        if self
+            .associations
+            .iter()
+            .any(|reference| reference.kind != EntityKind::Track)
+        {
+            return Err("track.associations.kind: must be track");
+        }
+        if serde_json::to_vec(self)
+            .map_err(|_| "track: serialization failed")?
+            .len()
+            > 64 * 1024
+        {
+            return Err("track: serialized metadata exceeds 64 KiB");
         }
         Ok(())
     }
