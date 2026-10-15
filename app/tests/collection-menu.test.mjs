@@ -5,11 +5,29 @@ import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
+const shareLinks = {}
+runInNewContext(
+  ts.transpileModule(
+    readFileSync(new URL('../src/features/music/share-links.ts', import.meta.url), 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS } }
+  ).outputText,
+  { exports: shareLinks, URL, encodeURIComponent, require: () => musicReference }
+)
+
 function harness() {
   const calls = []
   let profile = { userId: '7', reference: { source: 'netease', id: '7' } }
   const actions = {
-    link: () => 'https://source.example/share',
+    link: (item) =>
+      shareLinks.collectionShareLink(item, [
+        {
+          source: 'netease',
+          shareLinkTemplates: {
+            playlist: 'https://source.example/playlist/{id}',
+            album: 'https://source.example/album/{id}'
+          }
+        }
+      ]),
     busy: false,
     play: (...args) => calls.push(['play', ...args]),
     copy: (item) => calls.push(['copy', item]),
@@ -101,6 +119,13 @@ const playlist = {
   liked: false,
   name: 'Mine'
 }
+test('private radar placeholder renders without a share link until its reference is loaded', () => {
+  const app = harness()
+  const placeholder = { id: 0, kind: 'playlist', name: '私人雷达' }
+  assert.equal(app.menu(placeholder).length, 2)
+  assert.equal(app.menu(placeholder, true).length, 0)
+  assert.equal(app.menu({ ...playlist, creatorId: 0, name: '私人雷达' }).length, 3)
+})
 test('playlist menus replace the queue or insert the whole collection next and expose management', () => {
   const app = harness(),
     items = app.menu(playlist)

@@ -17,6 +17,13 @@ export function favoriteId(
 export function collectionReference(
   value: import('@/features/workspace/music-navigation').MusicCollection
 ): EntityRef {
+  const reference = optionalCollectionReference(value)
+  if (!reference) throw new Error('收藏缺少来源引用')
+  return reference
+}
+export function optionalCollectionReference(
+  value: import('@/features/workspace/music-navigation').MusicCollection
+): EntityRef | null {
   if (value.reference) return value.reference
   if (
     value.localId ||
@@ -24,6 +31,6 @@ export function collectionReference(
     !Number.isSafeInteger(value.id) ||
     value.id <= 0
   )
-    throw new Error('收藏缺少来源引用')
+    return null
   return { source: 'netease', kind: value.kind, id: String(value.id) }
 }

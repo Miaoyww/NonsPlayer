@@ -29,6 +29,14 @@ const sources = [
     }
   }
 ]
+
+test('unresolved collections have no share link while their source identity is unavailable', () => {
+  for (const id of [0, -1, 'unknown', NaN, Number.MAX_SAFE_INTEGER + 1]) {
+    const item = { kind: 'playlist', id }
+    assert.equal(exports.collectionShareLink(item, sources), '')
+    assert.throws(() => musicReference.collectionReference(item), /收藏缺少来源引用/)
+  }
+})
 test('share links retain real source and encode opaque IDs without changing URL structure', () => {
   const reference = { source: 'second', kind: 'track', id: '雪/a?b&c#d' }
   assert.equal(

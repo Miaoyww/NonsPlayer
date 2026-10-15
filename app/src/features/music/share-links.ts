@@ -1,4 +1,4 @@
-import { onlineReference, collectionReference } from './legacy-reference'
+import { onlineReference, optionalCollectionReference } from './legacy-reference'
 import type { Track } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import type { EntityRef, SourceDescriptor } from './types'
@@ -27,5 +27,6 @@ export function trackShareLink(track: Track, sources: SourceDescriptor[]): strin
 
 export function collectionShareLink(item: MusicCollection, sources: SourceDescriptor[]): string {
   if (item.localId) return ''
-  return entityShareLink(collectionReference(item), sources)
+  const reference = optionalCollectionReference(item)
+  return reference ? entityShareLink(reference, sources) : ''
 }
