@@ -12,6 +12,7 @@ import type { SourceDescriptor } from '@/features/music/types'
 import { errorText, nativeCall } from '@/lib/player'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { SourcePreferencesCard } from '@/features/music/source-preferences-card'
+import { ResourceProvidersCard } from '@/features/music/resource-providers-card'
 
 interface AdapterStatus {
   descriptor: SourceDescriptor
@@ -138,6 +139,7 @@ export function AdaptersPage() {
         </p>
       )}
       <SourcePreferencesCard />
+      <ResourceProvidersCard />
       <section
         aria-label="已安装的音乐适配器"
         className="divide-y divide-border rounded-xl border border-border"

@@ -38,6 +38,18 @@ const track = (key, changes = {}) => ({
 const append = (model, ...tracks) =>
   model.append(tracks.map((item) => ({ source: item.key.split(':')[0], item })))
 
+test('audio-provider metadata and catalog metadata for one real identity count as one platform and enrich duration', () => {
+  const model = new TrackAggregation(['n', 'q'])
+  const sparse = track('n:1', { durationMs: 0 })
+  append(model, sparse)
+  const complete = track('n:1')
+  append(model, complete)
+  assert.equal(model.getSnapshot().length, 1)
+  assert.equal(model.getSnapshot()[0].sourceCount, 1)
+  assert.equal(model.getSnapshot()[0].members.length, 1)
+  assert.equal(model.getSnapshot()[0].representative.durationMs, 200000)
+})
+
 test('same recording can cross albums, artist credit ordering and source identity remain intact', () => {
   const first = track('q:1', { artists: [{ name: 'A' }, { name: 'B' }] })
   const second = track('n:1', {

@@ -20,6 +20,12 @@ import { MusicSearch } from './music-search'
 import { isAndroid } from '@/lib/platform'
 import { TrackAggregation } from './track-aggregation'
 import { AggregateTrackResults } from './aggregate-track-results'
+import { trackSource } from '@/features/music/source-label'
+import {
+  useResourceProviders,
+  providerSearchSources,
+  searchResourceProvider
+} from '@/features/music/resource-providers'
 
 const categories = [
   { value: 'track', label: '单曲', icon: Music2 },
@@ -52,6 +58,8 @@ function Results({
     const query = new AggregateQuery<Result>(
       sources,
       async (source, cursor) => {
+        const provider = sources.find((value) => value.source === source)
+        if (provider?.provider) return searchResourceProvider(provider, keyword, cursor)
         const response = await musicClient.query(source, {
           operation: 'search',
           keyword,
@@ -75,7 +83,9 @@ function Results({
       1000,
       kind === 'track'
         ? (batch) =>
-            aggregation.append(batch.map(({ source, item }) => ({ source, item: item as Track })))
+            aggregation.append(
+              batch.map(({ item }) => ({ source: trackSource(item as Track), item: item as Track }))
+            )
         : undefined
     )
     return { query, aggregation }
@@ -276,25 +286,29 @@ export default function SearchPage({
   const { page } = useMusicNavigation()
   const [kind, setKind] = useState<SearchKind>('track')
   const { preferences, statuses, revision, error } = useMusicSources()
+  const { providers, error: providerError } = useResourceProviders()
   const sources = useMemo(
     () =>
       preferences
-        ? [preferences.current, ...preferences.supplementary].map((source) => {
-            const status = statuses.find((value) => value.descriptor.source === source)
-            return {
-              source,
-              name: status?.descriptor.displayName ?? source,
-              unavailable: !status
-                ? '来源未安装'
-                : !status.enabled
-                  ? '来源已停用'
-                  : !status.descriptor.capabilities.includes('search')
-                    ? '不支持搜索'
-                    : undefined
-            }
-          })
+        ? [
+            ...[preferences.current, ...preferences.supplementary].map((source) => {
+              const status = statuses.find((value) => value.descriptor.source === source)
+              return {
+                source,
+                name: status?.descriptor.displayName ?? source,
+                unavailable: !status
+                  ? '来源未安装'
+                  : !status.enabled
+                    ? '来源已停用'
+                    : !status.descriptor.capabilities.includes('search')
+                      ? '不支持搜索'
+                      : undefined
+              }
+            }),
+            ...(kind === 'track' ? providerSearchSources(providers, statuses) : [])
+          ]
         : [],
-    [preferences, statuses]
+    [preferences, statuses, providers, kind]
   )
   return (
     <MusicPage className="search-page" aria-label="搜索音乐">
@@ -311,6 +325,11 @@ export default function SearchPage({
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}
+        </p>
+      )}
+      {providerError && (
+        <p role="alert" className="text-sm text-destructive">
+          音源：{providerError}
         </p>
       )}
       {(!isAndroid() || page.query) && (

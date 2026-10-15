@@ -369,7 +369,6 @@ export function SongContextMenu({
   const id = favoriteId(track, profile?.reference)
   const liked = id !== undefined && likedIds.has(id)
   const unavailable = busy || !isTauri()
-  const unplayable = track.source.kind === 'online' && !!track.source.track.unavailableReason
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger render={render} tabIndex={0}>
@@ -384,13 +383,13 @@ export function SongContextMenu({
                 定位到
               </ContextMenu.Item>
             )}
-            {!unavailable && !unplayable && (
+            {!unavailable && (
               <ContextMenu.Item onClick={() => actions.run(onPlay)}>
                 <Play aria-hidden="true" />
                 播放
               </ContextMenu.Item>
             )}
-            {!unavailable && !unplayable && (
+            {!unavailable && (
               <ContextMenu.Item
                 onClick={() =>
                   actions.run(

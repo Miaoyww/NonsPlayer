@@ -47,6 +47,15 @@ export interface Track {
 export type PlaybackStatus = 'stopped' | 'loading' | 'playing' | 'paused' | 'buffering' | 'error'
 export type AudioOutputMode = 'shared' | 'exclusive'
 export interface PlayerSnapshot {
+  playbackSource?: {
+    provider: string
+    displayName: string
+    platform: string
+    changed: boolean
+    track: import('@/features/music/types').EntityRef
+    title: string
+    artist: string
+  } | null
   playbackOptions: { fades: boolean; gapless: boolean }
   privateFmSession: number | null
   privateFmError?: string

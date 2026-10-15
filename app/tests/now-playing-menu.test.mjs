@@ -29,6 +29,8 @@ function harness() {
     ].map((name) => [name, name])
   )
   const modules = {
+    react: { useState: (initial) => [initial, (value) => calls.push(['sources', value])] },
+    './song-source-dialog': { SongSourceDialog: 'SongSourceDialog' },
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({
         statuses: [
@@ -130,6 +132,7 @@ test('bound local songs expose local actions and never use their lyric associati
   const menu = app.render(local, { source: '本地' })
   assert.equal(menu.item('取消收藏歌曲'), undefined)
   assert.equal(menu.item('复制歌曲链接'), undefined)
+  assert.equal(menu.item('歌曲来源'), undefined)
   for (const label of ['添加到本地歌单', '复制歌曲名称', '复制文件路径', '歌曲详情'])
     menu.item(label).props.onClick()
   assert.equal(menu.source, '本地')

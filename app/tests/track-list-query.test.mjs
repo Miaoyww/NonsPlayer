@@ -511,7 +511,7 @@ test('resizing redistributes adjacent columns, clamps minimums and restores defa
   })
 })
 
-test('unavailable online tracks retain their row and metadata with a visible label and disabled play control', async () => {
+test('restricted official tracks retain their row and metadata and allow playback to try fallback audio', async () => {
   await harness(async ({ render, tracks }) => {
     await render({
       tracks: [
@@ -532,8 +532,11 @@ test('unavailable online tracks retain their row and metadata with a visible lab
     const rows = [...document.querySelectorAll('tbody tr')]
     assert.equal(rows.length, 3)
     assert.match(rows[1].textContent, /白夜/)
-    assert.equal(rows[1].querySelector('[aria-label="歌曲不可用"]')?.textContent, '· 不可用')
-    assert.equal(rows[1].querySelector('button[aria-label="播放 白夜"]').disabled, true)
+    assert.equal(
+      rows[1].querySelector('[aria-label="官方音源受限，可尝试备用音源"]')?.textContent,
+      '· 官方受限'
+    )
+    assert.equal(rows[1].querySelector('button[aria-label="播放 白夜"]').disabled, false)
     assert.equal(rows[0].querySelector('button[aria-label="播放 Zulu"]').disabled, false)
   })
 })

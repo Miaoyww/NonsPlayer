@@ -198,6 +198,7 @@ export class TrackAggregation {
   private groups: SearchTrackGroup[] = []
   private metadata: Metadata[][] = []
   private seen = new Set<string>()
+  private identityGroups = new Map<string, number>()
   private buckets = new Map<string, Map<number, Set<number>>>()
   private priority: Map<string, number>
 
@@ -211,7 +212,32 @@ export class TrackAggregation {
     const next = [...this.groups]
     for (const { source, item: track } of batch) {
       const id = JSON.stringify([source, track.key])
-      if (this.seen.has(id)) continue
+      if (this.seen.has(id)) {
+        const index = this.identityGroups.get(id)!
+        const group = next[index]
+        const previous = group.members.find(
+          (member) => member.source === source && member.track.key === track.key
+        )
+        // A provider can deliver metadata without duration before the catalog.
+        // The same real identity is one song, not an extra platform or recording.
+        if (previous && previous.track.durationMs === 0 && track.durationMs > 0) {
+          const members = group.members.map((member) =>
+            member === previous ? { source, track } : member
+          )
+          next[index] = { ...group, members, representative: members[0].track }
+          this.metadata[index] = members.map((member) => recordingMetadata(member.track))
+          const metadata = recordingMetadata(track)
+          if (metadata.valid) {
+            const buckets = this.buckets.get(metadata.artists) ?? new Map<number, Set<number>>()
+            const bucket = Math.floor(metadata.duration / aggregationRules.maxDurationMs)
+            const indices = buckets.get(bucket) ?? new Set<number>()
+            indices.add(index)
+            buckets.set(bucket, indices)
+            this.buckets.set(metadata.artists, buckets)
+          }
+        }
+        continue
+      }
       this.seen.add(id)
       const metadata = recordingMetadata(track)
       const bucket = Math.floor(metadata.duration / aggregationRules.maxDurationMs)
@@ -238,6 +264,7 @@ export class TrackAggregation {
       }
       const member = { source, track }
       if (bestIndex >= 0) {
+        this.identityGroups.set(id, bestIndex)
         const group = next[bestIndex]
         const members = [...group.members, member].sort(
           (left, right) =>
@@ -253,6 +280,7 @@ export class TrackAggregation {
         this.metadata[bestIndex].push(metadata)
       } else {
         const index = next.length
+        this.identityGroups.set(id, index)
         next.push({ id, members: [member], representative: track, sourceCount: 1 })
         this.metadata.push([metadata])
         if (metadata.valid) {

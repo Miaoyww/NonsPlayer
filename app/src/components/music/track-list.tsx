@@ -597,11 +597,7 @@ export const TrackList = memo(function TrackList({
                           <button
                             type="button"
                             className="track-cover"
-                            disabled={
-                              busy ||
-                              (track.source.kind === 'online' &&
-                                !!track.source.track.unavailableReason)
-                            }
+                            disabled={busy}
                             aria-label={`播放 ${track.title}`}
                             onClick={() => onPlay(row.index, visibleTracks)}
                           >
@@ -667,7 +663,7 @@ export const TrackList = memo(function TrackList({
                     )}
                     {showDuration && (
                       <td className="tabular-nums text-muted-foreground">
-                        {formatTime(track.durationMs)}
+                        {track.durationMs > 0 ? formatTime(track.durationMs) : '—'}
                       </td>
                     )}
                     {extraColumns.map((column) => (

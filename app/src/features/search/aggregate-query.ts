@@ -5,6 +5,8 @@ export interface SearchBatch<T> {
   nextCursor: string | null
 }
 export interface SearchSource {
+  provider?: string
+  platform?: string
   source: string
   name: string
   unavailable?: string

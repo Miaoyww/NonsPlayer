@@ -30,6 +30,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
       useAccountAdapters: () => ({ adapters: [], refresh() {} })
     },
     '@/features/music/source-preferences-card': { SourcePreferencesCard: () => null },
+    '@/features/music/resource-providers-card': { ResourceProvidersCard: () => null },
     '@/components/music/loading': { TextSkeleton: 'div' },
     react: React,
     'react/jsx-runtime': jsx,
