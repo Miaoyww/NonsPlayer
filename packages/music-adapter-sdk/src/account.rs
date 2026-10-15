@@ -30,6 +30,11 @@ pub struct SessionContext {
 
 /// Deliberately no Serialize/Deserialize/Clone; Debug must not reveal credentials.
 pub struct OpaqueCredential(Vec<u8>);
+impl Drop for OpaqueCredential {
+    fn drop(&mut self) {
+        zeroize::Zeroize::zeroize(&mut self.0);
+    }
+}
 
 impl OpaqueCredential {
     pub fn new(bytes: Vec<u8>) -> MusicResult<Self> {

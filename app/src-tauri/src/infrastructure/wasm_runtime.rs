@@ -11,8 +11,57 @@ wasmtime::component::bindgen!({
     imports: { default: async },
     exports: { default: async },
 });
+pub(crate) mod host_io {
+    wasmtime::component::bindgen!({ path: "../../packages/adapter-host/wit", world: "host", imports: { default: async } });
+    pub use nons::host::transport::{
+        Event, Header, Host as TransportHost, Message, Request, Response,
+    };
+}
+type HostFuture<'a, T> = Pin<Box<dyn Future<Output = AppResult<T>> + Send + 'a>>;
 
 pub(crate) trait HostHandler: Send + Sync {
+    /// Declared by the trusted loader, never chosen by guest request arguments.
+    fn system_capabilities(&self) -> bool {
+        false
+    }
+    fn http_request(&self, _value: host_io::Request) -> HostFuture<'_, host_io::Response> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn websocket_open(
+        &self,
+        _url: String,
+        _protocol: String,
+        _timeout: u32,
+    ) -> HostFuture<'_, u32> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn websocket_send(&self, _socket: u32, _data: Vec<u8>) -> HostFuture<'_, ()> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn websocket_close(&self, _socket: u32) -> HostFuture<'_, ()> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn next_event(&self, _timeout: u32) -> HostFuture<'_, Option<host_io::Event>> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn credential_read(&self) -> HostFuture<'_, Vec<u8>> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn credential_invalidate(&self) -> HostFuture<'_, ()> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn credential_replace(&self, _data: Vec<u8>) -> HostFuture<'_, ()> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn credential_publish(&self, _record: String, _data: Vec<u8>) -> HostFuture<'_, ()> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn state_get(&self, _key: String) -> HostFuture<'_, Option<String>> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
+    fn state_set(&self, _key: String, _value: String) -> HostFuture<'_, ()> {
+        Box::pin(async { Err("permissionDenied".into()) })
+    }
     fn call<'a>(
         &'a self,
         operation: &'a str,
@@ -117,10 +166,64 @@ impl ResourceLimiter for MemoryLimits {
 struct State {
     host: Arc<dyn HostHandler>,
     limits: MemoryLimits,
+    wasi: wasmtime_wasi::WasiCtx,
+    table: wasmtime::component::ResourceTable,
+}
+impl wasmtime_wasi::WasiView for State {
+    fn ctx(&mut self) -> wasmtime_wasi::WasiCtxView<'_> {
+        wasmtime_wasi::WasiCtxView {
+            ctx: &mut self.wasi,
+            table: &mut self.table,
+        }
+    }
+}
+struct PollData;
+impl wasmtime::component::HasData for PollData {
+    type Data<'a> = &'a mut wasmtime::component::ResourceTable;
 }
 impl nons::plugin::host::Host for State {
     async fn call(&mut self, operation: String, args: String) -> Result<String, String> {
         self.host.call(&operation, &args).await
+    }
+}
+impl host_io::TransportHost for State {
+    async fn http_request(&mut self, value: host_io::Request) -> Result<host_io::Response, String> {
+        self.host.http_request(value).await
+    }
+    async fn websocket_open(
+        &mut self,
+        url: String,
+        protocol: String,
+        timeout_ms: u32,
+    ) -> Result<u32, String> {
+        self.host.websocket_open(url, protocol, timeout_ms).await
+    }
+    async fn websocket_send(&mut self, socket: u32, data: Vec<u8>) -> Result<(), String> {
+        self.host.websocket_send(socket, data).await
+    }
+    async fn websocket_close(&mut self, socket: u32) -> Result<(), String> {
+        self.host.websocket_close(socket).await
+    }
+    async fn next_event(&mut self, timeout_ms: u32) -> Result<Option<host_io::Event>, String> {
+        self.host.next_event(timeout_ms).await
+    }
+    async fn credential_read(&mut self) -> Result<Vec<u8>, String> {
+        self.host.credential_read().await
+    }
+    async fn credential_invalidate(&mut self) -> Result<(), String> {
+        self.host.credential_invalidate().await
+    }
+    async fn credential_replace(&mut self, data: Vec<u8>) -> Result<(), String> {
+        self.host.credential_replace(data).await
+    }
+    async fn credential_publish(&mut self, record: String, data: Vec<u8>) -> Result<(), String> {
+        self.host.credential_publish(record, data).await
+    }
+    async fn state_get(&mut self, key: String) -> Result<Option<String>, String> {
+        self.host.state_get(key).await
+    }
+    async fn state_set(&mut self, key: String, value: String) -> Result<(), String> {
+        self.host.state_set(key, value).await
     }
 }
 pub fn engine() -> AppResult<Engine> {
@@ -180,8 +283,56 @@ impl Runtime {
         // Only our WIT imports are linked: no WASI filesystem, network or process APIs.
         Plugin::add_to_linker::<_, wasmtime::component::HasSelf<State>>(&mut linker, |state| state)
             .map_err(|e| e.to_string())?;
+        host_io::Host_::add_to_linker::<_, wasmtime::component::HasSelf<State>>(
+            &mut linker,
+            |state| state,
+        )
+        .map_err(|e| e.to_string())?;
+        if host.system_capabilities() {
+            use wasmtime_wasi::p2::bindings::{clocks, io, random};
+            use wasmtime_wasi::{
+                cli::{WasiCli, WasiCliView},
+                clocks::{WasiClocks, WasiClocksView},
+                random::{WasiRandom, WasiRandomView},
+            };
+            clocks::wall_clock::add_to_linker::<State, WasiClocks>(&mut linker, State::clocks)
+                .map_err(|e| e.to_string())?;
+            clocks::monotonic_clock::add_to_linker::<State, WasiClocks>(&mut linker, State::clocks)
+                .map_err(|e| e.to_string())?;
+            random::random::add_to_linker::<State, WasiRandom>(&mut linker, State::random)
+                .map_err(|e| e.to_string())?;
+            random::insecure::add_to_linker::<State, WasiRandom>(&mut linker, State::random)
+                .map_err(|e| e.to_string())?;
+            random::insecure_seed::add_to_linker::<State, WasiRandom>(&mut linker, State::random)
+                .map_err(|e| e.to_string())?;
+            io::poll::add_to_linker::<State, PollData>(&mut linker, |s| &mut s.table)
+                .map_err(|e| e.to_string())?;
+            io::error::add_to_linker::<State, PollData>(&mut linker, |s| &mut s.table)
+                .map_err(|e| e.to_string())?;
+            io::streams::add_to_linker::<State, PollData>(&mut linker, |s| &mut s.table)
+                .map_err(|e| e.to_string())?;
+            // The engine retains stderr plumbing for timer errors. It is a sink,
+            // never inherited process stderr or arbitrary CLI/environment access.
+            wasmtime_wasi::p2::bindings::cli::stderr::add_to_linker::<State, WasiCli>(
+                &mut linker,
+                State::cli,
+            )
+            .map_err(|e| e.to_string())?;
+        }
         let limits = MemoryLimits::new(budget);
-        let mut store = Store::new(&engine, State { host, limits });
+        let mut table = wasmtime::component::ResourceTable::new();
+        table.set_max_capacity(64);
+        let mut store = Store::new(
+            &engine,
+            State {
+                host,
+                limits,
+                wasi: wasmtime_wasi::WasiCtxBuilder::new()
+                    .max_random_size(65536)
+                    .build(),
+                table,
+            },
+        );
         store.limiter(|state| &mut state.limits);
         store.set_fuel(budget.fuel).map_err(|e| e.to_string())?;
         store

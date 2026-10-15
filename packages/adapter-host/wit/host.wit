@@ -1,0 +1,32 @@
+package nons:host@1.0.0;
+
+interface transport {
+    record header { name: string, value: string }
+    record request {
+        url: string,
+        method: string,
+        headers: list<header>,
+        body: list<u8>,
+        timeout-ms: u32,
+    }
+    record response { status: u16, headers: list<header>, body: list<u8> }
+    record message { socket: u32, data: list<u8> }
+    variant event { binary(message), closed(u32) }
+    http-request: func(value: request) -> result<response, string>;
+    websocket-open: func(url: string, protocol: string, timeout-ms: u32) -> result<u32, string>;
+    websocket-send: func(socket: u32, data: list<u8>) -> result<_, string>;
+    websocket-close: func(socket: u32) -> result<_, string>;
+    next-event: func(timeout-ms: u32) -> result<option<event>, string>;
+    /// All identity and generation scope comes from the Store, never guest parameters.
+    credential-read: func() -> result<list<u8>, string>;
+    credential-invalidate: func() -> result<_, string>;
+    credential-replace: func(data: list<u8>) -> result<_, string>;
+    /// Login completion is held for AccountManager, never returned to the WebUI.
+    credential-publish: func(metadata: string, data: list<u8>) -> result<_, string>;
+    state-get: func(key: string) -> result<option<string>, string>;
+    state-set: func(key: string, value: string) -> result<_, string>;
+}
+
+world host {
+    import transport;
+}

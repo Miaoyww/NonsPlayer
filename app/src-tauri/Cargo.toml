@@ -57,6 +57,9 @@ regex = "1"
 flate2 = "1"
 hex = "0.4"
 wasmtime = { version = "=46.0.1", default-features = false, features = ["std", "runtime", "cranelift", "component-model", "async"] }
+wasmtime-wasi = { version = "=46.0.1", default-features = false, features = ["p2"] }
+tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+futures-util = { version = "0.3", features = ["sink"] }
 semver = "1"
 percent-encoding = "2"
 zip = { version = "8", default-features = false, features = ["deflate"] }

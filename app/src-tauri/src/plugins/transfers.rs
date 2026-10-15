@@ -239,6 +239,7 @@ async fn run(
         .await
         .map_err(|_| "连接资源超时")?
         .map_err(|_| "连接资源失败")?;
+        context.http.check_target(&response)?;
         if !response.status().is_success() {
             return Err("资源服务器拒绝传输或返回重定向".into());
         }
@@ -352,7 +353,7 @@ mod tests {
             .redirect(reqwest::redirect::Policy::none())
             .build()
             .unwrap();
-        (Arc::new(super::super::http::Http(client)), server)
+        (Arc::new(super::super::http::Http::for_test(client)), server)
     }
     #[test]
     fn wildcard_transfer_writes_selected_absolute_path_without_directory_grant() {
