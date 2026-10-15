@@ -2,7 +2,9 @@
 
 Rust 实现的通用密码原语，通过 `nons:crypto/primitives@1.0.0` WIT 接口提供字节输入与结果。用于构建时组合到适配器 Component 内部，不由宿主注册为密码 Host，不包含音乐平台协议、网络、账号存储或语言运行时桥。
 
-已实现 AES-128/256-GCM（12 字节 nonce、16 字节 tag，密文末尾附 tag）、AES-128/256-CBC（16 字节 IV、PKCS#7）、HKDF-SHA256、SHA256、HMAC-SHA256。使用 RustCrypto 库；不自行实现算法。nonce/IV 和安全随机数由调用方提供，不能在生产使用确定性探测数据。CBC 不提供认证，调用方必须遵守协议的完整性要求。
+已实现 AES-128/256-GCM（12 字节 nonce、16 字节 tag，密文末尾附 tag）、AES-128/256-CBC（16 字节 IV、PKCS#7）、HKDF-SHA256、SHA256、HMAC-SHA256、MD5 和 RSAES-PKCS1-v1_5 加密。使用 RustCrypto 库；不自行实现算法。nonce/IV 和安全随机数由调用方提供，不能在生产使用确定性探测数据。CBC 不提供认证，调用方必须遵守协议的完整性要求。
+
+RSA 接收 128–512 字节的公开模数、公开指数和每次重新取得的 32 字节安全随机种子，以 ChaCha20 生成填充随机数；明文上限为模数字节数减 11。MD5 与 PKCS#1 v1.5 仅用于既有协议，不作为新协议的算法选择。
 
 每次调用各输入字节长度之和限制为 64KiB；HKDF 输出长度为 1–8160 字节。限制在参数进入 Rust 后检查，WIT 搬运阶段的分配仍受整个 Store 的总线性内存限制。原语不接收 JSON；key 的 Rust 参数用 Zeroizing 包装，不能据此声称 JS 或 ABI 中的所有副本都已清零。
 

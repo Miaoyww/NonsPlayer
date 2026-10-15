@@ -15,6 +15,10 @@ cbc = { version = "0.1", features = ["alloc", "zeroize"] }
 hkdf = "0.12"
 sha2 = "0.10"
 hmac = "0.12"
+md-5 = "0.10"
+rsa = { version = "0.9.10", default-features = false, features = ["u64_digit"] }
+rand_chacha = { version = "0.3", default-features = false }
+rand_core = { version = "0.6", default-features = false }
 zeroize = { version = "1", features = ["alloc"] }
 
 [profile.release]

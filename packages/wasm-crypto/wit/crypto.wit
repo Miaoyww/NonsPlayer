@@ -10,6 +10,9 @@ interface primitives {
     hkdf-sha256: func(key: list<u8>, salt: list<u8>, info: list<u8>, length: u32) -> result<list<u8>, string>;
     sha256: func(data: list<u8>) -> result<list<u8>, string>;
     hmac-sha256: func(key: list<u8>, data: list<u8>) -> result<list<u8>, string>;
+    md5: func(data: list<u8>) -> result<list<u8>, string>;
+    /// Caller supplies 32 fresh cryptographically random bytes per encryption.
+    rsaes-pkcs1-encrypt: func(modulus: list<u8>, exponent: u32, data: list<u8>, entropy: list<u8>) -> result<list<u8>, string>;
 }
 
 world crypto {

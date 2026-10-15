@@ -81,6 +81,39 @@ fn cbc(key: Vec<u8>, iv: Vec<u8>, data: Vec<u8>, decrypt: bool) -> Bytes {
     }
 }
 impl exports::nons::crypto::primitives::Guest for Crypto {
+    fn md5(data: Vec<u8>) -> Bytes {
+        bounded(&[&data])?;
+        Ok(md5::Md5::digest(data).to_vec())
+    }
+    fn rsaes_pkcs1_encrypt(
+        modulus: Vec<u8>,
+        exponent: u32,
+        data: Vec<u8>,
+        entropy: Vec<u8>,
+    ) -> Bytes {
+        use rand_core::SeedableRng;
+        let entropy = Zeroizing::new(entropy);
+        let data = Zeroizing::new(data);
+        bounded(&[&modulus, &data, &entropy])?;
+        if !(128..=512).contains(&modulus.len())
+            || entropy.len() != 32
+            || data.len() > modulus.len().saturating_sub(11)
+        {
+            return Err("invalidRsaParameters".into());
+        }
+        let key = rsa::RsaPublicKey::new(
+            rsa::BigUint::from_bytes_be(&modulus),
+            rsa::BigUint::from(exponent),
+        )
+        .map_err(|_| "invalidKey")?;
+        let seed: [u8; 32] = entropy
+            .as_slice()
+            .try_into()
+            .map_err(|_| "invalidEntropy")?;
+        let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
+        key.encrypt(&mut rng, rsa::Pkcs1v15Encrypt, &data)
+            .map_err(|_| "cryptoFailed".into())
+    }
     fn aes_gcm_encrypt(key: Vec<u8>, nonce: Vec<u8>, data: Vec<u8>, aad: Vec<u8>) -> Bytes {
         gcm(key, nonce, data, aad, false)
     }
@@ -165,6 +198,26 @@ mod tests {
     #[test]
     fn rfc5869_case_one() {
         assert_eq!(Crypto::hkdf_sha256(vec![0x0b; 22], (0..13).collect(), (0xf0..=0xf9).collect(), 42).unwrap(), hex("3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"));
+    }
+    #[test]
+    fn md5_and_rsa_public_key_protocol_operations() {
+        use rand_core::SeedableRng;
+        use rsa::traits::PublicKeyParts;
+        assert_eq!(
+            Crypto::md5(b"abc".to_vec()).unwrap(),
+            hex("900150983cd24fb0d6963f7d28e17f72")
+        );
+        let mut rng = rand_chacha::ChaCha20Rng::from_seed([11; 32]);
+        let key = rsa::RsaPrivateKey::new(&mut rng, 1024).unwrap();
+        let data = b"public test vector".to_vec();
+        let ciphertext =
+            Crypto::rsaes_pkcs1_encrypt(key.n().to_bytes_be(), 65537, data.clone(), vec![12; 32])
+                .unwrap();
+        assert_eq!(
+            key.decrypt(rsa::Pkcs1v15Encrypt, &ciphertext).unwrap(),
+            data
+        );
+        assert!(Crypto::rsaes_pkcs1_encrypt(vec![1; 128], 65537, vec![], vec![1; 31]).is_err());
     }
     #[test]
     fn rejects_invalid_parameters_and_oversized_data() {
