@@ -18,6 +18,8 @@ import { useMusicSources } from '@/features/music/use-music-sources'
 import { AggregateQuery, type SearchSource } from './aggregate-query'
 import { MusicSearch } from './music-search'
 import { isAndroid } from '@/lib/platform'
+import { TrackAggregation } from './track-aggregation'
+import { AggregateTrackResults } from './aggregate-track-results'
 
 const categories = [
   { value: 'track', label: '单曲', icon: Music2 },
@@ -45,34 +47,39 @@ function Results({
   const player = usePlayer('index', 'queue')
   const [filter, setFilter] = useState('all')
   const [playing, setPlaying] = useState(false)
-  const query = useMemo(
-    () =>
-      new AggregateQuery<Result>(
-        sources,
-        async (source, cursor) => {
-          const response = await musicClient.query(source, {
-            operation: 'search',
-            keyword,
-            kind,
-            page: { cursor, limit: kind === 'track' ? 50 : 30 }
-          })
-          if (kind === 'track' && response.type === 'tracks')
-            return {
-              items: await musicClient.queueTracks(source, response.data.items),
-              nextCursor: response.data.nextCursor
-            }
-          if (kind !== 'track' && response.type === 'entities')
-            return {
-              items: response.data.items.map(musicCollection),
-              nextCursor: response.data.nextCursor
-            }
-          throw new Error('音乐来源返回了错误的搜索结果')
-        },
-        (item) => ('key' in item ? item.key : JSON.stringify(item.reference)),
-        errorText
-      ),
-    [sources, keyword, kind]
-  )
+  const { query, aggregation } = useMemo(() => {
+    const aggregation = new TrackAggregation(sources.map((value) => value.source))
+    const query = new AggregateQuery<Result>(
+      sources,
+      async (source, cursor) => {
+        const response = await musicClient.query(source, {
+          operation: 'search',
+          keyword,
+          kind,
+          page: { cursor, limit: kind === 'track' ? 50 : 30 }
+        })
+        if (kind === 'track' && response.type === 'tracks')
+          return {
+            items: await musicClient.queueTracks(source, response.data.items),
+            nextCursor: response.data.nextCursor
+          }
+        if (kind !== 'track' && response.type === 'entities')
+          return {
+            items: response.data.items.map(musicCollection),
+            nextCursor: response.data.nextCursor
+          }
+        throw new Error('音乐来源返回了错误的搜索结果')
+      },
+      (item) => ('key' in item ? item.key : JSON.stringify(item.reference)),
+      errorText,
+      1000,
+      kind === 'track'
+        ? (batch) =>
+            aggregation.append(batch.map(({ source, item }) => ({ source, item: item as Track })))
+        : undefined
+    )
+    return { query, aggregation }
+  }, [sources, keyword, kind])
   const state = useSyncExternalStore(query.subscribe, query.getSnapshot)
   useEffect(() => {
     query.start()
@@ -103,7 +110,7 @@ function Results({
   return (
     <>
       <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="搜索来源筛选">
-        {[{ source: 'all', name: '综合' }, ...sources].map((value) => (
+        {[{ source: 'all', name: '聚合' }, ...sources].map((value) => (
           <ActionButton
             key={value.source}
             size="sm"
@@ -151,7 +158,11 @@ function Results({
           </div>
         ))}
       </div>
-      <p className="mb-3 text-xs text-muted-foreground">来源推荐顺序</p>
+      <p className="mb-3 text-xs text-muted-foreground">
+        {kind === 'track' && filter === 'all'
+          ? `已聚合为 ${aggregation.getSnapshot().length} 首歌曲 · 来源数量仅统计已加载结果`
+          : '来源推荐顺序'}
+      </p>
       {busy && !items.length ? (
         kind === 'track' ? (
           <TrackListSkeleton sortable={false} />
@@ -160,24 +171,34 @@ function Results({
         )
       ) : items.length ? (
         kind === 'track' ? (
-          <TrackList
-            tracks={tracks}
-            hasMore={more}
-            busy={false}
-            currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
-            onPlay={(index, values) => {
-              const start = Math.max(0, index - 999)
-              void nativeCall('play_queue', {
-                keys: values.slice(start, start + 1000).map((track) => track.key),
-                index: index - start
-              }).catch(onError)
-            }}
-            onAppend={(track) =>
-              void nativeCall('append_queue', { keys: [track.key] })
-                .then(() => onNotice(`已将「${track.title}」设为下一首播放。`))
-                .catch(onError)
-            }
-          />
+          filter === 'all' ? (
+            <AggregateTrackResults
+              groups={aggregation.getSnapshot()}
+              hasMore={more}
+              currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
+              onError={onError}
+              onNotice={onNotice}
+            />
+          ) : (
+            <TrackList
+              tracks={tracks}
+              hasMore={more}
+              busy={false}
+              currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
+              onPlay={(index, values) => {
+                const start = Math.max(0, index - 999)
+                void nativeCall('play_queue', {
+                  keys: values.slice(start, start + 1000).map((track) => track.key),
+                  index: index - start
+                }).catch(onError)
+              }}
+              onAppend={(track) =>
+                void nativeCall('append_queue', { keys: [track.key] })
+                  .then(() => onNotice(`已将「${track.title}」设为下一首播放。`))
+                  .catch(onError)
+              }
+            />
+          )
         ) : (
           <div className="discover-playlist-grid">
             {(items as MusicCollection[]).map((item) => {

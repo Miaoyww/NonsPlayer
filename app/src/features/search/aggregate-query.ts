@@ -35,7 +35,8 @@ export class AggregateQuery<T> {
     private loadPage: (source: string, cursor: string | null) => Promise<SearchBatch<T>>,
     private identity: (item: T) => string,
     private describeError: (cause: unknown) => string,
-    private limit = 1000
+    private limit = 1000,
+    private onAppend?: (items: { source: string; item: T }[]) => void
   ) {
     this.progress = sources.map((value) => ({
       ...value,
@@ -92,6 +93,7 @@ export class AggregateQuery<T> {
         progress.count++
       }
       this.items = [...this.items, ...appended]
+      this.onAppend?.(appended)
       progress.cursor = batch.nextCursor
       progress.capped = progress.count >= this.limit && batch.nextCursor !== null
       progress.more = batch.nextCursor !== null && !progress.capped

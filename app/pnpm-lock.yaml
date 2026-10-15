@@ -47,6 +47,9 @@ importers:
       cn:
         specifier: ^0.4.0
         version: 0.4.0
+      fastest-levenshtein:
+        specifier: ^1.0.16
+        version: 1.0.16
       fastpriorityqueue:
         specifier: ^0.8.0
         version: 0.8.0
@@ -1264,6 +1267,10 @@ packages:
 
   fast-uri@3.1.8:
     resolution: {integrity: sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==}
+
+  fastest-levenshtein@1.0.16:
+    resolution: {integrity: sha512-eRnCtTTtGZFpQCwhJiUOuxPQWRXVKYDn0b2PeHfXL6/Zi53SLAzAHfVhVWK2AryC/WH05kGfxhFIPvTF0SXQzg==}
+    engines: {node: '>= 4.9.1'}
 
   fastpriorityqueue@0.8.0:
     resolution: {integrity: sha512-Nli86GbwvbI15pK0wQJSfrh+kMDQI9tae1QFO1HHgUdABL+WK/5rsFv0m/NfwHQmxTPRDhJTgHKRwfstJMxoSA==}
@@ -3601,6 +3608,8 @@ snapshots:
       micromatch: 4.0.8
 
   fast-uri@3.1.8: {}
+
+  fastest-levenshtein@1.0.16: {}
 
   fastpriorityqueue@0.8.0: {}
 

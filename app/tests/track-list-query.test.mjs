@@ -588,3 +588,23 @@ test('track sources have a dedicated column and never appear in the artist text'
       assert.equal(row.querySelector('.track-identity-artist .track-source'), null)
   })
 })
+
+test('aggregate row identity, member playback state and source button survive a representative replacement', async () => {
+  await harness(async ({ render, tracks, plays }) => {
+    const props = {
+      tracks: [tracks[0]],
+      getRowKey: () => 'stable-group',
+      isCurrentTrack: () => true,
+      renderSource: () => React.createElement('button', { 'aria-haspopup': 'dialog' }, '来源 ②')
+    }
+    await render(props)
+    const row = document.querySelector('tbody tr[data-index]')
+    assert.equal(row.getAttribute('aria-current'), 'true')
+    assert.ok(row.querySelector('[aria-label="当前曲目"]'))
+    await act(async () => row.querySelector('[aria-haspopup="dialog"]').click())
+    assert.equal(plays.length, 0)
+    await render({ ...props, tracks: [{ ...tracks[0], key: 'new-source:song' }] })
+    assert.equal(document.querySelector('tbody tr[data-index]'), row)
+    assert.equal(row.getAttribute('aria-current'), 'true')
+  })
+})

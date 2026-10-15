@@ -89,6 +89,10 @@ interface Props {
   searchable?: boolean
   hasMore?: boolean
   showDuration?: boolean
+  renderSource?: (track: Track) => ReactNode
+  getRowKey?: (track: Track) => string
+  isCurrentTrack?: (track: Track) => boolean
+  fitContainer?: boolean
 }
 
 export const TrackList = memo(function TrackList({
@@ -109,7 +113,11 @@ export const TrackList = memo(function TrackList({
   sortable = false,
   searchable = false,
   hasMore = false,
-  showDuration: durationColumn = true
+  showDuration: durationColumn = true,
+  renderSource,
+  getRowKey,
+  isCurrentTrack,
+  fitContainer = false
 }: Props) {
   const mobile = isAndroid()
   const showDuration = !mobile && durationColumn
@@ -156,9 +164,10 @@ export const TrackList = memo(function TrackList({
     const occurrences = new Map<string, number>()
     const result = tracks
       .map((track, index) => {
-        const occurrence = occurrences.get(track.key) ?? 0
-        occurrences.set(track.key, occurrence + 1)
-        return { track, index, rowKey: `${track.key}:${occurrence}` }
+        const identity = getRowKey?.(track) ?? track.key
+        const occurrence = occurrences.get(identity) ?? 0
+        occurrences.set(identity, occurrence + 1)
+        return { track, index, rowKey: `${identity}:${occurrence}` }
       })
       .filter(
         ({ track }) =>
@@ -182,7 +191,7 @@ export const TrackList = memo(function TrackList({
       })
     }
     return result
-  }, [tracks, searchQuery, searchable, externalQuery, sortable, sort, descending])
+  }, [tracks, searchQuery, searchable, externalQuery, sortable, sort, descending, getRowKey])
   const visibleTracks = useMemo(() => entries.map(({ track }) => track), [entries])
   const [cardMode] = useInterfaceDensity()
   const { getAccount, likesError, reloadLikes } = useAccount()
@@ -351,7 +360,7 @@ export const TrackList = memo(function TrackList({
           data-mode={cardMode}
           data-mobile={mobile}
           aria-busy={loading}
-          style={{ minWidth: mobile ? undefined : columnSizing.total }}
+          style={{ minWidth: mobile || fitContainer ? undefined : columnSizing.total }}
         >
           <colgroup>
             {columnSizing.columns.map((column) => (
@@ -532,6 +541,11 @@ export const TrackList = memo(function TrackList({
                 const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } =
                   account
                 const favorite = favoriteId(track, profile?.reference)
+                const current = isCurrentTrack
+                  ? isCurrentTrack(track)
+                  : currentIndex === undefined
+                    ? track.key === currentKey
+                    : index === currentIndex
                 return (
                   <SongContextMenu
                     key={rowKey}
@@ -562,34 +576,14 @@ export const TrackList = memo(function TrackList({
                           } else if (event.key === 'Escape') setSelectedKey(undefined)
                         }}
                         className="track-row group"
-                        data-current={
-                          currentIndex === undefined
-                            ? track.key === currentKey
-                            : index === currentIndex
-                        }
-                        aria-current={
-                          (
-                            currentIndex === undefined
-                              ? track.key === currentKey
-                              : index === currentIndex
-                          )
-                            ? 'true'
-                            : undefined
-                        }
+                        data-current={current}
+                        aria-current={current ? 'true' : undefined}
                       />
                     }
                   >
                     {!mobile && (
                       <td className="text-center tabular-nums text-muted-foreground">
-                        {(
-                          currentIndex === undefined
-                            ? track.key === currentKey
-                            : index === currentIndex
-                        ) ? (
-                          <PlayingIndicator />
-                        ) : (
-                          offset + row.index + 1
-                        )}
+                        {current ? <PlayingIndicator /> : offset + row.index + 1}
                       </td>
                     )}
                     <td className="track-identity-cell pr-4">
@@ -631,7 +625,7 @@ export const TrackList = memo(function TrackList({
                       </td>
                     )}
                     <td className="pr-3">
-                      <TrackSourceLabel track={track} />
+                      {renderSource ? renderSource(track) : <TrackSourceLabel track={track} />}
                     </td>
                     {showLikes && (
                       <td>
