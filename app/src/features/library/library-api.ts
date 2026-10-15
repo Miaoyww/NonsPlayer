@@ -49,8 +49,10 @@ function selectAccount(userId: string) {
   if (!account || account.id !== userId) throw new Error('账号上下文已变化')
   return account
 }
-export function peekMusicLibrary(userId: string) {
-  return peekLibraryPreview(JSON.stringify(selectAccount(userId)))?.summary
+export function peekMusicLibrary(userId: string, source?: string) {
+  if (!account || account.id !== userId || (source !== undefined && account.source !== source))
+    return undefined
+  return peekLibraryPreview(JSON.stringify(account))?.summary
 }
 export async function getMusicLibrary(userId: string): Promise<LibrarySummary> {
   const owner = selectAccount(userId)
@@ -68,8 +70,10 @@ export async function getMusicLibrary(userId: string): Promise<LibrarySummary> {
     saveLibraryPreview(JSON.stringify(owner), { summary: value })
   return value
 }
-export function peekLibraryCollections(userId: string) {
-  return peekLibraryPreview(JSON.stringify(selectAccount(userId)))?.collections
+export function peekLibraryCollections(userId: string, source?: string) {
+  if (!account || account.id !== userId || (source !== undefined && account.source !== source))
+    return undefined
+  return peekLibraryPreview(JSON.stringify(account))?.collections
 }
 export function getLibraryCollections(
   kind: LibraryTab,

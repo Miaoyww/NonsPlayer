@@ -125,9 +125,13 @@ export default function MusicLibrary({
   const player = usePlayer('index', 'queue')
   const currentKey = player.index !== null ? player.queue[player.index]?.key : undefined
   const [summaryState, setSummary] = useState<LibrarySummary | undefined>(() =>
-    profile ? peekMusicLibrary(profile.userId) : undefined
+    profile ? peekMusicLibrary(profile.userId, profile.reference?.source) : undefined
   )
-  const summary = summaryState?.profile.userId === profile?.userId ? summaryState : undefined
+  const summary =
+    summaryState?.profile.userId === profile?.userId &&
+    summaryState?.profile.reference?.source === profile?.reference?.source
+      ? summaryState
+      : undefined
   const [summaryBusy, setSummaryBusy] = useState(false)
   const [summaryError, setSummaryError] = useState<string>()
   const [tab, setTab] = useState<LibraryTab>('playlist')
@@ -148,7 +152,7 @@ export default function MusicLibrary({
       return
     }
     if (showingDetail) return
-    const cached = peekMusicLibrary(profile.userId)
+    const cached = peekMusicLibrary(profile.userId, profile.reference?.source)
     const current = cached ?? (summary?.profile.userId === profile.userId ? summary : undefined)
     setSummary(current)
     setSummaryBusy(!current)
@@ -193,7 +197,7 @@ export default function MusicLibrary({
     filter === 'all' &&
     !list.items.length &&
     (list.busy || list.error)
-      ? peekLibraryCollections(profile.userId)
+      ? peekLibraryCollections(profile.userId, profile.reference?.source)
       : undefined
   const collections = {
     items: (preview?.items ?? list.items) as MusicCollection[],
