@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode
@@ -32,7 +33,7 @@ export const accountProfile = (record: AccountRecord): AccountProfile => ({
   nickname: record.displayName,
   avatarUrl: record.avatar
 })
-const AccountContext = createContext<{
+interface AccountState {
   profile: AccountProfile | null
   loading: boolean
   error?: string
@@ -45,11 +46,34 @@ const AccountContext = createContext<{
   pendingLikes: ReadonlySet<string>
   reloadLikes: () => void
   toggleLike: (id: string) => Promise<void>
-} | null>(null)
+}
+const AccountContext = createContext<ReadonlyMap<string, AccountState>>(new Map())
 
 export function AccountProvider({ children }: { children: ReactNode }) {
-  const { preferences, statuses } = useMusicSources()
-  const source = preferences?.current
+  const { statuses } = useMusicSources()
+  const sources = [...new Set(statuses.map((item) => item.descriptor.source))].sort()
+  return sources.reduceRight<ReactNode>(
+    (content, source) => (
+      <SourceAccountProvider key={source} source={source}>
+        {content}
+      </SourceAccountProvider>
+    ),
+    <AccountLibraryBridge>{children}</AccountLibraryBridge>
+  )
+}
+
+function AccountLibraryBridge({ children }: { children: ReactNode }) {
+  const { profile } = useAccount()
+  useLayoutEffect(() => {
+    resetAccountCache()
+    setLibraryAccount(profile?.reference ?? null)
+  }, [profile])
+  return children
+}
+
+function SourceAccountProvider({ children, source }: { children: ReactNode; source: string }) {
+  const parent = useContext(AccountContext)
+  const { statuses } = useMusicSources()
   const descriptor = statuses.find(
     (value) => value.descriptor.source === source && value.enabled
   )?.descriptor
@@ -74,10 +98,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     likesGeneration = useRef(0),
     pending = useRef(new Set<string>())
   const setProfile = useCallback((value: AccountProfile | null) => {
-    resetAccountCache()
+    invalidateNativeCache(undefined, 'context')
     generation.current++
     likesGeneration.current++
-    setLibraryAccount(value?.reference ?? null)
     updateProfile(value)
     setLikesReady(false)
     setLikedIds(new Set())
@@ -87,24 +110,21 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let disposed = false
     const serial = ++generation.current
-    resetAccountCache()
-    setLibraryAccount(null)
+    invalidateNativeCache(undefined, 'context')
     updateProfile(null)
     setLoading(Boolean(source && isTauri()))
     setError(undefined)
-    if (source && descriptor && isTauri())
+    if (source && descriptor?.capabilities.includes('account') && isTauri())
       void (async () => {
         const saved = await musicClient.currentAccount(source)
         if (disposed || serial !== generation.current) return
         const snapshot = saved ? accountProfile(saved) : null
-        setLibraryAccount(snapshot?.reference ?? null)
         updateProfile(snapshot)
         setLoading(false)
         const result = await musicClient.account(source, { operation: 'profile' })
         if (disposed || serial !== generation.current) return
         if (result.type !== 'profile') throw new Error('账号资料响应无效')
         const current = result.data ? accountProfile(result.data) : null
-        setLibraryAccount(current?.reference ?? null)
         updateProfile(current)
       })()
         .catch((cause) => {
@@ -259,27 +279,49 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   }
   return (
     <AccountContext.Provider
-      value={{
-        profile,
-        loading,
-        error,
-        setProfile,
-        likedIds,
-        likesReady,
-        canToggleLike,
-        likesError,
-        likesRevision,
-        pendingLikes,
-        reloadLikes,
-        toggleLike
-      }}
+      value={
+        new Map([
+          ...parent,
+          [
+            source,
+            {
+              profile,
+              loading,
+              error,
+              setProfile,
+              likedIds,
+              likesReady,
+              canToggleLike,
+              likesError,
+              likesRevision,
+              pendingLikes,
+              reloadLikes,
+              toggleLike
+            }
+          ]
+        ])
+      }
     >
       {children}
     </AccountContext.Provider>
   )
 }
-export function useAccount() {
-  const value = useContext(AccountContext)
-  if (!value) throw new Error('AccountProvider is required')
-  return value
+const unavailableAccount: AccountState = {
+  profile: null,
+  loading: false,
+  setProfile() {},
+  likedIds: new Set(),
+  likesReady: false,
+  canToggleLike: false,
+  likesRevision: 0,
+  pendingLikes: new Set(),
+  reloadLikes() {},
+  async toggleLike() {}
+}
+
+export function useAccount(source?: string) {
+  const accounts = useContext(AccountContext)
+  const { preferences } = useMusicSources()
+  const getAccount = (target: string) => accounts.get(target) ?? unavailableAccount
+  return { ...getAccount(source ?? preferences?.current ?? ''), getAccount }
 }

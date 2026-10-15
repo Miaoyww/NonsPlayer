@@ -14,7 +14,9 @@ export function CurrentTrackLike({
   onError: (error: unknown) => void
   showLabel?: boolean
 }) {
-  const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } = useAccount()
+  const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } = useAccount(
+    track?.source.kind === 'online' ? track.source.track.reference.source : undefined
+  )
   const songId = track ? favoriteId(track, profile?.reference) : undefined
   const liked = songId !== undefined && likedIds.has(songId)
   const likePending = songId !== undefined && pendingLikes.has(songId)
@@ -38,13 +40,13 @@ export function CurrentTrackLike({
         !track
           ? '选择一首音乐后收藏'
           : songId === undefined
-            ? '当前来源账号不支持收藏这首歌曲'
+            ? '歌曲所属平台账号不支持收藏这首歌曲'
             : !profile
               ? '登录后收藏歌曲'
               : !likesReady
                 ? '正在读取收藏状态'
                 : canToggleLike === false
-                  ? '收藏状态（当前来源仅支持读取）'
+                  ? '收藏状态（此来源仅支持读取）'
                   : liked
                     ? '取消收藏'
                     : '收藏'

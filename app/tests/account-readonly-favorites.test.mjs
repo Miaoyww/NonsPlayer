@@ -247,3 +247,110 @@ test('closing an error dismisses all current origins and still allows a later ne
     await render()
     assert.match(document.body.textContent, /状态已变化/)
   }))
+
+test('page source selection preserves every platform account and routes favorites to the song source', async () => {
+  await withDom(async (root, dom) => {
+    let current = 'netease'
+    const writes = [],
+      reads = [],
+      listeners = new Map()
+    let accounts
+    const modules = {
+      react: React,
+      'react/jsx-runtime': jsx,
+      '@tauri-apps/api/core': { isTauri: () => true },
+      '@tauri-apps/api/event': {
+        listen: async (event, callback) => {
+          const handlers = listeners.get(event) ?? new Set()
+          handlers.add(callback)
+          listeners.set(event, handlers)
+          return () => handlers.delete(callback)
+        }
+      },
+      '@/lib/player': { errorText: String },
+      '@/lib/runtime-cache': { invalidateNativeCache() {} },
+      '@/features/library/library-api': {
+        invalidateMusicLibrary() {},
+        resetAccountCache() {},
+        setLibraryAccount() {}
+      },
+      '@/features/music/use-music-sources': {
+        useMusicSources: () => ({
+          preferences: { current },
+          statuses: ['netease', 'qqmusic'].map((source) => ({
+            enabled: true,
+            descriptor: { source, capabilities: ['account', 'favorites'] }
+          }))
+        })
+      },
+      '@/features/music/client': {
+        musicClient: {
+          currentAccount: async (source) => {
+            reads.push(source)
+            return { reference: { source, id: 'same-id' }, displayName: source }
+          },
+          account: async (source) => ({
+            type: 'profile',
+            data: { reference: { source, id: 'same-id' }, displayName: source }
+          }),
+          query: async (source) => ({
+            type: 'favorites',
+            data: source === 'qqmusic' ? [{ source, kind: 'track', id: 'song' }] : []
+          }),
+          write: async (source, request) => writes.push({ source, request })
+        }
+      }
+    }
+    const account = load('../src/features/account/account-state.tsx', modules)
+    modules['@/features/account/account'] = account
+    modules['@/features/music/legacy-reference'] = musicReference
+    modules['lucide-react'] = { Heart: () => null }
+    modules['@/components/ui/button'] = {
+      Button: ({ variant, size, children, ...props }) =>
+        React.createElement('button', props, children)
+    }
+    const { CurrentTrackLike } = load('../src/features/playback/current-track-like.tsx', modules)
+    function View() {
+      accounts = account.useAccount()
+      return React.createElement(CurrentTrackLike, {
+        track: {
+          source: {
+            kind: 'online',
+            track: { reference: { source: 'netease', kind: 'track', id: 'song' } }
+          }
+        },
+        onError: (error) => {
+          throw error
+        }
+      })
+    }
+    const render = () =>
+      act(async () =>
+        root.render(React.createElement(account.AccountProvider, {}, React.createElement(View)))
+      )
+    await render()
+    const click = () =>
+      act(async () =>
+        document
+          .querySelector('button')
+          .dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
+      )
+    assert.equal(document.querySelector('button').disabled, false)
+    current = 'qqmusic'
+    await render()
+    assert.equal(accounts.profile.reference.source, 'qqmusic')
+    assert.equal(document.querySelector('button').disabled, false)
+    assert.equal(document.querySelector('button').getAttribute('aria-pressed'), 'false')
+    await click()
+    assert.equal(writes[0].source, 'netease')
+    assert.equal(writes[0].request.track.source, 'netease')
+    assert.equal(writes[0].request.liked, true)
+    current = 'netease'
+    await render()
+    assert.equal(document.querySelector('button').getAttribute('aria-pressed'), 'true')
+    assert.deepEqual(reads.sort(), ['netease', 'qqmusic'])
+    await act(async () => accounts.getAccount('netease').setProfile(null))
+    assert.equal(accounts.getAccount('qqmusic').profile.reference.source, 'qqmusic')
+    assert.equal(document.querySelector('button').disabled, true)
+  })
+})

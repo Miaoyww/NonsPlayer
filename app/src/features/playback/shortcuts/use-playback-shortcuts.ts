@@ -12,8 +12,11 @@ import {
 } from '@/features/playback/shortcuts/shortcuts'
 
 export function usePlaybackShortcuts(onError: (cause: unknown) => void) {
-  const state = usePlayer('index')
-  const account = useAccount()
+  const state = usePlayer('index', 'queue')
+  const track = state.index === null ? undefined : state.queue[state.index]
+  const account = useAccount(
+    track?.source.kind === 'online' ? track.source.track.reference.source : undefined
+  )
   const action = useRef<(action: ShortcutAction) => void>(() => {})
   const [resumedShortcut, setResumedShortcut] = useState<ShortcutAction>()
   action.current = (name) => {

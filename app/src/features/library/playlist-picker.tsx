@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Search } from 'lucide-react'
 import { errorText, type Track } from '@/lib/player'
-import { getLibraryCollections } from '@/features/library/library-api'
+import { musicCollection } from '@/features/music/entities'
 import { Dialog, DialogDescription, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useAccount } from '@/features/account/account'
 import { useCollectionActions } from '@/features/library/collection-actions'
@@ -23,7 +23,7 @@ export function PlaylistPicker({
   onClose: () => void
   onNotice: (text: string) => void
 }) {
-  const { profile, reloadLikes } = useAccount()
+  const { profile, reloadLikes } = useAccount(track ? onlineReference(track)?.source : undefined)
   const { changed } = useCollectionActions()
   const [items, setItems] = useState<MusicCollection[]>([])
   const [query, setQuery] = useState('')
@@ -50,8 +50,23 @@ export function PlaylistPicker({
     if (track && profile)
       void (async () => {
         const all = new Map<number | string, MusicCollection>()
+        let cursor: string | null = null
+        const seen = new Set<string>()
         for (let offset = 0; offset <= 100000; offset += 30) {
-          const page = await getLibraryCollections('playlist', offset, 'mine')
+          const result = await musicClient.query(profile.reference.source, {
+            operation: 'libraryCollections',
+            kind: 'playlist',
+            filter: 'created',
+            page: { cursor, limit: 30 }
+          })
+          if (result.type !== 'entities') throw new Error('歌单列表响应无效')
+          const page = {
+            items: result.data.items.map(musicCollection),
+            more: result.data.nextCursor !== null
+          }
+          cursor = result.data.nextCursor
+          if (cursor && seen.has(cursor)) throw new Error('歌单返回重复游标')
+          if (cursor) seen.add(cursor)
           if (disposed) return
           page.items
             .filter((item) => item.creatorId === profile.userId)
@@ -142,6 +157,7 @@ export function PlaylistPicker({
             </label>
             <CreatePlaylist
               iconOnly
+              source={profile?.reference.source}
               disabled={saving}
               onCreated={() => {
                 setRevision((v) => v + 1)

@@ -26,7 +26,7 @@ function harness(snapshot = null) {
   let cursor = 0
   const react = {
     createContext: () => ({ Provider: 'provider' }),
-    useContext() {},
+    useContext: () => new Map(),
     useState(initial) {
       const index = cursor++
       if (!(index in slots)) slots[index] = initial
@@ -121,7 +121,8 @@ function harness(snapshot = null) {
   runInNewContext(outputText, { exports, require: (name) => modules[name] })
   function render() {
     cursor = 0
-    const value = exports.AccountProvider({ children: null }).props.value
+    const tree = exports.AccountProvider({ children: null })
+    const value = tree.type(tree.props).props.value.get('netease')
     effects.splice(0).forEach((fn) => fn())
     return value
   }

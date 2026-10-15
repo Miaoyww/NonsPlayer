@@ -353,7 +353,9 @@ export function SongContextMenu({
   onLocate?: () => void
 }) {
   const actions = useSongActions()
-  const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } = useAccount()
+  const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } = useAccount(
+    onlineReference(track)?.source
+  )
   const { statuses } = useMusicSources()
   const reference = onlineReference(track)
   const canCollect =

@@ -98,7 +98,7 @@ async function harness(run, android = false) {
       }
     },
     '@/features/account/account': {
-      useAccount: () => ({ likedIds: new Set(), pendingLikes: new Set() })
+      useAccount: () => ({ getAccount: () => ({ likedIds: new Set(), pendingLikes: new Set() }) })
     },
     '@/features/music/source-label': {
       sourceLabel: (source) => (source === 'netease' ? '网易云音乐' : source),

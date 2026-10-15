@@ -185,16 +185,7 @@ export const TrackList = memo(function TrackList({
   }, [tracks, searchQuery, searchable, externalQuery, sortable, sort, descending])
   const visibleTracks = useMemo(() => entries.map(({ track }) => track), [entries])
   const [cardMode] = useInterfaceDensity()
-  const {
-    profile,
-    likedIds,
-    likesReady,
-    likesError,
-    pendingLikes,
-    reloadLikes,
-    toggleLike,
-    canToggleLike
-  } = useAccount()
+  const { getAccount, likesError, reloadLikes } = useAccount()
   const [likeError, setLikeError] = useState<string>()
   const body = useRef<HTMLTableSectionElement>(null)
   const [scrollMargin, setScrollMargin] = useState(0)
@@ -276,8 +267,7 @@ export const TrackList = memo(function TrackList({
     }
   }, [findTarget])
   const showLikes =
-    !mobile &&
-    (likesColumn ?? tracks.some((track) => favoriteId(track, profile?.reference) !== undefined))
+    !mobile && (likesColumn ?? tracks.some((track) => track.source.kind === 'online'))
   const sizingSpecs = useMemo(
     () => [
       ...(!mobile ? [{ id: 'index', label: '序号', size: 48, minSize: 36 }] : []),
@@ -531,6 +521,11 @@ export const TrackList = memo(function TrackList({
             {!loading &&
               rows.map((row) => {
                 const { index, track, rowKey } = entries[row.index]
+                const account = getAccount(
+                  track.source.kind === 'online' ? track.source.track.reference.source : ''
+                )
+                const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } =
+                  account
                 const favorite = favoriteId(track, profile?.reference)
                 return (
                   <SongContextMenu
@@ -652,7 +647,7 @@ export const TrackList = memo(function TrackList({
                               !profile
                                 ? '登录后收藏歌曲'
                                 : canToggleLike === false
-                                  ? '收藏状态（当前来源仅支持读取）'
+                                  ? '收藏状态（此来源仅支持读取）'
                                   : '喜欢 / 取消喜欢'
                             }
                             onClick={() => {

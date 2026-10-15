@@ -15,10 +15,12 @@ import { Button as ActionButton } from '@/components/ui/button'
 
 export function CreatePlaylist({
   onCreated,
+  source,
   iconOnly = false,
   disabled = false
 }: {
   onCreated: () => void
+  source?: string
   iconOnly?: boolean
   disabled?: boolean
 }) {
@@ -33,7 +35,7 @@ export function CreatePlaylist({
     setBusy(true)
     setError(undefined)
     try {
-      await musicClient.write(await currentSource(), {
+      await musicClient.write(source ?? (await currentSource()), {
         operation: 'createPlaylist',
         name: name.trim(),
         private: privatePlaylist
