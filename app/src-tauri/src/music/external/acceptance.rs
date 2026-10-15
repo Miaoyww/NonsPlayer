@@ -110,6 +110,7 @@ async fn qq_component_live_search_and_optional_login() {
         serde_json::from_value(manifest["descriptor"].clone()).unwrap();
     let source = descriptor.source.clone();
     let directory = tempfile::tempdir().unwrap();
+    runtime::configure_compilation_cache(&directory.path().join("cache"));
     let store = Arc::new(
         crate::storage::Store::open(&directory.path().join("acceptance.sqlite3")).unwrap(),
     );
@@ -130,14 +131,27 @@ async fn qq_component_live_search_and_optional_login() {
     );
     let started = Instant::now();
     let adapter = Arc::new(
-        ExternalAdapter::load_with_host(&package.join("dist/adapter.component.wasm"), services)
-            .await
-            .unwrap(),
+        ExternalAdapter::load_with_host(
+            &package.join("dist/adapter.component.wasm"),
+            services.clone(),
+        )
+        .await
+        .unwrap(),
     );
     eprintln!(
         "Component load: {:.1} ms",
         started.elapsed().as_secs_f64() * 1000.0
     );
+    let started = Instant::now();
+    let warm =
+        ExternalAdapter::load_with_host(&package.join("dist/adapter.component.wasm"), services)
+            .await
+            .unwrap();
+    eprintln!(
+        "Component cached load: {:.1} ms",
+        started.elapsed().as_secs_f64() * 1000.0
+    );
+    drop(warm);
     let current = accounts.clone();
     let current_source = source.clone();
     manager

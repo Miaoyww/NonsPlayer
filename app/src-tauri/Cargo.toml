@@ -58,8 +58,9 @@ base64 = "0.22"
 regex = "1"
 flate2 = "1"
 hex = "0.4"
-wasmtime = { version = "=46.0.1", default-features = false, features = ["std", "runtime", "cranelift", "component-model", "async"] }
+wasmtime = { version = "=46.0.1", default-features = false, features = ["std", "runtime", "cranelift", "component-model", "async", "cache", "parallel-compilation"] }
 wasmtime-wasi = { version = "=46.0.1", default-features = false, features = ["p2"] }
+rayon = "1.11"
 tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
 futures-util = { version = "0.3", features = ["sink"] }
 semver = "1"
@@ -102,6 +103,20 @@ debug = "line-tables-only"
 
 [profile.dev.package."*"]
 debug = false
+
+# Keep host debugging while optimizing the compiler that runs during WASM loading.
+[profile.dev.package.wasmtime]
+opt-level = 2
+[profile.dev.package.wasmtime-internal-cranelift]
+opt-level = 2
+[profile.dev.package.wasmtime-environ]
+opt-level = 2
+[profile.dev.package.cranelift-codegen]
+opt-level = 2
+[profile.dev.package.regalloc2]
+opt-level = 2
+[profile.dev.package.wasmparser]
+opt-level = 2
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

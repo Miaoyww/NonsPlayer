@@ -81,14 +81,18 @@ impl ExternalAdapter {
         let permit = COMPILATIONS
             .try_acquire()
             .map_err(|_| ErrorCode::RateLimited)?;
+        let engine_started = std::time::Instant::now();
         let engine = runtime::engine_with_budget(runtime::Budget::ADAPTER).map_err(|error| {
             log::error!(target: "nons::adapter", "runtime_failure reason={error}");
             ErrorCode::Internal
         })?;
+        log::info!(target: "nons::adapter", "source={} stage=create_engine elapsed_ms={}", expected.source.as_str(), engine_started.elapsed().as_millis());
         let compile_engine = engine.clone();
         let path = path.to_owned();
+        let compile_source = expected.source.clone();
         let component = tauri::async_runtime::spawn_blocking(move || {
             let _permit = permit;
+            let read_started = std::time::Instant::now();
             let mut bytes = Vec::new();
             std::fs::File::open(path)
                 .map_err(|_| ErrorCode::InvalidData)?
@@ -98,7 +102,11 @@ impl ExternalAdapter {
             if bytes.len() > runtime::Budget::ADAPTER.component_bytes {
                 return Err(ErrorCode::InvalidData);
             }
-            Component::new(&compile_engine, bytes).map_err(|error| {
+            log::info!(target: "nons::adapter", "source={} stage=read_component bytes={} elapsed_ms={}", compile_source.as_str(), bytes.len(), read_started.elapsed().as_millis());
+            runtime::compile_component(&compile_engine, &bytes).map(|compiled| {
+                log::info!(target: "nons::adapter", "source={} stage=compile_component cache={} elapsed_ms={}", compile_source.as_str(), compiled.cache, compiled.elapsed.as_millis());
+                compiled.component
+            }).map_err(|error| {
                 log::error!(target: "nons::adapter", "stage=compile_component reason={error:#}");
                 ErrorCode::InvalidData
             })
@@ -114,10 +122,12 @@ impl ExternalAdapter {
             services,
             sessions: Arc::new(sessions::Sessions::default()),
         };
+        let initialize_started = std::time::Instant::now();
         let actual: SourceDescriptor = adapter
             .invoke("music.descriptor", "null", false, None)
             .await?;
         actual.validate()?;
+        log::info!(target: "nons::adapter", "source={} stage=initialize elapsed_ms={}", adapter.descriptor.source.as_str(), initialize_started.elapsed().as_millis());
         if serde_json::to_value(actual).map_err(|_| ErrorCode::InvalidData)?
             != serde_json::to_value(&adapter.descriptor).map_err(|_| ErrorCode::InvalidData)?
         {

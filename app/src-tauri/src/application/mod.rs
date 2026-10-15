@@ -743,6 +743,7 @@ pub fn run() {
                 log::logger().flush();
             }));
             std::fs::create_dir_all(&cache_directory)?;
+            crate::wasm_runtime::configure_compilation_cache(&cache_directory);
             audio_runtime::configure(&cache_directory)?;
             let covers = cache_directory.join("covers");
             std::fs::create_dir_all(&covers)?;

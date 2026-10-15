@@ -4,6 +4,9 @@ use wasmtime::{
     component::{Component, Linker},
     Config, Engine, ResourceLimiter, Store, StoreLimits, StoreLimitsBuilder,
 };
+mod compilation;
+pub(crate) use compilation::compile as compile_component;
+pub(crate) use compilation::configure_cache as configure_compilation_cache;
 
 wasmtime::component::bindgen!({
     path: "../../plugins/wit",
@@ -235,6 +238,7 @@ pub(crate) fn engine_with_budget(budget: Budget) -> AppResult<Engine> {
         .wasm_component_model(true)
         .consume_fuel(budget.fuel.is_some())
         .epoch_interruption(true);
+    compilation::configure_engine(&mut config);
     let engine = Engine::new(&config).map_err(|e| e.to_string())?;
     if budget.fuel.is_none() {
         // Weak ownership lets the timer exit after the last runtime/adapter is dropped.
@@ -281,12 +285,14 @@ impl Runtime {
             return Err("WASM 入口过大".into());
         }
         let compile_engine = engine.clone();
-        let component =
-            tauri::async_runtime::spawn_blocking(move || Component::new(&compile_engine, bytes))
-                .await
-                .map_err(|e| e.to_string())?
-                .map_err(|e| format!("无效 WASM Component: {e}"))?;
-        Self::from_component_with_budget(engine, &component, host, budget).await
+        let compiled = tauri::async_runtime::spawn_blocking(move || {
+            compile_component(&compile_engine, &bytes)
+        })
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| format!("无效 WASM Component: {e}"))?;
+        log::info!(target: "nons::wasm", "stage=compile_component cache={} elapsed_ms={}", compiled.cache, compiled.elapsed.as_millis());
+        Self::from_component_with_budget(engine, &compiled.component, host, budget).await
     }
     /// Shared execution machinery; the caller supplies its own capability boundary.
     pub(crate) async fn from_component_with_budget(
