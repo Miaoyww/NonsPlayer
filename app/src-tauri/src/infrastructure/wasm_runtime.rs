@@ -92,7 +92,7 @@ impl Budget {
         component_bytes: 32 * 1024 * 1024,
         memory_bytes: 256 * 1024 * 1024,
         memories: 4,
-        fuel: 100_000_000,
+        fuel: 200_000_000,
         deadline: Duration::from_secs(15),
     };
 }
