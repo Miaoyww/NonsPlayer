@@ -1,4 +1,6 @@
 import { FindSongGrid } from '@/components/music/list-find'
+import { onlineReference, collectionReference } from '@/features/music/legacy-reference'
+import { musicClient } from '@/features/music/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   TrackListSkeleton,
@@ -246,8 +248,15 @@ export default function MusicLibrary({
       .catch(onError)
   }
   async function removeFromPlaylist(item: MusicCollection, track: Track) {
-    if (track.source.kind !== 'netease') return
-    await nativeCall('remove_playlist_song', { playlistId: item.id, songId: track.source.id })
+    const reference = onlineReference(track),
+      playlist = collectionReference(item)
+    if (!reference || reference.source !== playlist.source) return
+    await musicClient.write(playlist.source, {
+      operation: 'playlistTrack',
+      playlist,
+      track: reference,
+      add: false
+    })
     reloadLikes()
     setRefresh((value) => value + 1)
   }
@@ -289,7 +298,7 @@ export default function MusicLibrary({
             {!profile ? (
               <div className="library-empty">
                 <p>登录网易云音乐后查看这个收藏。</p>
-                <ActionButton variant="secondary" onClick={() => navigate('accounts', 'netease')}>
+                <ActionButton variant="secondary" onClick={() => navigate('accounts')}>
                   登录账号
                 </ActionButton>
               </div>
@@ -408,7 +417,7 @@ export default function MusicLibrary({
               {!profile && !accountLoading ? (
                 <div className="library-empty">
                   <p>登录网易云音乐，找回你喜欢的旋律。</p>
-                  <ActionButton variant="secondary" onClick={() => navigate('accounts', 'netease')}>
+                  <ActionButton variant="secondary" onClick={() => navigate('accounts')}>
                     登录账号
                   </ActionButton>
                 </div>

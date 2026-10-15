@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -138,7 +139,7 @@ function playbackHarness() {
     volume: 0.98
   }
   const account = {
-    profile: {},
+    profile: { reference: { source: 'netease', id: '1' } },
     likesReady: true,
     likedIds: new Set(),
     toggleLike: async (id) => {
@@ -147,6 +148,16 @@ function playbackHarness() {
   }
   const exports = {}
   const modules = {
+    '@/features/music/use-music-sources': {
+      useMusicSources: () => ({
+        statuses: [
+          {
+            enabled: true,
+            descriptor: { source: 'netease', capabilities: ['playlistWrite', 'favorites'] }
+          }
+        ]
+      })
+    },
     react: {
       useRef: (value) => (refs[cursor++] ??= { current: value }),
       useState: (value) => {
@@ -190,7 +201,8 @@ function playbackHarness() {
     ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText,
     {
       exports,
-      require: (name) => modules[name],
+      require: (name) =>
+        name === '@/features/music/legacy-reference' ? musicReference : modules[name],
       window: app.window
     }
   )
@@ -228,10 +240,10 @@ test('all six playback actions reuse playback commands, clamp volume and favorit
       ['player_volume', 1]
     ]
   )
-  assert.deepEqual(app.likes, [7])
-  app.account.likedIds.add(7)
+  assert.deepEqual(app.likes, ['7'])
+  app.account.likedIds.add('7')
   app.dispatch('like')
-  assert.deepEqual(app.likes, [7])
+  assert.deepEqual(app.likes, ['7'])
   app.state.status = 'paused'
   app.state.volume = 0.02
   app.render()
@@ -242,7 +254,7 @@ test('all six playback actions reuse playback commands, clamp volume and favorit
   app.state.queue = [{ source: { kind: 'local' } }]
   app.render()
   app.dispatch('like')
-  assert.deepEqual(app.likes, [7])
+  assert.deepEqual(app.likes, ['7'])
   app.state.index = null
   app.render()
   const count = app.calls.length

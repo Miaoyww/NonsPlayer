@@ -1,4 +1,4 @@
-use super::{database::Database, netease::SongService};
+use super::{database::Database, music::SongService};
 use crate::{
     model::AppResult,
     player::{Command, Player},
@@ -66,9 +66,9 @@ impl Context {
         let args: Value = serde_json::from_str(args).map_err(|_| "插件参数必须为 JSON")?;
         let result = match operation {
             "files.pick-audio" => super::audio_files::pick(self, &args).await?,
-            "netease.account-credentials" => {
+            "accounts.credential-read" => {
                 self.check(Some("account:credentials"))?;
-                self.songs.account_credentials().await?
+                self.songs.account_credentials(&args).await?
             }
             "clipboard.read-text" => {
                 self.check(Some("clipboard:read"))?;
@@ -266,16 +266,6 @@ impl Context {
                 }
                 serde_json::to_value(response).map_err(|e| e.to_string())?
             }
-            "netease.get-song" | "music.get-song" => {
-                self.check(Some("music:metadata"))?;
-                self.songs
-                    .song(
-                        args.get("id")
-                            .and_then(Value::as_u64)
-                            .ok_or("缺少歌曲 ID")?,
-                    )
-                    .await?
-            }
             "events.emit" => {
                 self.check(None)?;
                 let name = text(&args, "event")?;
@@ -328,7 +318,7 @@ impl Context {
                 let state = self.player.snapshot()?;
                 json!({"status":state.status,"positionMs":state.position_ms,"durationMs":state.duration_ms,"volume":state.volume,"track":state.current().map(|t| json!({"title":t.title,"artist":t.artist,"album":t.album,"durationMs":t.duration_ms,"cover":if t.cover.starts_with("http") { &*t.cover } else { "" }}))})
             }
-            "netease.play-song" | "player.play-song" => {
+            "music.play-track" => {
                 self.check(Some("player:control"))?;
                 self.check(Some("music:metadata"))?;
                 let next = match text(&args, "mode")? {
@@ -336,14 +326,12 @@ impl Context {
                     "next" => true,
                     _ => return Err("不支持的播放方式".into()),
                 };
-                let track = self
-                    .songs
-                    .track(
-                        args.get("id")
-                            .and_then(Value::as_u64)
-                            .ok_or("缺少歌曲 ID")?,
-                    )
-                    .await?;
+                let reference =
+                    serde_json::from_value(args.get("reference").ok_or("缺少曲目引用")?.clone())
+                        .map_err(|_| "曲目引用无效")?;
+                let track =
+                    crate::model::Track::from_music(self.songs.read_track(&reference).await?)
+                        .map_err(|e| e.to_string())?;
                 self.check(Some("player:control"))?;
                 self.player.send(if next {
                     Command::PlayNext(vec![track])

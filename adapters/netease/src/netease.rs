@@ -69,6 +69,7 @@ impl NeteaseAdapter {
                 source: SourceId::try_from("netease".to_owned()).expect("reserved source"),
                 display_name: "网易云音乐".into(),
                 contract_version: super::CONTRACT_VERSION,
+                login_methods: Vec::new(),
                 cover_hosts: ["*.music.126.net".into(), "*.music.163.com".into()]
                     .into_iter()
                     .collect(),

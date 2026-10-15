@@ -53,42 +53,9 @@ impl Track {
         if track.reference.source.as_str() == "local" {
             return Err(crate::ErrorCode::InvalidData.into());
         }
-        // Existing Netease keys must keep deduplicating against old persisted queues.
-        if track.reference.source.as_str() == "netease" {
-            let numeric = |reference: &crate::identity::EntityRef| {
-                reference
-                    .id
-                    .as_str()
-                    .parse::<u64>()
-                    .ok()
-                    .filter(|id| *id > 0)
-                    .ok_or_else(|| crate::MusicError::from(crate::ErrorCode::InvalidData))
-            };
-            let id = numeric(&track.reference)?;
-            return Ok(Self {
-                key: format!("netease:{id}"),
-                title: track.title,
-                aliases: track.aliases,
-                artist: track.artist,
-                artists: track
-                    .artists
-                    .into_iter()
-                    .map(|credit| {
-                        Ok(MusicCredit {
-                            name: credit.name,
-                            id: credit.reference.as_ref().map(numeric).transpose()?,
-                        })
-                    })
-                    .collect::<crate::MusicResult<_>>()?,
-                album_id: track.album_reference.as_ref().map(numeric).transpose()?,
-                album: track.album,
-                duration_ms: track.duration_ms,
-                cover: track.cover,
-                source: TrackSource::Netease { id },
-            });
-        }
         Ok(Self {
-            key: track.reference.key(),
+            key: crate::migration::historical_key(&track.reference)
+                .unwrap_or_else(|| track.reference.key()),
             title: track.title.clone(),
             aliases: track.aliases.clone(),
             artist: track.artist.clone(),

@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react'
+import { queryMusic } from '@/features/music/queries'
+import { collectionReference } from '@/features/music/legacy-reference'
+import { musicCollection } from '@/features/music/entities'
 import { isTauri } from '@tauri-apps/api/core'
-import { errorText, nativeCall } from '@/lib/player'
+import { errorText } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 
 export interface EntityDetail {
   item: MusicCollection
   description?: string | null
   albumCount?: number | null
+}
+async function readDetail(collection: MusicCollection): Promise<EntityDetail> {
+  const entity = collectionReference(collection)
+  const response = await queryMusic({ operation: 'detail', entity }, entity.source)
+  if (response.type !== 'detail') throw new Error('详情响应无效')
+  return { ...response.data, item: musicCollection(response.data.item) }
 }
 
 export function useEntityDetail(collection: MusicCollection, refresh: number, enabled = true) {
@@ -19,10 +28,7 @@ export function useEntityDetail(collection: MusicCollection, refresh: number, en
     setError(undefined)
     setBusy(enabled && isTauri())
     if (enabled && isTauri())
-      void nativeCall<EntityDetail>('music_entity_detail', {
-        kind: collection.kind,
-        id: collection.id
-      })
+      void readDetail(collection)
         .then((value) => {
           if (!disposed) setDetail(value)
         })

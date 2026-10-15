@@ -1,3 +1,4 @@
+import { collectionReference } from '@/features/music/legacy-reference'
 import { coverOriginal } from '@/features/music/cover-image'
 import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { Music2, Search } from 'lucide-react'
@@ -27,7 +28,7 @@ export function CollectionTabs({
   const [selected, setSelected] = useState('songs')
   const [query, setQuery] = useState('')
   const context: PluginCollection = {
-    source: collection.localId === undefined ? 'netease' : 'local',
+    source: collection.localId === undefined ? collectionReference(collection).source : 'local',
     kind: collection.kind,
     id: collection.localId ?? collection.id,
     name: collection.name,

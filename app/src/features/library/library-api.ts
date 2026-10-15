@@ -1,10 +1,18 @@
 import { peekLibraryPreview, saveLibraryPreview, clearLibraryPreviews } from './library-preview'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
-import { nativeCall, peekNativeCall, type Track } from '@/lib/player'
-import type { AccountProfile } from '@/features/account/account'
+import { nativeCall, type Track } from '@/lib/player'
+import { accountProfile, type AccountProfile } from '@/features/account/account'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import { musicClient } from '@/features/music/client'
-
+import { collectionReference } from '@/features/music/legacy-reference'
+import {
+  clearContinuations,
+  queryMusic,
+  queryPage,
+  tracksForCollection
+} from '@/features/music/queries'
+import { musicCollection } from '@/features/music/entities'
+import type { AccountRef } from '@/features/music/types'
 export type LibraryTab = 'playlist' | 'album' | 'artist' | 'history'
 export type PlaylistFilter = 'all' | 'mine' | 'liked'
 export interface LibrarySummary {
@@ -23,111 +31,109 @@ export interface CollectionTracks {
   total: number
   more: boolean
 }
-let accountId: number | undefined
+let account: AccountRef | null = null
+export function setLibraryAccount(value: AccountRef | null) {
+  account = value
+}
 export function invalidateMusicLibrary() {
   clearLibraryPreviews()
-  invalidateNativeCache(['music_library', 'library_tracks', 'library_collections'])
+  clearContinuations()
+  invalidateNativeCache(['music_query'])
 }
 export function resetAccountCache() {
-  accountId = undefined
+  account = null
+  clearContinuations()
   invalidateNativeCache(undefined, 'context')
 }
-function selectAccount(userId: number) {
-  if (accountId !== undefined && accountId !== userId) resetAccountCache()
-  accountId = userId
+function selectAccount(userId: string) {
+  if (!account || account.id !== userId) throw new Error('账号上下文已变化')
+  return account
 }
-export function peekMusicLibrary(userId: number) {
-  selectAccount(userId)
-  return peekNativeCall<LibrarySummary>('music_library') ?? peekLibraryPreview(userId)?.summary
+export function peekMusicLibrary(userId: string) {
+  return peekLibraryPreview(JSON.stringify(selectAccount(userId)))?.summary
 }
-export function getMusicLibrary(userId: number): Promise<LibrarySummary> {
-  selectAccount(userId)
-  return nativeCall<LibrarySummary>('music_library').then((value) => {
-    if (value.profile.userId === userId && !value.likedError)
-      saveLibraryPreview(userId, { summary: value })
-    return value
-  })
+export async function getMusicLibrary(userId: string): Promise<LibrarySummary> {
+  const owner = selectAccount(userId)
+  const response = await queryMusic({ operation: 'librarySummary' }, owner.source)
+  if (response.type !== 'summary') throw new Error('音乐库摘要响应无效')
+  const value = {
+    profile: accountProfile(response.data.account),
+    likedPlaylist: response.data.likedPlaylist
+      ? musicCollection(response.data.likedPlaylist)
+      : null,
+    likedTracks: await musicClient.queueTracks(owner.source, response.data.likedTracks),
+    likedError: response.data.likedError?.code ?? null
+  }
+  if (!value.likedError && JSON.stringify(account) === JSON.stringify(owner))
+    saveLibraryPreview(JSON.stringify(owner), { summary: value })
+  return value
 }
-export function peekLibraryCollections(userId: number) {
-  return peekLibraryPreview(userId)?.collections
+export function peekLibraryCollections(userId: string) {
+  return peekLibraryPreview(JSON.stringify(selectAccount(userId)))?.collections
 }
 export function getLibraryCollections(
   kind: LibraryTab,
   offset: number,
   filter: PlaylistFilter,
-  userId = accountId
-) {
-  return nativeCall<CollectionPage>('library_collections', { kind, offset, filter }).then(
-    (value) => {
-      if (userId && kind === 'playlist' && offset === 0 && filter === 'all')
-        saveLibraryPreview(userId, { collections: value })
-      return value
+  userId = account?.id
+): Promise<CollectionPage> {
+  if (!userId || kind === 'history') throw new Error('收藏查询缺少账号或类型无效')
+  const owner = selectAccount(userId)
+  return queryPage(
+    {
+      operation: 'libraryCollections',
+      kind,
+      filter: filter === 'mine' ? 'created' : filter === 'liked' ? 'collected' : filter,
+      page: { cursor: null, limit: 30 }
+    },
+    offset,
+    30,
+    owner.source
+  ).then((response) => {
+    if (response.type !== 'entities') throw new Error('收藏列表响应无效')
+    const value = {
+      items: response.data.items.map(musicCollection),
+      more: response.data.nextCursor !== null
     }
-  )
+    if (
+      kind === 'playlist' &&
+      offset === 0 &&
+      filter === 'all' &&
+      JSON.stringify(account) === JSON.stringify(owner)
+    )
+      saveLibraryPreview(JSON.stringify(owner), { collections: value })
+    return value
+  })
 }
 export function getLibraryTracks(
   collection: MusicCollection,
   offset: number,
-  userId: number
+  userId: string
 ): Promise<CollectionTracks> {
   selectAccount(userId)
-  return nativeCall<CollectionTracks>('library_tracks', {
-    kind: collection.kind,
-    id: collection.id,
-    offset
-  })
+  return tracksForCollection(collection, offset)
 }
-export const getLibraryHistory = (week: boolean, offset: number) =>
-  nativeCall<CollectionTracks>('library_history', { week, offset })
-export async function playMusicCollection(collection: MusicCollection, next = false, key?: string) {
-  if (!collection.reference)
-    return nativeCall<boolean>(next ? 'append_library_collection' : 'play_library_collection', {
-      kind: collection.kind,
-      id: collection.id,
-      key: key ?? null
-    })
-  const reference = collection.reference
-  const scope = await nativeCall<string>('music_context', { source: reference.source })
-  const tracks: Track[] = []
-  let cursor: string | null = null
-  const seen = new Set<string>()
-  let more = false
-  let pages = 0
-  do {
-    pages++
-    const response = await musicClient.query(
-      reference.source,
-      reference.kind === 'artist'
-        ? { operation: 'artistTracks', artist: reference, page: { cursor, limit: 100 } }
-        : { operation: 'tracks', entity: reference, page: { cursor, limit: 100 } }
-    )
-    if (response.type !== 'tracks') throw new Error('音乐来源返回了错误的歌曲列表')
-    const values = await musicClient.queueTracks(reference.source, response.data.items)
-    for (const value of values)
-      if (!seen.has(value.key) && tracks.length < 1000) {
-        seen.add(value.key)
-        tracks.push(value)
-      }
-    if (response.data.nextCursor !== null && response.data.nextCursor === cursor)
-      throw new Error('音乐来源返回了重复游标')
-    cursor = response.data.nextCursor
-    more = cursor !== null
-  } while (more && tracks.length < 1000 && pages < 10)
-  if (scope !== (await nativeCall<string>('music_context', { source: reference.source })))
-    throw new Error('账号或音乐来源状态已变化，请重试')
-  if (!tracks.length) throw new Error('此收藏暂无歌曲')
-  await nativeCall(next ? 'append_queue' : 'play_queue', {
-    keys: tracks.map((track) => track.key),
-    ...(!next
-      ? {
-          index: Math.max(
-            0,
-            tracks.findIndex((track) => track.key === key)
-          )
-        }
-      : {})
-  })
-  return more
+export async function getLibraryHistory(week: boolean, offset: number): Promise<CollectionTracks> {
+  const owner = account
+  if (!owner) throw new Error('账号上下文已变化')
+  const response = await queryPage(
+    { operation: 'history', week, page: { cursor: null, limit: 100 } },
+    offset,
+    100,
+    owner.source
+  )
+  if (response.type !== 'tracks') throw new Error('播放历史响应无效')
+  return {
+    tracks: await musicClient.queueTracks(owner.source, response.data.items),
+    more: response.data.nextCursor !== null,
+    total: response.data.total ?? response.data.items.length
+  }
 }
+export const playMusicCollection = (collection: MusicCollection, next = false, key?: string) =>
+  nativeCall<boolean>('music_play_collection', {
+    entity: collectionReference(collection),
+    next,
+    key: key ?? null
+  })
 export const playLibraryCollection = (collection: MusicCollection, key?: string) =>
   playMusicCollection(collection, false, key)

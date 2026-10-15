@@ -139,7 +139,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let source = temp.path().join("source");
         fs::create_dir(&source).unwrap();
-        let manifest = br#"{"id":"sample","name":"Sample","version":"1.0.0","frontend":"ui.mjs","permissions":["ui"],"engines":{"app":"^1.0.0","pluginApi":"^1.0.0","uiApi":"^1.0.0"}}"#;
+        let manifest = br#"{"id":"sample","name":"Sample","version":"1.0.0","frontend":"ui.mjs","permissions":["ui"],"engines":{"app":"^1.0.0","pluginApi":"^2.0.0","uiApi":"^2.0.0"}}"#;
         fs::write(source.join("manifest.json"), manifest).unwrap();
         fs::write(source.join("ui.mjs"), b"export const View=()=>null;").unwrap();
         assert_eq!(

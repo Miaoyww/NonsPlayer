@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -9,7 +10,7 @@ runInNewContext(
     readFileSync(new URL('../src/features/music/share-links.ts', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS } }
   ).outputText,
-  { exports, URL, encodeURIComponent }
+  { exports, URL, encodeURIComponent, require: () => musicReference }
 )
 const sources = [
   {

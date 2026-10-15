@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -19,8 +20,8 @@ function load(path, modules) {
     {
       exports,
       require: (name) => {
-        assert.ok(name in modules, name)
-        return modules[name]
+        assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
+        return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
       }
     }
   )

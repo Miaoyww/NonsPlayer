@@ -2,7 +2,7 @@ import type { ComponentType } from 'react'
 import { checkScope, type Scope } from './scope'
 
 export interface PluginCollection {
-  source: 'netease' | 'local'
+  source: string
   kind: 'playlist' | 'album' | 'artist'
   id: number | string
   name: string
@@ -43,7 +43,7 @@ export function registerCollectionTab(scope: Scope, tab: CollectionTabRegistrati
     throw new Error('详情 tab 需要 React 组件')
   if (
     tab.kinds?.some((kind) => !['playlist', 'album', 'artist'].includes(kind)) ||
-    tab.sources?.some((source) => !['netease', 'local'].includes(source))
+    tab.sources?.some((source) => !/^[a-z][a-z0-9-]{0,63}$/.test(source))
   )
     throw new Error('详情 tab 类型或来源无效')
   const key = `${scope.descriptor.manifest.id}:${scope.descriptor.generation}:${tab.id}`

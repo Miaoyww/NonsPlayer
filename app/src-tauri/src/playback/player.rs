@@ -30,9 +30,8 @@ pub enum Command {
             tokio::sync::oneshot::Sender<AppResult<crate::platform::android::playback::Snapshot>>,
     },
     Collection {
-        kind: String,
-        id: u64,
-        track: Option<Track>,
+        entity: crate::music::identity::EntityRef,
+        track: Option<Box<Track>>,
         fallback_cover: String,
         reply: tokio::sync::oneshot::Sender<AppResult<bool>>,
     },
@@ -604,16 +603,19 @@ impl Actor {
             #[cfg(target_os = "android")]
             Command::Media { .. } => unreachable!("Media commands are unwrapped before dispatch"),
             Command::Collection {
-                kind,
-                id,
+                entity,
                 track,
                 fallback_cover,
                 reply,
             } => {
-                let scope = self.music.legacy_stamp()?;
+                let scope = self
+                    .music
+                    .adapters
+                    .stamp(&entity.source)
+                    .map_err(|e| e.to_string())?;
                 let key = track.as_ref().map(|track| track.key.clone());
                 if let Some(track) = track {
-                    self.command_now(Command::Queue(vec![track], 0))?;
+                    self.command_now(Command::Queue(vec![*track], 0))?;
                 } else {
                     self.command_now(Command::Clear)?;
                     self.state.status = PlaybackStatus::Loading;
@@ -626,7 +628,7 @@ impl Actor {
                 let sender = self.sender.clone();
                 self.collection_job = Some(tauri::async_runtime::spawn(async move {
                     let result = async {
-                        let mut page = music.library_queue(&kind, id).await?;
+                        let mut page = music.collection_queue(&entity).await?;
                         for track in &mut page.tracks {
                             if track.cover.is_empty() {
                                 track.cover = fallback_cover.clone().into();
@@ -662,7 +664,7 @@ impl Actor {
                     return Ok(());
                 };
                 self.collection_job = None;
-                if self.music.legacy_stamp().ok().as_ref() != Some(&scope) {
+                if self.music.adapters.stamp(&scope.0.source).ok().as_ref() != Some(&scope) {
                     if self.state.current().is_none() {
                         self.desired_playing = false;
                         self.state.status = PlaybackStatus::Stopped;

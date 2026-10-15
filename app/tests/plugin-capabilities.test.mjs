@@ -34,7 +34,7 @@ function harness(
     createContext: () => ({}),
     useContext: () => scope,
     useMemo: (fn) => fn(),
-    useCallback: (fn) => fn()
+    useCallback: (fn) => fn
   }
   const scopes = load('../src/plugins/scope.tsx', { react })
   const sdk = load('../src/plugins/sdk.ts', {
@@ -120,9 +120,9 @@ test('new capabilities reject missing permission and late subscription or read r
   assert.equal(disposed, 1)
 })
 
-test('HTTP and Netease facades bind host requests to the plugin instance', async () => {
+test('HTTP and music facades bind host requests to the plugin instance', async () => {
   const calls = []
-  const { sdk } = harness(['http:request', 'music:metadata'], {
+  const { sdk } = harness(['http:request', 'music:metadata', 'player:control'], {
     nativeCall: async (command, args) => {
       calls.push({ command, ...args })
       return args.operation === 'http.request'
@@ -134,11 +134,11 @@ test('HTTP and Netease facades bind host requests to the plugin instance', async
   const response = await sdk.usePluginHttp().request(request)
   assert.equal(response.status, 302)
   assert.equal(response.headers.location, '/next')
-  await sdk.useNetease().getSong(123)
-  await sdk.useNetease().playSong(123, 'next')
+  await sdk.useMusicSource().getTrack({ source: 'qqmusic', kind: 'track', id: 'opaque' })
+  await sdk.useSongPlayback()({ source: 'qqmusic', kind: 'track', id: 'opaque' }, 'next')
   assert.deepEqual(
     calls.map((call) => call.operation),
-    ['http.request', 'netease.get-song', 'netease.play-song']
+    ['http.request', 'music.read-track', 'music.play-track']
   )
   for (const call of calls) {
     assert.equal(call.command, 'plugin_host_call')

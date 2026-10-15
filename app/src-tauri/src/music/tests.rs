@@ -111,9 +111,20 @@ fn queue_bridge_preserves_netease_legacy_keys_and_rejects_local_uniform_entries(
             .track;
     let track = Track::from_music(music.clone()).unwrap();
     assert_eq!(track.key, "netease:1");
-    assert!(matches!(track.source, TrackSource::Netease { id: 1 }));
-    assert_eq!(track.artists[0].id, Some(12));
-    assert_eq!(track.album_id, Some(20));
+    let TrackSource::Online { track: canonical } = &track.source else {
+        panic!("new queue entries must use the uniform DTO")
+    };
+    assert_eq!(canonical.reference.id.as_str(), "1");
+    assert_eq!(
+        canonical.artists[0].reference.as_ref().unwrap().id.as_str(),
+        "12"
+    );
+    assert_eq!(
+        canonical.album_reference.as_ref().unwrap().id.as_str(),
+        "20"
+    );
+    assert_eq!(track.artists[0].id, None);
+    assert_eq!(track.album_id, None);
     music.reference.source = source("local");
     music.artists.clear();
     music.album_reference = None;
@@ -162,6 +173,7 @@ fn capability_and_account_restrictions_are_separate() {
         source: source("netease"),
         display_name: "网易云".into(),
         contract_version: CONTRACT_VERSION,
+        login_methods: Vec::new(),
         cover_hosts: Default::default(),
         share_link_templates: Default::default(),
         capabilities: BTreeSet::from([Capability::Favorites]),

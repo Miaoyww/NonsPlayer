@@ -16,25 +16,23 @@ export function SongIdentity({ song }: { song: PluginMenuSong }) {
   const track: Track = {
     ...song,
     source:
-      song.source.kind === 'netease'
-        ? song.source
-        : song.source.kind === 'online'
-          ? {
-              kind: 'online',
-              track: {
-                reference: song.source.reference,
-                title: song.title,
-                aliases: song.aliases ?? [],
-                artist: song.artist,
-                artists: [],
-                album: song.album,
-                albumReference: null,
-                durationMs: song.durationMs,
-                cover: song.cover,
-                associations: []
-              }
+      song.source.kind === 'online'
+        ? {
+            kind: 'online',
+            track: {
+              reference: song.source.reference,
+              title: song.title,
+              aliases: song.aliases ?? [],
+              artist: song.artist,
+              artists: [],
+              album: song.album,
+              albumReference: null,
+              durationMs: song.durationMs,
+              cover: song.cover,
+              associations: []
             }
-          : { kind: 'local', path: '', neteaseId: null }
+          }
+        : { kind: 'local', path: '', neteaseId: null }
   }
   return <TrackIdentity track={track} />
 }
@@ -47,7 +45,11 @@ export function SongLikeButton({
   onError: (error: unknown) => void
 }) {
   const scope = useScope('ui')
-  const track: Track = { ...song, source: { kind: 'netease', id: song.id } }
+  const track: Track = {
+    ...song,
+    key: JSON.stringify([song.reference.source, song.reference.kind, song.reference.id]),
+    source: { kind: 'online', track: song }
+  }
   return (
     <span onClickCapture={() => checkScope(scope, 'ui')}>
       <CurrentTrackLike track={track} showLabel onError={onError} />

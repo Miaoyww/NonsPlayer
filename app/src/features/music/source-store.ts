@@ -15,11 +15,12 @@ const events = [
   'music-source-preferences-changed',
   'adapters-changed',
   'music-account-changed',
-  'music-changed'
+  'music-changed',
+  'adapter-load-failed'
 ]
 export function createSourceStore(
   read: () => Promise<[SourcePreferences | undefined, SourceStatus[]]>,
-  watch: (event: string, changed: () => void) => Promise<() => void>,
+  watch: (event: string, changed: (payload?: unknown) => void) => Promise<() => void>,
   errorText: (cause: unknown) => string
 ) {
   let value: SourceSnapshot = { statuses: [], loading: true, revision: 0, error: '' }
@@ -76,7 +77,16 @@ export function createSourceStore(
       // Subscribe before reading, but do not serialize independent IPC registrations.
       void Promise.all(
         events.map(async (event) => {
-          const stop = await watch(event, () => {
+          const stop = await watch(event, (payload) => {
+            if (event === 'adapter-load-failed') {
+              if (active === cycle)
+                publish({
+                  ...value,
+                  loading: false,
+                  error: typeof payload === 'string' ? payload : '适配器加载失败'
+                })
+              return
+            }
             void refresh()
           })
           if (active !== cycle) stop()

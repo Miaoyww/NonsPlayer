@@ -31,7 +31,8 @@ export { SongArtists, SongLikeButton, SongIdentity } from './song-components'
 export function useSongPlayback() {
   const scope = useScope('player:control')
   return useCallback(
-    (id: number, mode: 'now' | 'next') => hostCall<void>(scope, 'netease.play-song', { id, mode }),
+    (reference: import('@/features/music/types').EntityRef, mode: 'now' | 'next') =>
+      hostCall<void>(scope, 'music.play-track', { reference, mode }),
     [scope]
   )
 }
@@ -82,20 +83,6 @@ export function useMusicSource(): import('@/features/music/types').MusicSourceCl
     [scope]
   )
 }
-/** @deprecated Use useMusicSource for metadata and business queries. */
-export function useNetease() {
-  const scope = useScope('music:metadata')
-  return useMemo(
-    () => ({
-      getSong: (id: number) =>
-        hostCall<import('./types').PluginSong>(scope, 'netease.get-song', { id }),
-      playSong: (id: number, mode: 'now' | 'next') =>
-        hostCall<void>(scope, 'netease.play-song', { id, mode })
-    }),
-    [scope]
-  )
-}
-
 export interface PluginHttpRequest {
   url: string
   method?: 'GET' | 'HEAD' | 'POST'

@@ -13,14 +13,26 @@ function harness(responses) {
   const exports = {}
   runInNewContext(outputText, {
     exports,
-    require: () => ({
-      nativeCall: async (command, args) => {
-        requests.push({ command, ...args })
-        const response = responses.shift()
-        if (response instanceof Error) throw response
-        return response
-      }
-    })
+    require: (name) =>
+      name === '@/features/music/entities'
+        ? { musicCollection: (item) => ({ ...item, id: item.reference.id }) }
+        : {
+            queryPage: async (_query, offset) => {
+              requests.push({ offset })
+              const response = responses.shift()
+              if (response instanceof Error) throw response
+              return {
+                type: 'entities',
+                data: {
+                  items: response.items.map((item) => ({
+                    ...item,
+                    reference: { source: 'qqmusic', kind: 'playlist', id: item.id }
+                  })),
+                  nextCursor: response.more ? 'next' : null
+                }
+              }
+            }
+          }
   })
   const create = () =>
     exports.createDiscoveryPlaylistLoader({

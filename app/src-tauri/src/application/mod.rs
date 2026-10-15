@@ -1,13 +1,12 @@
 use crate::{
     about, audio_runtime, fonts, hitokoto, library, local_folders, local_library, lyrics, model,
-    netease, player, plugins, storage, ttml_cache,
+    player, plugins, storage, ttml_cache,
 };
 
 use crate::platform::main_webview;
 #[cfg(desktop)]
 use crate::platform::{autostart, desktop};
 use model::{AppResult, Lyrics, OutputDevice, Track, TrackSource};
-use netease::{AccountProfile, CollectionPage, LibrarySummary, LoginStatus, QrLogin, TrackPage};
 use player::{Command, Player};
 use std::{path::PathBuf, sync::Arc};
 use tauri::{Manager, State};
@@ -327,187 +326,8 @@ fn player_snapshot(
 }
 
 #[tauri::command]
-async fn search_music(
-    keyword: String,
-    offset: u32,
-    backend: State<'_, Backend>,
-) -> AppResult<Vec<Track>> {
-    let mut tracks = backend.music.search(&keyword, offset.min(10_000)).await?;
-    for track in &mut tracks {
-        if track.cover.is_empty() {
-            track.cover = backend.fallback_cover.clone().into();
-        }
-    }
-    backend.store.save_tracks(&tracks)?;
-    Ok(tracks)
-}
-
-#[tauri::command]
-async fn liked_song_ids(backend: State<'_, Backend>) -> AppResult<Vec<u64>> {
-    backend.music.liked_song_ids().await
-}
-
-#[tauri::command]
-async fn search_suggestions(
-    keyword: String,
-    backend: State<'_, Backend>,
-) -> AppResult<Vec<String>> {
-    backend.music.search_suggestions(&keyword).await
-}
-
-#[tauri::command]
-async fn search_collections(
-    keyword: String,
-    kind: String,
-    offset: u32,
-    backend: State<'_, Backend>,
-) -> AppResult<netease::CollectionPage> {
-    backend
-        .music
-        .search_collections(&keyword, &kind, offset)
-        .await
-}
-
-#[tauri::command]
-async fn set_song_liked(id: u64, liked: bool, backend: State<'_, Backend>) -> AppResult<()> {
-    backend.music.set_song_liked(id, liked).await
-}
-
-#[tauri::command]
-async fn song_information(
-    key: String,
-    backend: State<'_, Backend>,
-) -> AppResult<netease::SongInformation> {
-    let track = backend.store.track(&key)?;
-    if let TrackSource::Netease { id } = track.source {
-        backend.music.song_information(id).await
-    } else {
-        Ok(netease::SongInformation {
-            artists: vec![netease::SongCredit {
-                name: track.artist,
-                id: None,
-            }],
-            album_id: None,
-            published_at: None,
-        })
-    }
-}
-
-#[tauri::command]
-async fn remove_playlist_song(
-    playlist_id: u64,
-    song_id: u64,
-    backend: State<'_, Backend>,
-) -> AppResult<()> {
-    backend
-        .music
-        .remove_playlist_song(playlist_id, song_id)
-        .await
-}
-
-#[tauri::command]
 fn remove_queue_track(index: usize, key: String, backend: State<'_, Backend>) -> AppResult<()> {
     backend.player.send(Command::Remove(index, key))
-}
-
-#[tauri::command]
-async fn music_library(backend: State<'_, Backend>) -> AppResult<LibrarySummary> {
-    let mut summary = backend.music.library_summary().await?;
-    save_library_tracks(&mut summary.liked_tracks, &backend)?;
-    Ok(summary)
-}
-
-#[tauri::command]
-async fn discovery_playlists(
-    section: String,
-    category: String,
-    order: String,
-    offset: u32,
-    backend: State<'_, Backend>,
-) -> AppResult<CollectionPage> {
-    backend
-        .music
-        .discovery_playlists(&section, &category, &order, offset)
-        .await
-}
-#[tauri::command]
-async fn discovery_categories(
-    backend: State<'_, Backend>,
-) -> AppResult<Vec<netease::PlaylistCategory>> {
-    backend.music.discovery_categories().await
-}
-#[tauri::command]
-async fn discovery_radar(backend: State<'_, Backend>) -> AppResult<netease::Collection> {
-    backend.music.discovery_radar().await
-}
-#[tauri::command]
-async fn discovery_tracks(kind: String, backend: State<'_, Backend>) -> AppResult<Vec<Track>> {
-    let mut tracks = backend.music.discovery_tracks(&kind).await?;
-    save_library_tracks(&mut tracks, &backend)?;
-    Ok(tracks)
-}
-#[tauri::command]
-async fn discovery_dislike(id: u64, backend: State<'_, Backend>) -> AppResult<()> {
-    backend.music.discovery_dislike(id).await
-}
-
-#[tauri::command]
-async fn library_collections(
-    kind: String,
-    offset: u32,
-    filter: String,
-    backend: State<'_, Backend>,
-) -> AppResult<CollectionPage> {
-    backend
-        .music
-        .library_collections(&kind, offset, &filter)
-        .await
-}
-
-#[tauri::command]
-async fn library_tracks(
-    kind: String,
-    id: u64,
-    offset: u32,
-    backend: State<'_, Backend>,
-) -> AppResult<TrackPage> {
-    let mut page = backend.music.library_tracks(&kind, id, offset, 100).await?;
-    save_library_tracks(&mut page.tracks, &backend)?;
-    Ok(page)
-}
-
-#[tauri::command]
-async fn music_entity_detail(
-    kind: String,
-    id: u64,
-    backend: State<'_, Backend>,
-) -> AppResult<netease::EntityDetail> {
-    backend.music.music_entity_detail(&kind, id).await
-}
-#[tauri::command]
-async fn artist_albums(
-    id: u64,
-    offset: u32,
-    backend: State<'_, Backend>,
-) -> AppResult<CollectionPage> {
-    backend.music.artist_albums(id, offset).await
-}
-#[tauri::command]
-async fn artist_tracks(id: u64, offset: u32, backend: State<'_, Backend>) -> AppResult<TrackPage> {
-    let mut page = backend.music.artist_tracks(id, offset).await?;
-    save_library_tracks(&mut page.tracks, &backend)?;
-    Ok(page)
-}
-
-#[tauri::command]
-async fn library_history(
-    week: bool,
-    offset: u32,
-    backend: State<'_, Backend>,
-) -> AppResult<TrackPage> {
-    let mut page = backend.music.library_history(week, offset).await?;
-    save_library_tracks(&mut page.tracks, &backend)?;
-    Ok(page)
 }
 
 fn save_library_tracks(tracks: &mut [Track], backend: &Backend) -> AppResult<()> {
@@ -520,80 +340,40 @@ fn save_library_tracks(tracks: &mut [Track], backend: &Backend) -> AppResult<()>
 }
 
 #[tauri::command]
-async fn play_library_collection(
-    kind: String,
-    id: u64,
+async fn music_play_collection(
+    entity: crate::music::identity::EntityRef,
+    next: bool,
     key: Option<String>,
     backend: State<'_, Backend>,
 ) -> AppResult<bool> {
-    if id == 0 || !matches!(kind.as_str(), "playlist" | "album" | "artist") {
+    if entity.kind == crate::music::identity::EntityKind::Track {
         return Err("收藏参数无效".into());
+    }
+    if next {
+        let mut page = backend.music.collection_queue(&entity).await?;
+        save_library_tracks(&mut page.tracks, &backend)?;
+        backend.player.send(Command::PlayNext(page.tracks))?;
+        return Ok(page.more);
     }
     let track = key
         .as_deref()
         .map(|key| backend.store.track(key))
         .transpose()?;
     let (reply, completion) = tokio::sync::oneshot::channel();
+    if track
+        .as_ref()
+        .is_some_and(|track| track.source_id() != entity.source.as_str())
+    {
+        return Err("曲目与收藏来源不一致".into());
+    }
     backend.player.send(Command::Collection {
-        kind,
-        id,
-        track,
+        entity,
+        track: track.map(Box::new),
         fallback_cover: backend.fallback_cover.clone(),
         reply,
     })?;
     // Superseded requests are silent; their actor-owned preparation task drops the sender.
     completion.await.unwrap_or(Ok(false))
-}
-
-#[tauri::command]
-async fn create_library_playlist(
-    name: String,
-    private: bool,
-    backend: State<'_, Backend>,
-) -> AppResult<()> {
-    backend.music.library_create_playlist(&name, private).await
-}
-
-#[tauri::command]
-async fn append_library_collection(
-    kind: String,
-    id: u64,
-    backend: State<'_, Backend>,
-) -> AppResult<bool> {
-    let mut page = backend.music.library_queue(&kind, id).await?;
-    if page.tracks.is_empty() {
-        return Err("这个收藏还没有可播放的歌曲".into());
-    }
-    save_library_tracks(&mut page.tracks, &backend)?;
-    backend.player.send(Command::PlayNext(page.tracks))?;
-    Ok(page.more)
-}
-
-#[tauri::command]
-async fn add_playlist_song(
-    playlist_id: u64,
-    song_id: u64,
-    backend: State<'_, Backend>,
-) -> AppResult<()> {
-    backend.music.add_playlist_song(playlist_id, song_id).await
-}
-
-#[tauri::command]
-async fn update_library_playlist(
-    id: u64,
-    name: String,
-    description: String,
-    backend: State<'_, Backend>,
-) -> AppResult<()> {
-    backend
-        .music
-        .update_library_playlist(id, &name, &description)
-        .await
-}
-
-#[tauri::command]
-async fn delete_library_playlist(id: u64, backend: State<'_, Backend>) -> AppResult<()> {
-    backend.music.delete_library_playlist(id).await
 }
 
 #[tauri::command]
@@ -884,51 +664,6 @@ fn set_lyric_endpoints(endpoints: Vec<String>, backend: State<'_, Backend>) -> A
     )
 }
 
-#[tauri::command]
-async fn qr_login(backend: State<'_, Backend>) -> AppResult<QrLogin> {
-    backend.music.qr_login().await
-}
-#[tauri::command]
-async fn poll_login(
-    key: String,
-    backend: State<'_, Backend>,
-    plugins: State<'_, Arc<plugins::PluginManager>>,
-) -> AppResult<LoginStatus> {
-    let result = backend.music.poll_login(&key).await?;
-    if result.code == 803 {
-        plugins.account_changed().await;
-    }
-    Ok(result)
-}
-#[tauri::command]
-async fn login_session(
-    backend: State<'_, Backend>,
-    plugins: State<'_, Arc<plugins::PluginManager>>,
-) -> AppResult<bool> {
-    let result = backend.music.session().await?;
-    if !result {
-        plugins.account_changed().await;
-    }
-    Ok(result)
-}
-#[tauri::command]
-fn account_profile_snapshot(backend: State<'_, Backend>) -> AppResult<Option<AccountProfile>> {
-    backend.music.profile_snapshot()
-}
-#[tauri::command]
-async fn account_profile(backend: State<'_, Backend>) -> AppResult<Option<AccountProfile>> {
-    backend.music.profile().await
-}
-#[tauri::command]
-async fn logout(
-    backend: State<'_, Backend>,
-    plugins: State<'_, Arc<plugins::PluginManager>>,
-) -> AppResult<crate::music::business::LogoutReport> {
-    let result = backend.music.logout().await?;
-    plugins.account_changed().await;
-    Ok(result)
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(windows)]
@@ -1068,6 +803,35 @@ pub fn run() {
                 player.clone(),
             )?;
             app.manage(plugin_manager.clone());
+            let component_directory = if cfg!(debug_assertions) {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bundled-adapters")
+            } else {
+                app.path().resource_dir()?.join("bundled-adapters")
+            };
+            let component_music = music.clone();
+            let component_store = store.clone();
+            let component_http = plugin_manager.shared_http();
+            let component_settings = app
+                .state::<Arc<crate::music::settings::AdapterSettings>>()
+                .inner()
+                .clone();
+            let component_app = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                use tauri::Emitter;
+                if let Err(error) = crate::music::bundled::load_components(
+                    &component_directory,
+                    &component_music,
+                    component_store,
+                    component_http,
+                    &component_settings,
+                )
+                .await
+                {
+                    eprintln!("{error}");
+                    let _ = component_app.emit("adapter-load-failed", error);
+                }
+                let _ = component_app.emit("adapters-changed", ());
+            });
             #[cfg(feature = "plugin-probe")]
             plugins::probe::start(plugin_manager.clone());
             tauri::async_runtime::spawn(async move {
@@ -1144,30 +908,8 @@ pub fn run() {
             music_current_account,
             music_select_account,
             music_remove_account,
-            search_music,
-            search_suggestions,
-            search_collections,
-            music_library,
-            song_information,
-            remove_playlist_song,
             remove_queue_track,
-            library_collections,
-            discovery_playlists,
-            discovery_categories,
-            discovery_radar,
-            discovery_tracks,
-            discovery_dislike,
-            library_tracks,
-            music_entity_detail,
-            artist_albums,
-            artist_tracks,
-            library_history,
-            play_library_collection,
-            create_library_playlist,
-            append_library_collection,
-            add_playlist_song,
-            update_library_playlist,
-            delete_library_playlist,
+            music_play_collection,
             local_music,
             local_library::local_entities,
             local_library::local_entity_detail,
@@ -1215,15 +957,7 @@ pub fn run() {
             bind_local_lyrics,
             music_options,
             set_music_options,
-            set_lyric_endpoints,
-            qr_login,
-            poll_login,
-            login_session,
-            account_profile,
-            account_profile_snapshot,
-            liked_song_ids,
-            set_song_liked,
-            logout
+            set_lyric_endpoints
         ])
         .build(context)
         .expect("无法启动 NonsPlayer");

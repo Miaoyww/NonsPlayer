@@ -1,6 +1,7 @@
 import { useLocalPreferences } from '@/features/local/use-local-preferences'
+import { readTrackInformation } from '@/features/music/queries'
 import { Fragment, useState, type MouseEvent } from 'react'
-import { errorText, nativeCall, type MusicCredit, type Track } from '@/lib/player'
+import { errorText, type MusicCredit, type Track } from '@/lib/player'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 
 export function ArtistLinks({
@@ -28,7 +29,7 @@ export function ArtistLinks({
               onClick={(event: MouseEvent) => {
                 event.stopPropagation()
                 navigate('artist', '', {
-                  id: artist.id ?? 0,
+                  id: artist.reference?.id ?? artist.id ?? 0,
                   reference: artist.reference ?? undefined,
                   kind: 'artist',
                   name: artist.name,
@@ -68,7 +69,7 @@ export function AlbumLink({
       onClick={(event) => {
         event.stopPropagation()
         navigate('album', '', {
-          id: id ?? 0,
+          id: reference?.id ?? id ?? 0,
           reference: reference ?? undefined,
           kind: 'album',
           name,
@@ -111,12 +112,13 @@ export function TrackArtists({ track }: { track: Track }) {
               if (busy) return
               setBusy(true)
               setError(undefined)
-              void nativeCall<{ artists: MusicCredit[] }>('song_information', { key: track.key })
+              void readTrackInformation(track)
                 .then((value) => {
                   const artist = value.artists.find((artist) => artist.name === name)
-                  if (!artist?.id) throw new Error('暂无可跳转的歌手信息')
+                  if (!artist?.reference) throw new Error('暂无可跳转的歌手信息')
                   navigate('artist', '', {
-                    id: artist.id,
+                    id: artist.reference.id,
+                    reference: artist.reference,
                     kind: 'artist',
                     name: artist.name,
                     cover: '',
@@ -189,11 +191,12 @@ export function TrackAlbum({ track }: { track: Track }) {
           if (busy) return
           setBusy(true)
           setError(undefined)
-          void nativeCall<{ albumId?: number | null }>('song_information', { key: track.key })
+          void readTrackInformation(track)
             .then((value) => {
-              if (!value.albumId) throw new Error('暂无可跳转的专辑信息')
+              if (!value.albumReference) throw new Error('暂无可跳转的专辑信息')
               navigate('album', '', {
-                id: value.albumId,
+                id: value.albumReference.id,
+                reference: value.albumReference,
                 kind: 'album',
                 name: track.album,
                 cover: track.cover,

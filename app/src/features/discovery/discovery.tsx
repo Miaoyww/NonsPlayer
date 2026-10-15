@@ -46,7 +46,13 @@ import {
 } from '@/lib/player'
 import { usePagedList } from '@/lib/use-paged-list'
 import { playLibraryCollection } from '@/features/library/library-api'
-import { createDiscoveryPlaylistLoader } from '@/features/discovery/discovery-api'
+import {
+  createDiscoveryPlaylistLoader,
+  discoveryCategories,
+  discoveryTracks,
+  discoveryRadar,
+  dislikeTrack
+} from '@/features/discovery/discovery-api'
 import { useAccount } from '@/features/account/account'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
@@ -60,7 +66,7 @@ interface Category {
   group: string
 }
 const radar: MusicCollection = {
-  id: 3136952023,
+  id: 0,
   kind: 'playlist',
   name: '私人雷达',
   cover: '',
@@ -77,7 +83,7 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (value: 
     let disposed = false
     if (!open || !isTauri()) return
     setError(undefined)
-    void nativeCall<Category[]>('discovery_categories', { refresh: revision > 0 })
+    void discoveryCategories(revision > 0)
       .then((items) => {
         if (!disposed) setCategories(items)
       })
@@ -178,7 +184,7 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
     setBusy(false)
     if (!profile || !isTauri()) return
     setBusy(true)
-    void nativeCall<Track[]>('discovery_tracks', { kind: 'fm', refresh: true })
+    void discoveryTracks('fm', true)
       .then((items) => {
         if (serial === generation.current) setTracks(items)
       })
@@ -222,8 +228,7 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
     setError(undefined)
     const serial = generation.current
     try {
-      if (dislike && track.source.kind === 'netease')
-        await nativeCall('discovery_dislike', { id: track.source.id })
+      if (dislike) await dislikeTrack(track)
       if (serial !== generation.current) return
       if (active) {
         if (getPlayer().privateFmSession !== player.privateFmSession) return
@@ -231,9 +236,7 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
         return
       }
       const remaining = tracks.slice(tracks.findIndex((item) => item.key === track.key) + 1)
-      const items = remaining.length
-        ? remaining
-        : await nativeCall<Track[]>('discovery_tracks', { kind: 'fm', refresh: true })
+      const items = remaining.length ? remaining : await discoveryTracks('fm', true)
       if (serial !== generation.current) return
       const fresh = items.filter((item) => item.key !== track.key)
       if (!fresh.length) throw new Error('暂时没有新的 FM 歌曲，请重试。')
@@ -348,7 +351,7 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
         )}
         {!profile && (
           <div className="mt-2">
-            <ActionButton variant="secondary" onClick={() => navigate('accounts', 'netease')}>
+            <ActionButton variant="secondary" onClick={() => navigate('accounts')}>
               登录账号
             </ActionButton>
           </div>
@@ -374,7 +377,7 @@ export default function Discovery({
     let disposed = false
     setRadarInfo(radar)
     if (!profile || !isTauri()) return
-    void nativeCall<MusicCollection>('discovery_radar')
+    void discoveryRadar()
       .then((item) => {
         if (!disposed) setRadarInfo({ ...item, name: '私人雷达' })
       })
@@ -405,10 +408,7 @@ export default function Discovery({
   const list = usePagedList(loader, 30, isTauri() && !daily)
   const dailyLoader = useCallback(
     async () => ({
-      items: await nativeCall<Track[]>('discovery_tracks', {
-        kind: 'daily',
-        refresh: revision > 0
-      }),
+      items: await discoveryTracks('daily', revision > 0),
       more: false
     }),
     [profile, revision]
@@ -432,7 +432,7 @@ export default function Discovery({
     pending.current = true
     setPlaying(true)
     try {
-      const tracks = await nativeCall<Track[]>('discovery_tracks', { kind: 'daily' })
+      const tracks = await discoveryTracks('daily')
       if (!tracks.length) throw new Error('今天还没有推荐歌曲，请稍后重试。')
       await nativeCall(next ? 'append_queue' : 'play_queue', {
         keys: tracks.map((track) => track.key),
@@ -459,7 +459,7 @@ export default function Discovery({
           {!profile ? (
             <div className="library-empty">
               <p>登录后发现今天为你推荐的音乐。</p>
-              <ActionButton variant="secondary" onClick={() => navigate('accounts', 'netease')}>
+              <ActionButton variant="secondary" onClick={() => navigate('accounts')}>
                 登录账号
               </ActionButton>
             </div>

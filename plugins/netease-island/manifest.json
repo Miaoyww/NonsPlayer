@@ -17,8 +17,8 @@
   ],
   "engines": {
     "app": "^1.0.0",
-    "pluginApi": "^1.0.0",
-    "uiApi": "^1.0.0"
+    "pluginApi": "^2.0.0",
+    "uiApi": "^2.0.0"
   },
   "contributes": {
     "views": [

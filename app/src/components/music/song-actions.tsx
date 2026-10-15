@@ -1,4 +1,6 @@
 import { trackShareLink } from '@/features/music/share-links'
+import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
+import { readTrackInformation } from '@/features/music/queries'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { TextSkeleton } from '@/components/music/loading'
 import { PluginSongMenuItems } from '@/plugins/song-menu'
@@ -49,8 +51,8 @@ interface LocalInformation {
   format: string
 }
 interface SongInformation {
-  artists: { name: string; id: number | null }[]
-  albumId: number | null
+  artists: import('@/features/music/types').MusicCredit[]
+  albumReference: import('@/features/music/types').EntityRef | null
   publishedAt: number | null
 }
 export function songCopyName(track: Track) {
@@ -122,7 +124,7 @@ export function SongActionsProvider({
           if (!disposed) setBusy(false)
         })
     else if (track && isTauri())
-      void nativeCall<SongInformation>('song_information', { key: track.key, refresh: retry > 0 })
+      void readTrackInformation(track, retry > 0)
         .then((value) => {
           if (!disposed) setInformation(value)
         })
@@ -191,10 +193,10 @@ export function SongActionsProvider({
             ['歌手', information?.artists.map((artist) => artist.name).join(' / ') || track.artist],
             [
               '歌手 ID',
-              information?.artists.map((artist) => artist.id ?? '未知').join(' / ') ?? ''
+              information?.artists.map((artist) => artist.reference?.id ?? '未知').join(' / ') ?? ''
             ],
             ['专辑', track.album],
-            ['专辑 ID', information?.albumId?.toString() ?? ''],
+            ['专辑 ID', information?.albumReference?.id ?? ''],
             [
               '歌曲 ID',
               (track.source.kind === 'netease'
@@ -258,7 +260,7 @@ export function SongActionsProvider({
         onNotice={onNotice}
       />
       <PlaylistPicker
-        track={collectTrack?.source.kind === 'netease' ? collectTrack : undefined}
+        track={collectTrack && onlineReference(collectTrack) ? collectTrack : undefined}
         onClose={() => setCollectTrack(undefined)}
         onNotice={onNotice}
       />
@@ -352,7 +354,17 @@ export function SongContextMenu({
 }) {
   const actions = useSongActions()
   const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
-  const id = track.source.kind === 'netease' ? track.source.id : undefined
+  const { statuses } = useMusicSources()
+  const reference = onlineReference(track)
+  const canCollect =
+    reference?.source === profile?.reference.source &&
+    statuses.some(
+      (value) =>
+        value.enabled &&
+        value.descriptor.source === reference?.source &&
+        value.descriptor.capabilities.includes('playlistWrite')
+    )
+  const id = favoriteId(track, profile?.reference)
   const liked = id !== undefined && likedIds.has(id)
   const unavailable = busy || !isTauri()
   return (
@@ -406,7 +418,7 @@ export function SongContextMenu({
                 添加到本地歌单
               </ContextMenu.Item>
             )}
-            {!unavailable && track.source.kind === 'netease' && profile && (
+            {!unavailable && canCollect && (
               <ContextMenu.Item onClick={() => actions.collect(track)}>
                 <FolderPlus aria-hidden="true" />
                 收藏到歌单

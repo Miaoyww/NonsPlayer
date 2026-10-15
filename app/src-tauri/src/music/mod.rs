@@ -5,7 +5,6 @@ pub use nons_music_adapter_sdk::{
 };
 pub mod accounts;
 pub(crate) mod bundled;
-pub(crate) mod compatibility;
 pub mod external;
 pub mod manager;
 pub mod migration;

@@ -1,10 +1,17 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
-const track = (key) => ({ key: String(key) })
+const track = (key) => ({
+  key: String(key),
+  source: {
+    kind: 'online',
+    track: { reference: { source: 'qqmusic', kind: 'track', id: String(key) } }
+  }
+})
 const settle = async () => {
   for (let i = 0; i < 12; i++) await Promise.resolve()
 }
@@ -17,7 +24,10 @@ function harness() {
         compilerOptions: { module: ts.ModuleKind.CommonJS }
       }
     ).outputText,
-    { exports }
+    {
+      exports,
+      require: (name) => (name === '@/features/music/legacy-reference' ? musicReference : {})
+    }
   )
   let state = {
     privateFmSession: 7,
@@ -32,7 +42,20 @@ function harness() {
     () => state,
     (command, args) =>
       new Promise((resolve, reject) => calls.push({ command, args, resolve, reject })),
-    (error) => errors.push(error)
+    (error) => errors.push(error),
+    () =>
+      new Promise((resolve, reject) =>
+        calls.push({
+          command: 'music_query',
+          args: {
+            source: 'qqmusic',
+            refresh: true,
+            request: { operation: 'recommendedTracks', kind: 'fm' }
+          },
+          resolve,
+          reject
+        })
+      )
   )
   return {
     fm,
@@ -65,7 +88,7 @@ test('FM replenishes at the penultimate song, deduplicates batches and continues
   app.calls[1].resolve()
   await settle()
   app.update({ index: 4 })
-  assert.equal(app.calls[2].command, 'discovery_tracks')
+  assert.equal(app.calls[2].command, 'music_query')
 })
 
 test('queue edits discard in-flight batches and do not request more songs', async () => {
@@ -126,7 +149,7 @@ test('bounded queues still replenish after the historical prefix is trimmed', as
   app.calls[1].resolve()
   await settle()
   app.update({ index: 998 })
-  assert.equal(app.calls[2].command, 'discovery_tracks')
+  assert.equal(app.calls[2].command, 'music_query')
 })
 
 test('the global player connection replenishes without mounting the discovery page', async () => {
@@ -155,7 +178,18 @@ test('the global player connection replenishes without mounting the discovery pa
     '@/lib/platform': { isAndroid: () => false },
     '@/features/playback/player-store': load('../src/features/playback/player-store.ts'),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
-    '@/features/discovery/private-fm': load('../src/features/discovery/private-fm.ts'),
+    '@/features/discovery/private-fm': load('../src/features/discovery/private-fm.ts', {
+      '@/features/music/legacy-reference': musicReference,
+      './discovery-api': {
+        discoveryTracks: async () => {
+          calls.push({
+            command: 'music_query',
+            args: { source: 'qqmusic', request: { operation: 'recommendedTracks', kind: 'fm' } }
+          })
+          return [4, 5, 6].map(track)
+        }
+      }
+    }),
     '@/lib/runtime-cache': { cachedCommands: new Set() },
     '@tauri-apps/api/event': {
       listen: async (event, callback) => {
@@ -179,7 +213,7 @@ test('the global player connection replenishes without mounting the discovery pa
               status: 'playing'
             }
           }
-        if (command === 'discovery_tracks') return [4, 5, 6].map(track)
+        if (command === 'music_query') return [4, 5, 6].map(track)
       }
     }
   })
@@ -190,7 +224,7 @@ test('the global player connection replenishes without mounting the discovery pa
   await settle()
   assert.deepEqual(
     calls.map((call) => call.command),
-    ['player_snapshot', 'discovery_tracks', 'append_private_fm']
+    ['player_snapshot', 'music_query', 'append_private_fm']
   )
   disconnect()
 })

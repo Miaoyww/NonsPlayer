@@ -1,5 +1,15 @@
 import type { ConfigSnapshot, PluginClient, PluginMenuSong, PluginTransfer } from '@app/plugin-sdk'
 import { audioFormat, filename, LoginRequired, resolveResource, type Quality } from './protocol'
+import { accountCredential, accountScope } from './account'
+import { migrateSong } from './migration'
+
+function songId(song: PluginMenuSong): number {
+  if (song.source.kind !== 'online' || song.source.reference.source !== 'netease')
+    throw new Error('只支持网易云歌曲')
+  const id = Number(song.source.reference.id)
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('歌曲引用无效')
+  return id
+}
 
 type Options = {
   quality: Quality
@@ -64,6 +74,7 @@ export async function activate(next: PluginClient) {
   try {
     const saved = await client.call<DownloadTask[] | null>('storage.get', { key: 'tasks' })
     tasks = (Array.isArray(saved) ? saved : []).slice(-32).map((task) => {
+      task = { ...task, song: migrateSong(task.song) }
       if (task.state === 'running' || task.state === 'resolving' || task.state === 'saving')
         return { ...task, state: 'failed', error: '上次下载已中断，请重试', transfer: undefined }
       return { ...task, transfer: undefined }
@@ -86,19 +97,12 @@ export async function activate(next: PluginClient) {
   }
 }
 export async function downloadSong(song: PluginMenuSong) {
-  if (
-    song.source.kind !== 'netease' ||
-    !Number.isSafeInteger(song.source.id) ||
-    song.source.id <= 0
-  )
-    throw new Error('只支持有效的网易云歌曲')
-  const id = song.source.id
+  const id = songId(song)
   if (
     adding.has(id) ||
     tasks.some(
       (task) =>
-        task.song.source.kind === 'netease' &&
-        task.song.source.id === id &&
+        songId(task.song) === id &&
         ['waiting', 'setup', 'resolving', 'running', 'paused', 'saving'].includes(task.state)
     )
   ) {
@@ -165,9 +169,7 @@ async function pump() {
     }
     root = task.options!.directory
     const roots = await client.call<{ id: string; writable: boolean }[]>('files.roots')
-    const account = await client.call<{ cookie: string | null; generation: number }>(
-      'netease.account-credentials'
-    )
+    const account = await accountCredential(client)
     if (!active || task.state === ('cancelled' as string) || task.state === ('paused' as string))
       return
     if (!root || !roots.some((r) => r.id === root && r.writable) || !account.cookie) {
@@ -183,10 +185,10 @@ async function pump() {
     task.error = undefined
     changed()
     await persist()
-    if (task.song.source.kind !== 'netease') throw new Error('歌曲来源无效')
+    const id = songId(task.song)
     const resource = await resolveResource(
       client,
-      task.song.source.id,
+      id,
       task.options!.quality,
       task.options!.allowFallback,
       task.options!.minimumQuality,
@@ -196,7 +198,7 @@ async function pump() {
       return
     task.quality = resource.quality
     task.total = resource.size
-    temporary = `${filename(task.song.title, task.song.artist, task.song.source.id)}-${Math.floor(task.id)}-${Date.now()}-${Math.floor(Math.random() * 1e9)}.part`
+    temporary = `${filename(task.song.title, task.song.artist, id)}-${Math.floor(task.id)}-${Date.now()}-${Math.floor(Math.random() * 1e9)}.part`
     const started = await client.call<{ id: number }>('transfers.start', {
       url: resource.url,
       root,
@@ -243,9 +245,9 @@ async function pump() {
     }
     if (!format) throw new Error('资源不是受支持的音频文件，已拒绝保存')
     if (task.state === ('cancelled' as string)) throw new Error('下载已取消')
-    const target = `${filename(task.song.title, task.song.artist, task.song.source.id)}.${format}`
-    const current = await client.call<{ generation: number }>('netease.account-credentials')
-    if (current.generation !== account.generation) throw new Error('下载期间账号已变化，请重试')
+    const target = `${filename(task.song.title, task.song.artist, id)}.${format}`
+    const current = await accountScope(client)
+    if (current.scope !== account.scope) throw new Error('下载期间账号已变化，请重试')
     await client.call('files.publish', { root, path: temporary, to: target })
     temporary = undefined
     task.path = target

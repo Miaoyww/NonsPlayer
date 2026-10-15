@@ -2,21 +2,22 @@
 import { validCoverInput } from '@/features/music/cover-image'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import type { LibrarySummary, CollectionPage } from './library-api'
-const key = 'nons-library-preview-v1'
+const key = 'nons-library-preview-v2'
 const limit = 128 * 1024
 const ttl = 24 * 60 * 60 * 1000
 interface Preview {
-  userId: number
+  userId: string
   updatedAt: number
   summary?: LibrarySummary
   collections?: CollectionPage
 }
 let entries: Preview[] | undefined
-const owner = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) > 0
-function validSummary(value: LibrarySummary | undefined, userId: number) {
+const owner = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0 && value.length <= 2048
+function validSummary(value: LibrarySummary | undefined, userId: string) {
   return (
     !value ||
-    (value.profile?.userId === userId &&
+    (JSON.stringify(value.profile?.reference) === userId &&
       typeof value.profile.nickname === 'string' &&
       validCoverInput(value.profile.avatarUrl) &&
       Array.isArray(value.likedTracks) &&
@@ -29,8 +30,8 @@ function validSummary(value: LibrarySummary | undefined, userId: number) {
           typeof track.album === 'string' &&
           Number.isFinite(track.durationMs) &&
           validCoverInput(track.cover) &&
-          track.source?.kind === 'netease' &&
-          owner(track.source.id)
+          track.source?.kind === 'online' &&
+          owner(track.source.track.reference.id)
       ) &&
       (value.likedPlaylist === null || validCollection(value.likedPlaylist)))
   )
@@ -39,17 +40,34 @@ function validCollection(value: MusicCollection | null | undefined): boolean {
   return (
     !!value &&
     value.kind === 'playlist' &&
-    owner(value.id) &&
+    !!value.reference &&
+    owner(value.reference.id) &&
     typeof value.name === 'string' &&
     typeof value.subtitle === 'string' &&
     Number.isFinite(value.trackCount) &&
     value.trackCount >= 0 &&
     value.localId === undefined &&
     validCoverInput(value.cover) &&
-    (!value.reference || value.reference.source === 'netease')
+    owner(value.reference.source)
   )
 }
 function valid(value: Preview): boolean {
+  let account: { source?: string; id?: string }
+  try {
+    account = JSON.parse(value.userId)
+  } catch {
+    return false
+  }
+  if (!account || !owner(account.source) || !owner(account.id)) return false
+  const source = account.source
+  if (
+    value.summary?.likedTracks.some(
+      (track) => track.source.kind !== 'online' || track.source.track.reference.source !== source
+    ) ||
+    (value.summary?.likedPlaylist && value.summary.likedPlaylist.reference?.source !== source) ||
+    value.collections?.items.some((item) => item.reference?.source !== source)
+  )
+    return false
   return (
     !!value &&
     owner(value.userId) &&
@@ -77,15 +95,17 @@ function read() {
   entries = entries.filter(valid)
   return entries
 }
-export function peekLibraryPreview(userId: number) {
+export function peekLibraryPreview(userId: string) {
   return read().find((value) => value.userId === userId)
 }
 export function saveLibraryPreview(
-  userId: number,
+  userId: string,
   patch: Pick<Preview, 'summary' | 'collections'>
 ) {
   if (!owner(userId)) return
   const value = { ...peekLibraryPreview(userId), ...patch, userId, updatedAt: Date.now() }
+  if (value.summary)
+    value.summary = { ...value.summary, likedTracks: value.summary.likedTracks.slice(0, 12) }
   if (!valid(value)) return
   entries = [value, ...read().filter((item) => item.userId !== userId)].slice(0, 2)
   try {

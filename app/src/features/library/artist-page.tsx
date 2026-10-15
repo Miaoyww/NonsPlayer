@@ -1,4 +1,7 @@
 import { TrackListSkeleton, CollectionGridSkeleton, TextSkeleton } from '@/components/music/loading'
+import { tracksForCollection, queryPage } from '@/features/music/queries'
+import { collectionReference } from '@/features/music/legacy-reference'
+import { musicCollection } from '@/features/music/entities'
 import { DetailHeader } from '@/features/library/detail-header'
 import { DetailDescription } from '@/features/library/detail-description'
 import { MusicPage } from '@/components/music/music-page'
@@ -6,11 +9,7 @@ import { useCallback, useRef, useState, type KeyboardEvent } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Play, RefreshCw } from 'lucide-react'
 import { nativeCall, usePlayer, type Track } from '@/lib/player'
-import {
-  playLibraryCollection,
-  type CollectionPage,
-  type CollectionTracks
-} from '@/features/library/library-api'
+import { playLibraryCollection } from '@/features/library/library-api'
 import { useEntityDetail } from '@/features/library/music-entities'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { usePagedList } from '@/lib/use-paged-list'
@@ -42,17 +41,26 @@ export default function ArtistPage({
   const currentKey = player.index !== null ? player.queue[player.index]?.key : undefined
   const songLoader = useCallback(
     async (offset: number) => {
-      const page = await nativeCall<CollectionTracks>('artist_tracks', {
-        id: collection.id,
-        offset
-      })
+      const page = await tracksForCollection(collection, offset)
       return { items: page.tracks, more: page.more }
     },
     [collection.id, refresh]
   )
   const albumLoader = useCallback(
-    async (offset: number) =>
-      nativeCall<CollectionPage>('artist_albums', { id: collection.id, offset }),
+    async (offset: number) => {
+      const artist = collectionReference(collection)
+      const response = await queryPage(
+        { operation: 'artistAlbums', artist, page: { cursor: null, limit: 30 } },
+        offset,
+        30,
+        artist.source
+      )
+      if (response.type !== 'entities') throw new Error('歌手专辑响应无效')
+      return {
+        items: response.data.items.map(musicCollection),
+        more: response.data.nextCursor !== null
+      }
+    },
     [collection.id, refresh]
   )
   const songs = usePagedList<Track>(songLoader, 100, isTauri())
@@ -127,7 +135,7 @@ export default function ArtistPage({
             variant="ghost"
             size="sm"
             onClick={() => {
-              invalidateNativeCache(['music_entity_detail'])
+              invalidateNativeCache(['music_query'])
               setRefresh((value) => value + 1)
             }}
           >

@@ -1,10 +1,11 @@
 import { coverOriginal } from '@/features/music/cover-image'
 import type { Track } from '@/lib/player'
 import type { PluginManifest } from './types'
+import { onlineReference } from '@/features/music/legacy-reference'
 
 export function songMenuContributions(manifest: PluginManifest, track: Track) {
   return (manifest.contributes.contextMenus ?? []).filter(
-    (menu) => menu.target === 'song' && menu.source === track.source.kind
+    (menu) => menu.target === 'song' && menu.source === (onlineReference(track)?.source ?? 'local')
   )
 }
 export function publicMenuSong(track: Track) {
@@ -19,11 +20,8 @@ export function publicMenuSong(track: Track) {
     album: track.album,
     durationMs: track.durationMs,
     cover: cover.startsWith('http') ? cover : '',
-    source:
-      track.source.kind === 'netease'
-        ? { kind: 'netease' as const, id: track.source.id }
-        : track.source.kind === 'online'
-          ? { kind: 'online' as const, reference: track.source.track.reference }
-          : { kind: 'local' as const }
+    source: onlineReference(track)
+      ? { kind: 'online' as const, reference: onlineReference(track)! }
+      : { kind: 'local' as const }
   }
 }

@@ -19,13 +19,13 @@ export type MusicView =
 export interface MusicCollection {
   reference?: import('@/features/music/types').EntityRef
   localId?: string
-  id: number
+  id: number | string
   kind: 'playlist' | 'album' | 'artist'
   name: string
   cover: import('@/features/music/types').CoverInput
   subtitle: string
   trackCount: number
-  creatorId?: number
+  creatorId?: number | string
   liked?: boolean
   playCount?: number | null
   publishedAt?: number | null

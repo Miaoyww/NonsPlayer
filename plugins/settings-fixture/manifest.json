@@ -5,6 +5,6 @@
   "frontend": "ui.mjs",
   "configuration": "configuration.json",
   "permissions": ["ui", "config", "files:data", "files:selected"],
-  "engines": { "app": "^1.0.0", "pluginApi": "^1.0.0", "uiApi": "^1.0.0" },
+  "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" },
   "contributes": { "pages": [{ "id": "settings", "path": "/settings", "export": "SettingsPage" }] }
 }

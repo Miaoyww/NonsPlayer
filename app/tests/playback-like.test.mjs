@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -18,16 +19,26 @@ function harness({
     errors = []
   const jsx = (type, props) => ({ type, props })
   const account = {
-    profile: loggedIn ? { userId: 1 } : null,
-    likedIds: new Set(liked ? [7] : []),
+    profile: loggedIn ? { userId: '1', reference: { source: 'netease', id: '1' } } : null,
+    likedIds: new Set(liked ? ['7'] : []),
     likesReady: ready,
-    pendingLikes: new Set(pending ? [7] : []),
+    pendingLikes: new Set(pending ? ['7'] : []),
     toggleLike: async (id) => {
       calls.push(id)
       if (failure) throw failure
     }
   }
   const modules = {
+    '@/features/music/use-music-sources': {
+      useMusicSources: () => ({
+        statuses: [
+          {
+            enabled: true,
+            descriptor: { source: 'netease', capabilities: ['playlistWrite', 'favorites'] }
+          }
+        ]
+      })
+    },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     react: { useState: (value) => [value, () => {}] },
     '@tauri-apps/api/core': { isTauri: () => desktop },
@@ -51,7 +62,11 @@ function harness({
       readFileSync(new URL(`../src/features/playback/${file}.tsx`, import.meta.url), 'utf8'),
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
     )
-    runInNewContext(outputText, { exports, require: (name) => modules[name] ?? {} })
+    runInNewContext(outputText, {
+      exports,
+      require: (name) =>
+        name === '@/features/music/legacy-reference' ? musicReference : (modules[name] ?? {})
+    })
     return exports
   }
   const like = load('current-track-like')
@@ -90,8 +105,8 @@ test('playback heart toggles the currently playing song and reflects shared acco
   assert.equal(app.render().props.disabled, false)
   app.render().props.onClick()
   await Promise.resolve()
-  assert.deepEqual(app.calls, [7])
-  app.account.likedIds.add(7)
+  assert.deepEqual(app.calls, ['7'])
+  app.account.likedIds.add('7')
   assert.equal(app.render().props['aria-pressed'], true)
   assert.equal(app.render().props['aria-label'], '取消收藏当前歌曲')
 })
@@ -131,8 +146,8 @@ test('persistent player puts the shared favorite directly after quality and uses
   assert.equal(options.props.children[1].type, app.like)
   app.render().props.onClick()
   await Promise.resolve()
-  assert.deepEqual(app.calls, [7])
-  app.account.likedIds.add(7)
+  assert.deepEqual(app.calls, ['7'])
+  app.account.likedIds.add('7')
   assert.equal(app.render().props['aria-pressed'], true)
   assert.equal(harness({ bar: 'persistent', loggedIn: false }).render().props.disabled, true)
   assert.equal(

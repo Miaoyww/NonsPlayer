@@ -18,7 +18,7 @@ export interface PluginManifest {
     contextMenus?: {
       id: string
       target: 'song'
-      source: 'netease' | 'local'
+      source: string
       label: string
       icon?: string | null
       export: string
@@ -32,16 +32,7 @@ export interface PluginDescriptor {
   generation: number
   error: string | null
 }
-export interface PluginSong {
-  id: number
-  key: string
-  title: string
-  artist: string
-  artists?: { id?: number | null; name: string }[]
-  album: string
-  durationMs: number
-  cover: string
-}
+export type PluginSong = import('@/features/music/types').MusicTrack
 
 export function pluginPath(pluginId: string, path = '/') {
   if (!/^[a-z][a-z0-9-]{0,63}$/.test(pluginId)) throw new Error('插件 ID 无效')

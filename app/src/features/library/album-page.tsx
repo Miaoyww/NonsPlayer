@@ -1,4 +1,5 @@
 import { TrackListSkeleton } from '@/components/music/loading'
+import { tracksForCollection } from '@/features/music/queries'
 import { CollectionTabs } from '@/features/library/collection-tabs'
 import { DetailHeader } from '@/features/library/detail-header'
 import { DetailDescription } from '@/features/library/detail-description'
@@ -38,11 +39,7 @@ export default function AlbumPage({
   const currentKey = player.index !== null ? player.queue[player.index]?.key : undefined
   const loader = useCallback(
     async (offset: number) => {
-      const value = await nativeCall<CollectionTracks>('library_tracks', {
-        kind: 'album',
-        id: collection.id,
-        offset
-      })
+      const value = await tracksForCollection(collection, offset)
       return { items: value.tracks, more: value.more, metadata: value }
     },
     [collection.id, refresh]
@@ -94,7 +91,7 @@ export default function AlbumPage({
             variant="ghost"
             size="sm"
             onClick={() => {
-              invalidateNativeCache(['music_entity_detail'])
+              invalidateNativeCache(['music_query'])
               setRefresh((value) => value + 1)
             }}
           >

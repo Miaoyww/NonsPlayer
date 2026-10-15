@@ -4,6 +4,24 @@ use super::{
     ErrorCode, MusicResult, CONTRACT_VERSION,
 };
 use crate::model::PlayerSnapshot;
+pub(crate) const LEGACY_CREDENTIAL_KEY: &str = "netease-session";
+pub(crate) fn legacy_account_source(source: &SourceId) -> bool {
+    source.as_str() == "netease"
+}
+pub(crate) fn pending_account_credential(
+    store: &dyn super::accounts::CredentialStore,
+    source: &SourceId,
+    retired: bool,
+) -> MusicResult<Option<Vec<u8>>> {
+    if legacy_account_source(source) && !retired {
+        // Old Windows credentials were stored as UTF-16 passwords, not binary secrets.
+        store
+            .read_text(LEGACY_CREDENTIAL_KEY)
+            .map(|value| value.map(String::into_bytes))
+    } else {
+        Ok(None)
+    }
+}
 use nons_music_adapter_sdk::migration::convert_track;
 pub use nons_music_adapter_sdk::migration::{legacy_track, LocalBinding, MigratedTrack};
 use serde::{Deserialize, Serialize};

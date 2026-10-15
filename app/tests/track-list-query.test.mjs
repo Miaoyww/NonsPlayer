@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -46,6 +47,7 @@ async function harness(run, android = false) {
   }
   const trackSearchContext = React.createContext(undefined)
   const modules = {
+    '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     '@/lib/platform': { isAndroid: () => android },
     './list-find': { useListFind() {} },
     '@/components/ui/skeleton': {
@@ -121,8 +123,8 @@ async function harness(run, android = false) {
       {
         exports,
         require: (name) => {
-          assert.ok(name in modules, name)
-          return modules[name]
+          assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
+          return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
         },
         ResizeObserver: class {
           observe() {}
@@ -145,8 +147,8 @@ async function harness(run, android = false) {
     {
       exports,
       require: (name) => {
-        assert.ok(name in modules, name)
-        return modules[name]
+        assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
+        return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
       },
       ResizeObserver: class {
         observe() {}

@@ -1,8 +1,10 @@
 import { TextSkeleton } from '@/components/music/loading'
+import { onlineReference, collectionReference } from '@/features/music/legacy-reference'
+import { musicClient } from '@/features/music/client'
 import { useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Search } from 'lucide-react'
-import { nativeCall, errorText, type Track } from '@/lib/player'
+import { errorText, type Track } from '@/lib/player'
 import { getLibraryCollections } from '@/features/library/library-api'
 import { Dialog, DialogDescription, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useAccount } from '@/features/account/account'
@@ -47,7 +49,7 @@ export function PlaylistPicker({
     setLoading(!!track && !!profile)
     if (track && profile)
       void (async () => {
-        const all = new Map<number, MusicCollection>()
+        const all = new Map<number | string, MusicCollection>()
         for (let offset = 0; offset <= 100000; offset += 30) {
           const page = await getLibraryCollections('playlist', offset, 'mine')
           if (disposed) return
@@ -85,19 +87,21 @@ export function PlaylistPicker({
     scroll.current?.scrollTo({ top: 0 })
   }, [query])
   async function collect(item: MusicCollection) {
-    const id =
-      track?.source.kind === 'netease'
-        ? track.source.id
-        : track?.source.kind === 'local'
-          ? track.source.neteaseId
-          : undefined
-    if (!id || pending.current || !profile) return
+    const reference = track ? onlineReference(track) : null
+    if (!reference || pending.current || !profile) return
     const userId = profile.userId
     pending.current = true
     setSaving(true)
     setError(undefined)
     try {
-      await nativeCall('add_playlist_song', { playlistId: item.id, songId: id })
+      const playlist = collectionReference(item)
+      if (playlist.source !== reference.source) throw new Error('曲目与歌单来源不一致')
+      await musicClient.write(playlist.source, {
+        operation: 'playlistTrack',
+        playlist,
+        track: reference,
+        add: true
+      })
       if (account.current !== userId) return
       reloadLikes()
       changed()

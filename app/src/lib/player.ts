@@ -141,28 +141,7 @@ export function adjacentIndex(
   return order ? order[target] : target
 }
 
-const onlineCachedCommands = new Set([
-  'music_entity_detail',
-  'artist_albums',
-  'artist_tracks',
-  'discovery_radar',
-  'discovery_playlists',
-  'discovery_categories',
-  'discovery_tracks',
-  'search_music',
-  'search_suggestions',
-  'search_collections',
-  'music_library',
-  'library_collections',
-  'library_tracks',
-  'library_history',
-  'liked_song_ids',
-  'song_information'
-])
 const musicQueries = new ScopedMusicQueries(requestCache, invoke)
-export function peekNativeCall<T>(command: string, args?: Record<string, unknown>): T | undefined {
-  return musicQueries.peek<T>('netease', command, args)
-}
 export function scopedNativeCall<T>(
   source: string,
   command: string,
@@ -202,10 +181,6 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
   if (cachedCommands.has(command)) {
     const key = requestKey(command, args)
 
-    const online =
-      onlineCachedCommands.has(command) &&
-      !(command === 'song_information' && String(args?.key ?? '').startsWith('local:'))
-    if (online) return scopedNativeCall<T>('netease', command, args)
     if (command === 'music_query' || command === 'music_read_track') {
       const reference = args?.reference as { source?: string } | undefined
       return scopedNativeCall<T>(String(args?.source ?? reference?.source), command, args)
@@ -218,29 +193,7 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
   }
   const result = await invoke<T>(command, args)
   const affected: Record<string, string[]> = {
-    discovery_dislike: ['discovery_tracks'],
-    set_song_liked: ['liked_song_ids', 'music_library', 'library_tracks', 'library_collections'],
-    remove_playlist_song: [
-      'liked_song_ids',
-      'music_library',
-      'library_tracks',
-      'library_collections'
-    ],
-    add_playlist_song: ['liked_song_ids', 'music_library', 'library_tracks', 'library_collections'],
-    update_library_playlist: [
-      'music_library',
-      'library_tracks',
-      'library_collections',
-      'discovery_playlists',
-      'music_entity_detail'
-    ],
-    delete_library_playlist: [
-      'music_library',
-      'library_tracks',
-      'library_collections',
-      'discovery_playlists'
-    ],
-    create_library_playlist: ['library_collections', 'music_library'],
+    music_write: ['music_query', 'music_read_track', 'music_queue_track', 'music_queue_tracks'],
     import_music: [
       'local_music',
       'local_entities',
@@ -286,15 +239,12 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
     clear_local_cache: ['track_lyrics'],
     set_local_cache_options: ['track_lyrics'],
     music_select_account: [...cachedCommands],
-    music_remove_account: [...cachedCommands],
-    logout: [...cachedCommands]
+    music_remove_account: [...cachedCommands]
   }
   if (affected[command])
     invalidateNativeCache(
       affected[command],
-      ['music_select_account', 'music_remove_account', 'logout'].includes(command)
-        ? 'context'
-        : 'refresh'
+      ['music_select_account', 'music_remove_account'].includes(command) ? 'context' : 'refresh'
     )
   return result
 }

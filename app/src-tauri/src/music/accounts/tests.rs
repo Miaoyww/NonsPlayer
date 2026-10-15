@@ -274,6 +274,7 @@ fn scoped_access_rejects_cross_source_stale_accounts_and_disabled_instances() {
                     source: source_id,
                     display_name: name.into(),
                     contract_version: super::super::CONTRACT_VERSION,
+                    login_methods: Vec::new(),
                     cover_hosts: Default::default(),
                     share_link_templates: Default::default(),
                     capabilities: Default::default(),
@@ -363,6 +364,7 @@ async fn logout_preserves_credentials_and_can_reselect_after_restart() {
         source: source("test"),
         display_name: "test".into(),
         contract_version: super::super::CONTRACT_VERSION,
+        login_methods: Vec::new(),
         cover_hosts: Default::default(),
         share_link_templates: Default::default(),
         capabilities: [super::super::adapter::Capability::Account]
@@ -462,6 +464,7 @@ fn refresh_after_instance_revocation_restores_previous_secret_without_publicatio
                 source: source("test"),
                 display_name: "test".into(),
                 contract_version: super::super::CONTRACT_VERSION,
+                login_methods: Vec::new(),
                 cover_hosts: Default::default(),
                 share_link_templates: Default::default(),
                 capabilities: Default::default(),
@@ -533,4 +536,33 @@ fn repeated_cleanup_failure_bounds_tombstones_and_keeps_remaining_account_recove
         restarted.session(&source("test")).account.unwrap().as_str(),
         "100"
     );
+}
+
+#[test]
+fn invalidation_is_scoped_preserves_saved_accounts_and_reports_save_failure() {
+    let (manager, records, secrets) = setup();
+    let source = source("qqmusic");
+    manager
+        .accept(
+            &manager.session(&source),
+            record("qqmusic", "opaque-user"),
+            secret(b"credential"),
+            false,
+        )
+        .unwrap();
+    let session = manager.session(&source);
+    records.fail.store(true, Ordering::SeqCst);
+    assert!(manager.invalidate(&session).is_err());
+    assert_eq!(manager.session(&source), session);
+    records.fail.store(false, Ordering::SeqCst);
+    manager.invalidate(&session).unwrap();
+    assert!(manager.session(&source).account.is_none());
+    assert_eq!(manager.records(&source).unwrap().len(), 1);
+    assert_eq!(
+        manager.invalidate(&session).unwrap_err().code,
+        ErrorCode::StaleContext
+    );
+    let restart = AccountManager::new(records, secrets).unwrap();
+    assert!(restart.session(&source).account.is_none());
+    assert_eq!(restart.records(&source).unwrap().len(), 1);
 }

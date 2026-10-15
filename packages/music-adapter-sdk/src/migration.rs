@@ -1,5 +1,19 @@
 //! Read-only legacy track conversion; persistence remains host owned.
 use crate::legacy::{Track, TrackSource};
+/// Preserve persisted queue/cache keys while all new tracks use the uniform source shape.
+pub(crate) fn historical_key(reference: &crate::identity::EntityRef) -> Option<String> {
+    if reference.source.as_str() == "netease" {
+        reference
+            .id
+            .as_str()
+            .parse::<u64>()
+            .ok()
+            .filter(|id| *id > 0)
+            .map(|id| format!("netease:{id}"))
+    } else {
+        None
+    }
+}
 use crate::{
     identity::{EntityKind, EntityRef, MusicCredit, MusicTrack, OpaqueId, SourceId},
     ErrorCode, MusicResult,

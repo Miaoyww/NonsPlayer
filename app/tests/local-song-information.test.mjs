@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -11,6 +12,17 @@ function harness() {
   let cursor = 0
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/features/music/queries': {
+      readTrackInformation: async () => {
+        calls.push({ command: 'music_query' })
+        return {
+          artists: [{ name: 'Singer', reference: { source: 'netease', kind: 'artist', id: '42' } }],
+          albumReference: { source: 'netease', kind: 'album', id: '99' },
+          publishedAt: null
+        }
+      }
+    },
+    '@/features/music/use-music-sources': {},
     '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     '@/features/music/share-links': { trackShareLink: () => '' },
     '@/components/music/loading': { TextSkeleton: 'div' },
@@ -88,8 +100,8 @@ function harness() {
     Date,
     navigator: { clipboard: { writeText: async (value) => copied.push(value) } },
     require: (name) => {
-      assert.ok(name in modules, name)
-      return modules[name]
+      assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
+      return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
     }
   })
   function render() {
@@ -155,7 +167,7 @@ test('streaming details retain structured artist and album IDs', async () => {
   h.render()
   await settle()
   const tree = h.render()
-  assert.equal(h.calls[0].command, 'song_information')
+  assert.equal(h.calls[0].command, 'music_query')
   h.nodes(tree, 'ActionButton')
     .find((node) => node.props.children === '复制全部信息')
     .props.onClick()

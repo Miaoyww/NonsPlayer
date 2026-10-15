@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Plus } from 'lucide-react'
-import { nativeCall, errorText } from '@/lib/player'
+import { musicClient } from '@/features/music/client'
+import { currentSource } from '@/features/music/queries'
+import { errorText } from '@/lib/player'
 import {
   Dialog,
   DialogClose,
@@ -31,7 +33,11 @@ export function CreatePlaylist({
     setBusy(true)
     setError(undefined)
     try {
-      await nativeCall('create_library_playlist', { name: name.trim(), private: privatePlaylist })
+      await musicClient.write(await currentSource(), {
+        operation: 'createPlaylist',
+        name: name.trim(),
+        private: privatePlaylist
+      })
       setOpen(false)
       setName('')
       onCreated()

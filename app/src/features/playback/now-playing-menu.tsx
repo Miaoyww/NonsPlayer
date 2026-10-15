@@ -1,4 +1,6 @@
+import { useMusicSources } from '@/features/music/use-music-sources'
 import { Menu } from '@base-ui/react/menu'
+import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
 import { Copy, Ellipsis, FolderPlus, Heart, Info, RefreshCw, Share2 } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { songCopyName, useSongActions } from '@/components/music/song-actions'
@@ -21,8 +23,18 @@ export function NowPlayingMenu({
 }) {
   const actions = useSongActions()
   const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
-  const id = track?.source.kind === 'netease' ? track.source.id : undefined
+  const id = track ? favoriteId(track, profile?.reference) : undefined
   const liked = id !== undefined && likedIds.has(id)
+  const { statuses } = useMusicSources()
+  const reference = track ? onlineReference(track) : null
+  const canCollect =
+    reference?.source === profile?.reference.source &&
+    statuses.some(
+      (value) =>
+        value.enabled &&
+        value.descriptor.source === reference?.source &&
+        value.descriptor.capabilities.includes('playlistWrite')
+    )
   const desktop = isTauri()
   const link = track ? actions.songLink(track) : ''
   return (
@@ -47,13 +59,12 @@ export function NowPlayingMenu({
                 {liked ? '取消收藏歌曲' : '收藏歌曲'}
               </Menu.Item>
             )}
-            {track &&
-              (track.source.kind === 'local' || (track.source.kind === 'netease' && profile)) && (
-                <Menu.Item disabled={!desktop} onClick={() => actions.collect(track)}>
-                  <FolderPlus aria-hidden="true" />
-                  {track.source.kind === 'local' ? '添加到本地歌单' : '收藏到歌单'}
-                </Menu.Item>
-              )}
+            {track && (track.source.kind === 'local' || canCollect) && (
+              <Menu.Item disabled={!desktop} onClick={() => actions.collect(track)}>
+                <FolderPlus aria-hidden="true" />
+                {track.source.kind === 'local' ? '添加到本地歌单' : '收藏到歌单'}
+              </Menu.Item>
+            )}
             {track && (
               <Menu.Item onClick={() => actions.copy(link || songCopyName(track))}>
                 {link ? <Share2 aria-hidden="true" /> : <Copy aria-hidden="true" />}

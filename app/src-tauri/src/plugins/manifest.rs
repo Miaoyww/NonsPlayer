@@ -6,7 +6,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-pub const API_VERSION: &str = "1.3.0";
+pub const API_VERSION: &str = "2.0.0";
 pub const PERMISSIONS: &[&str] = &[
     "clipboard:music-links",
     "clipboard:read",
@@ -344,7 +344,7 @@ impl Manifest {
         if c.context_menus.len() > 16
             || c.context_menus.iter().any(|m| {
                 m.target != "song"
-                    || !matches!(m.source.as_str(), "netease" | "local")
+                    || !valid_id(&m.source)
                     || m.label.trim().is_empty()
                     || m.label.len() > 128
                     || m.icon.as_deref().is_some_and(|icon| !valid_id(icon))
@@ -408,7 +408,7 @@ mod tests {
             .unwrap();
         for (key, invalid) in [
             ("target", "album"),
-            ("source", "any"),
+            ("source", "../any"),
             ("export", "../run"),
             ("icon", "../icon"),
         ] {
@@ -511,7 +511,7 @@ mod tests {
         for (pointer, invalid) in [
             ("/id", serde_json::json!("../bad")),
             ("/version", serde_json::json!("latest")),
-            ("/engines/pluginApi", serde_json::json!("^2.0.0")),
+            ("/engines/pluginApi", serde_json::json!("^1.0.0")),
             ("/permissions", serde_json::json!(["http:any"])),
             ("/contributes/views/0/slot", serde_json::json!("unknown")),
             ("/frontend", serde_json::Value::Null),

@@ -1,4 +1,5 @@
 import { Heart } from 'lucide-react'
+import { favoriteId } from '@/features/music/legacy-reference'
 import { isTauri } from '@tauri-apps/api/core'
 import type { Track } from '@/lib/player'
 import { Button } from '@/components/ui/button'
@@ -14,7 +15,7 @@ export function CurrentTrackLike({
   showLabel?: boolean
 }) {
   const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
-  const songId = track?.source.kind === 'netease' ? track.source.id : undefined
+  const songId = track ? favoriteId(track, profile?.reference) : undefined
   const liked = songId !== undefined && likedIds.has(songId)
   const likePending = songId !== undefined && pendingLikes.has(songId)
   return (
@@ -37,7 +38,7 @@ export function CurrentTrackLike({
         !track
           ? '选择一首音乐后收藏'
           : songId === undefined
-            ? '本地歌曲暂不支持网易云收藏'
+            ? '当前来源账号不支持收藏这首歌曲'
             : !profile
               ? '登录后收藏歌曲'
               : !likesReady

@@ -1,3 +1,4 @@
+import { useMusicSources } from '@/features/music/use-music-sources'
 import type { ReactNode } from 'react'
 import type { Track } from '@/lib/player'
 import { Cover } from './cover'
@@ -22,6 +23,7 @@ export function TrackIdentity({
   mode?: InterfaceDensity
   onTitleCopy?: () => void
 }) {
+  const { statuses } = useMusicSources()
   const [preferredMode] = useInterfaceDensity()
   const displayMode = mode ?? preferredMode
   return (
@@ -51,7 +53,15 @@ export function TrackIdentity({
           title={track.artist}
         >
           <TrackArtists track={track} />
-          {showSource && <span className="ml-2">· {sourceLabel(trackSource(track))}</span>}
+          {showSource && (
+            <span className="ml-2">
+              ·{' '}
+              {sourceLabel(
+                trackSource(track),
+                statuses.map((value) => value.descriptor)
+              )}
+            </span>
+          )}
         </p>
       </div>
     </div>

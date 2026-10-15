@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -23,8 +24,8 @@ function load(path, modules) {
   runInNewContext(outputText, {
     exports,
     require(name) {
-      assert.ok(name in modules, name)
-      return modules[name]
+      assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
+      return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
     }
   })
   return exports
@@ -128,6 +129,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
       react: React,
       'react/jsx-runtime': jsx,
       '@/features/local/use-local-preferences': {},
+      '@/features/music/queries': {},
       '@/lib/player': {},
       '@/features/workspace/music-navigation': {
         useMusicNavigation: () => ({ navigate: (...args) => navigations.push(args) })
@@ -141,7 +143,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
       '@/components/ui/button': { Button },
       '@/features/account/account': {
         useAccount: () => ({
-          profile: {},
+          profile: { reference: { source: 'netease', id: 'user' } },
           likedIds: new Set(),
           likesReady: true,
           pendingLikes: new Set(),
@@ -244,10 +246,10 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
     assert.equal(scope.listeners.size, 1)
     await React.act(async () => {
       scope.events.set('song-detected', {
-        id: 1,
+        reference: { source: 'netease', kind: 'track', id: '1' },
         title: '歌曲一',
         artist: '歌手甲',
-        artists: [{ id: 123, name: '歌手甲' }],
+        artists: [{ reference: { source: 'netease', kind: 'artist', id: '123' }, name: '歌手甲' }],
         album: '专辑',
         cover: ''
       })
@@ -262,8 +264,8 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
       document.querySelector('[aria-label="收藏歌曲"]').click()
     })
     assert.equal(navigations[0][0], 'artist')
-    assert.equal(navigations[0][2].id, 123)
-    assert.deepEqual(likes, [1])
+    assert.equal(navigations[0][2].id, '123')
+    assert.deepEqual(likes, ['1'])
     assert.equal(pendingTimers.size, 1)
     await React.act(async () => {
       document.querySelector('[aria-label="关闭歌曲预览"]').focus()
@@ -274,7 +276,13 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
     })
     assert.equal(document.querySelector('[role=status]'), null)
     await React.act(async () => {
-      scope.events.set('song-detected', { id: 2, title: '歌曲二', artist: '歌手乙', cover: '' })
+      scope.events.set('song-detected', {
+        reference: { source: 'netease', kind: 'track', id: '2' },
+        title: '歌曲二',
+        artist: '歌手乙',
+        artists: [],
+        cover: ''
+      })
       scope.listeners.forEach((notify) => notify())
     })
     const next = [...document.querySelectorAll('button')].find(
@@ -285,8 +293,11 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
       next.click()
     })
     assert.equal(calls.length, 1, 'repeated clicks submit one queue operation')
-    assert.equal(calls[0][1].operation, 'netease.play-song')
-    assert.deepEqual(JSON.parse(calls[0][1].args), { id: 2, mode: 'next' })
+    assert.equal(calls[0][1].operation, 'music.play-track')
+    assert.deepEqual(JSON.parse(calls[0][1].args), {
+      reference: { source: 'netease', kind: 'track', id: '2' },
+      mode: 'next'
+    })
     await React.act(async () => {
       finish('null')
     })
@@ -294,7 +305,10 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
     await React.act(async () => {
       ;[...document.querySelectorAll('button')].find((b) => b.textContent === '立即播放').click()
     })
-    assert.deepEqual(JSON.parse(calls[1][1].args), { id: 2, mode: 'now' })
+    assert.deepEqual(JSON.parse(calls[1][1].args), {
+      reference: { source: 'netease', kind: 'track', id: '2' },
+      mode: 'now'
+    })
     await React.act(async () => {
       finish('null')
     })

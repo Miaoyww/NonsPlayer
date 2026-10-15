@@ -1,10 +1,13 @@
-import type { PlayerSnapshot, Track } from '@/lib/player'
+import type { PlayerSnapshot } from '@/lib/player'
+import { discoveryTracks } from './discovery-api'
+import { onlineReference } from '@/features/music/legacy-reference'
 
 // Lives with the global player connection so navigation cannot stop FM.
 export function createPrivateFm(
   getPlayer: () => PlayerSnapshot,
   nativeCall: <T>(command: string, args?: Record<string, unknown>) => Promise<T>,
-  reportError: (error?: string) => void
+  reportError: (error?: string) => void,
+  loadTracks = discoveryTracks
 ) {
   let pending: { session: number } | undefined
   let attempt: string | undefined
@@ -28,7 +31,10 @@ export function createPrivateFm(
     attempt = nextAttempt
     reportError()
     const queueLen = state.queue.length
-    void nativeCall<Track[]>('discovery_tracks', { kind: 'fm', refresh: true })
+    const source = state.queue[0] ? onlineReference(state.queue[0])?.source : undefined
+    void (
+      source ? loadTracks('fm', true, source) : Promise.reject(new Error('FM 队列缺少来源引用'))
+    )
       .then(async (tracks) => {
         if (pending !== request || getPlayer().privateFmSession !== session) return
         const seen = new Set(getPlayer().queue.map((track) => track.key))

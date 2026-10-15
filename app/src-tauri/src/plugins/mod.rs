@@ -11,7 +11,7 @@ mod files;
 mod http;
 mod install;
 pub mod manifest;
-mod netease;
+mod music;
 #[cfg(feature = "plugin-probe")]
 pub mod probe;
 mod runtime;
@@ -23,7 +23,7 @@ use crate::{model::AppResult, player::Player};
 use capability::Context;
 use database::Database;
 use manifest::Manifest;
-use netease::SongService;
+use music::SongService;
 use serde::Serialize;
 use std::{
     collections::BTreeMap,
@@ -76,6 +76,9 @@ pub struct PluginManager {
     clipboard_sender: tokio::sync::watch::Sender<Option<ClipboardChange>>,
 }
 impl PluginManager {
+    pub(crate) fn shared_http(&self) -> Arc<crate::infrastructure::http::Http> {
+        self.http.clone()
+    }
     pub fn new(
         app: tauri::AppHandle,
         data: &Path,
@@ -772,7 +775,7 @@ fn host_module(module: &str) -> AppResult<(Vec<u8>, &'static str)> {
     let (object, exports) = match module {
         "react.mjs" => ("react", "Children,Fragment,Profiler,StrictMode,Suspense,Component,PureComponent,createContext,createElement,cloneElement,isValidElement,forwardRef,memo,lazy,startTransition,useActionState,useCallback,useContext,useDebugValue,useDeferredValue,useEffect,useId,useImperativeHandle,useInsertionEffect,useLayoutEffect,useMemo,useOptimistic,useReducer,useRef,useState,useSyncExternalStore,useTransition,use,act,cache,version"),
         "jsx-runtime.mjs" => ("jsx", "Fragment,jsx,jsxs"),
-        "sdk.mjs" => ("sdk", "usePluginClipboard,usePluginHttp,useNetease,usePluginBackend,usePluginEvent,usePluginStorage,usePluginConfig,usePluginFiles,usePluginNavigate,usePluginRoute,usePlayer,useTheme,useCoverSource,useSongPlayback,SongArtists,SongLikeButton,SongIdentity,DownloadedSongList,MusicPageHeader,Button,Progress,Input,Icon,Tabs,TabsList,TabsTab,TabsPanel,TabsPanels"),
+        "sdk.mjs" => ("sdk", "usePluginClipboard,usePluginHttp,useMusicSource,usePluginBackend,usePluginEvent,usePluginStorage,usePluginConfig,usePluginFiles,usePluginNavigate,usePluginRoute,usePlayer,useTheme,useCoverSource,useSongPlayback,SongArtists,SongLikeButton,SongIdentity,DownloadedSongList,MusicPageHeader,Button,Progress,Input,Icon,Tabs,TabsList,TabsTab,TabsPanel,TabsPanels"),
         _ => return Err("未知宿主桥接模块".into()),
     };
     Ok((format!("const host=globalThis.__NONS_PLUGIN_HOST__.{object};export default host;export const {{{exports}}}=host;").into_bytes(), "text/javascript"))

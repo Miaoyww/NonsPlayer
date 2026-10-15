@@ -34,7 +34,7 @@ export class ScopedMusicQueries {
     const scope = this.scopes.get(source)
     return scope === undefined
       ? undefined
-      : this.cache.peek<T>(requestKey(command, { ...args, scope }))
+      : this.cache.peek<T>(requestKey(command, { ...args, source, scope }))
   }
 
   async read<T>(source: string, command: string, args?: Record<string, unknown>): Promise<T> {
@@ -52,12 +52,10 @@ export class ScopedMusicQueries {
       check()
       if ((args?.scope !== undefined && args.scope !== scope) || (paginated && initial !== scope))
         throw contextChanged()
-      const key = requestKey(command, { ...args, scope })
+      const key = requestKey(command, { ...args, source, scope })
       try {
         const load = async () => {
           const result = await this.invoke<T>(command, { ...args, source, scope })
-          if (command === 'music_library' && (result as { likedError?: string })?.likedError)
-            throw new Error((result as { likedError: string }).likedError)
           return result
         }
         const validate = async () => {

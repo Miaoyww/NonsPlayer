@@ -12,21 +12,25 @@ pub trait CredentialStore: Send + Sync {
     fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>>;
     fn write(&self, key: &str, bytes: &[u8]) -> MusicResult<()>;
     fn delete(&self, key: &str) -> MusicResult<()>;
+    fn read_text(&self, key: &str) -> MusicResult<Option<String>> {
+        self.read(key)?
+            .map(|bytes| String::from_utf8(bytes).map_err(|_| ErrorCode::InvalidData.into()))
+            .transpose()
+    }
 }
 pub struct SystemCredentials;
 impl CredentialStore for SystemCredentials {
-    fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>> {
-        // Legacy set_password uses UTF-16 on Windows; decode through the same API.
-        if key == "netease-session" {
-            return match keyring::Entry::new("NonsPlayer", key)
-                .map_err(|_| ErrorCode::Internal)?
-                .get_password()
-            {
-                Ok(value) => Ok(Some(value.into_bytes())),
-                Err(keyring::Error::NoEntry) => Ok(None),
-                Err(_) => Err(ErrorCode::Internal.into()),
-            };
+    fn read_text(&self, key: &str) -> MusicResult<Option<String>> {
+        match keyring::Entry::new("NonsPlayer", key)
+            .map_err(|_| ErrorCode::Internal)?
+            .get_password()
+        {
+            Ok(value) => Ok(Some(value)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(_) => Err(ErrorCode::Internal.into()),
         }
+    }
+    fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>> {
         match keyring::Entry::new("NonsPlayer", key)
             .map_err(|_| ErrorCode::Internal)?
             .get_secret()
@@ -347,7 +351,7 @@ impl AccountManager {
         saved.selected.push(record.reference.clone());
         saved.records.push(record);
         // A successful new login also retires a pending legacy cookie.
-        if expected.source.as_str() == "netease" {
+        if super::migration::legacy_account_source(&expected.source) {
             saved.legacy_migrated = true;
         }
         if let Some(context) = context {
@@ -373,21 +377,23 @@ impl AccountManager {
         self.advance(&mut state, &expected.source);
         // Cleanup failure is retryable and must not undo a committed login.
         if state.saved.legacy_migrated {
-            let _ = self.credentials.delete("netease-session");
+            let _ = self
+                .credentials
+                .delete(super::migration::LEGACY_CREDENTIAL_KEY);
         }
         Ok(())
     }
-    pub fn invalidate(&self, expected: &SessionContext) {
-        if let Ok(mut state) = self.state.lock() {
-            if Self::session_locked(&state, &expected.source) == *expected {
-                let mut saved = state.saved.clone();
-                saved.selected.retain(|r| r.source != expected.source);
-                if self.persist(&saved).is_ok() {
-                    state.saved = saved;
-                }
-                self.advance(&mut state, &expected.source);
-            }
+    pub fn invalidate(&self, expected: &SessionContext) -> MusicResult<()> {
+        let mut state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        if Self::session_locked(&state, &expected.source) != *expected {
+            return Err(ErrorCode::StaleContext.into());
         }
+        let mut saved = state.saved.clone();
+        saved.selected.retain(|r| r.source != expected.source);
+        self.persist(&saved)?;
+        state.saved = saved;
+        self.advance(&mut state, &expected.source);
+        Ok(())
     }
     /// Trusted legacy provider only; unconfirmed credentials never get an invented account ID.
     pub(crate) fn provider_credential(
@@ -398,10 +404,12 @@ impl AccountManager {
         let bytes =
             if let Some(reference) = state.saved.selected.iter().find(|r| &r.source == source) {
                 self.credentials.read(&key(reference))?
-            } else if source.as_str() == "netease" && !state.saved.legacy_migrated {
-                self.credentials.read("netease-session")?
             } else {
-                None
+                super::migration::pending_account_credential(
+                    self.credentials.as_ref(),
+                    source,
+                    state.saved.legacy_migrated,
+                )?
             };
         bytes.map(OpaqueCredential::new).transpose()
     }
@@ -439,7 +447,7 @@ impl AccountManager {
         }
         let mut saved = state.saved.clone();
         saved.selected.retain(|r| &r.source != source);
-        if source.as_str() == "netease" {
+        if super::migration::legacy_account_source(source) {
             saved.legacy_migrated = true;
         }
         self.persist(&saved)?;
@@ -457,7 +465,10 @@ impl AccountManager {
             error
         });
         if saved.legacy_migrated {
-            failed |= self.credentials.delete("netease-session").is_err();
+            failed |= self
+                .credentials
+                .delete(super::migration::LEGACY_CREDENTIAL_KEY)
+                .is_err();
         }
         self.persist(&saved)?;
         state.saved = saved;

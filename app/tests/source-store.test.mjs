@@ -34,11 +34,11 @@ function harness() {
     finishWatch: () => registrations.forEach((r) => r.resolve())
   }
 }
-test('several startup consumers share four parallel listeners and a single bootstrap read', async () => {
+test('several startup consumers share five parallel listeners and a single bootstrap read', async () => {
   const h = harness(),
     first = h.store.subscribe(() => {}),
     second = h.store.subscribe(() => {})
-  assert.equal(h.registrations.length, 4)
+  assert.equal(h.registrations.length, 5)
   assert.equal(h.reads.length, 0)
   h.finishWatch()
   await tick()
@@ -51,7 +51,7 @@ test('several startup consumers share four parallel listeners and a single boots
   first()
   assert.equal(h.stopped.length, 0)
   second()
-  assert.equal(h.stopped.length, 4)
+  assert.equal(h.stopped.length, 5)
 })
 test('changes during a bootstrap reject old publication and merge into one replacement', async () => {
   const h = harness(),
@@ -75,7 +75,7 @@ test('unmounting cancels late reads and releases listeners that resolve later', 
   stop()
   h.finishWatch()
   await tick()
-  assert.equal(h.stopped.length, 4)
+  assert.equal(h.stopped.length, 5)
   assert.equal(h.reads.length, 0)
   const again = h.store.subscribe(() => {})
   h.finishWatch()
@@ -84,4 +84,17 @@ test('unmounting cancels late reads and releases listeners that resolve later', 
   h.reads[0].resolve([{ current: 'late', supplementary: [], revision: 1 }, []])
   await tick()
   assert.equal(h.store.getSnapshot().preferences, undefined)
+})
+
+test('adapter loading failures are visible without a fabricated source entry', async () => {
+  const h = harness()
+  const stop = h.store.subscribe(() => {})
+  h.finishWatch()
+  await tick()
+  h.reads[0].resolve([{ current: 'qqmusic', supplementary: [], revision: 1 }, []])
+  await tick()
+  h.registrations.find((r) => r.event === 'adapter-load-failed').changed('Component load failed')
+  assert.equal(h.store.getSnapshot().error, 'Component load failed')
+  assert.equal(h.store.getSnapshot().statuses.length, 0)
+  stop()
 })

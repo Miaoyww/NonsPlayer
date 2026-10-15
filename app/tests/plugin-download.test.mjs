@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -15,8 +16,28 @@ import { ecb } from '../../plugins/netease-download/node_modules/@noble/ciphers/
 import { md5 } from '../../plugins/netease-download/node_modules/@noble/hashes/legacy.js'
 import { bytesToHex } from '../../plugins/netease-download/node_modules/@noble/hashes/utils.js'
 
+function credentialChunk(cookie, generation, args = { offset: 0, length: 4096 }) {
+  const bytes = Buffer.from(cookie),
+    offset = args.offset ?? 0
+  return {
+    data: bytes.subarray(offset, offset + (args.length ?? 4096)).toString('base64'),
+    offset,
+    total: bytes.length,
+    generation,
+    scope: `account-${generation}`
+  }
+}
 function load(path, modules = {}, globals = {}) {
-  modules = { '@/features/music/cover-image': coverImage, ...modules }
+  modules = {
+    ...(path.endsWith('/runtime.ts')
+      ? {
+          './account': load('../../plugins/netease-download/frontend/account.ts'),
+          './migration': load('../../plugins/netease-download/frontend/migration.ts')
+        }
+      : {}),
+    '@/features/music/cover-image': coverImage,
+    ...modules
+  }
   const exports = {}
   const { outputText } = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
@@ -24,6 +45,7 @@ function load(path, modules = {}, globals = {}) {
   runInNewContext(outputText, {
     exports,
     TextEncoder,
+    TextDecoder,
     URL,
     URLSearchParams,
     Uint8Array,
@@ -32,8 +54,8 @@ function load(path, modules = {}, globals = {}) {
     clearInterval: () => {},
     setTimeout: (fn) => setTimeout(fn, 0),
     require: (name) => {
-      assert.ok(name in modules, name)
-      return modules[name]
+      assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
+      return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
     },
     ...globals
   })
@@ -88,7 +110,7 @@ test('completed songs resolve authorized local files, retain available rows and 
     album: 'Album',
     cover: '',
     durationMs: 100,
-    source: { kind: 'netease', id: 12 }
+    source: { kind: 'online', reference: { source: 'netease', kind: 'track', id: '12' } }
   }
   const songs = [
     { song, root: 'grant', path: 'song.mp3', completedAt: 1234, size: 1048576 },
@@ -134,7 +156,7 @@ test('song contributions match the stream source, never a linked local ID or lyr
     album: '',
     durationMs: 100,
     cover: 'https://example.org/cover',
-    source: { kind: 'netease', id: 12 }
+    source: { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id: '12' } } }
   }
   assert.equal(menus.songMenuContributions(manifest, song).length, 1)
   const local = { ...song, source: { kind: 'local', path: 'C:/private/song.mp3', neteaseId: 12 } }
@@ -253,8 +275,7 @@ test('menu download persists settings snapshot, resolves once, streams and publi
     openConfiguration: () => {},
     call: async (op, args) => {
       calls.push({ op, args })
-      if (op === 'netease.account-credentials')
-        return { cookie: 'MUSIC_U=host-cookie', generation: 1 }
+      if (op === 'accounts.credential-read') return credentialChunk('MUSIC_U=host-cookie', 1, args)
       if (op === 'storage.get') return null
       if (op === 'config.get') return { values: config }
       if (op === 'files.roots') return [{ id: 'dir-one', writable: true }]
@@ -281,7 +302,7 @@ test('menu download persists settings snapshot, resolves once, streams and publi
     album: '',
     cover: '',
     durationMs: 100,
-    source: { kind: 'netease', id: 12 }
+    source: { kind: 'online', reference: { source: 'netease', kind: 'track', id: '12' } }
   }
   await runtime.downloadSong(song)
   config.quality = 'standard'
@@ -317,7 +338,7 @@ test('missing directory retains the selected song and opens configuration; linke
           }
         }
       if (op === 'files.roots') return []
-      if (op === 'netease.account-credentials') return { cookie: null, generation: 1 }
+      if (op === 'accounts.credential-read') return credentialChunk('', 1)
       return null
     }
   }
@@ -327,12 +348,12 @@ test('missing directory retains the selected song and opens configuration; linke
     title: 'Title',
     artist: 'Singer',
     album: '',
-    source: { kind: 'netease', id: 12 }
+    source: { kind: 'online', reference: { source: 'netease', kind: 'track', id: '12' } }
   }
   await runtime.downloadSong(song)
   await until(() => runtime.snapshot().tasks[0].state === 'setup')
   assert.equal(opened, 1)
-  assert.equal(runtime.snapshot().tasks[0].song.source.id, 12)
+  assert.equal(runtime.snapshot().tasks[0].song.source.reference.id, '12')
   await assert.rejects(
     runtime.downloadSong({ ...song, source: { kind: 'local', neteaseId: 12 } }),
     /只支持/
@@ -347,7 +368,7 @@ test('actual contributed menu invokes the plugin with a scoped client and reject
     artist: 'Singer',
     album: '',
     cover: '',
-    source: { kind: 'netease', id: 12 }
+    source: { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id: '12' } } }
   }
   const scope = {
     active: true,
@@ -387,7 +408,7 @@ test('actual contributed menu invokes the plugin with a scoped client and reject
               scope,
               module: {
                 downloadSong: async (selected, sdk) => {
-                  assert.equal(selected.source.id, 12)
+                  assert.equal(selected.source.reference.id, '12')
                   assert.equal(sdk, client)
                   invocations++
                   return '已加入下载队列'
@@ -558,8 +579,8 @@ test('task pause and resume use the same transfer; delete cancels it without sto
           }
         }
       if (op === 'files.roots') return [{ id: 'dir-one', writable: true }]
-      if (op === 'netease.account-credentials')
-        return { cookie: 'MUSIC_U=private-cookie', generation: 1 }
+      if (op === 'accounts.credential-read')
+        return credentialChunk('MUSIC_U=private-cookie', 1, args)
       if (op === 'http.request')
         return {
           status: 200,
@@ -584,7 +605,7 @@ test('task pause and resume use the same transfer; delete cancels it without sto
     album: 'Album',
     cover: 'https://example.org/cover',
     durationMs: 100,
-    source: { kind: 'netease', id: 12 }
+    source: { kind: 'online', reference: { source: 'netease', kind: 'track', id: '12' } }
   })
   await until(() => runtime.snapshot().tasks[0].state === 'running')
   const id = runtime.snapshot().tasks[0].id
@@ -621,7 +642,7 @@ test('missing host login retains the task and never starts a transfer or separat
           }
         }
       if (op === 'files.roots') return [{ id: 'dir-one', writable: true }]
-      if (op === 'netease.account-credentials') return { cookie: null, generation: 2 }
+      if (op === 'accounts.credential-read') return credentialChunk('', 2)
       return null
     }
   })
@@ -632,7 +653,7 @@ test('missing host login retains the task and never starts a transfer or separat
     album: '',
     cover: '',
     durationMs: 100,
-    source: { kind: 'netease', id: 12 }
+    source: { kind: 'online', reference: { source: 'netease', kind: 'track', id: '12' } }
   })
   await until(() => runtime.snapshot().tasks[0].state === 'setup')
   assert.match(runtime.snapshot().tasks[0].error, /NonsPlayer 中登录/)

@@ -420,8 +420,13 @@ impl BusinessResponse {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "operation", rename_all = "camelCase", deny_unknown_fields)]
 pub enum AccountRequest {
-    BeginLogin,
-    PollLogin { key: String },
+    BeginLogin {
+        #[serde(default)]
+        method: Option<String>,
+    },
+    PollLogin {
+        key: String,
+    },
     Profile,
     Logout,
 }

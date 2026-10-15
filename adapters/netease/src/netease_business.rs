@@ -331,7 +331,15 @@ pub(super) async fn business(
             }
             collections(
                 client
-                    .library_collections(kind(*entity_kind), start, filter)
+                    .library_collections(
+                        kind(*entity_kind),
+                        start,
+                        match filter.as_str() {
+                            "created" => "mine",
+                            "collected" => "liked",
+                            other => other,
+                        },
+                    )
                     .await
                     .map_err(error)?,
                 request,
@@ -485,7 +493,7 @@ pub(super) async fn account(
     let mut credential = None;
     let mut migration = false;
     let presentation = match request {
-        AccountRequest::BeginLogin => {
+        AccountRequest::BeginLogin { .. } => {
             let qr = client.qr_login().await.map_err(error)?;
             AccountPresentation::Challenge {
                 key: qr.key,

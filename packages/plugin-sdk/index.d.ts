@@ -1,23 +1,13 @@
 import type { ComponentType, ReactNode, ComponentProps } from 'react'
-export interface PluginSong {
-  id: number
-  key: string
-  title: string
-  artist: string
-  artists?: { id?: number | null; name: string }[]
-  album: string
-  durationMs: number
-  cover: string
-}
+export type PluginSong = import('./music').MusicTrack
 export function usePluginBackend(): {
   call<T = unknown>(method: string, args?: unknown): Promise<T>
 }
 export function usePluginEvent<T = unknown>(event: string): T | undefined
-export function useSongPlayback(): (id: number, mode: 'now' | 'next') => Promise<void>
-export function useNetease(): {
-  getSong(id: number): Promise<PluginSong>
-  playSong(id: number, mode: 'now' | 'next'): Promise<void>
-}
+export function useSongPlayback(): (
+  reference: import('./music').EntityRef,
+  mode: 'now' | 'next'
+) => Promise<void>
 export function usePluginClipboard(): {
   readText(): Promise<string>
   subscribe(callback: (text: string) => void): Promise<() => void>
@@ -99,7 +89,7 @@ export function usePlayer(): {
   positionMs: number
   durationMs: number
   volume: number
-  track: Omit<PluginSong, 'id' | 'key'> | null
+  track: { title: string; artist: string; album: string; durationMs: number; cover: string } | null
   control(action: 'pause' | 'resume' | 'next' | 'previous' | 'stop'): Promise<void>
 }
 export const MusicPageHeader: ComponentType<{ title: ReactNode; children?: ReactNode }>
@@ -151,7 +141,7 @@ export interface DownloadedSong {
 export const DownloadedSongList: ComponentType<{ songs: DownloadedSong[] }>
 
 export interface PluginCollection {
-  source: 'netease' | 'local'
+  source: string
   kind: 'playlist' | 'album' | 'artist'
   id: number | string
   name: string
@@ -184,10 +174,7 @@ export interface PluginMenuSong {
   album: string
   durationMs: number
   cover: string
-  source:
-    | { kind: 'netease'; id: number }
-    | { kind: 'local' }
-    | { kind: 'online'; reference: import('./music').EntityRef }
+  source: { kind: 'local' } | { kind: 'online'; reference: import('./music').EntityRef }
 }
 export interface PluginTransfer {
   id: number

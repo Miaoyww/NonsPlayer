@@ -42,18 +42,21 @@ export function DynamicIsland() {
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
   const paused = (hovered && preferences.pauseOnHover) || focused
-  const last = useRef<{ id: number; time: number } | undefined>(undefined)
-  const remaining = useRef({ id: 0, ms: 8000 })
+  const last = useRef<{ id: string; time: number } | undefined>(undefined)
+  const remaining = useRef({ id: '', ms: 8000 })
   const dismiss = () => {
     setSong(undefined)
     setHovered(false)
     setFocused(false)
   }
   useEffect(() => {
-    if (!detected || (last.current?.id === detected.id && Date.now() - last.current.time < 30000))
+    if (
+      !detected ||
+      (last.current?.id === detected.reference.id && Date.now() - last.current.time < 30000)
+    )
       return
-    last.current = { id: detected.id, time: Date.now() }
-    remaining.current = { id: detected.id, ms: preferences.previewDuration * 1000 }
+    last.current = { id: detected.reference.id, time: Date.now() }
+    remaining.current = { id: detected.reference.id, ms: preferences.previewDuration * 1000 }
     setSong(detected)
   }, [detected, preferences.previewDuration])
   useEffect(() => {
@@ -62,7 +65,7 @@ export function DynamicIsland() {
     const timer = window.setTimeout(dismiss, remaining.current.ms)
     return () => {
       window.clearTimeout(timer)
-      if (remaining.current.id === song.id)
+      if (remaining.current.id === song.reference.id)
         remaining.current.ms = Math.max(0, remaining.current.ms - (performance.now() - start))
     }
   }, [song, paused])
@@ -107,7 +110,7 @@ export function DynamicIsland() {
           ×
         </Button>
       </div>
-      <SongControls key={song.id} song={song} />
+      <SongControls key={song.reference.id} song={song} />
     </div>
   )
 }
@@ -138,7 +141,7 @@ function SongControls({ song }: { song: PluginSong }) {
     setError(undefined)
     setMessage(undefined)
     try {
-      await play(song.id, mode)
+      await play(song.reference, mode)
       if (active.current) setMessage(mode === 'next' ? '已加入下一首播放' : '已开始播放')
     } catch (cause) {
       onError(cause)

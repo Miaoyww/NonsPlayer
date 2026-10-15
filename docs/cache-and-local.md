@@ -12,11 +12,11 @@ Windows 便携包通过 EXE 同目录的 `portable.flag` 启用独立数据目�
 
 插件 React SDK 仍通过 `nativeCall` 调用 scoped IPC，封面沿用 `useCoverSource`／`runtime_cover`。方法调用、权限检查、生命周期、存储与插件列表不加入查询缓存：每次必须验证当前加载代次，不能由缓存绕过禁用或权限判断。
 
-`netease.account-credentials` 仅交付给显式授权 `account:credentials` 的活跃插件，实时读取当前 Cookie 和账号代次，不缓存、不写插件存储。下载插件每次解析资源前读取，并在发布前核对账号代次；切换账号或退出后旧下载结果不得发布。`files.resolve/play/open-directory` 每次核对根目录授权与路径；已下载文件继续独立于播放缓存，列表复用宿主组件与封面缓存，不自动添加曲库目录。
+`accounts.credential-read` 仅交付给显式授权 `account:credentials` 的活跃插件，按来源分块读取不透明凭据和账号／实例上下文，每块最多 4096 字节，不缓存、不写插件存储。下载插件每次解析资源前读取，并在发布前核对账号代次；切换账号或退出后旧下载结果不得发布。`files.resolve/play/open-directory` 每次核对根目录授权与路径；已下载文件继续独立于播放缓存，列表复用宿主组件与封面缓存，不自动添加曲库目录。
 
 插件设置的 ZIP 拖入与文件选择共用 `plugin_install`，安装后沿用 `plugins-changed` 更新列表；搜索仅筛选当前已安装列表。`plugin_open_folder` 由宿主直接打开插件管理器的安装目录，不接受前端路径参数，不加入查询缓存。
 
-WASM 无法调用 WebUI 的 `nativeCall`，因此 `plugins/netease.rs` 的 `SongService` 为 `netease.get-song` 提供独立、共享的 Rust 运行时缓存，底层经统一 MusicService／AdapterManager 调用内置网易云适配器，复用同一网易云连接池；`music.get-song` 为兼容别名。成功结果 TTL 10 分钟，不延长命中 TTL；128 条上限，每个公开 DTO 最多 64KiB，有效载荷估算上限约 8MiB。查询串行合并重复请求，失败不缓存、不持久化，单次网络预算 3 秒。
+WASM 无法调用 WebUI 的 `nativeCall`，因此 `plugins/music.rs` 的 `SongService` 为 `music.read-track` 提供共享的 Rust 运行时缓存，以完整 EntityRef 为键，底层经统一 MusicService／AdapterManager 路由到对应适配器并复用各自连接池；旧数字歌曲方法已移除。成功结果 TTL 10 分钟，不延长命中 TTL；128 条上限，每个公开 DTO 最多 64KiB，有效载荷估算上限约 8MiB。查询串行合并重复请求，失败不缓存、不持久化，单次网络预算 3 秒。
 
 通用剪贴板读取与变化事件是实时能力，不加入查询缓存；待处理原文有 16KiB 上限，消费或停止监听后清理，不持久化。通用 HTTP 请求用于插件自己决定的资源获取，不进入宿主网易云查询缓存，也不携带宿主账号凭据；响应不缓存。插件需要缓存业务资源时使用独立存储或文件能力，自己管理容量、过期与失效。宿主只复用有界连接池；接口预算见 [插件接口](plugins.md)。
 

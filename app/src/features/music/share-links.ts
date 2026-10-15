@@ -1,3 +1,4 @@
+import { onlineReference, collectionReference } from './legacy-reference'
 import type { Track } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import type { EntityRef, SourceDescriptor } from './types'
@@ -20,21 +21,11 @@ export function entityShareLink(reference: EntityRef, sources: SourceDescriptor[
 // Legacy persisted items are converted to references only at this compatibility boundary.
 export function trackShareLink(track: Track, sources: SourceDescriptor[]): string {
   if (track.source.kind === 'local') return ''
-  const reference: EntityRef =
-    track.source.kind === 'online'
-      ? track.source.track.reference
-      : { source: 'netease', kind: 'track', id: String(track.source.id) }
-  return entityShareLink(reference, sources)
+  const reference = onlineReference(track)
+  return reference ? entityShareLink(reference, sources) : ''
 }
 
 export function collectionShareLink(item: MusicCollection, sources: SourceDescriptor[]): string {
   if (item.localId) return ''
-  return entityShareLink(
-    item.reference ?? {
-      source: 'netease',
-      kind: item.kind,
-      id: String(item.id)
-    },
-    sources
-  )
+  return entityShareLink(collectionReference(item), sources)
 }

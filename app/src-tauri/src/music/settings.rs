@@ -36,6 +36,13 @@ impl AdapterSettings {
     fn key(source: &SourceId) -> String {
         format!("musicAdapterEnabledV1:{}", source.as_str())
     }
+    pub(crate) fn restore_enabled(&self, source: &SourceId) -> AppResult<()> {
+        let _guard = self.mutation.lock().map_err(|_| "适配器设置锁不可用")?;
+        let enabled = self.store.setting(&Self::key(source))?.as_deref() != Some("false");
+        self.adapters
+            .set_enabled(source, enabled)
+            .map_err(|e| e.to_string())
+    }
     pub fn list(&self) -> AppResult<Vec<AdapterStatus>> {
         self.adapters.statuses().map_err(|e| e.to_string())
     }

@@ -38,6 +38,8 @@ pub struct SourceDescriptor {
     pub source: SourceId,
     pub display_name: String,
     pub contract_version: u32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub login_methods: Vec<LoginMethod>,
     pub capabilities: BTreeSet<Capability>,
     /// Public artwork hosts, independent of playback resource/HTTP permissions.
     #[serde(default)]
@@ -45,6 +47,12 @@ pub struct SourceDescriptor {
     /// Public entity links; the host URL-encodes the opaque ID into `{id}`.
     #[serde(default)]
     pub share_link_templates: BTreeMap<super::identity::EntityKind, String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LoginMethod {
+    pub id: String,
+    pub label: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,6 +66,28 @@ impl SourceDescriptor {
     pub fn validate(&self) -> MusicResult<()> {
         if self.contract_version != super::CONTRACT_VERSION {
             return Err(ErrorCode::Unsupported.into());
+        }
+        if self.login_methods.len() > 8
+            || self
+                .login_methods
+                .iter()
+                .enumerate()
+                .any(|(index, method)| {
+                    method.id.is_empty()
+                        || method.id.len() > 32
+                        || !method
+                            .id
+                            .bytes()
+                            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+                        || method.label.trim().is_empty()
+                        || method.label.len() > 128
+                        || self.login_methods[..index]
+                            .iter()
+                            .any(|other| other.id == method.id)
+                })
+            || (!self.login_methods.is_empty() && !self.capabilities.contains(&Capability::Account))
+        {
+            return Err(ErrorCode::InvalidData.into());
         }
         if self.source.as_str() == "local"
             || self.display_name.trim().is_empty()
@@ -246,6 +276,9 @@ pub type AdapterFuture<'a, T> = Pin<Box<dyn Future<Output = MusicResult<T>> + Se
 /// Backend-only base contract. Optional groups acquire methods as they are migrated.
 /// AdapterManager must validate DTO size/kind/source and context before publishing.
 pub trait MusicAdapter: Send + Sync {
+    fn cancel_login(&self, _key: &str) {}
+    /// Release temporary backend sessions on disable/reload/shutdown.
+    fn revoke(&self) {}
     fn descriptor(&self) -> &SourceDescriptor;
     fn prepare_logout<'a>(
         &'a self,

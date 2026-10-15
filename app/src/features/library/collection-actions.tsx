@@ -1,4 +1,6 @@
 import { collectionShareLink } from '@/features/music/share-links'
+import { musicClient } from '@/features/music/client'
+import { collectionReference } from '@/features/music/legacy-reference'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { TextSkeleton } from '@/components/music/loading'
 import { ContextMenu } from '@base-ui/react/context-menu'
@@ -14,7 +16,7 @@ import {
   type ReactNode
 } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { nativeCall, errorText } from '@/lib/player'
+import { errorText } from '@/lib/player'
 import { getLibraryTracks, playMusicCollection } from '@/features/library/library-api'
 import {
   Dialog,
@@ -116,11 +118,12 @@ export function CollectionActionsProvider({
     setBusy(true)
     setError(undefined)
     try {
-      await nativeCall(
-        target.deleting ? 'delete_library_playlist' : 'update_library_playlist',
+      const playlist = collectionReference(target.item)
+      await musicClient.write(
+        playlist.source,
         target.deleting
-          ? { id: target.item.id }
-          : { id: target.item.id, name: name.trim(), description }
+          ? { operation: 'deletePlaylist', playlist }
+          : { operation: 'updatePlaylist', playlist, name: name.trim(), description }
       )
       changed()
       setTarget(undefined)
@@ -255,11 +258,22 @@ export function CollectionContextMenu({
 }) {
   const actions = useCollectionActions()
   const { profile } = useAccount()
+  const { statuses } = useMusicSources()
   const unavailable = busy || actions.busy || !isTauri()
   if (item?.kind === 'artist' || (!item && ((!onPlay && !onNext) || unavailable)))
     return cloneElement(render, undefined, children)
   const editable =
-    !!item && !item.reference && !!profile && item.creatorId === profile.userId && !item.liked
+    !!item &&
+    !!profile &&
+    item.reference?.source === profile.reference.source &&
+    statuses.some(
+      (value) =>
+        value.enabled &&
+        value.descriptor.source === item.reference?.source &&
+        value.descriptor.capabilities.includes('playlistWrite')
+    ) &&
+    item.creatorId === profile.userId &&
+    !item.liked
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger render={render} tabIndex={0}>

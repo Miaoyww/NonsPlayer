@@ -100,29 +100,13 @@ export const cachedCommands = new Set([
   'music_query',
   'music_read_track',
   'discovery_hitokoto',
-  'music_entity_detail',
-  'artist_albums',
-  'artist_tracks',
-  'discovery_radar',
-  'discovery_playlists',
-  'discovery_categories',
-  'discovery_tracks',
   'system_fonts',
-  'search_music',
-  'search_suggestions',
-  'search_collections',
-  'music_library',
-  'library_collections',
-  'library_tracks',
-  'library_history',
-  'liked_song_ids',
   'local_music',
   'local_entities',
   'local_entity_detail',
   'local_entity_tracks',
   'local_track_information',
-  'track_lyrics',
-  'song_information'
+  'track_lyrics'
 ])
 export function requestKey(command: string, args?: Record<string, unknown>) {
   return `${command}:${JSON.stringify(

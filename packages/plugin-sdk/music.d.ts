@@ -145,6 +145,7 @@ export interface SourceDescriptor {
   source: string
   displayName: string
   contractVersion: number
+  loginMethods?: { id: string; label: string }[]
   coverHosts?: string[]
   shareLinkTemplates?: Partial<Record<EntityKind, string>>
   capabilities: string[]
@@ -167,7 +168,9 @@ export interface LogoutReport {
   remoteError: MusicError | null
 }
 export type AccountRequest =
-  { operation: 'beginLogin' | 'profile' | 'logout' } | { operation: 'pollLogin'; key: string }
+  | { operation: 'beginLogin'; method?: string }
+  | { operation: 'profile' | 'logout' }
+  | { operation: 'pollLogin'; key: string }
 export type AccountPresentation =
   | { type: 'challenge'; data: { key: string; image: string } }
   | { type: 'progress'; data: { code: number; message: string } }

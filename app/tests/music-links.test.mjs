@@ -35,7 +35,7 @@ test('uniform artist and album navigation preserve source and opaque reference i
   app.AlbumLink({ reference: album, name: 'Album' }).props.onClick({ stopPropagation() {} })
   assert.equal(app.navigations[0][2].reference, artist)
   assert.equal(app.navigations[1][2].reference, album)
-  assert.equal(app.navigations[0][2].id, 0)
+  assert.equal(app.navigations[0][2].id, artist.id)
 })
 
 test('each structured artist navigates independently and preserves slash-containing names', () => {

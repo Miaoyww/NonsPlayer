@@ -5,6 +5,80 @@ use super::{
 };
 use std::sync::{Arc, Weak};
 
+pub(super) fn default_source() -> SourceId {
+    SourceId::try_from("netease".to_owned()).expect("bundled source identifier is valid")
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ComponentPackage {
+    descriptor: SourceDescriptor,
+    permissions: super::external::host::Permissions,
+}
+
+/// Only trusted application resources are discovered here. Installing external packages
+/// and authorizing their permissions is a separate lifecycle, not directory discovery.
+pub(crate) async fn load_components(
+    directory: &std::path::Path,
+    music: &Arc<MusicService>,
+    store: Arc<crate::storage::Store>,
+    http: Arc<crate::infrastructure::http::Http>,
+    settings: &super::settings::AdapterSettings,
+) -> crate::model::AppResult<()> {
+    let accounts = music.accounts.clone().ok_or("账号服务未就绪")?;
+    let packages = std::fs::read_dir(directory).map_err(|_| "随包适配器目录不可读")?;
+    for package in packages {
+        let package = package.map_err(|_| "随包适配器目录项不可读")?;
+        if !package
+            .file_type()
+            .map_err(|_| "随包适配器类型不可读")?
+            .is_dir()
+        {
+            continue;
+        }
+        let directory = package.path();
+        use std::io::Read;
+        let mut bytes = Vec::new();
+        std::fs::File::open(directory.join("manifest.json"))
+            .map_err(|_| "随包适配器描述缺失")?
+            .take(16385)
+            .read_to_end(&mut bytes)
+            .map_err(|_| "随包适配器描述不可读")?;
+        if bytes.len() > 16384 {
+            return Err("随包适配器描述过大".into());
+        }
+        let package: ComponentPackage =
+            serde_json::from_slice(&bytes).map_err(|_| "随包适配器描述无效")?;
+        package.descriptor.validate().map_err(|e| e.to_string())?;
+        let source = package.descriptor.source.clone();
+        let services = Arc::new(super::external::host::Services::new(
+            accounts.clone(),
+            Arc::downgrade(&music.adapters),
+            store.clone(),
+            http.clone(),
+            package.permissions,
+            package.descriptor,
+        )?);
+        let adapter = super::external::ExternalAdapter::load_with_host(
+            &directory.join("adapter.component.wasm"),
+            services,
+        )
+        .await
+        .map_err(|e| format!("随包适配器 {} 加载失败：{}", source.as_str(), e))?;
+        let sessions = accounts.clone();
+        let session_source = source.clone();
+        music
+            .adapters
+            .register(
+                Arc::new(adapter),
+                Arc::new(move || sessions.session(&session_source)),
+            )
+            .map_err(|e| e.to_string())?;
+        settings.restore_enabled(&source)?;
+    }
+    Ok(())
+}
+
 struct HostAccounts {
     accounts: Arc<AccountManager>,
     adapters: Weak<AdapterManager>,
@@ -51,10 +125,7 @@ impl ProviderAccounts for HostAccounts {
                 return Err(ErrorCode::PermissionDenied.into());
             }
             self.accounts
-                .blocking(move |accounts| {
-                    accounts.invalidate(&expected);
-                    Ok(())
-                })
+                .blocking(move |accounts| accounts.invalidate(&expected))
                 .await
         })
     }

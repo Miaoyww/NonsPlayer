@@ -11,6 +11,7 @@ import { errorText } from '@/lib/player'
 import { AccountAvatar } from './account-avatar'
 import { SavedAccounts } from './saved-accounts'
 import { useAccountAdapters, type AccountAdapter } from './use-account-adapters'
+const noLoginMethods: { id: string; label: string }[] = []
 
 function AdapterLoginCard({
   adapter,
@@ -22,6 +23,8 @@ function AdapterLoginCard({
   startLogin: boolean
 }) {
   const { source, displayName } = adapter.descriptor
+  const methods = adapter.descriptor.loginMethods ?? noLoginMethods
+  const [method, setMethod] = useState(methods[0]?.id)
   const [qr, setQr] = useState<{ key: string; image: string }>()
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -47,19 +50,21 @@ function AdapterLoginCard({
       const nextIntent = await sourcePreferences.beginIntent()
       if (serial !== generation.current) return
       intent.current = nextIntent
-      const result = await musicClient.account(source, { operation: 'beginLogin' })
+      const result = await musicClient.account(source, { operation: 'beginLogin', method })
       if (result.type !== 'challenge') throw new Error('此来源暂未提供可展示的登录方式。')
       if (serial === generation.current) {
         challenge.current = result.data.key
         setQr(result.data)
-        setMessage(`使用${displayName}扫码，并确认登录。`)
+        setMessage(
+          `使用${methods.find((item) => item.id === method)?.label ?? displayName}，并确认登录。`
+        )
       } else void musicClient.cancelLogin(source, result.data.key).catch(() => {})
     } catch (cause) {
       if (serial === generation.current) setMessage(errorText(cause))
     } finally {
       if (serial === generation.current) setBusy(false)
     }
-  }, [source, displayName, cancel])
+  }, [source, displayName, method, methods, cancel])
 
   useEffect(() => {
     if (adapter.enabled && isTauri() && initialLogin.current) void generate()
@@ -183,6 +188,28 @@ function AdapterLoginCard({
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3 py-5">
+          {methods.length > 1 && (
+            <div role="group" aria-label="登录方式" className="flex gap-2">
+              {methods.map((item) => (
+                <ActionButton
+                  key={item.id}
+                  variant={method === item.id ? 'secondary' : 'outline'}
+                  aria-pressed={method === item.id}
+                  disabled={busy || !isTauri()}
+                  onClick={() => {
+                    if (method === item.id) return
+                    generation.current++
+                    cancel()
+                    setQr(undefined)
+                    setMessage('')
+                    setMethod(item.id)
+                  }}
+                >
+                  {item.label}
+                </ActionButton>
+              ))}
+            </div>
+          )}
           <div className="flex size-44 items-center justify-center rounded-xl border border-border bg-background p-2">
             {qr ? (
               <img
@@ -224,7 +251,7 @@ function AdapterLoginCard({
 export default function AccountLoginPage() {
   const { page, navigate } = useMusicNavigation()
   const { adapters, loading, error, refresh } = useAccountAdapters()
-  const [source, setSource] = useState(page.view === 'accounts' ? page.query : 'netease')
+  const [source, setSource] = useState(page.view === 'accounts' ? page.query : '')
   const selected = adapters.find((item) => item.descriptor.source === source) ?? adapters[0]
   useEffect(() => {
     if (page.view === 'accounts' && page.query) setSource(page.query)
@@ -285,9 +312,7 @@ export default function AccountLoginPage() {
                 startLogin={page.view === 'accounts'}
               />
             )}
-            {adapters.some(
-              (item) => item.descriptor.source === 'netease' && item.enabled && item.current
-            ) && (
+            {adapters.some((item) => item.enabled && item.current) && (
               <div className="mt-5 flex justify-end">
                 <ActionButton variant="ghost" onClick={() => navigate('library')}>
                   前往音乐库

@@ -92,6 +92,7 @@ impl AdapterManager {
             .lock()
             .map_err(|_| ErrorCode::Internal)?
             .remove(key);
+        entry.adapter.cancel_login(key);
         Ok(())
     }
     pub fn statuses(&self) -> MusicResult<Vec<AdapterStatus>> {
@@ -144,13 +145,26 @@ impl AdapterManager {
                 (current.is_multiple_of(2) == enabled).then_some(current + 1)
             })
             .ok();
+        if !enabled {
+            entry.adapter.revoke();
+            entry
+                .login_challenges
+                .lock()
+                .map_err(|_| ErrorCode::Internal)?
+                .clear();
+        }
         Ok(())
     }
     /// Internal built-in reload; package loading is introduced with external ABI.
     pub fn reload(&self, source: &SourceId) -> MusicResult<()> {
-        self.entry(source)?
-            .generation
-            .fetch_add(2, Ordering::AcqRel);
+        let entry = self.entry(source)?;
+        entry.generation.fetch_add(2, Ordering::AcqRel);
+        entry.adapter.revoke();
+        entry
+            .login_challenges
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .clear();
         Ok(())
     }
     fn entry(&self, source: &SourceId) -> MusicResult<Arc<Entry>> {
@@ -287,35 +301,6 @@ impl AdapterManager {
         }
         Ok(result)
     }
-    /// Only the host compatibility facade may translate the old numeric offset.
-    pub(crate) async fn business_legacy(
-        &self,
-        source: &SourceId,
-        request: &super::business::BusinessRequest,
-    ) -> MusicResult<super::business::BusinessResponse> {
-        let entry = self.entry(source)?;
-        let context = Self::context(&entry, Duration::from_secs(12));
-        let revision = entry.revision.load(Ordering::Acquire);
-        let scope = format!("{}-{revision}", cursor_scope(request, &context)?);
-        let mut value = serde_json::to_value(request).map_err(|_| ErrorCode::InvalidData)?;
-        if let Some(page) = value.get_mut("page") {
-            if !page["cursor"].is_null() {
-                let raw = page["cursor"]
-                    .as_str()
-                    .ok_or(ErrorCode::InvalidData)?
-                    .to_owned();
-                page["cursor"] = serde_json::Value::String(
-                    serde_json::to_string(&(scope, raw)).map_err(|_| ErrorCode::InvalidData)?,
-                );
-            }
-        }
-        entry.check(&context)?;
-        self.business(
-            source,
-            &serde_json::from_value(value).map_err(|_| ErrorCode::InvalidData)?,
-        )
-        .await
-    }
     pub async fn account(
         &self,
         source: &SourceId,
@@ -352,14 +337,51 @@ impl AdapterManager {
             return Err(ErrorCode::Unsupported.into());
         }
         if let AccountRequest::PollLogin { key } = request {
+            // A challenge is meaningful only within this account and adapter generation.
             let mut challenges = entry
                 .login_challenges
                 .lock()
                 .map_err(|_| ErrorCode::Internal)?;
-            challenges.retain(|_, (_, _, expires)| Instant::now() < *expires);
+            challenges.retain(|key, (_, _, expires)| {
+                let valid = Instant::now() < *expires;
+                if !valid {
+                    entry.adapter.cancel_login(key);
+                }
+                valid
+            });
             let (session, generation, _) = challenges.get(key).ok_or(ErrorCode::StaleContext)?;
             if session != &context.session || *generation != context.adapter_generation {
                 return Err(ErrorCode::StaleContext.into());
+            }
+        }
+        if let AccountRequest::BeginLogin {
+            method: Some(method),
+        } = request
+        {
+            if !entry
+                .adapter
+                .descriptor()
+                .login_methods
+                .iter()
+                .any(|candidate| &candidate.id == method)
+            {
+                return Err(ErrorCode::Unsupported.into());
+            }
+        }
+        if matches!(request, AccountRequest::BeginLogin { .. }) {
+            let mut challenges = entry
+                .login_challenges
+                .lock()
+                .map_err(|_| ErrorCode::Internal)?;
+            challenges.retain(|key, (_, _, expires)| {
+                let valid = Instant::now() < *expires;
+                if !valid {
+                    entry.adapter.cancel_login(key);
+                }
+                valid
+            });
+            if challenges.len() >= 4 {
+                return Err(ErrorCode::RateLimited.into());
             }
         }
         if matches!(request, AccountRequest::Logout) {
@@ -409,7 +431,7 @@ impl AdapterManager {
                 .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
         }
         let valid = match (request, &outcome.presentation) {
-            (AccountRequest::BeginLogin, AccountPresentation::Challenge { key, image }) => {
+            (AccountRequest::BeginLogin { .. }, AccountPresentation::Challenge { key, image }) => {
                 !key.is_empty()
                     && key.len() <= 256
                     && image.len() <= 64 * 1024
@@ -435,9 +457,16 @@ impl AdapterManager {
                 .login_challenges
                 .lock()
                 .map_err(|_| ErrorCode::Internal)?;
-            challenges.retain(|_, (_, _, expires)| Instant::now() < *expires);
+            challenges.retain(|key, (_, _, expires)| {
+                let valid = Instant::now() < *expires;
+                if !valid {
+                    entry.adapter.cancel_login(key);
+                }
+                valid
+            });
             if challenges.len() >= 4 {
-                challenges.clear();
+                entry.adapter.cancel_login(key);
+                return Err(ErrorCode::RateLimited.into());
             }
             challenges.insert(
                 key.clone(),
@@ -479,10 +508,7 @@ impl AdapterManager {
         {
             let expected = context.session.clone();
             accounts
-                .blocking(move |accounts| {
-                    accounts.invalidate(&expected);
-                    Ok(())
-                })
+                .blocking(move |accounts| accounts.invalidate(&expected))
                 .await?;
         }
         if let AccountRequest::PollLogin { key } = request {
@@ -498,6 +524,7 @@ impl AdapterManager {
                     .lock()
                     .map_err(|_| ErrorCode::Internal)?
                     .remove(key);
+                entry.adapter.cancel_login(key);
             }
         }
         Ok(outcome.presentation)
@@ -675,7 +702,7 @@ mod tests {
         ) -> AdapterFuture<'a, super::super::business::AccountOutcome> {
             use super::super::{account::*, business::*};
             Box::pin(async move {
-                if matches!(request, AccountRequest::BeginLogin) {
+                if matches!(request, AccountRequest::BeginLogin { .. }) {
                     return Ok(AccountOutcome {
                         presentation: AccountPresentation::Challenge {
                             key: "challenge".into(),
@@ -821,6 +848,7 @@ mod tests {
                 source: source(),
                 display_name: "test".into(),
                 contract_version: super::super::CONTRACT_VERSION,
+                login_methods: Vec::new(),
                 cover_hosts: Default::default(),
                 share_link_templates: Default::default(),
                 capabilities: Default::default(),
@@ -939,7 +967,11 @@ mod tests {
         let (manager, _, provider) = setup(provider);
         accounts.bind(&manager);
         manager
-            .account(&source(), &AccountRequest::BeginLogin, &accounts)
+            .account(
+                &source(),
+                &AccountRequest::BeginLogin { method: None },
+                &accounts,
+            )
             .await
             .unwrap();
         let worker = manager.clone();

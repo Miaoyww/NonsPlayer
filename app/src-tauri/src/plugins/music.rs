@@ -1,5 +1,5 @@
 use super::capability::MAX_JSON;
-use crate::model::{AppResult, Track};
+use crate::model::AppResult;
 use serde_json::{json, Value};
 use std::{
     collections::HashMap,
@@ -19,24 +19,71 @@ pub struct SongService {
     cache: tokio::sync::Mutex<HashMap<crate::music::identity::EntityRef, CacheEntry>>,
 }
 impl SongService {
-    pub(super) async fn account_credentials(&self) -> AppResult<Value> {
-        let stamp = self.music.legacy_stamp()?;
+    pub(super) async fn account_credentials(&self, args: &Value) -> AppResult<Value> {
+        use crate::music::{account::AccountAccess, adapter::RequestContext, identity::SourceId};
+        use base64::Engine;
+        let source: SourceId =
+            serde_json::from_value(args.get("source").ok_or("缺少账号来源")?.clone())
+                .map_err(|_| "账号来源无效")?;
+        let stamp = self
+            .music
+            .adapters
+            .stamp(&source)
+            .map_err(|e| e.to_string())?;
+        let scope = self
+            .music
+            .adapters
+            .cache_identity(&source)
+            .map_err(|e| e.to_string())?;
+        if args
+            .get("scope")
+            .and_then(Value::as_str)
+            .is_some_and(|expected| expected != scope)
+        {
+            return Err("账号上下文已变化".into());
+        }
+        let offset = args.get("offset").and_then(Value::as_u64).unwrap_or(0);
+        let length = args.get("length").and_then(Value::as_u64).unwrap_or(4096);
+        if offset > 65536 || length == 0 || length > 4096 {
+            return Err("凭据读取范围无效".into());
+        }
         let accounts = self.music.accounts.as_ref().ok_or("账号管理不可用")?;
-        let source = stamp.0.source.clone();
+        let context = RequestContext {
+            session: stamp.0.clone(),
+            adapter_generation: stamp.1,
+            deadline: Instant::now() + Duration::from_secs(3),
+            cancellation: Default::default(),
+        };
         let credential = accounts
-            .blocking(move |accounts| accounts.provider_credential(&source))
+            .blocking(move |accounts| {
+                if context.session.account.is_some() {
+                    accounts.scoped_access(&context)?.read(&context).map(Some)
+                } else {
+                    Ok(None)
+                }
+            })
             .await
             .map_err(|e| e.to_string())?;
-        if self.music.legacy_stamp()? != stamp {
+        if self
+            .music
+            .adapters
+            .stamp(&source)
+            .map_err(|e| e.to_string())?
+            != stamp
+        {
             return Err("账号或来源状态已变化".into());
         }
-        let cookie = credential
-            .map(|value| {
-                String::from_utf8(value.expose().to_vec())
-                    .map_err(|_| "兼容凭据格式无效".to_owned())
-            })
-            .transpose()?;
-        Ok(json!({"cookie":cookie,"generation":stamp.0.generation}))
+        let bytes = credential
+            .as_ref()
+            .map(|value| value.expose())
+            .unwrap_or_default();
+        if offset as usize > bytes.len() {
+            return Err("凭据读取范围无效".into());
+        }
+        let data = &bytes[offset as usize..bytes.len().min(offset as usize + length as usize)];
+        Ok(
+            json!({"data":base64::engine::general_purpose::STANDARD.encode(data),"offset":offset,"total":bytes.len(),"generation":stamp.0.generation,"scope":scope}),
+        )
     }
     pub fn new(music: Arc<crate::music::service::MusicService>) -> Self {
         Self {
@@ -47,13 +94,6 @@ impl SongService {
     }
     pub fn invalidate(&self) {
         self.generation.fetch_add(1, Ordering::SeqCst);
-    }
-    pub async fn song(&self, id: u64) -> AppResult<Value> {
-        Ok(song_value(id, &self.track(id).await?))
-    }
-    pub(super) async fn track(&self, id: u64) -> AppResult<Track> {
-        let reference = nons_adapter_netease::reference(id).map_err(|e| e.to_string())?;
-        nons_adapter_netease::legacy(self.read_track(&reference).await?).map_err(|e| e.to_string())
     }
     pub async fn read_track(
         &self,
@@ -67,10 +107,8 @@ impl SongService {
             .map_err(|e| e.to_string())?;
         let generation = self.generation.load(Ordering::SeqCst);
         let mut cache = self.cache.lock().await;
-        cache.retain(|_, (entry_stamp, entry_generation, time, _)| {
-            *entry_stamp == stamp
-                && *entry_generation == generation
-                && time.elapsed() < Duration::from_secs(600)
+        cache.retain(|_, (_, entry_generation, time, _)| {
+            *entry_generation == generation && time.elapsed() < Duration::from_secs(600)
         });
         // Cache entries belong to the account generation in which they were fetched.
         if generation != self.generation.load(Ordering::SeqCst)
@@ -83,8 +121,10 @@ impl SongService {
         {
             return Err("账号状态已变化".into());
         }
-        if let Some((_, _, _, track)) = cache.get(reference) {
-            return Ok(track.clone());
+        if let Some((entry_stamp, _, _, track)) = cache.get(reference) {
+            if *entry_stamp == stamp {
+                return Ok(track.clone());
+            }
         }
         let track = tokio::time::timeout(Duration::from_secs(3), async {
             self.music
@@ -129,7 +169,4 @@ impl SongService {
         self.invalidate();
         self.cache.lock().await.clear();
     }
-}
-fn song_value(id: u64, track: &Track) -> Value {
-    json!({"id":id,"key":track.key,"title":track.title,"artist":track.artist,"artists":track.artists,"album":track.album,"durationMs":track.duration_ms,"cover":track.cover.to_string()})
 }

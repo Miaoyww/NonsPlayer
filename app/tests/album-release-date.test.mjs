@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -29,6 +30,19 @@ test('album cards fill missing list dates from visible album details and ignore 
     disconnect() {}
   }
   const modules = {
+    '@/features/music/legacy-reference': musicReference,
+    '@/features/music/entities': { musicCollection: (item) => item },
+    '@/features/music/queries': {
+      queryMusic: (request, source) =>
+        new Promise((resolve, reject) =>
+          requests.push({
+            command: 'music_query',
+            args: { source, request },
+            resolve: (data) => resolve({ type: 'detail', data }),
+            reject
+          })
+        )
+    },
     '@/components/ui/skeleton': { Skeleton: 'div' },
     react: React,
     'react/jsx-runtime': jsx,
@@ -84,8 +98,8 @@ test('album cards fill missing list dates from visible album details and ignore 
     assert.equal(requests.length, 0, 'offscreen cards must not fetch details')
     await visible()
     assert.equal(requests.length, 1, 'missing list date must trigger album detail lookup')
-    assert.equal(requests[0].command, 'music_entity_detail')
-    assert.equal(requests[0].args.id, album.id)
+    assert.equal(requests[0].command, 'music_query')
+    assert.equal(requests[0].args.request.entity.id, String(album.id))
     await act(async () => requests[0].resolve({ item: { ...album, publishedAt: 1648137600000 } }))
     assert.match(document.body.textContent, /29 首 · 2022-03-25/)
     await render({ ...album, id: 2 })

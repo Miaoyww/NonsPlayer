@@ -40,6 +40,20 @@ function harness() {
     }
   }
   const modules = {
+    '@/features/discovery/discovery-api': {
+      dislikeTrack: (track) =>
+        modules['@/lib/player'].nativeCall('music_write', {
+          source: 'netease',
+          request: {
+            operation: 'dislike',
+            track: { source: 'netease', kind: 'track', id: String(track.source.id) }
+          }
+        }),
+      discoveryTracks: () =>
+        modules['@/lib/player'].nativeCall('music_query', {
+          request: { operation: 'recommendedTracks', kind: 'fm' }
+        })
+    },
     react,
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'lucide-react': {},
@@ -135,7 +149,7 @@ test('failed dislike preserves the current FM batch and exposes a retry', async 
   app.requests[0].resolve([track(1), track(2)])
   await settle()
   app.button('不喜欢这首歌').onClick()
-  assert.equal(app.requests[1].command, 'discovery_dislike')
+  assert.equal(app.requests[1].command, 'music_write')
   app.requests[1].reject(new Error('denied'))
   await settle()
   assert.equal(app.requests.length, 2)

@@ -29,7 +29,7 @@ impl SourceSettings {
                 serde_json::from_str::<SourcePreferences>(&value).map_err(|_| "音乐来源配置损坏")?
             }
             None => SourcePreferences {
-                current: SourceId::try_from("netease".to_owned()).map_err(|e| e.to_string())?,
+                current: super::bundled::default_source(),
                 supplementary: vec![],
                 revision: 0,
             },

@@ -1,3 +1,4 @@
+import { favoriteId } from '@/features/music/legacy-reference'
 import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { useAccount } from '@/features/account/account'
@@ -25,14 +26,9 @@ export function usePlaybackShortcuts(onError: (cause: unknown) => void) {
       return
     } else if (!current) return
     else if (name === 'like') {
-      if (
-        current.source.kind !== 'netease' ||
-        !account.profile ||
-        !account.likesReady ||
-        account.likedIds.has(current.source.id)
-      )
-        return
-      operation = account.toggleLike(current.source.id)
+      const id = favoriteId(current, account.profile?.reference)
+      if (!id || !account.profile || !account.likesReady || account.likedIds.has(id)) return
+      operation = account.toggleLike(id)
     } else
       operation = nativeCall('player_action', {
         action: name

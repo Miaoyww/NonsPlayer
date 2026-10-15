@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -6,7 +7,7 @@ import ts from 'typescript'
 
 function harness() {
   const calls = []
-  let profile = { userId: 7 }
+  let profile = { userId: '7', reference: { source: 'netease', id: '7' } }
   const actions = {
     link: () => 'https://source.example/share',
     busy: false,
@@ -23,6 +24,16 @@ function harness() {
   )
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/features/music/use-music-sources': {
+      useMusicSources: () => ({
+        statuses: [
+          {
+            enabled: true,
+            descriptor: { source: 'netease', capabilities: ['playlistWrite', 'favorites'] }
+          }
+        ]
+      })
+    },
     '@/components/music/loading': { TextSkeleton: 'div' },
     react: {
       createContext: () => ({}),
@@ -52,7 +63,11 @@ function harness() {
     ),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
   )
-  runInNewContext(outputText, { exports, require: (name) => modules[name] })
+  runInNewContext(outputText, {
+    exports,
+    require: (name) =>
+      name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+  })
   function flatten(node) {
     return Array.isArray(node)
       ? node.flatMap(flatten)
@@ -78,7 +93,14 @@ function harness() {
     }
   }
 }
-const playlist = { id: 12, kind: 'playlist', creatorId: 7, liked: false, name: 'Mine' }
+const playlist = {
+  reference: { source: 'netease', kind: 'playlist', id: '12' },
+  id: 12,
+  kind: 'playlist',
+  creatorId: '7',
+  liked: false,
+  name: 'Mine'
+}
 test('playlist menus replace the queue or insert the whole collection next and expose management', () => {
   const app = harness(),
     items = app.menu(playlist)
@@ -133,6 +155,7 @@ test('song favorite action precedes the divider and unavailable remove actions a
     ].map((key) => [key, key])
   )
   const modules = {
+    '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     '@/components/music/loading': { TextSkeleton: 'div' },
     react: {
       createContext: () => ({}),
@@ -149,8 +172,8 @@ test('song favorite action precedes the divider and unavailable remove actions a
     '@/features/library/playlist-picker': {},
     '@/features/account/account': {
       useAccount: () => ({
-        profile: { userId: 7 },
-        likedIds: new Set([12]),
+        profile: { userId: '7', reference: { source: 'netease', id: '7' } },
+        likedIds: new Set(['12']),
         likesReady: true,
         pendingLikes: new Set()
       })
@@ -161,7 +184,11 @@ test('song favorite action precedes the divider and unavailable remove actions a
     readFileSync(new URL('../src/components/music/song-actions.tsx', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
   )
-  runInNewContext(outputText, { exports, require: (name) => modules[name] })
+  runInNewContext(outputText, {
+    exports,
+    require: (name) =>
+      name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+  })
   function flatten(node) {
     return Array.isArray(node)
       ? node.flatMap(flatten)

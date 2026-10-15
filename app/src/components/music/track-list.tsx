@@ -1,5 +1,6 @@
 import { useListFind } from './list-find'
 import { Skeleton } from '@/components/ui/skeleton'
+import { favoriteId } from '@/features/music/legacy-reference'
 import { Input } from '@/components/ui/input'
 import { TrackAlbum } from '@/components/music/music-links'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -267,7 +268,8 @@ export const TrackList = memo(function TrackList({
     }
   }, [findTarget])
   const showLikes =
-    !mobile && (likesColumn ?? tracks.some((track) => track.source.kind === 'netease'))
+    !mobile &&
+    (likesColumn ?? tracks.some((track) => favoriteId(track, profile?.reference) !== undefined))
   const sizingSpecs = useMemo(
     () => [
       ...(!mobile ? [{ id: 'index', label: '序号', size: 48, minSize: 36 }] : []),
@@ -521,6 +523,7 @@ export const TrackList = memo(function TrackList({
             {!loading &&
               rows.map((row) => {
                 const { index, track, rowKey } = entries[row.index]
+                const favorite = favoriteId(track, profile?.reference)
                 return (
                   <SongContextMenu
                     key={rowKey}
@@ -618,22 +621,20 @@ export const TrackList = memo(function TrackList({
                     )}
                     {showLikes && (
                       <td>
-                        {track.source.kind === 'netease' && (
+                        {favorite !== undefined && (
                           <ActionButton
                             variant="ghost"
                             size="icon-sm"
                             className="track-like"
-                            data-liked={likedIds.has(track.source.id)}
-                            aria-pressed={likedIds.has(track.source.id)}
-                            disabled={
-                              busy || !profile || !likesReady || pendingLikes.has(track.source.id)
-                            }
-                            aria-label={`${likedIds.has(track.source.id) ? '取消喜欢' : '喜欢'} ${track.title}`}
+                            data-liked={likedIds.has(favorite)}
+                            aria-pressed={likedIds.has(favorite)}
+                            disabled={busy || !profile || !likesReady || pendingLikes.has(favorite)}
+                            aria-label={`${likedIds.has(favorite) ? '取消喜欢' : '喜欢'} ${track.title}`}
                             title={!profile ? '登录后收藏歌曲' : '喜欢 / 取消喜欢'}
                             onClick={() => {
-                              if (track.source.kind === 'netease') {
+                              if (favorite !== undefined) {
                                 setLikeError(undefined)
-                                void toggleLike(track.source.id).catch((cause) =>
+                                void toggleLike(favorite).catch((cause) =>
                                   setLikeError(errorText(cause))
                                 )
                               }

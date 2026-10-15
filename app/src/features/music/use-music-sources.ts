@@ -10,7 +10,8 @@ const sources = createSourceStore(
     isTauri()
       ? Promise.all([sourcePreferences.get(), nativeCall<SourceStatus[]>('adapter_list')])
       : Promise.resolve([undefined, []]),
-  (event, changed) => (isTauri() ? listen(event, changed) : Promise.resolve(() => {})),
+  (event, changed) =>
+    isTauri() ? listen(event, ({ payload }) => changed(payload)) : Promise.resolve(() => {}),
   errorText
 )
 export function useMusicSources() {

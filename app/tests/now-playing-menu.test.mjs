@@ -1,3 +1,4 @@
+import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -7,9 +8,9 @@ import ts from 'typescript'
 function harness() {
   const calls = []
   const account = {
-    profile: {},
+    profile: { reference: { source: 'netease', id: '1' } },
     likesReady: true,
-    likedIds: new Set([12]),
+    likedIds: new Set(['12']),
     pendingLikes: new Set(),
     toggleLike: (id) => calls.push(['like', id])
   }
@@ -28,6 +29,16 @@ function harness() {
     ].map((name) => [name, name])
   )
   const modules = {
+    '@/features/music/use-music-sources': {
+      useMusicSources: () => ({
+        statuses: [
+          {
+            enabled: true,
+            descriptor: { source: 'netease', capabilities: ['playlistWrite', 'favorites'] }
+          }
+        ]
+      })
+    },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@base-ui/react/menu': { Menu },
     'lucide-react': {},
@@ -54,7 +65,11 @@ function harness() {
     readFileSync(new URL('../src/features/playback/now-playing-menu.tsx', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
   )
-  runInNewContext(outputText, { exports, require: (name) => modules[name] })
+  runInNewContext(outputText, {
+    exports,
+    require: (name) =>
+      name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+  })
   const flatten = (node) =>
     Array.isArray(node)
       ? node.flatMap(flatten)
@@ -102,7 +117,7 @@ test('stream menu uses existing favorite, collection, copy and detail actions', 
   }
   assert.equal(menu.source, 'AMLL DB')
   assert.deepEqual(app.calls, [
-    ['like', 12],
+    ['like', '12'],
     ['collect', stream.key],
     ['copy', 'https://music.163.com/#/song?id=12'],
     ['details', stream.key],
@@ -128,11 +143,11 @@ test('bound local songs expose local actions and never use their lyric associati
 
 test('favorite respects account readiness and pending writes; lyric refresh cannot be repeated during loading', () => {
   const app = harness()
-  app.account.pendingLikes.add(12)
+  app.account.pendingLikes.add('12')
   assert.equal(app.render(stream).item('取消收藏歌曲').props.disabled, true)
   app.account.pendingLikes.clear()
   app.account.profile = undefined
-  assert.equal(app.render(stream).item('取消收藏歌曲').props.disabled, true)
+  assert.equal(app.render(stream).item('收藏歌曲'), undefined)
   const loading = app.render(stream, { loading: true })
   assert.equal(loading.source, '正在获取…')
   assert.equal(loading.item('正在获取歌词…').props.disabled, true)

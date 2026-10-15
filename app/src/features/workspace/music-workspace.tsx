@@ -431,7 +431,10 @@ export function MusicWorkspace({
                         <p role="status" className="py-6 text-sm text-muted-foreground">
                           {sources.error ||
                             (currentSource
-                              ? `${sourceLabel(currentSource)}当前不可用，请选择其他来源或在设置中启用。`
+                              ? `${sourceLabel(
+                                  currentSource,
+                                  sources.statuses.map((value) => value.descriptor)
+                                )}当前不可用，请选择其他来源或在设置中启用。`
                               : '正在读取音乐来源…')}
                         </p>
                         <ActionButton variant="outline" onClick={() => navigate('accounts')}>
@@ -441,7 +444,11 @@ export function MusicWorkspace({
                     )
                   ) : (view === 'discover' || view === 'library') &&
                     currentSource &&
-                    currentSource !== 'netease' ? (
+                    !sources.statuses
+                      .find((status) => status.descriptor.source === currentSource)
+                      ?.descriptor.capabilities.includes(
+                        view === 'discover' ? 'recommendations' : 'playlistWrite'
+                      ) ? (
                     <Suspense
                       fallback={
                         view === 'library' ? (
