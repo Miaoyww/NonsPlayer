@@ -45,8 +45,8 @@ async function withDom(run) {
   }
 }
 
-test('readonly favorites load all pages, display the current red heart, forbid writes and survive equivalent source refreshes', async () =>
-  withDom(async (root) => {
+async function readonlyFavoritesScenario(scenario = 'complete') {
+  return withDom(async (root) => {
     const record = {
       reference: { source: 'qqmusic', id: 'account' },
       displayName: '测试账号',
@@ -55,6 +55,7 @@ test('readonly favorites load all pages, display the current red heart, forbid w
     let currentReads = 0,
       writes = 0,
       snapshot
+    let finishPage
     const queried = []
     const modules = {
       react: React,
@@ -74,7 +75,7 @@ test('readonly favorites load all pages, display the current red heart, forbid w
           statuses: [
             {
               enabled: true,
-              descriptor: { source: 'qqmusic', capabilities: ['account', 'favoritesRead'] }
+              descriptor: { source: 'qqmusic', capabilities: ['account', 'userLibrary', 'browse'] }
             }
           ]
         })
@@ -90,14 +91,37 @@ test('readonly favorites load all pages, display the current red heart, forbid w
           query: async (source, request) => {
             queried.push(request)
             assert.equal(source, 'qqmusic')
-            assert.equal(request.operation, 'favoritesPage')
+            if (request.operation === 'librarySummary')
+              return {
+                type: 'summary',
+                data: {
+                  account: record,
+                  likedPlaylist: { reference: { source, kind: 'playlist', id: 'chosen-likes' } },
+                  likedTracks: [],
+                  likedError: scenario === 'preview-failure' ? { code: 'network' } : null
+                }
+              }
+            assert.equal(request.operation, 'tracks')
+            assert.equal(request.entity.id, 'chosen-likes')
+            if (request.page.cursor && scenario === 'failure') throw new Error('page unavailable')
+            if (request.page.cursor && scenario === 'switch')
+              return new Promise((resolve) => {
+                finishPage = resolve
+              })
             return {
-              type: 'favoritesPage',
+              type: 'tracks',
               data: {
                 items: [
-                  { source, kind: 'track', id: request.page.cursor ? 'OtherMID' : 'SongMID' }
+                  {
+                    reference: {
+                      source,
+                      kind: 'track',
+                      id: request.page.cursor ? 'OtherMID' : 'SongMID'
+                    }
+                  }
                 ],
-                nextCursor: request.page.cursor ? null : 'opaque-next'
+                nextCursor:
+                  scenario === 'repeat' ? 'opaque-next' : request.page.cursor ? null : 'opaque-next'
               }
             }
           },
@@ -135,6 +159,29 @@ test('readonly favorites load all pages, display the current red heart, forbid w
         root.render(React.createElement(account.AccountProvider, {}, React.createElement(View)))
       )
     await render()
+    if (['failure', 'repeat'].includes(scenario)) {
+      assert.equal(snapshot.likesReady, false)
+      assert.equal(snapshot.likedIds.size, 0)
+      assert.match(snapshot.likesError, scenario === 'failure' ? /page unavailable/ : /重复游标/)
+      return
+    }
+    if (scenario === 'switch') {
+      assert.equal(snapshot.likesReady, false)
+      await act(async () => snapshot.setProfile(null))
+      await act(async () =>
+        finishPage({
+          type: 'tracks',
+          data: {
+            items: [{ reference: { source: 'qqmusic', kind: 'track', id: 'OldMID' } }],
+            nextCursor: null
+          }
+        })
+      )
+      assert.equal(snapshot.likedIds.size, 0)
+      assert.equal(snapshot.profile, null)
+      assert.equal(snapshot.likesReady, false)
+      return
+    }
     assert.equal(snapshot.likesReady, true)
     assert.deepEqual([...snapshot.likedIds].sort(), ['OtherMID', 'SongMID'])
     assert.equal(document.querySelector('button').getAttribute('aria-pressed'), 'true')
@@ -145,8 +192,20 @@ test('readonly favorites load all pages, display the current red heart, forbid w
     await render()
     assert.equal(currentReads, 1)
     assert.equal(queried.length, count)
-    assert.ok(queried.some((request) => request.page.cursor === 'opaque-next'))
-  }))
+    assert.ok(queried.some((request) => request.page?.cursor === 'opaque-next'))
+  })
+}
+
+test('readonly favorites load all pages, display the current red heart, forbid writes and survive equivalent source refreshes', () =>
+  readonlyFavoritesScenario())
+test('a failed preview does not prevent reading the explicit liked playlist', () =>
+  readonlyFavoritesScenario('preview-failure'))
+test('a failed liked-playlist page does not publish a partial favorites set', () =>
+  readonlyFavoritesScenario('failure'))
+test('repeated liked-playlist cursors fail without publishing a partial set', () =>
+  readonlyFavoritesScenario('repeat'))
+test('account changes discard a late liked-playlist page', () =>
+  readonlyFavoritesScenario('switch'))
 
 test('closing an error dismisses all current origins and still allows a later new error', async () =>
   withDom(async (root, dom) => {

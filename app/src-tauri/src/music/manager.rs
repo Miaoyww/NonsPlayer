@@ -346,6 +346,7 @@ impl AdapterManager {
         match &mut result {
             BusinessResponse::Tracks(p) => encode_cursor(&mut p.page.next_cursor, &scope)?,
             BusinessResponse::Entities(p) => encode_cursor(&mut p.next_cursor, &scope)?,
+            BusinessResponse::FavoritesPage(p) => encode_cursor(&mut p.next_cursor, &scope)?,
             _ => (),
         }
         entry.check(&context)?;
@@ -867,6 +868,19 @@ mod tests {
                             description: None,
                         }))
                     }
+                    BusinessRequest::FavoritesPage { page } => {
+                        if let Some(cursor) = &page.cursor {
+                            assert_eq!(cursor.as_str(), "provider:next/page");
+                        }
+                        Ok(BusinessResponse::FavoritesPage(Page {
+                            items: vec![reference_for("liked-song")],
+                            next_cursor: if page.cursor.is_none() {
+                                Some(Cursor::try_from("provider:next/page".to_owned())?)
+                            } else {
+                                None
+                            },
+                        }))
+                    }
                     BusinessRequest::Suggestions { keyword } => {
                         Ok(BusinessResponse::Suggestions(vec![keyword.clone()]))
                     }
@@ -1240,6 +1254,55 @@ mod tests {
             .unwrap_err()
             .code,
             ErrorCode::Unsupported
+        );
+    }
+    #[tokio::test]
+    async fn favorites_pages_pass_through_host_cursor_binding_and_reject_foreign_sessions() {
+        use super::super::business::*;
+        let manager = AdapterManager::default();
+        let mut provider = adapter(false);
+        provider
+            .descriptor
+            .capabilities
+            .insert(Capability::FavoritesRead);
+        let session = Arc::new(AtomicU64::new(1));
+        let current = session.clone();
+        manager
+            .register(
+                Arc::new(provider),
+                Arc::new(move || SessionContext {
+                    source: source(),
+                    account: Some(OpaqueId::try_from("account:A".to_owned()).unwrap()),
+                    generation: current.load(Ordering::Acquire),
+                }),
+            )
+            .unwrap();
+        let request = |cursor| BusinessRequest::FavoritesPage {
+            page: PageRequest { cursor, limit: 1 },
+        };
+        let BusinessResponse::FavoritesPage(first) =
+            manager.business(&source(), &request(None)).await.unwrap()
+        else {
+            panic!("favorites page")
+        };
+        let cursor = first.next_cursor.unwrap();
+        assert_ne!(cursor.as_str(), "provider:next/page");
+        let BusinessResponse::FavoritesPage(last) = manager
+            .business(&source(), &request(Some(cursor.clone())))
+            .await
+            .unwrap()
+        else {
+            panic!("favorites page")
+        };
+        assert!(last.next_cursor.is_none());
+        session.fetch_add(1, Ordering::AcqRel);
+        assert_eq!(
+            manager
+                .business(&source(), &request(Some(cursor)))
+                .await
+                .unwrap_err()
+                .code,
+            ErrorCode::StaleContext
         );
     }
     fn business_adapter(blocked: bool) -> TestAdapter {

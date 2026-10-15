@@ -80,6 +80,19 @@ fn record(profile: legacy::AccountProfile) -> MusicResult<AccountRecord> {
         avatar: profile.avatar_url,
     })
 }
+fn library_summary(result: legacy::LibrarySummary) -> MusicResult<LibrarySummary> {
+    Ok(LibrarySummary {
+        account: record(result.profile)?,
+        liked_playlist: result.liked_playlist.map(entity).transpose()?,
+        liked_tracks: result
+            .liked_tracks
+            .into_iter()
+            .map(track)
+            .collect::<MusicResult<_>>()?,
+        liked_error: result.liked_error.map(error),
+    })
+}
+
 /// Stable public error codes; legacy human text is never passed through the uniform interface.
 fn error(message: String) -> super::MusicError {
     log::warn!(target: "nons_adapter_netease::business", "platform_failure reason={message}");
@@ -311,16 +324,7 @@ pub(super) async fn business(
         }
         BusinessRequest::LibrarySummary => {
             let result = client.library_summary().await.map_err(error)?;
-            BusinessResponse::Summary(LibrarySummary {
-                account: record(result.profile)?,
-                liked_playlist: result.liked_playlist.map(entity).transpose()?,
-                liked_tracks: result
-                    .liked_tracks
-                    .into_iter()
-                    .map(track)
-                    .collect::<MusicResult<_>>()?,
-                liked_error: result.liked_error.map(error),
-            })
+            BusinessResponse::Summary(library_summary(result)?)
         }
         BusinessRequest::LibraryCollections {
             kind: entity_kind,
@@ -545,4 +549,31 @@ pub(super) async fn account(
         credential,
         migration,
     })
+}
+
+#[cfg(test)]
+mod summary_tests {
+    use super::*;
+    #[test]
+    fn netease_summary_publishes_liked_playlist_reference_even_when_preview_fails() {
+        let result: legacy::LibrarySummary = serde_json::from_value(serde_json::json!({
+            "profile": { "userId": 42, "nickname": "测试", "avatarUrl": "" },
+            "likedPlaylist": { "id": 12345, "kind": "playlist", "name": "我喜欢的音乐", "cover": "", "subtitle": "测试", "trackCount": 2901, "creatorId": 42, "liked": true, "playCount": null, "publishedAt": null, "artists": [] },
+            "likedTracks": [], "likedError": "network"
+        })).unwrap();
+        let summary = library_summary(result).unwrap();
+        let liked = summary.liked_playlist.as_ref().unwrap();
+        assert_eq!(
+            liked.reference,
+            reference(EntityKind::Playlist, 12345).unwrap()
+        );
+        assert_eq!(liked.track_count, 2901);
+        assert!(liked.liked);
+        let wire = serde_json::to_value(BusinessResponse::Summary(summary)).unwrap();
+        assert_eq!(
+            wire["data"]["likedPlaylist"]["reference"]["source"],
+            "netease"
+        );
+        assert_eq!(wire["data"]["likedPlaylist"]["reference"]["id"], "12345");
+    }
 }

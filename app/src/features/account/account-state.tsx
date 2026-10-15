@@ -55,7 +55,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   )?.descriptor
   const available = !!descriptor
   const canToggleLike = !!descriptor?.capabilities.includes('favorites')
-  const canReadLikes = canToggleLike || !!descriptor?.capabilities.includes('favoritesRead')
+  const hasFavoritesRead = !!descriptor?.capabilities.includes('favoritesRead')
+  const canUseLikedPlaylist =
+    !!descriptor?.capabilities.includes('userLibrary') &&
+    !!descriptor?.capabilities.includes('browse')
+  const canReadLikes = canToggleLike || hasFavoritesRead || canUseLikedPlaylist
   const [profile, updateProfile] = useState<AccountProfile | null>(null)
   const [loading, setLoading] = useState(isTauri())
   const [error, setError] = useState<string>()
@@ -146,17 +150,46 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         if (result.type !== 'favorites') throw new Error('收藏状态响应无效')
         return result.data
       }
+      let playlist: import('@/features/music/types').EntityRef | undefined
+      if (!hasFavoritesRead) {
+        const result = await musicClient.query(profile.reference.source, {
+          operation: 'librarySummary'
+        })
+        if (serial !== likesGeneration.current) return []
+        if (result.type !== 'summary') throw new Error('音乐库摘要响应无效')
+        if (result.data.likedError && !result.data.likedPlaylist)
+          throw new Error('无法读取喜欢的音乐歌单')
+        playlist = result.data.likedPlaylist?.reference
+        if (!playlist) return []
+        if (playlist.source !== profile.reference.source || playlist.kind !== 'playlist')
+          throw new Error('喜欢的音乐歌单引用无效')
+      }
       const items: import('@/features/music/types').EntityRef[] = []
       let cursor: string | null = null
       const seen = new Set<string>()
+      let pages = 0
       do {
+        if (++pages > 4000) throw new Error('收藏状态超过分页上限')
         const result = await musicClient.query(profile.reference.source, {
-          operation: 'favoritesPage',
+          ...(playlist
+            ? { operation: 'tracks' as const, entity: playlist }
+            : { operation: 'favoritesPage' as const }),
           page: { cursor, limit: 100 }
         })
         if (serial !== likesGeneration.current) return []
-        if (result.type !== 'favoritesPage') throw new Error('收藏状态响应无效')
-        items.push(...result.data.items)
+        if (result.type !== 'favoritesPage' && result.type !== 'tracks')
+          throw new Error('收藏状态响应无效')
+        const references =
+          result.type === 'tracks'
+            ? result.data.items.map((item) => item.reference)
+            : result.data.items
+        if (
+          references.some(
+            (item) => item.source !== profile.reference.source || item.kind !== 'track'
+          )
+        )
+          throw new Error('收藏歌曲引用无效')
+        items.push(...references)
         cursor = result.data.nextCursor
         if (items.length > 100_000 || (cursor && seen.has(cursor)))
           throw new Error('收藏状态超过数量上限或返回重复游标')
@@ -175,7 +208,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     return () => {
       likesGeneration.current++
     }
-  }, [profile, canReadLikes, canToggleLike, likesRefresh])
+  }, [profile, canReadLikes, canToggleLike, hasFavoritesRead, likesRefresh])
   const reloadLikes = useCallback(() => setLikesRefresh((value) => value + 1), [])
   useEffect(() => {
     if (!isTauri()) return

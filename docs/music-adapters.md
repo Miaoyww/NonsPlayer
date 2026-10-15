@@ -315,6 +315,8 @@ Wasmtime StoreLimitsBuilder 与 fuel_async_yield_interval 经 Context7 核对官
 
 ### 只读收藏状态
 
-可选能力 `favoritesRead` 通过 `favoritesPage { page: { cursor, limit } }` 返回 `{ type: "favoritesPage", data: { items: EntityRef[], nextCursor } }`，仅接受同来源的歌曲引用，要求账号且属于 `music:library` 读取。每页遵守 limit（1–100）和既有返回大小限制；游标原样回传。QQ 每页最多 25 项，避免一次返回完整喜欢列表超出外部调用预算。宿主逐页读取，切换账号后丢弃旧结果，完成后统一更新红心状态；重复游标和超过 100000 项按错误处理。
+可选能力 `favoritesRead` 通过 `favoritesPage { page: { cursor, limit } }` 返回 `{ type: "favoritesPage", data: { items: EntityRef[], nextCursor } }`，仅接受同来源的歌曲引用，要求账号且属于 `music:library` 读取。每页遵守 limit（1–100）和既有返回大小限制；游标原样回传。宿主对返回游标添加来源、账号和实例绑定，续页前解包校验。宿主逐页读取，切换账号后丢弃旧结果，完成后统一更新红心状态；重复游标、超过 4000 页或 100000 项按错误处理。
 
 既有 `favorites` 能力及 `favorites`／`setFavorite` 操作保持原语义。`favoritesRead` 不赋予写权限，界面展示已喜欢状态并禁用喜欢／取消喜欢按钮，菜单不提供对应写操作。QQ 本轮仅接读取。
+
+来源未声明 `favorites`／`favoritesRead`，但具有 `userLibrary` 和 `browse` 时，宿主从 `librarySummary.likedPlaylist.reference` 指定的歌单逐页读取 `tracks` 并提取同来源歌曲引用；不按名字猜测，不使用首页预览作为完整收藏状态。专门收藏能力请求失败不静默切换路径。QQ 不再声明 `favoritesRead`，复用喜欢歌单读取，每页由适配器限制为 25 首；系统目录 `dirId=201` 在普通歌单分页前排除，同名普通歌单保留。网易云继续通过 `likelist` 获取红心 ID，同时在摘要 `likedPlaylist` 填写带来源的特殊歌单引用，预览失败也保留该引用。摘要没有喜欢歌单且无读取错误时视为空收藏；读取中或失败不发布部分集合，列表保留重试入口。查询复用现有 `music_query` 账号作用域缓存，账号／适配器变化和收藏写入沿用既有失效机制，不另存完整喜欢歌曲详情。

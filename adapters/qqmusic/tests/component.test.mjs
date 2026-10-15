@@ -44,7 +44,16 @@ async function component({
   resource = 'full',
   flacSize = 4096,
   songDetail = fixtureTrack,
-  playlistSongs = [fixtureTrack]
+  playlistSongs = [fixtureTrack],
+  createdPlaylists = [
+    {
+      tid: 123,
+      dirName: 'Private playlist',
+      dirId: 1,
+      dirShow: 2,
+      logo: 'https://y.gtimg.cn/private.jpg'
+    }
+  ]
 } = {}) {
   const frames = [],
     requests = [],
@@ -125,15 +134,7 @@ async function component({
                     }
                   : method === 'GetPlaylistByUin'
                     ? {
-                        v_playlist: [
-                          {
-                            tid: 123,
-                            dirName: 'Private playlist',
-                            dirId: 1,
-                            dirShow: 2,
-                            logo: 'https://y.gtimg.cn/private.jpg'
-                          }
-                        ]
+                        v_playlist: createdPlaylists
                       }
                     : method === 'CgiGetDiss'
                       ? {
@@ -565,18 +566,19 @@ test('readonly favorites enumerate every page without advertising favorite write
   })
   try {
     const descriptor = fixture.call('music.descriptor', null).data
-    assert.ok(descriptor.capabilities.includes('favoritesRead'))
+    assert.ok(!descriptor.capabilities.includes('favoritesRead'))
     assert.ok(!descriptor.capabilities.includes('favorites'))
     let cursor = null
     const ids = []
     do {
       const result = fixture.call('music.business', {
-        operation: 'favoritesPage',
+        operation: 'tracks',
+        entity: { source: 'qqmusic', kind: 'playlist', id: 'liked' },
         page: { limit: 25, cursor }
       })
       assert.equal(result.status, 'ok', JSON.stringify(result))
-      assert.equal(result.data.type, 'favoritesPage')
-      ids.push(...result.data.data.items.map((item) => item.id))
+      assert.equal(result.data.type, 'tracks')
+      ids.push(...result.data.data.items.map((item) => item.reference.id))
       cursor = result.data.data.nextCursor
     } while (cursor)
     assert.deepEqual(
@@ -745,4 +747,36 @@ test('a disconnected QR channel fails explicitly and releases its transport', as
     fixture.instance.shutdown()
   }
   assert.equal(fixture.sockets.size, 0)
+})
+
+test('library lists exclude the system likes directory before pagination but retain a same-name regular playlist', async () => {
+  const credential = await credentialFixture()
+  const fixture = await component({
+    credential,
+    createdPlaylists: [
+      { tid: 900, dirId: 201, dirName: '我喜欢', dirShow: 2 },
+      { tid: 901, dirId: 1, dirName: '我喜欢', dirShow: 2 }
+    ]
+  })
+  try {
+    for (const filter of ['created', 'all']) {
+      const result = fixture.call('music.business', {
+        operation: 'libraryCollections',
+        kind: 'playlist',
+        filter,
+        page: { cursor: null, limit: 25 }
+      })
+      assert.equal(result.status, 'ok', JSON.stringify(result))
+      assert.deepEqual(
+        result.data.data.items.map((item) => item.reference.id),
+        ['901']
+      )
+      assert.equal(result.data.data.nextCursor, null)
+    }
+    const summary = fixture.call('music.business', { operation: 'librarySummary' })
+    assert.equal(summary.status, 'ok', JSON.stringify(summary))
+    assert.equal(summary.data.data.likedPlaylist.reference.id, 'liked')
+  } finally {
+    fixture.instance.shutdown()
+  }
 })
