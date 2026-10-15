@@ -1,3 +1,4 @@
+import { sourceCapabilities } from './helpers/source-capabilities.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -57,6 +58,7 @@ function harness(initialMode = 'collapsible') {
     '@/plugins/host': { PluginProvider: 'PluginProvider', PluginSlot: 'PluginSlot' }
   }).default
   const MusicWorkspace = load('../src/features/workspace/music-workspace.tsx', {
+    '@/features/music/source-capabilities': sourceCapabilities,
     '@/components/music/list-find': { ListFindProvider: 'ListFindProvider' },
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({ preferences: { current: 'netease' }, statuses: [], revision: 0 })

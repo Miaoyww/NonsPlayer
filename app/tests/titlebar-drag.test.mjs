@@ -1,3 +1,4 @@
+import { sourceCapabilities } from './helpers/source-capabilities.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -8,6 +9,8 @@ function harness(playerMode = false) {
   const actions = []
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/features/music/source-capabilities': sourceCapabilities,
+    '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     react: { useState: (value) => [value, () => {}], useEffect() {} },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@tauri-apps/api/core': { isTauri: () => true },

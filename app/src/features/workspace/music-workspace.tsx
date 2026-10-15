@@ -1,3 +1,4 @@
+import { supportsMusicPage } from '@/features/music/source-capabilities'
 import { ListFindProvider } from '@/components/music/list-find'
 import { MusicPageSkeleton, LibraryPageSkeleton } from '@/components/music/loading'
 import { usePlaybackShortcuts } from '@/features/playback/shortcuts/use-playback-shortcuts'
@@ -42,7 +43,6 @@ const Discovery = lazy(() => import('@/features/discovery/discovery'))
 const AccountLoginPage = lazy(() => import('@/features/account/account-login-page'))
 const MusicLibrary = lazy(() => import('@/features/library/music-library'))
 const EntityPage = lazy(() => import('@/features/music/entity-page'))
-const SourceWorkspace = lazy(() => import('@/features/music/source-workspace'))
 interface ImportReport {
   imported: number
   skipped: number
@@ -429,21 +429,13 @@ export function MusicWorkspace({
                         </ActionButton>
                       </MusicPage>
                     )
-                  ) : view === 'discover' &&
-                    currentSource &&
-                    !sources.statuses
-                      .find((status) => status.descriptor.source === currentSource)
-                      ?.descriptor.capabilities.includes('recommendations') ? (
-                    <Suspense fallback={<MusicPageSkeleton view="discover" />}>
-                      <SourceWorkspace
-                        key={`${currentSource}:${view}:${sources.revision}`}
-                        source={currentSource}
-                        name={currentStatus?.descriptor.displayName ?? currentSource}
-                        discovery
-                        onError={onError}
-                        onNotice={showNotice}
-                      />
-                    </Suspense>
+                  ) : (view === 'discover' || view === 'library') &&
+                    !supportsMusicPage(currentStatus?.descriptor, view) ? (
+                    <MusicPage>
+                      <p role="status" className="py-6 text-sm text-muted-foreground">
+                        此适配器未提供{view === 'library' ? '音乐库' : '发现'}页面，请选择其他账号。
+                      </p>
+                    </MusicPage>
                   ) : view === 'discover' ? (
                     <Suspense
                       fallback={

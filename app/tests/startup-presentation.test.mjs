@@ -1,3 +1,4 @@
+import { sourceCapabilities } from './helpers/source-capabilities.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -38,6 +39,7 @@ function flatten(node) {
 }
 test('unresolved startup source renders the actual library shell instead of the source selection empty page', () => {
   const modules = {
+    '@/features/music/source-capabilities': sourceCapabilities,
     ...base,
     '@/features/workspace/music-navigation': {
       useMusicNavigation: () => ({ page: { view: 'library', query: '' } })

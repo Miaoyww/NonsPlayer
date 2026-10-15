@@ -1,3 +1,4 @@
+import { sourceCapabilities } from './helpers/source-capabilities.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -45,6 +46,7 @@ const wrapper = ({ children }) => React.createElement('div', {}, children)
 const button = ({ children, variant, size, ...props }) =>
   React.createElement('button', props, children)
 const base = {
+  '@/features/music/source-capabilities': sourceCapabilities,
   '@/features/music/source-preferences': {
     sourcePreferences: { beginIntent: async () => 1, use: async () => {} }
   },
@@ -75,7 +77,7 @@ const base = {
 test('aggregate login switches adapters, discards old QR and poll responses, and preserves disabled cards', async () => {
   await withDom(async (root, dom) => {
     const adapters = ['netease', 'other', 'disabled'].map((source) => ({
-      descriptor: { source, displayName: source },
+      descriptor: { source, displayName: source, capabilities: ['account', 'userLibrary'] },
       enabled: source !== 'disabled',
       current: null
     }))
@@ -163,7 +165,11 @@ test('add-account route generates login even when the adapter already has a sele
     const requests = []
     const adapters = [
       {
-        descriptor: { source: 'other', displayName: 'Other' },
+        descriptor: {
+          source: 'other',
+          displayName: 'Other',
+          capabilities: ['account', 'userLibrary']
+        },
         enabled: true,
         current: { reference: { source: 'other', id: 'opaque' }, displayName: 'User' }
       }
@@ -209,7 +215,11 @@ test('login switches source only after success and exposes a persisted-account s
     const requests = []
     const refresh = () => {}
     const adapter = {
-      descriptor: { source: 'other', displayName: 'Other' },
+      descriptor: {
+        source: 'other',
+        displayName: 'Other',
+        capabilities: ['account', 'userLibrary']
+      },
       enabled: true,
       current: null
     }
@@ -327,7 +337,15 @@ test('account menu and signed-out trigger navigate to the aggregate page without
       './use-account-adapters': {
         useAccountAdapters: () => ({
           adapters: [
-            { descriptor: { source: 'other', displayName: 'Other' }, enabled: true, current }
+            {
+              descriptor: {
+                source: 'other',
+                displayName: 'Other',
+                capabilities: ['account', 'userLibrary']
+              },
+              enabled: true,
+              current
+            }
           ],
           error: '',
           refresh() {}
@@ -352,5 +370,77 @@ test('account menu and signed-out trigger navigate to the aggregate page without
     )
     assert.deepEqual(navigations[1], ['accounts', 'other'])
     assert.equal(document.querySelector('[role="dialog"]'), null)
+  })
+})
+
+test('source-only adapter login manages its account without switching personal pages', async () => {
+  await withDom(async (root) => {
+    let switches = 0,
+      intents = 0
+    const timers = new Map()
+    let timerId = 0
+    const { AdapterLoginCard } = load(
+      '../src/features/account/account-login-page.tsx',
+      {
+        ...base,
+        '@/features/music/source-preferences': {
+          sourcePreferences: {
+            beginIntent: async () => {
+              intents++
+              return 1
+            },
+            use: async () => switches++
+          }
+        },
+        '@/features/music/client': {
+          musicClient: {
+            account: async (_, request) =>
+              request.operation === 'beginLogin'
+                ? {
+                    type: 'challenge',
+                    data: { key: 'qr', image: 'data:image/png;base64,dGVzdA==' }
+                  }
+                : { type: 'progress', data: { code: 803, message: '登录成功' } },
+            cancelLogin: async () => {}
+          }
+        }
+      },
+      {
+        setTimeout: (callback) => {
+          timers.set(++timerId, callback)
+          return timerId
+        },
+        clearTimeout: (id) => timers.delete(id)
+      }
+    )
+    const adapter = {
+      descriptor: {
+        source: 'audio',
+        displayName: '音源',
+        capabilities: ['account'],
+        loginMethods: [{ id: 'qr', label: '扫码' }]
+      },
+      enabled: true,
+      current: null
+    }
+    await act(async () =>
+      root.render(
+        React.createElement(AdapterLoginCard, { adapter, startLogin: true, onChanged() {} })
+      )
+    )
+    assert.equal(timers.size, 1)
+    await act(async () => {
+      await [...timers.values()][0]()
+    })
+    assert.equal(intents, 0)
+    assert.equal(switches, 0)
+    adapter.current = { reference: { source: 'audio', id: 'user' }, displayName: 'User' }
+    await act(async () =>
+      root.render(
+        React.createElement(AdapterLoginCard, { adapter, startLogin: false, onChanged() {} })
+      )
+    )
+    assert.doesNotMatch(document.body.textContent, /使用此来源/)
+    assert.match(document.body.textContent, /退出账号/)
   })
 })

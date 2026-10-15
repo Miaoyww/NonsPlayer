@@ -1,7 +1,8 @@
+import { hasPersonalPages } from '@/features/music/source-capabilities'
 import { TextSkeleton } from '@/components/music/loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { Check, ChevronRight, QrCode, RefreshCw, UserPlus } from 'lucide-react'
+import { Check, ChevronRight, QrCode, RefreshCw, UserPlus, LogOut } from 'lucide-react'
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
 import { ActionButton } from '@/components/music/action-button'
 import { musicClient } from '@/features/music/client'
@@ -13,7 +14,7 @@ import { SavedAccounts } from './saved-accounts'
 import { useAccountAdapters, type AccountAdapter } from './use-account-adapters'
 const noLoginMethods: { id: string; label: string }[] = []
 
-function AdapterLoginCard({
+export function AdapterLoginCard({
   adapter,
   onChanged,
   startLogin
@@ -47,7 +48,9 @@ function AdapterLoginCard({
     setQr(undefined)
     setMessage('正在生成二维码…')
     try {
-      const nextIntent = await sourcePreferences.beginIntent()
+      const nextIntent = hasPersonalPages(adapter.descriptor)
+        ? await sourcePreferences.beginIntent()
+        : undefined
       if (serial !== generation.current) return
       intent.current = nextIntent
       const result = await musicClient.account(source, { operation: 'beginLogin', method })
@@ -87,7 +90,8 @@ function AdapterLoginCard({
         setMessage(result.data.message)
         if (result.data.code === 803) {
           try {
-            await sourcePreferences.use(source, intent.current!)
+            if (hasPersonalPages(adapter.descriptor))
+              await sourcePreferences.use(source, intent.current!)
           } catch (cause) {
             if (!disposed && serial === generation.current)
               setMessage(`登录成功，切换来源失败：${errorText(cause)}。可点击“使用此来源”重试。`)
@@ -157,25 +161,46 @@ function AdapterLoginCard({
             <Check className="size-4" aria-hidden="true" />
             当前账号已登录
           </p>
-          {message.includes('切换来源失败') && (
+          {message && (
             <p role="alert" className="text-sm text-destructive">
               {message}
             </p>
           )}
+          {hasPersonalPages(adapter.descriptor) && (
+            <ActionButton
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true)
+                void sourcePreferences
+                  .beginIntent()
+                  .then((value) => sourcePreferences.use(source, value))
+                  .then(() => setMessage(''))
+                  .catch((cause) => setMessage(`切换来源失败：${errorText(cause)}`))
+                  .finally(() => setBusy(false))
+              }}
+            >
+              使用此来源
+            </ActionButton>
+          )}
           <ActionButton
-            variant="outline"
+            variant="ghost"
             disabled={busy}
             onClick={() => {
               setBusy(true)
-              void sourcePreferences
-                .beginIntent()
-                .then((value) => sourcePreferences.use(source, value))
-                .then(() => setMessage(''))
-                .catch((cause) => setMessage(`切换来源失败：${errorText(cause)}`))
+              void musicClient
+                .account(source, { operation: 'logout' })
+                .then((result) => {
+                  if (result.type !== 'logout' || !result.data.localCleared)
+                    throw new Error('退出当前账号失败，请重试。')
+                  onChanged()
+                })
+                .catch((cause) => setMessage(errorText(cause)))
                 .finally(() => setBusy(false))
             }}
           >
-            使用此来源
+            <LogOut aria-hidden="true" />
+            退出账号
           </ActionButton>
           <ActionButton
             variant="secondary"
@@ -238,6 +263,7 @@ function AdapterLoginCard({
       )}
       <SavedAccounts
         open
+        switchPageSource={hasPersonalPages(adapter.descriptor)}
         source={source}
         sourceName={displayName}
         current={adapter.current?.reference}
@@ -250,7 +276,8 @@ function AdapterLoginCard({
 
 export default function AccountLoginPage() {
   const { page, navigate } = useMusicNavigation()
-  const { adapters, loading, error, refresh } = useAccountAdapters()
+  const { adapters: allAdapters, loading, error, refresh } = useAccountAdapters()
+  const adapters = allAdapters.filter((item) => hasPersonalPages(item.descriptor))
   const [source, setSource] = useState(page.view === 'accounts' ? page.query : '')
   const selected = adapters.find((item) => item.descriptor.source === source) ?? adapters[0]
   useEffect(() => {
