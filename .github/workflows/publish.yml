@@ -67,8 +67,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm --dir plugins/netease-download install --frozen-lockfile
 
+      - name: Install adapter build dependencies
+        run: |
+          npm ci --prefix adapters/qqmusic --include=dev
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix packages/wasm-crypto --include=dev
+
+      - name: Install adapter composition tool
+        run: cargo install wac-cli --version 0.12.0 --locked --root .local/tools
+
       - name: Check formatting
         run: pnpm --dir app format:check
+
+      - name: Test release scripts
+        run: python -m unittest discover -s scripts/tests
 
       - name: Install plugin compiler
         run: cargo install cargo-component --version 0.21.1 --locked

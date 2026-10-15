@@ -34,11 +34,12 @@ git push origin v1.0.0
 - 固定 Windows runner、Rust 1.95.0、Node 24、pnpm 10、Python 3.12 与 cargo-component 0.21.1；前端安装和 Rust 构建使用锁文件。
 - 校验标签与四处应用版本一致，必须存在非空的对应发布说明；不使用 Unreleased 代替。
 - 检查格式，运行前端测试、脚本测试与原生库／集成测试；构建灵动岛与测试 Component。
+- QQ 音乐适配器构建前，分别按锁文件安装 `adapters/qqmusic` 与 `packages/wasm-crypto` 的 npm 开发依赖，并将 WAC 0.12.0 安装到 `.local/tools`；Rust 密码组件使用 `wasm32-unknown-unknown` 目标。
 - 从现有引导脚本准备 GStreamer，并通过应用已有打包入口生成包含私有音频运行时的 MSI 和 NSIS EXE。
 - 从同一次构建的主程序与 Windows 资源映射生成 `Nons_<版本>_windows_x64_portable.zip`，包含私有音频运行时、随包插件与使用说明，沿用安装包的许可文件打包策略；不包含构建缓存和调试符号。完整解压后运行 `Nons.exe`，无需安装应用或 GStreamer，但系统必须已有 Microsoft Edge WebView2 Runtime。
 - 清除 SDK 路径后验证运行时文件、插件工厂与 WAV/FLAC/MP3/AAC/Vorbis/Opus 解码。CI 使用 `--skip-audio-output`，不要求 runner 存在音频设备；手动默认模式仍验证静音设备输出。
 - 便携 ZIP 解压到独立目录后再次执行上述静音解码验证，确认归档后的音频运行时完整。
-- Android 使用独立 Windows runner、JDK 21 与 `aarch64-linux-android` Rust 目标，复用 `bootstrap-android.py --accept-licenses` 安装固定版本 SDK/NDK、接受 SDK 许可并准备 GStreamer；缓存 Android GStreamer SDK 与 Rust 依赖。沿用 `pnpm --dir app build:android` 的 APK 原生符号、必需插件、离线前端、V1/V2/V3 签名和 16KB 对齐校验。
+- Android 使用独立 Windows runner、JDK 21 与 `aarch64-linux-android` Rust 目标，复用 `bootstrap-android.py --accept-licenses` 安装固定版本 SDK/NDK、接受 SDK 许可并准备 GStreamer；缓存 Android GStreamer SDK 与 Rust 依赖。GStreamer 校验文件请求遇到超时、连接失败或临时 HTTP 错误时最多尝试 4 次，保持 SHA256 校验；永久错误或无效校验内容直接终止。沿用 `pnpm --dir app build:android` 的 APK 原生符号、必需插件、离线前端、V1/V2/V3 签名和 16KB 对齐校验。
 - Android 只收集经校验的当前版本 `Nons-<版本>-android-arm64-debug.apk`，收集时重新核对构建生成的 SHA256；不上传内容相同的 `-compat` 副本。独立 Artifact 使用 `SHA256SUMS-android.txt`，发布任务下载两端文件、分别校验后合并为一个 `SHA256SUMS.txt`。
 - 仅收集当前版本的 MSI、EXE、便携 ZIP 和匹配源码 Manifest 的灵动岛 ZIP，生成 `SHA256SUMS.txt`；Artifact 保留 14 天，发布任务下载后再次校验哈希。缺少便携 ZIP 时阻止发布。
 - 新 Release 先创建为草稿，上传所有附件后公开；重跑时更新说明并覆盖同名附件，已有公开 Release 保持公开。
