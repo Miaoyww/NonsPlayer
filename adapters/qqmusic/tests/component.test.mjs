@@ -114,7 +114,7 @@ async function component({
                         v_playlist: [
                           {
                             tid: 123,
-                            name: 'Private playlist',
+                            dirName: 'Private playlist',
                             dirId: 1,
                             dirShow: 2,
                             logo: 'https://y.gtimg.cn/private.jpg'
@@ -422,6 +422,8 @@ test('private owned playlists use authenticated read and keep uniform artwork', 
     })
     assert.equal(lists.status, 'ok', JSON.stringify(lists))
     assert.equal(lists.data.data.items[0].reference.id, '123')
+    assert.equal(lists.data.data.items[0].name, 'Private playlist')
+    assert.equal(lists.data.data.items[0].subtitle, '测试账号')
     assert.equal(lists.data.data.items[0].cover.original, 'https://y.gtimg.cn/private.jpg')
     const songs = fixture.call('music.business', {
       operation: 'tracks',

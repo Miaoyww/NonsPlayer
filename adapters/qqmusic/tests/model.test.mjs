@@ -1,6 +1,28 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { track, pageState, pageResult, checkReference, accountRecord } from '../src/model.js'
+import {
+  track,
+  entity,
+  pageState,
+  pageResult,
+  checkReference,
+  accountRecord
+} from '../src/model.js'
+
+test('created and collected playlists retain platform names and creator labels instead of descriptions', () => {
+  const created = entity(
+    { tid: 123, dirName: '我的自建歌单', desc: 'QQ音乐', creator: { name: '创建者' } },
+    'playlist'
+  )
+  assert.equal(created.name, '我的自建歌单')
+  assert.equal(created.subtitle, '创建者')
+  const collected = entity(
+    { dissid: '456', dissname: '收藏歌单', desc: 'QQ音乐', nickname: '其他作者' },
+    'playlist'
+  )
+  assert.equal(collected.name, '收藏歌单')
+  assert.equal(collected.subtitle, '其他作者')
+})
 
 test('numeric song ID and audio media ID do not become the stable track identity', () => {
   const value = track({

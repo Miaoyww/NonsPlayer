@@ -1,6 +1,6 @@
 // Platform field interpretation belongs to this package, never to the Host.
-export function fail(code) {
-  throw Object.assign(new Error(code), { code })
+export function fail(code, stage = 'catalog.validation') {
+  throw Object.assign(new Error(code), { code, diagnostics: { failureStage: stage } })
 }
 export const text = (value) =>
   typeof value === 'string'
@@ -11,7 +11,7 @@ export const text = (value) =>
 export const reference = (kind, id) => ({ source: 'qqmusic', kind, id: text(id) })
 export function checkReference(value, kind) {
   if (value?.source !== 'qqmusic' || value.kind !== kind || !/^[a-zA-Z0-9]+$/.test(value.id))
-    fail('invalidData')
+    fail('invalidData', 'reference.source-kind-id')
   return value.id
 }
 export function artwork(mid, type = 'album') {
@@ -45,7 +45,7 @@ export function credits(singers = []) {
 export function track(value) {
   const song = value.songInfo ?? value.musicData ?? value
   const mid = text(song.mid ?? song.songmid)
-  if (!mid) fail('invalidData')
+  if (!mid) fail('invalidData', 'track.mid')
   const album = song.album ?? {}
   const albumMid = text(album.mid ?? song.albummid)
   const artists = credits(song.singer)
@@ -73,12 +73,13 @@ export function entity(value, kind) {
           value.singerMID ??
           value.singermid)
   )
-  if (!id) fail('invalidData')
+  if (!id) fail('invalidData', 'entity.id')
   return {
     reference: reference(kind, id),
     name: text(
       value.name ??
         value.title ??
+        value.dirName ??
         value.dissname ??
         value.albumName ??
         value.singerName ??
@@ -88,7 +89,18 @@ export function entity(value, kind) {
       kind === 'playlist'
         ? image(value.bigpicUrl ?? value.picUrl ?? value.logo ?? value.cover ?? value.picurl)
         : artwork(id, kind),
-    subtitle: text(value.desc ?? value.subtitle),
+    subtitle:
+      kind === 'playlist'
+        ? text(
+            value.creator?.name ??
+              value.creator?.nick ??
+              value.creator?.nickname ??
+              value.nickname ??
+              value.nick ??
+              value.creatorName ??
+              value.hostname
+          )
+        : text(value.desc ?? value.subtitle),
     trackCount:
       Math.max(
         0,
@@ -115,14 +127,14 @@ export function entity(value, kind) {
 // Cursors bind the request identity and page size; they cannot cross query boundaries.
 export function pageState(page, scope) {
   const limit = Math.min(25, Math.max(1, Number(page?.limit ?? 25)))
-  if (!Number.isInteger(limit)) fail('invalidData')
+  if (!Number.isInteger(limit)) fail('invalidData', 'page.limit')
   let offset = 0
   if (page?.cursor) {
     let cursor
     try {
       cursor = JSON.parse(page.cursor)
     } catch {
-      fail('invalidData')
+      fail('invalidData', 'page.cursor-json')
     }
     if (
       cursor.scope !== scope ||
@@ -131,7 +143,7 @@ export function pageState(page, scope) {
       cursor.offset < 0 ||
       cursor.offset > 100000
     )
-      fail('invalidData')
+      fail('invalidData', 'page.cursor-scope')
     offset = cursor.offset
   }
   return { offset, limit, scope }
@@ -151,7 +163,7 @@ export function pageResult(items, state, total) {
 export function accountRecord(profile, credential) {
   const info = profile?.info ?? {}
   const id = text(credential.str_musicid || credential.musicid)
-  if (!id) fail('invalidData')
+  if (!id) fail('invalidData', 'account.id')
   return {
     reference: { source: 'qqmusic', id },
     displayName:

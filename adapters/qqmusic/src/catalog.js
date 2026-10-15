@@ -61,7 +61,12 @@ async function collections(auth, filter) {
     { uin: auth.credential.str_musicid || String(auth.credential.musicid) },
     true
   )
-  let values = Array.isArray(created.v_playlist) ? created.v_playlist : []
+  let values = Array.isArray(created.v_playlist)
+    ? created.v_playlist.map((value) => ({
+        ...value,
+        creatorName: value.creatorName ?? auth.credential.nick
+      }))
+    : []
   if (filter === 'created') return values
   const encrypted = auth.credential.encryptUin
   const favorites = []
@@ -123,7 +128,8 @@ async function playlist(id, state) {
       response: tracksResponse(data.songlist ?? [], state, data.total_song_num)
     }
   }
-  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id))) fail('invalidData')
+  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)))
+    fail('invalidData', 'playlist.numeric-id')
   if (auth) {
     const created = await collections(auth, 'created')
     const own = created.find((value) => String(value.tid ?? value.disstid ?? value.dissid) === id)
