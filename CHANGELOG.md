@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 修复首次启动时账号验证重复加载音乐库和收藏状态、触发本机并发限制的问题；同一账号的资料更新和其他来源适配器就绪时保留当前内容与在途请求。
+
 ## [1.3.2]
 
 ![NonsPlayer v1.3.2 多音源发布头图](https://raw.githubusercontent.com/Miaoyww/NonsPlayer/v1.3.2/docs/release-assets/header-1.3.2.png)

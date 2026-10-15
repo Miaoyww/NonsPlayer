@@ -31,7 +31,7 @@ test('homepage allows a newer song selection while the previous collection is pr
   }
   const collection = { kind: 'playlist', id: 1, name: 'Liked' }
   const summary = {
-    profile: { userId: 1 },
+    profile: { userId: '1', reference: { source: 'netease', id: '1' } },
     likedPlaylist: collection,
     likedTracks: [
       { key: 'A', title: 'A' },

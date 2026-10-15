@@ -122,6 +122,7 @@ export default function MusicLibrary({
     likesRevision,
     reloadLikes
   } = useAccount()
+  const account = profile?.reference
   const { revision: collectionRevision } = useCollectionActions()
   const { page, navigate } = useMusicNavigation()
   const player = usePlayer('index', 'queue')
@@ -149,16 +150,16 @@ export default function MusicLibrary({
     let disposed = false
     setSummaryError(undefined)
     setSummaryBusy(false)
-    if (!profile || !isTauri()) {
+    if (!account || !isTauri()) {
       setSummary(undefined)
       return
     }
     if (showingDetail) return
-    const cached = peekMusicLibrary(profile.userId, profile.reference?.source)
-    const current = cached ?? (summary?.profile.userId === profile.userId ? summary : undefined)
+    const cached = peekMusicLibrary(account.id, account.source)
+    const current = cached ?? (summary?.profile.userId === account.id ? summary : undefined)
     setSummary(current)
     setSummaryBusy(!current)
-    void getMusicLibrary(profile.userId)
+    void getMusicLibrary(account.id)
       .then((value) => {
         if (!disposed)
           setSummary((previous) => ({
@@ -175,7 +176,7 @@ export default function MusicLibrary({
     return () => {
       disposed = true
     }
-  }, [profile, refresh, likesRevision, collectionRevision, showingDetail])
+  }, [account, refresh, likesRevision, collectionRevision, showingDetail])
 
   const listLoader = useCallback(
     async (offset: number) => {
@@ -183,10 +184,10 @@ export default function MusicLibrary({
         const value = await getLibraryHistory(week, offset)
         return { items: value.tracks, more: value.more }
       }
-      const value = await getLibraryCollections(tab, offset, filter, profile?.userId)
+      const value = await getLibraryCollections(tab, offset, filter, account?.id)
       return { items: value.items, more: value.more }
     },
-    [profile, tab, filter, week, refresh, showingDetail, collectionRevision]
+    [account, tab, filter, week, refresh, showingDetail, collectionRevision]
   )
   const list = usePagedList<Track | MusicCollection>(
     listLoader,
@@ -209,10 +210,10 @@ export default function MusicLibrary({
   const listBusy = list.busy
   const detailLoader = useCallback(
     async (offset: number) => {
-      const value = await getLibraryTracks(collection!, offset, profile!.userId)
+      const value = await getLibraryTracks(collection!, offset, account!.id)
       return { items: value.tracks, more: value.more, metadata: value }
     },
-    [collection, profile, showingDetail]
+    [collection, account, showingDetail]
   )
   const detailList = usePagedList<Track, CollectionTracks>(
     detailLoader,

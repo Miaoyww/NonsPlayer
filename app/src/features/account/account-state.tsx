@@ -33,6 +33,22 @@ export const accountProfile = (record: AccountRecord): AccountProfile => ({
   nickname: record.displayName,
   avatarUrl: record.avatar
 })
+function reconcileProfile(previous: AccountProfile | null, next: AccountProfile | null) {
+  if (
+    !previous ||
+    !next ||
+    previous.reference.source !== next.reference.source ||
+    previous.reference.id !== next.reference.id
+  )
+    return next
+  if (
+    previous.nickname === next.nickname &&
+    JSON.stringify(previous.avatarUrl) === JSON.stringify(next.avatarUrl)
+  )
+    return previous
+  // Display metadata can change without changing the account's query identity.
+  return { ...next, reference: previous.reference }
+}
 interface AccountState {
   profile: AccountProfile | null
   loading: boolean
@@ -64,10 +80,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
 function AccountLibraryBridge({ children }: { children: ReactNode }) {
   const { profile } = useAccount()
+  const reference = profile?.reference
   useLayoutEffect(() => {
     resetAccountCache()
-    setLibraryAccount(profile?.reference ?? null)
-  }, [profile])
+    setLibraryAccount(reference ?? null)
+  }, [reference])
   return children
 }
 
@@ -85,6 +102,7 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
     !!descriptor?.capabilities.includes('browse')
   const canReadLikes = canToggleLike || hasFavoritesRead || canUseLikedPlaylist
   const [profile, updateProfile] = useState<AccountProfile | null>(null)
+  const reference = profile?.reference
   const [loading, setLoading] = useState(isTauri())
   const [error, setError] = useState<string>()
   const [refresh, setRefresh] = useState(0)
@@ -110,7 +128,6 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
   useEffect(() => {
     let disposed = false
     const serial = ++generation.current
-    invalidateNativeCache(undefined, 'context')
     updateProfile(null)
     setLoading(Boolean(source && isTauri()))
     setError(undefined)
@@ -119,13 +136,13 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
         const saved = await musicClient.currentAccount(source)
         if (disposed || serial !== generation.current) return
         const snapshot = saved ? accountProfile(saved) : null
-        updateProfile(snapshot)
+        updateProfile((previous) => reconcileProfile(previous, snapshot))
         setLoading(false)
         const result = await musicClient.account(source, { operation: 'profile' })
         if (disposed || serial !== generation.current) return
         if (result.type !== 'profile') throw new Error('账号资料响应无效')
         const current = result.data ? accountProfile(result.data) : null
-        updateProfile(current)
+        updateProfile((previous) => reconcileProfile(previous, current))
       })()
         .catch((cause) => {
           if (!disposed && serial === generation.current) setError(errorText(cause))
@@ -145,8 +162,9 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
     const stops: (() => void)[] = []
     for (const event of ['music-account-changed', 'adapters-changed'])
       void listen<string>(event, ({ payload }) => {
-        if (!disposed && (event === 'adapters-changed' || payload === source))
-          setRefresh((value) => value + 1)
+        // Bulk startup completion is reflected by each source's availability.
+        // Only explicit changes to this source invalidate its account state.
+        if (!disposed && payload === source) setRefresh((value) => value + 1)
       }).then((stop) => {
         if (disposed) stop()
         else stops.push(stop)
@@ -163,16 +181,16 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
     setLikedIds(new Set())
     setLikesReady(false)
     setLikesError(undefined)
-    if (!profile || !canReadLikes || !isTauri()) return
+    if (!reference || !canReadLikes || !isTauri()) return
     void (async () => {
       if (canToggleLike) {
-        const result = await musicClient.query(profile.reference.source, { operation: 'favorites' })
+        const result = await musicClient.query(reference.source, { operation: 'favorites' })
         if (result.type !== 'favorites') throw new Error('收藏状态响应无效')
         return result.data
       }
       let playlist: import('@/features/music/types').EntityRef | undefined
       if (!hasFavoritesRead) {
-        const result = await musicClient.query(profile.reference.source, {
+        const result = await musicClient.query(reference.source, {
           operation: 'librarySummary'
         })
         if (serial !== likesGeneration.current) return []
@@ -181,7 +199,7 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
           throw new Error('无法读取喜欢的音乐歌单')
         playlist = result.data.likedPlaylist?.reference
         if (!playlist) return []
-        if (playlist.source !== profile.reference.source || playlist.kind !== 'playlist')
+        if (playlist.source !== reference.source || playlist.kind !== 'playlist')
           throw new Error('喜欢的音乐歌单引用无效')
       }
       const items: import('@/features/music/types').EntityRef[] = []
@@ -190,7 +208,7 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
       let pages = 0
       do {
         if (++pages > 4000) throw new Error('收藏状态超过分页上限')
-        const result = await musicClient.query(profile.reference.source, {
+        const result = await musicClient.query(reference.source, {
           ...(playlist
             ? { operation: 'tracks' as const, entity: playlist }
             : { operation: 'favoritesPage' as const }),
@@ -203,11 +221,7 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
           result.type === 'tracks'
             ? result.data.items.map((item) => item.reference)
             : result.data.items
-        if (
-          references.some(
-            (item) => item.source !== profile.reference.source || item.kind !== 'track'
-          )
-        )
+        if (references.some((item) => item.source !== reference.source || item.kind !== 'track'))
           throw new Error('收藏歌曲引用无效')
         items.push(...references)
         cursor = result.data.nextCursor
@@ -228,7 +242,7 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
     return () => {
       likesGeneration.current++
     }
-  }, [profile, canReadLikes, canToggleLike, hasFavoritesRead, likesRefresh])
+  }, [reference, canReadLikes, canToggleLike, hasFavoritesRead, likesRefresh])
   const reloadLikes = useCallback(() => setLikesRefresh((value) => value + 1), [])
   useEffect(() => {
     if (!isTauri()) return

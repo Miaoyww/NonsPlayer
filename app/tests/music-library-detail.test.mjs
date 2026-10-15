@@ -30,8 +30,8 @@ test('likes refresh the loaded playlist in the background without unmounting its
         bindings.elements.map((item) => [item.name.text, placeholder])
       )
   }
-  const profile = { userId: 1 }
-  const collection = { kind: 'playlist', id: 1, name: '我喜欢的音乐', liked: true, creatorId: 1 }
+  const profile = { userId: '1', reference: { source: 'netease', id: '1' } }
+  const collection = { kind: 'playlist', id: 1, name: '我喜欢的音乐', liked: true, creatorId: '1' }
   const summary = { profile, likedPlaylist: collection, likedTracks: [] }
   const account = { profile, likesRevision: 0 }
   const requests = []
