@@ -1,10 +1,29 @@
+import { hasPersonalPages } from './source-capabilities'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { ArrowUp, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { SettingsCard } from '@/features/settings/settings-card'
+import type { ReactNode } from 'react'
+
+function SourceSettingsSection({
+  title,
+  description,
+  children
+}: {
+  title: string
+  description: string
+  children: ReactNode
+}) {
+  return (
+    <section className="min-w-0 rounded-xl border border-border p-4">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <p className="mt-1 mb-3 text-xs leading-relaxed text-muted-foreground">{description}</p>
+      {children}
+    </section>
+  )
+}
 import { errorText, nativeCall } from '@/lib/player'
 import type { SourceDescriptor } from './types'
 import {
@@ -103,10 +122,10 @@ export function SourcePreferencesCard() {
           : ''
   }
   return (
-    <div className="flex flex-col gap-3">
-      <SettingsCard
-        title="当前来源"
-        description="保存默认使用的音乐平台。切换不影响已保存账号或播放队列。"
+    <div className="grid gap-3 lg:grid-cols-2">
+      <SourceSettingsSection
+        title="音乐库与发现"
+        description="选择音乐库与发现页面的平台，歌曲操作始终使用歌曲所属平台的账号。"
       >
         <div className="flex flex-wrap items-center gap-2">
           {preferences && (
@@ -116,7 +135,12 @@ export function SourcePreferencesCard() {
             </span>
           )}
           {statuses
-            .filter((item) => item.enabled && item.descriptor.source !== preferences?.current)
+            .filter(
+              (item) =>
+                item.enabled &&
+                hasPersonalPages(item.descriptor) &&
+                item.descriptor.source !== preferences?.current
+            )
             .map(({ descriptor }) => (
               <Button
                 key={descriptor.source}
@@ -142,8 +166,8 @@ export function SourcePreferencesCard() {
             刷新来源配置
           </Button>
         </div>
-      </SettingsCard>
-      <SettingsCard title="补充来源" description="保存补充来源及优先顺序。">
+      </SourceSettingsSection>
+      <SourceSettingsSection title="补充来源" description="保存补充来源及优先顺序。">
         <div className="flex flex-col gap-3">
           {preferences &&
             [
@@ -211,7 +235,7 @@ export function SourcePreferencesCard() {
               <p className="text-sm text-muted-foreground">暂无其他支持搜索的音乐来源。</p>
             )}
         </div>
-      </SettingsCard>
+      </SourceSettingsSection>
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}

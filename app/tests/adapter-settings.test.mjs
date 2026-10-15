@@ -1,3 +1,4 @@
+import { sourceCapabilities } from './helpers/source-capabilities.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -23,6 +24,11 @@ test('adapter settings wait for persistence, report failures and reject stale li
   let unsubscribed = false
   let invalidations = 0
   const modules = {
+    '@/features/music/source-capabilities': sourceCapabilities,
+    '@/features/account/account-login-page': { AdapterLoginCard: () => null },
+    '@/features/account/use-account-adapters': {
+      useAccountAdapters: () => ({ adapters: [], refresh() {} })
+    },
     '@/features/music/source-preferences-card': { SourcePreferencesCard: () => null },
     '@/components/music/loading': { TextSkeleton: 'div' },
     react: React,
@@ -36,7 +42,12 @@ test('adapter settings wait for persistence, report failures and reject stale li
         }
       }
     },
-    'lucide-react': { Blocks: () => null, RefreshCw: () => null, RotateCw: () => null },
+    'lucide-react': {
+      Blocks: () => null,
+      RefreshCw: () => null,
+      RotateCw: () => null,
+      UserRound: () => null
+    },
     '@/components/ui/button': {
       Button: ({ variant, size, children, ...props }) =>
         React.createElement('button', props, children)
@@ -105,8 +116,9 @@ test('adapter settings wait for persistence, report failures and reject stale li
     await act(async () => requests[3].resolve(status(false)))
     assert.equal(toggle().getAttribute('aria-checked'), 'false')
     assert.equal(
-      [...document.querySelectorAll('button')].find((button) => button.textContent === '重新加载')
-        .disabled,
+      [...document.querySelectorAll('button')].find(
+        (button) => button.getAttribute('aria-label') === '重新加载网易云音乐'
+      ).disabled,
       true
     )
     await act(async () => {
