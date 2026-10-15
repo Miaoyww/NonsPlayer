@@ -81,7 +81,7 @@ impl ExternalAdapter {
         let permit = COMPILATIONS
             .try_acquire()
             .map_err(|_| ErrorCode::RateLimited)?;
-        let engine = runtime::engine().map_err(|error| {
+        let engine = runtime::engine_with_budget(runtime::Budget::ADAPTER).map_err(|error| {
             log::error!(target: "nons::adapter", "runtime_failure reason={error}");
             ErrorCode::Internal
         })?;

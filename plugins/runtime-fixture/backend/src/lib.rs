@@ -11,6 +11,13 @@ impl Guest for Fixture {
     }
     fn call(method: String, _args: String) -> Result<String, String> {
         match method.as_str() {
+            "work" => {
+                let mut count = 0u32;
+                for _ in 0..50_000_000 {
+                    count = core::hint::black_box(count) + 1;
+                }
+                Ok(count.to_string())
+            }
             "loop" => loop {
                 core::hint::spin_loop();
             },

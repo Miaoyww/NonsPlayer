@@ -76,7 +76,7 @@ pub(crate) struct Budget {
     pub component_bytes: usize,
     memory_bytes: usize,
     memories: usize,
-    fuel: u64,
+    fuel: Option<u64>,
     deadline: Duration,
 }
 impl Budget {
@@ -84,7 +84,7 @@ impl Budget {
         component_bytes: 16 * 1024 * 1024,
         memory_bytes: 64 * 1024 * 1024,
         memories: 1,
-        fuel: 10_000_000,
+        fuel: Some(10_000_000),
         deadline: Duration::from_secs(5),
     };
     // Temporary adapter budget authorized for composition validation.
@@ -92,7 +92,7 @@ impl Budget {
         component_bytes: 32 * 1024 * 1024,
         memory_bytes: 256 * 1024 * 1024,
         memories: 4,
-        fuel: 200_000_000,
+        fuel: None,
         deadline: Duration::from_secs(15),
     };
 }
@@ -227,12 +227,28 @@ impl host_io::TransportHost for State {
     }
 }
 pub fn engine() -> AppResult<Engine> {
+    engine_with_budget(Budget::PLUGIN)
+}
+pub(crate) fn engine_with_budget(budget: Budget) -> AppResult<Engine> {
     let mut config = Config::new();
     config
         .wasm_component_model(true)
-        .consume_fuel(true)
+        .consume_fuel(budget.fuel.is_some())
         .epoch_interruption(true);
-    Engine::new(&config).map_err(|e| e.to_string())
+    let engine = Engine::new(&config).map_err(|e| e.to_string())?;
+    if budget.fuel.is_none() {
+        // Weak ownership lets the timer exit after the last runtime/adapter is dropped.
+        let weak = engine.weak();
+        std::thread::Builder::new()
+            .name("nons-wasm-epoch".into())
+            .spawn(move || loop {
+                std::thread::sleep(Duration::from_millis(10));
+                let Some(engine) = weak.upgrade() else { break };
+                engine.increment_epoch();
+            })
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(engine)
 }
 pub struct Runtime {
     store: Store<State>,
@@ -334,11 +350,16 @@ impl Runtime {
             },
         );
         store.limiter(|state| &mut state.limits);
-        store.set_fuel(budget.fuel).map_err(|e| e.to_string())?;
-        store
-            .fuel_async_yield_interval(Some(10000))
-            .map_err(|e| e.to_string())?;
-        store.set_epoch_deadline(budget.deadline.as_millis().div_ceil(10) as u64);
+        if let Some(fuel) = budget.fuel {
+            store.set_fuel(fuel).map_err(|e| e.to_string())?;
+            store
+                .fuel_async_yield_interval(Some(10000))
+                .map_err(|e| e.to_string())?;
+            store.set_epoch_deadline(budget.deadline.as_millis().div_ceil(10) as u64);
+        } else {
+            store.epoch_deadline_async_yield_and_update(1);
+            store.set_epoch_deadline(1);
+        }
         let bindings = tokio::time::timeout(
             budget.deadline,
             Plugin::instantiate_async(&mut store, component, &linker),
@@ -363,11 +384,13 @@ impl Runtime {
         Ok(runtime)
     }
     fn reset_budget(&mut self) -> AppResult<()> {
-        self.store
-            .set_fuel(self.budget.fuel)
-            .map_err(|e| e.to_string())?;
-        self.store
-            .set_epoch_deadline(self.budget.deadline.as_millis().div_ceil(10) as u64);
+        if let Some(fuel) = self.budget.fuel {
+            self.store.set_fuel(fuel).map_err(|e| e.to_string())?;
+            self.store
+                .set_epoch_deadline(self.budget.deadline.as_millis().div_ceil(10) as u64);
+        } else {
+            self.store.set_epoch_deadline(1);
+        }
         Ok(())
     }
     pub async fn call(&mut self, method: &str, args: &str) -> AppResult<String> {
@@ -416,6 +439,53 @@ impl Runtime {
 mod tests {
     use super::*;
     use std::sync::Mutex;
+    #[test]
+    fn adapter_work_is_not_limited_by_instruction_count() {
+        run(async {
+            let mut runtime = Runtime::load_host_with_budget(
+                engine_with_budget(Budget::ADAPTER).unwrap(),
+                &fixture("runtime-fixture"),
+                Arc::new(FakeHost::default()),
+                Budget::ADAPTER,
+            )
+            .await
+            .unwrap();
+            assert_eq!(
+                runtime
+                    .call("work", "null")
+                    .await
+                    .expect("adapter instructions must not run out of fuel"),
+                "50000000"
+            );
+            assert!(
+                runtime.store.get_fuel().is_err(),
+                "fuel instrumentation must be disabled, not assigned a larger quota"
+            );
+        });
+    }
+    #[test]
+    fn adapter_without_fuel_still_obeys_wall_timeout() {
+        run(async {
+            let mut budget = Budget::ADAPTER;
+            budget.deadline = Duration::from_millis(100);
+            let mut runtime = Runtime::load_host_with_budget(
+                engine_with_budget(budget).unwrap(),
+                &fixture("runtime-fixture"),
+                Arc::new(FakeHost::default()),
+                budget,
+            )
+            .await
+            .unwrap();
+            let started = std::time::Instant::now();
+            assert!(runtime
+                .call("loop", "null")
+                .await
+                .unwrap_err()
+                .contains("超时"));
+            assert!(runtime.faulted);
+            assert!(started.elapsed() < Duration::from_secs(1));
+        });
+    }
     #[test]
     fn composed_memories_share_one_total_budget() {
         let mut budget = Budget::ADAPTER;

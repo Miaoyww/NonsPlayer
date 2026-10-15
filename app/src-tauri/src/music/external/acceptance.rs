@@ -60,7 +60,7 @@ async fn qq_component_large_playlist_respects_page_and_execution_budget() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../adapters/qqmusic/dist/adapter.component.wasm");
     let mut runtime = Runtime::load_host_with_budget(
-        runtime::engine().unwrap(),
+        runtime::engine_with_budget(Budget::ADAPTER).unwrap(),
         &path,
         Arc::new(PlaylistHost),
         Budget::ADAPTER,

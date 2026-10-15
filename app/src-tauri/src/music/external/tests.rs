@@ -244,7 +244,11 @@ async fn real_component_faults_are_bounded_and_do_not_poison_next_request() {
     for id in ["loop", "memory", "trap", "invalid-json", "oversized"] {
         assert_eq!(
             manager.read_track(&reference(id)).await.unwrap_err().code,
-            ErrorCode::Internal,
+            if id == "loop" {
+                ErrorCode::DeadlineExceeded
+            } else {
+                ErrorCode::Internal
+            },
             "{id}"
         );
         manager.read_track(&reference("healthy")).await.unwrap();
