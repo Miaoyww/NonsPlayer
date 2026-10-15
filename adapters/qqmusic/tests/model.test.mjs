@@ -40,6 +40,14 @@ test('numeric song ID and audio media ID do not become the stable track identity
   assert.equal(value.albumReference.id, 'AlbumMID')
   assert.throws(() => track({ id: 42, title: '缺少 mid' }), { code: 'invalidData' })
 })
+
+test('empty upstream creator fields fall back to the authenticated playlist owner', () => {
+  assert.equal(
+    entity({ tid: 123, creator: { name: '' }, nickname: '', creatorName: 'Miaoyww' }, 'playlist')
+      .subtitle,
+    'Miaoyww'
+  )
+})
 test('cursor rejects changed query, page size, malformed offset and foreign source', () => {
   const state = pageState({ limit: 25 }, 'query-a')
   const result = pageResult(new Array(25).fill({}), state, 26)

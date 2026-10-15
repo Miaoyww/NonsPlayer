@@ -114,15 +114,17 @@ export function entity(value, kind) {
         : artwork(id, kind),
     subtitle:
       kind === 'playlist'
-        ? text(
-            value.creator?.name ??
-              value.creator?.nick ??
-              value.creator?.nickname ??
-              value.nickname ??
-              value.nick ??
-              value.creatorName ??
-              value.hostname
-          )
+        ? ([
+            value.creator?.name,
+            value.creator?.nick,
+            value.creator?.nickname,
+            value.nickname,
+            value.nick,
+            value.creatorName,
+            value.hostname
+          ]
+            .map(text)
+            .find(Boolean) ?? '')
         : text(value.desc ?? value.subtitle),
     trackCount:
       Math.max(

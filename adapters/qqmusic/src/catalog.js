@@ -74,10 +74,14 @@ async function collections(auth, filter) {
     { uin: auth.credential.str_musicid || String(auth.credential.musicid) },
     true
   )
+  const owner =
+    text(auth.credential.nick) ||
+    accountRecord(await authenticated(() => authService.getUserDetail('current')), auth.credential)
+      .displayName
   let values = Array.isArray(created.v_playlist)
     ? created.v_playlist.map((value) => ({
         ...value,
-        creatorName: value.creatorName ?? auth.credential.nick
+        creatorName: text(value.creatorName) || owner
       }))
     : []
   values = values.filter((value) => Number(value.dirId ?? value.dirid) !== 201)
