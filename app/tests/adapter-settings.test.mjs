@@ -117,9 +117,22 @@ test('adapter settings wait for persistence, report failures and reject stale li
     await act(async () => requests[4].resolve(status(false)))
     assert.equal(toggle().getAttribute('aria-checked'), 'true')
     await act(async () => changed())
+    const pending = status(false)
+    pending[0].descriptor.source = 'qqmusic'
+    pending[0].descriptor.displayName = 'QQ 音乐'
+    pending[0].loading = true
+    await act(async () => requests[6].resolve(pending))
+    assert.match(document.body.textContent, /QQ 音乐.*加载中/)
+    assert.equal(toggle().disabled, true)
+    await act(async () => changed())
+    await act(async () =>
+      requests[7].resolve([{ ...pending[0], loading: false, loadError: '组件校验失败' }])
+    )
+    assert.match(document.querySelector('[role="alert"]').textContent, /组件校验失败/)
+    await act(async () => changed())
     await act(async () => root.unmount())
     assert.equal(unsubscribed, true)
-    await act(async () => requests[6].resolve(status(false)))
+    await act(async () => requests[8].resolve(status(false)))
   } finally {
     await act(async () => root.unmount())
     globalThis.window = previous.window

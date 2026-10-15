@@ -16,6 +16,8 @@ import {
 interface SourceStatus {
   descriptor: SourceDescriptor
   enabled: boolean
+  loading?: boolean
+  loadError?: string | null
 }
 
 export function SourcePreferencesCard() {
@@ -90,6 +92,16 @@ export function SourcePreferencesCard() {
   const unavailable =
     preferences &&
     !statuses.some((item) => item.enabled && item.descriptor.source === preferences.current)
+  const availability = (source: string) => {
+    const status = statuses.find((item) => item.descriptor.source === source)
+    return status?.loading
+      ? ' · 加载中'
+      : status?.loadError
+        ? ' · 加载失败'
+        : !status?.enabled
+          ? ' · 不可用'
+          : ''
+  }
   return (
     <div className="flex flex-col gap-3">
       <SettingsCard
@@ -100,7 +112,7 @@ export function SourcePreferencesCard() {
           {preferences && (
             <span className="text-sm">
               {names(preferences.current)}
-              {unavailable ? ' · 不可用' : ''}
+              {unavailable ? availability(preferences.current) : ''}
             </span>
           )}
           {statuses
@@ -151,7 +163,7 @@ export function SourcePreferencesCard() {
                     <span className="text-sm">
                       {index >= 0 ? `${index + 1}. ` : ''}
                       {names(source)}
-                      {!status?.enabled ? ' · 不可用' : ''}
+                      {availability(source)}
                     </span>
                     <div className="flex items-center gap-2">
                       {index > 0 && (

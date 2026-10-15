@@ -45,7 +45,19 @@ export function credits(singers = []) {
 export function track(value) {
   const song = value.songInfo ?? value.musicData ?? value
   const mid = text(song.mid ?? song.songmid)
-  if (!mid) fail('invalidData', 'track.mid')
+  if (!mid) {
+    const fields = Object.keys(song)
+      .filter((key) => /^[a-zA-Z0-9_-]+$/.test(key))
+      .sort()
+      .slice(0, 8)
+      .map((key) => key.replaceAll('_', '-'))
+      .join('.')
+    throw Object.assign(new Error('Track MID is missing'), {
+      name: `MissingMid.${fields}`.slice(0, 64),
+      code: 'invalidData',
+      diagnostics: { failureStage: 'track.mid' }
+    })
+  }
   const album = song.album ?? {}
   const albumMid = text(album.mid ?? song.albummid)
   const artists = credits(song.singer)

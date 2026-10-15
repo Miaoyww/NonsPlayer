@@ -98,7 +98,10 @@ impl ExternalAdapter {
             if bytes.len() > runtime::Budget::ADAPTER.component_bytes {
                 return Err(ErrorCode::InvalidData);
             }
-            Component::new(&compile_engine, bytes).map_err(|_| ErrorCode::InvalidData)
+            Component::new(&compile_engine, bytes).map_err(|error| {
+                log::error!(target: "nons::adapter", "stage=compile_component reason={error:#}");
+                ErrorCode::InvalidData
+            })
         })
         .await
         .map_err(|_| ErrorCode::Internal)??;

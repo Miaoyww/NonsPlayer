@@ -14,6 +14,8 @@ import { SourcePreferencesCard } from '@/features/music/source-preferences-card'
 interface AdapterStatus {
   descriptor: SourceDescriptor
   enabled: boolean
+  loading?: boolean
+  loadError?: string | null
 }
 
 const capabilityLabels: Record<string, string> = {
@@ -125,17 +127,17 @@ export function AdaptersPage() {
       )}
       {loading && <TextSkeleton />}
       <SourcePreferencesCard />
-      {adapters.map(({ descriptor, enabled }) => (
+      {adapters.map(({ descriptor, enabled, loading: pending, loadError }) => (
         <div key={descriptor.source} className="flex flex-col gap-3">
           <SettingsCard
             title={descriptor.displayName}
-            description={`来源：${descriptor.source} · ${enabled ? '已启用' : '已停用'}`}
+            description={`来源：${descriptor.source} · ${pending ? '加载中' : loadError ? '加载失败' : enabled ? '已启用' : '已停用'}`}
           >
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
                 size="sm"
-                disabled={busy || loading || !enabled}
+                disabled={busy || loading || pending || !enabled}
                 onClick={() => {
                   void run('adapter_reload', descriptor.source)
                 }}
@@ -145,7 +147,7 @@ export function AdaptersPage() {
               </Button>
               <Switch
                 checked={enabled}
-                disabled={busy || loading}
+                disabled={busy || loading || pending || !!loadError}
                 aria-label={`启用${descriptor.displayName}`}
                 onCheckedChange={(next) => {
                   void run('adapter_set_enabled', descriptor.source, next)
@@ -153,6 +155,16 @@ export function AdaptersPage() {
               />
             </div>
           </SettingsCard>
+          {pending && (
+            <p role="status" className="px-6 text-sm text-muted-foreground">
+              正在加载适配器，请稍候。
+            </p>
+          )}
+          {loadError && (
+            <p role="alert" className="px-6 text-sm text-destructive">
+              {loadError}
+            </p>
+          )}
           <p className="px-6 text-xs leading-relaxed text-muted-foreground">
             支持：单曲读取、播放解析
             {descriptor.capabilities

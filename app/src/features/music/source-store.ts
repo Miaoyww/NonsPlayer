@@ -3,6 +3,8 @@ import type { SourceDescriptor } from './types'
 export interface SourceStatus {
   descriptor: SourceDescriptor
   enabled: boolean
+  loading?: boolean
+  loadError?: string | null
 }
 export interface SourceSnapshot {
   preferences?: SourcePreferences

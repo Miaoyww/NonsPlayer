@@ -15,18 +15,20 @@ struct ComponentPackage {
     descriptor: SourceDescriptor,
     permissions: super::external::host::Permissions,
 }
+pub(crate) struct PreparedComponent {
+    directory: std::path::PathBuf,
+    package: ComponentPackage,
+}
 
 /// Only trusted application resources are discovered here. Installing external packages
 /// and authorizing their permissions is a separate lifecycle, not directory discovery.
-pub(crate) async fn load_components(
+pub(crate) fn prepare_components(
     directory: &std::path::Path,
-    music: &Arc<MusicService>,
-    store: Arc<crate::storage::Store>,
-    http: Arc<crate::infrastructure::http::Http>,
-    settings: &super::settings::AdapterSettings,
-) -> crate::model::AppResult<()> {
-    let accounts = music.accounts.clone().ok_or("账号服务未就绪")?;
+    adapters: &AdapterManager,
+) -> crate::model::AppResult<Vec<PreparedComponent>> {
+    log::info!(target: "nons::adapter", "load_components_start directory={}", directory.display());
     let packages = std::fs::read_dir(directory).map_err(|_| "随包适配器目录不可读")?;
+    let mut prepared = Vec::new();
     for package in packages {
         let package = package.map_err(|_| "随包适配器目录项不可读")?;
         if !package
@@ -50,33 +52,68 @@ pub(crate) async fn load_components(
         let package: ComponentPackage =
             serde_json::from_slice(&bytes).map_err(|_| "随包适配器描述无效")?;
         package.descriptor.validate().map_err(|e| e.to_string())?;
-        let source = package.descriptor.source.clone();
-        let services = Arc::new(super::external::host::Services::new(
-            accounts.clone(),
-            Arc::downgrade(&music.adapters),
-            store.clone(),
-            http.clone(),
-            package.permissions,
-            package.descriptor,
-        )?);
-        let adapter = super::external::ExternalAdapter::load_with_host(
-            &directory.join("adapter.component.wasm"),
-            services,
-        )
-        .await
-        .map_err(|e| format!("随包适配器 {} 加载失败：{}", source.as_str(), e))?;
-        let sessions = accounts.clone();
-        let session_source = source.clone();
-        music
-            .adapters
-            .register(
-                Arc::new(adapter),
-                Arc::new(move || sessions.session(&session_source)),
-            )
-            .map_err(|e| e.to_string())?;
-        settings.restore_enabled(&source)?;
+        prepared.push(PreparedComponent { directory, package });
     }
-    Ok(())
+    for item in &prepared {
+        adapters
+            .begin_loading(item.package.descriptor.clone())
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(prepared)
+}
+pub(crate) async fn load_components(
+    packages: Vec<PreparedComponent>,
+    music: &Arc<MusicService>,
+    store: Arc<crate::storage::Store>,
+    http: Arc<crate::infrastructure::http::Http>,
+    settings: &super::settings::AdapterSettings,
+) -> crate::model::AppResult<()> {
+    let accounts = music.accounts.clone().ok_or("账号服务未就绪")?;
+    let mut failures = Vec::new();
+    for PreparedComponent { directory, package } in packages {
+        let source = package.descriptor.source.clone();
+        let started = std::time::Instant::now();
+        log::info!(target: "nons::adapter", "source={} stage=load_component state=start", source.as_str());
+        let result: crate::model::AppResult<()> = async {
+            let services = Arc::new(super::external::host::Services::new(
+                accounts.clone(),
+                Arc::downgrade(&music.adapters),
+                store.clone(),
+                http.clone(),
+                package.permissions,
+                package.descriptor,
+            )?);
+            let adapter = super::external::ExternalAdapter::load_with_host(
+                &directory.join("adapter.component.wasm"),
+                services,
+            )
+            .await
+            .map_err(|e| format!("随包适配器 {} 加载失败：{}", source.as_str(), e))?;
+            let sessions = accounts.clone();
+            let session_source = source.clone();
+            music
+                .adapters
+                .register(
+                    Arc::new(adapter),
+                    Arc::new(move || sessions.session(&session_source)),
+                )
+                .map_err(|e| e.to_string())?;
+            settings.restore_enabled(&source)?;
+            Ok(())
+        }
+        .await;
+        if let Err(error) = result {
+            music.adapters.loading_failed(&source, &error);
+            failures.push(error);
+            continue;
+        }
+        log::info!(target: "nons::adapter", "source={} stage=register state=ready elapsed_ms={}", source.as_str(), started.elapsed().as_millis());
+    }
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(failures.join("；"))
+    }
 }
 
 struct HostAccounts {
@@ -163,6 +200,110 @@ mod tests {
     use std::collections::BTreeMap;
     #[derive(Default)]
     struct Secrets(std::sync::Mutex<BTreeMap<String, Vec<u8>>>);
+    #[tokio::test]
+    async fn discovered_package_stays_visible_when_component_loading_fails() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Arc::new(
+            crate::storage::Store::open(&directory.path().join("accounts.sqlite3")).unwrap(),
+        );
+        let accounts =
+            Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets::default())).unwrap());
+        let (music, client) = service(accounts).unwrap();
+        let music = Arc::new(music);
+        let settings =
+            super::super::settings::AdapterSettings::new(store.clone(), music.adapters.clone())
+                .unwrap();
+        let mut descriptor = nons_adapter_netease::NeteaseAdapter::new(client)
+            .descriptor()
+            .clone();
+        descriptor.source = SourceId::try_from("pending-fixture".to_owned()).unwrap();
+        let packages = directory.path().join("packages");
+        let package = packages.join("fixture");
+        std::fs::create_dir_all(&package).unwrap();
+        std::fs::write(package.join("manifest.json"), serde_json::to_vec(&serde_json::json!({ "descriptor": descriptor, "permissions": { "httpHosts": [], "websocketHosts": [], "system": false, "state": false, "credentials": false } })).unwrap()).unwrap();
+        let prepared = prepare_components(&packages, &music.adapters).unwrap();
+        let pending = settings
+            .list()
+            .unwrap()
+            .into_iter()
+            .find(|status| status.descriptor.source == descriptor.source)
+            .unwrap();
+        assert!(pending.loading && !pending.enabled && pending.load_error.is_none());
+        assert!(music.adapters.stamp(&descriptor.source).is_err());
+        assert!(load_components(
+            prepared,
+            &music,
+            store,
+            Arc::new(crate::infrastructure::http::Http::new().unwrap()),
+            &settings
+        )
+        .await
+        .is_err());
+        let failed = settings
+            .list()
+            .unwrap()
+            .into_iter()
+            .find(|status| status.descriptor.source == descriptor.source)
+            .unwrap();
+        assert!(!failed.loading && !failed.enabled && failed.load_error.is_some());
+    }
+    #[tokio::test]
+    #[ignore = "Requires the built bundled QQ Component; no credentials or network needed"]
+    async fn built_qq_component_registers_from_the_real_startup_directory() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Arc::new(
+            crate::storage::Store::open(&directory.path().join("accounts.sqlite3")).unwrap(),
+        );
+        let accounts =
+            Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets::default())).unwrap());
+        let (music, _) = service(accounts).unwrap();
+        let music = Arc::new(music);
+        let settings =
+            super::super::settings::AdapterSettings::new(store.clone(), music.adapters.clone())
+                .unwrap();
+        let packages = prepare_components(
+            &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bundled-adapters"),
+            &music.adapters,
+        )
+        .unwrap();
+        assert!(music
+            .adapters
+            .statuses()
+            .unwrap()
+            .iter()
+            .any(|status| status.descriptor.source.as_str() == "qqmusic"
+                && status.loading
+                && !status.enabled));
+        load_components(
+            packages,
+            &music,
+            store,
+            Arc::new(crate::infrastructure::http::Http::new().unwrap()),
+            &settings,
+        )
+        .await
+        .expect("QQ 音乐必须经真实启动加载路径注册");
+        assert!(music
+            .adapters
+            .statuses()
+            .unwrap()
+            .iter()
+            .any(|status| status.descriptor.source.as_str() == "qqmusic"));
+        let qq = SourceId::try_from("qqmusic".to_owned()).unwrap();
+        settings.set_enabled(qq.clone(), false).unwrap();
+        assert!(settings
+            .list()
+            .unwrap()
+            .iter()
+            .any(|status| status.descriptor.source == qq && !status.enabled));
+        settings.set_enabled(qq.clone(), true).unwrap();
+        settings.reload(qq.clone()).unwrap();
+        assert!(settings
+            .list()
+            .unwrap()
+            .iter()
+            .any(|status| status.descriptor.source == qq && status.enabled));
+    }
     impl CredentialStore for Secrets {
         fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>> {
             Ok(self.0.lock().unwrap().get(key).cloned())

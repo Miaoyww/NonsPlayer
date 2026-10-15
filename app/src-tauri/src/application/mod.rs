@@ -816,6 +816,7 @@ pub fn run() {
                 app.path().resource_dir()?.join("bundled-adapters")
             };
             let component_music = music.clone();
+            let component_packages = crate::music::bundled::prepare_components(&component_directory, &music.adapters);
             let component_store = store.clone();
             let component_http = plugin_manager.shared_http();
             let component_settings = app
@@ -825,16 +826,19 @@ pub fn run() {
             let component_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 use tauri::Emitter;
-                if let Err(error) = crate::music::bundled::load_components(
-                    &component_directory,
+                let result = match component_packages {
+                  Ok(packages) => crate::music::bundled::load_components(
+                    packages,
                     &component_music,
                     component_store,
                     component_http,
                     &component_settings,
                 )
-                .await
-                {
-                    eprintln!("{error}");
+                .await,
+                  Err(error) => Err(error),
+                };
+                if let Err(error) = result {
+                    log::error!(target: "nons::adapter", "load_components_failed directory={} reason={error}", component_directory.display());
                     let _ = component_app.emit("adapter-load-failed", error);
                 }
                 let _ = component_app.emit("adapters-changed", ());

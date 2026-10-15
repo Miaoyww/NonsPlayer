@@ -125,7 +125,7 @@ async function playlist(id, state) {
     )
     return {
       data: { ...data, disstid: id, dissname: '我喜欢' },
-      response: tracksResponse(data.songlist ?? [], state, data.total_song_num)
+      response: () => tracksResponse(data.songlist ?? [], state, data.total_song_num)
     }
   }
   if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)))
@@ -144,7 +144,8 @@ async function playlist(id, state) {
       )
       return {
         data: { ...own, ...data },
-        response: tracksResponse(data.songlist ?? [], state, data.total_song_num, data.desc ?? null)
+        response: () =>
+          tracksResponse(data.songlist ?? [], state, data.total_song_num, data.desc ?? null)
       }
     }
   }
@@ -161,12 +162,13 @@ async function playlist(id, state) {
     const values = data.songlist ?? []
     return {
       data,
-      response: tracksResponse(
-        values.slice(state.offset, state.offset + state.limit),
-        state,
-        Number(data.total_song_num ?? values.length),
-        data.desc ?? null
-      )
+      response: () =>
+        tracksResponse(
+          values.slice(state.offset, state.offset + state.limit),
+          state,
+          Number(data.total_song_num ?? values.length),
+          data.desc ?? null
+        )
     }
   }
   if (!auth) fail(publicData.code === 10 ? 'unauthenticated' : 'notFound')
@@ -190,7 +192,7 @@ async function playlist(id, state) {
   const total = Number(data.total_song_num)
   const selected =
     values.length > state.limit ? values.slice(state.offset, state.offset + state.limit) : values
-  return { data, response: tracksResponse(selected, state, total, data.desc ?? null) }
+  return { data, response: () => tracksResponse(selected, state, total, data.desc ?? null) }
 }
 export async function business(request) {
   if (request.operation === 'search') {
@@ -236,7 +238,9 @@ export async function business(request) {
   }
   if (request.operation === 'tracks' && request.entity.kind === 'playlist') {
     const id = checkReference(request.entity, 'playlist')
-    return (await playlist(id, pageState(request.page, JSON.stringify(['playlist', id])))).response
+    return (
+      await playlist(id, pageState(request.page, JSON.stringify(['playlist', id])))
+    ).response()
   }
   if (['detail', 'tracks'].includes(request.operation) && request.entity.kind === 'album') {
     const id = checkReference(request.entity, 'album')

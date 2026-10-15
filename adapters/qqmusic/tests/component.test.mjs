@@ -42,7 +42,8 @@ async function component({
   credential = null,
   rejectRefresh = false,
   resource = 'full',
-  flacSize = 4096
+  flacSize = 4096,
+  playlistSongs = [fixtureTrack]
 } = {}) {
   const frames = [],
     requests = [],
@@ -122,7 +123,11 @@ async function component({
                         ]
                       }
                     : method === 'CgiGetDiss'
-                      ? { songlist: [fixtureTrack], total_song_num: 1, desc: 'Private' }
+                      ? {
+                          songlist: playlistSongs,
+                          total_song_num: playlistSongs.length,
+                          desc: 'Private'
+                        }
                       : method === 'Login'
                         ? {
                             musicid: 42,
@@ -442,6 +447,34 @@ test('private owned playlists use authenticated read and keep uniform artwork', 
       })
       .find((r) => r?.req_0?.method === 'CgiGetDiss')
     assert.equal(request.req_0.param.enc_host_uin, 'fixture-encrypted-id')
+  } finally {
+    fixture.instance.shutdown()
+  }
+})
+
+test('playlist metadata is independent of malformed songs and track diagnostics reveal fields without their values', async () => {
+  const fixture = await component({
+    credential: await credentialFixture(),
+    playlistSongs: [{ id: 42, title: 'PRIVATE_METADATA' }]
+  })
+  try {
+    const entity = { source: 'qqmusic', kind: 'playlist', id: '123' }
+    const detail = fixture.call('music.business', { operation: 'detail', entity })
+    assert.equal(detail.status, 'ok')
+    assert.equal(detail.data.data.item.name, 'Private playlist')
+    const tracks = fixture.call('music.business', {
+      operation: 'tracks',
+      entity,
+      page: { cursor: null, limit: 5 }
+    })
+    assert.equal(tracks.status, 'error')
+    assert.equal(tracks.data.code, 'invalidData')
+    assert.ok(
+      fixture.diagnostics.some(
+        (entry) => entry.stage === 'track.mid' && entry.class.includes('id.title')
+      )
+    )
+    assert.ok(!JSON.stringify(fixture.diagnostics).includes('PRIVATE_METADATA'))
   } finally {
     fixture.instance.shutdown()
   }

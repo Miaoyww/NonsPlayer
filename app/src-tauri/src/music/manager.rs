@@ -44,6 +44,7 @@ impl Entry {
 #[derive(Default)]
 pub struct AdapterManager {
     entries: Mutex<BTreeMap<SourceId, Arc<Entry>>>,
+    loading: Mutex<BTreeMap<SourceId, AdapterStatus>>,
     resources: Mutex<BTreeMap<String, Weak<ResourceTicket>>>,
     next_handle: AtomicU64,
 }
@@ -96,16 +97,52 @@ impl AdapterManager {
         Ok(())
     }
     pub fn statuses(&self) -> MusicResult<Vec<AdapterStatus>> {
-        Ok(self
-            .entries
-            .lock()
-            .map_err(|_| ErrorCode::Internal)?
+        // Use the same lock order as registration so its pending -> ready handoff is atomic to readers.
+        let entries = self.entries.lock().map_err(|_| ErrorCode::Internal)?;
+        let loading = self.loading.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut statuses: Vec<_> = entries
             .values()
             .map(|entry| AdapterStatus {
                 descriptor: entry.adapter.descriptor().clone(),
                 enabled: !entry.generation.load(Ordering::Acquire).is_multiple_of(2),
+                loading: false,
+                load_error: None,
             })
-            .collect())
+            .collect();
+        for status in loading.values() {
+            if !statuses
+                .iter()
+                .any(|ready| ready.descriptor.source == status.descriptor.source)
+            {
+                statuses.push(status.clone());
+            }
+        }
+        Ok(statuses)
+    }
+    /// Package metadata is visible before compilation, but grants no runtime capability.
+    pub(crate) fn begin_loading(&self, descriptor: SourceDescriptor) -> MusicResult<()> {
+        descriptor.validate()?;
+        self.loading
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .insert(
+                descriptor.source.clone(),
+                AdapterStatus {
+                    descriptor,
+                    enabled: false,
+                    loading: true,
+                    load_error: None,
+                },
+            );
+        Ok(())
+    }
+    pub(crate) fn loading_failed(&self, source: &SourceId, reason: &str) {
+        if let Ok(mut loading) = self.loading.lock() {
+            if let Some(status) = loading.get_mut(source) {
+                status.loading = false;
+                status.load_error = Some(crate::infrastructure::diagnostics::redact(reason));
+            }
+        }
     }
     pub fn register(
         &self,
@@ -122,7 +159,7 @@ impl AdapterManager {
             return Err(ErrorCode::InvalidData.into());
         }
         entries.insert(
-            source,
+            source.clone(),
             Arc::new(Entry {
                 adapter,
                 session,
@@ -135,6 +172,10 @@ impl AdapterManager {
                 revision: AtomicU64::new(0),
             }),
         );
+        self.loading
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(&source);
         Ok(())
     }
     pub fn set_enabled(&self, source: &SourceId, enabled: bool) -> MusicResult<()> {
@@ -660,11 +701,13 @@ impl AdapterManager {
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdapterStatus {
     pub descriptor: SourceDescriptor,
     pub enabled: bool,
+    pub loading: bool,
+    pub load_error: Option<String>,
 }
 fn cursor_scope(
     request: &super::business::BusinessRequest,
