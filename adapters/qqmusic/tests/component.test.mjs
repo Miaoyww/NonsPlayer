@@ -69,7 +69,7 @@ async function component({
       const url = new URL(request.url)
       if (url.hostname.endsWith('.stream.qqmusic.qq.com'))
         return {
-          status: 200,
+          status: resource === 'forbidden' ? 403 : 200,
           headers: [{ name: 'content-length', value: resource === 'unknown' ? '3' : '4096' }],
           body: new Uint8Array()
         }
@@ -110,7 +110,16 @@ async function component({
                               ? ''
                               : resource === 'preview'
                                 ? 'RS02SongMID.m4a'
-                                : value.req_0.param.filename[0]
+                                : resource === 'encrypted'
+                                  ? 'F0M0AudioMID.mflac'
+                                  : resource === 'lower-quality'
+                                    ? 'M500AudioMID.mp3'
+                                    : resource === 'canonical-file'
+                                      ? value.req_0.param.filename[0].replace(
+                                          'SongMIDAudioMID',
+                                          'AudioMID'
+                                        )
+                                      : value.req_0.param.filename[0]
                         }
                       ]
                     }
@@ -586,6 +595,9 @@ test('plaintext resources report actual quality and reject previews, unknown siz
     {},
     { resource: 'preview' },
     { resource: 'unknown' },
+    { resource: 'forbidden' },
+    { resource: 'encrypted' },
+    { resource: 'lower-quality' },
     { flacSize: 0 },
     { flacSize: 0, downgrade: true }
   ]) {
@@ -597,10 +609,16 @@ test('plaintext resources report actual quality and reject previews, unknown siz
       })
       if (options.resource || (options.flacSize === 0 && !options.downgrade)) {
         assert.equal(result.status, 'error')
-        assert.equal(result.data.code, 'permissionDenied')
-        const stage =
-          options.resource === 'preview'
-            ? 'playback.filename'
+        assert.equal(
+          result.data.code,
+          ['preview', 'unknown', 'encrypted', 'lower-quality'].includes(options.resource)
+            ? 'invalidData'
+            : 'permissionDenied'
+        )
+        const stage = ['preview', 'encrypted', 'lower-quality'].includes(options.resource)
+          ? 'playback.filename'
+          : options.resource === 'forbidden'
+            ? 'playback.http-403'
             : options.resource === 'unknown'
               ? 'playback.content-length'
               : 'playback.file-size'
@@ -618,6 +636,31 @@ test('plaintext resources report actual quality and reject previews, unknown siz
     }
   }
 })
+test('authorized plaintext links may use a canonical filename different from the Vkey request filename', async () => {
+  const credential = await credentialFixture()
+  for (const [quality, filename] of [
+    ['standard', 'M500AudioMID.mp3'],
+    ['exhigh', 'M800AudioMID.mp3'],
+    ['lossless', 'F000AudioMID.flac']
+  ]) {
+    const fixture = await component({ credential, resource: 'canonical-file' })
+    try {
+      const result = fixture.call('music.resolve-playback', {
+        track: { source: 'qqmusic', kind: 'track', id: 'SongMID' },
+        preferredQuality: quality,
+        allowDowngrade: false
+      })
+      assert.equal(result.status, 'ok', JSON.stringify(result))
+      assert.equal(new URL(result.data.url).pathname.split('/').pop(), filename)
+      assert.equal(result.data.metadata.actualQuality, quality)
+      assert.equal(result.data.metadata.extent.kind, 'full')
+      assert.ok(fixture.requests.some((request) => request.method === 'HEAD'))
+    } finally {
+      fixture.instance.shutdown()
+    }
+  }
+})
+
 test('empty playback addresses preserve the upstream per-song result without logging credentials or URLs', async () => {
   const fixture = await component({ credential: await credentialFixture(), resource: 'empty' })
   try {
@@ -627,6 +670,7 @@ test('empty playback addresses preserve the upstream per-song result without log
       allowDowngrade: false
     })
     assert.equal(result.status, 'error')
+    assert.equal(result.data.code, 'sourceUnavailable')
     assert.ok(
       fixture.diagnostics.some(
         (entry) => entry.stage === 'playback.vkey-empty.M500' && entry.code === 'upstream-1000'

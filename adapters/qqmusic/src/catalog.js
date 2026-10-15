@@ -426,6 +426,7 @@ export async function resolvePlayback(request) {
     request.allowDowngrade ? order.slice(start) : [request.preferredQuality]
   ).filter((quality) => qualityFiles[quality])
   let rejectedAt = 'playback.file-size'
+  let rejectedCode = 'permissionDenied'
   for (const quality of candidates) {
     const file = qualityFiles[quality]
     const size = Number(value.file?.[file.size])
@@ -438,12 +439,16 @@ export async function resolvePlayback(request) {
     const url = result?.[mid]?.url
     if (!url) {
       rejectedAt = 'playback.url-missing'
+      rejectedCode = 'sourceUnavailable'
       continue
     }
     const parsed = new URL(url)
-    // Unknown or encrypted/preview filenames cannot be classified as full resources.
-    if (parsed.pathname.split('/').pop() !== `${file.prefix}${mid}${media}${file.extension}`) {
+    // Vkey binds the authorization to the requested song. The CDN may canonicalize
+    // its basename; classify the returned format, then verify its full catalog size.
+    const filename = parsed.pathname.split('/').pop() ?? ''
+    if (!filename.startsWith(file.prefix) || !filename.endsWith(file.extension)) {
       rejectedAt = 'playback.filename'
+      rejectedCode = 'invalidData'
       continue
     }
     const response = await hostFetch(url, {
@@ -452,10 +457,21 @@ export async function resolvePlayback(request) {
     })
     if (response.status !== 200) {
       rejectedAt = `playback.http-${response.status}`
+      rejectedCode =
+        response.status === 401
+          ? 'unauthenticated'
+          : response.status === 403
+            ? 'permissionDenied'
+            : response.status === 404
+              ? 'notFound'
+              : response.status === 429
+                ? 'rateLimited'
+                : 'sourceUnavailable'
       continue
     }
     if (Number(response.headers.get('content-length')) !== size) {
       rejectedAt = 'playback.content-length'
+      rejectedCode = 'invalidData'
       continue
     }
     return {
@@ -464,5 +480,5 @@ export async function resolvePlayback(request) {
       headers: []
     }
   }
-  fail('permissionDenied', rejectedAt)
+  fail(rejectedCode, rejectedAt)
 }
