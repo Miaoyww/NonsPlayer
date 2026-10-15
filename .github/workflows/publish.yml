@@ -70,6 +70,7 @@ jobs:
       - name: Install adapter build dependencies
         run: |
           npm ci --prefix adapters/qqmusic --include=dev
+          npm ci --prefix adapters/gdstudio --include=dev
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci --prefix packages/wasm-crypto --include=dev
 

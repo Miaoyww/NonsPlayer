@@ -9,6 +9,87 @@ use std::{collections::BTreeMap, sync::Mutex, time::Instant};
 #[derive(Default)]
 struct Secrets(Mutex<BTreeMap<String, Vec<u8>>>);
 
+#[tokio::test]
+#[ignore = "Requires built GD Studio Component; deterministic Host, no network or credentials"]
+async fn gdstudio_component_resolves_under_native_host_budget() {
+    use crate::wasm_runtime::{host_io, Budget, HostHandler, Runtime};
+    struct AudioHost;
+    impl HostHandler for AudioHost {
+        fn system_capabilities(&self) -> bool {
+            true
+        }
+        fn http_request(
+            &self,
+            request: host_io::Request,
+        ) -> Pin<Box<dyn Future<Output = AppResult<host_io::Response>> + Send + '_>> {
+            Box::pin(async move {
+                if request.url.starts_with("https://music-api.gdstudio.xyz/") {
+                    assert!(!request.headers.iter().any(|h| h.name == "X-Request-Key"));
+                    return Ok(host_io::Response {
+                        status: 200,
+                        headers: vec![],
+                        body: br#"{"code":0,"url":"https://m1.music.126.net/test.mp3"}"#.to_vec(),
+                    });
+                }
+                assert!(!request.headers.iter().any(|h| h.name == "X-Request-Key"));
+                let total = 6890 * 1044;
+                let footer = request.headers.iter().any(|h| h.value == "bytes=-512");
+                let (range, body) = if footer {
+                    (
+                        format!("bytes {}-{}/{total}", total - 512, total - 1),
+                        vec![0; 512],
+                    )
+                } else {
+                    let mut body = vec![0; 65536];
+                    for start in (0..64500).step_by(1044) {
+                        body[start..start + 4].copy_from_slice(&[255, 251, 224, 0]);
+                    }
+                    (format!("bytes 0-65535/{total}"), body)
+                };
+                Ok(host_io::Response {
+                    status: 206,
+                    headers: vec![host_io::Header {
+                        name: "content-range".into(),
+                        value: range,
+                    }],
+                    body,
+                })
+            })
+        }
+        fn call<'a>(
+            &'a self,
+            _: &'a str,
+            _: &'a str,
+        ) -> Pin<Box<dyn Future<Output = AppResult<String>> + Send + 'a>> {
+            Box::pin(async { Ok("null".into()) })
+        }
+    }
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../adapters/gdstudio/dist/adapter.component.wasm");
+    let mut runtime = Runtime::load_host_with_budget(
+        runtime::engine_with_budget(Budget::ADAPTER).unwrap(),
+        &path,
+        Arc::new(AudioHost),
+        Budget::ADAPTER,
+    )
+    .await
+    .unwrap();
+    let descriptor: serde_json::Value = serde_json::from_str(
+        &runtime
+            .call("music.resource-descriptor", "null")
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(descriptor["data"]["id"], "gdstudio");
+    let response = runtime.call("music.resolve-resource", r#"{"request":{"track":{"reference":{"source":"netease","kind":"track","id":"opaque:1"},"durationMs":180000},"preferredQuality":"exhigh","allowDowngrade":false}}"#).await.unwrap();
+    let response: serde_json::Value = serde_json::from_str(&response).unwrap();
+    assert_eq!(response["status"], "ok", "{response}");
+    assert_eq!(response["data"]["metadata"]["actualQuality"], "320k");
+    assert_eq!(response["data"]["metadata"]["extent"]["kind"], "full");
+    assert_eq!(response["data"]["headers"], serde_json::json!([]));
+}
+
 // Runs the composed interpreter under the same fuel budget as a real request.
 // The JS/Node Component harness does not meter Wasmtime fuel.
 #[tokio::test]
@@ -97,6 +178,97 @@ impl CredentialStore for Secrets {
         self.0.lock().unwrap().remove(key);
         Ok(())
     }
+}
+
+#[tokio::test]
+#[ignore = "Requires built GD Studio Component and live public APIs; isolated accounts"]
+async fn gdstudio_component_live_search_and_resource() {
+    use crate::music::provider::{ResourceProviderDescriptor, ResourceSearchRequest};
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let package = root.join("adapters/gdstudio");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(package.join("manifest.json")).unwrap()).unwrap();
+    let descriptor: ResourceProviderDescriptor =
+        serde_json::from_value(manifest["resourceProvider"].clone()).unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        crate::storage::Store::open(&directory.path().join("acceptance.sqlite3")).unwrap(),
+    );
+    let accounts =
+        Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets::default())).unwrap());
+    let (music, _) = crate::music::bundled::service(accounts.clone()).unwrap();
+    let services = Arc::new(
+        host::Services::new(
+            accounts,
+            Arc::downgrade(&music.adapters),
+            store,
+            Arc::new(crate::infrastructure::http::Http::new().unwrap()),
+            serde_json::from_value(manifest["permissions"].clone()).unwrap(),
+            SourceDescriptor {
+                source: descriptor.id.clone(),
+                display_name: descriptor.display_name.clone(),
+                contract_version: descriptor.contract_version,
+                login_methods: vec![],
+                capabilities: Default::default(),
+                cover_hosts: descriptor.cover_hosts.clone(),
+                share_link_templates: Default::default(),
+            },
+        )
+        .unwrap(),
+    );
+    let adapter = ResourceComponent::load(
+        &package.join("dist/adapter.component.wasm"),
+        descriptor.clone(),
+        services,
+    )
+    .await
+    .unwrap();
+    music
+        .adapters
+        .register_resource_provider(Arc::new(adapter))
+        .unwrap();
+    let page = music
+        .adapters
+        .search_resource_provider(
+            &descriptor.id,
+            &ResourceSearchRequest {
+                platform: SourceId::try_from("netease".to_owned()).unwrap(),
+                keyword: "BEYOND 海阔天空".into(),
+                page: PageRequest {
+                    cursor: None,
+                    limit: 3,
+                },
+            },
+        )
+        .await
+        .unwrap();
+    assert!(!page.items.is_empty());
+    let track = crate::model::Track::from_music(page.items[0].clone()).unwrap();
+    let (resolved, ticket, source) = music
+        .resolve_selected(
+            track,
+            "exhigh",
+            true,
+            1,
+            Some(crate::music::service::PlaybackSelection {
+                provider: Some("gdstudio".into()),
+                track: None,
+            }),
+        )
+        .await
+        .unwrap();
+    assert!(resolved.track.duration_ms > 0);
+    let ticket = ticket.unwrap();
+    let source = source.unwrap();
+    assert_eq!(source.provider, "gdstudio");
+    assert_eq!(source.platform.as_str(), "netease");
+    assert!(ticket.check(1).is_ok());
+    println!(
+        "GD Studio live: search={} provider={} quality={}",
+        page.items.len(),
+        source.provider,
+        ticket.quality()
+    );
 }
 
 #[tokio::test]

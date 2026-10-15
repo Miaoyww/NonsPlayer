@@ -1,0 +1,17 @@
+{
+  "resourceProvider": {
+    "id": "gdstudio",
+    "displayName": "GD音乐台（星海）",
+    "contractVersion": 1,
+    "platforms": ["netease"],
+    "searchPlatforms": ["netease"],
+    "coverHosts": []
+  },
+  "permissions": {
+    "httpHosts": ["music-api.gdstudio.xyz", "*.music.126.net", "*.music.163.com"],
+    "websocketHosts": [],
+    "system": true,
+    "state": false,
+    "credentials": false
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@nons/resource-gdstudio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "music-metadata": "11.16.1",
+    "strtok3": "10.5.0"
+  }
+}

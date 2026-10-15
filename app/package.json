@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "plugins:build": "node ../scripts/build-plugin.mjs",
-    "adapters:build": "node ../adapters/qqmusic/scripts/build.mjs",
+    "adapters:build": "node ../scripts/build-adapters.mjs",
     "plugins:fixtures": "cargo component build --manifest-path ../plugins/runtime-fixture/backend/Cargo.toml --release --target wasm32-unknown-unknown --locked && cargo component build --manifest-path ../plugins/music-fixture/backend/Cargo.toml --release --target wasm32-unknown-unknown --locked",
     "test": "node --test tests/*.test.mjs",
     "dev": "pnpm adapters:build && pnpm plugins:build && vite",
