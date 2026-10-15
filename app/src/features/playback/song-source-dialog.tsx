@@ -66,66 +66,68 @@ export function SongSourceDialog({ track, onClose }: { track: Track; onClose: ()
         if (!open) onClose()
       }}
     >
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>歌曲来源</DialogTitle>
-          <DialogDescription>
-            曲目平台：{sourceLabel(platform, descriptors)}
-            。手动选择仅对当前队列条目有效，重启后恢复自动。
-          </DialogDescription>
-        </DialogHeader>
-        <div className="rounded-xl bg-muted p-3 text-sm" role="status">
-          <p>播放音源：{state.playbackSource?.displayName ?? '尚未获取播放资源'}</p>
-          {state.playbackSource && (
-            <p className="mt-1 text-muted-foreground">
-              {sourceLabel(state.playbackSource.platform, descriptors)} ·{' '}
-              {state.playbackSource.title} — {state.playbackSource.artist}
+      <DialogContent className="flex h-[90dvh] min-h-0 flex-col gap-4 overflow-hidden sm:max-w-3xl">
+        <div className="min-h-0 max-h-[48dvh] shrink-0 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain [overflow-wrap:anywhere]">
+          <DialogHeader className="pr-8">
+            <DialogTitle>歌曲来源</DialogTitle>
+            <DialogDescription>
+              曲目平台：{sourceLabel(platform, descriptors)}
+              。手动选择仅对当前队列条目有效，重启后恢复自动。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl bg-muted p-3 text-sm" role="status">
+            <p>播放音源：{state.playbackSource?.displayName ?? '尚未获取播放资源'}</p>
+            {state.playbackSource && (
+              <p className="mt-1 text-muted-foreground">
+                {sourceLabel(state.playbackSource.platform, descriptors)} ·{' '}
+                {state.playbackSource.title} — {state.playbackSource.artist}
+              </p>
+            )}
+          </div>
+          {(error || providerError) && (
+            <p role="alert" className="text-sm text-destructive">
+              {error ?? providerError}
             </p>
           )}
-        </div>
-        {(error || providerError) && (
-          <p role="alert" className="text-sm text-destructive">
-            {error ?? providerError}
-          </p>
-        )}
-        <section aria-label="切换当前曲目的音源">
-          <h3 className="mb-2 font-semibold">当前平台音源</h3>
-          <div className="flex flex-wrap gap-2">
-            <ActionButton variant="outline" disabled={busy} onClick={() => void select()}>
-              <RotateCcw aria-hidden="true" />
-              自动选择
-            </ActionButton>
-            {statuses.some((s) => s.enabled && s.descriptor.source === platform) && (
-              <ActionButton
-                variant="outline"
-                disabled={busy}
-                onClick={() => void select('official')}
-              >
-                <Radio aria-hidden="true" />
-                {sourceLabel(platform, descriptors)}官方
+          <section aria-label="切换当前曲目的音源">
+            <h3 className="mb-2 font-semibold">当前平台音源</h3>
+            <div className="flex flex-wrap gap-2">
+              <ActionButton variant="outline" disabled={busy} onClick={() => void select()}>
+                <RotateCcw aria-hidden="true" />
+                自动选择
               </ActionButton>
-            )}
-            {providers
-              .filter((p) => p.enabled && p.descriptor.platforms.includes(platform))
-              .map((p) => (
+              {statuses.some((s) => s.enabled && s.descriptor.source === platform) && (
                 <ActionButton
-                  key={p.descriptor.id}
-                  variant={
-                    state.playbackSource?.provider === p.descriptor.id ? 'secondary' : 'outline'
-                  }
+                  variant="outline"
                   disabled={busy}
-                  onClick={() => void select(p.descriptor.id)}
+                  onClick={() => void select('official')}
                 >
                   <Radio aria-hidden="true" />
-                  {p.descriptor.displayName}
+                  {sourceLabel(platform, descriptors)}官方
                 </ActionButton>
-              ))}
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            获取失败会继续尝试其它已启用音源；切换同一曲目的音源保留播放进度。
-          </p>
-        </section>
-        <section aria-label="选择其它平台对应歌曲">
+              )}
+              {providers
+                .filter((p) => p.enabled && p.descriptor.platforms.includes(platform))
+                .map((p) => (
+                  <ActionButton
+                    key={p.descriptor.id}
+                    variant={
+                      state.playbackSource?.provider === p.descriptor.id ? 'secondary' : 'outline'
+                    }
+                    disabled={busy}
+                    onClick={() => void select(p.descriptor.id)}
+                  >
+                    <Radio aria-hidden="true" />
+                    {p.descriptor.displayName}
+                  </ActionButton>
+                ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              获取失败会继续尝试其它已启用音源；切换同一曲目的音源保留播放进度。
+            </p>
+          </section>
+        </div>
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="选择其它平台对应歌曲">
           <h3 className="mb-2 font-semibold">其它平台歌曲</h3>
           <p className="mb-3 text-xs text-muted-foreground">
             请核对歌手、专辑、版本与时长；选择后将替换本条目的播放音频，原队列曲目与收藏对象保留。

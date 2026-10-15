@@ -59,15 +59,16 @@ export function SourceTrackSearch({
     [state.items]
   )
   return (
-    <section className="min-h-0" aria-label="搜索其它平台歌曲">
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="搜索其它平台歌曲">
       <form
-        className="mb-3 flex gap-2"
+        className="mb-3 flex shrink-0 gap-2"
         onSubmit={(event) => {
           event.preventDefault()
           if (input.trim()) setKeyword(input.trim())
         }}
       >
         <Input
+          className="min-w-0 flex-1"
           aria-label="歌曲或歌手"
           value={input}
           maxLength={85}
@@ -78,8 +79,9 @@ export function SourceTrackSearch({
           搜索
         </ActionButton>
       </form>
-      <div className="max-h-[40dvh] overflow-y-auto overscroll-contain">
+      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
         <TrackList
+          fitContainer
           tracks={tracks}
           busy={busy}
           showLikes={false}
@@ -107,7 +109,7 @@ export function SourceTrackSearch({
           .filter((s) => s.error)
           .map((s) => (
             <div key={s.source} role="alert" className="flex items-center gap-2 py-2 text-sm">
-              <span>
+              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                 {s.name}：{s.error}
               </span>
               <ActionButton
