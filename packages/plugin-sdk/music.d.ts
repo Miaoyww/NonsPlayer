@@ -29,6 +29,8 @@ export interface MusicCredit {
   reference: EntityRef | null
 }
 export interface MusicTrack {
+  /** A retained catalog entry currently unavailable for playback. */
+  unavailableReason?: MusicError['code'] | null
   reference: EntityRef
   title: string
   aliases: string[]

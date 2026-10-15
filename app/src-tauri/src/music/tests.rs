@@ -23,6 +23,7 @@ fn track_ref(provider: &str, value: &str) -> EntityRef {
 fn uniform_tracks_survive_real_storage_and_mixed_queue_restore() {
     use crate::model::{PlayerSnapshot, Track, TrackSource};
     let music = |provider: &str, value: &str| MusicTrack {
+        unavailable_reason: (provider == "qqmusic").then_some(ErrorCode::NotFound),
         reference: track_ref(provider, value),
         title: "Same song".into(),
         aliases: vec![],

@@ -131,6 +131,7 @@ pub fn convert_track(track: Track) -> MusicResult<MigratedTrack> {
                 Default::default()
             },
             associations,
+            unavailable_reason: None,
         },
         local_binding,
     };

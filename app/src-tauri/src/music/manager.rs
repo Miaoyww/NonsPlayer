@@ -904,6 +904,7 @@ mod tests {
                     duration_ms: 1000,
                     cover: Default::default(),
                     associations: vec![],
+                    unavailable_reason: None,
                 })
             })
         }

@@ -596,7 +596,11 @@ export const TrackList = memo(function TrackList({
                           <button
                             type="button"
                             className="track-cover"
-                            disabled={busy}
+                            disabled={
+                              busy ||
+                              (track.source.kind === 'online' &&
+                                !!track.source.track.unavailableReason)
+                            }
                             aria-label={`播放 ${track.title}`}
                             onClick={() => onPlay(row.index, visibleTracks)}
                           >

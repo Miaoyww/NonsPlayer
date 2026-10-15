@@ -10,7 +10,14 @@ export const text = (value) =>
       : ''
 export const reference = (kind, id) => ({ source: 'qqmusic', kind, id: text(id) })
 export function checkReference(value, kind) {
-  if (value?.source !== 'qqmusic' || value.kind !== kind || !/^[a-zA-Z0-9]+$/.test(value.id))
+  if (
+    value?.source !== 'qqmusic' ||
+    value.kind !== kind ||
+    !(
+      typeof value.id === 'string' &&
+      (/^[a-zA-Z0-9]+$/.test(value.id) || (kind === 'track' && /^id:[1-9][0-9]*$/.test(value.id)))
+    )
+  )
     fail('invalidData', 'reference.source-kind-id')
   return value.id
 }
@@ -42,10 +49,13 @@ export function credits(singers = []) {
     }))
     .filter((value) => value.name)
 }
-export function track(value) {
+export function track(value, unavailableReason = null) {
   const song = value.songInfo ?? value.musicData ?? value
-  const mid = text(song.mid ?? song.songmid)
-  if (!mid) {
+  const mid = text(song.mid) || text(song.songmid)
+  const numericId = Number(song.id ?? song.songid)
+  const fallback =
+    unavailableReason && Number.isSafeInteger(numericId) && numericId > 0 ? `id:${numericId}` : ''
+  if (!mid && !fallback) {
     const fields = Object.keys(song)
       .filter((key) => /^[a-zA-Z0-9_-]+$/.test(key))
       .sort()
@@ -62,7 +72,8 @@ export function track(value) {
   const albumMid = text(album.mid ?? song.albummid)
   const artists = credits(song.singer)
   return {
-    reference: reference('track', mid),
+    reference: reference('track', mid || fallback),
+    ...(unavailableReason ? { unavailableReason } : {}),
     title: text(song.title ?? song.name ?? song.songname),
     aliases: song.subtitle ? [text(song.subtitle)] : [],
     artist: artists.map((value) => value.name).join(' / '),

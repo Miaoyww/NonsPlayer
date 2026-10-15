@@ -1,8 +1,10 @@
 import { adapterMusicu } from 'qq-protocol/auth/qrLogin.js'
+import { call as hostCall } from 'nons:plugin/host@1.0.0'
 import { authHttp, authService, session, authenticated } from './auth.js'
 import { hostFetch, drive } from './runtime/platform.js'
 import {
   track,
+  text,
   entity,
   reference,
   checkReference,
@@ -32,7 +34,18 @@ export async function rpc(module, method, param, requiresAuth = false) {
   })
   if (!response.ok) fail(response.status === 429 ? 'rateLimited' : 'network')
   const value = await response.json()
-  if (value.code !== 0 || value.request?.code !== 0) fail('sourceUnavailable')
+  // This endpoint returns request code 500 plus an empty track for absent numeric IDs.
+  if (
+    method === 'get_song_detail_yqq' &&
+    value.code === 0 &&
+    value.request?.code === 500 &&
+    !value.request?.data?.track_info?.mid
+  )
+    fail('notFound', 'track.detail-not-found')
+  if (value.code !== 0 || value.request?.code !== 0) {
+    const code = value.request?.code ?? value.code
+    fail('sourceUnavailable', Number.isSafeInteger(code) ? `rpc.upstream-${code}` : 'rpc.upstream')
+  }
   return value.request.data
 }
 async function legacy(path, params) {
@@ -94,20 +107,57 @@ async function collections(auth, filter) {
   })
 }
 export async function song(mid) {
+  const numeric = mid.startsWith('id:')
+  const songId = numeric ? Number(mid.slice(3)) : null
+  if (numeric && (!Number.isSafeInteger(songId) || songId <= 0))
+    fail('invalidData', 'track.numeric-id')
   const data = await rpc('music.pf_song_detail_svr', 'get_song_detail_yqq', {
     song_type: 0,
-    song_mid: mid,
-    song_id: ''
+    song_mid: numeric ? '' : mid,
+    song_id: numeric ? songId : ''
   })
   const value = data.track_info
-  if (!value || value.mid !== mid) fail('notFound')
+  if (!value || (!numeric && value.mid !== mid) || (numeric && Number(value.id) !== songId))
+    fail('notFound', 'track.detail-identity')
   return value
 }
 export async function readTrack(value) {
-  return track(await song(checkReference(value, 'track')))
+  const id = checkReference(value, 'track')
+  const result = track(await song(id))
+  // Requests for retained numeric identities must not change their queue identity.
+  return { ...result, reference: value }
 }
-function tracksResponse(values, state, total, description = null) {
-  const items = values.slice(0, state.limit).map(track)
+async function tracksResponse(values, state, total, description = null) {
+  const repaired = new Map()
+  const items = []
+  for (const value of values.slice(0, state.limit)) {
+    try {
+      items.push(track(value))
+    } catch (error) {
+      if (error?.diagnostics?.failureStage !== 'track.mid') throw error
+      const original = value.songInfo ?? value.musicData ?? value
+      const id = Number(original.id ?? original.songid)
+      if (!Number.isSafeInteger(id) || id <= 0) throw error
+      if (!repaired.has(id)) {
+        try {
+          repaired.set(id, track(await song(`id:${id}`)))
+        } catch (failure) {
+          if (failure?.code !== 'notFound' && failure?.diagnostics?.failureStage !== 'track.mid')
+            throw failure
+          repaired.set(id, null)
+        }
+      }
+      items.push(repaired.get(id) ?? track(original, 'notFound'))
+    }
+  }
+  if (items.some((item) => item.unavailableReason)) {
+    try {
+      hostCall(
+        'diagnostic.report',
+        JSON.stringify({ stage: 'track.mid-unavailable', class: 'MissingMid', code: 'notFound' })
+      )
+    } catch {} // Diagnostics must not discard an otherwise usable catalog page.
+  }
   return {
     type: 'tracks',
     data: {
@@ -149,29 +199,8 @@ async function playlist(id, state) {
       }
     }
   }
-  const publicData = await legacy('/qzone/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg', {
-    disstid: id,
-    type: 1,
-    json: 1,
-    utf8: 1,
-    onlysong: 0,
-    new_format: 1
-  })
-  if (publicData.code === 0 && publicData.cdlist?.[0]) {
-    const data = publicData.cdlist[0]
-    const values = data.songlist ?? []
-    return {
-      data,
-      response: () =>
-        tracksResponse(
-          values.slice(state.offset, state.offset + state.limit),
-          state,
-          Number(data.total_song_num ?? values.length),
-          data.desc ?? null
-        )
-    }
-  }
-  if (!auth) fail(publicData.code === 10 ? 'unauthenticated' : 'notFound')
+  // The legacy CGI returns the entire playlist even for a single requested page.
+  // Use the paginated protocol for public and collected playlists as well.
   const data = await rpc(
     'music.srfDissInfo.aiDissInfo',
     'uniform_get_Dissinfo',
@@ -185,14 +214,19 @@ async function playlist(id, state) {
       onlysonglist: 0,
       enc_host_uin: ''
     },
-    true
+    !!auth
   )
+  if (data.code && data.code !== 0) fail('sourceUnavailable', 'playlist.upstream-result')
   const values = data.songlist ?? []
   // Some generated playlists ignore the requested page and return all songs.
   const total = Number(data.total_song_num)
   const selected =
     values.length > state.limit ? values.slice(state.offset, state.offset + state.limit) : values
-  return { data, response: () => tracksResponse(selected, state, total, data.desc ?? null) }
+  const metadata = { ...data.dirinfo, ...data }
+  return {
+    data: metadata,
+    response: () => tracksResponse(selected, state, total, metadata.desc ?? null)
+  }
 }
 export async function business(request) {
   if (request.operation === 'search') {
@@ -317,7 +351,9 @@ export async function business(request) {
       likedPlaylist = null
     try {
       const data = await authenticated(() => authService.getUserLikedSongs('current', 0, 25))
-      likedTracks = (data?.songlist ?? []).slice(0, 25).map(track)
+      likedTracks = (
+        await tracksResponse(data?.songlist ?? [], { limit: 25, offset: 0 }, data.total_song_num)
+      ).data.items
       likedPlaylist = entity(
         { disstid: 'liked', dissname: '我喜欢', songnum: data.total_song_num },
         'playlist'
@@ -377,9 +413,11 @@ const qualityFiles = {
   lossless: { value: 'flac', prefix: 'F000', extension: '.flac', size: 'size_flac' }
 }
 export async function resolvePlayback(request) {
-  const mid = checkReference(request.track, 'track')
+  const identifier = checkReference(request.track, 'track')
   if (!(await session())) fail('unauthenticated')
-  const value = await song(mid)
+  const value = await song(identifier)
+  const mid = text(value.mid) || text(value.songmid)
+  if (!mid) fail('notFound', 'playback.track-mid')
   const order = ['hires', 'lossless', 'exhigh', 'higher', 'standard']
   const start = order.indexOf(request.preferredQuality)
   if (start < 0) fail('invalidData')
@@ -387,6 +425,7 @@ export async function resolvePlayback(request) {
   const candidates = (
     request.allowDowngrade ? order.slice(start) : [request.preferredQuality]
   ).filter((quality) => qualityFiles[quality])
+  let rejectedAt = 'playback.file-size'
   for (const quality of candidates) {
     const file = qualityFiles[quality]
     const size = Number(value.file?.[file.size])
@@ -397,21 +436,33 @@ export async function resolvePlayback(request) {
       authService.getMusicPlay('current', mid, file.value, media)
     )
     const url = result?.[mid]?.url
-    if (!url) continue
+    if (!url) {
+      rejectedAt = 'playback.url-missing'
+      continue
+    }
     const parsed = new URL(url)
     // Unknown or encrypted/preview filenames cannot be classified as full resources.
-    if (parsed.pathname.split('/').pop() !== `${file.prefix}${mid}${media}${file.extension}`)
+    if (parsed.pathname.split('/').pop() !== `${file.prefix}${mid}${media}${file.extension}`) {
+      rejectedAt = 'playback.filename'
       continue
+    }
     const response = await hostFetch(url, {
       method: 'HEAD',
       headers: { 'Accept-Encoding': 'identity' }
     })
-    if (response.status !== 200 || Number(response.headers.get('content-length')) !== size) continue
+    if (response.status !== 200) {
+      rejectedAt = `playback.http-${response.status}`
+      continue
+    }
+    if (Number(response.headers.get('content-length')) !== size) {
+      rejectedAt = 'playback.content-length'
+      continue
+    }
     return {
       metadata: { actualQuality: quality, extent: { kind: 'full' }, expiresAtMs: null },
       url,
       headers: []
     }
   }
-  fail('permissionDenied')
+  fail('permissionDenied', rejectedAt)
 }

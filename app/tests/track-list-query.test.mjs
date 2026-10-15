@@ -511,6 +511,33 @@ test('resizing redistributes adjacent columns, clamps minimums and restores defa
   })
 })
 
+test('unavailable online tracks retain their row and metadata with a visible label and disabled play control', async () => {
+  await harness(async ({ render, tracks }) => {
+    await render({
+      tracks: [
+        tracks[0],
+        {
+          ...tracks[1],
+          source: {
+            kind: 'online',
+            track: {
+              reference: { source: 'qqmusic', kind: 'track', id: 'id:99' },
+              unavailableReason: 'notFound'
+            }
+          }
+        },
+        tracks[2]
+      ]
+    })
+    const rows = [...document.querySelectorAll('tbody tr')]
+    assert.equal(rows.length, 3)
+    assert.match(rows[1].textContent, /白夜/)
+    assert.equal(rows[1].querySelector('[aria-label="歌曲不可用"]')?.textContent, '· 不可用')
+    assert.equal(rows[1].querySelector('button[aria-label="播放 白夜"]').disabled, true)
+    assert.equal(rows[0].querySelector('button[aria-label="播放 Zulu"]').disabled, false)
+  })
+})
+
 test('loading uses the same table, headers, columns and identity spacing as loaded songs', async () => {
   await harness(async ({ render, tracks }) => {
     const props = { sortable: true, onAppend: () => {}, showLikes: true, externalQuery: '' }

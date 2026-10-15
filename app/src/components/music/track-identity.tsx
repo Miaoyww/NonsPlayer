@@ -53,6 +53,11 @@ export function TrackIdentity({
           title={track.artist}
         >
           <TrackArtists track={track} />
+          {track.source.kind === 'online' && track.source.track.unavailableReason && (
+            <span className="ml-2" aria-label="歌曲不可用">
+              · 不可用
+            </span>
+          )}
           {showSource && (
             <span className="ml-2">
               ·{' '}

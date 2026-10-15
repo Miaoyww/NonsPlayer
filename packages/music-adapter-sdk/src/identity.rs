@@ -95,6 +95,9 @@ pub struct MusicTrack {
     pub cover: crate::cover::CoverImage,
     /// Matching/lyric links do not replace reference, including for local tracks.
     pub associations: Vec<EntityRef>,
+    /// Retained catalog entries that currently cannot be played; absent means unknown/available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unavailable_reason: Option<ErrorCode>,
 }
 
 impl MusicTrack {

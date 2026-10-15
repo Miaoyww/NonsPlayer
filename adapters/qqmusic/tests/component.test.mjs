@@ -43,6 +43,7 @@ async function component({
   rejectRefresh = false,
   resource = 'full',
   flacSize = 4096,
+  songDetail = fixtureTrack,
   playlistSongs = [fixtureTrack]
 } = {}) {
   const frames = [],
@@ -153,16 +154,26 @@ async function component({
           body = {
             code: 0,
             request: {
-              code: 0,
+              code: value.request.method === 'get_song_detail_yqq' && songDetail === null ? 500 : 0,
               data:
                 value.request.method === 'get_song_detail_yqq'
                   ? {
-                      track_info: {
-                        ...fixtureTrack,
-                        file: { ...fixtureTrack.file, size_flac: flacSize }
+                      track_info: songDetail && {
+                        ...songDetail,
+                        id: value.request.param.song_id || songDetail.id,
+                        file: { ...songDetail.file, size_flac: flacSize }
                       }
                     }
-                  : { body: { item_song: [fixtureTrack] }, meta: { sum: 1 } }
+                  : value.request.method === 'uniform_get_Dissinfo'
+                    ? {
+                        dirinfo: { dissname: 'Public playlist' },
+                        songlist: playlistSongs.slice(
+                          value.request.param.song_begin,
+                          value.request.param.song_begin + value.request.param.song_num
+                        ),
+                        total_song_num: playlistSongs.length
+                      }
+                    : { body: { item_song: [fixtureTrack] }, meta: { sum: 1 } }
             }
           }
       }
@@ -455,7 +466,7 @@ test('private owned playlists use authenticated read and keep uniform artwork', 
 test('playlist metadata is independent of malformed songs and track diagnostics reveal fields without their values', async () => {
   const fixture = await component({
     credential: await credentialFixture(),
-    playlistSongs: [{ id: 42, title: 'PRIVATE_METADATA' }]
+    playlistSongs: [{ broken: true, title: 'PRIVATE_METADATA' }]
   })
   try {
     const entity = { source: 'qqmusic', kind: 'playlist', id: '123' }
@@ -471,10 +482,92 @@ test('playlist metadata is independent of malformed songs and track diagnostics 
     assert.equal(tracks.data.code, 'invalidData')
     assert.ok(
       fixture.diagnostics.some(
-        (entry) => entry.stage === 'track.mid' && entry.class.includes('id.title')
+        (entry) => entry.stage === 'track.mid' && entry.class.includes('broken.title')
       )
     )
     assert.ok(!JSON.stringify(fixture.diagnostics).includes('PRIVATE_METADATA'))
+  } finally {
+    fixture.instance.shutdown()
+  }
+})
+
+test('playlist repairs missing MID by numeric song ID and retains unavailable songs in place', async () => {
+  const credential = await credentialFixture()
+  for (const songDetail of [fixtureTrack, null]) {
+    const fixture = await component({
+      credential,
+      songDetail,
+      playlistSongs: [
+        fixtureTrack,
+        { ...fixtureTrack, id: 99, mid: '', title: '下架曲目' },
+        fixtureTrack
+      ]
+    })
+    try {
+      const result = fixture.call('music.business', {
+        operation: 'tracks',
+        entity: { source: 'qqmusic', kind: 'playlist', id: '123' },
+        page: { cursor: null, limit: 5 }
+      })
+      assert.equal(result.status, 'ok', JSON.stringify(result))
+      const items = result.data.data.items
+      assert.equal(items.length, 3)
+      assert.equal(items[0].reference.id, 'SongMID')
+      assert.equal(items[2].reference.id, 'SongMID')
+      assert.equal(items[1].reference.id, songDetail ? 'SongMID' : 'id:99')
+      if (!songDetail) {
+        assert.equal(items[1].title, '下架曲目')
+        assert.equal(items[1].unavailableReason, 'notFound')
+        assert.ok(
+          fixture.diagnostics.some(
+            (entry) => entry.stage === 'track.mid-unavailable' && entry.code === 'notFound'
+          )
+        )
+      }
+      const requests = fixture.requests
+        .filter((request) => request.body.length)
+        .map((request) => JSON.parse(new TextDecoder().decode(request.body)))
+      assert.ok(
+        requests.some(
+          (request) =>
+            request.request?.param?.song_id === 99 && request.request.param.song_mid === ''
+        )
+      )
+    } finally {
+      fixture.instance.shutdown()
+    }
+  }
+})
+
+test('public playlists read bounded upstream pages and preserve cursor order', async () => {
+  const playlistSongs = Array.from({ length: 1000 }, (_, index) => ({
+    ...fixtureTrack,
+    mid: `Song${index}`
+  }))
+  const fixture = await component({ playlistSongs })
+  try {
+    let cursor = null
+    for (let page = 0; page < 2; page++) {
+      const result = fixture.call('music.business', {
+        operation: 'tracks',
+        entity: { source: 'qqmusic', kind: 'playlist', id: '123' },
+        page: { cursor, limit: 25 }
+      })
+      assert.equal(result.status, 'ok', JSON.stringify(result))
+      assert.equal(result.data.data.items.length, 25)
+      assert.equal(result.data.data.items[0].reference.id, `Song${page * 25}`)
+      cursor = result.data.data.nextCursor
+      assert.ok(cursor)
+    }
+    assert.equal(fixture.requests.length, 2)
+    assert.ok(
+      fixture.requests.every(
+        (request) =>
+          request.method === 'POST' &&
+          JSON.parse(new TextDecoder().decode(request.body)).request.method ===
+            'uniform_get_Dissinfo'
+      )
+    )
   } finally {
     fixture.instance.shutdown()
   }
@@ -502,6 +595,16 @@ test('plaintext resources report actual quality and reject previews, unknown siz
       if (options.resource || (options.flacSize === 0 && !options.downgrade)) {
         assert.equal(result.status, 'error')
         assert.equal(result.data.code, 'permissionDenied')
+        const stage =
+          options.resource === 'preview'
+            ? 'playback.filename'
+            : options.resource === 'unknown'
+              ? 'playback.content-length'
+              : 'playback.file-size'
+        assert.ok(
+          fixture.diagnostics.some((entry) => entry.stage === stage),
+          JSON.stringify(fixture.diagnostics)
+        )
       } else {
         assert.equal(result.status, 'ok', JSON.stringify(result))
         assert.equal(result.data.metadata.actualQuality, options.downgrade ? 'exhigh' : 'lossless')

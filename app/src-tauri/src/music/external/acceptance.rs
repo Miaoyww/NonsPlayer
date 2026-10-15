@@ -8,6 +8,83 @@ use std::{collections::BTreeMap, sync::Mutex, time::Instant};
 
 #[derive(Default)]
 struct Secrets(Mutex<BTreeMap<String, Vec<u8>>>);
+
+// Runs the composed interpreter under the same fuel budget as a real request.
+// The JS/Node Component harness does not meter Wasmtime fuel.
+#[tokio::test]
+#[ignore = "Requires built QQ Component; deterministic Host, no network or credentials"]
+async fn qq_component_large_playlist_respects_page_and_execution_budget() {
+    use crate::wasm_runtime::{host_io, Budget, HostHandler, Runtime};
+    use std::{future::Future, pin::Pin};
+    struct PlaylistHost;
+    impl HostHandler for PlaylistHost {
+        fn system_capabilities(&self) -> bool {
+            true
+        }
+        fn credential_read(&self) -> Pin<Box<dyn Future<Output = AppResult<Vec<u8>>> + Send + '_>> {
+            Box::pin(async { Ok(Vec::new()) })
+        }
+        fn http_request(
+            &self,
+            request: host_io::Request,
+        ) -> Pin<Box<dyn Future<Output = AppResult<host_io::Response>> + Send + '_>> {
+            Box::pin(async move {
+                let song = serde_json::json!({ "id": 42, "mid": "SongMID", "title": "预算测试曲目", "interval": 123, "singer": [{ "mid": "ArtistMID", "name": "测试歌手" }], "album": { "mid": "AlbumMID", "name": "测试专辑" }, "action": { "switch": 1 }, "file": { "media_mid": "AudioMID" } });
+                let payload = if request.url.contains("fcg_ucc_getcdinfo_byids_cp") {
+                    serde_json::json!({ "code": 0, "cdlist": [{ "disstid": "123", "dissname": "大歌单", "songlist": vec![song; 4500], "total_song_num": 4500 }] })
+                } else {
+                    let request: serde_json::Value = serde_json::from_slice(&request.body).unwrap();
+                    assert_eq!(request["request"]["method"], "uniform_get_Dissinfo");
+                    assert_eq!(request["request"]["param"]["song_num"], 25);
+                    serde_json::json!({ "code": 0, "request": { "code": 0, "data": { "dirinfo": { "dissname": "大歌单" }, "songlist": vec![song; 25], "total_song_num": 4500 } } })
+                };
+                let body = serde_json::to_vec(&payload).unwrap();
+                Ok(host_io::Response {
+                    status: 200,
+                    headers: vec![host_io::Header {
+                        name: "content-type".into(),
+                        value: "application/json".into(),
+                    }],
+                    body,
+                })
+            })
+        }
+        fn call<'a>(
+            &'a self,
+            _: &'a str,
+            _: &'a str,
+        ) -> Pin<Box<dyn Future<Output = AppResult<String>> + Send + 'a>> {
+            Box::pin(async { Ok("null".into()) })
+        }
+    }
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../adapters/qqmusic/dist/adapter.component.wasm");
+    let mut runtime = Runtime::load_host_with_budget(
+        runtime::engine().unwrap(),
+        &path,
+        Arc::new(PlaylistHost),
+        Budget::ADAPTER,
+    )
+    .await
+    .unwrap();
+    let started = Instant::now();
+    let response = runtime.call("music.business", r#"{"session":{"source":"qqmusic"},"request":{"operation":"tracks","entity":{"source":"qqmusic","kind":"playlist","id":"123"},"page":{"limit":25,"cursor":null}}}"#).await;
+    eprintln!(
+        "large playlist elapsed_ms={}",
+        started.elapsed().as_millis()
+    );
+    let response: serde_json::Value = serde_json::from_str(
+        &response.expect("A page of a large playlist must fit the normal adapter execution budget"),
+    )
+    .unwrap();
+    assert_eq!(response["status"], "ok", "{response}");
+    assert_eq!(
+        response["data"]["data"]["items"].as_array().unwrap().len(),
+        25
+    );
+    assert_eq!(response["data"]["data"]["total"], 4500);
+    assert!(response["data"]["data"]["nextCursor"].is_string());
+}
 impl CredentialStore for Secrets {
     fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>> {
         Ok(self.0.lock().unwrap().get(key).cloned())
