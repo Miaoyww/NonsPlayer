@@ -1,6 +1,6 @@
 # GitHub Release CI
 
-发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64 与 Android ARM64 试用 APK，上传 Actions Artifact，再统一发布到 GitHub Release。任一平台构建失败均阻止发布。当前不配置其他存储或自动更新服务。
+发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后构建 Windows x64，上传 Actions Artifact，再发布到 GitHub Release。从 1.3.2 起暂缓 Android 构建和 APK 分发，Windows 发布不依赖 Android。当前不配置其他存储或自动更新服务。
 
 ## 发布前准备
 
@@ -39,8 +39,6 @@ git push origin v1.0.0
 - 从同一次构建的主程序与 Windows 资源映射生成 `Nons_<版本>_windows_x64_portable.zip`，包含私有音频运行时、随包插件与使用说明，沿用安装包的许可文件打包策略；不包含构建缓存和调试符号。完整解压后运行 `Nons.exe`，无需安装应用或 GStreamer，但系统必须已有 Microsoft Edge WebView2 Runtime。
 - 清除 SDK 路径后验证运行时文件、插件工厂与 WAV/FLAC/MP3/AAC/Vorbis/Opus 解码。CI 使用 `--skip-audio-output`，不要求 runner 存在音频设备；手动默认模式仍验证静音设备输出。
 - 便携 ZIP 解压到独立目录后再次执行上述静音解码验证，确认归档后的音频运行时完整。
-- Android 使用独立 Windows runner、JDK 21 与 `aarch64-linux-android` Rust 目标，复用 `bootstrap-android.py --accept-licenses` 安装固定版本 SDK/NDK、接受 SDK 许可并准备 GStreamer；缓存 Android GStreamer SDK 与 Rust 依赖。GStreamer 校验文件请求遇到超时、连接失败或临时 HTTP 错误时最多尝试 4 次，保持 SHA256 校验；永久错误或无效校验内容直接终止。沿用 `pnpm --dir app build:android` 的 APK 原生符号、必需插件、离线前端、V1/V2/V3 签名和 16KB 对齐校验。
-- Android 只收集经校验的当前版本 `Nons-<版本>-android-arm64-debug.apk`，收集时重新核对构建生成的 SHA256；不上传内容相同的 `-compat` 副本。独立 Artifact 使用 `SHA256SUMS-android.txt`，发布任务下载两端文件、分别校验后合并为一个 `SHA256SUMS.txt`。
 - 仅收集当前版本的 MSI、EXE、便携 ZIP 和匹配源码 Manifest 的灵动岛 ZIP，生成 `SHA256SUMS.txt`；Artifact 保留 14 天，发布任务下载后再次校验哈希。缺少便携 ZIP 时阻止发布。
 - 新 Release 先创建为草稿，上传所有附件后公开；重跑时更新说明并覆盖同名附件，已有公开 Release 保持公开。
 
@@ -48,7 +46,7 @@ git push origin v1.0.0
 
 仓库需要启用 GitHub Actions，允许 workflow 使用 `GITHUB_TOKEN` 写入 Release。构建 job 仅有 `contents: read`，发布 job 才有 `contents: write`。不需要手动配置第三方密钥。
 
-Windows 安装包没有配置代码签名。Android 仍为调试签名的试用 APK，CI runner 每次生成临时调试证书，与本地构建及其他 CI 运行的证书不同；遇到签名冲突时需先卸载旧包，卸载会清除应用数据。正式签名与跨版本覆盖升级仍待配置。macOS/Linux 的运行时分发尚未适配，因此未加入发布构建。
+Windows 安装包没有配置代码签名。Android Release CI 已暂停；本地仍可构建调试签名试用 APK，正式签名与跨版本覆盖升级仍待配置。macOS/Linux 的运行时分发尚未适配，因此未加入发布构建。
 
 ## 本地检查发布元数据
 
@@ -58,7 +56,7 @@ python -m unittest discover -s scripts/tests
 # 完成 pnpm --dir app build:release 后：
 python scripts/release.py portable v1.0.0 app/src-tauri/target/release/bundle/portable
 python scripts/release.py files v1.0.0 .local/release-files
-# 完成 pnpm --dir app build:android 后：
+# 仅本地手动收集 Android 试用包（不随当前 Release 发布）：
 python scripts/release.py android-files v1.0.0 .local/android-release-files
 ```
 
