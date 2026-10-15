@@ -24,6 +24,7 @@ pub enum Capability {
     Account,
     UserLibrary,
     Favorites,
+    FavoritesRead,
     PlaylistWrite,
     Recommendations,
     PrivateFm,

@@ -262,3 +262,92 @@ test('playlist detail siblings have distinct keys and tabs reset when switching 
     })
   }
 })
+
+test('library home limits the featured preview to twelve without changing the favorites total', async () => {
+  const source = readFileSync(
+    new URL('../src/features/library/music-library.tsx', import.meta.url),
+    'utf8'
+  )
+  const modules = {}
+  const placeholder = ({ children }) => React.createElement('div', {}, children)
+  const parsed = ts.createSourceFile(
+    'library.tsx',
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  )
+  for (const statement of parsed.statements) {
+    if (!ts.isImportDeclaration(statement)) continue
+    const bindings = statement.importClause?.namedBindings
+    if (bindings && ts.isNamedImports(bindings))
+      modules[statement.moduleSpecifier.text] = Object.fromEntries(
+        bindings.elements.map((item) => [item.name.text, placeholder])
+      )
+  }
+  const profile = { userId: 'qq-user', nickname: 'QQ', reference: { source: 'qqmusic' } }
+  const summary = {
+    profile,
+    likedPlaylist: { kind: 'playlist', id: 'liked', trackCount: 456 },
+    likedTracks: Array.from({ length: 25 }, (_, i) => ({ key: String(i), title: `Song ${i}` }))
+  }
+  Object.assign(modules, {
+    react: React,
+    'react/jsx-runtime': jsx,
+    '@tauri-apps/api/core': { isTauri: () => true },
+    '@/lib/player': { usePlayer: () => ({ index: null, queue: [] }) },
+    '@/features/account/account': { useAccount: () => ({ profile }) },
+    '@/features/library/collection-actions': {
+      useCollectionActions: () => ({ revision: 0 }),
+      CollectionContextMenu: placeholder
+    },
+    '@/features/workspace/music-navigation': {
+      useMusicNavigation: () => ({ page: { view: 'library' } })
+    },
+    '@/lib/use-paged-list': { usePagedList: () => ({ items: [], more: false, busy: false }) },
+    '@/features/library/library-api': {
+      peekMusicLibrary: () => summary,
+      getMusicLibrary: async () => summary
+    },
+    '@/features/library/reconcile-tracks': { reconcileTracks: (_previous, next) => next },
+    '@/components/music/music-links': { TrackArtists: () => React.createElement('span') },
+    '@/components/music/list-find': {
+      FindSongGrid: ({ tracks, children }) =>
+        React.createElement('div', { id: 'featured', 'data-count': tracks.length }, children)
+    }
+  })
+  const exports = {}
+  runInNewContext(
+    ts.transpileModule(source, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
+    }).outputText,
+    { exports, require: (name) => modules[name] }
+  )
+  const dom = new JSDOM('<div id="root"></div>')
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    IS_REACT_ACT_ENVIRONMENT: globalThis.IS_REACT_ACT_ENVIRONMENT
+  }
+  Object.assign(globalThis, {
+    window: dom.window,
+    document: dom.window.document,
+    IS_REACT_ACT_ENVIRONMENT: true
+  })
+  const root = createRoot(document.getElementById('root'))
+  try {
+    await act(async () =>
+      root.render(
+        React.createElement(exports.default, { onError() {}, onNotice() {}, readOnly: true })
+      )
+    )
+    assert.equal(document.getElementById('featured').dataset.count, '12')
+    assert.equal(document.getElementById('featured').children.length, 12)
+    assert.match(document.querySelector('.library-liked-count').textContent, /456 首歌/)
+    assert.equal(summary.likedTracks.length, 25)
+  } finally {
+    await act(async () => root.unmount())
+    dom.window.close()
+    Object.assign(globalThis, previous)
+  }
+})

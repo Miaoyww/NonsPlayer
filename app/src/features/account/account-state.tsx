@@ -39,6 +39,7 @@ const AccountContext = createContext<{
   setProfile: (profile: AccountProfile | null) => void
   likedIds: ReadonlySet<string>
   likesReady: boolean
+  canToggleLike: boolean
   likesError?: string
   likesRevision: number
   pendingLikes: ReadonlySet<string>
@@ -52,6 +53,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const descriptor = statuses.find(
     (value) => value.descriptor.source === source && value.enabled
   )?.descriptor
+  const available = !!descriptor
+  const canToggleLike = !!descriptor?.capabilities.includes('favorites')
+  const canReadLikes = canToggleLike || !!descriptor?.capabilities.includes('favoritesRead')
   const [profile, updateProfile] = useState<AccountProfile | null>(null)
   const [loading, setLoading] = useState(isTauri())
   const [error, setError] = useState<string>()
@@ -110,7 +114,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       disposed = true
       generation.current++
     }
-  }, [source, descriptor, refresh])
+  }, [source, available, refresh])
   useEffect(() => {
     if (!isTauri()) return
     let disposed = false
@@ -135,13 +139,34 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     setLikedIds(new Set())
     setLikesReady(false)
     setLikesError(undefined)
-    if (!profile || !descriptor?.capabilities.includes('favorites') || !isTauri()) return
-    void musicClient
-      .query(profile.reference.source, { operation: 'favorites' })
-      .then((result) => {
-        if (serial !== likesGeneration.current) return
+    if (!profile || !canReadLikes || !isTauri()) return
+    void (async () => {
+      if (canToggleLike) {
+        const result = await musicClient.query(profile.reference.source, { operation: 'favorites' })
         if (result.type !== 'favorites') throw new Error('收藏状态响应无效')
-        setLikedIds(new Set(result.data.map((value) => value.id)))
+        return result.data
+      }
+      const items: import('@/features/music/types').EntityRef[] = []
+      let cursor: string | null = null
+      const seen = new Set<string>()
+      do {
+        const result = await musicClient.query(profile.reference.source, {
+          operation: 'favoritesPage',
+          page: { cursor, limit: 100 }
+        })
+        if (serial !== likesGeneration.current) return []
+        if (result.type !== 'favoritesPage') throw new Error('收藏状态响应无效')
+        items.push(...result.data.items)
+        cursor = result.data.nextCursor
+        if (items.length > 100_000 || (cursor && seen.has(cursor)))
+          throw new Error('收藏状态超过数量上限或返回重复游标')
+        if (cursor) seen.add(cursor)
+      } while (cursor)
+      return items
+    })()
+      .then((items) => {
+        if (serial !== likesGeneration.current) return
+        setLikedIds(new Set(items.map((value) => value.id)))
         setLikesReady(true)
       })
       .catch((cause) => {
@@ -150,7 +175,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     return () => {
       likesGeneration.current++
     }
-  }, [profile, descriptor, likesRefresh])
+  }, [profile, canReadLikes, canToggleLike, likesRefresh])
   const reloadLikes = useCallback(() => setLikesRefresh((value) => value + 1), [])
   useEffect(() => {
     if (!isTauri()) return
@@ -172,7 +197,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     }
   }, [source, reloadLikes])
   async function toggleLike(id: string) {
-    if (!profile || !likesReady || pending.current.has(id)) return
+    if (!profile || !likesReady || !canToggleLike || pending.current.has(id)) return
     const serial = likesGeneration.current,
       liked = !likedIds.has(id)
     pending.current.add(id)
@@ -208,6 +233,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         setProfile,
         likedIds,
         likesReady,
+        canToggleLike,
         likesError,
         likesRevision,
         pendingLikes,

@@ -137,7 +137,10 @@ async function component({
                       }
                     : method === 'CgiGetDiss'
                       ? {
-                          songlist: playlistSongs,
+                          songlist: playlistSongs.slice(
+                            value.req_0.param.song_begin,
+                            value.req_0.param.song_begin + value.req_0.param.song_num
+                          ),
                           total_song_num: playlistSongs.length,
                           desc: 'Private'
                         }
@@ -548,6 +551,46 @@ test('playlist repairs missing MID by numeric song ID and retains unavailable so
     } finally {
       fixture.instance.shutdown()
     }
+  }
+})
+
+test('readonly favorites enumerate every page without advertising favorite writes', async () => {
+  const credential = await credentialFixture()
+  const fixture = await component({
+    credential,
+    playlistSongs: Array.from({ length: 60 }, (_, index) => ({
+      ...fixtureTrack,
+      mid: `Liked${index}`
+    }))
+  })
+  try {
+    const descriptor = fixture.call('music.descriptor', null).data
+    assert.ok(descriptor.capabilities.includes('favoritesRead'))
+    assert.ok(!descriptor.capabilities.includes('favorites'))
+    let cursor = null
+    const ids = []
+    do {
+      const result = fixture.call('music.business', {
+        operation: 'favoritesPage',
+        page: { limit: 25, cursor }
+      })
+      assert.equal(result.status, 'ok', JSON.stringify(result))
+      assert.equal(result.data.type, 'favoritesPage')
+      ids.push(...result.data.data.items.map((item) => item.id))
+      cursor = result.data.data.nextCursor
+    } while (cursor)
+    assert.deepEqual(
+      ids,
+      Array.from({ length: 60 }, (_, index) => `Liked${index}`)
+    )
+    const write = fixture.call('music.business', {
+      operation: 'setFavorite',
+      track: { source: 'qqmusic', kind: 'track', id: 'Liked0' },
+      liked: false
+    })
+    assert.equal(write.data.code, 'unsupported')
+  } finally {
+    fixture.instance.shutdown()
   }
 })
 

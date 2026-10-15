@@ -353,7 +353,7 @@ export function SongContextMenu({
   onLocate?: () => void
 }) {
   const actions = useSongActions()
-  const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
+  const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } = useAccount()
   const { statuses } = useMusicSources()
   const reference = onlineReference(track)
   const canCollect =
@@ -401,16 +401,21 @@ export function SongContextMenu({
                 下一首播放
               </ContextMenu.Item>
             )}
-            {!unavailable && id !== undefined && profile && likesReady && !pendingLikes.has(id) && (
-              <ContextMenu.Item
-                onClick={() => {
-                  if (id !== undefined) actions.run(() => toggleLike(id))
-                }}
-              >
-                <Heart aria-hidden="true" />
-                {liked ? '取消收藏' : '收藏'}
-              </ContextMenu.Item>
-            )}
+            {!unavailable &&
+              canToggleLike !== false &&
+              id !== undefined &&
+              profile &&
+              likesReady &&
+              !pendingLikes.has(id) && (
+                <ContextMenu.Item
+                  onClick={() => {
+                    if (id !== undefined) actions.run(() => toggleLike(id))
+                  }}
+                >
+                  <Heart aria-hidden="true" />
+                  {liked ? '取消收藏' : '收藏'}
+                </ContextMenu.Item>
+              )}
             <PluginSongMenuItems track={track} run={(work, notice) => actions.run(work, notice)} />
             {!unavailable && <ContextMenu.Separator />}
             {!unavailable && track.source.kind === 'local' && (

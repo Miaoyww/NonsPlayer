@@ -89,6 +89,9 @@ pub enum BusinessRequest {
         page: PageRequest,
     },
     Favorites,
+    FavoritesPage {
+        page: PageRequest,
+    },
     SetFavorite {
         track: EntityRef,
         liked: bool,
@@ -140,6 +143,7 @@ impl BusinessRequest {
             Self::LibraryCollections { .. } => "libraryCollections",
             Self::History { .. } => "history",
             Self::Favorites => "favorites",
+            Self::FavoritesPage { .. } => "favoritesPage",
             Self::SetFavorite { .. } => "setFavorite",
             Self::CreatePlaylist { .. } => "createPlaylist",
             Self::UpdatePlaylist { .. } => "updatePlaylist",
@@ -164,6 +168,7 @@ impl BusinessRequest {
                 Capability::UserLibrary
             }
             Self::Favorites | Self::SetFavorite { .. } => Capability::Favorites,
+            Self::FavoritesPage { .. } => Capability::FavoritesRead,
             Self::CreatePlaylist { .. }
             | Self::UpdatePlaylist { .. }
             | Self::DeletePlaylist { .. }
@@ -178,6 +183,7 @@ impl BusinessRequest {
             self.capability(),
             Capability::UserLibrary
                 | Capability::Favorites
+                | Capability::FavoritesRead
                 | Capability::PlaylistWrite
                 | Capability::PrivateFm
         ) || matches!(self, Self::RecommendedTracks { .. })
@@ -201,6 +207,7 @@ impl BusinessRequest {
             | Self::ArtistTracks { page, .. }
             | Self::LibraryCollections { page, .. }
             | Self::History { page, .. }
+            | Self::FavoritesPage { page }
             | Self::RecommendedPlaylists { page, .. } => Some(page),
             _ => None,
         }
@@ -275,6 +282,7 @@ pub enum BusinessResponse {
     Entity(MusicEntity),
     Summary(LibrarySummary),
     Favorites(Vec<EntityRef>),
+    FavoritesPage(Page<EntityRef>),
     Suggestions(Vec<String>),
     Information(TrackInformation),
     Categories(Vec<Category>),
@@ -360,6 +368,15 @@ impl BusinessResponse {
                     entity(e)?;
                 }
             }
+            Self::FavoritesPage(p) => {
+                p.validate(request.page().ok_or(ErrorCode::InvalidData)?)?;
+                if p.items
+                    .iter()
+                    .any(|r| &r.source != source || r.kind != EntityKind::Track)
+                {
+                    return Err(ErrorCode::InvalidData.into());
+                }
+            }
             Self::Entity(e) => entity(e)?,
             Self::Detail(d) => {
                 entity(&d.item)?;
@@ -429,6 +446,10 @@ impl BusinessResponse {
                 | (BusinessRequest::Radar, Self::Entity(_))
                 | (BusinessRequest::LibrarySummary, Self::Summary(_))
                 | (BusinessRequest::Favorites, Self::Favorites(_))
+                | (
+                    BusinessRequest::FavoritesPage { .. },
+                    Self::FavoritesPage(_)
+                )
                 | (BusinessRequest::Suggestions { .. }, Self::Suggestions(_))
                 | (
                     BusinessRequest::TrackInformation { .. },
@@ -482,4 +503,70 @@ pub struct LogoutReport {
     pub local_cleared: bool,
     pub local_error: Option<super::MusicError>,
     pub remote_error: Option<super::MusicError>,
+}
+
+#[cfg(test)]
+mod favorites_read_tests {
+    use super::*;
+
+    #[test]
+    fn readonly_favorites_require_account_and_preserve_paging_and_source_boundaries() {
+        let source = SourceId::try_from("qqmusic".to_owned()).unwrap();
+        let request = BusinessRequest::FavoritesPage {
+            page: PageRequest {
+                cursor: None,
+                limit: 1,
+            },
+        };
+        assert_eq!(request.capability(), Capability::FavoritesRead);
+        assert!(request.requires_account());
+        assert!(!request.is_write());
+        assert_eq!(
+            BusinessRequest::Favorites.capability(),
+            Capability::Favorites
+        );
+        let item: EntityRef =
+            serde_json::from_str(r#"{"source":"qqmusic","kind":"track","id":"song-mid"}"#).unwrap();
+        let response = |items| {
+            BusinessResponse::FavoritesPage(Page {
+                items,
+                next_cursor: None,
+            })
+        };
+        assert!(response(vec![item.clone()])
+            .validate(&request, &source)
+            .is_ok());
+        assert_eq!(
+            response(vec![item.clone(), item.clone()])
+                .validate(&request, &source)
+                .unwrap_err()
+                .code,
+            ErrorCode::InvalidData
+        );
+        let mut wrong_source = item.clone();
+        wrong_source.source = SourceId::try_from("netease".to_owned()).unwrap();
+        assert_eq!(
+            response(vec![wrong_source])
+                .validate(&request, &source)
+                .unwrap_err()
+                .code,
+            ErrorCode::InvalidData
+        );
+        let mut wrong_kind = item;
+        wrong_kind.kind = EntityKind::Album;
+        assert_eq!(
+            response(vec![wrong_kind])
+                .validate(&request, &source)
+                .unwrap_err()
+                .code,
+            ErrorCode::InvalidData
+        );
+        assert_eq!(
+            response(vec![])
+                .validate(&BusinessRequest::Favorites, &source)
+                .unwrap_err()
+                .code,
+            ErrorCode::InvalidData
+        );
+    }
 }

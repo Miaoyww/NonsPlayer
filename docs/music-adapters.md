@@ -312,3 +312,9 @@ Wasmtime StoreLimitsBuilder 与 fuel_async_yield_interval 经 Context7 核对官
 回归覆盖设备启停重启恢复、停用拒绝重载、未知来源拒绝、写盘失败保留运行状态、账号桥跨来源/旧实例/停用拒绝、恢复凭据及保存记录保留；DOM 回归覆盖保存完成前不改变开关、失败提示、重复操作禁用、缓存失效、过期列表响应与卸载后响应丢弃。独立网易云包保留全部 22 项平台转换与有界大歌单响应回归；统一宿主契约、WASM fixture 和混合队列回归继续执行。
 
 后续新增原生包必须由宿主显式组装并绑定专用 ProviderAccounts，不能复用网易云的原始凭据桥；新增通用业务不得导入平台客户端或扩展旧数字 DTO。迁入外部 WASM 时先实现/验证网络、账号与包权限，不将 native crate 的完整能力直接写入现有受限外部描述符。历史数据库原子迁移、真实第二平台、不同登录展示、跨平台编译/基本播放、真实登录/远端写入/WebView 回收后播放和 Release 性能仍需对应实现与环境验收。实际命令与结果见 [实现记录](implementation.md#统一音乐适配器adr-0006-阶段五2026-10-10)。
+
+### 只读收藏状态
+
+可选能力 `favoritesRead` 通过 `favoritesPage { page: { cursor, limit } }` 返回 `{ type: "favoritesPage", data: { items: EntityRef[], nextCursor } }`，仅接受同来源的歌曲引用，要求账号且属于 `music:library` 读取。每页遵守 limit（1–100）和既有返回大小限制；游标原样回传。QQ 每页最多 25 项，避免一次返回完整喜欢列表超出外部调用预算。宿主逐页读取，切换账号后丢弃旧结果，完成后统一更新红心状态；重复游标和超过 100000 项按错误处理。
+
+既有 `favorites` 能力及 `favorites`／`setFavorite` 操作保持原语义。`favoritesRead` 不赋予写权限，界面展示已喜欢状态并禁用喜欢／取消喜欢按钮，菜单不提供对应写操作。QQ 本轮仅接读取。

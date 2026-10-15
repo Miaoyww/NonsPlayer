@@ -185,8 +185,16 @@ export const TrackList = memo(function TrackList({
   }, [tracks, searchQuery, searchable, externalQuery, sortable, sort, descending])
   const visibleTracks = useMemo(() => entries.map(({ track }) => track), [entries])
   const [cardMode] = useInterfaceDensity()
-  const { profile, likedIds, likesReady, likesError, pendingLikes, reloadLikes, toggleLike } =
-    useAccount()
+  const {
+    profile,
+    likedIds,
+    likesReady,
+    likesError,
+    pendingLikes,
+    reloadLikes,
+    toggleLike,
+    canToggleLike
+  } = useAccount()
   const [likeError, setLikeError] = useState<string>()
   const body = useRef<HTMLTableSectionElement>(null)
   const [scrollMargin, setScrollMargin] = useState(0)
@@ -632,9 +640,21 @@ export const TrackList = memo(function TrackList({
                             className="track-like"
                             data-liked={likedIds.has(favorite)}
                             aria-pressed={likedIds.has(favorite)}
-                            disabled={busy || !profile || !likesReady || pendingLikes.has(favorite)}
+                            disabled={
+                              busy ||
+                              !profile ||
+                              !likesReady ||
+                              pendingLikes.has(favorite) ||
+                              canToggleLike === false
+                            }
                             aria-label={`${likedIds.has(favorite) ? '取消喜欢' : '喜欢'} ${track.title}`}
-                            title={!profile ? '登录后收藏歌曲' : '喜欢 / 取消喜欢'}
+                            title={
+                              !profile
+                                ? '登录后收藏歌曲'
+                                : canToggleLike === false
+                                  ? '收藏状态（当前来源仅支持读取）'
+                                  : '喜欢 / 取消喜欢'
+                            }
                             onClick={() => {
                               if (favorite !== undefined) {
                                 setLikeError(undefined)

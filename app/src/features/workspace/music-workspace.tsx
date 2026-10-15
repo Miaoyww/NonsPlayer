@@ -6,7 +6,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { open } from '@tauri-apps/plugin-dialog'
-import { X } from 'lucide-react'
+import { WorkspaceErrorBanner } from './workspace-error-banner'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { AnimatePresence } from 'motion/react'
 import { connectPlayer, errorText, nativeCall, usePlayer } from '@/lib/player'
@@ -334,24 +334,10 @@ export function MusicWorkspace({
                       这是界面预览。播放、搜索和导入功能需要在桌面应用中使用。
                     </p>
                   )}
-                  {(error || state.error || state.mediaError) && (
-                    <div
-                      role="alert"
-                      className="flex items-start gap-3 border-b border-border bg-destructive/5 px-8 py-3 text-sm text-destructive"
-                    >
-                      <p className="min-w-0 flex-1">{error ?? state.error ?? state.mediaError}</p>
-                      {error && (
-                        <ActionButton
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label="关闭提示"
-                          onClick={() => setError(undefined)}
-                        >
-                          <X aria-hidden="true" />
-                        </ActionButton>
-                      )}
-                    </div>
-                  )}
+                  <WorkspaceErrorBanner
+                    errors={[error, state.error, state.mediaError]}
+                    onDismiss={() => setError(undefined)}
+                  />
                   {page.collection?.reference &&
                   ['artist', 'album', 'collection'].includes(view) ? (
                     <Suspense
@@ -363,6 +349,7 @@ export function MusicWorkspace({
                         key={JSON.stringify(page.collection.reference)}
                         collection={page.collection}
                         onError={onError}
+                        onNotice={showNotice}
                       />
                     </Suspense>
                   ) : (view === 'artist' || view === 'album') && page.collection ? (
@@ -442,27 +429,17 @@ export function MusicWorkspace({
                         </ActionButton>
                       </MusicPage>
                     )
-                  ) : (view === 'discover' || view === 'library') &&
+                  ) : view === 'discover' &&
                     currentSource &&
                     !sources.statuses
                       .find((status) => status.descriptor.source === currentSource)
-                      ?.descriptor.capabilities.includes(
-                        view === 'discover' ? 'recommendations' : 'playlistWrite'
-                      ) ? (
-                    <Suspense
-                      fallback={
-                        view === 'library' ? (
-                          <LibraryPageSkeleton />
-                        ) : (
-                          <MusicPageSkeleton view="discover" />
-                        )
-                      }
-                    >
+                      ?.descriptor.capabilities.includes('recommendations') ? (
+                    <Suspense fallback={<MusicPageSkeleton view="discover" />}>
                       <SourceWorkspace
                         key={`${currentSource}:${view}:${sources.revision}`}
                         source={currentSource}
                         name={currentStatus?.descriptor.displayName ?? currentSource}
-                        discovery={view === 'discover'}
+                        discovery
                         onError={onError}
                         onNotice={showNotice}
                       />
@@ -494,6 +471,7 @@ export function MusicWorkspace({
                       }
                     >
                       <MusicLibrary
+                        readOnly={!currentStatus?.descriptor.capabilities.includes('playlistWrite')}
                         key={
                           view === 'library' ? `${currentSource}:${sources.revision}` : undefined
                         }

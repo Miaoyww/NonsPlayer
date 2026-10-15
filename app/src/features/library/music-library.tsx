@@ -108,10 +108,12 @@ function CollectionCards({
 
 export default function MusicLibrary({
   onError,
-  onNotice
+  onNotice,
+  readOnly = false
 }: {
   onError: (cause: unknown) => void
   onNotice: (message: string) => void
+  readOnly?: boolean
 }) {
   const {
     profile,
@@ -265,6 +267,7 @@ export default function MusicLibrary({
     setRefresh((value) => value + 1)
   }
   const liked = summary?.likedPlaylist
+  const featuredTracks = summary?.likedTracks.slice(0, 12) ?? []
   const retry = (
     <ActionButton
       size="sm"
@@ -282,7 +285,7 @@ export default function MusicLibrary({
   if (!showingDetail && !profile && !accountLoading) return <AccountLoginPage />
 
   return (
-    <MusicPage aria-label="网易云音乐库">
+    <MusicPage aria-label="音乐库">
       {showingDetail ? (
         <>
           <CollectionHeader
@@ -301,7 +304,7 @@ export default function MusicLibrary({
           >
             {!profile ? (
               <div className="library-empty">
-                <p>登录网易云音乐后查看这个收藏。</p>
+                <p>登录对应音乐来源后查看这个收藏。</p>
                 <ActionButton variant="secondary" onClick={() => navigate('accounts')}>
                   登录账号
                 </ActionButton>
@@ -321,7 +324,9 @@ export default function MusicLibrary({
                 onAppend={append}
                 removeLabel={collection.kind === 'playlist' ? '从歌单删除' : '从列表删除'}
                 onRemove={
-                  collection.kind === 'playlist' && collection.creatorId === profile.userId
+                  !readOnly &&
+                  collection.kind === 'playlist' &&
+                  collection.creatorId === profile.userId
                     ? (track) => removeFromPlaylist(collection, track)
                     : undefined
                 }
@@ -382,7 +387,7 @@ export default function MusicLibrary({
                     <TextSkeleton />
                   ) : (
                     <LyricExcerpt
-                      tracks={summary?.likedTracks}
+                      tracks={featuredTracks}
                       enabled={!!profile && !summaryBusy && !!(summary || summaryError)}
                     />
                   )}
@@ -420,7 +425,7 @@ export default function MusicLibrary({
             <div className="library-featured-songs">
               {!profile && !accountLoading ? (
                 <div className="library-empty">
-                  <p>登录网易云音乐，找回你喜欢的旋律。</p>
+                  <p>登录音乐账号，找回你喜欢的旋律。</p>
                   <ActionButton variant="secondary" onClick={() => navigate('accounts')}>
                     登录账号
                   </ActionButton>
@@ -432,15 +437,15 @@ export default function MusicLibrary({
                 </div>
               ) : summaryBusy || accountLoading ? (
                 <SongGridSkeleton />
-              ) : summary?.likedTracks.length ? (
+              ) : featuredTracks.length ? (
                 <FindSongGrid
-                  tracks={summary.likedTracks}
+                  tracks={featuredTracks}
                   busy={playing}
                   onPlay={(track) => {
                     if (liked) void playCollection(liked, track.key)
                   }}
                 >
-                  {summary.likedTracks.map((track) => (
+                  {featuredTracks.map((track) => (
                     <SongContextMenu
                       key={track.key}
                       track={track}
@@ -449,7 +454,7 @@ export default function MusicLibrary({
                       }}
                       removeLabel="从歌单删除"
                       onRemove={
-                        liked && liked.creatorId === profile?.userId
+                        !readOnly && liked && liked.creatorId === profile?.userId
                           ? () => removeFromPlaylist(liked, track)
                           : undefined
                       }
@@ -547,22 +552,25 @@ export default function MusicLibrary({
                   </SelectContent>
                 </Select>
               </div>
-              {tabs.slice(1).map((item) => (
-                <ActionButton
-                  key={item.value}
-                  variant="ghost"
-                  className="library-tab"
-                  data-active={tab === item.value}
-                  aria-pressed={tab === item.value}
-                  onClick={() => {
-                    setTab(item.value)
-                  }}
-                >
-                  {item.label}
-                </ActionButton>
-              ))}
+              {tabs
+                .slice(1)
+                .filter((item) => !readOnly || item.value !== 'history')
+                .map((item) => (
+                  <ActionButton
+                    key={item.value}
+                    variant="ghost"
+                    className="library-tab"
+                    data-active={tab === item.value}
+                    aria-pressed={tab === item.value}
+                    onClick={() => {
+                      setTab(item.value)
+                    }}
+                  >
+                    {item.label}
+                  </ActionButton>
+                ))}
             </div>
-            {tab === 'playlist' && profile && (
+            {tab === 'playlist' && profile && !readOnly && (
               <CreatePlaylist
                 onCreated={() => {
                   setRefresh((value) => value + 1)

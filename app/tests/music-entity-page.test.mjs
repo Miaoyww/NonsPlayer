@@ -48,7 +48,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     },
     '@/components/music/infinite-load': {
       InfiniteLoad: ({ onLoad, error }) =>
-        React.createElement('button', { onClick: onLoad }, error ?? '续载')
+        React.createElement('button', { id: 'load-more', onClick: onLoad }, error ?? '续载')
     },
     '@/lib/player': {
       errorText: String,
@@ -66,6 +66,42 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     }
   }
   const exports = {}
+  Object.assign(modules, {
+    '@/features/library/detail-header': { DetailHeader: 'header' },
+    '@/features/library/detail-description': {
+      DetailDescription: ({ description }) => React.createElement('p', {}, description)
+    },
+    '@/components/music/cover': {
+      Cover: ({ cover }) => React.createElement('img', { src: cover })
+    },
+    '@/components/music/action-button': {
+      ActionButton: ({ children, ...props }) => React.createElement('button', props, children)
+    },
+    'lucide-react': { Play: () => null },
+    '@/features/library/collection-tabs': { CollectionTabs: ({ children }) => children },
+    '@/features/library/library-api': { playLibraryCollection: async () => false },
+    '@/features/library/artist-page': {
+      __esModule: true,
+      default: () => React.createElement('p', {}, '歌手完整详情')
+    },
+    '@/features/library/album-page': {
+      __esModule: true,
+      default: () => React.createElement('p', {}, '专辑完整详情')
+    }
+  })
+  for (const [name, file] of [
+    ['@/features/library/collection-header', '../src/features/library/collection-header.tsx'],
+    ['./entities', '../src/features/music/entities.ts']
+  ]) {
+    const loaded = {}
+    runInNewContext(
+      ts.transpileModule(readFileSync(new URL(file, import.meta.url), 'utf8'), {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
+      }).outputText,
+      { exports: loaded, require: (name) => modules[name] }
+    )
+    modules[name] = loaded
+  }
   const code = ts.transpileModule(
     readFileSync(new URL('../src/features/music/entity-page.tsx', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
@@ -74,15 +110,15 @@ test('uniform details retain cursor and rows on failure, reload only their own s
   const root = createRoot(document.getElementById('root'))
   const collection = {
     id: 0,
-    kind: 'album',
+    kind: 'playlist',
     name: 'Album',
-    reference: { source: 'qqmusic', kind: 'album', id: 'album/雪:1' }
+    reference: { source: 'qqmusic', kind: 'playlist', id: 'album/雪:1' }
   }
   const page = (id, nextCursor) => ({ type: 'tracks', data: { items: [{ id }], nextCursor } })
   const click = () =>
     act(async () =>
       document
-        .querySelector('button')
+        .querySelector('#load-more')
         .dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
     )
   try {
@@ -92,6 +128,28 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     assert.equal(pending[0].source, 'qqmusic')
     assert.equal(pending[0].request.entity.id, 'album/雪:1')
     await act(async () => pending[0].resolve(page('one', 'opaque:next')))
+    await act(async () =>
+      pending[1].resolve({
+        type: 'detail',
+        data: {
+          item: {
+            ...collection,
+            reference: collection.reference,
+            name: '完整歌单详情',
+            cover: 'cover-fixture.jpg',
+            subtitle: '歌单创建者',
+            trackCount: 200,
+            creator: null,
+            artists: [],
+            liked: false
+          },
+          description: '歌单简介'
+        }
+      })
+    )
+    assert.equal(document.querySelector('img')?.getAttribute('src'), 'cover-fixture.jpg')
+    assert.match(document.body.textContent, /歌单创建者/)
+    assert.match(document.body.textContent, /200 首音乐/)
     assert.equal(document.getElementById('tracks').textContent, 'qqmusic:one')
     await click()
     assert.equal(pending[2].request.page.cursor, 'opaque:next')
@@ -113,6 +171,17 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     assert.equal(document.getElementById('tracks').textContent, '')
     await act(async () => pending[6].resolve(page('fresh', null)))
     assert.equal(document.getElementById('tracks').textContent, 'qqmusic:fresh')
+    for (const kind of ['artist', 'album']) {
+      await act(async () =>
+        root.render(
+          React.createElement(exports.default, {
+            collection: { ...collection, kind, reference: { ...collection.reference, kind } },
+            onError() {}
+          })
+        )
+      )
+      assert.match(document.body.textContent, kind === 'artist' ? /歌手完整详情/ : /专辑完整详情/)
+    }
   } finally {
     await act(async () => root.unmount())
     assert.equal(events.size, 0)

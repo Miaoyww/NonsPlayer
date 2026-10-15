@@ -24,6 +24,7 @@ const capabilityLabels: Record<string, string> = {
   account: '账号',
   userLibrary: '曲库',
   favorites: '收藏',
+  favoritesRead: '收藏状态读取',
   playlistWrite: '歌单编辑',
   recommendations: '推荐',
   privateFm: '私人 FM',

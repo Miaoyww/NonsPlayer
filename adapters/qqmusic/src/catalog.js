@@ -229,6 +229,29 @@ async function playlist(id, state) {
   }
 }
 export async function business(request) {
+  if (request.operation === 'favoritesPage') {
+    if (!(await session())) fail('unauthenticated')
+    const state = pageState(request.page, 'favorites')
+    const data = await authenticated(() =>
+      authService.getUserLikedSongs('current', state.offset, state.limit)
+    )
+    const items = (data.songlist ?? []).slice(0, state.limit).map((value) => {
+      const song = value.songInfo ?? value.musicData ?? value
+      const mid = text(song.mid) || text(song.songmid)
+      const id = Number(song.id ?? song.songid)
+      if (!mid && (!Number.isSafeInteger(id) || id <= 0))
+        fail('invalidData', 'favorites.track-identity')
+      return reference('track', mid || `id:${id}`)
+    })
+    return {
+      type: 'favoritesPage',
+      data: pageResult(
+        items,
+        state,
+        Number.isFinite(data.total_song_num) ? data.total_song_num : undefined
+      )
+    }
+  }
   if (request.operation === 'search') {
     const kinds = {
       track: [0, 'item_song'],

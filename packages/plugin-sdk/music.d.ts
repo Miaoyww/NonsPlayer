@@ -88,6 +88,7 @@ export type MusicReadRequest =
   | { operation: 'artistAlbums' | 'artistTracks'; artist: EntityRef; page: PageRequest }
   | { operation: 'trackInformation'; track: EntityRef }
   | { operation: 'librarySummary' | 'favorites' | 'categories' | 'radar' }
+  | { operation: 'favoritesPage'; page: PageRequest }
   | {
       operation: 'libraryCollections'
       kind: Exclude<EntityKind, 'track'>
@@ -136,6 +137,7 @@ export type MusicResponse =
       }
     }
   | { type: 'favorites'; data: EntityRef[] }
+  | { type: 'favoritesPage'; data: Page<EntityRef> }
   | { type: 'suggestions'; data: string[] }
   | {
       type: 'information'

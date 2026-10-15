@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
+import { MusicPage } from '@/components/music/music-page'
+import { CollectionHeader } from '@/features/library/collection-header'
+import { CollectionTabs } from '@/features/library/collection-tabs'
+import ArtistPage from '@/features/library/artist-page'
+import AlbumPage from '@/features/library/album-page'
+import { playLibraryCollection } from '@/features/library/library-api'
+import { musicCollection } from './entities'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { errorText, nativeCall, usePlayer, type Track } from '@/lib/player'
@@ -12,6 +18,7 @@ import { musicClient } from './client'
 interface EntityPageProps {
   collection: MusicCollection
   onError: (cause: unknown) => void
+  onNotice?: (message: string) => void
 }
 
 export default function EntityPage(props: EntityPageProps) {
@@ -39,16 +46,26 @@ export default function EntityPage(props: EntityPageProps) {
     }
   }, [source, props.onError])
   return (
-    <EntityResults key={`${JSON.stringify(props.collection.reference)}:${revision}`} {...props} />
+    <EntityContent key={`${JSON.stringify(props.collection.reference)}:${revision}`} {...props} />
   )
 }
+const ignoreNotice = () => {}
+function EntityContent(props: EntityPageProps) {
+  if (props.collection.kind === 'artist')
+    return <ArtistPage {...props} onNotice={props.onNotice ?? ignoreNotice} />
+  if (props.collection.kind === 'album')
+    return <AlbumPage {...props} onNotice={props.onNotice ?? ignoreNotice} />
+  return <EntityResults {...props} />
+}
 
-function EntityResults({ collection, onError }: EntityPageProps) {
+function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
   const reference = collection.reference!
   const [tracks, setTracks] = useState<Track[]>([])
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState<string>()
-  const [title, setTitle] = useState(collection.name)
+  const [detail, setDetail] = useState(collection)
+  const [total, setTotal] = useState(collection.trackCount)
+  const [playing, setPlaying] = useState(false)
   const [description, setDescription] = useState<string>()
   const player = usePlayer('index', 'queue')
   const active = useRef(false)
@@ -82,6 +99,7 @@ function EntityResults({ collection, onError }: EntityPageProps) {
         ]
       })
       state.cursor = response.data.nextCursor
+      if (response.data.total !== null) setTotal(response.data.total)
       state.more = state.cursor !== null
     } catch (cause) {
       if (query.current === state && active.current) setError(errorText(cause))
@@ -103,9 +121,9 @@ function EntityResults({ collection, onError }: EntityPageProps) {
         .then((response) => {
           if (!active.current || query.current !== state) return
           if (response.type === 'detail') {
-            setTitle(response.data.item.name)
+            setDetail(musicCollection(response.data.item))
             setDescription(response.data.description ?? undefined)
-          } else if (response.type === 'entity') setTitle(response.data.name)
+          } else if (response.type === 'entity') setDetail(musicCollection(response.data))
         })
         .catch((cause) => {
           if (active.current && query.current === state) onError(cause)
@@ -118,29 +136,45 @@ function EntityResults({ collection, onError }: EntityPageProps) {
   }, [load, reference, onError])
   return (
     <MusicPage aria-label="音乐详情">
-      <MusicPageHeader title={title}>
-        <p className="text-sm text-muted-foreground">来源：{reference.source}</p>
-      </MusicPageHeader>
-      {description && (
-        <p className="mb-4 whitespace-pre-wrap text-sm text-muted-foreground">{description}</p>
-      )}
-      <TrackList
-        tracks={tracks}
-        hasMore={query.current.more}
-        loading={busy && tracks.length === 0}
-        busy={busy}
-        currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
-        onPlay={(index, items) => {
-          const start = Math.max(0, index - 999)
-          void nativeCall('play_queue', {
-            keys: items.slice(start, start + 1000).map((track) => track.key),
-            index: index - start
-          }).catch(onError)
-        }}
-        onAppend={(track) => {
-          void nativeCall('append_queue', { keys: [track.key] }).catch(onError)
+      <CollectionHeader
+        collection={detail}
+        description={description}
+        total={total || detail.trackCount}
+        busy={playing}
+        disabled={playing || !isTauri() || !tracks.length}
+        onPlay={() => {
+          if (playing) return
+          setPlaying(true)
+          void playLibraryCollection(detail)
+            .then((truncated) => {
+              if (truncated) onNotice?.('已将前 1000 首歌曲加入播放队列。')
+            })
+            .catch(onError)
+            .finally(() => setPlaying(false))
         }}
       />
+      <CollectionTabs collection={detail} hasMore={query.current.more}>
+        <TrackList
+          tracks={tracks}
+          hasMore={query.current.more}
+          loading={busy && tracks.length === 0}
+          busy={busy}
+          showLikes
+          searchable
+          sortable
+          currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
+          onPlay={(index, items) => {
+            const start = Math.max(0, index - 999)
+            void nativeCall('play_queue', {
+              keys: items.slice(start, start + 1000).map((track) => track.key),
+              index: index - start
+            }).catch(onError)
+          }}
+          onAppend={(track) => {
+            void nativeCall('append_queue', { keys: [track.key] }).catch(onError)
+          }}
+        />
+      </CollectionTabs>
       <InfiniteLoad
         more={query.current.more}
         busy={busy}

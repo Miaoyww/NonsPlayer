@@ -14,7 +14,7 @@ export function CurrentTrackLike({
   onError: (error: unknown) => void
   showLabel?: boolean
 }) {
-  const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
+  const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } = useAccount()
   const songId = track ? favoriteId(track, profile?.reference) : undefined
   const liked = songId !== undefined && likedIds.has(songId)
   const likePending = songId !== undefined && pendingLikes.has(songId)
@@ -43,11 +43,20 @@ export function CurrentTrackLike({
               ? '登录后收藏歌曲'
               : !likesReady
                 ? '正在读取收藏状态'
-                : liked
-                  ? '取消收藏'
-                  : '收藏'
+                : canToggleLike === false
+                  ? '收藏状态（当前来源仅支持读取）'
+                  : liked
+                    ? '取消收藏'
+                    : '收藏'
       }
-      disabled={!isTauri() || songId === undefined || !profile || !likesReady || likePending}
+      disabled={
+        !isTauri() ||
+        songId === undefined ||
+        !profile ||
+        !likesReady ||
+        likePending ||
+        canToggleLike === false
+      }
       onClick={() => {
         if (songId !== undefined) void toggleLike(songId).catch(onError)
       }}

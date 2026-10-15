@@ -63,6 +63,7 @@ function harness(initialMode = 'collapsible') {
     },
     '@/features/music/source-label': { sourceLabel: String },
     './use-android-back': { useAndroidBack() {} },
+    './workspace-error-banner': { WorkspaceErrorBanner: 'WorkspaceErrorBanner' },
     './use-primary-music-page': { usePrimaryMusicPage: () => true },
     './mobile-page-header': { MobilePageHeader: 'MobilePageHeader' },
     '@/components/music/track-search-context': {
