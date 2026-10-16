@@ -12,4 +12,4 @@
 node adapters/jbsou/scripts/build.mjs
 ```
 
-构建需要 Rust `wasm32-wasip2` 目标。产物写入 `adapters/jbsou/dist`，并复制到应用的 bundled adapters 目录。协议参考 musicdl 的 jbsou 实现；许可文本见 `LICENSE.musicdl`。
+构建需要 `cargo-component` 与 Rust `wasm32-unknown-unknown` 目标。产物写入 `adapters/jbsou/dist`，并复制到应用的 bundled adapters 目录。协议参考 musicdl 的 jbsou 实现；许可文本见 `LICENSE.musicdl`。

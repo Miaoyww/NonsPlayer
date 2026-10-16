@@ -8,11 +8,12 @@ const target = resolve(project, 'target')
 const build = spawnSync(
   'cargo',
   [
+    'component',
     'build',
     '--manifest-path',
     resolve(project, 'Cargo.toml'),
     '--target',
-    'wasm32-wasip2',
+    'wasm32-unknown-unknown',
     '--release',
     '--locked'
   ],
@@ -20,7 +21,7 @@ const build = spawnSync(
 )
 if (build.error) throw build.error
 if (build.status !== 0) process.exit(build.status ?? 1)
-const wasm = resolve(target, 'wasm32-wasip2/release/nons_adapter_jbsou.wasm')
+const wasm = resolve(target, 'wasm32-unknown-unknown/release/nons_adapter_jbsou.wasm')
 if ((await stat(wasm)).size > 32 * 1024 * 1024)
   throw new Error('Audio provider exceeds component size limit')
 const dist = resolve(project, 'dist')
@@ -41,7 +42,7 @@ const metadata = spawnSync(
     '--format-version',
     '1',
     '--filter-platform',
-    'wasm32-wasip2'
+    'wasm32-unknown-unknown'
   ],
   { encoding: 'utf8', env: { ...process.env, CARGO_TARGET_DIR: target } }
 )

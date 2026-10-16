@@ -48,7 +48,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: '1.95.0'
-          targets: wasm32-unknown-unknown, wasm32-wasip2
+          targets: wasm32-unknown-unknown
           components: rustfmt
 
       - name: Cache Rust dependencies
