@@ -1,4 +1,3 @@
-import { sourceCapabilities } from './helpers/source-capabilities.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -23,14 +22,36 @@ test('adapter settings wait for persistence, report failures and reject stale li
   let changed
   let unsubscribed = false
   let invalidations = 0
+  let providerStatuses = []
+  let providerFailure
+  const selectContext = React.createContext(null)
   const modules = {
-    '@/features/music/source-capabilities': sourceCapabilities,
+    '@/features/music/source-label': {
+      sourceLabel: (source) => (source === 'netease' ? '网易云音乐' : source)
+    },
     '@/features/account/account-login-page': { AdapterLoginCard: () => null },
     '@/features/account/use-account-adapters': {
       useAccountAdapters: () => ({ adapters: [], refresh() {} })
     },
-    '@/features/music/source-preferences-card': { SourcePreferencesCard: () => null },
-    '@/features/music/resource-providers-card': { ResourceProvidersCard: () => null },
+    '@/components/ui/input': {
+      Input: ({ onChange, ...props }) =>
+        React.createElement('input', { ...props, onInput: onChange })
+    },
+    '@/components/ui/select': {
+      Select: ({ onValueChange, children }) =>
+        React.createElement(selectContext.Provider, { value: onValueChange }, children),
+      SelectContent: ({ children }) => React.createElement('div', null, children),
+      SelectTrigger: ({ children, ...props }) => React.createElement('button', props, children),
+      SelectValue: ({ children }) => React.createElement('span', null, children),
+      SelectItem: ({ value, children }) => {
+        const onValueChange = React.useContext(selectContext)
+        return React.createElement(
+          'button',
+          { 'data-capability': value, onClick: () => onValueChange(value) },
+          children
+        )
+      }
+    },
     '@/components/music/loading': { TextSkeleton: 'div' },
     react: React,
     'react/jsx-runtime': jsx,
@@ -46,6 +67,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
     'lucide-react': {
       Blocks: () => null,
       RefreshCw: () => null,
+      Search: () => null,
       RotateCw: () => null,
       UserRound: () => null
     },
@@ -69,7 +91,11 @@ test('adapter settings wait for persistence, report failures and reject stale li
     '@/lib/player': {
       errorText: String,
       nativeCall: (command, args) =>
-        new Promise((resolve, reject) => requests.push({ command, args, resolve, reject }))
+        command === 'resource_provider_list'
+          ? providerFailure
+            ? Promise.reject(providerFailure)
+            : Promise.resolve(providerStatuses)
+          : new Promise((resolve, reject) => requests.push({ command, args, resolve, reject }))
     },
     '@/lib/runtime-cache': {
       invalidateNativeCache: () => {
@@ -142,10 +168,75 @@ test('adapter settings wait for persistence, report failures and reject stale li
       requests[7].resolve([{ ...pending[0], loading: false, loadError: '组件校验失败' }])
     )
     assert.match(document.querySelector('[role="alert"]').textContent, /组件校验失败/)
+    providerStatuses = [
+      {
+        descriptor: {
+          id: 'gdstudio',
+          displayName: 'GD音乐台（星海）',
+          platforms: ['netease'],
+          searchPlatforms: ['netease']
+        },
+        enabled: true
+      }
+    ]
+    await act(async () => changed())
+    await act(async () => requests[8].resolve(status(true)))
+    const list = () => document.querySelector('section[aria-label="已安装的音乐适配器"]')
+    const button = (label) =>
+      [...document.querySelectorAll('button')].find((element) => element.textContent === label)
+    assert.equal(list().querySelectorAll('h3').length, 2)
+    assert.doesNotMatch(document.body.textContent, /独立音源适配器|补充来源|选择音乐库与发现/)
+    const gd = list().querySelectorAll('h3')[1].closest('.p-4')
+    assert.match(gd.textContent, /播放解析.*搜索/)
+    assert.doesNotMatch(gd.textContent, /单曲读取|账号|收藏/)
+    assert.equal(gd.querySelectorAll('button').length, 1)
+    await click(document.querySelector('[data-capability="account"]'))
+    assert.equal(list().querySelectorAll('h3').length, 1)
+    assert.match(list().textContent, /网易云音乐/)
+    await click(document.querySelector('[data-capability="search"]'))
+    assert.equal(list().querySelectorAll('h3').length, 2)
+    const input = document.querySelector('input')
+    await act(async () => {
+      input.value = ' GDSTUDIO '
+      input.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+    })
+    assert.equal(list().querySelectorAll('h3').length, 1)
+    assert.match(list().textContent, /GD音乐台/)
+    await click(button('已停用'))
+    assert.match(list().textContent, /没有符合条件/)
+    await click(button('清除筛选'))
+    assert.equal(list().querySelectorAll('h3').length, 2)
+    await click(document.querySelector('[aria-label="启用GD音乐台（星海）"]'))
+    assert.equal(requests[9].command, 'resource_provider_set_enabled')
+    assert.equal(requests[9].args.id, 'gdstudio')
+    assert.equal(requests[9].args.enabled, false)
+    await act(async () => requests[9].reject(new Error('音源设置保存失败')))
+    assert.match(document.querySelector('[role="alert"]').textContent, /音源设置保存失败/)
+    assert.equal(
+      document.querySelector('[aria-label="启用GD音乐台（星海）"]').getAttribute('aria-checked'),
+      'true'
+    )
+    await click(document.querySelector('[aria-label="启用GD音乐台（星海）"]'))
+    providerStatuses = [{ ...providerStatuses[0], enabled: false }]
+    await act(async () => requests[10].resolve())
+    await act(async () => requests[11].resolve(status(true)))
+    assert.equal(
+      document.querySelector('[aria-label="启用GD音乐台（星海）"]').getAttribute('aria-checked'),
+      'false'
+    )
+    await click(button('已停用'))
+    assert.match(list().textContent, /GD音乐台/)
+    assert.doesNotMatch(list().textContent, /网易云音乐.*已启用/)
+    await click(button('全部'))
+    providerFailure = new Error('音源列表不可用')
+    await act(async () => changed())
+    await act(async () => requests[12].resolve(status(true)))
+    assert.match(document.querySelector('[role="alert"]').textContent, /音源列表不可用/)
+    assert.match(list().textContent, /网易云音乐/)
     await act(async () => changed())
     await act(async () => root.unmount())
     assert.equal(unsubscribed, true)
-    await act(async () => requests[8].resolve(status(false)))
+    await act(async () => requests[13].resolve(status(false)))
   } finally {
     await act(async () => root.unmount())
     globalThis.window = previous.window
