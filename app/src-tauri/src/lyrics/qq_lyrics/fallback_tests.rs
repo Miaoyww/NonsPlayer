@@ -71,6 +71,30 @@ fn modern(lyric: &str, trans: &str) -> String {
 }
 
 #[test]
+fn literal_quotes_keep_qrc_and_translation_from_both_endpoints() {
+    let main = "[1000,1000]A \"Color\"(1000,1000)\n[2000,500]Next(2000,500)\n";
+    let wrapped = format!("<QrcInfos><Lyric_1 LyricContent=\"{main}\"/></QrcInfos>");
+    let translation = "[00:01.00]译文\n[00:02.00]下一句";
+    let auxiliary = format!("<Lyric_1 LyricContent=\"broken\n{translation}");
+    let primary = format!("<response><content><![CDATA[{wrapped}]]></content><contentts><![CDATA[{auxiliary}]]></contentts></response>");
+    for responses in [
+        vec![("/qrc", 200, primary, 0)],
+        vec![
+            ("/qrc", 500, "failed".into(), 0),
+            ("/musicu", 200, modern(&wrapped, &auxiliary), 0),
+        ],
+    ] {
+        let expected_requests = responses.len();
+        let (lyrics, requests) = run_chain(responses, false);
+        let lyrics = lyrics.unwrap();
+        assert_eq!(lyrics.format, "qrc");
+        assert_eq!(lyrics.content, main);
+        assert_eq!(lyrics.translation.as_deref(), Some(translation));
+        assert_eq!(requests.len(), expected_requests);
+    }
+}
+
+#[test]
 fn qrc_failure_or_timeout_uses_rich_fallback_before_translationless_legacy_lrc() {
     let fixture: Value =
         serde_json::from_str(include_str!("../../../../tests/fixtures/qrc.json")).unwrap();

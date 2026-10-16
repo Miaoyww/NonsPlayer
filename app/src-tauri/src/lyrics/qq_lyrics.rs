@@ -21,6 +21,8 @@ use std::{
 mod fallback_tests;
 #[path = "qq_lyrics/play_lyric.rs"]
 mod play_lyric;
+#[path = "qq_lyrics/qrc_xml.rs"]
+mod qrc_xml;
 
 struct LyricEndpoints<'a> {
     qrc: &'a str,
@@ -438,6 +440,9 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
 }
 
 fn decode_qrc_field(text: &str) -> AppResult<String> {
+    if text.len() > MAX_LYRIC_BYTES {
+        return Err("QRC 字段过大".into());
+    }
     // Some fields contain plaintext LRC or QRC XML rather than ciphertext.
     let text = if text.trim_start().starts_with('[') || text.trim_start().starts_with('<') {
         text.to_owned()
@@ -447,42 +452,7 @@ fn decode_qrc_field(text: &str) -> AppResult<String> {
     if !text.trim_start().starts_with('<') {
         return Ok(text);
     }
-    let mut reader = Reader::from_str(&text);
-    let mut content = None;
-    loop {
-        match reader
-            .read_event()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
-            })
-            .map_err(|_| "QRC 正文 XML 无效")?
-        {
-            Event::Start(e) | Event::Empty(e) if e.local_name().as_ref() == b"Lyric_1" => {
-                for attribute in e.attributes() {
-                    let attribute = attribute
-                        .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
-                        })
-                        .map_err(|_| "QRC 正文属性无效")?;
-                    if attribute.key.as_ref() == b"LyricContent" {
-                        let raw = reader
-                            .decoder()
-                            .decode(attribute.value.as_ref())
-                            .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("translate_error", error);
-                            })
-                            .map_err(|_| "QRC 正文编码无效")?;
-                        // QQ can leave literal '&' in this attribute. Decode valid entities
-                        // while preserving that text instead of rejecting the whole QRC.
-                        content = Some(html_escape::decode_html_entities(&raw).into_owned());
-                    }
-                }
-            }
-            Event::DocType(_) => return Err("QRC 正文不支持 DTD".into()),
-            Event::Eof => return content.ok_or_else(|| "QRC 缺少 LyricContent".into()),
-            _ => {}
-        }
-    }
+    qrc_xml::unwrap(&text)
 }
 
 fn decode_lyrics(value: Value) -> AppResult<Option<Lyrics>> {
@@ -547,6 +517,38 @@ fn select_candidate(best: Option<(Candidate, u32)>) -> Option<(Candidate, u32)> 
 mod tests {
     use super::*;
     use crate::model::TrackSource;
+    #[test]
+    fn qrc_wrapper_keeps_literal_quotes_angles_and_auxiliary_attributes() {
+        let content =
+            "[ti:Sample]\n[1000,1000]A & B < C \"Color's\"(1000,1000)\n[2000,500]Next(2000,500)\n";
+        for quote in ['\"', '\''] {
+            let xml = format!(
+                "<QrcInfos><Other LyricContent=\"wrong\"/><Lyric_1 LyricType=\"1\" LyricContent={quote}{content}{quote} Language=\"ja\"/></QrcInfos>"
+            );
+            assert_eq!(decode_qrc_field(&xml).unwrap(), content);
+        }
+    }
+    #[test]
+    fn broken_qrc_wrappers_recover_only_timestamped_lines() {
+        for line in ["[1000,1000]A \"Color\"(1000,1000)", "[00:01.00]译文"] {
+            let xml = format!("<Lyric_1 LyricContent=\"unterminated\n{line}\n</QrcInfos>");
+            assert_eq!(decode_qrc_field(&xml).unwrap(), line);
+        }
+        assert_eq!(
+            decode_qrc_field("<Qrc><Lyric_1 LyricContent=\"\"/>\n[00:01.00]Text\n</Qrc>").unwrap(),
+            "[00:01.00]Text"
+        );
+        assert!(decode_qrc_field("<Lyric_1 LyricContent=\"broken").is_err());
+        assert!(decode_qrc_field(
+            "<!DOCTYPE Qrc><Qrc><Lyric_1 LyricContent=\"broken\n[1000,1000]Text(1000,1000)"
+        )
+        .is_err());
+        assert!(decode_qrc_field(&format!(
+            "<Lyric_1 LyricContent=\"broken\n[1000,1000]{}(1000,1000)",
+            "a".repeat(MAX_LYRIC_BYTES)
+        ))
+        .is_err());
+    }
     #[test]
     fn qrc_attributes_preserve_bare_ampersands_and_decode_valid_entities() {
         let xml = "<QrcInfos><LyricInfo><Lyric_1 LyricContent=\"[ti:A & B]\n[1000,1000]A &amp; B &#39;x&#39; &unknown;(1000,1000)\"/></LyricInfo></QrcInfos>";
