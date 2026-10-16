@@ -1,7 +1,8 @@
 import { ErrorNotice } from '@/components/error-notice'
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useState, type ReactNode } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall, usePlayer } from '@/lib/player'
+import { OptionsContext, type Options } from './music-options-context'
 import {
   Select,
   SelectContent,
@@ -11,10 +12,6 @@ import {
   SelectValue
 } from '@/components/ui/select'
 
-interface Options {
-  quality: string
-  allowDowngrade: boolean
-}
 const qualities = [
   { value: 'standard', label: '标准' },
   { value: 'higher', label: '较高' },
@@ -22,12 +19,6 @@ const qualities = [
   { value: 'lossless', label: '无损' },
   { value: 'hires', label: 'Hi-Res' }
 ]
-const OptionsContext = createContext<{
-  options: Options
-  busy: boolean
-  error?: string
-  update: (patch: Partial<Options>) => void
-} | null>(null)
 
 export function MusicOptionsProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<Options>({ quality: 'exhigh', allowDowngrade: true })
