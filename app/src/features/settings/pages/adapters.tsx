@@ -5,7 +5,8 @@ import { listen } from '@tauri-apps/api/event'
 import { Blocks, RotateCw, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
-  ExtensionInstallButton,
+  ExtensionInstallPage,
+  ExtensionTabs,
   ExtensionListHeader,
   ExtensionListToolbar
 } from '../extension-list'
@@ -68,6 +69,7 @@ export function AdaptersPage() {
   const [adapters, setAdapters] = useState<AdapterStatus[]>([])
   const [providers, setProviders] = useState<ResourceProviderStatus[]>([])
   const [query, setQuery] = useState('')
+  const [tab, setTab] = useState('installed')
   const [statusFilter, setStatusFilter] = useState('all')
   const [capability, setCapability] = useState('all')
   const [loading, setLoading] = useState(true)
@@ -197,9 +199,7 @@ export function AdaptersPage() {
         icon={<Blocks aria-hidden="true" className="size-5" />}
         busy={busy || loading}
         onRefresh={() => void refresh()}
-      >
-        <ExtensionInstallButton label="安装适配器" available={false} />
-      </ExtensionListHeader>
+      />
       {error && (
         <p role="alert" className="whitespace-pre-line text-sm text-destructive">
           {error}
@@ -211,160 +211,173 @@ export function AdaptersPage() {
           {accounts.error}
         </p>
       )}
-      <ExtensionListToolbar
+      <ExtensionTabs
         noun="适配器"
-        query={query}
-        onQueryChange={setQuery}
-        filter={capability}
-        onFilterChange={setCapability}
-        options={[
-          { value: 'all', label: '全部能力' },
-          ...availableCapabilities.map((value) => ({
-            value,
-            label: capabilityLabels[value] ?? value
-          }))
-        ]}
-        status={statusFilter}
-        onStatusChange={setStatusFilter}
-        statuses={statusFilters}
-        count={filtered.length}
-        total={rows.length}
-      />
-      <section
-        aria-label="已安装的音乐适配器"
-        className="divide-y divide-border rounded-xl border border-border"
+        value={tab}
+        onValueChange={setTab}
+        installation={<ExtensionInstallPage noun="适配器" />}
       >
-        {filtered.map((row) => {
-          const { enabled, loading: pending, loadError } = row
-          const account = !row.provider
-            ? accounts.adapters.find((item) => item.descriptor.source === row.id)
-            : undefined
-          return (
-            <div key={row.key} className="min-w-0 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-semibold [overflow-wrap:anywhere]">{row.name}</h3>
-                    <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      {pending ? '加载中' : loadError ? '加载失败' : enabled ? '已启用' : '已停用'}
-                    </span>
-                  </div>
-                  <p className="mt-1 break-words text-xs text-muted-foreground">
-                    {row.id}
-                    {account?.current ? ` · ${account.current.displayName}` : ''}
-                    {row.platforms.length
-                      ? ` · 支持平台：${row.platforms
-                          .map((platform) =>
-                            sourceLabel(
-                              platform,
-                              adapters.map((item) => item.descriptor)
+        <ExtensionListToolbar
+          noun="适配器"
+          query={query}
+          onQueryChange={setQuery}
+          filter={capability}
+          onFilterChange={setCapability}
+          options={[
+            { value: 'all', label: '全部能力' },
+            ...availableCapabilities.map((value) => ({
+              value,
+              label: capabilityLabels[value] ?? value
+            }))
+          ]}
+          status={statusFilter}
+          onStatusChange={setStatusFilter}
+          statuses={statusFilters}
+          count={filtered.length}
+          total={rows.length}
+        />
+        <section
+          aria-label="已安装的音乐适配器"
+          className="divide-y divide-border rounded-xl border border-border"
+        >
+          {filtered.map((row) => {
+            const { enabled, loading: pending, loadError } = row
+            const account = !row.provider
+              ? accounts.adapters.find((item) => item.descriptor.source === row.id)
+              : undefined
+            return (
+              <div key={row.key} className="min-w-0 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-semibold [overflow-wrap:anywhere]">{row.name}</h3>
+                      <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        {pending
+                          ? '加载中'
+                          : loadError
+                            ? '加载失败'
+                            : enabled
+                              ? '已启用'
+                              : '已停用'}
+                      </span>
+                    </div>
+                    <p className="mt-1 break-words text-xs text-muted-foreground">
+                      {row.id}
+                      {account?.current ? ` · ${account.current.displayName}` : ''}
+                      {row.platforms.length
+                        ? ` · 支持平台：${row.platforms
+                            .map((platform) =>
+                              sourceLabel(
+                                platform,
+                                adapters.map((item) => item.descriptor)
+                              )
                             )
-                          )
-                          .join('、')}`
-                      : ''}
+                            .join('、')}`
+                        : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {row.capabilities.includes('account') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={busy || pending || !enabled || !account}
+                        aria-expanded={accountSource === row.key}
+                        aria-label={`管理${row.name}账号`}
+                        onClick={() =>
+                          setAccountSource(accountSource === row.key ? undefined : row.key)
+                        }
+                      >
+                        <UserRound aria-hidden="true" />
+                        账号
+                      </Button>
+                    )}
+                    {!row.provider && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`重新加载${row.name}`}
+                        title="重新加载"
+                        disabled={busy || loading || pending || !enabled}
+                        onClick={() => void run(row)}
+                      >
+                        <RotateCw aria-hidden="true" />
+                      </Button>
+                    )}
+                    <Switch
+                      checked={enabled}
+                      disabled={busy || loading || pending || !!loadError}
+                      aria-label={`启用${row.name}`}
+                      onCheckedChange={(next) => void run(row, next)}
+                    />
+                  </div>
+                </div>
+                {row.description && (
+                  <p className="mt-1.5 whitespace-pre-line text-xs leading-normal text-muted-foreground [overflow-wrap:anywhere]">
+                    {row.description}
                   </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {row.capabilities.includes('account') && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={busy || pending || !enabled || !account}
-                      aria-expanded={accountSource === row.key}
-                      aria-label={`管理${row.name}账号`}
-                      onClick={() =>
-                        setAccountSource(accountSource === row.key ? undefined : row.key)
-                      }
+                )}
+                <div className="mt-3 flex flex-wrap gap-1.5" aria-label="支持的能力">
+                  {row.capabilities.map((capability) => (
+                    <span
+                      key={capability}
+                      className="rounded-md bg-muted/60 px-2 py-1 text-xs text-muted-foreground"
                     >
-                      <UserRound aria-hidden="true" />
-                      账号
-                    </Button>
-                  )}
-                  {!row.provider && (
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`重新加载${row.name}`}
-                      title="重新加载"
-                      disabled={busy || loading || pending || !enabled}
-                      onClick={() => void run(row)}
-                    >
-                      <RotateCw aria-hidden="true" />
-                    </Button>
-                  )}
-                  <Switch
-                    checked={enabled}
-                    disabled={busy || loading || pending || !!loadError}
-                    aria-label={`启用${row.name}`}
-                    onCheckedChange={(next) => void run(row, next)}
-                  />
+                      {capabilityLabels[capability] ?? capability}
+                    </span>
+                  ))}
                 </div>
+                {pending && (
+                  <p role="status" className="mt-2 text-xs text-muted-foreground">
+                    正在加载适配器，请稍候。
+                  </p>
+                )}
+                {loadError && (
+                  <p role="alert" className="mt-2 text-sm text-destructive">
+                    {loadError}
+                  </p>
+                )}
+                {accountSource === row.key && account && (
+                  <div className="mt-4">
+                    <AdapterLoginCard
+                      adapter={account}
+                      onChanged={refreshAccounts}
+                      startLogin={false}
+                    />
+                  </div>
+                )}
               </div>
-              {row.description && (
-                <p className="mt-1.5 whitespace-pre-line text-xs leading-normal text-muted-foreground [overflow-wrap:anywhere]">
-                  {row.description}
-                </p>
-              )}
-              <div className="mt-3 flex flex-wrap gap-1.5" aria-label="支持的能力">
-                {row.capabilities.map((capability) => (
-                  <span
-                    key={capability}
-                    className="rounded-md bg-muted/60 px-2 py-1 text-xs text-muted-foreground"
-                  >
-                    {capabilityLabels[capability] ?? capability}
-                  </span>
-                ))}
-              </div>
-              {pending && (
-                <p role="status" className="mt-2 text-xs text-muted-foreground">
-                  正在加载适配器，请稍候。
-                </p>
-              )}
-              {loadError && (
-                <p role="alert" className="mt-2 text-sm text-destructive">
-                  {loadError}
-                </p>
-              )}
-              {accountSource === row.key && account && (
-                <div className="mt-4">
-                  <AdapterLoginCard
-                    adapter={account}
-                    onChanged={refreshAccounts}
-                    startLogin={false}
-                  />
-                </div>
+            )
+          })}
+          {!loading && !filtered.length && (
+            <div className="space-y-2 p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                {rows.length
+                  ? '没有符合条件的适配器。'
+                  : error
+                    ? '适配器列表加载失败，请刷新重试。'
+                    : '暂无音乐适配器。'}
+              </p>
+              {(query || statusFilter !== 'all' || capability !== 'all') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setQuery('')
+                    setStatusFilter('all')
+                    setCapability('all')
+                  }}
+                >
+                  清除筛选
+                </Button>
               )}
             </div>
-          )
-        })}
-        {!loading && !filtered.length && (
-          <div className="space-y-2 p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              {rows.length
-                ? '没有符合条件的适配器。'
-                : error
-                  ? '适配器列表加载失败，请刷新重试。'
-                  : '暂无音乐适配器。'}
-            </p>
-            {(query || statusFilter !== 'all' || capability !== 'all') && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setQuery('')
-                  setStatusFilter('all')
-                  setCapability('all')
-                }}
-              >
-                清除筛选
-              </Button>
-            )}
-          </div>
-        )}
-      </section>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        停用会停止该适配器的新查询和播放解析，保存的账号与播放队列仍会保留。
-      </p>
+          )}
+        </section>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          停用会停止该适配器的新查询和播放解析，保存的账号与播放队列仍会保留。
+        </p>
+      </ExtensionTabs>
     </div>
   )
 }

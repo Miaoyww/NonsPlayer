@@ -14,10 +14,14 @@ test('adapter settings wait for persistence, report failures and reject stale li
   const previous = {
     window: globalThis.window,
     document: globalThis.document,
+    HTMLElement: globalThis.HTMLElement,
+    Element: globalThis.Element,
     act: globalThis.IS_REACT_ACT_ENVIRONMENT
   }
   globalThis.window = dom.window
   globalThis.document = dom.window.document
+  globalThis.HTMLElement = dom.window.HTMLElement
+  globalThis.Element = dom.window.Element
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   const requests = []
   let changed
@@ -71,7 +75,9 @@ test('adapter settings wait for persistence, report failures and reject stale li
       Search: () => null,
       RotateCw: () => null,
       UserRound: () => null,
-      Upload: () => null
+      Upload: () => null,
+      Store: () => null,
+      FolderOpen: () => null
     },
     '@/components/ui/button': {
       Button: ({ variant, size, children, ...props }) =>
@@ -132,8 +138,20 @@ test('adapter settings wait for persistence, report failures and reject stale li
     const reservedInstall = [...document.querySelectorAll('button')].find((button) =>
       button.textContent.includes('安装适配器')
     )
-    assert.equal(reservedInstall.disabled, true)
-    assert.match(reservedInstall.textContent, /暂未开放/)
+    assert.equal(reservedInstall.getAttribute('role'), 'tab')
+    assert.equal(reservedInstall.disabled, false)
+    await click(reservedInstall)
+    assert.match(document.body.textContent, /适配器商店/)
+    assert.match(document.body.textContent, /适配器本地安装暂未开放/)
+    assert.equal(
+      [...document.querySelectorAll('button')].find((button) => button.textContent === '选择 ZIP')
+        .disabled,
+      true
+    )
+    assert.equal(document.querySelector('[type=search]'), null)
+    await click(
+      [...document.querySelectorAll('[role=tab]')].find((button) => button.textContent === '已安装')
+    )
     assert.equal(requests[0].command, 'adapter_list')
     await act(async () => requests[0].resolve(status(true)))
     await click(toggle())
@@ -252,6 +270,8 @@ test('adapter settings wait for persistence, report failures and reject stale li
     await act(async () => root.unmount())
     globalThis.window = previous.window
     globalThis.document = previous.document
+    globalThis.HTMLElement = previous.HTMLElement
+    globalThis.Element = previous.Element
     globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act
     dom.window.close()
   }

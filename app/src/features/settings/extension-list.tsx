@@ -1,5 +1,6 @@
+import { Tabs, TabsList, TabsTab, TabsPanel } from '@/components/animate-ui/components/base/tabs'
 import type { ReactNode } from 'react'
-import { RefreshCw, Search, Upload } from 'lucide-react'
+import { RefreshCw, Search, Store, Upload, FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -51,32 +52,90 @@ export function ExtensionListHeader({
   )
 }
 
-export function ExtensionInstallButton({
-  label,
-  disabled,
-  available = true,
-  expanded,
-  onClick
+export function ExtensionTabs({
+  noun,
+  value,
+  onValueChange,
+  installation,
+  children
 }: {
-  label: string
-  disabled?: boolean
-  available?: boolean
-  expanded?: boolean
-  onClick?: () => void
+  noun: string
+  value: string
+  onValueChange: (value: string) => void
+  installation: ReactNode
+  children: ReactNode
 }) {
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      disabled={disabled || !available}
-      aria-expanded={available ? expanded : undefined}
-      title={available ? label : `${label}暂未开放，当前仅支持随包提供的适配器。`}
-      onClick={onClick}
-    >
-      <Upload aria-hidden="true" />
-      {label}
-      {!available && <span className="text-xs text-muted-foreground">暂未开放</span>}
-    </Button>
+    <Tabs value={value} onValueChange={onValueChange} className="gap-4">
+      <TabsList aria-label={`${noun}页面`}>
+        <TabsTab value="installed">已安装</TabsTab>
+        <TabsTab value="install">
+          <Upload aria-hidden="true" />
+          安装{noun}
+        </TabsTab>
+      </TabsList>
+      <TabsPanel value="installed" className="space-y-4">
+        {children}
+      </TabsPanel>
+      <TabsPanel value="install">{installation}</TabsPanel>
+    </Tabs>
+  )
+}
+
+export function ExtensionInstallPage({
+  noun,
+  available = false,
+  busy = false,
+  onZip,
+  onDirectory
+}: {
+  noun: string
+  available?: boolean
+  busy?: boolean
+  onZip?: () => void
+  onDirectory?: () => void
+}) {
+  return (
+    <div className="space-y-4">
+      <section
+        aria-label={`本地安装${noun}`}
+        className="rounded-xl border border-dashed border-border p-4"
+      >
+        <h3 className="text-sm font-semibold">从本地安装</h3>
+        <p className="mt-1 text-xs leading-normal text-muted-foreground">
+          {available
+            ? '拖拽 ZIP 文件到此页面，或选择安装包与插件目录。安装后查看权限并确认启用。'
+            : '适配器本地安装暂未开放，当前仅支持随包提供的适配器。'}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" disabled={!available || busy} onClick={onZip}>
+            <Upload aria-hidden="true" />
+            选择 ZIP
+          </Button>
+          <Button size="sm" variant="outline" disabled={!available || busy} onClick={onDirectory}>
+            <FolderOpen aria-hidden="true" />
+            选择目录
+          </Button>
+        </div>
+      </section>
+      <section
+        aria-label={`${noun}商店`}
+        className="flex items-start gap-3 rounded-xl border border-border p-4"
+      >
+        <Store aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+        <div>
+          <h3 className="text-sm font-semibold">
+            {noun}商店
+            <span className="ml-2 rounded bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+              暂未开放
+            </span>
+          </h3>
+          <p className="mt-1 text-xs leading-normal text-muted-foreground">
+            未来可在这里发现和安装{noun}。
+          </p>
+        </div>
+      </section>
+    </div>
   )
 }
 
@@ -96,16 +155,16 @@ export function ExtensionListToolbar({
   noun: string
   query: string
   onQueryChange: (value: string) => void
-  filter: string
-  onFilterChange: (value: string) => void
-  options: { value: string; label: string }[]
+  filter?: string
+  onFilterChange?: (value: string) => void
+  options?: { value: string; label: string }[]
   status: string
   onStatusChange: (value: string) => void
   statuses: readonly (readonly [string, string])[]
   count: number
   total: number
 }) {
-  const label = options.find((option) => option.value === filter)?.label ?? filter
+  const label = options?.find((option) => option.value === filter)?.label ?? filter
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
@@ -123,18 +182,20 @@ export function ExtensionListToolbar({
             className="pl-9"
           />
         </div>
-        <Select value={filter} onValueChange={(value) => onFilterChange(value ?? 'all')}>
-          <SelectTrigger aria-label={`筛选${noun}能力`} className="w-40">
-            <SelectValue>{label}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {options && onFilterChange && (
+          <Select value={filter} onValueChange={(value) => onFilterChange(value ?? 'all')}>
+            <SelectTrigger aria-label={`筛选${noun}能力`} className="w-40">
+              <SelectValue>{label}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1" role="group" aria-label={`按状态筛选${noun}`}>

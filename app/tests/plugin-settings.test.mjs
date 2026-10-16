@@ -209,9 +209,8 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     assert.doesNotMatch(list().textContent, /下载管理/)
     await selectStatus('全部')
     assert.equal(list().querySelectorAll('h3').length, 2)
-    await React.act(async () => document.querySelector('[data-permission="http:transfer"]').click())
-    assert.match(list().textContent, /下载管理/)
-    assert.doesNotMatch(list().textContent, /灵动岛/)
+    assert.equal(document.querySelector('[aria-label="筛选插件能力"]'), null)
+    assert.equal(list().querySelector('[aria-label="声明的权限"]'), null)
     const search = document.querySelector('[type=search]')
     await React.act(async () => {
       search.value = '不存在'
@@ -240,6 +239,9 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
         .click()
     )
     assert.ok(document.querySelector('section[aria-label="本地安装插件"]'))
+    assert.match(document.body.textContent, /插件商店/)
+    assert.equal(document.querySelector('[type=search]'), null)
+    assert.equal(document.querySelector('[role=tab][aria-selected=true]').textContent, '安装插件')
     assert.ok(
       [...document.querySelectorAll('button')].some((button) =>
         button.textContent.includes('选择目录')
@@ -252,6 +254,7 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     )
     assert.equal(calls.at(-1)[0], 'plugin_install')
     assert.equal(calls.at(-1)[1].path, 'chosen.zip')
+    assert.equal(document.querySelector('[role=tab][aria-selected=true]').textContent, '已安装')
     assert.equal(document.querySelector('[aria-pressed=true]').textContent, '未加载')
     assert.equal(document.querySelector('[type=search]').value, '')
     assert.equal(dialogs.at(-1).directory, false)

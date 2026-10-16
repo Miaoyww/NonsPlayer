@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
+import { Tabs } from '@base-ui/react/tabs'
 
 export function loadExtensionList(modules) {
   const exports = {}
@@ -12,7 +13,13 @@ export function loadExtensionList(modules) {
       ),
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
     ).outputText,
-    { exports, require: (name) => modules[name] }
+    {
+      exports,
+      require: (name) =>
+        name === '@/components/animate-ui/components/base/tabs'
+          ? { Tabs: Tabs.Root, TabsList: Tabs.List, TabsTab: Tabs.Tab, TabsPanel: Tabs.Panel }
+          : modules[name]
+    }
   )
   return exports
 }
