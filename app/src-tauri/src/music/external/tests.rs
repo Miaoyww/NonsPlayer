@@ -12,6 +12,8 @@ fn descriptor() -> SourceDescriptor {
     SourceDescriptor {
         source: source(),
         display_name: "外部测试来源".into(),
+        description: Some("验证通用音源能力的测试平台".into()),
+        platforms: [source(), SourceId::try_from("netease".to_owned()).unwrap()].into(),
         contract_version: 1,
         login_methods: Vec::new(),
         cover_hosts: Default::default(),
@@ -111,6 +113,38 @@ fn resolve(id: &str) -> ResolveRequest {
         preferred_quality: "fixture".into(),
         allow_downgrade: false,
     }
+}
+
+#[tokio::test]
+async fn real_component_declared_platform_audio_uses_unified_dispatch_without_changing_identity() {
+    let (manager, session, _) = setup().await;
+    let mut track = manager
+        .read_track(&reference("foreign-song"))
+        .await
+        .unwrap();
+    track.reference.source = SourceId::try_from("netease".to_owned()).unwrap();
+    let request = crate::music::provider::ResourceRequest {
+        track,
+        preferred_quality: "fixture-cross".into(),
+        allow_downgrade: false,
+    };
+    let (ticket, attribution) = manager
+        .resolve_with_providers(&request, None, 7)
+        .await
+        .unwrap();
+    assert_eq!(attribution.provider, "fixture-radio");
+    assert_eq!(attribution.track, request.track.reference);
+    assert_eq!(attribution.platform.as_str(), "netease");
+    assert_eq!(ticket.quality(), "fixture-cross");
+    assert!(ticket.check(7).is_ok());
+    session.fetch_add(1, Ordering::AcqRel);
+    assert_eq!(ticket.check(7).unwrap_err().code, ErrorCode::StaleContext);
+    let mut unsupported = request;
+    unsupported.track.reference.source = SourceId::try_from("unknown-platform".to_owned()).unwrap();
+    assert!(manager
+        .resolve_with_providers(&unsupported, None, 7)
+        .await
+        .is_err());
 }
 
 #[tokio::test]

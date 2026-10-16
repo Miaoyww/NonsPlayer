@@ -9,6 +9,7 @@ export interface ResourceProviderStatus {
   descriptor: {
     id: string
     displayName: string
+    description?: string
     platforms: string[]
     searchPlatforms: string[]
     contractVersion: number

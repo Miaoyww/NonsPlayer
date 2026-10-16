@@ -110,17 +110,11 @@ pub(crate) async fn player_select_source(
         if !backend
             .music
             .adapters
-            .resource_provider_statuses()
+            .supports_audio_provider(
+                id,
+                &SourceId::try_from(target.source_id().to_owned()).map_err(|e| e.to_string())?,
+            )
             .map_err(|e| e.to_string())?
-            .iter()
-            .any(|p| {
-                p.enabled
-                    && p.descriptor.id.as_str() == id
-                    && p.descriptor
-                        .platforms
-                        .iter()
-                        .any(|s| s.as_str() == target.source_id())
-            })
         {
             return Err("所选音源不可用或不支持这个平台".into());
         }

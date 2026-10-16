@@ -2,6 +2,7 @@
   "resourceProvider": {
     "id": "gdstudio",
     "displayName": "GD音乐台（星海）",
+    "description": "为网易云音乐提供单曲搜索与备用播放音源，支持 MP3 128k／320k，不使用平台账号凭据。服务由 GD音乐台提供。",
     "contractVersion": 1,
     "platforms": ["netease"],
     "searchPlatforms": ["netease"],

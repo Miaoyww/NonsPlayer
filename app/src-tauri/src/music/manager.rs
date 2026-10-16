@@ -28,7 +28,7 @@ type SessionProvider = Arc<dyn Fn() -> SessionContext + Send + Sync>;
 struct Entry {
     adapter: Arc<dyn MusicAdapter>,
     session: SessionProvider,
-    generation: AtomicU64,
+    generation: Arc<AtomicU64>,
     reads: Semaphore,
     playback: Semaphore,
     accounts: Semaphore,
@@ -176,7 +176,7 @@ impl AdapterManager {
             Arc::new(Entry {
                 adapter,
                 session,
-                generation: AtomicU64::new(1),
+                generation: Arc::new(AtomicU64::new(1)),
                 reads: Semaphore::new(4),
                 playback: Semaphore::new(2),
                 accounts: Semaphore::new(1),
@@ -988,6 +988,8 @@ mod tests {
             descriptor: SourceDescriptor {
                 source: source(),
                 display_name: "test".into(),
+                description: None,
+                platforms: Default::default(),
                 contract_version: super::super::CONTRACT_VERSION,
                 login_methods: Vec::new(),
                 cover_hosts: Default::default(),

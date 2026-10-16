@@ -48,7 +48,12 @@ test('song source selection keeps queue identity, sends explicit alternate keys,
     },
     {
       enabled: true,
-      descriptor: { source: 'qqmusic', displayName: 'QQ 音乐', capabilities: ['search'] }
+      descriptor: {
+        source: 'qqmusic',
+        displayName: 'QQ 音乐',
+        capabilities: ['search'],
+        platforms: ['qqmusic', 'netease']
+      }
     }
   ]
   const requests = []
@@ -137,10 +142,15 @@ test('song source selection keeps queue identity, sends explicit alternate keys,
     await act(async () => requests[1].resolve())
     assert.equal(closes, 1)
     assert.equal(state.queue[0], track)
+    await click('QQ 音乐')
+    assert.equal(requests[2].args.provider, 'qqmusic')
+    assert.equal(requests[2].args.alternateKey, null)
+    await act(async () => requests[2].resolve())
+    assert.equal(closes, 2)
     state.revision = 8
     await click('Huibq')
-    assert.equal(requests.length, 2)
-    assert.equal(closes, 2)
+    assert.equal(requests.length, 3)
+    assert.equal(closes, 3)
   } finally {
     await act(async () => root.unmount())
     dom.window.close()

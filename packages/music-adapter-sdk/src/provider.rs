@@ -26,6 +26,8 @@ pub struct PlaybackSource {
 pub struct ResourceProviderDescriptor {
     pub id: SourceId,
     pub display_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     pub contract_version: u32,
     pub platforms: BTreeSet<SourceId>,
     /// Only these platforms participate in search; results retain their platform IDs.
@@ -42,12 +44,13 @@ impl ResourceProviderDescriptor {
         if matches!(self.id.as_str(), "local" | "official")
             || self.display_name.trim().is_empty()
             || self.display_name.len() > 256
+            || self
+                .description
+                .as_ref()
+                .is_some_and(|text| text.trim().is_empty() || text.chars().count() > 1024)
             || self.platforms.is_empty()
             || self.platforms.len() > 16
-            || self
-                .platforms
-                .iter()
-                .any(|s| s.as_str() == "local" || s == &self.id)
+            || self.platforms.iter().any(|s| s.as_str() == "local")
             || !self.search_platforms.is_subset(&self.platforms)
             || self.cover_hosts.len() > 32
             || self
@@ -130,7 +133,19 @@ mod tests {
         assert!(descriptor.validate().is_err());
         descriptor.search_platforms.clear();
         assert!(descriptor.validate().is_ok());
+        assert!(descriptor.description.is_none());
+        descriptor.description = Some("提供备用音源".into());
+        assert!(descriptor.validate().is_ok());
+        for text in ["".to_owned(), "  ".to_owned(), "文".repeat(1025)] {
+            descriptor.description = Some(text);
+            assert!(descriptor.validate().is_err());
+        }
+        descriptor.description = None;
         descriptor.platforms.insert(descriptor.id.clone());
+        assert!(descriptor.validate().is_ok());
+        descriptor
+            .platforms
+            .insert(SourceId::try_from("local".to_owned()).unwrap());
         assert!(descriptor.validate().is_err());
         descriptor.platforms = [SourceId::try_from("netease".to_owned()).unwrap()].into();
         descriptor.id = SourceId::try_from("official".to_owned()).unwrap();

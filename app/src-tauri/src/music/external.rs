@@ -303,6 +303,54 @@ impl super::provider::ResourceProvider for ResourceComponent {
     }
 }
 impl MusicAdapter for ExternalAdapter {
+    fn resolve_resource<'a>(
+        &'a self,
+        request: &'a super::provider::ResourceRequest,
+        context: &'a RequestContext,
+    ) -> AdapterFuture<'a, PlaybackResource> {
+        Box::pin(async move {
+            if !self
+                .descriptor
+                .supports_resource_platform(&request.track.reference.source)
+            {
+                return Err(ErrorCode::Unsupported.into());
+            }
+            if request.track.reference.source == self.descriptor.source {
+                return self
+                    .resolve_playback(
+                        &ResolveRequest {
+                            track: request.track.reference.clone(),
+                            preferred_quality: request.preferred_quality.clone(),
+                            allow_downgrade: request.allow_downgrade,
+                        },
+                        context,
+                    )
+                    .await;
+            }
+            let wire: WireResource = self
+                .invoke(
+                    "music.resolve-resource",
+                    &Self::arguments(request, context)?,
+                    true,
+                    Some(context),
+                )
+                .await?;
+            if let Some(services) = &self.services {
+                crate::infrastructure::http::checked_url(
+                    &services.permissions.http_hosts,
+                    &wire.url,
+                )
+                .map_err(|_| ErrorCode::PermissionDenied)?;
+            }
+            Ok(PlaybackResource {
+                metadata: wire.metadata,
+                access: ResourceAccess::Http(HttpAccess {
+                    url: wire.url,
+                    headers: wire.headers,
+                }),
+            })
+        })
+    }
     fn cancel_login(&self, key: &str) {
         self.sessions.cancel(key);
     }

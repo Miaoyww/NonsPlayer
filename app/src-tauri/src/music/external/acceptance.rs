@@ -207,6 +207,8 @@ async fn gdstudio_component_live_search_and_resource() {
             SourceDescriptor {
                 source: descriptor.id.clone(),
                 display_name: descriptor.display_name.clone(),
+                description: None,
+                platforms: Default::default(),
                 contract_version: descriptor.contract_version,
                 login_methods: vec![],
                 capabilities: Default::default(),

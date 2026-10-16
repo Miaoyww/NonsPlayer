@@ -23,7 +23,7 @@ impl Guest for Fixture {
     fn call(method: String, args: String) -> Result<String, String> {
         if method == "music.descriptor" {
             return ok(
-                json!({"source":"fixture-radio","displayName":"外部测试来源","contractVersion":1,"capabilities":["search","browse"]}),
+                json!({"source":"fixture-radio","displayName":"外部测试来源","description":"验证通用音源能力的测试平台","platforms":["fixture-radio","netease"],"contractVersion":1,"capabilities":["search","browse"]}),
             );
         }
         let args: Value = serde_json::from_str(&args).map_err(|_| "bad args")?;
@@ -70,6 +70,16 @@ impl Guest for Fixture {
                 let id = request["track"]["id"].as_str().unwrap_or("");
                 ok(
                     json!({"metadata":{"actualQuality":"fixture","extent": if id == "preview" { json!({"kind":"preview","startMs":0,"endMs":1000}) } else { json!({"kind":"full"}) },"expiresAtMs": if id == "expired" { json!(1) } else { Value::Null }},"url":"https://example.com/fixture.wav?private=fixture","headers": if id == "headers" { json!([["Authorization","fixture"]]) } else { json!([]) }}),
+                )
+            }
+            "music.resolve-resource" => {
+                if request["track"]["reference"]["source"] != "netease"
+                    || args["session"]["source"] != "fixture-radio"
+                {
+                    return error("invalidData");
+                }
+                ok(
+                    json!({"metadata":{"actualQuality":"fixture-cross","extent":{"kind":"full"},"expiresAtMs":null},"url":"https://example.com/alternate.wav","headers":[]}),
                 )
             }
             _ => error("unsupported"),

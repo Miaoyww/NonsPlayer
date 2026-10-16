@@ -196,6 +196,8 @@ fn capability_and_account_restrictions_are_separate() {
     let mut descriptor = SourceDescriptor {
         source: source("netease"),
         display_name: "网易云".into(),
+        description: None,
+        platforms: Default::default(),
         contract_version: CONTRACT_VERSION,
         login_methods: Vec::new(),
         cover_hosts: Default::default(),

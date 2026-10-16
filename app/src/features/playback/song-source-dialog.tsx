@@ -121,6 +121,26 @@ export function SongSourceDialog({ track, onClose }: { track: Track; onClose: ()
                     {p.descriptor.displayName}
                   </ActionButton>
                 ))}
+              {statuses
+                .filter(
+                  (s) =>
+                    s.enabled &&
+                    s.descriptor.source !== platform &&
+                    s.descriptor.platforms?.includes(platform)
+                )
+                .map(({ descriptor }) => (
+                  <ActionButton
+                    key={`platform/${descriptor.source}`}
+                    variant={
+                      state.playbackSource?.provider === descriptor.source ? 'secondary' : 'outline'
+                    }
+                    disabled={busy}
+                    onClick={() => void select(descriptor.source)}
+                  >
+                    <Radio aria-hidden="true" />
+                    {descriptor.displayName}
+                  </ActionButton>
+                ))}
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               获取失败会继续尝试其它已启用音源；切换同一曲目的音源保留播放进度。

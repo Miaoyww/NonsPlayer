@@ -115,6 +115,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
       descriptor: {
         source: 'netease',
         displayName: '网易云音乐',
+        description: '网易云账号、曲库与播放服务',
         capabilities: ['search', 'account']
       },
       enabled
@@ -173,6 +174,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
         descriptor: {
           id: 'gdstudio',
           displayName: 'GD音乐台（星海）',
+          description: '星海提供 MP3 备用音源',
           platforms: ['netease'],
           searchPlatforms: ['netease']
         },
@@ -188,6 +190,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
     assert.doesNotMatch(document.body.textContent, /独立音源适配器|补充来源|选择音乐库与发现/)
     const gd = list().querySelectorAll('h3')[1].closest('.p-4')
     assert.match(gd.textContent, /播放解析.*搜索/)
+    assert.match(gd.textContent, /星海提供 MP3 备用音源/)
     assert.doesNotMatch(gd.textContent, /单曲读取|账号|收藏/)
     assert.equal(gd.querySelectorAll('button').length, 1)
     await click(document.querySelector('[data-capability="account"]'))
@@ -197,7 +200,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
     assert.equal(list().querySelectorAll('h3').length, 2)
     const input = document.querySelector('input')
     await act(async () => {
-      input.value = ' GDSTUDIO '
+      input.value = ' MP3 '
       input.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
     })
     assert.equal(list().querySelectorAll('h3').length, 1)

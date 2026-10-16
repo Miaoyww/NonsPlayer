@@ -7,12 +7,16 @@ mod tests;
 
 pub(super) struct ProviderEntry {
     pub adapter: Arc<dyn ResourceProvider>,
-    pub generation: AtomicU64,
+    pub generation: Arc<AtomicU64>,
+    catalog: Option<Arc<Entry>>,
     reads: Semaphore,
     playback: Semaphore,
 }
 impl ProviderEntry {
     fn session(&self) -> SessionContext {
+        if let Some(catalog) = &self.catalog {
+            return (catalog.session)();
+        }
         SessionContext {
             source: self.adapter.descriptor().id.clone(),
             account: None,
@@ -66,7 +70,111 @@ pub struct ResourceProviderStatus {
     pub load_error: Option<String>,
 }
 
+/// Present a catalog adapter's audio capability through the same resolver seam.
+/// Keep its own account, instance generation and admission budget.
+struct CatalogAudio {
+    entry: Arc<Entry>,
+    descriptor: ResourceProviderDescriptor,
+}
+impl ResourceProvider for CatalogAudio {
+    fn descriptor(&self) -> &ResourceProviderDescriptor {
+        &self.descriptor
+    }
+    fn resolve<'a>(
+        &'a self,
+        request: &'a ResourceRequest,
+        context: &'a RequestContext,
+    ) -> AdapterFuture<'a, PlaybackResource> {
+        Box::pin(async move {
+            let _permit = self
+                .entry
+                .playback
+                .try_acquire()
+                .map_err(|_| ErrorCode::RateLimited)?;
+            crate::infrastructure::diagnostics::observe(
+                self.descriptor.id.as_str(),
+                if request.track.reference.source == self.descriptor.id {
+                    "resolvePlayback"
+                } else {
+                    "resolveResource"
+                },
+                self.entry.adapter.resolve_resource(request, context),
+            )
+            .await
+        })
+    }
+}
+
 impl AdapterManager {
+    fn catalog_audio(entry: &Arc<Entry>) -> Arc<ProviderEntry> {
+        let descriptor = entry.adapter.descriptor();
+        Arc::new(ProviderEntry {
+            adapter: Arc::new(CatalogAudio {
+                entry: entry.clone(),
+                descriptor: ResourceProviderDescriptor {
+                    id: descriptor.source.clone(),
+                    display_name: descriptor.display_name.clone(),
+                    description: descriptor.description.clone(),
+                    contract_version: descriptor.contract_version,
+                    platforms: descriptor
+                        .platforms
+                        .iter()
+                        .cloned()
+                        .chain(std::iter::once(descriptor.source.clone()))
+                        .collect(),
+                    search_platforms: Default::default(),
+                    cover_hosts: descriptor.cover_hosts.clone(),
+                },
+            }),
+            generation: entry.generation.clone(),
+            catalog: Some(entry.clone()),
+            reads: Semaphore::new(4),
+            playback: Semaphore::new(2),
+        })
+    }
+
+    fn audio_candidates(&self, platform: &SourceId) -> MusicResult<Vec<Arc<ProviderEntry>>> {
+        let mut candidates: Vec<_> = self
+            .providers
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .values()
+            .filter(|entry| {
+                !entry.generation.load(Ordering::Acquire).is_multiple_of(2)
+                    && entry.adapter.descriptor().platforms.contains(platform)
+            })
+            .cloned()
+            .collect();
+        for entry in self
+            .entries
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .values()
+        {
+            let descriptor = entry.adapter.descriptor();
+            if &descriptor.source == platform
+                || entry.generation.load(Ordering::Acquire).is_multiple_of(2)
+                || !descriptor.supports_resource_platform(platform)
+            {
+                continue;
+            }
+            candidates.push(Self::catalog_audio(entry));
+        }
+        candidates.sort_by(|left, right| {
+            left.adapter
+                .descriptor()
+                .id
+                .cmp(&right.adapter.descriptor().id)
+        });
+        Ok(candidates)
+    }
+
+    pub fn supports_audio_provider(&self, id: &str, platform: &SourceId) -> MusicResult<bool> {
+        Ok(self
+            .audio_candidates(platform)?
+            .iter()
+            .any(|entry| entry.adapter.descriptor().id.as_str() == id))
+    }
     pub(crate) fn begin_resource_loading(
         &self,
         descriptor: ResourceProviderDescriptor,
@@ -116,7 +224,8 @@ impl AdapterManager {
             id.clone(),
             Arc::new(ProviderEntry {
                 adapter,
-                generation: AtomicU64::new(if enabled { 1 } else { 2 }),
+                generation: Arc::new(AtomicU64::new(if enabled { 1 } else { 2 })),
+                catalog: None,
                 reads: Semaphore::new(4),
                 playback: Semaphore::new(2),
             }),
@@ -314,17 +423,7 @@ impl AdapterManager {
             }
             Err(_) => None,
         };
-        let providers: Vec<_> = self
-            .providers
-            .lock()
-            .map_err(|_| ErrorCode::Internal)?
-            .values()
-            .filter(|p| {
-                !p.generation.load(Ordering::Acquire).is_multiple_of(2)
-                    && p.adapter.descriptor().platforms.contains(platform)
-            })
-            .cloned()
-            .collect();
+        let providers = self.audio_candidates(platform)?;
         if selected.is_some_and(|id| {
             id != "official"
                 && !providers
@@ -387,12 +486,15 @@ impl AdapterManager {
                 self.resolve_provider(entry, request, origin.clone(), deadline, generation)
                     .await
             } else {
-                let normal = ResolveRequest {
-                    track: request.track.reference.clone(),
-                    preferred_quality: request.preferred_quality.clone(),
-                    allow_downgrade: request.allow_downgrade,
-                };
-                self.resolve_playback(&normal, generation).await
+                let entry = &origin.as_ref().ok_or(ErrorCode::SourceUnavailable)?.0;
+                self.resolve_provider(
+                    Self::catalog_audio(entry),
+                    request,
+                    origin.clone(),
+                    deadline,
+                    generation,
+                )
+                .await
             };
             if let Some(id) = &id {
                 if providers.iter().any(|p| {

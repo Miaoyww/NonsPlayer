@@ -91,6 +91,8 @@ pub(crate) async fn load_components(
                 let host_identity = SourceDescriptor {
                     source: descriptor.id.clone(),
                     display_name: descriptor.display_name.clone(),
+                    description: descriptor.description.clone(),
+                    platforms: Default::default(),
                     contract_version: descriptor.contract_version,
                     login_methods: vec![],
                     capabilities: Default::default(),

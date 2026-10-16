@@ -273,6 +273,8 @@ fn scoped_access_rejects_cross_source_stale_accounts_and_disabled_instances() {
                 Arc::new(Adapter(super::super::adapter::SourceDescriptor {
                     source: source_id,
                     display_name: name.into(),
+                    description: None,
+                    platforms: Default::default(),
                     contract_version: super::super::CONTRACT_VERSION,
                     login_methods: Vec::new(),
                     cover_hosts: Default::default(),
@@ -363,6 +365,8 @@ async fn logout_preserves_credentials_and_can_reselect_after_restart() {
     let provider = Adapter(super::super::adapter::SourceDescriptor {
         source: source("test"),
         display_name: "test".into(),
+        description: None,
+        platforms: Default::default(),
         contract_version: super::super::CONTRACT_VERSION,
         login_methods: Vec::new(),
         cover_hosts: Default::default(),
@@ -463,6 +467,8 @@ fn refresh_after_instance_revocation_restores_previous_secret_without_publicatio
             Arc::new(Adapter(super::super::adapter::SourceDescriptor {
                 source: source("test"),
                 display_name: "test".into(),
+                description: None,
+                platforms: Default::default(),
                 contract_version: super::super::CONTRACT_VERSION,
                 login_methods: Vec::new(),
                 cover_hosts: Default::default(),

@@ -32,6 +32,7 @@ interface AdapterRow {
   key: string
   id: string
   name: string
+  description?: string
   provider: boolean
   capabilities: string[]
   platforms: string[]
@@ -160,15 +161,17 @@ export function AdaptersPage() {
       key: `platform/${descriptor.source}`,
       id: descriptor.source,
       name: descriptor.displayName,
+      description: descriptor.description,
       provider: false,
       capabilities: ['readTrack', 'resolve', ...descriptor.capabilities],
-      platforms: []
+      platforms: (descriptor.platforms ?? []).filter((platform) => platform !== descriptor.source)
     })),
     ...providers.map(({ descriptor, ...status }) => ({
       ...status,
       key: `resource/${descriptor.id}`,
       id: descriptor.id,
       name: descriptor.displayName,
+      description: descriptor.description,
       provider: true,
       capabilities: ['resolve', ...(descriptor.searchPlatforms.length ? ['search'] : [])],
       platforms: descriptor.platforms
@@ -185,7 +188,7 @@ export function AdaptersPage() {
     return (
       statusMatches &&
       (capability === 'all' || row.capabilities.includes(capability)) &&
-      `${row.name} ${row.id}`.toLocaleLowerCase().includes(keyword)
+      `${row.name} ${row.id} ${row.description ?? ''}`.toLocaleLowerCase().includes(keyword)
     )
   })
 
@@ -234,7 +237,7 @@ export function AdaptersPage() {
             <Input
               type="search"
               aria-label="搜索适配器"
-              placeholder="搜索名称或 ID"
+              placeholder="搜索名称、ID 或描述"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="pl-9"
@@ -298,7 +301,7 @@ export function AdaptersPage() {
                     {row.id}
                     {account?.current ? ` · ${account.current.displayName}` : ''}
                     {row.platforms.length
-                      ? ` · ${row.platforms
+                      ? ` · 支持平台：${row.platforms
                           .map((platform) =>
                             sourceLabel(
                               platform,
@@ -345,6 +348,11 @@ export function AdaptersPage() {
                   />
                 </div>
               </div>
+              {row.description && (
+                <p className="mt-1.5 whitespace-pre-line text-xs leading-normal text-muted-foreground [overflow-wrap:anywhere]">
+                  {row.description}
+                </p>
+              )}
               <div className="mt-3 flex flex-wrap gap-1.5" aria-label="支持的能力">
                 {row.capabilities.map((capability) => (
                   <span

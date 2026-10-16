@@ -89,6 +89,7 @@ fn audio(blocked: bool, wrong_platform: bool, preview: bool) -> Arc<Audio> {
         descriptor: ResourceProviderDescriptor {
             id: id("audio-test"),
             display_name: "Audio".into(),
+            description: None,
             contract_version: 1,
             platforms: [id("catalog")].into(),
             search_platforms: [id("catalog")].into(),
@@ -131,6 +132,8 @@ fn make_manager(error: ErrorCode, audio: Arc<Audio>) -> Arc<AdapterManager> {
                 descriptor: SourceDescriptor {
                     source: id("catalog"),
                     display_name: "Catalog".into(),
+                    description: None,
+                    platforms: Default::default(),
                     contract_version: 1,
                     login_methods: vec![],
                     capabilities: Default::default(),
@@ -148,6 +151,170 @@ fn make_manager(error: ErrorCode, audio: Arc<Audio>) -> Arc<AdapterManager> {
         .unwrap();
     manager.register_resource_provider(audio).unwrap();
     manager
+}
+
+struct CatalogReplacement {
+    descriptor: SourceDescriptor,
+    audio: Arc<Audio>,
+}
+impl MusicAdapter for CatalogReplacement {
+    fn descriptor(&self) -> &SourceDescriptor {
+        &self.descriptor
+    }
+    fn read_track<'a>(
+        &'a self,
+        _: &'a EntityRef,
+        _: &'a RequestContext,
+    ) -> AdapterFuture<'a, MusicTrack> {
+        Box::pin(async { Err(ErrorCode::Unsupported.into()) })
+    }
+    fn resolve_playback<'a>(
+        &'a self,
+        _: &'a ResolveRequest,
+        _: &'a RequestContext,
+    ) -> AdapterFuture<'a, PlaybackResource> {
+        Box::pin(async { Err(ErrorCode::Unsupported.into()) })
+    }
+    fn resolve_resource<'a>(
+        &'a self,
+        request: &'a ResourceRequest,
+        context: &'a RequestContext,
+    ) -> AdapterFuture<'a, PlaybackResource> {
+        assert_eq!(request.track.reference.source, id("catalog"));
+        assert_eq!(context.session.source, id("replacement"));
+        self.audio.resolve(request, context)
+    }
+}
+fn register_replacement(
+    manager: &AdapterManager,
+    audio: Arc<Audio>,
+    declared: bool,
+    generation: Arc<AtomicU64>,
+) {
+    let descriptor: SourceDescriptor = serde_json::from_value(serde_json::json!({
+        "source": "replacement", "displayName": "Replacement", "contractVersion": 1,
+        "capabilities": ["search", "account"], "platforms": if declared { vec!["replacement", "catalog"] } else { vec!["replacement"] }
+    })).unwrap();
+    manager
+        .register(
+            Arc::new(CatalogReplacement { descriptor, audio }),
+            Arc::new(move || SessionContext {
+                source: id("replacement"),
+                account: None,
+                generation: generation.load(Ordering::Acquire),
+            }),
+        )
+        .unwrap();
+}
+
+#[tokio::test]
+async fn full_adapter_audio_uses_the_shared_dispatcher_and_its_own_lifecycle() {
+    let manager = make_manager(ErrorCode::Network, audio(false, false, false));
+    manager
+        .set_resource_provider_enabled(&id("audio-test"), false)
+        .unwrap();
+    let replacement = audio(false, false, false);
+    let session = Arc::new(AtomicU64::new(1));
+    register_replacement(&manager, replacement.clone(), true, session.clone());
+    assert!(manager
+        .supports_audio_provider("replacement", &id("catalog"))
+        .unwrap());
+    assert!(!manager
+        .supports_audio_provider("replacement", &id("unknown"))
+        .unwrap());
+    let (ticket, source) = manager
+        .resolve_with_providers(&request(), None, 7)
+        .await
+        .unwrap();
+    assert_eq!(source.provider, "replacement");
+    assert_eq!(source.platform, id("catalog"));
+    assert_eq!(source.track, request().track.reference);
+    assert_eq!(replacement.calls.load(Ordering::Acquire), 1);
+    assert!(ticket.check(7).is_ok());
+    session.fetch_add(1, Ordering::AcqRel);
+    assert!(ticket.check(7).is_err());
+    let (ticket, _) = manager
+        .resolve_with_providers(&request(), Some("replacement"), 7)
+        .await
+        .unwrap();
+    manager.reload(&id("replacement")).unwrap();
+    assert!(ticket.check(7).is_err());
+    manager.set_enabled(&id("replacement"), false).unwrap();
+    assert!(!manager
+        .supports_audio_provider("replacement", &id("catalog"))
+        .unwrap());
+    assert!(manager
+        .resolve_with_providers(&request(), Some("replacement"), 7)
+        .await
+        .is_err());
+}
+
+#[tokio::test]
+async fn selected_full_adapter_preview_falls_back_to_another_provider_once() {
+    let fallback = audio(false, false, false);
+    let manager = make_manager(ErrorCode::Network, fallback.clone());
+    let replacement = audio(false, false, true);
+    register_replacement(
+        &manager,
+        replacement.clone(),
+        true,
+        Arc::new(AtomicU64::new(0)),
+    );
+    let attempts = Mutex::new(Vec::new());
+    let (_, source) = manager
+        .resolve_with_providers_notifying(&request(), Some("replacement"), 7, &|source| {
+            attempts.lock().unwrap().push(source.provider)
+        })
+        .await
+        .unwrap();
+    assert_eq!(source.provider, "audio-test");
+    assert_eq!(
+        *attempts.lock().unwrap(),
+        vec!["replacement", "official", "audio-test"]
+    );
+    assert_eq!(replacement.calls.load(Ordering::Acquire), 1);
+    assert_eq!(fallback.calls.load(Ordering::Acquire), 1);
+}
+
+#[tokio::test]
+async fn undeclared_full_adapters_are_never_used_and_revocation_cancels_cross_platform_audio() {
+    let manager = make_manager(ErrorCode::Network, audio(false, false, false));
+    let replacement = audio(false, false, false);
+    register_replacement(
+        &manager,
+        replacement.clone(),
+        false,
+        Arc::new(AtomicU64::new(0)),
+    );
+    let (_, source) = manager
+        .resolve_with_providers(&request(), None, 7)
+        .await
+        .unwrap();
+    assert_eq!(source.provider, "audio-test");
+    assert_eq!(replacement.calls.load(Ordering::Acquire), 0);
+    let manager = make_manager(ErrorCode::Network, audio(false, false, false));
+    manager
+        .set_resource_provider_enabled(&id("audio-test"), false)
+        .unwrap();
+    let replacement = audio(true, false, false);
+    register_replacement(
+        &manager,
+        replacement.clone(),
+        true,
+        Arc::new(AtomicU64::new(0)),
+    );
+    let running = manager.clone();
+    let task =
+        tokio::spawn(async move { running.resolve_with_providers(&request(), None, 7).await });
+    while replacement.calls.load(Ordering::Acquire) == 0 {
+        tokio::task::yield_now().await;
+    }
+    manager.set_enabled(&id("catalog"), false).unwrap();
+    assert!(tokio::time::timeout(Duration::from_secs(1), task)
+        .await
+        .unwrap()
+        .unwrap()
+        .is_err());
 }
 #[test]
 fn provider_loading_failure_and_disabled_registration_do_not_create_a_catalog_source() {

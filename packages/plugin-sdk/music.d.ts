@@ -148,6 +148,9 @@ export type MusicResponse =
 export interface SourceDescriptor {
   source: string
   displayName: string
+  description?: string
+  /** Original platform identities supported for audio resolution; defaults to source. */
+  platforms?: string[]
   contractVersion: number
   loginMethods?: { id: string; label: string }[]
   coverHosts?: string[]

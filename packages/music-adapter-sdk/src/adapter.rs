@@ -38,6 +38,12 @@ pub enum Capability {
 pub struct SourceDescriptor {
     pub source: SourceId,
     pub display_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Platforms whose original track references this adapter can resolve.
+    /// An omitted list retains the legacy own-platform capability.
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub platforms: BTreeSet<SourceId>,
     pub contract_version: u32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub login_methods: Vec<LoginMethod>,
@@ -64,7 +70,19 @@ pub enum OperationAvailability {
 }
 
 impl SourceDescriptor {
+    pub fn supports_resource_platform(&self, platform: &SourceId) -> bool {
+        platform == &self.source || self.platforms.contains(platform)
+    }
+
     pub fn validate(&self) -> MusicResult<()> {
+        if self.platforms.len() > 16
+            || self
+                .platforms
+                .iter()
+                .any(|platform| platform.as_str() == "local")
+        {
+            return Err(ErrorCode::InvalidData.into());
+        }
         if self.contract_version != super::CONTRACT_VERSION {
             return Err(ErrorCode::Unsupported.into());
         }
@@ -93,6 +111,10 @@ impl SourceDescriptor {
         if self.source.as_str() == "local"
             || self.display_name.trim().is_empty()
             || self.display_name.len() > 256
+            || self
+                .description
+                .as_ref()
+                .is_some_and(|text| text.trim().is_empty() || text.chars().count() > 1024)
         {
             return Err(ErrorCode::InvalidData.into());
         }
@@ -277,6 +299,28 @@ pub type AdapterFuture<'a, T> = Pin<Box<dyn Future<Output = MusicResult<T>> + Se
 /// Backend-only base contract. Optional groups acquire methods as they are migrated.
 /// AdapterManager must validate DTO size/kind/source and context before publishing.
 pub trait MusicAdapter: Send + Sync {
+    /// Resolve the original platform identity without changing the catalog item.
+    /// Cross-platform providers override this method and declare `platforms`.
+    fn resolve_resource<'a>(
+        &'a self,
+        request: &'a crate::provider::ResourceRequest,
+        context: &'a RequestContext,
+    ) -> AdapterFuture<'a, PlaybackResource> {
+        Box::pin(async move {
+            if request.track.reference.source != self.descriptor().source {
+                return Err(ErrorCode::Unsupported.into());
+            }
+            self.resolve_playback(
+                &ResolveRequest {
+                    track: request.track.reference.clone(),
+                    preferred_quality: request.preferred_quality.clone(),
+                    allow_downgrade: request.allow_downgrade,
+                },
+                context,
+            )
+            .await
+        })
+    }
     fn cancel_login(&self, _key: &str) {}
     /// Release temporary backend sessions on disable/reload/shutdown.
     fn revoke(&self) {}
@@ -317,6 +361,34 @@ pub trait MusicAdapter: Send + Sync {
 mod share_link_tests {
     use super::*;
     use crate::identity::EntityKind;
+
+    #[test]
+    fn optional_description_and_audio_platforms_preserve_legacy_descriptors() {
+        let mut descriptor: SourceDescriptor = serde_json::from_str(
+            r#"{"source":"fixture","displayName":"Fixture","contractVersion":1,"capabilities":[]}"#,
+        )
+        .unwrap();
+        assert!(descriptor.description.is_none());
+        assert!(descriptor.supports_resource_platform(&descriptor.source));
+        let other = SourceId::try_from("other".to_owned()).unwrap();
+        assert!(!descriptor.supports_resource_platform(&other));
+        descriptor.platforms.insert(other.clone());
+        descriptor.description = Some("文".repeat(1024));
+        assert!(descriptor.validate().is_ok());
+        assert!(descriptor.supports_resource_platform(&other));
+        let decoded: SourceDescriptor =
+            serde_json::from_str(&serde_json::to_string(&descriptor).unwrap()).unwrap();
+        assert_eq!(decoded.description, descriptor.description);
+        for text in ["".to_owned(), "  ".to_owned(), "文".repeat(1025)] {
+            descriptor.description = Some(text);
+            assert!(descriptor.validate().is_err());
+        }
+        descriptor.description = None;
+        descriptor
+            .platforms
+            .insert(SourceId::try_from("local".to_owned()).unwrap());
+        assert!(descriptor.validate().is_err());
+    }
 
     #[test]
     fn validates_public_templates_and_defaults_legacy_descriptors() {
