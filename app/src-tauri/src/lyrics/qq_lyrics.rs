@@ -73,6 +73,10 @@ async fn lookup_inner(
     separators: &[String],
 ) -> AppResult<Option<Lyrics>> {
     let started = Instant::now();
+    let exact = exact_candidates(track, separators);
+    if !exact.is_empty() {
+        return fetch_exact(client, exact, skip_qrc, &LYRIC_ENDPOINTS).await;
+    }
     if track.title.trim().is_empty() || track.artist.trim().is_empty() {
         return Ok(None);
     }
@@ -135,6 +139,76 @@ async fn lookup_inner(
     Ok(lyrics)
 }
 
+pub(super) fn has_exact_identity(track: &Track) -> bool {
+    super::identity::Identity::of(track).is_some_and(|v| v.platform == "qqmusic")
+}
+
+fn exact_candidates(track: &Track, separators: &[String]) -> Vec<Candidate> {
+    let Some(identity) = super::identity::Identity::of(track).filter(|v| v.platform == "qqmusic")
+    else {
+        return vec![];
+    };
+    let ids: Vec<_> = identity
+        .identifiers
+        .iter()
+        .filter(|v| v.kind == "song-id")
+        .filter_map(|v| v.id.as_str().parse::<u64>().ok())
+        .collect();
+    let mids: Vec<_> = identity
+        .identifiers
+        .iter()
+        .filter(|v| v.kind == "song-mid")
+        .map(|v| v.id.as_str())
+        .collect();
+    (0..ids.len().max(mids.len()))
+        .map(|index| Candidate {
+            id: ids.get(index).or(ids.first()).copied(),
+            mid: mids
+                .get(index)
+                .or(mids.first())
+                .copied()
+                .unwrap_or_default()
+                .into(),
+            title: track.title.clone(),
+            artists: crate::lyric_matching::split_artists(&track.artist, separators),
+            album: track.album.clone(),
+            duration: track.duration_ms as f64 / 1000.0,
+        })
+        .collect()
+}
+
+async fn fetch_exact(
+    client: &reqwest::Client,
+    candidates: Vec<Candidate>,
+    skip_qrc: bool,
+    endpoints: &LyricEndpoints<'_>,
+) -> AppResult<Option<Lyrics>> {
+    let started = Instant::now();
+    let mut failed = false;
+    for candidate in candidates {
+        let budget = Duration::from_secs(6).saturating_sub(started.elapsed());
+        match tokio::time::timeout(
+            budget,
+            fetch_candidate(client, &candidate, skip_qrc, endpoints, budget),
+        )
+        .await
+        {
+            Ok(Ok(Some(mut value))) => {
+                // Exact platform identity outranks metadata candidates without reordering sources.
+                value.match_score = Some(100);
+                return Ok(Some(value));
+            }
+            Ok(Ok(None)) => {}
+            _ => failed = true,
+        }
+    }
+    if failed {
+        Err("QQ 精准歌词查询失败".into())
+    } else {
+        Ok(None)
+    }
+}
+
 async fn fetch_candidate(
     client: &reqwest::Client,
     candidate: &Candidate,
@@ -144,6 +218,7 @@ async fn fetch_candidate(
 ) -> AppResult<Option<Lyrics>> {
     let started = Instant::now();
     let mut primary = None;
+    let mut failed = false;
     if let Some(id) = candidate.id.filter(|_| !skip_qrc) {
         // Reserve time for the legacy LRC request within the shared 6-second budget.
         let request = client
@@ -163,11 +238,13 @@ async fn fetch_candidate(
         };
         if let Ok(Ok(Some(lyrics))) = (tokio::time::timeout(Duration::from_millis(900), async {
             qrc.await.inspect_err(|error| {
+                failed = true;
                 crate::infrastructure::diagnostics::warn("lyrics.qq.qrc", error)
             })
         })
         .await)
             .inspect_err(|error| {
+                failed = true;
                 crate::infrastructure::diagnostics::warn("optional_success", error);
             })
         {
@@ -193,12 +270,14 @@ async fn fetch_candidate(
         )
         .await
         .inspect_err(|error| {
+            failed = true;
             crate::infrastructure::diagnostics::warn("optional_result", error);
         })
         .ok()
         .and_then(|result| {
             result
                 .inspect_err(|error| {
+                    failed = true;
                     crate::infrastructure::diagnostics::warn("lyrics.qq.modern", error)
                 })
                 .ok()
@@ -219,7 +298,15 @@ async fn fetch_candidate(
     {
         return Ok(modern);
     }
-    // Exhaust the richer endpoint before falling back to the legacy songmid LRC.
+    failed |= modern.is_some(); // A response rejected by the requested format is retryable.
+                                // Exhaust the richer endpoint before falling back to the legacy songmid LRC.
+    if candidate.mid.is_empty() {
+        return if failed {
+            Err("QQ 歌词接口请求失败".into())
+        } else {
+            Ok(None)
+        };
+    }
     let request = client
         .get(endpoints.lrc)
         .header("Referer", "https://c.y.qq.com/")
@@ -235,6 +322,9 @@ async fn fetch_candidate(
             ("hostUin", "0"),
         ]);
     let mut lyrics = decode_lyrics(read_json(request).await?)?;
+    if lyrics.is_none() && failed {
+        return Err("QQ 歌词接口请求失败".into());
+    }
     if let Some(value) = &mut lyrics {
         if let Some(extra) = modern {
             supplement(value, extra);
@@ -611,7 +701,7 @@ mod tests {
             .unwrap();
         assert_eq!(lrc.format, "lrc");
     }
-    fn track() -> Track {
+    pub(super) fn track() -> Track {
         Track {
             key: "ncm:1".into(),
             title: "晴天".into(),

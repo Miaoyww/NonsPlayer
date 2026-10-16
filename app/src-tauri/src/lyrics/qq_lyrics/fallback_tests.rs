@@ -8,6 +8,15 @@ fn run_chain(
     responses: Vec<(&'static str, u16, String, u64)>,
     skip_qrc: bool,
 ) -> (Option<Lyrics>, Vec<(String, String)>) {
+    let (result, requests) = run_chain_inner(responses, skip_qrc, None);
+    (result.unwrap(), requests)
+}
+
+fn run_chain_inner(
+    responses: Vec<(&'static str, u16, String, u64)>,
+    skip_qrc: bool,
+    exact: Option<Vec<Candidate>>,
+) -> (AppResult<Option<Lyrics>>, Vec<(String, String)>) {
     let server = TcpListener::bind("127.0.0.1:0").unwrap();
     let base = format!("http://{}", server.local_addr().unwrap());
     let worker = std::thread::spawn(move || {
@@ -55,14 +64,21 @@ fn run_chain(
         musicu: &musicu,
         lrc: &lrc,
     };
-    let result = tauri::async_runtime::block_on(fetch_candidate(
-        &reqwest::Client::new(),
-        &tests::candidate(),
-        skip_qrc,
-        &endpoints,
-        Duration::from_secs(5),
-    ))
-    .unwrap();
+    let client = reqwest::Client::new();
+    let result = tauri::async_runtime::block_on(async {
+        if let Some(candidates) = exact {
+            fetch_exact(&client, candidates, skip_qrc, &endpoints).await
+        } else {
+            fetch_candidate(
+                &client,
+                &tests::candidate(),
+                skip_qrc,
+                &endpoints,
+                Duration::from_secs(5),
+            )
+            .await
+        }
+    });
     (result, worker.join().unwrap())
 }
 
@@ -244,4 +260,66 @@ fn live_70047_rich_fallback_keeps_translation_in_both_modes() {
             value.translation.unwrap().len()
         );
     }
+}
+
+#[test]
+fn exact_ids_fetch_without_search_and_failures_are_retryable() {
+    let mut track = tests::track();
+    let mut music =
+        nons_music_adapter_sdk::migration::legacy_track(&serde_json::to_string(&track).unwrap())
+            .unwrap()
+            .track;
+    music.reference.source = "qqmusic".to_string().try_into().unwrap();
+    music.reference.id = "001mid".to_string().try_into().unwrap();
+    music.lyric_identifiers = vec![nons_music_adapter_sdk::identity::LyricIdentifier {
+        kind: "song-id".into(),
+        id: "97773".to_string().try_into().unwrap(),
+    }];
+    track.source = crate::model::TrackSource::Online {
+        track: Box::new(music),
+    };
+    let candidates = exact_candidates(&track, &[" / ".into()]);
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].id, Some(97773));
+    assert_eq!(candidates[0].mid, "001mid");
+    let (result, requests) = run_chain_inner(
+        vec![(
+            "/musicu",
+            200,
+            modern("[00:01.00]Original", "[00:01.00]译文"),
+            0,
+        )],
+        true,
+        Some(candidates),
+    );
+    assert_eq!(result.unwrap().unwrap().match_score, Some(100));
+    assert_eq!(requests.len(), 1);
+    assert!(requests[0].1.contains("GetPlayLyricInfo"));
+    assert!(!requests[0].1.contains("DoSearch"));
+    let (result, requests) = run_chain_inner(
+        vec![
+            ("/musicu", 500, "failed".into(), 0),
+            ("/lrc", 200, json!({"code":0,"lyric":""}).to_string(), 0),
+        ],
+        true,
+        Some(exact_candidates(&track, &[" / ".into()])),
+    );
+    assert!(
+        result.is_err(),
+        "transport failures must not become a 24-hour missing marker"
+    );
+    assert_eq!(requests.len(), 2);
+}
+
+#[test]
+fn numeric_only_exact_id_never_sends_an_empty_mid_or_search_request() {
+    let mut candidate = tests::candidate();
+    candidate.mid.clear();
+    let (result, requests) = run_chain_inner(
+        vec![("/musicu", 200, modern("", ""), 0)],
+        true,
+        Some(vec![candidate]),
+    );
+    assert!(result.unwrap().is_none());
+    assert_eq!(requests.len(), 1);
 }

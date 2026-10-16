@@ -3,12 +3,12 @@ import { useLocalPreferences } from '@/features/local/use-local-preferences'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackArtists } from '@/components/music/music-links'
 import type { LyricLine } from '@applemusic-like-lyrics/core'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { isTauri } from '@tauri-apps/api/core'
 import { motion, useIsPresent, useReducedMotion } from 'motion/react'
 import { AudioLines, Languages } from 'lucide-react'
-import { errorText, getPlayer, usePlayer, type Lyrics } from '@/lib/player'
+import { errorText, getPlayer, usePlayer, type Lyrics, type Track } from '@/lib/player'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { AlbumBackground } from '@/features/lyrics/album-background'
@@ -19,17 +19,20 @@ import {
   useLyricSources,
   type LyricSources
 } from '@/features/lyrics/use-lyric-sources'
-import { loadLyrics } from '@/features/lyrics/load-lyrics'
+import { loadLyrics, lyricTrackVersion } from '@/features/lyrics/load-lyrics'
 import { EmptyLyricsError, parseLyrics } from '@/features/lyrics/parse-lyrics'
 import { LyricLoading } from './lyric-loading'
 import { isAndroid } from '@/lib/platform'
 import { MobileFullscreenPlayer } from '@/features/playback/mobile-fullscreen-player'
 import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/playback-notice'
 
-function isCurrentPlayback(key: string, revision: number) {
+function isCurrentPlayback(key: string, revision: number, version: string) {
   const active = getPlayer()
   return (
-    active.revision === revision && active.index !== null && active.queue[active.index]?.key === key
+    active.revision === revision &&
+    active.index !== null &&
+    active.queue[active.index]?.key === key &&
+    lyricTrackVersion(active.queue[active.index]) === version
   )
 }
 
@@ -66,6 +69,7 @@ export default function LyricsView({
   const rendering = isPresent && (entered || !!reduced)
   const state = usePlayer('error', 'index', 'mediaError', 'queue', 'revision', 'status')
   const track = state.index !== null ? state.queue[state.index] : undefined
+  const trackVersion = useMemo(() => lyricTrackVersion(track), [track])
   const { sources } = useLyricSources()
   const [display, setDisplay] = useState<{
     key: string
@@ -115,7 +119,7 @@ export default function LyricsView({
   const requestLyrics = useCallback(
     async (refresh = false) => {
       if (getLyricSources() !== sources) return
-      if (track && !isCurrentPlayback(track.key, state.revision)) return
+      if (track && !isCurrentPlayback(track.key, state.revision, trackVersion)) return
       const serial = ++generation.current
       appliedSource.current = undefined
       if (!refresh) setDisplay(undefined)
@@ -127,7 +131,7 @@ export default function LyricsView({
       const isCurrent = () =>
         generation.current === serial &&
         getLyricSources() === sources &&
-        isCurrentPlayback(track.key, state.revision)
+        isCurrentPlayback(track.key, state.revision, trackVersion)
       try {
         await loadLyrics(
           track,
@@ -144,7 +148,7 @@ export default function LyricsView({
         if (isCurrent()) setLoading(false)
       }
     },
-    [track?.key, state.revision, apply, sources, localPreferences]
+    [trackVersion, state.revision, apply, sources, localPreferences]
   )
   useEffect(() => {
     void requestLyrics()
@@ -156,15 +160,16 @@ export default function LyricsView({
     if (!isTauri() || !track) return
     let disposed = false
     let stop: (() => void) | undefined
-    void listen<{ key: string; lyrics: Lyrics }>('lyrics-updated', ({ payload }) => {
+    void listen<{ key: string; lyrics: Lyrics; track?: Track }>('lyrics-updated', ({ payload }) => {
       if (
         !disposed &&
         getLyricSources() === sources &&
         !(track.source.kind === 'local' && sources.localSource === 'local') &&
         payload.lyrics.source !== 'local' &&
-        isCurrentPlayback(track.key, state.revision) &&
+        isCurrentPlayback(track.key, state.revision, trackVersion) &&
         appliedSource.current === payload.lyrics.source &&
         payload.key === track.key &&
+        (!payload.track || lyricTrackVersion(payload.track) === trackVersion) &&
         (payload.lyrics.source !== 'amll' || sources.amll) &&
         (payload.lyrics.source !== 'qq' || sources.qq)
       ) {
@@ -184,13 +189,14 @@ export default function LyricsView({
       .catch((cause) => {
         reportCaughtError('app/src/features/lyrics/lyrics-view.tsx', cause)
 
-        if (!disposed && isCurrentPlayback(track.key, state.revision)) setError(errorText(cause))
+        if (!disposed && isCurrentPlayback(track.key, state.revision, trackVersion))
+          setError(errorText(cause))
       })
     return () => {
       disposed = true
       stop?.()
     }
-  }, [track?.key, state.revision, apply, sources, localPreferences])
+  }, [trackVersion, state.revision, apply, sources, localPreferences])
 
   const lyricControls = (
     <div className="lyrics-display-controls" role="group" aria-label="歌词显示">

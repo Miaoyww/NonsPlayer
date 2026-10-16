@@ -1,3 +1,5 @@
+mod amll;
+mod identity;
 pub(crate) mod local_lyrics;
 pub(crate) mod lyric_matching;
 pub(crate) mod media_metadata;
@@ -75,6 +77,28 @@ pub struct LyricSkips {
 }
 
 impl LyricService {
+    pub fn set_endpoints(&self, platform: Option<String>, endpoints: Vec<String>) -> AppResult<()> {
+        let platform = platform.unwrap_or_else(|| "netease".into());
+        if identity::directory(&platform).is_none() {
+            return Err("该平台尚无 AMLL 歌词索引".into());
+        }
+        amll::validate_endpoints(&endpoints)?;
+        let mut retries = self.retry_after.lock().map_err(|_| "歌词状态不可用")?;
+        let mut configured: std::collections::BTreeMap<String, Vec<String>> = self
+            .store
+            .setting("lyricEndpointsV2")?
+            .map(|v| serde_json::from_str(&v).map_err(|e| e.to_string()))
+            .transpose()?
+            .unwrap_or_default();
+        configured.insert(platform, endpoints);
+        self.disk.set_lyric_setting(
+            "lyricEndpointsV2",
+            &serde_json::to_string(&configured).map_err(|e| e.to_string())?,
+        )?;
+        retries.clear();
+        Ok(())
+    }
+
     pub fn sources(&self) -> AppResult<LyricSources> {
         self.store
             .setting("lyricSources")?
@@ -96,6 +120,7 @@ impl LyricService {
     }
     pub fn new(store: Arc<Store>, netease: Arc<Netease>, disk: Arc<TtmlCache>) -> AppResult<Self> {
         let client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
             .user_agent("NonsPlayer/0.1")
             .connect_timeout(Duration::from_millis(500))
             .timeout(Duration::from_secs(1))
@@ -123,8 +148,24 @@ impl LyricService {
         } else {
             vec![" / ".into()]
         };
-        self.get_online(track, refresh, skips, separators, app)
-            .await
+        let generation = self.disk.generation() + u64::from(refresh);
+        let requested = serde_json::to_vec(&track).map_err(|e| e.to_string())?;
+        let key = track.key.clone();
+        let value = self
+            .get_online(track, refresh, skips, separators, app)
+            .await?;
+        if self.disk.generation() != generation
+            || self
+                .store
+                .track(&key)
+                .ok()
+                .and_then(|v| serde_json::to_vec(&v).ok())
+                .as_ref()
+                != Some(&requested)
+        {
+            return Ok(None);
+        }
+        Ok(value)
     }
 
     async fn get_online(
@@ -136,17 +177,54 @@ impl LyricService {
         app: tauri::AppHandle,
     ) -> AppResult<Option<Lyrics>> {
         let started = std::time::Instant::now();
-        let id = track.netease_id();
+        let identity = identity::Identity::of(&track);
+        let mut netease_ids: Vec<u64> = identity
+            .as_ref()
+            .filter(|v| v.platform == "netease")
+            .map(|v| {
+                v.identifiers
+                    .iter()
+                    .filter(|v| v.kind == "song-id")
+                    .filter_map(|v| v.id.as_str().parse().ok())
+                    .collect()
+            })
+            .unwrap_or_default();
+        if netease_ids.is_empty() {
+            netease_ids.extend(track.netease_id());
+        }
+        netease_ids.sort_unstable();
+        netease_ids.dedup();
+        let id = netease_ids.first().copied();
+        let amll_request = identity
+            .map(|identity| amll::Request::new(identity, &self.store))
+            .transpose()?
+            .flatten();
         let sources = self.sources()?;
-        let amll_key = format!("amll:{}", id.unwrap_or(0));
-        let ncm_key = format!("netease:{}", id.unwrap_or(0));
+        let amll_key = amll_request
+            .as_ref()
+            .map(amll::Request::key)
+            .transpose()?
+            .unwrap_or_else(|| "amll:unavailable".into());
+        let ncm_key = if matches!(track.source, TrackSource::Local { .. }) {
+            format!("netease:{}", id.unwrap_or(0))
+        } else {
+            format!(
+                "netease:exact-v2:{}",
+                serde_json::to_string(&netease_ids).map_err(|e| e.to_string())?
+            )
+        };
         // Metadata belongs in the key: local bindings and corrected tags can change matching.
         let digest = format!(
             "{:x}",
             Sha256::digest(serde_json::to_vec(&(&track, &separators)).map_err(|e| e.to_string())?)
         );
-        let qrc_key = format!("qq:qrc-v3:{digest}");
-        let lrc_key = format!("qq:lrc-v3:{digest}");
+        let mode = if qq_lyrics::has_exact_identity(&track) {
+            "exact-v4"
+        } else {
+            "search-v4"
+        };
+        let qrc_key = format!("qq:qrc-{mode}:{digest}");
+        let lrc_key = format!("qq:lrc-{mode}:{digest}");
         let search_key = format!("netease:search-v1:{digest}");
         let qq_key = if skips.qrc { &lrc_key } else { &qrc_key };
         if refresh {
@@ -164,7 +242,7 @@ impl LyricService {
             retries.remove(&lrc_key);
             retries.remove(&search_key);
         }
-        if let Some(id) = id.filter(|_| sources.amll && !skips.amll) {
+        if let Some(request) = amll_request.filter(|_| sources.amll && !skips.amll) {
             // Disk failure is a cache miss; it must never prevent online fallback.
             if let Some(cached) = self.store.cached_lyrics(&amll_key)?.or_else(|| {
                 self.disk
@@ -186,24 +264,20 @@ impl LyricService {
                             .map_err(|_| "歌词状态不可用")?;
                         if refreshing.insert(amll_key.clone()) {
                             let this = Arc::clone(self);
-                            let key = track.key.clone();
+                            let refreshed_track = track.clone();
+                            let generation = self.disk.generation();
+                            let request = request.clone();
                             let cache_key = amll_key.clone();
                             tauri::async_runtime::spawn(async move {
-                                if let Ok(Some(lyrics)) =
-                                    (this.update_amll(id).await).inspect_err(|error| {
+                                if let Ok(Some(lyrics)) = (this.update_amll(&request).await)
+                                    .inspect_err(|error| {
                                         crate::infrastructure::diagnostics::warn(
                                             "optional_success",
                                             error,
                                         );
                                     })
                                 {
-                                    let _ = (app.emit(
-                                        "lyrics-updated",
-                                        serde_json::json!({"key":key,"lyrics":lyrics}),
-                                    ))
-                                    .inspect_err(|error| {
-                                        crate::infrastructure::diagnostics::warn("app.emit", error);
-                                    });
+                                    this.emit_update(&refreshed_track, generation, lyrics, &app);
                                 }
                                 if let Ok(mut pending) =
                                     (this.refreshing.lock()).inspect_err(|error| {
@@ -221,11 +295,11 @@ impl LyricService {
                     return Ok(Some(value));
                 }
                 if !cached.fresh {
-                    if let Some(value) = self.update_amll(id).await? {
+                    if let Some(value) = self.update_amll(&request).await? {
                         return Ok(Some(value));
                     }
                 }
-            } else if let Some(value) = self.update_amll(id).await? {
+            } else if let Some(value) = self.update_amll(&request).await? {
                 return Ok(Some(value));
             }
         }
@@ -248,7 +322,7 @@ impl LyricService {
         if skips.netease {
             return Ok(preferred);
         }
-        let fallback = if let Some(id) = id {
+        let fallback = if id.is_some() {
             if !refresh {
                 if let Some(cached) = self.store.cached_lyrics(&ncm_key)? {
                     if cached.fresh {
@@ -260,7 +334,25 @@ impl LyricService {
             let budget = Duration::from_secs(12)
                 .saturating_sub(started.elapsed())
                 .min(Duration::from_secs(6));
-            match tokio::time::timeout(budget, self.netease.lyrics(id)).await {
+            let fetch = async {
+                let mut failed = false;
+                for id in &netease_ids {
+                    match self.netease.lyrics(*id).await {
+                        Ok(Some(value)) => return Ok(Some(value)),
+                        Ok(None) => {}
+                        Err(error) => {
+                            crate::infrastructure::diagnostics::warn("lyrics.netease.fetch", error);
+                            failed = true;
+                        }
+                    }
+                }
+                if failed {
+                    Err("网易云精准歌词查询失败".to_string())
+                } else {
+                    Ok(None)
+                }
+            };
+            match tokio::time::timeout(budget, fetch).await {
                 Ok(Ok(value)) => {
                     let _ = (self.disk.cache_result(
                         &ncm_key,
@@ -336,6 +428,7 @@ impl LyricService {
                     .map_err(|_| "歌词状态不可用")?;
                 if refreshing.insert(key.into()) {
                     let this = Arc::clone(self);
+                    let generation = self.disk.generation();
                     let track = track.clone();
                     let key = key.to_owned();
                     let separators = separators.to_vec();
@@ -347,13 +440,7 @@ impl LyricService {
                                 crate::infrastructure::diagnostics::warn("optional_success", error);
                             })
                         {
-                            let _ = (app.emit(
-                                "lyrics-updated",
-                                serde_json::json!({"key":track.key,"lyrics":lyrics}),
-                            ))
-                            .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("app.emit", error);
-                            });
+                            this.emit_update(&track, generation, lyrics, &app);
                         }
                         if let Ok(mut pending) = (this.refreshing.lock()).inspect_err(|error| {
                             crate::infrastructure::diagnostics::warn("optional_success", error);
@@ -443,6 +530,7 @@ impl LyricService {
                     .map_err(|_| "歌词状态不可用")?;
                 if refreshing.insert(key.into()) {
                     let this = Arc::clone(self);
+                    let generation = self.disk.generation();
                     let track = track.clone();
                     let cache_key = key.to_owned();
                     let separators = separators.to_vec();
@@ -454,13 +542,7 @@ impl LyricService {
                                 crate::infrastructure::diagnostics::warn("optional_success", error);
                             })
                         {
-                            let _ = (app.emit(
-                                "lyrics-updated",
-                                serde_json::json!({"key":track.key,"lyrics":lyrics}),
-                            ))
-                            .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("app.emit", error);
-                            });
+                            this.emit_update(&track, generation, lyrics, &app);
                         }
                         if let Ok(mut pending) = (this.refreshing.lock()).inspect_err(|error| {
                             crate::infrastructure::diagnostics::warn("optional_success", error);
@@ -529,9 +611,9 @@ impl LyricService {
         }
     }
 
-    async fn update_amll(&self, id: u64) -> AppResult<Option<Lyrics>> {
+    async fn update_amll(&self, request: &amll::Request) -> AppResult<Option<Lyrics>> {
         let generation = self.disk.generation();
-        let key = format!("amll:{id}");
+        let key = request.key()?;
         if self
             .retry_after
             .lock()
@@ -544,7 +626,7 @@ impl LyricService {
         {
             return Ok(None);
         }
-        match self.lookup(id).await {
+        match request.lookup(&self.client).await {
             Lookup::Found(lyrics) => {
                 let _ = (self
                     .disk
@@ -582,97 +664,24 @@ impl LyricService {
         }
     }
 
-    async fn lookup(&self, id: u64) -> Lookup {
-        let defaults = vec!["https://raw.githubusercontent.com/amll-dev/amll-ttml-db/refs/heads/main/ncm-lyrics/{id}.ttml".to_string(), "https://amll-ttml-db.stevexmh.net/ncm/{id}".to_string()];
-        let endpoints: Vec<String> = self
+    fn emit_update(&self, track: &Track, generation: u64, lyrics: Lyrics, app: &tauri::AppHandle) {
+        if self.disk.generation() != generation {
+            return;
+        }
+        let current = self
             .store
-            .setting("lyricEndpoints")
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_result", error);
-            })
+            .track(&track.key)
             .ok()
-            .flatten()
-            .and_then(|s| {
-                serde_json::from_str(&s)
-                    .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
-                    })
-                    .ok()
-            })
-            .unwrap_or(defaults);
-        let task = async {
-            let mut all_missing = !endpoints.is_empty();
-            for endpoint in endpoints.iter().take(3) {
-                let address = endpoint.replace("{id}", &id.to_string());
-                if !url::Url::parse(&address).is_ok_and(|u| u.scheme() == "https") {
-                    all_missing = false;
-                    continue;
-                }
-                let request = self
-                    .client
-                    .get(address)
-                    .timeout(Duration::from_millis(500))
-                    .send()
-                    .await;
-                let Ok(mut response) = request else {
-                    all_missing = false;
-                    continue;
-                };
-                if response.status() == reqwest::StatusCode::NOT_FOUND {
-                    continue;
-                }
-                if !response.status().is_success() {
-                    all_missing = false;
-                    continue;
-                }
-                if response
-                    .content_length()
-                    .is_some_and(|n| n > MAX_LYRIC_BYTES as u64)
-                {
-                    all_missing = false;
-                    continue;
-                }
-                let mut bytes = Vec::new();
-                let mut valid = true;
-                loop {
-                    match response.chunk().await {
-                        Ok(Some(chunk)) if bytes.len() + chunk.len() <= MAX_LYRIC_BYTES => {
-                            bytes.extend_from_slice(&chunk)
-                        }
-                        Ok(None) => break,
-                        _ => {
-                            valid = false;
-                            break;
-                        }
-                    }
-                }
-                if valid {
-                    if let Ok(content) = (String::from_utf8(bytes)).inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_success", error);
-                    }) {
-                        if valid_ttml(&content) {
-                            return Lookup::Found(Lyrics {
-                                match_score: None,
-                                source: "amll".into(),
-                                format: "ttml".into(),
-                                content,
-                                translation: None,
-                                romanization: None,
-                            });
-                        }
-                    }
-                }
-                all_missing = false;
-            }
-            if all_missing {
-                Lookup::Missing
-            } else {
-                Lookup::Failed
-            }
-        };
-        tokio::time::timeout(Duration::from_secs(1), task)
-            .await
-            .unwrap_or(Lookup::Failed)
+            .and_then(|v| serde_json::to_vec(&v).ok());
+        if current != serde_json::to_vec(track).ok() {
+            return;
+        }
+        if let Err(error) = app.emit(
+            "lyrics-updated",
+            serde_json::json!({"key":track.key,"track":track,"lyrics":lyrics}),
+        ) {
+            crate::infrastructure::diagnostics::warn("lyrics.emit", error);
+        }
     }
 }
 

@@ -25,6 +25,7 @@ function harness(responses, kind = 'netease') {
   return {
     calls,
     commands,
+    version: exports.lyricTrackVersion,
     load: (sources = { amll: true, qq: true }, current) =>
       exports.loadLyrics(
         { key: `${kind}:1`, source: { kind } },
@@ -139,4 +140,27 @@ test('local tracks stop when online lyrics are exhausted', async () => {
     [false, true]
   )
   assert.ok(calls.every((c) => !('skipLocal' in c)))
+})
+
+test('lyric request identity changes with typed IDs but ignores object property order', () => {
+  const { version } = harness([])
+  const original = {
+    key: 'qq:1',
+    title: 'Song',
+    artist: 'Artist',
+    source: {
+      kind: 'online',
+      track: {
+        reference: { source: 'qqmusic', kind: 'track', id: '001mid' },
+        lyricIdentifiers: [{ kind: 'song-id', id: '123' }],
+        associations: []
+      }
+    }
+  }
+  const changed = structuredClone(original)
+  changed.source.track.lyricIdentifiers[0].id = '456'
+  assert.notEqual(version(original), version(changed))
+  const reordered = structuredClone(original)
+  reordered.source.track.reference = { id: '001mid', kind: 'track', source: 'qqmusic' }
+  assert.equal(version(original), version(reordered))
 })

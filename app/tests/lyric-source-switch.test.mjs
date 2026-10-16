@@ -63,6 +63,7 @@ function harness(track, settle = true, localSource = 'local') {
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@/lib/player': { usePlayer: () => player, getPlayer: () => player, errorText: String },
     '@/features/lyrics/load-lyrics': {
+      lyricTrackVersion: (track) => JSON.stringify(track),
       loadLyrics: (_track, _refresh, _sources, apply, isCurrent) =>
         new Promise((resolve) => {
           requests.push({ key: _track.key, refresh: _refresh })
@@ -130,6 +131,9 @@ function harness(track, settle = true, localSource = 'local') {
     },
     switchTo: (next) => {
       player = { ...player, queue: [next], revision: player.revision + 1 }
+    },
+    updateMetadata: (next) => {
+      player = { ...player, queue: [next] }
     }
   }
 }
@@ -302,5 +306,27 @@ test('active stream lyrics and translations still apply normally', async () => {
   const app = harness(streamed)
   app.pending[0](streamLyrics)
   await Promise.resolve()
+  assert.deepEqual(app.parsed, [streamLyrics])
+})
+
+test('same-song metadata changes reject pending responses before effect cleanup', async () => {
+  const app = harness(streamed)
+  app.updateMetadata({ ...streamed, title: 'Corrected title' })
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  assert.equal(app.parsed.length, 0)
+})
+
+test('background refresh metadata must match the current song even with the same key', async () => {
+  const app = harness(streamed)
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  app.events[0]({
+    payload: {
+      key: streamed.key,
+      track: { ...streamed, title: 'Previous title' },
+      lyrics: streamLyrics
+    }
+  })
   assert.deepEqual(app.parsed, [streamLyrics])
 })

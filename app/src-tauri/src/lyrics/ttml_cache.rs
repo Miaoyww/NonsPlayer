@@ -230,6 +230,9 @@ impl TtmlCache {
         self.state.lock().map(|s| s.generation).unwrap_or_default()
     }
     pub fn set_lyric_sources(&self, value: &str) -> AppResult<()> {
+        self.set_lyric_setting("lyricSources", value)
+    }
+    pub fn set_lyric_setting(&self, name: &str, value: &str) -> AppResult<()> {
         let mut state = self
             .state
             .lock()
@@ -237,7 +240,7 @@ impl TtmlCache {
                 crate::infrastructure::diagnostics::warn("translate_error", error);
             })
             .map_err(|_| "缓存锁不可用")?;
-        self.store.set_setting("lyricSources", value)?;
+        self.store.set_setting(name, value)?;
         state.generation += 1;
         self.store.clear_runtime_lyrics()
     }

@@ -656,22 +656,12 @@ fn set_music_options(
 }
 
 #[tauri::command]
-fn set_lyric_endpoints(endpoints: Vec<String>, backend: State<'_, Backend>) -> AppResult<()> {
-    if endpoints.is_empty()
-        || endpoints.len() > 3
-        || endpoints.iter().any(|e| {
-            e.len() > 2048
-                || !e.contains("{id}")
-                || !url::Url::parse(&e.replace("{id}", "1"))
-                    .is_ok_and(|u| u.scheme() == "https" && u.host_str().is_some())
-        })
-    {
-        return Err("设置 1–3 个 HTTPS 歌词地址，使用 {id} 表示歌曲 ID".into());
-    }
-    backend.store.set_setting(
-        "lyricEndpoints",
-        &serde_json::to_string(&endpoints).map_err(|e| e.to_string())?,
-    )
+fn set_lyric_endpoints(
+    endpoints: Vec<String>,
+    platform: Option<String>,
+    backend: State<'_, Backend>,
+) -> AppResult<()> {
+    backend.lyrics.set_endpoints(platform, endpoints)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
