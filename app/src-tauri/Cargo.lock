@@ -3812,7 +3812,7 @@ dependencies = [
 
 [[package]]
 name = "nons"
-version = "1.3.3"
+version = "1.3.4"
 dependencies = [
  "aes",
  "base64 0.22.1",
