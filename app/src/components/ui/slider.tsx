@@ -32,7 +32,7 @@ function Slider({
       value={value}
       min={min}
       max={max}
-      thumbAlignment="edge"
+      thumbAlignment="center"
       {...props}
     >
       <SliderPrimitive.Control className="relative flex min-h-6 w-full touch-none items-center select-none data-disabled:opacity-50 data-vertical:h-full data-vertical:w-auto data-vertical:flex-col">
