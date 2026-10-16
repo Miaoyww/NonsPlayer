@@ -5,7 +5,6 @@ import { spawnSync } from 'node:child_process'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { platforms } from '../src/protocol.js'
-import { sign } from '../src/signing.js'
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(project, '../..')
 const tools = resolve(root, 'packages/wasm-crypto/node_modules/@bytecodealliance')
@@ -46,33 +45,6 @@ const transport = new Proxy(
       requests.push(value)
       if (value.url.endsWith('/time'))
         return { status: 200, headers: [], body: Buffer.from('1792158848') }
-      if (value.url.includes('types=search')) {
-        const url = new URL(value.url)
-        const source = url.searchParams.get('source')
-        assert.equal(
-          url.searchParams.get('s'),
-          sign(url.searchParams.get('name'), '1792158848', url.hostname)
-        )
-        const width = source === 'joox' ? 30 : source === 'ytmusic' ? 20 : 1
-        const start = (Number(url.searchParams.get('pages')) - 1) * width
-        return {
-          status: 200,
-          headers: [],
-          body: Buffer.from(
-            JSON.stringify(
-              Array.from({ length: width }, (_, i) => ({
-                id: width === 1 ? '347230' : String(start + i),
-                url_id: width === 1 ? '347230' : String(start + i),
-                name: 'Song',
-                artist: ['Artist'],
-                album: 'Album',
-                source,
-                extra_data: { duration: 180 }
-              }))
-            )
-          )
-        }
-      }
       if (value.url.includes('music.gdstudio.org/api.php'))
         return {
           status: mode === 'offline' ? 503 : 200,
@@ -149,19 +121,20 @@ const instance = await instantiate(
 instance.initialize()
 const call = (method, args = 'null') =>
   JSON.parse(instance.call(method, typeof args === 'string' ? args : JSON.stringify(args)))
-test('real Component describes an independent searchable provider for verified platforms', () => {
-  const response = call('music.resource-descriptor')
-  assert.equal(response.status, 'ok')
-  assert.equal(response.data.id, 'gdstudio')
-  assert.equal(response.data.searchPlatforms.length, 10)
-  assert(response.data.searchPlatforms.includes('qqmusic'))
-  const result = call('music.search-resources', {
-    request: { platform: 'netease', keyword: 'Song', page: { cursor: null, limit: 1 } }
-  })
-  assert.equal(result.status, 'ok', JSON.stringify(result))
-  assert.equal(result.data.items[0].reference.source, 'netease')
-  assert.equal(result.data.items[0].reference.id, '347230')
-  assert.equal(result.data.nextCursor, '2')
+test('resource-only Component declares ten playback platforms and rejects search without HTTP', () => {
+  const descriptor = call('music.resource-descriptor')
+  assert.equal(descriptor.status, 'ok')
+  assert.deepEqual(descriptor.data.platforms, Object.keys(platforms))
+  assert.deepEqual(descriptor.data.searchPlatforms, [])
+  requests.length = 0
+  for (const platform of Object.keys(platforms)) {
+    const result = call('music.search-resources', {
+      request: { platform, keyword: 'Song', page: { cursor: null, limit: 50 } }
+    })
+    assert.equal(result.status, 'error')
+    assert.equal(result.data.code, 'unsupported')
+  }
+  assert.equal(requests.length, 0)
 })
 test('real Component resolves and inspects full MP3, isolates API headers and rejects unsafe URLs', () => {
   mode = 'full'
@@ -180,25 +153,4 @@ test('real Component resolves and inspects full MP3, isolates API headers and re
   assert.equal(call('music.resolve-resource', { request }).data.code, 'permissionDenied')
   mode = 'offline'
   assert.equal(call('music.resolve-resource', { request }).data.code, 'network')
-})
-test('all ten sources retain canonical identities and fixed upstream pages do not lose rows', () => {
-  for (const platform of Object.keys(platforms)) {
-    requests.length = 0
-    const result = call('music.search-resources', {
-      request: { platform, keyword: 'Song', page: { cursor: null, limit: 1 } }
-    })
-    assert.equal(result.status, 'ok', platform)
-    assert.equal(result.data.items[0].reference.source, platform)
-    assert.equal(requests.filter((r) => r.url.endsWith('/time')).length, 1)
-  }
-  for (const platform of ['joox', 'ytmusic']) {
-    const result = call('music.search-resources', {
-      request: { platform, keyword: 'Song', page: { cursor: '2', limit: 17 } }
-    })
-    assert.equal(result.status, 'ok', JSON.stringify(result))
-    assert.deepEqual(
-      result.data.items.map((t) => t.reference.id),
-      Array.from({ length: 17 }, (_, i) => String(i + 17))
-    )
-  }
 })

@@ -1,7 +1,7 @@
 import { httpRequest } from 'nons:host/transport@1.0.0'
 import { call as hostCall } from 'nons:plugin/host@1.0.0'
 import manifest from '../manifest.json' with { type: 'json' }
-import { apiRequest, decodeResponse, searchRequest, decodeSearch, fail } from './protocol.js'
+import { apiRequest, decodeResponse, fail } from './protocol.js'
 import { sign } from './signing.js'
 import { inspectRemoteAudio } from './audio.js'
 export function initialize() {}
@@ -140,36 +140,12 @@ async function resolveResource(input) {
   )
   return { metadata, url, headers: [] }
 }
-function search(input) {
-  const target = searchRequest(input)
-  const width = input.platform === 'joox' ? 30 : input.platform === 'ytmusic' ? 20 : null
-  if (!width) return decodeSearch(apiJson(target), target.page, target.limit, target.platform)
-  const offset = (target.page - 1) * target.limit
-  let upstreamPage = Math.floor(offset / width) + 1
-  let skip = offset % width
-  const rows = []
-  let more = false
-  while (rows.length < target.limit) {
-    const url = new URL(target.url)
-    url.searchParams.set('pages', String(upstreamPage++))
-    const body = apiJson({ ...target, url: url.href })
-    if (!Array.isArray(body) || body.length > width) fail('invalidData')
-    const available = body.slice(skip)
-    const needed = target.limit - rows.length
-    rows.push(...available.slice(0, needed))
-    more = available.length > needed || body.length === width
-    if (body.length < width || rows.length === target.limit) break
-    skip = 0
-  }
-  return decodeSearch(rows, target.page, target.limit, target.platform, more)
-}
 export async function call(method, args) {
   try {
     let data
     if (method === 'music.resource-descriptor') data = manifest.resourceProvider
     else if (method === 'music.resolve-resource')
       data = await resolveResource(JSON.parse(args).request)
-    else if (method === 'music.search-resources') data = search(JSON.parse(args).request)
     else fail('unsupported')
     const reply = JSON.stringify({ status: 'ok', data })
     if (new TextEncoder().encode(reply).length > 65536) fail('invalidData')

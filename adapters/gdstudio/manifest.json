@@ -2,7 +2,7 @@
   "resourceProvider": {
     "id": "gdstudio",
     "displayName": "GD音乐台",
-    "description": "通过 GD音乐台网站接口搜索十个来源并解析音频；可用性取决于上游，空资源明确失败。不使用平台账号凭据。",
+    "description": "按已有歌曲 ID 提供十个平台的替换音源，不参与搜索；可用性取决于上游，不使用平台账号凭据。",
     "contractVersion": 1,
     "platforms": [
       "netease",
@@ -16,18 +16,7 @@
       "embeat",
       "qqmusic"
     ],
-    "searchPlatforms": [
-      "netease",
-      "joox",
-      "kuwo",
-      "tidal",
-      "qobuz",
-      "applemusic",
-      "bilibili",
-      "ytmusic",
-      "embeat",
-      "qqmusic"
-    ],
+    "searchPlatforms": [],
     "coverHosts": []
   },
   "permissions": {

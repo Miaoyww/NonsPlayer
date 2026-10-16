@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { apiRequest, decodeResponse, searchRequest, decodeSearch } from '../src/protocol.js'
+import { apiRequest, decodeResponse } from '../src/protocol.js'
 import { inspectRemoteAudio } from '../src/audio.js'
 
 async function inspectAudio(prefix, size, duration, quality, downgrade) {
@@ -87,40 +87,4 @@ test('short samples, unknown duration, invalid bytes and oversized probes fail c
   await assert.rejects(inspectAudio(new Uint8Array(65537), short.total, 180000, '320k', true), {
     code: 'invalidData'
   })
-})
-
-test('search maps stable platform identity and validated paging without inventing song duration', () => {
-  const target = searchRequest({
-    platform: 'netease',
-    keyword: ' Song ',
-    page: { cursor: null, limit: 1 }
-  })
-  assert(target.url.includes('pages=1'))
-  const result = decodeSearch(
-    [
-      {
-        id: '347230',
-        url_id: '347230',
-        source: 'netease',
-        name: 'Song',
-        artist: ['A', 'B'],
-        album: 'Album'
-      }
-    ],
-    1,
-    1
-  )
-  assert.equal(result.items[0].reference.source, 'netease')
-  assert.equal(result.items[0].reference.id, '347230')
-  assert.equal(result.items[0].durationMs, 0)
-  assert.equal(result.nextCursor, '2')
-  assert.throws(
-    () => decodeSearch([{ id: '1', source: 'qqmusic', name: 'Song', artist: [] }], 1, 1),
-    { code: 'invalidData' }
-  )
-  assert.throws(
-    () =>
-      searchRequest({ platform: 'netease', keyword: 'Song', page: { cursor: 'bad', limit: 1 } }),
-    { code: 'invalidData' }
-  )
 })

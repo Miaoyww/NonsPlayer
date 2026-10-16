@@ -198,8 +198,8 @@ impl CredentialStore for Secrets {
 
 #[tokio::test]
 #[ignore = "Requires built GD Studio Component and live public APIs; isolated accounts"]
-async fn gdstudio_component_live_search_and_resource() {
-    use crate::music::provider::{ResourceProviderDescriptor, ResourceSearchRequest};
+async fn gdstudio_component_live_resource() {
+    use crate::music::provider::ResourceProviderDescriptor;
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let package = root.join("adapters/gdstudio");
     let manifest: serde_json::Value =
@@ -245,96 +245,13 @@ async fn gdstudio_component_live_search_and_resource() {
         .adapters
         .register_resource_provider(Arc::new(adapter))
         .unwrap();
-    if std::env::var("NONS_GDSTUDIO_ALL").as_deref() == Ok("1") {
-        for platform in &descriptor.search_platforms {
-            let page = music
-                .adapters
-                .search_resource_provider(
-                    &descriptor.id,
-                    &ResourceSearchRequest {
-                        platform: platform.clone(),
-                        keyword: "Hello".into(),
-                        page: PageRequest {
-                            cursor: None,
-                            limit: 2,
-                        },
-                    },
-                )
-                .await;
-            match page {
-                Ok(page) => {
-                    println!(
-                        "GD platform={} search={}",
-                        platform.as_str(),
-                        page.items.len()
-                    );
-                    for item in page.items.into_iter().take(2) {
-                        let track = crate::model::Track::from_music(item).unwrap();
-                        let result = music
-                            .resolve_selected(
-                                track,
-                                "lossless",
-                                true,
-                                1,
-                                Some(crate::music::service::PlaybackSelection {
-                                    provider: Some("gdstudio".into()),
-                                    track: None,
-                                }),
-                            )
-                            .await;
-                        match result {
-                            Ok((_, Some(ticket), Some(source))) => {
-                                if source.provider != "gdstudio" {
-                                    println!(
-                                        "GD platform={} resource=failed fallback={}",
-                                        platform.as_str(),
-                                        source.provider
-                                    );
-                                    continue;
-                                }
-                                assert_eq!(source.platform, *platform);
-                                assert!(ticket.check(1).is_ok());
-                                println!(
-                                    "GD platform={} resource=verified quality={}",
-                                    platform.as_str(),
-                                    ticket.quality()
-                                );
-                            }
-                            Ok(_) => panic!("Missing GD resource ticket"),
-                            Err(error) => println!(
-                                "GD platform={} resource=failed code={:?}",
-                                platform.as_str(),
-                                error
-                            ),
-                        }
-                    }
-                }
-                Err(error) => println!(
-                    "GD platform={} search=failed code={:?}",
-                    platform.as_str(),
-                    error.code
-                ),
-            }
-        }
-        return;
-    }
-    let page = music
-        .adapters
-        .search_resource_provider(
-            &descriptor.id,
-            &ResourceSearchRequest {
-                platform: SourceId::try_from("netease".to_owned()).unwrap(),
-                keyword: "BEYOND 海阔天空".into(),
-                page: PageRequest {
-                    cursor: None,
-                    limit: 3,
-                },
-            },
-        )
-        .await
-        .unwrap();
-    assert!(!page.items.is_empty());
-    let track = crate::model::Track::from_music(page.items[0].clone()).unwrap();
+    // Read known platform metadata directly; GD never performs a search.
+    let reference = serde_json::from_value(
+        serde_json::json!({"source":"netease","kind":"track","id":"347230"}),
+    )
+    .unwrap();
+    let metadata = music.adapters.read_track(&reference).await.unwrap();
+    let track = crate::model::Track::from_music(metadata).unwrap();
     let (resolved, ticket, source) = music
         .resolve_selected(
             track,
@@ -355,8 +272,7 @@ async fn gdstudio_component_live_search_and_resource() {
     assert_eq!(source.platform.as_str(), "netease");
     assert!(ticket.check(1).is_ok());
     println!(
-        "GD Studio live: search={} provider={} quality={}",
-        page.items.len(),
+        "GD Studio live: provider={} quality={}",
         source.provider,
         ticket.quality()
     );
