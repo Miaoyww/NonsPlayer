@@ -83,10 +83,10 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
                         }
                         Ok(Request::Ready(reply)) => {
                             ready = true;
-                            let _ = reply.send(ReadyState {
+                            let _ = (reply.send(ReadyState {
                                 settings: std::mem::take(&mut pending_settings),
                                 shortcut: pending_shortcut.take(),
-                            });
+                            })).map_err(|_| "reply receiver dropped").inspect_err(|error| { log::warn!(target: "nons::background", "operation=reply.send at={}:{} reason={error:?}", file!(), line!()); });
                         }
                         Ok(Request::Shortcut(action)) => {
                             if action == "like" {

@@ -377,6 +377,7 @@ impl Actor {
         let media = match MediaControls::new(hwnd, sender.clone()) {
             Ok(m) => Some(m),
             Err(e) => {
+                log::error!(target: "nons::media", "operation=initialize reason={e}");
                 state.media_error = Some(format!("系统媒体控制初始化失败：{e}"));
                 None
             }
@@ -1515,8 +1516,25 @@ impl Actor {
 
     fn update_media(&mut self) {
         if let Some(media) = &mut self.media {
-            if let Err(error) = media.update(&self.state) {
-                self.state.media_error = Some(format!("系统媒体信息同步失败：{error}"));
+            match media.update(&self.state) {
+                Err(error) => {
+                    let message = format!("系统媒体信息同步失败：{error}");
+                    if self.state.media_error.as_ref() != Some(&message) {
+                        log::error!(
+                            target: "nons::media",
+                            "operation=update revision={} status={:?} track_key={} reason={error}",
+                            self.state.revision,
+                            self.state.status,
+                            self.state.current().map_or("-", |track| track.key.as_str()),
+                        );
+                    }
+                    self.state.media_error = Some(message);
+                }
+                Ok(()) => {
+                    if self.state.media_error.take().is_some() {
+                        log::info!(target: "nons::media", "operation=update outcome=recovered");
+                    }
+                }
             }
         }
     }

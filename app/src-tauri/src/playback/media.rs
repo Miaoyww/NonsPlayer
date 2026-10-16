@@ -36,19 +36,26 @@ impl MediaControls {
         unsafe {
             CoInitializeEx(None, COINIT_MULTITHREADED)
                 .ok()
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| format!("CoInitializeEx: {e}"))?;
         }
         let interop: ISystemMediaTransportControlsInterop =
             factory::<SystemMediaTransportControls, ISystemMediaTransportControlsInterop>()
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| format!("factory: {e}"))?;
         let controls: SystemMediaTransportControls =
-            unsafe { interop.GetForWindow(HWND(hwnd as *mut _)) }.map_err(|e| e.to_string())?;
-        controls.SetIsEnabled(true).map_err(|e| e.to_string())?;
-        controls.SetIsPlayEnabled(true).map_err(|e| e.to_string())?;
+            unsafe { interop.GetForWindow(HWND(hwnd as *mut _)) }
+                .map_err(|e| format!("GetForWindow: {e}"))?;
+        controls
+            .SetIsEnabled(true)
+            .map_err(|e| format!("SetIsEnabled: {e}"))?;
+        controls
+            .SetIsPlayEnabled(true)
+            .map_err(|e| format!("SetIsPlayEnabled: {e}"))?;
         controls
             .SetIsPauseEnabled(true)
-            .map_err(|e| e.to_string())?;
-        controls.SetIsStopEnabled(true).map_err(|e| e.to_string())?;
+            .map_err(|e| format!("SetIsPauseEnabled: {e}"))?;
+        controls
+            .SetIsStopEnabled(true)
+            .map_err(|e| format!("SetIsStopEnabled: {e}"))?;
         let button_sender = sender.clone();
         let button_token = controls
             .ButtonPressed(&TypedEventHandler::<
@@ -70,7 +77,7 @@ impl MediaControls {
                 }
                 Ok(())
             }))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("ButtonPressed: {e}"))?;
         let seek_token = controls
             .PlaybackPositionChangeRequested(&TypedEventHandler::<
                 SystemMediaTransportControls,
@@ -82,7 +89,7 @@ impl MediaControls {
                 }
                 Ok(())
             }))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("PlaybackPositionChangeRequested: {e}"))?;
         Ok(Self {
             controls,
             button_token,
@@ -94,12 +101,11 @@ impl MediaControls {
     pub fn update(&mut self, state: &PlayerSnapshot) -> AppResult<()> {
         use windows::{
             core::HSTRING,
-            Foundation::{TimeSpan, Uri},
+            Foundation::TimeSpan,
             Media::{
                 MediaPlaybackStatus, MediaPlaybackType,
                 SystemMediaTransportControlsTimelineProperties,
             },
-            Storage::Streams::RandomAccessStreamReference,
         };
         let controls = &self.controls;
         let status = match state.status {
@@ -110,76 +116,123 @@ impl MediaControls {
         };
         controls
             .SetPlaybackStatus(status)
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("SetPlaybackStatus: {e}"))?;
         controls
             .SetIsNextEnabled(state.following(true).is_some())
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("SetIsNextEnabled: {e}"))?;
         controls
             .SetIsPreviousEnabled(state.previous().is_some())
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("SetIsPreviousEnabled: {e}"))?;
         if let Some(track) = state.current() {
             if self.last_key.as_deref() != Some(&track.key) {
-                let updater = controls.DisplayUpdater().map_err(|e| e.to_string())?;
-                updater.ClearAll().map_err(|e| e.to_string())?;
+                let updater = controls
+                    .DisplayUpdater()
+                    .map_err(|e| format!("DisplayUpdater: {e}"))?;
+                updater.ClearAll().map_err(|e| format!("ClearAll: {e}"))?;
                 updater
                     .SetType(MediaPlaybackType::Music)
-                    .map_err(|e| e.to_string())?;
-                let music = updater.MusicProperties().map_err(|e| e.to_string())?;
+                    .map_err(|e| format!("SetType: {e}"))?;
+                let music = updater
+                    .MusicProperties()
+                    .map_err(|e| format!("MusicProperties: {e}"))?;
                 music
                     .SetTitle(&HSTRING::from(&track.title))
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| format!("SetTitle: {e}"))?;
                 music
                     .SetArtist(&HSTRING::from(&track.artist))
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| format!("SetArtist: {e}"))?;
                 music
                     .SetAlbumTitle(&HSTRING::from(&track.album))
-                    .map_err(|e| e.to_string())?;
+                    .map_err(|e| format!("SetAlbumTitle: {e}"))?;
                 let cover = track
                     .cover
                     .url(nons_music_adapter_sdk::cover::CoverSize::Exlarge);
-                let thumbnail = if cover.starts_with("https://") || cover.starts_with("http://") {
-                    let uri = Uri::CreateUri(&HSTRING::from(cover)).map_err(|e| e.to_string())?;
-                    RandomAccessStreamReference::CreateFromUri(&uri).map_err(|e| e.to_string())?
+                // A missing cover is valid metadata, not a file with an empty path.
+                if let Some(thumbnail) = thumbnail(cover)? {
+                    updater
+                        .SetThumbnail(&thumbnail)
+                        .map_err(|e| format!("SetThumbnail: {e}"))?;
                 } else {
-                    let file =
-                        windows::Storage::StorageFile::GetFileFromPathAsync(&HSTRING::from(cover))
-                            .map_err(|e| e.to_string())?
-                            .join()
-                            .map_err(|e| e.to_string())?;
-                    RandomAccessStreamReference::CreateFromFile(&file).map_err(|e| e.to_string())?
-                };
-                updater
-                    .SetThumbnail(&thumbnail)
-                    .map_err(|e| e.to_string())?;
-                updater.Update().map_err(|e| e.to_string())?;
+                    log::info!(target: "nons::media", "operation=thumbnail outcome=absent track_key={}", track.key);
+                }
+                updater.Update().map_err(|e| format!("Update: {e}"))?;
                 self.last_key = Some(track.key.clone());
             }
         } else if self.last_key.take().is_some() {
-            let updater = controls.DisplayUpdater().map_err(|e| e.to_string())?;
-            updater.ClearAll().map_err(|e| e.to_string())?;
-            updater.Update().map_err(|e| e.to_string())?;
+            let updater = controls
+                .DisplayUpdater()
+                .map_err(|e| format!("DisplayUpdater: {e}"))?;
+            updater.ClearAll().map_err(|e| format!("ClearAll: {e}"))?;
+            updater.Update().map_err(|e| format!("Update: {e}"))?;
         }
-        let timeline =
-            SystemMediaTransportControlsTimelineProperties::new().map_err(|e| e.to_string())?;
+        let timeline = SystemMediaTransportControlsTimelineProperties::new()
+            .map_err(|e| format!("SystemMediaTransportControlsTimelineProperties::new: {e}"))?;
         let span = |ms: u64| TimeSpan {
             Duration: ms.min(i64::MAX as u64 / 10_000) as i64 * 10_000,
         };
-        timeline.SetStartTime(span(0)).map_err(|e| e.to_string())?;
+        timeline
+            .SetStartTime(span(0))
+            .map_err(|e| format!("SetStartTime: {e}"))?;
         timeline
             .SetEndTime(span(state.duration_ms))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("SetEndTime: {e}"))?;
         timeline
             .SetMinSeekTime(span(0))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("SetMinSeekTime: {e}"))?;
         timeline
             .SetMaxSeekTime(span(state.duration_ms))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("SetMaxSeekTime: {e}"))?;
         timeline
             .SetPosition(span(state.position_ms.min(state.duration_ms)))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("SetPosition: {e}"))?;
         controls
             .UpdateTimelineProperties(&timeline)
-            .map_err(|e| e.to_string())
+            .map_err(|e| format!("UpdateTimelineProperties: {e}"))
+    }
+}
+
+#[cfg(windows)]
+fn thumbnail(
+    cover: &str,
+) -> AppResult<Option<windows::Storage::Streams::RandomAccessStreamReference>> {
+    use windows::{core::HSTRING, Foundation::Uri, Storage::Streams::RandomAccessStreamReference};
+    if cover.is_empty() {
+        return Ok(None);
+    }
+    let thumbnail = if cover.starts_with("https://") || cover.starts_with("http://") {
+        let uri = Uri::CreateUri(&HSTRING::from(cover)).map_err(|e| format!("CreateUri: {e}"))?;
+        RandomAccessStreamReference::CreateFromUri(&uri)
+            .map_err(|e| format!("CreateFromUri: {e}"))?
+    } else {
+        let file = windows::Storage::StorageFile::GetFileFromPathAsync(&HSTRING::from(cover))
+            .map_err(|e| format!("GetFileFromPathAsync: {e}"))?
+            .join()
+            .map_err(|e| format!("GetFileFromPathAsync.await: {e}"))?;
+        RandomAccessStreamReference::CreateFromFile(&file)
+            .map_err(|e| format!("CreateFromFile: {e}"))?
+    };
+    Ok(Some(thumbnail))
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::thumbnail;
+
+    #[test]
+    fn missing_cover_is_valid_metadata() {
+        assert!(thumbnail("").unwrap().is_none());
+    }
+
+    #[test]
+    fn invalid_cover_preserves_windows_api_and_hresult() {
+        use windows::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_MULTITHREADED};
+        unsafe { CoInitializeEx(None, COINIT_MULTITHREADED).ok().unwrap() };
+        let directory = tempfile::tempdir().unwrap();
+        let missing = directory.path().join("missing-cover.png");
+        let error = thumbnail(missing.to_str().unwrap()).unwrap_err();
+        assert!(error.starts_with("GetFileFromPathAsync"), "{error}");
+        assert!(error.contains("0x80070002"), "{error}");
+        unsafe { CoUninitialize() };
     }
 }
 
