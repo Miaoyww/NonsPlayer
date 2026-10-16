@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import { runInNewContext } from 'node:vm'
 import ts from 'typescript'
 
-function harness({ intersecting = true } = {}) {
+function harness({ intersecting = true, tauri = true } = {}) {
   const slots = [],
     effects = [],
     requests = [],
@@ -46,7 +46,7 @@ function harness({ intersecting = true } = {}) {
         }
       }
     },
-    '@tauri-apps/api/core': { isTauri: () => true },
+    '@tauri-apps/api/core': { isTauri: () => tauri },
     '@/lib/player': {
       coverSource: (cover) => cover,
       nativeCall: (command, args) =>
@@ -142,7 +142,7 @@ test('list covers still wait for intersection before requesting images', () => {
   assert.equal(h.requests.length, 0)
 })
 
-test('the actual Cover component recovers from a cached image error', async () => {
+test('the actual Cover component shows a placeholder after its only cached image fails', async () => {
   const h = harness()
   h.renderCover(cover)
   h.renderCover(cover)
@@ -151,10 +151,10 @@ test('the actual Cover component recovers from a cached image error', async () =
   const image = h.renderCover(cover)
   assert.equal(image.type, 'img')
   image.props.onError()
-  assert.equal(h.renderCover(cover).props.src, cover)
+  assert.equal(h.renderCover(cover), undefined)
 })
 
-test('cached image load errors invalidate the broken entry and fall back to the original URL', async () => {
+test('cached image load errors invalidate both caches and never expose a remote URL', async () => {
   const h = harness()
   h.render(cover)
   h.requests[0].resolve('data:image/jpeg;base64,broken')
@@ -163,7 +163,8 @@ test('cached image load errors invalidate the broken entry and fall back to the 
   assert.match(image.source, /^data:/)
   image.onError()
   image = h.render(cover)
-  assert.equal(image.source, cover)
+  assert.equal(image.source, undefined)
+  assert.equal(image.pending, false)
   assert.equal(h.deleted.length, 1)
   assert.ok(h.deleted[0].includes(cover))
   image.onError()
@@ -177,12 +178,13 @@ test('cached image load errors invalidate the broken entry and fall back to the 
   assert.equal(h.requests.at(-1).args.url, cover)
 })
 
-test('request errors fall back, reactivation retries, and late previous-cover responses are ignored', async () => {
+test('request errors stop, reactivation retries, and late previous-cover responses are ignored', async () => {
   const h = harness()
   h.render(cover)
   h.requests[0].reject(Error('offline'))
   await settle()
-  assert.equal(h.render(cover).source, cover)
+  assert.equal(h.render(cover).source, undefined)
+  assert.equal(h.render(cover).pending, false)
   h.render(cover, false)
   h.render(cover)
   const next = `${cover}?new=1`
@@ -218,7 +220,7 @@ test('Cover keeps its skeleton until image load, shows it again for a new source
   h.requests[1].reject(Error('offline'))
   await settle()
   image = h.renderCover(next)
-  image.props.onError()
+  assert.equal(image, undefined)
   tree = h.renderCover(next, true)
   assert.equal(tree.props.children[0], false)
   assert.equal(h.requests.length, 2)
@@ -259,9 +261,9 @@ test('a card degrades to small then original, invalidates decoded errors and nev
   original.resolve('data:image/jpeg;base64,also-broken')
   await settle()
   h.render(variants).onError()
-  assert.equal(h.render(variants).source, variants.original)
-  h.render(variants).onError()
   assert.equal(h.render(variants).source, undefined)
+  assert.equal(h.render(variants).pending, false)
+  h.render(variants).onError()
   assert.equal(h.requests.filter((r) => r.command === 'runtime_cover').length, 3)
   assert.equal(h.deleted.length, 2)
 })
@@ -279,4 +281,45 @@ test('size changes ignore older in-flight images and original failures can recov
   h.requests[2].resolve('data:image/jpeg;base64,media')
   await settle()
   assert.equal(h.render(variants, true, 'original').source, 'data:image/jpeg;base64,media')
+})
+
+test('desktop QQ covers exhaust host candidates without falling back through browser CORS', async () => {
+  const h = harness()
+  const original = 'https://y.gtimg.cn/music/photo_new/T002R800x800M0000026VO7R304gmO.jpg'
+  const qq = { ...variants, small: original.replace('800x800', '150x150'), original }
+  h.render(qq, true, 'small')
+  h.requests[0].reject(Error('HTTP 404'))
+  await settle()
+  assert.equal(h.render(qq, true, 'small').source, undefined)
+  assert.equal(h.requests[1].args.url, original)
+  h.requests[1].reject(Error('source unavailable'))
+  await settle()
+  for (let i = 0; i < 5; i++) {
+    const result = h.render(qq, true, 'small')
+    assert.equal(result.source, undefined, 'AMLL must never receive a cross-origin fallback')
+    assert.equal(result.pending, false)
+    result.onError()
+  }
+  assert.equal(h.requests.length, 2, 'each unique host candidate is attempted only once')
+})
+
+test('host authorization rejection does not bypass the host even for display-only covers', async () => {
+  const h = harness()
+  h.renderCover(cover, true, { loading: 'eager' })
+  h.requests[0].reject(Error('permissionDenied'))
+  await settle()
+  const tree = h.renderCover(cover, true, { loading: 'eager' })
+  assert.equal(
+    tree.props.children.some((child) => child?.type === 'img'),
+    false
+  )
+  assert.equal(h.requests.length, 1)
+})
+
+test('non-Tauri previews retain display-only URLs without claiming a native cache hit', () => {
+  const h = harness({ tauri: false })
+  assert.equal(h.render(cover).source, cover)
+  assert.equal(h.requests.length, 0)
+  h.render(cover).onError()
+  assert.equal(h.render(cover).source, undefined)
 })

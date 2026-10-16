@@ -45,7 +45,7 @@ export function useCoverImageSource(
         .catch(() => {
           if (disposed) return
           if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
-          else setLoaded({ identity, url, source: coverSource(url), cached: false })
+          else setLoaded({ identity, url, source: undefined, cached: false })
         })
     })
     return () => {
@@ -68,7 +68,6 @@ export function useCoverImageSource(
       void nativeCall('runtime_cover_invalidate', { url }).catch(() => {})
     }
     if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
-    else if (current?.cached) setLoaded({ identity, url, source: coverSource(url), cached: false })
     else setLoaded({ identity, url, source: undefined, cached: false })
   }
   return { source, onError, pending: visible && remote && isTauri() && !current }

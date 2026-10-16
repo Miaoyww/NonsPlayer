@@ -18,6 +18,7 @@ export function AlbumBackground({
   enabled?: boolean
 }) {
   const host = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
   const renderer = useRef<BackgroundRender<MeshGradientRenderer> | null>(null)
   const activeRef = useRef(active)
   activeRef.current = active
@@ -25,11 +26,19 @@ export function AlbumBackground({
   const { backgroundSpeed } = useLyricsSettings()
   const [visible, setVisible] = useState(document.visibilityState !== 'hidden')
   const [ready, setReady] = useState(false)
+  const [loadedImage, setLoadedImage] = useState<HTMLImageElement>()
   const { source: album, onError } = useCoverImageSource(
     cover,
     visible && active && enabled,
     'small'
   )
+  const albumImage =
+    loadedImage === imageRef.current && loadedImage?.getAttribute('src') === album
+      ? loadedImage
+      : undefined
+  useEffect(() => {
+    setLoadedImage((image) => (image?.getAttribute('src') === album ? image : undefined))
+  }, [album])
   useEffect(() => {
     const changed = () => setVisible(document.visibilityState !== 'hidden')
     document.addEventListener('visibilitychange', changed)
@@ -37,7 +46,7 @@ export function AlbumBackground({
   }, [])
   useEffect(() => {
     setReady(false)
-    if (!host.current || !album || !visible || !enabled) return
+    if (!host.current || !albumImage || !visible || !active || !enabled) return
     let disposed = false
     let background: BackgroundRender<MeshGradientRenderer> | undefined
     // Keep shader compilation and canvas creation out of the slide-in animation.
@@ -52,7 +61,8 @@ export function AlbumBackground({
         element.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;'
         host.current.appendChild(element)
         renderer.current = background
-        await background.setAlbum(album)
+        // Reuse the successfully loaded fallback image, so AMLL does not fetch/retry separately.
+        await background.setAlbum(albumImage)
         if (!disposed) setReady(true)
       })
       .catch(() => {
@@ -66,7 +76,7 @@ export function AlbumBackground({
       background?.dispose()
       renderer.current = null
     }
-  }, [album, visible, enabled])
+  }, [albumImage, visible, active, enabled])
   useEffect(() => {
     const background = renderer.current
     if (!background) return
@@ -83,9 +93,18 @@ export function AlbumBackground({
     >
       {album && (
         <img
+          key={album}
+          ref={imageRef}
           src={album}
           alt=""
-          onError={onError}
+          onLoad={(event) => {
+            if (event.currentTarget === imageRef.current) setLoadedImage(event.currentTarget)
+          }}
+          onError={(event) => {
+            if (event.currentTarget !== imageRef.current) return
+            setLoadedImage(undefined)
+            onError()
+          }}
           className="absolute size-full scale-125 object-cover opacity-70 blur-3xl"
         />
       )}
