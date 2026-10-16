@@ -21,7 +21,7 @@ export async function rpc(module, method, param, requiresAuth = false) {
     return authenticated(() => adapterMusicu(authHttp, auth, module, method, param))
   }
   const request = { module, method, param }
-  const send = async (comm) => {
+  const send = async (comm, target = request) => {
     const response = await hostFetch('https://u.y.qq.com/cgi-bin/musicu.fcg', {
       method: 'POST',
       headers: {
@@ -29,7 +29,7 @@ export async function rpc(module, method, param, requiresAuth = false) {
         Cookie: 'tmeLoginType=-1;',
         'User-Agent': 'okhttp/3.14.9'
       },
-      body: JSON.stringify({ comm, request })
+      body: JSON.stringify({ comm, request: target })
     })
     if (!response.ok) fail(response.status === 429 ? 'rateLimited' : 'network')
     return response.json()
@@ -42,24 +42,35 @@ export async function rpc(module, method, param, requiresAuth = false) {
     uid: '0',
     udid: '0'
   })
+  let desktopSearch = false
   if (
     module === 'music.search.SearchCgiService' &&
     method === 'DoSearchForQQMusicLite' &&
     (value.code === 2001 || (value.code === 0 && value.request?.code === 2001))
   ) {
-    // The client context is intermittently rejected while the same public
-    // search works without it. Retry once within the original Host deadline.
+    // Lite can reject both client contexts with 2001. Try the public desktop
+    // search once, retaining the keyword, category and page within this deadline.
     try {
       hostCall(
         'diagnostic.report',
         JSON.stringify({
-          stage: 'search.retry-public',
+          stage: 'search.retry-desktop',
           class: 'UpstreamRejected',
           code: 'upstream-2001'
         })
       )
     } catch {}
-    value = await send(undefined)
+    desktopSearch = true
+    value = await send(undefined, {
+      module,
+      method: 'DoSearchForQQMusicDesktop',
+      param: {
+        query: param.query,
+        search_type: param.search_type,
+        num_per_page: param.num_per_page,
+        page_num: param.page_num
+      }
+    })
   }
   // This endpoint returns request code 500 plus an empty track for absent numeric IDs.
   if (
@@ -73,7 +84,26 @@ export async function rpc(module, method, param, requiresAuth = false) {
     const code = value.request?.code ?? value.code
     fail('sourceUnavailable', Number.isSafeInteger(code) ? `rpc.upstream-${code}` : 'rpc.upstream')
   }
-  return value.request.data
+  const data = value.request.data
+  if (!desktopSearch) return data
+  const keys = [
+    ['song', 'item_song'],
+    ['singer', 'singer'],
+    ['album', 'item_album'],
+    ['songlist', 'item_songlist']
+  ][param.search_type]
+  const items = keys && data?.body?.[keys[0]]?.list
+  if (!Array.isArray(items)) fail('invalidData', 'search.desktop-data')
+  return {
+    ...data,
+    body: {
+      [keys[1]]: items.map((item) => ({
+        ...item,
+        albumMid: item.albumMID ?? item.albumMid,
+        picurl: item.imgurl ?? item.picurl
+      }))
+    }
+  }
 }
 async function legacy(path, params) {
   const url = new URL(path, 'https://c.y.qq.com')

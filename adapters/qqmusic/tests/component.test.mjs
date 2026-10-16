@@ -44,6 +44,7 @@ async function component({
   searchRejections = 0,
   searchFailureCode = 2001,
   searchFailureLevel = 'root',
+  rejectDesktopSearch = false,
   resource = 'full',
   flacSize = 4096,
   songDetail = fixtureTrack,
@@ -199,7 +200,34 @@ async function component({
       }
       if (url.hostname === 'u.y.qq.com') {
         const sent = JSON.parse(new TextDecoder().decode(request.body))
-        if (sent.request?.method === 'DoSearchForQQMusicLite' && searchCalls++ < searchRejections)
+        if (sent.request?.method === 'DoSearchForQQMusicDesktop') {
+          const kinds = ['song', 'singer', 'album', 'songlist']
+          const values = [
+            fixtureTrack,
+            { singerMID: 'ArtistMID', singerName: 'Artist' },
+            { albumMID: 'AlbumMID', albumName: 'Album' },
+            { dissid: 123, dissname: 'Playlist', imgurl: 'https://y.gtimg.cn/playlist.jpg' }
+          ]
+          body = {
+            code: 0,
+            request: {
+              code: 0,
+              data: {
+                body: {
+                  [kinds[sent.request.param.search_type]]: {
+                    list: [values[sent.request.param.search_type]]
+                  }
+                },
+                meta: { sum: 100 }
+              }
+            }
+          }
+        }
+        if (
+          (sent.request?.method === 'DoSearchForQQMusicLite' ||
+            (rejectDesktopSearch && sent.request?.method === 'DoSearchForQQMusicDesktop')) &&
+          searchCalls++ < searchRejections
+        )
           body =
             searchFailureLevel === 'root'
               ? { code: searchFailureCode }
@@ -392,12 +420,44 @@ for (const searchFailureLevel of ['root', 'request'])
       )
       assert.ok(first.comm)
       assert.equal(retry.comm, undefined)
-      assert.deepEqual(retry.request, first.request)
+      assert.equal(retry.request.method, 'DoSearchForQQMusicDesktop')
+      for (const key of ['query', 'search_type', 'num_per_page', 'page_num'])
+        assert.equal(retry.request.param[key], first.request.param[key])
       assert.ok(
         fixture.diagnostics.some(
-          (value) => value.stage === 'search.retry-public' && value.code === 'upstream-2001'
+          (value) => value.stage === 'search.retry-desktop' && value.code === 'upstream-2001'
         )
       )
+    } finally {
+      fixture.instance.shutdown()
+    }
+  })
+
+for (const [kind, expected] of [
+  ['track', 'SongMID'],
+  ['artist', 'ArtistMID'],
+  ['album', 'AlbumMID'],
+  ['playlist', '123']
+])
+  test(`actual Component recovers rejected Lite ${kind} search through Desktop while preserving its page`, async () => {
+    const fixture = await component({ searchRejections: 2 })
+    try {
+      const scope = JSON.stringify(['search', kind, '烂泥'])
+      const response = fixture.call('music.business', {
+        operation: 'search',
+        kind,
+        keyword: '烂泥',
+        page: { limit: 5, cursor: JSON.stringify({ scope, limit: 5, offset: 5 }) }
+      })
+      assert.equal(response.status, 'ok', JSON.stringify(response))
+      assert.equal(response.data.data.items[0].reference.id, expected)
+      assert.equal(response.data.data.items[0].reference.source, 'qqmusic')
+      assert.equal(JSON.parse(response.data.data.nextCursor).offset, 6)
+      assert.equal(fixture.requests.length, 2)
+      const retry = JSON.parse(new TextDecoder().decode(fixture.requests[1].body))
+      assert.equal(retry.request.method, 'DoSearchForQQMusicDesktop')
+      assert.equal(retry.request.param.page_num, 2)
+      assert.equal(retry.request.param.num_per_page, 5)
     } finally {
       fixture.instance.shutdown()
     }
@@ -408,7 +468,11 @@ for (const [searchFailureCode, attempts] of [
   [500, 1]
 ])
   test(`actual Component bounds search retries and preserves upstream ${searchFailureCode} failure`, async () => {
-    const fixture = await component({ searchRejections: 3, searchFailureCode })
+    const fixture = await component({
+      searchRejections: 3,
+      searchFailureCode,
+      rejectDesktopSearch: true
+    })
     try {
       const response = fixture.call('music.business', {
         operation: 'search',
