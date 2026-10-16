@@ -11,6 +11,7 @@ use player::{Command, Player};
 use std::{path::PathBuf, sync::Arc};
 use tauri::{Manager, State};
 
+mod cover_export;
 mod telemetry;
 #[cfg(desktop)]
 mod updates;
@@ -985,6 +986,7 @@ pub fn run() {
             remove_music_folder,
             rescan_music_folders,
             runtime_cover,
+            cover_export::cover_export,
             runtime_cover_access,
             runtime_cover_invalidate,
             play_queue,

@@ -11,6 +11,7 @@ import { AudioLines, Languages } from 'lucide-react'
 import { errorText, getPlayer, usePlayer, type Lyrics, type Track } from '@/lib/player'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
+import { CoverContextMenu } from '@/features/playback/cover-context-menu'
 import { AlbumBackground } from '@/features/lyrics/album-background'
 import { NowPlayingControls } from '@/features/playback/now-playing-controls'
 import { NowPlayingMenu } from '@/features/playback/now-playing-menu'
@@ -294,14 +295,16 @@ export default function LyricsView({
             className={`now-playing-layout relative min-h-0 flex-1 ${showLyrics ? 'has-lyrics' : ''}`}
           >
             <div className="now-playing-details flex min-h-0 min-w-0 flex-col justify-center gap-5 overflow-y-auto">
-              <div className="now-playing-cover-slot">
-                <Cover
-                  size="original"
-                  cover={track?.cover}
-                  loading="eager"
-                  className="now-playing-cover aspect-square rounded-xl shadow-2xl"
-                />
-              </div>
+              <CoverContextMenu cover={track?.cover} title={track?.title ?? '封面'}>
+                <div className="now-playing-cover-slot">
+                  <Cover
+                    size="original"
+                    cover={track?.cover}
+                    loading="eager"
+                    className="now-playing-cover aspect-square rounded-xl shadow-2xl"
+                  />
+                </div>
+              </CoverContextMenu>
               <div className="flex shrink-0 items-start justify-between gap-4">
                 <div className="min-w-0">
                   <h1 className="truncate text-xl font-semibold tracking-tight">
