@@ -96,8 +96,10 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          NONS_TELEMETRY_INGEST_KEY: ${{ secrets.NONS_TELEMETRY_INGEST_KEY }}
         run: |
           if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw 'Missing TAURI_SIGNING_PRIVATE_KEY' }
+          if (-not $env:NONS_TELEMETRY_INGEST_KEY) { throw 'Missing NONS_TELEMETRY_INGEST_KEY' }
           pnpm --dir app build:release
 
       - name: Verify bundled audio runtime

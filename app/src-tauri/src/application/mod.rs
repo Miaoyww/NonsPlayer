@@ -11,6 +11,7 @@ use player::{Command, Player};
 use std::{path::PathBuf, sync::Arc};
 use tauri::{Manager, State};
 
+mod telemetry;
 #[cfg(desktop)]
 mod updates;
 
@@ -757,6 +758,9 @@ pub fn run() {
                 std::fs::write(&fallback, include_bytes!("../../icons/128x128.png"))?;
             }
             let store = Arc::new(storage::Store::open(&data.join("nons.sqlite3"))?);
+            let telemetry = telemetry::Telemetry::new(store.clone())?;
+            app.manage(telemetry.clone());
+            let launch_time = time::OffsetDateTime::now_utc().format(&time::format_description::well_known::Rfc3339)?;
             if store.setting("localIndexVersion")?.as_deref() != Some("1") {
                 store.rebuild_local_index()?;
                 store.set_setting("localIndexVersion", "1")?;
@@ -829,7 +833,7 @@ pub fn run() {
                 .inner()
                 .clone();
             let component_app = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
+            let adapters_startup = tauri::async_runtime::spawn(async move {
                 use tauri::Emitter;
                 let result = match component_packages {
                   Ok(packages) => crate::music::bundled::load_components(
@@ -850,7 +854,7 @@ pub fn run() {
             });
             #[cfg(feature = "plugin-probe")]
             plugins::probe::start(plugin_manager.clone());
-            tauri::async_runtime::spawn(async move {
+            let plugins_startup = tauri::async_runtime::spawn(async move {
                 plugin_manager.startup().await;
             });
             app.manage(Backend {
@@ -867,6 +871,11 @@ pub fn run() {
                     .redirect(reqwest::redirect::Policy::none())
                     .build()?,
                 cover_requests: tokio::sync::Semaphore::new(8),
+            });
+            let telemetry_app = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let _ = tokio::join!(adapters_startup, plugins_startup);
+                telemetry.report(telemetry_app, launch_time).await;
             });
             #[cfg(desktop)]
             {
@@ -885,6 +894,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            telemetry::telemetry_enabled,
+            telemetry::set_telemetry_enabled,
             #[cfg(desktop)]
             updates::update_status,
             #[cfg(desktop)]

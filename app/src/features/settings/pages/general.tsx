@@ -6,6 +6,7 @@ import { useFontSettings } from '@/features/settings/use-font-settings'
 import { CloseBehaviorSelect } from '@/features/settings/close-behavior-select'
 import { AutostartSwitch } from '@/features/settings/autostart-switch'
 import { isAndroid } from '@/lib/platform'
+import { TelemetrySwitch } from '../telemetry-switch'
 
 const themes = [
   { value: 'light', label: '浅色', icon: Sun },
@@ -57,6 +58,7 @@ export function GeneralPage({
       </SettingsCard>
       {!isAndroid() && <CloseBehaviorSelect />}
       {!isAndroid() && <AutostartSwitch />}
+      <TelemetrySwitch />
     </div>
   )
 }
