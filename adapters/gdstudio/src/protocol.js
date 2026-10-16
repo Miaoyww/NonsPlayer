@@ -1,7 +1,15 @@
-import { parseFromTokenizer } from 'music-metadata'
-import { fromBuffer } from 'strtok3/core'
-
-export const platforms = { netease: 'netease' }
+export const platforms = {
+  netease: 'netease',
+  joox: 'joox',
+  kuwo: 'kuwo',
+  tidal: 'tidal',
+  qobuz: 'qobuz',
+  applemusic: 'apple',
+  bilibili: 'bilibili',
+  ytmusic: 'ytmusic',
+  embeat: 'embeat',
+  qqmusic: 'tencent'
+}
 export function fail(code, diagnostic = 'validation') {
   throw Object.assign(new Error(code), { code, diagnostic })
 }
@@ -30,19 +38,22 @@ const lossless = new Set([
   'master',
   'atmos'
 ])
-export function requestedQuality(quality, downgrade) {
-  if (lossless.has(quality) && !downgrade) fail('permissionDenied')
+export function requestedQuality(quality) {
   if (!high.has(quality) && !['standard', '128k', 'low'].includes(quality)) fail('unsupported')
+  if (lossless.has(quality))
+    return ['hires', 'flac24bit', 'master', 'jymaster'].includes(quality) ? 'hires' : 'lossless'
   return high.has(quality) ? '320k' : '128k'
 }
 export function apiRequest(request) {
-  const platform = platforms[request.track?.reference?.source]
+  const source = request.track?.reference?.source
+  const platform = Object.hasOwn(platforms, source) ? platforms[source] : null
   const id = request.track?.reference?.id
   if (!platform || typeof id !== 'string' || !id || id.length > 1024) fail('invalidData')
-  const quality = requestedQuality(request.preferredQuality, request.allowDowngrade)
+  const quality = requestedQuality(request.preferredQuality)
   return {
     quality,
-    url: `https://music-api.gdstudio.xyz/api.php?types=url&source=${platform}&id=${encodeURIComponent(id)}&br=${Number.parseInt(quality)}`
+    payload: id,
+    url: `https://music.gdstudio.org/api.php?types=url&source=${platform}&id=${encodeURIComponent(id)}&br=${lossless.has(quality) ? 999 : Number.parseInt(quality)}`
   }
 }
 export function decodeResponse(status, body) {
@@ -51,12 +62,13 @@ export function decodeResponse(status, body) {
   if (!body || typeof body !== 'object') fail('invalidData')
   if (body.isPreview === true || body.preview === true) fail('permissionDenied')
   if (typeof body.url !== 'string') fail('invalidData')
-  if (!body.url) fail('notFound')
+  if (!body.url || body.br === -1 || body.br === '-1' || body.size === 0 || body.size === '0')
+    fail('notFound')
   return body.url
 }
 export function searchRequest(input) {
   if (
-    input.platform !== 'netease' ||
+    !Object.hasOwn(platforms, input.platform) ||
     typeof input.keyword !== 'string' ||
     !input.keyword.trim() ||
     input.keyword.length > 1024
@@ -76,14 +88,18 @@ export function searchRequest(input) {
   return {
     page,
     limit,
-    url: `https://music-api.gdstudio.xyz/api.php?types=search&source=netease&name=${encodeURIComponent(input.keyword.trim())}&count=${limit}&pages=${page}`
+    platform: input.platform,
+    payload: input.keyword.trim(),
+    // JOOX and YouTube ignore count and return fixed-size pages. A cursor
+    // addresses an offset inside those upstream pages, so no rows are lost.
+    url: `https://music.gdstudio.org/api.php?types=search&source=${platforms[input.platform]}&name=${encodeURIComponent(input.keyword.trim())}&count=${input.platform === 'joox' ? 30 : input.platform === 'ytmusic' ? 20 : limit}&pages=${input.platform === 'joox' || input.platform === 'ytmusic' ? Math.floor(((page - 1) * limit) / (input.platform === 'joox' ? 30 : 20)) + 1 : page}`
   }
 }
-export function decodeSearch(body, page, limit) {
-  if (!Array.isArray(body) || body.length > limit) fail('invalidData')
+export function decodeSearch(body, page, limit, platform = 'netease', more = false) {
+  if (!Array.isArray(body) || body.length > limit || body.length > 100) fail('invalidData')
   const items = body.map((item) => {
     if (
-      item.source !== 'netease' ||
+      item.source !== platforms[platform] ||
       typeof item.id !== 'string' ||
       !item.id ||
       typeof item.name !== 'string' ||
@@ -94,79 +110,25 @@ export function decodeSearch(body, page, limit) {
     )
       fail('invalidData')
     return {
-      reference: { source: 'netease', kind: 'track', id: item.id },
+      reference: { source: platform, kind: 'track', id: item.id },
       title: item.name,
       aliases: [],
       artist: item.artist.join(' / '),
       artists: item.artist.map((name) => ({ name, reference: null })),
       album: typeof item.album === 'string' ? item.album : '',
       albumReference: null,
-      durationMs: 0,
+      durationMs:
+        Number.isFinite(item.extra_data?.duration) &&
+        item.extra_data.duration > 0 &&
+        item.extra_data.duration < 86400
+          ? Math.round(item.extra_data.duration * 1000)
+          : 0,
       cover: '',
       associations: []
     }
   })
-  return { items, nextCursor: items.length === limit && page < 100 ? String(page + 1) : null }
-}
-/** A bounded prefix plus HTTP total length suffices for CBR or a trusted VBR
- * frame-count header. No whole-song download, guest cache or hand-written codec. */
-export async function inspectAudio(bytes, size, expectedDuration, requested, downgrade, tail) {
-  if (
-    !(bytes instanceof Uint8Array) ||
-    bytes.length > 65536 ||
-    !Number.isSafeInteger(size) ||
-    size <= 0 ||
-    size > 512 * 1024 * 1024 ||
-    bytes.length > size ||
-    expectedDuration <= 0
-  )
-    fail('invalidData', 'probe-input')
-  const tokenizer = fromBuffer(bytes, { fileInfo: { mimeType: 'audio/mpeg' } })
-  // BufferTokenizer otherwise substitutes the prefix length for the complete file.
-  tokenizer.fileInfo.size = size
-  if (!(tail instanceof Uint8Array) || tail.length !== Math.min(512, size))
-    fail('invalidData', 'probe-footer')
-  const end = fromBuffer(tail)
-  const peek = tokenizer.peekBuffer.bind(tokenizer)
-  // Expose only the downloaded prefix and footer to the library's tokenizer.
-  // Requests for missing middle bytes still fail instead of allocating the file.
-  tokenizer.peekBuffer = (target, options = {}) => {
-    const position = options.position ?? tokenizer.position
-    return position >= size - tail.length
-      ? end.peekBuffer(target, { ...options, position: position - (size - tail.length) })
-      : peek(target, options)
+  return {
+    items,
+    nextCursor: (more || items.length === limit) && page < 100 ? String(page + 1) : null
   }
-  let metadata
-  try {
-    metadata = await parseFromTokenizer(tokenizer, {
-      skipCovers: true,
-      skipPostHeaders: true,
-      duration: false
-    })
-  } catch (error) {
-    fail('invalidData', error.name)
-  }
-  const { format } = metadata
-  if (
-    format.container !== 'MPEG' ||
-    !format.codec?.includes('Layer 3') ||
-    !format.duration ||
-    !format.bitrate
-  )
-    fail(
-      'invalidData',
-      !format.duration
-        ? 'missing-duration'
-        : !format.bitrate
-          ? 'missing-bitrate'
-          : 'unsupported-format'
-    )
-  if (Math.abs(format.duration * 1000 - expectedDuration) > Math.max(2000, expectedDuration * 0.01))
-    fail('permissionDenied')
-  const bitrate = format.bitrate / 1000
-  const actual =
-    Math.abs(bitrate - 320) <= 12 ? '320k' : Math.abs(bitrate - 128) <= 8 ? '128k' : null
-  if (!actual || (!downgrade && Number.parseInt(actual) < Number.parseInt(requested)))
-    fail('permissionDenied')
-  return { actualQuality: actual, extent: { kind: 'full' }, expiresAtMs: null }
 }

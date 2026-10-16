@@ -2,14 +2,46 @@
   "resourceProvider": {
     "id": "gdstudio",
     "displayName": "GD音乐台",
-    "description": "为网易云音乐提供单曲搜索与备用播放音源，支持 MP3 128k／320k，不使用平台账号凭据。服务由 GD音乐台提供。",
+    "description": "通过 GD音乐台网站接口搜索十个来源并解析音频；可用性取决于上游，空资源明确失败。不使用平台账号凭据。",
     "contractVersion": 1,
-    "platforms": ["netease"],
-    "searchPlatforms": ["netease"],
+    "platforms": [
+      "netease",
+      "joox",
+      "kuwo",
+      "tidal",
+      "qobuz",
+      "applemusic",
+      "bilibili",
+      "ytmusic",
+      "embeat",
+      "qqmusic"
+    ],
+    "searchPlatforms": [
+      "netease",
+      "joox",
+      "kuwo",
+      "tidal",
+      "qobuz",
+      "applemusic",
+      "bilibili",
+      "ytmusic",
+      "embeat",
+      "qqmusic"
+    ],
     "coverHosts": []
   },
   "permissions": {
-    "httpHosts": ["music-api.gdstudio.xyz", "*.music.126.net", "*.music.163.com"],
+    "httpHosts": [
+      "music.gdstudio.xyz",
+      "music.gdstudio.org",
+      "music-proxy.gdstudio.org",
+      "*.music.126.net",
+      "*.music.163.com",
+      "*.music.joox.com",
+      "*.kuwo.cn",
+      "*.tc.qq.com",
+      "api.bilibili.com"
+    ],
     "websocketHosts": [],
     "system": true,
     "state": false,

@@ -23,7 +23,17 @@ async fn gdstudio_component_resolves_under_native_host_budget() {
             request: host_io::Request,
         ) -> Pin<Box<dyn Future<Output = AppResult<host_io::Response>> + Send + '_>> {
             Box::pin(async move {
-                if request.url.starts_with("https://music-api.gdstudio.xyz/") {
+                if request.url == "https://music.gdstudio.org/time" {
+                    return Ok(host_io::Response {
+                        status: 200,
+                        headers: vec![],
+                        body: b"1792158848".to_vec(),
+                    });
+                }
+                if request
+                    .url
+                    .starts_with("https://music.gdstudio.org/api.php")
+                {
                     assert!(!request.headers.iter().any(|h| h.name == "X-Request-Key"));
                     return Ok(host_io::Response {
                         status: 200,
@@ -33,11 +43,17 @@ async fn gdstudio_component_resolves_under_native_host_budget() {
                 }
                 assert!(!request.headers.iter().any(|h| h.name == "X-Request-Key"));
                 let total = 6890 * 1044;
-                let footer = request.headers.iter().any(|h| h.value == "bytes=-512");
-                let (range, body) = if footer {
+                let offset = request
+                    .headers
+                    .iter()
+                    .find_map(|h| h.value.strip_prefix("bytes="))
+                    .and_then(|r| r.split('-').next())
+                    .and_then(|v| v.parse::<usize>().ok())
+                    .unwrap();
+                let (range, body) = if offset > 0 {
                     (
-                        format!("bytes {}-{}/{total}", total - 512, total - 1),
-                        vec![0; 512],
+                        format!("bytes {}-{}/{total}", offset, total - 1),
+                        vec![0; total - offset],
                     )
                 } else {
                     let mut body = vec![0; 65536];
@@ -229,6 +245,79 @@ async fn gdstudio_component_live_search_and_resource() {
         .adapters
         .register_resource_provider(Arc::new(adapter))
         .unwrap();
+    if std::env::var("NONS_GDSTUDIO_ALL").as_deref() == Ok("1") {
+        for platform in &descriptor.search_platforms {
+            let page = music
+                .adapters
+                .search_resource_provider(
+                    &descriptor.id,
+                    &ResourceSearchRequest {
+                        platform: platform.clone(),
+                        keyword: "Hello".into(),
+                        page: PageRequest {
+                            cursor: None,
+                            limit: 2,
+                        },
+                    },
+                )
+                .await;
+            match page {
+                Ok(page) => {
+                    println!(
+                        "GD platform={} search={}",
+                        platform.as_str(),
+                        page.items.len()
+                    );
+                    for item in page.items.into_iter().take(2) {
+                        let track = crate::model::Track::from_music(item).unwrap();
+                        let result = music
+                            .resolve_selected(
+                                track,
+                                "lossless",
+                                true,
+                                1,
+                                Some(crate::music::service::PlaybackSelection {
+                                    provider: Some("gdstudio".into()),
+                                    track: None,
+                                }),
+                            )
+                            .await;
+                        match result {
+                            Ok((_, Some(ticket), Some(source))) => {
+                                if source.provider != "gdstudio" {
+                                    println!(
+                                        "GD platform={} resource=failed fallback={}",
+                                        platform.as_str(),
+                                        source.provider
+                                    );
+                                    continue;
+                                }
+                                assert_eq!(source.platform, *platform);
+                                assert!(ticket.check(1).is_ok());
+                                println!(
+                                    "GD platform={} resource=verified quality={}",
+                                    platform.as_str(),
+                                    ticket.quality()
+                                );
+                            }
+                            Ok(_) => panic!("Missing GD resource ticket"),
+                            Err(error) => println!(
+                                "GD platform={} resource=failed code={:?}",
+                                platform.as_str(),
+                                error
+                            ),
+                        }
+                    }
+                }
+                Err(error) => println!(
+                    "GD platform={} search=failed code={:?}",
+                    platform.as_str(),
+                    error.code
+                ),
+            }
+        }
+        return;
+    }
     let page = music
         .adapters
         .search_resource_provider(

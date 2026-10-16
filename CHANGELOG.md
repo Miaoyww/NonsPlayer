@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+- GD音乐台扩展至网易云、QQ音乐、JOOX、酷我、TIDAL、Qobuz、Apple Music、哔哩哔哩、YouTube Music 与 Embeat 的单曲搜索及资源解析；改用网站签名接口，实际可用性取决于上游与歌曲。
+- GD音乐台增加 FLAC 无损／高解析度与 AAC 资源校验，保留完整时长和音质降级检查；空地址、不可验证资源明确失败，修复 JOOX／YouTube 固定分页造成的结果遗漏。
+
 ## [1.4.0]
 
 ![NonsPlayer v1.4.0 自动更新与精准歌词发布头图](https://raw.githubusercontent.com/Miaoyww/NonsPlayer/v1.4.0/docs/release-assets/header-1.4.0.png)

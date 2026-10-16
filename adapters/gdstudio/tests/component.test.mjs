@@ -4,6 +4,8 @@ import { readFile, mkdir } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { platforms } from '../src/protocol.js'
+import { sign } from '../src/signing.js'
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(project, '../..')
 const tools = resolve(root, 'packages/wasm-crypto/node_modules/@bytecodealliance')
@@ -42,24 +44,36 @@ const transport = new Proxy(
   {
     httpRequest(value) {
       requests.push(value)
-      if (value.url.includes('types=search'))
+      if (value.url.endsWith('/time'))
+        return { status: 200, headers: [], body: Buffer.from('1792158848') }
+      if (value.url.includes('types=search')) {
+        const url = new URL(value.url)
+        const source = url.searchParams.get('source')
+        assert.equal(
+          url.searchParams.get('s'),
+          sign(url.searchParams.get('name'), '1792158848', url.hostname)
+        )
+        const width = source === 'joox' ? 30 : source === 'ytmusic' ? 20 : 1
+        const start = (Number(url.searchParams.get('pages')) - 1) * width
         return {
           status: 200,
           headers: [],
           body: Buffer.from(
-            JSON.stringify([
-              {
-                id: '347230',
-                url_id: '347230',
+            JSON.stringify(
+              Array.from({ length: width }, (_, i) => ({
+                id: width === 1 ? '347230' : String(start + i),
+                url_id: width === 1 ? '347230' : String(start + i),
                 name: 'Song',
                 artist: ['Artist'],
                 album: 'Album',
-                source: 'netease'
-              }
-            ])
+                source,
+                extra_data: { duration: 180 }
+              }))
+            )
           )
         }
-      if (value.url.includes('music-api.gdstudio.xyz'))
+      }
+      if (value.url.includes('music.gdstudio.org/api.php'))
         return {
           status: mode === 'offline' ? 503 : 200,
           headers: [],
@@ -74,9 +88,22 @@ const transport = new Proxy(
           )
         }
       assert(
-        !value.headers.some((h) => h.name.toLowerCase() === 'x-request-key'),
-        'API key never reaches the audio CDN'
+        !value.headers.some((h) =>
+          ['referer', 'origin', 'cookie', 'x-requested-with'].includes(h.name.toLowerCase())
+        ),
+        'Website headers never reach the audio CDN'
       )
+      const rangeHeader = value.headers.find((h) => h.name.toLowerCase() === 'range')?.value
+      if (rangeHeader && rangeHeader !== 'bytes=0-65535') {
+        const match = /^bytes=(\d+)-(\d+)$/.exec(rangeHeader)
+        const start = Number(match[1])
+        const end = Math.min(Number(match[2]), size - 1)
+        return {
+          status: 206,
+          headers: [{ name: 'content-range', value: `bytes ${start}-${end}/${size}` }],
+          body: new Uint8Array(end - start + 1)
+        }
+      }
       if (value.headers.some((h) => h.value === 'bytes=-512'))
         return {
           status: 206,
@@ -126,7 +153,8 @@ test('real Component describes an independent searchable provider for verified p
   const response = call('music.resource-descriptor')
   assert.equal(response.status, 'ok')
   assert.equal(response.data.id, 'gdstudio')
-  assert.deepEqual(response.data.searchPlatforms, ['netease'])
+  assert.equal(response.data.searchPlatforms.length, 10)
+  assert(response.data.searchPlatforms.includes('qqmusic'))
   const result = call('music.search-resources', {
     request: { platform: 'netease', keyword: 'Song', page: { cursor: null, limit: 1 } }
   })
@@ -146,10 +174,31 @@ test('real Component resolves and inspects full MP3, isolates API headers and re
   )
   assert.equal(response.data.metadata.actualQuality, '320k')
   assert.equal(response.data.metadata.extent.kind, 'full')
-  assert.equal(requests.length, 3)
+  assert(requests.length >= 3)
   assert.deepEqual(response.data.headers, [])
   mode = 'private'
   assert.equal(call('music.resolve-resource', { request }).data.code, 'permissionDenied')
   mode = 'offline'
   assert.equal(call('music.resolve-resource', { request }).data.code, 'network')
+})
+test('all ten sources retain canonical identities and fixed upstream pages do not lose rows', () => {
+  for (const platform of Object.keys(platforms)) {
+    requests.length = 0
+    const result = call('music.search-resources', {
+      request: { platform, keyword: 'Song', page: { cursor: null, limit: 1 } }
+    })
+    assert.equal(result.status, 'ok', platform)
+    assert.equal(result.data.items[0].reference.source, platform)
+    assert.equal(requests.filter((r) => r.url.endsWith('/time')).length, 1)
+  }
+  for (const platform of ['joox', 'ytmusic']) {
+    const result = call('music.search-resources', {
+      request: { platform, keyword: 'Song', page: { cursor: '2', limit: 17 } }
+    })
+    assert.equal(result.status, 'ok', JSON.stringify(result))
+    assert.deepEqual(
+      result.data.items.map((t) => t.reference.id),
+      Array.from({ length: 17 }, (_, i) => String(i + 17))
+    )
+  }
 })

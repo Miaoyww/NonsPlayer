@@ -1,12 +1,24 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import {
-  apiRequest,
-  decodeResponse,
-  inspectAudio,
-  searchRequest,
-  decodeSearch
-} from '../src/protocol.js'
+import { apiRequest, decodeResponse, searchRequest, decodeSearch } from '../src/protocol.js'
+import { inspectRemoteAudio } from '../src/audio.js'
+
+async function inspectAudio(prefix, size, duration, quality, downgrade) {
+  const { metadata } = await inspectRemoteAudio(
+    async (start, end) => {
+      const bytes = new Uint8Array(Math.min(end + 1, size) - start)
+      if (start === 0) {
+        if (prefix.length > 65536) return { bytes: prefix, size }
+        bytes.set(prefix)
+      }
+      return { bytes, size }
+    },
+    duration,
+    quality,
+    downgrade
+  )
+  return metadata
+}
 
 export function sample(kbps = 320, seconds = 180) {
   const frameSize = kbps === 320 ? 1044 : 417
@@ -22,14 +34,12 @@ test('platform IDs stay opaque and unsupported quality cannot silently downgrade
   }
   assert.equal(
     apiRequest(request).url,
-    'https://music-api.gdstudio.xyz/api.php?types=url&source=netease&id=opaque%2Fid%20%2B%E9%9B%AA&br=320'
+    'https://music.gdstudio.org/api.php?types=url&source=netease&id=opaque%2Fid%20%2B%E9%9B%AA&br=320'
   )
-  assert.throws(() => apiRequest({ ...request, preferredQuality: 'lossless' }), {
-    code: 'permissionDenied'
-  })
+  assert.equal(apiRequest({ ...request, preferredQuality: 'lossless' }).quality, 'lossless')
   assert.equal(
     apiRequest({ ...request, preferredQuality: 'lossless', allowDowngrade: true }).quality,
-    '320k'
+    'lossless'
   )
 })
 test('server failures and preview responses remain errors', () => {
@@ -69,7 +79,7 @@ test('short samples, unknown duration, invalid bytes and oversized probes fail c
     { code: 'permissionDenied' }
   )
   await assert.rejects(inspectAudio(short.prefix, short.total, 0, '320k', true), {
-    code: 'invalidData'
+    code: 'permissionDenied'
   })
   await assert.rejects(inspectAudio(new Uint8Array(32), short.total, 180000, '320k', true), {
     code: 'invalidData'

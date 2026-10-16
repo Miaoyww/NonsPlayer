@@ -1,43 +1,76 @@
 # GD音乐台独立音源适配器
 
-替代默认接口返回 503 的 Huibq。协议来自本地 `lx-music-source/qdy/latest.js` 的“星海主”分支，并核对 [服务官方说明](https://music-api.gdstudio.xyz/api.php)与[维护者说明](https://github.com/UnblockNeteaseMusic/server/issues/1395)。当前只声明已验证的网易云搜索及 MP3 128k／320k 解析，不因上游列出其它平台就宣称它们可用。
+GD音乐台通过统一 ResourceProvider 接入单曲搜索、备用取址和“歌曲来源”。支持十个平台的请求与身份映射，实际可用性由上游和歌曲决定，不保证所有声明平台都能取得可播放资源。
 
-服务署名：**GD音乐台（music.gdstudio.xyz）**。官方接口页标注 CC BY-NC 4.0，仅供学习参考，禁止商用，当前标注限额为每 5 分钟 50 次 API 请求；这些是第三方服务规则，可能变化。NonsPlayer 不托管该服务，也不随包分发它的服务端代码；构建产物包含服务署名和依赖许可。
+## 协议与平台身份
+
+核对本地 musicdl 的 `musicdl/modules/common/gdstudio.py` 后，改用网站接口 `https://music.gdstudio.org/api.php`，而不是覆盖范围较小的公开 API。网站每次请求先读取 `/time`，使用十秒时间桶、当前主机、网站版本 `2026.09.25` 和 URI 编码的关键词／歌曲 ID 计算签名。协议摘要有一个不同于标准 MD5 的轮常数，不能直接换成普通 MD5。
+
+签名由适配器内独立实现，未引入 musicdl 运行时或复制其实现代码；宿主继续只提供通用 HTTP、时间和随机数能力。网站升级可能使签名失效。使用 .org 是因为本机 Node 对 .xyz 的直接连接异常；没有改变宿主的网络安全策略。
+
+| 产品平台标识 | GD source | 平台          |
+| ------------ | --------- | ------------- |
+| netease      | netease   | 网易云音乐    |
+| joox         | joox      | JOOX          |
+| kuwo         | kuwo      | 酷我音乐      |
+| tidal        | tidal     | TIDAL         |
+| qobuz        | qobuz     | Qobuz         |
+| applemusic   | apple     | Apple Music   |
+| bilibili     | bilibili  | 哔哩哔哩      |
+| ytmusic      | ytmusic   | YouTube Music |
+| embeat       | embeat    | Embeat        |
+| qqmusic      | tencent   | QQ音乐        |
+
+结果保留平台原始 ID，不按歌名自动换平台。JOOX 每页固定 30 项、YouTube 每页固定 20 项，按宿主逻辑页的偏移重新切片，跨上游页时继续请求，避免遗漏。搜索读取已有时长；缺失时播放前复用既有曲库补齐。哔哩哔哩仅为当前选择的单个 BVID 读取公开详情校验时长，多分 P 不按总时长冒充当前音轨。封面未声明，缺失时保留占位。
+
+仅支持单曲搜索与资源解析，不声明账号、收藏、歌词、下载、歌手／专辑／歌单搜索。十个平台仍是同一个独立音源的查询渠道，不注册完整平台业务或专用账号存储。
+
+## 资源和执行预算
+
+- 标准／高音质请求 128／320，无损／高解析度请求 999；依据实际格式与码率报告结果，并执行是否允许降级的设置。
+- 复用 music-metadata 与 strtok3 解析 MP3、FLAC、AAC／ALAC MP4。稀疏 tokenizer 支持跳过媒体数据、读取尾部 moov；每次 HTTP Range 最多 64KiB，最多 8 次、合计 256KiB，单次解析器分配最多 64KiB，总文件最大 512MiB，不下载整首歌曲。
+- 时长与可信曲目时长差异不得超过 2 秒或 1%，取较大值。该校验只验证格式、音质和时长，不验证音频指纹或录音版本。未知时长、过大标签／索引、损坏数据、已知试听、空地址及不支持 Range 的服务明确失败。
+- API 和所有重定向均检查 manifest 的域名授权，最多 3 次跳转。网站请求头只送到网站接口，音频探测不带网站头、Cookie 或平台凭据；返回 URI-only 播放资源。
+- 单次 Host HTTP 最多 4 秒，搜索与解析继续受宿主整体期限、并发、内存和响应大小预算约束。429 返回限流错误，不自动重试。临时地址不进入普通缓存、队列或诊断报告。
 
 ## 构建与验证
 
 ```powershell
 npm ci --prefix adapters/gdstudio
-# 共用现有 QQ 构建中的 esbuild，以及 wasm-crypto 中的 ComponentizeJS/jco。
 npm ci --prefix adapters/qqmusic --include=dev
 npm ci --prefix packages/wasm-crypto --include=dev
 node adapters/gdstudio/scripts/build.mjs
 node --test adapters/gdstudio/tests/*.test.mjs
+# 实网顺序探测，每平台最多两首；报告不保存临时播放 URL
+node adapters/gdstudio/scripts/probe.mjs Hello
+# 限定平台和报告路径
+node adapters/gdstudio/scripts/probe.mjs Adele qobuz,applemusic .local/gdstudio-expansion/alternate.json
+# 真实 Wasmtime Host；没有此环境变量时只验收网易云既有路径
+$env:NONS_GDSTUDIO_ALL='1'
+./scripts/native.ps1 -Task test -ExtraArgs @('--lib','--locked','gdstudio_component_live_search_and_resource','--','--ignored','--nocapture')
 ```
 
-`pnpm --dir app adapters:build` 顺序构建 QQ 与 GD音乐台，复制 Component、manifest 和依赖许可至随包目录。独立音源通过通用 Host 执行，不需要 Node、LX 环境、独立服务进程或平台账号凭据。设置 → 音乐适配器可独立启停。
+`pnpm --dir app adapters:build` 将 Component、manifest 和依赖许可复制到随包目录。安装后不依赖 Node、Python、LX 环境或独立服务进程，可在设置 → 音乐适配器独立启停。
 
-## 业务范围
+## 2026-10-16 实网记录
 
-- 通过 `types=url` 按稳定网易云 ID 获取播放资源。首选标准音质请求 128k，高音质请求 320k；无损偏好只在允许降级时请求 320k。未实现无损及加密音频转换。
-- 通过 `types=search` 搜索单曲，公开引用始终属于 `netease`；音源仅是查询通道及资源提供器，不占用账号／工作区平台身份。按页码与条数映射宿主游标，搜索同时接入单曲聚合页和全屏“歌曲来源”。
-- 上游搜索结果不含时长和直接封面 URL。不伪造这些字段：有相同身份的既有曲库元数据时复用；否则保留未知值，播放前只对所选歌曲通过通用曲目接口补齐元数据，不逐首查询整页。不支持没有可靠时长的完整资源验证。
-- 歌手／专辑／歌单搜索、账号、收藏、歌词和下载未声明。其它平台的支持需另外验证，不把空地址或请求成功当作可播放。
+环境：Windows x64，Node 24.15.0，顺序搜索 Hello、每个平台前两首；Qobuz 与 Apple Music 另用 Adele 复测。以下是当时样本结果，不能推算整个平台命中率。
 
-## 资源与执行约束
+| 平台          | 搜索             | 音频头、音质与完整时长校验                       |
+| ------------- | ---------------- | ------------------------------------------------ |
+| 网易云        | 有结果           | 两首 FLAC 通过，包括 24-bit 样本                 |
+| JOOX          | 有结果           | 一首 24-bit FLAC 通过，另一首空资源              |
+| 酷我          | 有结果           | 一首 FLAC 通过，另一首格式不可识别               |
+| TIDAL         | 有结果           | 两首 AAC 320k 通过                               |
+| Qobuz         | 两个关键词均为空 | 未取得可验证资源                                 |
+| Apple Music   | 有结果           | 空资源，或元数据块 391335 字节超出解析分配预算   |
+| 哔哩哔哩      | 有结果           | 样本解析失败或音轨与视频时长不一致，拒绝声明完整 |
+| YouTube Music | 有结果           | 样本空资源，或音频 Range 请求返回 403            |
+| Embeat        | 有结果           | 两首 AAC 320k 通过                               |
+| QQ音乐        | 有结果           | 两首 FLAC 通过                                   |
 
-- API 和每次跳转均受明确域名授权，最多跟随 3 次跳转；返回其它主机时拒绝，不自动扩大网络范围。取址不携带平台 Cookie 或服务密钥。
-- 复用 `music-metadata` 11.16.1 和 `strtok3` 10.5.0 读取最多 64KiB 音频头和 512 字节尾部，核对 Range 总长度、MPEG Layer 3、实际码率和时长。总文件长度最多 512MiB，不把整首音频搬入 guest。
-- 时长由成熟解析器读取的帧信息或 CBR 长度估算，与曲目时长差异不得超过 2 秒或 1%，取较大值。这不代表音频指纹或录音版本验证。未知格式、损坏或过大标签、不可验证时长、已知试听、禁止的音质降级及不支持分段探测的服务器明确失败。
-- API 429 返回稳定限流错误，不自动重试。查询和播放使用独立并发预算，仍受通用 Host 的域名、时间、内存和响应预算约束；不记录或持久化临时播放地址。
+纯协议与真实 jco Component 回归覆盖十个平台身份、签名、JOOX／YouTube 跨页、空资源、错误、音质降级、FLAC 解析、MP3 完整时长、网站头隔离和未授权地址。项目真实 Wasmtime Host 中又逐项测试十个平台：网易云、JOOX、酷我、TIDAL、Embeat、QQ音乐均取得 GD 资源票据（共 11 首通过）；Apple Music 两首分别校验失败／空资源，哔哩哔哩两首网络失败，Qobuz 与 YouTube 本轮搜索为空。此前网易云 320k 路径也单独通过。实网 probe 的 HTTP 超时为 12 秒，不能代替 Host 4 秒单请求与整体 12 秒预算的验收。
 
-## 验收记录
+没有执行扬声器播放、跨平台原生构建或长期稳定性测试。原生 cargo 全集成测试还存在既有 Windows output 测试导入错误，相关 Host 验收使用 `--lib`。
 
-2026-10-15，本机 Windows x64：
-
-- 对候选服务做小规模检测：Huibq 返回 503，幻音／ikun 的请求出现 TLS 失败，聚合源初始化返回 429。GD音乐台的网易云搜索及两首曲目取址返回有效结果，CDN 返回 206 和 MP3 音频头。该结果只代表本机当时的可用性。
-- 独立协议与真实 jco Component 测试覆盖稳定身份、分页、降级、服务错误、音频头／时长、试听拒绝、请求头隔离及未授权地址。
-- 项目实际 Wasmtime Host 的受控资源测试通过；真实网络验收经过 ResourceComponent → AdapterManager：搜索 3 首、读取真实平台元数据、强制选择 `gdstudio` 后取得通过校验的 320k 资源。账号库与凭据存储均为隔离临时数据，没有使用正式账号或输出签名 URL。
-- 未执行扬声器播放、真实会员受限账号回退的手动验收，以及 macOS／Linux／Android 原生构建。网络服务持续可用性、所有歌曲命中率和 Release 性能均不作保证。
-
-独立契约、来源选择和生命周期见 [资源适配器说明](../../docs/resource-providers.md)。
+服务署名：GD音乐台（music.gdstudio.xyz／music.gdstudio.org）。服务政策和依赖许可继续包含在构建产物中；不随包分发 GD 服务端代码。具体服务规则见[官方接口说明](https://music-api.gdstudio.xyz/api.php)。独立契约和生命周期见[资源适配器说明](../../docs/resource-providers.md)。
