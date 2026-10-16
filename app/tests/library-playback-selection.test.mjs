@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -75,7 +76,10 @@ test('homepage allows a newer song selection while the previous collection is pr
     ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
     }).outputText,
-    { exports, require: (name) => modules[name] }
+    {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    }
   )
   const dom = new JSDOM('<div id="root"></div>')
   const previous = {

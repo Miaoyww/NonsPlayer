@@ -1,4 +1,5 @@
 import { useLocalPreferences } from '@/features/local/use-local-preferences'
+import { ErrorNotice } from '@/components/error-notice'
 import { TrackArtists } from '@/components/music/music-links'
 import type { LyricLine } from '@applemusic-like-lyrics/core'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
@@ -51,12 +52,10 @@ function LyricRenderer(props: {
 export default function LyricsView({
   onQueue,
   notice,
-  onNotice,
   onClose
 }: {
   onQueue: () => void
   notice?: PlaybackNoticeMessage
-  onNotice: (message: string) => void
   onClose: () => void
 }) {
   const reduced = useReducedMotion()
@@ -86,9 +85,6 @@ export default function LyricsView({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
   const playbackError = error ?? state.error ?? state.mediaError
-  useEffect(() => {
-    if (playbackError) onNotice(playbackError)
-  }, [playbackError, onNotice])
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
   const hasTranslation = lines.some((line) => !!line.translatedLyric.trim())
@@ -323,6 +319,7 @@ export default function LyricsView({
         </>
       )}
       <div className="fullscreen-playback-notice">
+        <ErrorNotice error={playbackError} />
         <PlaybackNotice notice={notice} />
       </div>
     </motion.section>

@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { Switch } from '@/components/ui/switch'
 import {
   Select,
@@ -112,11 +113,7 @@ export function LocalCachePage() {
             </SelectContent>
           </Select>
         </SettingsCard>
-        {sourceError && (
-          <p role="alert" className="text-sm text-destructive">
-            {sourceError}
-          </p>
-        )}
+        {sourceError && <ErrorNotice error={sourceError} />}
         <SettingsCard title="显示本地歌曲封面" description="显示内嵌封面，关闭可减少图片加载。">
           <label className="flex items-center gap-2 text-sm">
             <Switch
@@ -271,11 +268,7 @@ export function LocalCachePage() {
           正在更新…
         </p>
       )}
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <ErrorNotice error={error} />}
       {notice && (
         <p role="status" className="text-sm text-muted-foreground">
           {notice}

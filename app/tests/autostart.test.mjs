@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -51,7 +52,11 @@ test('autostart reflects system veto, refreshes on focus and re-reads partial wr
         compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
       }
     ).outputText,
-    { exports, window, require: (name) => modules[name] }
+    {
+      exports,
+      window,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    }
   )
   const root = createRoot(document.getElementById('root'))
   try {

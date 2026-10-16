@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useRef } from 'react'
 import { ActionButton } from '@/components/music/action-button'
@@ -41,7 +42,7 @@ export function InfiniteLoad({
     >
       {error ? (
         <>
-          <p role="alert">{error}</p>
+          <ErrorNotice error={error} />
           <ActionButton size="sm" variant="ghost" onClick={onLoad}>
             重试
           </ActionButton>

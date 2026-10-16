@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -72,7 +73,10 @@ test('playback switches wait for native persistence and retain the previous sett
       readFileSync(new URL('../src/features/settings/pages/playback.tsx', import.meta.url), 'utf8'),
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
     ).outputText,
-    { exports, require: (name) => modules[name] }
+    {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    }
   )
   const root = createRoot(document.getElementById('root'))
   const input = (label) =>

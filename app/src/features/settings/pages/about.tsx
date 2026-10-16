@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { openUrl } from '@tauri-apps/plugin-opener'
@@ -78,11 +79,7 @@ export function AboutPage({ version }: { version: string }) {
       <SettingsCard title="GitHub 仓库" description="查看源码或提交 Issue。">
         {link(repository, 'Miaoyww/Nons')}
       </SettingsCard>
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <ErrorNotice error={error} />}
       <section aria-labelledby="thanks-heading" className="flex flex-col gap-4">
         <h2 id="thanks-heading" className="text-xl font-bold">
           特别鸣谢

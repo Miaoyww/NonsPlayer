@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { hasPersonalPages } from '@/features/music/source-capabilities'
 import { TextSkeleton } from '@/components/music/loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -161,11 +162,7 @@ export function AdapterLoginCard({
             <Check className="size-4" aria-hidden="true" />
             当前账号已登录
           </p>
-          {message && (
-            <p role="alert" className="text-sm text-destructive">
-              {message}
-            </p>
-          )}
+          {message && <ErrorNotice error={message} />}
           {hasPersonalPages(adapter.descriptor) && (
             <ActionButton
               variant="outline"
@@ -292,8 +289,8 @@ export default function AccountLoginPage() {
         <p>选择音乐来源，登录或切换保存的账号。</p>
       </MusicPageHeader>
       {error && (
-        <div role="alert" className="mt-6 flex items-center gap-3 text-sm text-destructive">
-          <p>{error}</p>
+        <div className="mt-6 flex items-center gap-3 text-sm text-destructive">
+          <ErrorNotice error={error} />
           <ActionButton variant="ghost" onClick={() => void refresh()}>
             重试
           </ActionButton>

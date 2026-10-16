@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -123,6 +124,7 @@ async function harness(run, android = false) {
       {
         exports,
         require: (name) => {
+          if (name === '@/components/error-notice') return errorNoticeModule
           assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
           return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
         },
@@ -147,6 +149,7 @@ async function harness(run, android = false) {
     {
       exports,
       require: (name) => {
+        if (name === '@/components/error-notice') return errorNoticeModule
         assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
         return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
       },
@@ -163,7 +166,15 @@ async function harness(run, android = false) {
       readFileSync(new URL('../src/lib/use-paged-list.ts', import.meta.url), 'utf8'),
       { compilerOptions: { module: ts.ModuleKind.CommonJS } }
     ).outputText,
-    { exports: pagination, require: (name) => (name === 'react' ? React : modules['@/lib/player']) }
+    {
+      exports: pagination,
+      require: (name) =>
+        name === '@/components/error-notice'
+          ? errorNoticeModule
+          : name === 'react'
+            ? React
+            : modules['@/lib/player']
+    }
   )
   function PagedResults({ pageLoader, kind, ...props }) {
     const list = pagination.usePagedList(pageLoader, kind === 'history' ? 100 : 30, true)

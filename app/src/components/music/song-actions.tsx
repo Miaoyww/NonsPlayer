@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { trackShareLink } from '@/features/music/share-links'
 import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
 import { readTrackInformation } from '@/features/music/queries'
@@ -300,8 +301,8 @@ export function SongActionsProvider({
               )}
               {busy && <TextSkeleton />}
               {error && (
-                <div role="alert" className="flex items-center gap-2 text-sm text-destructive">
-                  <span>{error}</span>
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <ErrorNotice error={error} />
                   <ActionButton
                     variant="ghost"
                     size="sm"

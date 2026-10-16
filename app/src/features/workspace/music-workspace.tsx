@@ -7,7 +7,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { open } from '@tauri-apps/plugin-dialog'
-import { WorkspaceErrorBanner } from './workspace-error-banner'
+import { ErrorNotice } from '@/components/error-notice'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { AnimatePresence } from 'motion/react'
 import { connectPlayer, errorText, nativeCall, usePlayer } from '@/lib/player'
@@ -111,7 +111,6 @@ export function MusicWorkspace({
     onNowPlayingChange(false)
   }
   const [importing, setImporting] = useState(false)
-  const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<PlaybackNoticeMessage>()
   const noticeSerial = useRef(0)
   const showNotice = useCallback(
@@ -120,11 +119,14 @@ export function MusicWorkspace({
   )
   useEffect(() => {
     if (!notice) return
-    const timer = window.setTimeout(() => setNotice(undefined), 4000)
+    const timer = window.setTimeout(() => setNotice(undefined), 3000)
     return () => window.clearTimeout(timer)
   }, [notice])
   const [refresh, setRefresh] = useState(0)
-  const onError = useCallback((cause: unknown) => setError(errorText(cause)), [])
+  const [operationError, setOperationError] = useState<{ id: number; message: string }>()
+  const onError = useCallback((cause: unknown) => {
+    setOperationError((previous) => ({ id: (previous?.id ?? 0) + 1, message: errorText(cause) }))
+  }, [])
   usePlaybackShortcuts(onError)
   const wasPlayerVisible = useRef(playerVisible)
 
@@ -191,7 +193,6 @@ export function MusicWorkspace({
   }, [onError])
 
   async function importMusic(directory: boolean) {
-    setError(undefined)
     setNotice(undefined)
     try {
       const selected = await open({
@@ -227,7 +228,7 @@ export function MusicWorkspace({
       showNotice(
         `已导入 ${report.imported} 首音乐${report.skipped ? `，跳过 ${report.skipped} 个无法读取的文件` : ''}。`
       )
-      if (report.errors.length) setError(report.errors.join('；'))
+      if (report.errors.length) onError(report.errors.join('；'))
       if (view === 'local') setRefresh((value) => value + 1)
       else navigate('local')
     } catch (cause) {
@@ -239,6 +240,10 @@ export function MusicWorkspace({
 
   return (
     <CollectionActionsProvider onError={onError} onNotice={showNotice}>
+      <ErrorNotice key={operationError?.id} error={operationError?.message} />
+      <ErrorNotice error={state.error} />
+      <ErrorNotice error={state.mediaError} />
+      <ErrorNotice error={sources.error} />
       <SongActionsProvider onError={onError} onNotice={showNotice}>
         <ListFindProvider
           playerVisible={playerVisible}
@@ -311,7 +316,6 @@ export function MusicWorkspace({
                   <LyricsView
                     onQueue={openQueue}
                     notice={notice}
-                    onNotice={showNotice}
                     onClose={() => onNowPlayingChange(false)}
                   />
                 </Suspense>
@@ -334,10 +338,6 @@ export function MusicWorkspace({
                       这是界面预览。播放、搜索和导入功能需要在桌面应用中使用。
                     </p>
                   )}
-                  <WorkspaceErrorBanner
-                    errors={[error, state.error, state.mediaError]}
-                    onDismiss={() => setError(undefined)}
-                  />
                   {page.collection?.reference &&
                   ['artist', 'album', 'collection'].includes(view) ? (
                     <Suspense
@@ -416,13 +416,12 @@ export function MusicWorkspace({
                     ) : (
                       <MusicPage>
                         <p role="status" className="py-6 text-sm text-muted-foreground">
-                          {sources.error ||
-                            (currentSource
-                              ? `${sourceLabel(
-                                  currentSource,
-                                  sources.statuses.map((value) => value.descriptor)
-                                )}当前不可用，请选择其他来源或在设置中启用。`
-                              : '正在读取音乐来源…')}
+                          {currentSource
+                            ? `${sourceLabel(
+                                currentSource,
+                                sources.statuses.map((value) => value.descriptor)
+                              )}当前不可用，请选择其他来源或在设置中启用。`
+                            : '正在读取音乐来源…'}
                         </p>
                         <ActionButton variant="outline" onClick={() => navigate('accounts')}>
                           选择音乐来源

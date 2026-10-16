@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { musicClient } from '@/features/music/client'
 import { searchResourceProvider } from '@/features/music/resource-providers'
@@ -108,10 +109,8 @@ export function SourceTrackSearch({
         {state.sources
           .filter((s) => s.error)
           .map((s) => (
-            <div key={s.source} role="alert" className="flex items-center gap-2 py-2 text-sm">
-              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                {s.name}：{s.error}
-              </span>
+            <div key={s.source} className="flex items-center gap-2 py-2 text-sm">
+              <ErrorNotice error={`${s.name}：${s.error}`} />
               <ActionButton
                 size="sm"
                 variant="ghost"

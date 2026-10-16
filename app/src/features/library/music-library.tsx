@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { FindSongGrid } from '@/components/music/list-find'
 import { onlineReference, collectionReference } from '@/features/music/legacy-reference'
 import { musicClient } from '@/features/music/client'
@@ -432,8 +433,8 @@ export default function MusicLibrary({
                   </ActionButton>
                 </div>
               ) : summaryError || summary?.likedError ? (
-                <div role="alert" className="library-empty text-destructive">
-                  <p>{summaryError ?? summary?.likedError}</p>
+                <div className="library-empty text-destructive">
+                  <ErrorNotice error={summaryError ?? summary?.likedError} />
                   {retry}
                 </div>
               ) : summaryBusy || accountLoading ? (

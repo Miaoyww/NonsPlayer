@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { Switch } from '@/components/ui/switch'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -194,11 +195,7 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
           松开即可安装插件
         </div>
       )}
-      {error && (
-        <p role="alert" className="whitespace-pre-line break-words text-sm text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <ErrorNotice error={error} />}
       <ExtensionTabs
         noun="插件"
         value={tab}
@@ -381,11 +378,7 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                   {plugin.manifest.description}
                 </p>
               )}
-              {plugin.error && (
-                <p role="alert" className="mt-2 break-words text-xs text-destructive">
-                  {plugin.error}
-                </p>
-              )}
+              {plugin.error && <ErrorNotice error={plugin.error} />}
               {review?.manifest.id === plugin.manifest.id && (
                 <div className="mt-4 rounded-lg bg-muted/50 p-4 text-sm">
                   <h4 className="font-semibold">启用前确认</h4>

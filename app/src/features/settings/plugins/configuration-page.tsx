@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, FolderOpen, RotateCw, Trash2 } from 'lucide-react'
@@ -121,8 +122,8 @@ export function PluginConfigurationPage({
         </p>
       </div>
       {error && (
-        <div role="alert" className="space-y-2 text-sm text-destructive">
-          <p>{error}</p>
+        <div className="space-y-2 text-sm text-destructive">
+          <ErrorNotice error={error} />
           <Button
             variant="outline"
             size="sm"

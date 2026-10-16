@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import { sourceCapabilities } from './helpers/source-capabilities.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -15,7 +16,11 @@ function load(file, modules, extra = {}) {
     ts.transpileModule(readFileSync(new URL(file, import.meta.url), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
     }).outputText,
-    { exports, require: (name) => modules[name], ...extra }
+    {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name]),
+      ...extra
+    }
   )
   return exports
 }

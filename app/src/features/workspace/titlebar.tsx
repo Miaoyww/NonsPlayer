@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { supportsMusicPage } from '@/features/music/source-capabilities'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { useEffect, useState, type MouseEvent } from 'react'
@@ -326,14 +327,7 @@ export function Titlebar({
           </div>
         </div>
       </header>
-      {error && (
-        <p
-          role="alert"
-          className="border-b border-border bg-destructive/10 px-4 py-2 text-xs text-destructive"
-        >
-          {error}
-        </p>
-      )}
+      {error && <ErrorNotice error={error} />}
     </>
   )
 }

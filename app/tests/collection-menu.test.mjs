@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -84,7 +85,11 @@ function harness() {
   runInNewContext(outputText, {
     exports,
     require: (name) =>
-      name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+      name === '@/components/error-notice'
+        ? errorNoticeModule
+        : name === '@/features/music/legacy-reference'
+          ? musicReference
+          : modules[name]
   })
   function flatten(node) {
     return Array.isArray(node)
@@ -212,7 +217,11 @@ test('song favorite action precedes the divider and unavailable remove actions a
   runInNewContext(outputText, {
     exports,
     require: (name) =>
-      name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+      name === '@/components/error-notice'
+        ? errorNoticeModule
+        : name === '@/features/music/legacy-reference'
+          ? musicReference
+          : modules[name]
   })
   function flatten(node) {
     return Array.isArray(node)

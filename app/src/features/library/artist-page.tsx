@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton, CollectionGridSkeleton, TextSkeleton } from '@/components/music/loading'
 import { tracksForCollection, queryPage } from '@/features/music/queries'
 import { collectionReference } from '@/features/music/legacy-reference'
@@ -129,8 +130,8 @@ export default function ArtistPage({
       </DetailHeader>
       {busy && <TextSkeleton />}
       {error && (
-        <div role="alert" className="mb-5 flex items-center gap-3 text-sm text-destructive">
-          {error}
+        <div className="mb-5 flex items-center gap-3 text-sm text-destructive">
+          <ErrorNotice error={error} />
           <ActionButton
             variant="ghost"
             size="sm"

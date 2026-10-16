@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -65,7 +66,10 @@ function harness() {
     const code = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
     }).outputText
-    runInNewContext(code, { exports, require: (name) => modules[name] })
+    runInNewContext(code, {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    })
     return exports
   }
   modules['@/lib/player'] = modules['@/lib/player']

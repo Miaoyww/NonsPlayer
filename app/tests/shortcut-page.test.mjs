@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -14,7 +15,10 @@ function load(path, modules = {}) {
     ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
     }).outputText,
-    { exports, require: (name) => modules[name] }
+    {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    }
   )
   return exports
 }

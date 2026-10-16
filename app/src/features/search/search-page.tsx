@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Disc3, ListMusic, Mic2, Music2, RefreshCw, Search } from 'lucide-react'
@@ -247,14 +248,8 @@ function Results({
       {visibleSources
         .filter((value) => value.error)
         .map((value) => (
-          <div
-            key={value.source}
-            className="flex items-center justify-center gap-2 py-3 text-sm"
-            role="alert"
-          >
-            <span>
-              {value.name}：{value.error}
-            </span>
+          <div key={value.source} className="flex items-center justify-center gap-2 py-3 text-sm">
+            <ErrorNotice error={`${value.name}：${value.error}`} />
             <ActionButton
               size="sm"
               variant="ghost"
@@ -311,16 +306,8 @@ export default function SearchPage({
           <p>{page.query ? '聚合搜索' : '输入歌曲、歌手、歌单或专辑名称开始搜索。'}</p>
         </MusicPageHeader>
       )}
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-      {providerError && (
-        <p role="alert" className="text-sm text-destructive">
-          音源：{providerError}
-        </p>
-      )}
+      {error && <ErrorNotice error={error} />}
+      {providerError && <ErrorNotice error={`音源：${providerError}`} />}
       {(!isAndroid() || page.query) && (
         <Tabs
           value={kind}

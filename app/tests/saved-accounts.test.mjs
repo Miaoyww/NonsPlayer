@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -56,7 +57,10 @@ test('saved accounts select references, confirm deletion and ignore responses af
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
     }
   ).outputText
-  runInNewContext(code, { exports, require: (name) => modules[name] })
+  runInNewContext(code, {
+    exports,
+    require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+  })
   const root = createRoot(document.getElementById('root'))
   const render = (open, source = 'netease', currentSource = source) =>
     act(async () =>

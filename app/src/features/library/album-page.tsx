@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton } from '@/components/music/loading'
 import { tracksForCollection } from '@/features/music/queries'
 import { CollectionTabs } from '@/features/library/collection-tabs'
@@ -85,8 +86,8 @@ export default function AlbumPage({
         </div>
       </DetailHeader>
       {error && (
-        <div role="alert" className="mb-5 flex items-center gap-3 text-sm text-destructive">
-          {error}
+        <div className="mb-5 flex items-center gap-3 text-sm text-destructive">
+          <ErrorNotice error={error} />
           <ActionButton
             variant="ghost"
             size="sm"

@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useState, type FormEvent } from 'react'
 import { Plus } from 'lucide-react'
 import { musicClient } from '@/features/music/client'
@@ -97,11 +98,7 @@ export function CreatePlaylist({
             />
             设为私密歌单
           </label>
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
+          {error && <ErrorNotice error={error} />}
           <div className="flex justify-end gap-2">
             <DialogClose render={<ActionButton variant="outline" disabled={busy} />}>
               取消

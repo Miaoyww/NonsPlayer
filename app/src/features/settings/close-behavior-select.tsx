@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall } from '@/lib/player'
@@ -73,11 +74,7 @@ export function CloseBehaviorSelect() {
             ))}
           </SelectContent>
         </Select>
-        {error && (
-          <p role="alert" className="text-xs text-destructive">
-            {error}
-          </p>
-        )}
+        {error && <ErrorNotice error={error} />}
       </div>
     </SettingsCard>
   )

@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { Switch } from '@/components/ui/switch'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -144,17 +145,11 @@ export function PlaybackPage() {
             </p>
           )}
           {(modeError || (state.audioOutputMode === 'exclusive' && state.error)) && (
-            <p role="alert" className="text-sm text-destructive">
-              {modeError ?? state.error}
-            </p>
+            <ErrorNotice error={modeError ?? state.error} />
           )}
         </SettingsCard>
       )}
-      {outputModes.length === 0 && modeError && (
-        <p role="alert" className="text-sm text-destructive">
-          {modeError}
-        </p>
-      )}
+      {outputModes.length === 0 && modeError && <ErrorNotice error={modeError} />}
       <SettingsCard title="允许音质降级" description="所选音质不可用时自动降级。">
         <label className="flex items-center gap-2 text-sm">
           <Switch
@@ -196,11 +191,7 @@ export function PlaybackPage() {
           正在保存播放设置…
         </p>
       )}
-      {(error || optionsError) && (
-        <p role="alert" className="text-sm text-destructive">
-          {error ?? optionsError}
-        </p>
-      )}
+      {(error || optionsError) && <ErrorNotice error={error ?? optionsError} />}
     </div>
   )
 }

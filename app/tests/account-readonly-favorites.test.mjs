@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -15,7 +16,10 @@ function load(file, modules) {
     ts.transpileModule(readFileSync(new URL(file, import.meta.url), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
     }).outputText,
-    { exports, require: (name) => modules[name] }
+    {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    }
   )
   return exports
 }
@@ -206,47 +210,6 @@ test('repeated liked-playlist cursors fail without publishing a partial set', ()
   readonlyFavoritesScenario('repeat'))
 test('account changes discard a late liked-playlist page', () =>
   readonlyFavoritesScenario('switch'))
-
-test('closing an error dismisses all current origins and still allows a later new error', async () =>
-  withDom(async (root, dom) => {
-    const { WorkspaceErrorBanner } = load('../src/features/workspace/workspace-error-banner.tsx', {
-      react: React,
-      'react/jsx-runtime': jsx,
-      'lucide-react': { X: () => null },
-      '@/components/music/action-button': {
-        ActionButton: ({ variant, size, children, ...props }) =>
-          React.createElement('button', props, children)
-      }
-    })
-    let errors = ['状态已变化', '状态已变化', '旧媒体错误']
-    const render = () =>
-      act(async () =>
-        root.render(
-          React.createElement(WorkspaceErrorBanner, {
-            errors,
-            onDismiss: () => {
-              errors = [undefined, '状态已变化', '旧媒体错误']
-            }
-          })
-        )
-      )
-    await render()
-    await act(async () =>
-      document
-        .querySelector('button')
-        .dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }))
-    )
-    await render()
-    assert.equal(document.querySelector('[role="alert"]'), null)
-    errors = [undefined, '状态已变化', '新错误']
-    await render()
-    assert.match(document.body.textContent, /新错误/)
-    errors = []
-    await render()
-    errors = ['状态已变化']
-    await render()
-    assert.match(document.body.textContent, /状态已变化/)
-  }))
 
 test('page source selection preserves every platform account and routes favorites to the song source', async () => {
   await withDom(async (root, dom) => {

@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -102,7 +103,11 @@ function harness(track, settle = true, localSource = 'local') {
     readFileSync(new URL('../src/features/lyrics/lyrics-view.tsx', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
   )
-  runInNewContext(outputText, { exports, require: (name) => modules[name] ?? {} })
+  runInNewContext(outputText, {
+    exports,
+    require: (name) =>
+      name === '@/components/error-notice' ? errorNoticeModule : (modules[name] ?? {})
+  })
   const render = () => {
     cursor = 0
     return exports.default({ onQueue() {}, onNotice() {} })

@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import { sourceCapabilities } from './helpers/source-capabilities.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -11,7 +12,10 @@ function load(path, modules) {
     ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
     }).outputText,
-    { exports, require: (name) => modules[name] }
+    {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    }
   )
   return exports
 }
@@ -46,7 +50,6 @@ test('unresolved startup source renders the actual library shell instead of the 
     },
     './use-primary-music-page': { usePrimaryMusicPage: () => true },
     './use-android-back': { useAndroidBack() {} },
-    './workspace-error-banner': { WorkspaceErrorBanner: 'WorkspaceErrorBanner' },
     '@/features/settings/settings-sections': { settingsSections: [] },
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({ statuses: [], loading: true, revision: 0, error: '' })

@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
@@ -85,7 +86,12 @@ test('likes refresh the loaded playlist in the background without unmounting its
       }).outputText,
       {
         exports,
-        require: (name) => (name === './player' ? modules['@/lib/player'] : modules[name])
+        require: (name) =>
+          name === '@/components/error-notice'
+            ? errorNoticeModule
+            : name === './player'
+              ? modules['@/lib/player']
+              : modules[name]
       }
     )
     return exports
@@ -213,7 +219,10 @@ test('playlist detail siblings have distinct keys and tabs reset when switching 
     ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
     }).outputText,
-    { exports, require: (name) => modules[name] }
+    {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    }
   )
   const dom = new JSDOM('<div id="root"></div>')
   const previous = {
@@ -321,7 +330,10 @@ test('library home limits the featured preview to twelve without changing the fa
     ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
     }).outputText,
-    { exports, require: (name) => modules[name] }
+    {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    }
   )
   const dom = new JSDOM('<div id="root"></div>')
   const previous = {

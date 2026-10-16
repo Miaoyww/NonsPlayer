@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall, usePlayer } from '@/lib/player'
@@ -105,11 +106,7 @@ export function QualitySelect() {
           </SelectGroup>
         </SelectContent>
       </Select>
-      {error && (
-        <p role="alert" className="max-w-48 text-xs text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <ErrorNotice error={error} />}
     </div>
   )
 }

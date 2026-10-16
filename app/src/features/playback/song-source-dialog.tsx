@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Dialog,
@@ -84,11 +85,7 @@ export function SongSourceDialog({ track, onClose }: { track: Track; onClose: ()
               </p>
             )}
           </div>
-          {(error || providerError) && (
-            <p role="alert" className="text-sm text-destructive">
-              {error ?? providerError}
-            </p>
-          )}
+          {(error || providerError) && <ErrorNotice error={error ?? providerError} />}
           <section aria-label="切换当前曲目的音源">
             <h3 className="mb-2 font-semibold">当前平台音源</h3>
             <div className="flex flex-wrap gap-2">

@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Switch } from '@/components/ui/switch'
@@ -76,11 +77,7 @@ export function AutostartSwitch() {
           </p>
         )}
         {!isTauri() && <p className="text-xs text-muted-foreground">仅桌面应用支持。</p>}
-        {error && (
-          <p role="alert" className="max-w-64 text-xs text-destructive">
-            {error}
-          </p>
-        )}
+        {error && <ErrorNotice error={error} />}
       </div>
     </SettingsCard>
   )

@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton, CollectionGridSkeleton } from '@/components/music/loading'
 import { CollectionTabs } from '@/features/library/collection-tabs'
 import { TrackArtists } from '@/components/music/music-links'
@@ -628,11 +629,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
                 onChange={(event) => setName(event.target.value)}
               />
             )}
-            {dialogError && (
-              <p role="alert" className="text-sm text-destructive">
-                {dialogError}
-              </p>
-            )}
+            {dialogError && <ErrorNotice error={dialogError} />}
             <ActionButton type="submit" disabled={saving || (editing !== 'delete' && !name.trim())}>
               {saving ? '正在保存…' : editing === 'delete' ? '删除歌单' : '保存'}
             </ActionButton>

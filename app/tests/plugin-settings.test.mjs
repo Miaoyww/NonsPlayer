@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -121,6 +122,7 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
       exports,
       window,
       require: (name) => {
+        if (name === '@/components/error-notice') return errorNoticeModule
         assert.ok(name in modules, name)
         return modules[name]
       }

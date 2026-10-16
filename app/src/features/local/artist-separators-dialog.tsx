@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -135,11 +136,7 @@ export function ArtistSeparatorsDialog({
             <Plus aria-hidden="true" />
             添加分隔符
           </Button>
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
+          {error && <ErrorNotice error={error} />}
           <DialogFooter>
             <Button
               type="button"

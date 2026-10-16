@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -94,7 +95,11 @@ for (const supported of [true, false]) {
         ),
         { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
       ).outputText,
-      { exports, require: (name) => modules[name] }
+      {
+        exports,
+        require: (name) =>
+          name === '@/components/error-notice' ? errorNoticeModule : modules[name]
+      }
     )
     const root = createRoot(document.getElementById('root'))
     const control = () => document.querySelector('select[aria-label="WASAPI 输出模式"]')

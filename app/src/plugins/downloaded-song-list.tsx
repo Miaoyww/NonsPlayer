@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useState } from 'react'
 import { TrackList } from '@/components/music/track-list'
 import type { Track } from '@/lib/player'
@@ -69,11 +70,7 @@ export function DownloadedSongList({ songs }: { songs: DownloadedSong[] }) {
   }, [signature, scope])
   return (
     <>
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <ErrorNotice error={error} />}
       <TrackList
         tracks={tracks}
         busy={busy}

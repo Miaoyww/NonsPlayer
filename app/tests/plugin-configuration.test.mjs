@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -19,6 +20,7 @@ function load(path, modules) {
     {
       exports,
       require: (name) => {
+        if (name === '@/components/error-notice') return errorNoticeModule
         assert.ok(name in modules, name)
         return modules[name]
       },

@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { onlineReference, collectionReference } from '@/features/music/legacy-reference'
 import { musicClient } from '@/features/music/client'
@@ -167,8 +168,8 @@ export function PlaylistPicker({
           </div>
         </div>
         {error && (
-          <div role="alert" className="flex items-center gap-2 text-sm text-destructive">
-            <p>{error}</p>
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <ErrorNotice error={error} />
             {!items.length && (
               <ActionButton variant="ghost" size="sm" onClick={() => setRevision((v) => v + 1)}>
                 重试

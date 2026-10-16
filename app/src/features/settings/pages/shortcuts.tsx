@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Button } from '@/components/ui/button'
@@ -196,18 +197,10 @@ export function ShortcutsPage() {
                 已保存
               </p>
             )}
-            {captureError && (
-              <p role="alert" className="text-sm text-destructive">
-                {captureError}
-              </p>
-            )}
+            {captureError && <ErrorNotice error={captureError} />}
           </>
         )}
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
+        {error && <ErrorNotice error={error} />}
         {!desktop && <p className="text-xs text-muted-foreground">快捷键在桌面应用中生效。</p>}
       </section>
     </div>

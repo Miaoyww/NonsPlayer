@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import { sourceCapabilities } from './helpers/source-capabilities.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -15,6 +16,7 @@ function load(path, modules) {
   runInNewContext(outputText, {
     exports,
     require(name) {
+      if (name === '@/components/error-notice') return errorNoticeModule
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }
       assert.ok(name in modules, `unexpected dependency: ${name}`)
       return modules[name]
@@ -65,7 +67,6 @@ function harness(initialMode = 'collapsible') {
     },
     '@/features/music/source-label': { sourceLabel: String },
     './use-android-back': { useAndroidBack() {} },
-    './workspace-error-banner': { WorkspaceErrorBanner: 'WorkspaceErrorBanner' },
     './use-primary-music-page': { usePrimaryMusicPage: () => true },
     './mobile-page-header': { MobilePageHeader: 'MobilePageHeader' },
     '@/components/music/track-search-context': {

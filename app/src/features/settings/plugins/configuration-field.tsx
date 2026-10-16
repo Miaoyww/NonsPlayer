@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useId, useRef, useState } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
 import { Button } from '@/components/ui/button'
@@ -295,11 +296,7 @@ export function ConfigurationField({
         </Button>
       </div>
       <div className={editor.kind === 'switch' ? '' : 'max-w-md'}>{control}</div>
-      {(error || diagnostic) && (
-        <p role="alert" className="break-words text-xs text-destructive">
-          {error ?? diagnostic}
-        </p>
-      )}
+      {(error || diagnostic) && <ErrorNotice error={error ?? diagnostic} />}
       {error && (
         <Button
           size="sm"

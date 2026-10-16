@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { afterFirstPaint } from '@/lib/after-first-paint'
 import * as React from 'react'
 import * as jsx from 'react/jsx-runtime'
@@ -248,9 +249,7 @@ class PluginBoundary extends Component<
   }
   render() {
     return this.state.failed ? (
-      <p role="alert" className="p-4 text-sm text-destructive">
-        插件显示失败，可在设置中重新加载。
-      </p>
+      <ErrorNotice error={'插件显示失败，可在设置中重新加载。'} />
     ) : (
       this.props.children
     )

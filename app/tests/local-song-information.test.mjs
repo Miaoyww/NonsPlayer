@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -100,6 +101,7 @@ function harness() {
     Date,
     navigator: { clipboard: { writeText: async (value) => copied.push(value) } },
     require: (name) => {
+      if (name === '@/components/error-notice') return errorNoticeModule
       assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
       return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
     }

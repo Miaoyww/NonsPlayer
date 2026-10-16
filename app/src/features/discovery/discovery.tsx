@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TrackListSkeleton, CollectionGridSkeleton, TextSkeleton } from '@/components/music/loading'
 import { Tabs, TabsList, TabsTab, TabsPanel } from '@/components/animate-ui/components/base/tabs'
@@ -123,8 +124,8 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (value: 
             全部歌单
           </Button>
           {error ? (
-            <div role="alert" className="mt-5 text-sm text-destructive">
-              {error}
+            <div className="mt-5 text-sm text-destructive">
+              <ErrorNotice error={error} />
               <Button variant="ghost" onClick={() => setRevision((v) => v + 1)}>
                 重试
               </Button>
@@ -287,8 +288,8 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
           </div>
         </div>
         {(error || (active && player.privateFmError)) && (
-          <div role="alert" className="text-xs text-destructive">
-            {error || player.privateFmError}
+          <div className="text-xs text-destructive">
+            <ErrorNotice error={error || player.privateFmError} />
             <ActionButton
               variant="ghost"
               size="sm"

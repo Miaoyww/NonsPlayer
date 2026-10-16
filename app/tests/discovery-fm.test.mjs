@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -75,7 +76,11 @@ function harness() {
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
   })
-  runInNewContext(outputText, { exports, require: (name) => modules[name] ?? {} })
+  runInNewContext(outputText, {
+    exports,
+    require: (name) =>
+      name === '@/components/error-notice' ? errorNoticeModule : (modules[name] ?? {})
+  })
   function render() {
     cursor = 0
     const tree = exports.PrivateFM({ onError: (error) => errors.push(error) })

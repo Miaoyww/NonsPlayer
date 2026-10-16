@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -117,7 +118,10 @@ test('adapter settings wait for persistence, report failures and reject stale li
     readFileSync(new URL('../src/features/settings/pages/adapters.tsx', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
   ).outputText
-  runInNewContext(code, { exports, require: (name) => modules[name] })
+  runInNewContext(code, {
+    exports,
+    require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+  })
   const root = createRoot(document.getElementById('root'))
   const status = (enabled) => [
     {

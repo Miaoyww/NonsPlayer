@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useRef, useState } from 'react'
 import { Check, RefreshCw, Trash2 } from 'lucide-react'
 import { AccountAvatar } from './account-avatar'
@@ -115,11 +116,7 @@ export function SavedAccounts({
           正在处理账号…
         </p>
       )}
-      {error && (
-        <p role="alert" className="my-2 text-sm text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <ErrorNotice error={error} />}
       <div className="max-h-56 overflow-y-auto">
         {records.map((record) => {
           const entry = entries.find((item) => item.source === record.reference.source) ?? {

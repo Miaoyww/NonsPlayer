@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { useEffect, useMemo, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -99,9 +100,7 @@ export function FontPicker({
       {loading && <TextSkeleton />}
       {error && (
         <div className="text-xs">
-          <p role="alert" className="text-destructive">
-            {error}
-          </p>
+          <ErrorNotice error={error} />
           <Button size="sm" variant="ghost" onClick={() => setRefresh((n) => n + 1)}>
             重新读取
           </Button>

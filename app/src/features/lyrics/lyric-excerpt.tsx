@@ -1,4 +1,5 @@
 import { TextSkeleton } from '@/components/music/loading'
+import { ErrorNotice } from '@/components/error-notice'
 import { useLocalPreferences } from '@/features/local/use-local-preferences'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -70,16 +71,20 @@ export function LyricExcerpt({ tracks, enabled = true }: { tracks?: Track[]; ena
   if (!enabled) return <Heart className="size-10 opacity-30" aria-hidden="true" />
   if (!error && !lines.length) return <TextSkeleton />
   return (
-    <p className="library-lyric-excerpt" aria-live="polite" data-error={!!error}>
-      {error ||
-        (lines.length
+    <>
+      <ErrorNotice error={error} />
+      <p className="library-lyric-excerpt" aria-live="polite">
+        {lines.length
           ? lines.map((line, index) => (
               <span key={index}>
                 {line}
                 <br />
               </span>
             ))
-          : '正在寻找歌词…')}
-    </p>
+          : error
+            ? '暂无歌词'
+            : '正在寻找歌词…'}
+      </p>
+    </>
   )
 }

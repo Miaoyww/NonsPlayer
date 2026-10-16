@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { hasPersonalPages } from '@/features/music/source-capabilities'
 import { useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
@@ -66,9 +67,7 @@ export function AccountMenu() {
               {adapter?.enabled ? '' : ' · 不可用'}
             </Popover.Description>
             {(actionError || error || sourceError) && (
-              <p role="alert" className="mt-3 text-sm text-destructive">
-                {actionError || error || sourceError}
-              </p>
+              <ErrorNotice error={actionError || error || sourceError} />
             )}
             <div className="mt-4">
               <SavedAccounts

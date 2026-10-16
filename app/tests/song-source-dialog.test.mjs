@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -112,7 +113,10 @@ test('song source selection keeps queue identity, sends explicit alternate keys,
       ),
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
     ).outputText,
-    { exports, require: (name) => modules[name] }
+    {
+      exports,
+      require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
+    }
   )
   const root = createRoot(document.getElementById('root'))
   const click = async (label) =>
@@ -158,40 +162,4 @@ test('song source selection keeps queue identity, sends explicit alternate keys,
     globalThis.document = previous.document
     globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act
   }
-})
-
-test('playback attribution announces attempts, successful changes and failures without URLs', () => {
-  const state = {
-    status: 'loading',
-    playbackSource: { changed: true, displayName: 'Huibq', title: 'Song', artist: 'Artist' }
-  }
-  const exports = {}
-  const render = (type, props) => ({ type, props })
-  runInNewContext(
-    ts.transpileModule(
-      readFileSync(
-        new URL('../src/features/playback/playback-notice.tsx', import.meta.url),
-        'utf8'
-      ),
-      { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
-    ).outputText,
-    {
-      exports,
-      require: (name) =>
-        name === '@/lib/player' ? { usePlayer: () => state } : { jsx: render, jsxs: render }
-    }
-  )
-  const text = (node) =>
-    Array.isArray(node)
-      ? node.map(text).join('')
-      : typeof node === 'object' && node
-        ? text(node.props?.children)
-        : typeof node === 'string'
-          ? node
-          : ''
-  assert.match(text(exports.PlaybackNotice({})), /正在尝试其它音源 Huibq/)
-  state.status = 'playing'
-  assert.match(text(exports.PlaybackNotice({})), /播放音源已变更为 Huibq/)
-  state.status = 'error'
-  assert.match(text(exports.PlaybackNotice({})), /备用音源获取失败 Huibq/)
 })

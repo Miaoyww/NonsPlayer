@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -200,17 +201,9 @@ export function AdaptersPage() {
         busy={busy || loading}
         onRefresh={() => void refresh()}
       />
-      {error && (
-        <p role="alert" className="whitespace-pre-line text-sm text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <ErrorNotice error={error} />}
       {loading && <TextSkeleton />}
-      {accounts.error && (
-        <p role="alert" className="text-sm text-destructive">
-          {accounts.error}
-        </p>
-      )}
+      {accounts.error && <ErrorNotice error={accounts.error} />}
       <ExtensionTabs
         noun="适配器"
         value={tab}
@@ -332,11 +325,7 @@ export function AdaptersPage() {
                     正在加载适配器，请稍候。
                   </p>
                 )}
-                {loadError && (
-                  <p role="alert" className="mt-2 text-sm text-destructive">
-                    {loadError}
-                  </p>
-                )}
+                {loadError && <ErrorNotice error={loadError} />}
                 {accountSource === row.key && account && (
                   <div className="mt-4">
                     <AdapterLoginCard

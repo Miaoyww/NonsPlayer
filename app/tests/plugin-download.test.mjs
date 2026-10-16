@@ -1,3 +1,4 @@
+import { errorNoticeModule } from './helpers/error-notice.mjs'
 import { musicReference } from './helpers/music-reference.mjs'
 import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
@@ -54,6 +55,7 @@ function load(path, modules = {}, globals = {}) {
     clearInterval: () => {},
     setTimeout: (fn) => setTimeout(fn, 0),
     require: (name) => {
+      if (name === '@/components/error-notice') return errorNoticeModule
       assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
       return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
     },

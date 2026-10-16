@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useListFind } from './list-find'
 import { Skeleton } from '@/components/ui/skeleton'
 import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
@@ -338,8 +339,8 @@ export const TrackList = memo(function TrackList({
         </p>
       )}
       {(likeError || likesError) && (
-        <div role="alert" className="mb-3 flex items-center gap-2 text-sm text-destructive">
-          <p>{likeError ?? likesError}</p>
+        <div className="mb-3 flex items-center gap-2 text-sm text-destructive">
+          <ErrorNotice error={likeError ?? likesError} />
           {likesError && (
             <ActionButton variant="ghost" size="sm" onClick={reloadLikes}>
               重试收藏状态

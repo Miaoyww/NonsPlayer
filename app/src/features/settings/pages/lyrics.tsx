@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -106,11 +107,7 @@ export function LyricsPage() {
             从 QQ 音乐获取歌词
           </label>
         </SettingsCard>
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
+        {error && <ErrorNotice error={error} />}
       </section>
     </div>
   )

@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { useCallback, useEffect, useState } from 'react'
 import { nativeCall, errorText, type Track } from '@/lib/player'
 import type { LocalEntity } from '@/features/local/local-library'
@@ -104,11 +105,7 @@ export function LocalPlaylistPicker({
           <p className="text-sm text-muted-foreground">还没有本地歌单，可以在上方创建。</p>
         )}
         <InfiniteLoad more={list.more} busy={list.busy} error={list.error} onLoad={list.loadMore} />
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
+        {error && <ErrorNotice error={error} />}
       </DialogContent>
     </Dialog>
   )

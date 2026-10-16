@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -106,11 +107,7 @@ export function FolderManager() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       {folder.scanning ? '正在扫描…' : `${folder.tracks} 首音乐`}
                     </p>
-                    {folder.error && (
-                      <p role="alert" className="mt-1 text-xs text-destructive">
-                        {folder.error}
-                      </p>
-                    )}
+                    {folder.error && <ErrorNotice error={folder.error} />}
                   </div>
                   <Button
                     variant="ghost"
@@ -134,11 +131,7 @@ export function FolderManager() {
             </div>
           )}
         </div>
-        {error && (
-          <p role="alert" className="mb-3 text-sm text-destructive">
-            {error}
-          </p>
-        )}
+        {error && <ErrorNotice error={error} />}
         <div className="flex gap-2">
           <Button
             variant="outline"

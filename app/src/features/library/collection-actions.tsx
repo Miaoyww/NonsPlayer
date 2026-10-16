@@ -1,3 +1,4 @@
+import { ErrorNotice } from '@/components/error-notice'
 import { collectionShareLink } from '@/features/music/share-links'
 import { musicClient } from '@/features/music/client'
 import { collectionReference } from '@/features/music/legacy-reference'
@@ -208,8 +209,8 @@ export function CollectionActionsProvider({
             )}
             {loading && <TextSkeleton />}
             {error && (
-              <div role="alert" className="text-sm text-destructive">
-                {error}
+              <div className="text-sm text-destructive">
+                <ErrorNotice error={error} />
                 {!ready && !target?.deleting && (
                   <ActionButton
                     variant="ghost"
