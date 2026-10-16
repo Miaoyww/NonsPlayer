@@ -1,24 +1,16 @@
-import { Tabs, TabsList, TabsTab, TabsPanel } from '@/components/animate-ui/components/base/tabs'
 import { Switch } from '@/components/ui/switch'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
 import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import {
-  ExternalLink,
-  FolderOpen,
-  Package,
-  RefreshCw,
-  RotateCw,
-  Search,
-  Settings,
-  Store,
-  Trash2,
-  Upload
-} from 'lucide-react'
+import { ExternalLink, FolderOpen, Package, RotateCw, Settings, Trash2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import {
+  ExtensionInstallButton,
+  ExtensionListHeader,
+  ExtensionListToolbar
+} from '../extension-list'
 import { errorText, nativeCall } from '@/lib/player'
 import { usePlugins } from '@/plugins/host'
 import type { PluginDescriptor } from '@/plugins/types'
@@ -42,6 +34,31 @@ const permissionLabels: Record<string, string> = {
   'files:data': '读写插件专属数据目录',
   'files:selected': '申请访问用户选择的外部目录'
 }
+const permissionBadges: Record<string, string> = {
+  'clipboard:music-links': '旧版剪贴板',
+  'clipboard:read': '剪贴板',
+  'http:request': '网络请求',
+  'http:transfer': '文件传输',
+  secrets: '独立凭据',
+  'account:credentials': '账号凭据',
+  'music:metadata': '音乐信息',
+  'music:library': '音乐库',
+  'music:write': '音乐写入',
+  'player:read': '播放状态',
+  'player:control': '播放控制',
+  storage: '数据存储',
+  ui: '界面',
+  config: '配置',
+  'files:data': '插件文件',
+  'files:selected': '外部文件'
+}
+const statusFilters = [
+  ['all', '全部'],
+  ['loaded', '已加载'],
+  ['unloaded', '未加载'],
+  ['error', '加载异常']
+] as const
+
 export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = {}) {
   const { plugins } = usePlugins()
   const [busy, setBusy] = useState(false)
@@ -54,7 +71,9 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
   useEffect(() => {
     if (initialPluginId) setConfiguring(initialPluginId)
   }, [initialPluginId])
-  const [tab, setTab] = useState('loaded')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [permission, setPermission] = useState('all')
+  const [installing, setInstalling] = useState(false)
   const [query, setQuery] = useState('')
   const [dragging, setDragging] = useState(false)
   const pageRef = useRef<HTMLDivElement>(null)
@@ -101,7 +120,9 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
             try {
               await nativeCall('plugin_install', { path })
               setQuery('')
-              setTab('unloaded')
+              setStatusFilter('unloaded')
+              setPermission('all')
+              setInstalling(false)
             } catch (error) {
               failures.push(`${path.split(/[\\/]/).pop()}：${errorText(error)}`)
             }
@@ -122,14 +143,26 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
     }
   }, [run])
   const search = query.trim().toLocaleLowerCase()
-  const loadedCount = plugins.filter((plugin) => plugin.loaded).length
-  const filteredPlugins = plugins.filter(
-    (plugin) =>
-      plugin.loaded === (tab === 'loaded') &&
+  const availablePermissions = [
+    ...new Set(plugins.flatMap((plugin) => plugin.manifest.permissions))
+  ]
+  const filteredPlugins = plugins.filter((plugin) => {
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'error' ? !!plugin.error : plugin.loaded === (statusFilter === 'loaded'))
+    return (
+      matchesStatus &&
+      (permission === 'all' || plugin.manifest.permissions.includes(permission)) &&
       `${plugin.manifest.name} ${plugin.manifest.id} ${plugin.manifest.description ?? ''}`
         .toLocaleLowerCase()
         .includes(search)
-  )
+    )
+  })
+  function resetReview() {
+    setReview(undefined)
+    setRemoving(undefined)
+    setTrusted(false)
+  }
   const selectedPlugin = plugins.find((plugin) => plugin.manifest.id === configuring)
   const action = (id: string, action: string, confirmed = false) =>
     run(() => nativeCall('plugin_action', { id, action, confirmed }))
@@ -144,7 +177,9 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
       if (typeof path === 'string') {
         await nativeCall('plugin_install', { path })
         setQuery('')
-        setTab('unloaded')
+        setStatusFilter('unloaded')
+        setPermission('all')
+        setInstalling(false)
       }
     })
   }
@@ -158,36 +193,32 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
     )
   return (
     <div ref={pageRef} className="flex flex-col gap-4" aria-busy={busy}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold">插件设置</h2>
-          <p className="mt-1 text-sm text-muted-foreground">管理播放器扩展与运行状态。</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy || !isTauri()}
-            onClick={() => void run(() => nativeCall('plugin_open_folder'))}
-          >
-            <FolderOpen aria-hidden="true" />
-            打开文件夹
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="刷新插件"
-            title="刷新插件"
-            disabled={busy || !isTauri()}
-            onClick={() => void run(() => nativeCall('plugin_discover'))}
-          >
-            <RefreshCw
-              aria-hidden="true"
-              className={busy ? 'animate-spin motion-reduce:animate-none' : undefined}
-            />
-          </Button>
-        </div>
-      </div>
+      <ExtensionListHeader
+        title="插件设置"
+        description="按能力管理播放器扩展，支持本地安装与拖入 ZIP 安装包。"
+        icon={<Package aria-hidden="true" className="size-5" />}
+        busy={busy || !isTauri()}
+        onRefresh={() => void run(() => nativeCall('plugin_discover'))}
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy || !isTauri()}
+          onClick={() => void run(() => nativeCall('plugin_open_folder'))}
+        >
+          <FolderOpen aria-hidden="true" />
+          打开文件夹
+        </Button>
+        <ExtensionInstallButton
+          label="安装插件"
+          disabled={busy || !isTauri()}
+          expanded={installing}
+          onClick={() => {
+            setInstalling(!installing)
+            resetReview()
+          }}
+        />
+      </ExtensionListHeader>
       {dragging && (
         <div
           role="status"
@@ -201,399 +232,353 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
           {error}
         </p>
       )}
-      <Tabs
-        value={tab}
-        onValueChange={(value) => {
-          setTab(value)
-          setReview(undefined)
-          setRemoving(undefined)
-          setTrusted(false)
-        }}
-        className="gap-3"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <TabsList aria-label="插件分类">
-            <TabsTab value="loaded">
-              已加载
-              <span className="text-xs tabular-nums text-muted-foreground">{loadedCount}</span>
-            </TabsTab>
-            <TabsTab value="unloaded">
-              未加载
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {plugins.length - loadedCount}
-              </span>
-            </TabsTab>
-            <TabsTab value="install">
+      {installing && (
+        <section
+          aria-label="本地安装插件"
+          className="rounded-xl border border-dashed border-border p-4"
+        >
+          <h3 className="text-sm font-semibold">从本地安装</h3>
+          <p className="mt-1 text-xs leading-normal text-muted-foreground">
+            拖拽 ZIP 文件到此页面，或选择安装包与插件目录。安装后查看权限并确认启用。
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" disabled={busy || !isTauri()} onClick={() => install(false)}>
               <Upload aria-hidden="true" />
-              安装插件
-            </TabsTab>
-          </TabsList>
-          {tab !== 'install' && (
-            <div className="relative w-full sm:ml-auto sm:w-48">
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                type="search"
-                aria-label="搜索插件"
-                placeholder="搜索名称或 ID"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                className="h-8 pl-9"
-              />
-            </div>
-          )}
-        </div>
-        <TabsPanel key={tab} value={tab} transition={{ duration: 0.15 }}>
-          {tab === 'install' ? (
-            <div className="space-y-4">
-              <section className="rounded-xl border border-dashed border-border bg-muted/20 p-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <Upload aria-hidden="true" className="size-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold">从本地安装</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      拖拽 ZIP 文件到此页面，或选择安装包与插件目录。
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button size="sm" disabled={busy || !isTauri()} onClick={() => install(false)}>
-                    <Upload aria-hidden="true" />
-                    选择 ZIP
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busy || !isTauri()}
-                    onClick={() => install(true)}
+              选择 ZIP
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy || !isTauri()}
+              onClick={() => install(true)}
+            >
+              <FolderOpen aria-hidden="true" />
+              选择目录
+            </Button>
+          </div>
+        </section>
+      )}
+      <ExtensionListToolbar
+        noun="插件"
+        query={query}
+        onQueryChange={(value) => {
+          setQuery(value)
+          resetReview()
+        }}
+        filter={permission}
+        onFilterChange={(value) => {
+          setPermission(value)
+          resetReview()
+        }}
+        options={[
+          { value: 'all', label: '全部权限' },
+          ...availablePermissions.map((value) => ({
+            value,
+            label: permissionBadges[value] ?? value
+          }))
+        ]}
+        status={statusFilter}
+        onStatusChange={(value) => {
+          setStatusFilter(value)
+          resetReview()
+        }}
+        statuses={statusFilters}
+        count={filteredPlugins.length}
+        total={plugins.length}
+      />
+      <section
+        aria-label="已安装的插件"
+        className="divide-y divide-border rounded-xl border border-border"
+      >
+        {filteredPlugins.length === 0 && (
+          <div className="space-y-2 p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              {plugins.length ? '没有符合条件的插件。' : '暂无已安装的插件。'}
+            </p>
+            {(query || statusFilter !== 'all' || permission !== 'all') && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setQuery('')
+                  setStatusFilter('all')
+                  setPermission('all')
+                  resetReview()
+                }}
+              >
+                清除筛选
+              </Button>
+            )}
+          </div>
+        )}
+        {filteredPlugins.map((plugin) => (
+          <section key={plugin.manifest.id} className="min-w-0 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="break-words text-sm font-semibold">{plugin.manifest.name}</h3>
+                  <span
+                    className={`rounded-md px-1.5 py-0.5 text-xs ${plugin.error ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}
                   >
-                    <FolderOpen aria-hidden="true" />
-                    选择目录
-                  </Button>
+                    {plugin.error
+                      ? '发生错误'
+                      : plugin.loaded
+                        ? '已加载'
+                        : plugin.enabled
+                          ? '待加载'
+                          : '已停用'}
+                  </span>
                 </div>
-                <p role="status" className="mt-3 text-xs text-muted-foreground">
-                  {busy ? '正在处理插件…' : '安装后进入未加载列表，查看权限并确认后启用。'}
-                </p>
-              </section>
-              <section className="flex items-center gap-3 rounded-xl border border-border p-4">
-                <Store aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
-                <div>
-                  <h3 className="text-sm font-semibold">
-                    插件商店
-                    <span className="ml-2 rounded-md bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
-                      即将接入
-                    </span>
-                  </h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    未来可在这里发现和安装插件，目前支持本地安装。
-                  </p>
-                </div>
-              </section>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-border">
-              <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
-                <span>{tab === 'loaded' ? '运行中的插件' : '已安装、尚未加载的插件'}</span>
-                <span className="shrink-0 tabular-nums">{filteredPlugins.length} 个插件</span>
-              </div>
-              {filteredPlugins.length === 0 && (
-                <div
-                  role="status"
-                  className="flex flex-col items-center gap-2 px-4 py-8 text-center"
-                >
-                  <Package aria-hidden="true" className="size-6 text-muted-foreground" />
-                  <p className="text-sm font-medium">
-                    {search
-                      ? '未找到匹配的插件'
-                      : tab === 'loaded'
-                        ? '暂无已加载插件'
-                        : '暂无未加载插件'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {search
-                      ? '尝试其他名称或插件 ID。'
-                      : tab === 'loaded'
-                        ? '在未加载列表中启用插件，或安装新的扩展。'
-                        : '已关闭、待加载或加载失败的插件会显示在这里。'}
-                  </p>
-                  {!search && (
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                  <span className="break-all">{plugin.manifest.id}</span>
+                  <span className="tabular-nums">· v{plugin.manifest.version}</span>
+                  {plugin.manifest.repository && (
                     <Button
-                      size="sm"
-                      variant="outline"
+                      variant="link"
+                      size="xs"
+                      className="h-auto gap-1 p-0 text-xs"
+                      disabled={busy}
+                      aria-label={`打开 ${plugin.manifest.name} 的代码仓库`}
+                      title={plugin.manifest.repository}
                       onClick={() =>
-                        setTab(tab === 'loaded' && plugins.length > 0 ? 'unloaded' : 'install')
+                        void run(() =>
+                          isTauri()
+                            ? openUrl(plugin.manifest.repository!)
+                            : Promise.resolve(
+                                window.open(
+                                  plugin.manifest.repository!,
+                                  '_blank',
+                                  'noopener,noreferrer'
+                                )
+                              )
+                        )
                       }
                     >
-                      {tab === 'loaded' && plugins.length > 0 ? '查看未加载插件' : '安装插件'}
+                      <ExternalLink aria-hidden="true" />
+                      代码仓库
                     </Button>
                   )}
                 </div>
-              )}
-              {filteredPlugins.map((plugin) => (
-                <section
-                  key={plugin.manifest.id}
-                  className="border-b border-border px-4 py-3 last:border-b-0"
+              </div>
+              <div className="ml-auto flex flex-wrap items-center gap-1">
+                {plugin.enabled && (
+                  <Button
+                    disabled={busy}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      void action(plugin.manifest.id, plugin.loaded ? 'unload' : 'load')
+                    }
+                  >
+                    {plugin.loaded ? '卸载运行实例' : '加载'}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={
+                    busy ||
+                    !(
+                      plugin.manifest.configuration ||
+                      plugin.manifest.permissions.some(
+                        (p) => p === 'files:data' || p === 'files:selected'
+                      )
+                    )
+                  }
+                  aria-label={`设置 ${plugin.manifest.name}`}
+                  title="插件设置"
+                  onClick={() => setConfiguring(plugin.manifest.id)}
                 >
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                      <Package aria-hidden="true" className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1 basis-32">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="break-words text-sm font-semibold">
-                          {plugin.manifest.name}
-                        </h3>
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                          v{plugin.manifest.version}
-                        </span>
-                        <span
-                          className={`rounded-md px-1.5 py-0.5 text-xs ${plugin.error ? 'bg-destructive/10 text-destructive' : plugin.loaded ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}
-                        >
-                          {plugin.error
-                            ? '发生错误'
-                            : plugin.loaded
-                              ? '已加载'
-                              : plugin.enabled
-                                ? '待加载'
-                                : '已停用'}
-                        </span>
-                      </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                        <span className="break-all">{plugin.manifest.id}</span>
-                        {plugin.manifest.repository && (
-                          <Button
-                            variant="link"
-                            size="xs"
-                            className="h-auto gap-1 p-0 text-xs"
-                            disabled={busy}
-                            aria-label={`打开 ${plugin.manifest.name} 的代码仓库`}
-                            title={plugin.manifest.repository}
-                            onClick={() =>
-                              void run(() =>
-                                isTauri()
-                                  ? openUrl(plugin.manifest.repository!)
-                                  : Promise.resolve(
-                                      window.open(
-                                        plugin.manifest.repository!,
-                                        '_blank',
-                                        'noopener,noreferrer'
-                                      )
-                                    )
-                              )
-                            }
-                          >
-                            <ExternalLink aria-hidden="true" />
-                            代码仓库
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="ml-auto flex flex-wrap items-center gap-1">
-                      <Button
-                        disabled={busy}
-                        size="sm"
-                        variant={plugin.enabled ? 'outline' : 'default'}
-                        onClick={() => {
-                          if (plugin.enabled) void action(plugin.manifest.id, 'disable')
-                          else {
-                            setReview(plugin)
-                            setTrusted(false)
-                            setRemoving(undefined)
-                          }
-                        }}
-                      >
-                        {plugin.enabled ? '停用' : '启用'}
-                      </Button>
-                      {plugin.enabled && (
-                        <Button
-                          disabled={busy}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            void action(plugin.manifest.id, plugin.loaded ? 'unload' : 'load')
-                          }
-                        >
-                          {plugin.loaded ? '卸载运行实例' : '加载'}
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={
-                          busy ||
-                          !(
-                            plugin.manifest.configuration ||
-                            plugin.manifest.permissions.some(
-                              (p) => p === 'files:data' || p === 'files:selected'
-                            )
-                          )
-                        }
-                        aria-label={`设置 ${plugin.manifest.name}`}
-                        title="插件设置"
-                        onClick={() => setConfiguring(plugin.manifest.id)}
-                      >
-                        <Settings aria-hidden="true" />
-                      </Button>
-                      <Button
-                        disabled={busy || !plugin.enabled}
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`重新加载 ${plugin.manifest.name}`}
-                        title="重新加载"
-                        onClick={() => void action(plugin.manifest.id, 'reload')}
-                      >
-                        <RotateCw aria-hidden="true" />
-                      </Button>
-                      <Button
-                        disabled={busy}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                        aria-label={`卸载 ${plugin.manifest.name}`}
-                        title="卸载插件"
-                        onClick={() => {
-                          setRemoving(plugin.manifest.id)
-                          setKeepData(true)
-                          setReview(undefined)
-                        }}
-                      >
-                        <Trash2 aria-hidden="true" />
-                      </Button>
-                    </div>
-                  </div>
-                  {plugin.manifest.description && (
-                    <p className="mt-2 whitespace-pre-line break-words text-xs leading-relaxed text-muted-foreground">
-                      {plugin.manifest.description}
-                    </p>
-                  )}
-                  {plugin.error && (
-                    <p role="alert" className="mt-2 break-words text-xs text-destructive">
-                      {plugin.error}
-                    </p>
-                  )}
-                  {review?.manifest.id === plugin.manifest.id && (
-                    <div className="mt-4 rounded-lg bg-muted/50 p-4 text-sm">
-                      <h4 className="font-semibold">启用前确认</h4>
-                      <ul className="my-3 list-disc space-y-1 pl-5">
-                        {plugin.manifest.permissions.map((p) => (
-                          <li
-                            key={p}
-                            className={
-                              p === 'account:credentials' ||
-                              p === 'music:write' ||
-                              (p === 'files:selected' &&
-                                plugin.manifest.fileRoots?.includes('*')) ||
-                              (['http:request', 'http:transfer'].includes(p) &&
-                                plugin.manifest.httpHosts?.includes('*'))
-                                ? 'font-semibold text-destructive'
-                                : undefined
-                            }
-                          >
-                            {p === 'files:selected' && plugin.manifest.fileRoots?.includes('*')
-                              ? '敏感权限：读写任意文件'
-                              : ['http:request', 'http:transfer'].includes(p) &&
-                                  plugin.manifest.httpHosts?.includes('*')
-                                ? p === 'http:request'
-                                  ? '敏感权限：会请求任意 URL'
-                                  : '敏感权限：会请求任意 URL 并传输资源到授权目录'
-                                : (permissionLabels[p] ?? p)}
-                            {['http:request', 'http:transfer'].includes(p) &&
-                              !plugin.manifest.httpHosts?.includes('*') &&
-                              `：${plugin.manifest.httpHosts?.join('、') ?? ''}`}
-                          </li>
-                        ))}
-                      </ul>
-                      {plugin.manifest.permissions.includes('account:credentials') && (
-                        <p
-                          role="alert"
-                          className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
-                        >
-                          此插件可以读取当前账号的登录
-                          Cookie，并以你的账号身份请求网易云服务。请仅授权你信任的插件。
-                        </p>
-                      )}
-                      {plugin.manifest.httpHosts?.includes('*') && (
-                        <p
-                          role="alert"
-                          className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
-                        >
-                          此插件会请求任意
-                          URL，向任意域名发送其可读取的数据。若同时授权账户凭证，登录 Cookie
-                          也可能被发送到其他网站。请仅授权你信任的插件。
-                        </p>
-                      )}
-                      {plugin.manifest.fileRoots?.includes('*') && (
-                        <p
-                          role="alert"
-                          className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
-                        >
-                          此插件可读取、创建、修改和删除当前用户能够访问的任意文件，不受已授权目录限制。
-                          若同时授予网络权限，它也可能发送文件内容。请仅授权你信任的插件。
-                        </p>
-                      )}
-                      <p className="leading-6 text-muted-foreground">
-                        前端插件与播放器运行在同一界面环境，能够执行代码。只启用你信任的插件；WASM
-                        权限限制不代表前端沙箱。
-                      </p>
-                      <label className="my-3 flex items-center gap-2">
-                        <Switch checked={trusted} onCheckedChange={setTrusted} />
-                        我信任此插件并同意以上权限
-                      </label>
-                      <div className="flex gap-2">
-                        <Button
-                          disabled={!trusted || busy}
-                          onClick={() => {
-                            void action(plugin.manifest.id, 'enable', true)
-                            setReview(undefined)
-                          }}
-                        >
-                          确认启用
-                        </Button>
-                        <Button variant="ghost" onClick={() => setReview(undefined)}>
-                          取消
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  {removing === plugin.manifest.id && (
-                    <div className="mt-4 rounded-lg bg-muted/50 p-4 text-sm">
-                      <p>
-                        默认保留插件配置、独立存储和专属数据目录，重新安装时恢复；关闭下方选项后清理这些数据。外部授权目录不会被清理。
-                      </p>
-                      <label className="mt-3 flex items-center gap-2">
-                        <Switch checked={keepData} onCheckedChange={setKeepData} disabled={busy} />
-                        保留插件数据，重新安装时恢复
-                      </label>
-                      <div className="mt-3 flex gap-2">
-                        <Button
-                          variant="destructive"
-                          disabled={busy}
-                          onClick={() => {
-                            void action(
-                              plugin.manifest.id,
-                              keepData ? 'uninstall-keep-data' : 'uninstall'
-                            )
-                            setRemoving(undefined)
-                          }}
-                        >
-                          确认卸载
-                        </Button>
-                        <Button variant="ghost" onClick={() => setRemoving(undefined)}>
-                          取消
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </section>
-              ))}
+                  <Settings aria-hidden="true" />
+                </Button>
+                <Button
+                  disabled={busy || !plugin.enabled}
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`重新加载 ${plugin.manifest.name}`}
+                  title="重新加载"
+                  onClick={() => void action(plugin.manifest.id, 'reload')}
+                >
+                  <RotateCw aria-hidden="true" />
+                </Button>
+                <Button
+                  disabled={busy}
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  aria-label={`卸载 ${plugin.manifest.name}`}
+                  title="卸载插件"
+                  onClick={() => {
+                    setRemoving(plugin.manifest.id)
+                    setKeepData(true)
+                    setReview(undefined)
+                  }}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+                <Switch
+                  aria-label={`启用${plugin.manifest.name}`}
+                  checked={plugin.enabled}
+                  disabled={busy}
+                  onCheckedChange={(enabled) => {
+                    if (!enabled) void action(plugin.manifest.id, 'disable')
+                    else {
+                      setReview(plugin)
+                      setTrusted(false)
+                      setRemoving(undefined)
+                    }
+                  }}
+                />
+              </div>
             </div>
-          )}
-        </TabsPanel>
-      </Tabs>
+            {plugin.manifest.description && (
+              <p className="mt-1.5 whitespace-pre-line text-xs leading-normal text-muted-foreground [overflow-wrap:anywhere]">
+                {plugin.manifest.description}
+              </p>
+            )}
+            {!!plugin.manifest.permissions.length && (
+              <div className="mt-3 flex flex-wrap gap-1.5" aria-label="声明的权限">
+                {plugin.manifest.permissions.map((value) => (
+                  <span
+                    key={value}
+                    className="rounded-md bg-muted/60 px-2 py-1 text-xs text-muted-foreground"
+                  >
+                    {permissionBadges[value] ?? value}
+                  </span>
+                ))}
+              </div>
+            )}
+            {plugin.error && (
+              <p role="alert" className="mt-2 break-words text-xs text-destructive">
+                {plugin.error}
+              </p>
+            )}
+            {review?.manifest.id === plugin.manifest.id && (
+              <div className="mt-4 rounded-lg bg-muted/50 p-4 text-sm">
+                <h4 className="font-semibold">启用前确认</h4>
+                <ul className="my-3 list-disc space-y-1 pl-5">
+                  {plugin.manifest.permissions.map((p) => (
+                    <li
+                      key={p}
+                      className={
+                        p === 'account:credentials' ||
+                        p === 'music:write' ||
+                        (p === 'files:selected' && plugin.manifest.fileRoots?.includes('*')) ||
+                        (['http:request', 'http:transfer'].includes(p) &&
+                          plugin.manifest.httpHosts?.includes('*'))
+                          ? 'font-semibold text-destructive'
+                          : undefined
+                      }
+                    >
+                      {p === 'files:selected' && plugin.manifest.fileRoots?.includes('*')
+                        ? '敏感权限：读写任意文件'
+                        : ['http:request', 'http:transfer'].includes(p) &&
+                            plugin.manifest.httpHosts?.includes('*')
+                          ? p === 'http:request'
+                            ? '敏感权限：会请求任意 URL'
+                            : '敏感权限：会请求任意 URL 并传输资源到授权目录'
+                          : (permissionLabels[p] ?? p)}
+                      {['http:request', 'http:transfer'].includes(p) &&
+                        !plugin.manifest.httpHosts?.includes('*') &&
+                        `：${plugin.manifest.httpHosts?.join('、') ?? ''}`}
+                    </li>
+                  ))}
+                </ul>
+                {plugin.manifest.permissions.includes('account:credentials') && (
+                  <p
+                    role="alert"
+                    className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
+                  >
+                    此插件可以读取当前账号的登录
+                    Cookie，并以你的账号身份请求网易云服务。请仅授权你信任的插件。
+                  </p>
+                )}
+                {plugin.manifest.httpHosts?.includes('*') && (
+                  <p
+                    role="alert"
+                    className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
+                  >
+                    此插件会请求任意 URL，向任意域名发送其可读取的数据。若同时授权账户凭证，登录
+                    Cookie 也可能被发送到其他网站。请仅授权你信任的插件。
+                  </p>
+                )}
+                {plugin.manifest.fileRoots?.includes('*') && (
+                  <p
+                    role="alert"
+                    className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
+                  >
+                    此插件可读取、创建、修改和删除当前用户能够访问的任意文件，不受已授权目录限制。
+                    若同时授予网络权限，它也可能发送文件内容。请仅授权你信任的插件。
+                  </p>
+                )}
+                <p className="leading-6 text-muted-foreground">
+                  前端插件与播放器运行在同一界面环境，能够执行代码。只启用你信任的插件；WASM
+                  权限限制不代表前端沙箱。
+                </p>
+                <label className="my-3 flex items-center gap-2">
+                  <Switch
+                    aria-label="同意插件权限"
+                    checked={trusted}
+                    onCheckedChange={setTrusted}
+                  />
+                  我信任此插件并同意以上权限
+                </label>
+                <div className="flex gap-2">
+                  <Button
+                    disabled={!trusted || busy}
+                    onClick={() => {
+                      void action(plugin.manifest.id, 'enable', true)
+                      setReview(undefined)
+                    }}
+                  >
+                    确认启用
+                  </Button>
+                  <Button variant="ghost" onClick={() => setReview(undefined)}>
+                    取消
+                  </Button>
+                </div>
+              </div>
+            )}
+            {removing === plugin.manifest.id && (
+              <div className="mt-4 rounded-lg bg-muted/50 p-4 text-sm">
+                <p>
+                  默认保留插件配置、独立存储和专属数据目录，重新安装时恢复；关闭下方选项后清理这些数据。外部授权目录不会被清理。
+                </p>
+                <label className="mt-3 flex items-center gap-2">
+                  <Switch
+                    aria-label="保留插件数据"
+                    checked={keepData}
+                    onCheckedChange={setKeepData}
+                    disabled={busy}
+                  />
+                  保留插件数据，重新安装时恢复
+                </label>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="destructive"
+                    disabled={busy}
+                    onClick={() => {
+                      void action(
+                        plugin.manifest.id,
+                        keepData ? 'uninstall-keep-data' : 'uninstall'
+                      )
+                      setRemoving(undefined)
+                    }}
+                  >
+                    确认卸载
+                  </Button>
+                  <Button variant="ghost" onClick={() => setRemoving(undefined)}>
+                    取消
+                  </Button>
+                </div>
+              </div>
+            )}
+          </section>
+        ))}
+      </section>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        停用会停止插件运行，已保存的数据仍会保留。
+      </p>
     </div>
   )
 }

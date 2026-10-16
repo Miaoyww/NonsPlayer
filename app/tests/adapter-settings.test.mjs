@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client'
 import * as jsx from 'react/jsx-runtime'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
+import { loadExtensionList } from './helpers/extension-list.mjs'
 
 test('adapter settings wait for persistence, report failures and reject stale list responses', async () => {
   const dom = new JSDOM('<div id="root"></div>')
@@ -69,7 +70,8 @@ test('adapter settings wait for persistence, report failures and reject stale li
       RefreshCw: () => null,
       Search: () => null,
       RotateCw: () => null,
-      UserRound: () => null
+      UserRound: () => null,
+      Upload: () => null
     },
     '@/components/ui/button': {
       Button: ({ variant, size, children, ...props }) =>
@@ -103,6 +105,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
       }
     }
   }
+  modules['../extension-list'] = loadExtensionList(modules)
   const exports = {}
   const code = ts.transpileModule(
     readFileSync(new URL('../src/features/settings/pages/adapters.tsx', import.meta.url), 'utf8'),
@@ -126,6 +129,11 @@ test('adapter settings wait for persistence, report failures and reject stale li
     act(async () => element.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })))
   try {
     await act(async () => root.render(React.createElement(exports.AdaptersPage)))
+    const reservedInstall = [...document.querySelectorAll('button')].find((button) =>
+      button.textContent.includes('安装适配器')
+    )
+    assert.equal(reservedInstall.disabled, true)
+    assert.match(reservedInstall.textContent, /暂未开放/)
     assert.equal(requests[0].command, 'adapter_list')
     await act(async () => requests[0].resolve(status(true)))
     await click(toggle())

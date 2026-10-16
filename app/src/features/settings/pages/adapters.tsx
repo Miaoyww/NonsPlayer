@@ -2,16 +2,13 @@ import { TextSkeleton } from '@/components/music/loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { Blocks, RefreshCw, RotateCw, Search, UserRound } from 'lucide-react'
+import { Blocks, RotateCw, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
+  ExtensionInstallButton,
+  ExtensionListHeader,
+  ExtensionListToolbar
+} from '../extension-list'
 import { Switch } from '@/components/ui/switch'
 import { AdapterLoginCard } from '@/features/account/account-login-page'
 import { useAccountAdapters } from '@/features/account/use-account-adapters'
@@ -194,28 +191,15 @@ export function AdaptersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="flex items-center gap-2 text-xl font-bold">
-            <Blocks aria-hidden="true" className="size-5" />
-            音乐适配器
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            按能力管理音乐来源与音源。音乐库与发现使用的平台通过账号切换。
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={busy || loading}
-          onClick={() => {
-            void refresh()
-          }}
-        >
-          <RefreshCw aria-hidden="true" />
-          刷新
-        </Button>
-      </div>
+      <ExtensionListHeader
+        title="音乐适配器"
+        description="按能力管理音乐来源与音源。音乐库与发现使用的平台通过账号切换。"
+        icon={<Blocks aria-hidden="true" className="size-5" />}
+        busy={busy || loading}
+        onRefresh={() => void refresh()}
+      >
+        <ExtensionInstallButton label="安装适配器" available={false} />
+      </ExtensionListHeader>
       {error && (
         <p role="alert" className="whitespace-pre-line text-sm text-destructive">
           {error}
@@ -227,57 +211,25 @@ export function AdaptersPage() {
           {accounts.error}
         </p>
       )}
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-0 flex-1 basis-48">
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              type="search"
-              aria-label="搜索适配器"
-              placeholder="搜索名称、ID 或描述"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={capability} onValueChange={(value) => setCapability(value ?? 'all')}>
-            <SelectTrigger aria-label="按能力筛选" className="w-40">
-              <SelectValue>
-                {capability === 'all' ? '全部能力' : (capabilityLabels[capability] ?? capability)}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部能力</SelectItem>
-              {availableCapabilities.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {capabilityLabels[value] ?? value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-1" role="group" aria-label="按状态筛选">
-            {statusFilters.map(([value, label]) => (
-              <Button
-                key={value}
-                variant={statusFilter === value ? 'secondary' : 'ghost'}
-                size="sm"
-                aria-pressed={statusFilter === value}
-                onClick={() => setStatusFilter(value)}
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
-          <p role="status" className="text-xs tabular-nums text-muted-foreground">
-            显示 {filtered.length} / {rows.length} 个适配器
-          </p>
-        </div>
-      </div>
+      <ExtensionListToolbar
+        noun="适配器"
+        query={query}
+        onQueryChange={setQuery}
+        filter={capability}
+        onFilterChange={setCapability}
+        options={[
+          { value: 'all', label: '全部能力' },
+          ...availableCapabilities.map((value) => ({
+            value,
+            label: capabilityLabels[value] ?? value
+          }))
+        ]}
+        status={statusFilter}
+        onStatusChange={setStatusFilter}
+        statuses={statusFilters}
+        count={filtered.length}
+        total={rows.length}
+      />
       <section
         aria-label="已安装的音乐适配器"
         className="divide-y divide-border rounded-xl border border-border"

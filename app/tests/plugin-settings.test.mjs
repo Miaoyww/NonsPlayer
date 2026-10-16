@@ -7,7 +7,7 @@ import * as jsx from 'react/jsx-runtime'
 import { createRoot } from 'react-dom/client'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
-import { Tabs as BaseTabs } from '@base-ui/react/tabs'
+import { loadExtensionList } from './helpers/extension-list.mjs'
 
 test('plugin settings scopes native drops, serializes ZIP installs and removes its listener', async () => {
   const dom = new JSDOM('<section aria-label="插件设置"><div id="root"></div></section>')
@@ -27,14 +27,24 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
   let cleanups = 0
   const calls = []
   const openedUrls = []
+  const dialogs = []
   let plugins = []
+  const selectContext = React.createContext(null)
   const modules = {
-    '@/components/animate-ui/components/base/tabs': {
-      Tabs: BaseTabs.Root,
-      TabsList: BaseTabs.List,
-      TabsTab: BaseTabs.Tab,
-      TabsPanel: ({ transition: _transition, ...props }) =>
-        React.createElement(BaseTabs.Panel, props)
+    '@/components/ui/select': {
+      Select: ({ onValueChange, children }) =>
+        React.createElement(selectContext.Provider, { value: onValueChange }, children),
+      SelectContent: ({ children }) => React.createElement('div', null, children),
+      SelectTrigger: ({ children, ...props }) => React.createElement('button', props, children),
+      SelectValue: ({ children }) => React.createElement('span', null, children),
+      SelectItem: ({ value, children }) => {
+        const change = React.useContext(selectContext)
+        return React.createElement(
+          'button',
+          { 'data-permission': value, onClick: () => change(value) },
+          children
+        )
+      }
     },
     '../plugins/configuration-page': { PluginConfigurationPage: 'div' },
     react: React,
@@ -49,7 +59,12 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
       })
     },
     '@tauri-apps/plugin-opener': { openUrl: async (url) => openedUrls.push(url) },
-    '@tauri-apps/plugin-dialog': { open: async () => 'chosen.zip' },
+    '@tauri-apps/plugin-dialog': {
+      open: async (options) => {
+        dialogs.push(options)
+        return options.directory ? 'chosen-directory' : 'chosen.zip'
+      }
+    },
     'lucide-react': Object.fromEntries(
       [
         'ExternalLink',
@@ -67,7 +82,10 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     '@/components/ui/button': {
       Button: ({ variant: _variant, size: _size, ...props }) => React.createElement('button', props)
     },
-    '@/components/ui/input': { Input: 'input' },
+    '@/components/ui/input': {
+      Input: ({ onChange, ...props }) =>
+        React.createElement('input', { ...props, onInput: onChange })
+    },
     '@/components/ui/switch': {
       Switch: ({ onCheckedChange, ...props }) =>
         React.createElement('input', {
@@ -90,6 +108,7 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
       }
     }
   }
+  modules['../extension-list'] = loadExtensionList(modules)
   const exports = {}
   runInNewContext(
     ts.transpileModule(
@@ -112,7 +131,7 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     React.act(async () => listener({ payload: { type, paths, position } }))
   try {
     await React.act(async () => root.render(React.createElement(exports.PluginsPage)))
-    assert.match(document.querySelector('[role=tab][aria-selected=true]').textContent, /已加载0/)
+    assert.equal(document.querySelector('[aria-pressed=true]').textContent, '全部')
     await emit('drop', ['outside.zip'], { x: 20, y: 20 })
     assert.equal(calls.length, 0)
     await emit('enter', ['one.zip'])
@@ -165,16 +184,17 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
       }
     ]
     await React.act(async () => root.render(React.createElement(exports.PluginsPage)))
-    assert.match(document.querySelector('[role=tabpanel]').textContent, /保存歌曲与管理下载队列。/)
+    const list = () => document.querySelector('section[aria-label="已安装的插件"]')
+    assert.match(list().textContent, /保存歌曲与管理下载队列。/)
     await React.act(async () =>
       document.querySelector('[aria-label="打开 下载管理 的代码仓库"]').click()
     )
     assert.deepEqual(openedUrls, ['https://github.com/Miaoyww/Nons'])
-    assert.match(document.querySelector('[role=tab][aria-selected=true]').textContent, /未加载1/)
-    const selectTab = async (value) =>
+    assert.equal(document.querySelector('[aria-pressed=true]').textContent, '未加载')
+    const selectStatus = async (value) =>
       React.act(async () =>
-        [...document.querySelectorAll('[role=tab]')]
-          .find((button) => button.textContent.startsWith(value))
+        [...document.querySelectorAll('button[aria-pressed]')]
+          .find((button) => button.textContent === value)
           .click()
       )
     plugins.push({
@@ -183,12 +203,43 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
       loaded: true
     })
     await React.act(async () => root.render(React.createElement(exports.PluginsPage)))
-    assert.doesNotMatch(document.querySelector('[role=tabpanel]').textContent, /灵动岛/)
-    await selectTab('已加载')
-    assert.match(document.querySelector('[role=tabpanel]').textContent, /灵动岛/)
-    assert.doesNotMatch(document.querySelector('[role=tabpanel]').textContent, /下载管理/)
-    await selectTab('安装插件')
-    assert.match(document.querySelector('[role=tabpanel]').textContent, /插件商店/)
+    assert.doesNotMatch(list().textContent, /灵动岛/)
+    await selectStatus('已加载')
+    assert.match(list().textContent, /灵动岛/)
+    assert.doesNotMatch(list().textContent, /下载管理/)
+    await selectStatus('全部')
+    assert.equal(list().querySelectorAll('h3').length, 2)
+    await React.act(async () => document.querySelector('[data-permission="http:transfer"]').click())
+    assert.match(list().textContent, /下载管理/)
+    assert.doesNotMatch(list().textContent, /灵动岛/)
+    const search = document.querySelector('[type=search]')
+    await React.act(async () => {
+      search.value = '不存在'
+      search.dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+    })
+    assert.match(list().textContent, /没有符合条件/)
+    await React.act(async () =>
+      [...document.querySelectorAll('button')]
+        .find((button) => button.textContent === '清除筛选')
+        .click()
+    )
+    assert.equal(list().querySelectorAll('h3').length, 2)
+    plugins.push({
+      manifest: { id: 'failed', name: '失败插件', version: '1.0.0', permissions: [] },
+      enabled: true,
+      loaded: false,
+      error: '加载失败测试'
+    })
+    await React.act(async () => root.render(React.createElement(exports.PluginsPage)))
+    await selectStatus('加载异常')
+    assert.equal(list().querySelectorAll('h3').length, 1)
+    assert.match(list().textContent, /加载失败测试/)
+    await React.act(async () =>
+      [...document.querySelectorAll('button')]
+        .find((button) => button.textContent === '安装插件')
+        .click()
+    )
+    assert.ok(document.querySelector('section[aria-label="本地安装插件"]'))
     assert.ok(
       [...document.querySelectorAll('button')].some((button) =>
         button.textContent.includes('选择目录')
@@ -201,14 +252,31 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     )
     assert.equal(calls.at(-1)[0], 'plugin_install')
     assert.equal(calls.at(-1)[1].path, 'chosen.zip')
-    assert.match(document.querySelector('[role=tab][aria-selected=true]').textContent, /未加载/)
+    assert.equal(document.querySelector('[aria-pressed=true]').textContent, '未加载')
     assert.equal(document.querySelector('[type=search]').value, '')
+    assert.equal(dialogs.at(-1).directory, false)
     await React.act(async () =>
       [...document.querySelectorAll('button')]
-        .find((button) => button.textContent === '启用')
+        .find((button) => button.textContent === '安装插件')
         .click()
     )
+    await React.act(async () =>
+      [...document.querySelectorAll('button')]
+        .find((button) => button.textContent === '选择目录')
+        .click()
+    )
+    assert.equal(dialogs.at(-1).directory, true)
+    assert.equal(calls.at(-1)[0], 'plugin_install')
+    assert.equal(calls.at(-1)[1].path, 'chosen-directory')
+    const beforeEnable = calls.length
+    await React.act(async () => document.querySelector('[aria-label="启用下载管理"]').click())
     assert.match(document.body.textContent, /敏感权限：读取 NonsPlayer 的网易云账户凭证/)
+    assert.equal(calls.length, beforeEnable)
+    assert.equal(
+      [...document.querySelectorAll('button')].find((button) => button.textContent === '确认启用')
+        .disabled,
+      true
+    )
     const warning = [...document.querySelectorAll('[role="alert"]')].find((element) =>
       element.textContent.includes('登录 Cookie')
     )
@@ -231,17 +299,21 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
       )
     const beginUninstall = async () =>
       React.act(async () => document.querySelector('[aria-label="卸载 下载管理"]').click())
+    await React.act(async () => document.querySelector('[aria-label="同意插件权限"]').click())
+    await clickButton('确认启用')
+    assert.equal(calls.at(-1)[0], 'plugin_action')
+    assert.equal(calls.at(-1)[1].action, 'enable')
+    assert.equal(calls.at(-1)[1].confirmed, true)
+    await beginUninstall()
+    assert.equal(document.querySelector('[aria-label="保留插件数据"]').checked, true)
+    await React.act(async () => document.querySelector('[aria-label="保留插件数据"]').click())
     await clickButton('取消')
     await beginUninstall()
-    assert.equal(document.querySelector('[role="switch"]').checked, true)
-    await React.act(async () => document.querySelector('[role="switch"]').click())
-    await clickButton('取消')
-    await beginUninstall()
-    assert.equal(document.querySelector('[role="switch"]').checked, true)
+    assert.equal(document.querySelector('[aria-label="保留插件数据"]').checked, true)
     await clickButton('确认卸载')
     assert.equal(calls.at(-1)[1].action, 'uninstall-keep-data')
     await beginUninstall()
-    await React.act(async () => document.querySelector('[role="switch"]').click())
+    await React.act(async () => document.querySelector('[aria-label="保留插件数据"]').click())
     await clickButton('确认卸载')
     assert.equal(calls.at(-1)[1].action, 'uninstall')
     const finalCall = calls.at(-1)
