@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 后台播放与设置
+
+- Windows x64 启动后自动检查更新，优先使用下载镜像，检查或安装包下载失败时切换 GitHub；发现新版后提示，点击下载并验证签名后，可确认重启安装。关于页支持手动检查；便携版提示下载新版压缩包。
+
 ## [1.3.4]
 
 ![NonsPlayer v1.3.4 备用音源与来源选择发布头图](https://raw.githubusercontent.com/Miaoyww/NonsPlayer/v1.3.4/docs/release-assets/header-1.3.4.png)

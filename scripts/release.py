@@ -118,6 +118,11 @@ def collect_files(root, tag, output):
         if len(matches) != 1:
             raise ValueError(f"Expected one {directory} installer for {version}, found {len(matches)}")
         sources.append((matches[0], matches[0].name))
+        if config["bundle"].get("createUpdaterArtifacts"):
+            signature = matches[0].with_name(matches[0].name + ".sig")
+            if not signature.is_file() or not signature.read_text(encoding="utf-8").strip():
+                raise ValueError(f"Missing updater signature: {signature}")
+            sources.append((signature, signature.name))
     portable = bundle / "portable" / f"{portable_name(root, version)}.zip"
     if not portable.is_file():
         raise ValueError(f"Missing portable archive: {portable}")

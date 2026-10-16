@@ -11,6 +11,9 @@ use player::{Command, Player};
 use std::{path::PathBuf, sync::Arc};
 use tauri::{Manager, State};
 
+#[cfg(desktop)]
+mod updates;
+
 pub(crate) struct Backend {
     pub(crate) store: Arc<storage::Store>,
     pub(crate) music: Arc<crate::music::service::MusicService>,
@@ -698,6 +701,7 @@ pub fn run() {
     let builder = builder
         // Claim the instance before other plugins or backend initialization.
         .plugin(desktop::single_instance())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_autostart::Builder::new()
                 .app_name(autostart::ENTRY_NAME)
@@ -866,12 +870,31 @@ pub fn run() {
             });
             #[cfg(desktop)]
             {
+                let updates = updates::Updates::new();
+                app.manage(updates.clone());
+                let update_app = app.handle().clone();
+                if !cfg!(debug_assertions) && !cfg!(feature = "plugin-probe") {
+                    tauri::async_runtime::spawn(async move {
+                        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                        let _ = updates.check(&update_app).await;
+                    });
+                }
                 desktop::setup(app)?;
                 main_webview::setup(app)?;
             }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            #[cfg(desktop)]
+            updates::update_status,
+            #[cfg(desktop)]
+            updates::update_check,
+            #[cfg(desktop)]
+            updates::update_download,
+            #[cfg(desktop)]
+            updates::update_install,
+            #[cfg(desktop)]
+            updates::update_open_download,
             crate::music::provider_commands::resource_provider_list,
             crate::music::provider_commands::resource_provider_set_enabled,
             crate::music::provider_commands::resource_search,
@@ -980,6 +1003,8 @@ pub fn run() {
         .expect("无法启动 NonsPlayer");
     app.run(|app, event| {
         if matches!(event, tauri::RunEvent::Exit) {
+            #[cfg(desktop)]
+            app.state::<Arc<updates::Updates>>().cleanup();
             #[cfg(desktop)]
             main_webview::stop(app);
             app.state::<Arc<plugins::PluginManager>>().stop();

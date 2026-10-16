@@ -93,7 +93,12 @@ jobs:
         run: python scripts/bootstrap-gstreamer.py
 
       - name: Build installers
-        run: pnpm --dir app build:release
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw 'Missing TAURI_SIGNING_PRIVATE_KEY' }
+          pnpm --dir app build:release
 
       - name: Verify bundled audio runtime
         run: python scripts/smoke-audio-runtime.py app/src-tauri/target/release --skip-audio-output
@@ -110,6 +115,9 @@ jobs:
 
       - name: Collect release files and checksums
         run: python scripts/release.py files $env:RELEASE_TAG .local/release-files
+
+      - name: Generate signed updater feed
+        run: python scripts/update-manifest.py $env:RELEASE_TAG .local/release-files .local/release-notes.md --base-url "https://github.com/${{ github.repository }}/releases/download/$env:RELEASE_TAG" --checksum
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -172,3 +180,29 @@ jobs:
             gh release upload "$TAG" "$file" --repo "$REPO" --clobber
           done
           gh release edit "$TAG" --repo "$REPO" --draft=false
+
+      - name: Generate mirror updater feed
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python scripts/update-manifest.py "$RELEASE_TAG" artifacts .local/release-notes.md --base-url "https://download.miaoyww.top/nons/releases/$RELEASE_TAG" --output .local/r2-latest.json
+
+      - name: Install R2 upload client
+        run: python -m pip install 'awscli>=1.35,<2'
+
+      - name: Publish immutable assets then mirror updater feed
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          : "${AWS_ACCESS_KEY_ID:?Missing R2_ACCESS_KEY_ID}"
+          : "${AWS_SECRET_ACCESS_KEY:?Missing R2_SECRET_ACCESS_KEY}"
+          : "${R2_ACCOUNT_ID:?Missing R2_ACCOUNT_ID}"
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 cp artifacts/ "s3://veto/nons/releases/$RELEASE_TAG/" --recursive \
+            --endpoint-url "$endpoint" --cache-control 'public,max-age=31536000,immutable'
+          aws s3 cp .local/r2-latest.json "s3://veto/nons/releases/latest.json" \
+            --endpoint-url "$endpoint" --content-type 'application/json' --cache-control 'no-cache'

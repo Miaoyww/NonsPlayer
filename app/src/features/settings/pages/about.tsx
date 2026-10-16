@@ -2,7 +2,8 @@ import { ErrorNotice } from '@/components/error-notice'
 import { useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { ExternalLink, FileText, RefreshCw, Terminal } from 'lucide-react'
+import { ExternalLink, FileText, Terminal } from 'lucide-react'
+import { UpdateCard } from '@/features/updates/update-provider'
 import appIcon from '../../../../app-icon.png'
 import { Button } from '@/components/ui/button'
 import { errorText, nativeCall } from '@/lib/player'
@@ -67,12 +68,7 @@ export function AboutPage({ version }: { version: string }) {
           </Button>
         </SettingsCard>
       )}
-      <SettingsCard title="版本更新" description="检查新版本，暂未开放。">
-        <Button variant="outline" size="sm" disabled>
-          <RefreshCw aria-hidden="true" />
-          检查更新
-        </Button>
-      </SettingsCard>
+      <UpdateCard />
       <SettingsCard title="开源许可" description="本项目基于 GPL-3.0 协议开源。">
         {link(`${repository}/blob/main/LICENSE`, 'GPL-3.0', true)}
       </SettingsCard>

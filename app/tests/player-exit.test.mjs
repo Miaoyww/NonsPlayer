@@ -36,6 +36,7 @@ function harness(initialMode = 'collapsible') {
   let phase
   let barMode = initialMode
   const App = load('../src/App.tsx', {
+    '@/features/updates/update-provider': { UpdateProvider: 'UpdateProvider' },
     '@/features/workspace/use-android-window-layout': { useAndroidWindowLayout() {} },
     '@/features/lyrics/android-media-lyrics': { AndroidMediaLyrics: 'AndroidMediaLyrics' },
     '@/lib/platform': { isAndroid: () => false },

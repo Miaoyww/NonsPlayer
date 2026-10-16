@@ -9,6 +9,7 @@ import { PluginProvider, PluginSlot } from '@/plugins/host'
 import { useAndroidWindowLayout } from '@/features/workspace/use-android-window-layout'
 import { AndroidMediaLyrics } from '@/features/lyrics/android-media-lyrics'
 import { isAndroid } from '@/lib/platform'
+import { UpdateProvider } from '@/features/updates/update-provider'
 
 function App() {
   const [playerPhase, setPlayerPhase] = useState<'closed' | 'open' | 'closing'>(() => {
@@ -31,31 +32,33 @@ function App() {
     setPlayerPhase((phase) => (value ? 'open' : phase === 'closed' ? 'closed' : 'closing'))
   return (
     <MotionConfig reducedMotion="user">
-      {isAndroid() && <AndroidMediaLyrics />}
-      <AccountProvider>
-        <MusicOptionsProvider>
-          <MusicNavigationProvider>
-            <PluginProvider>
-              <div
-                className={`app-shell relative flex h-dvh flex-col overflow-hidden bg-background text-foreground ${nowPlaying ? 'now-playing' : ''}`}
-              >
-                <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
-                <MusicWorkspace
-                  nowPlaying={nowPlaying}
-                  playerVisible={playerPhase !== 'closed'}
-                  onNowPlayingChange={setNowPlaying}
-                  onPlayerExitComplete={() =>
-                    setPlayerPhase((phase) => (phase === 'closing' ? 'closed' : phase))
-                  }
-                />
-                <div className="pointer-events-none absolute inset-x-0 top-16 z-50 flex flex-col items-center gap-2">
-                  <PluginSlot name="main.overlay" />
+      <UpdateProvider>
+        {isAndroid() && <AndroidMediaLyrics />}
+        <AccountProvider>
+          <MusicOptionsProvider>
+            <MusicNavigationProvider>
+              <PluginProvider>
+                <div
+                  className={`app-shell relative flex h-dvh flex-col overflow-hidden bg-background text-foreground ${nowPlaying ? 'now-playing' : ''}`}
+                >
+                  <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
+                  <MusicWorkspace
+                    nowPlaying={nowPlaying}
+                    playerVisible={playerPhase !== 'closed'}
+                    onNowPlayingChange={setNowPlaying}
+                    onPlayerExitComplete={() =>
+                      setPlayerPhase((phase) => (phase === 'closing' ? 'closed' : phase))
+                    }
+                  />
+                  <div className="pointer-events-none absolute inset-x-0 top-16 z-50 flex flex-col items-center gap-2">
+                    <PluginSlot name="main.overlay" />
+                  </div>
                 </div>
-              </div>
-            </PluginProvider>
-          </MusicNavigationProvider>
-        </MusicOptionsProvider>
-      </AccountProvider>
+              </PluginProvider>
+            </MusicNavigationProvider>
+          </MusicOptionsProvider>
+        </AccountProvider>
+      </UpdateProvider>
     </MotionConfig>
   )
 }
