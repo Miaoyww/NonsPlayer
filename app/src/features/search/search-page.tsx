@@ -119,53 +119,46 @@ function Results({
   const open = (item: MusicCollection) => navigate('collection', '', item)
   return (
     <>
-      <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="搜索来源筛选">
-        {[{ source: 'all', name: '聚合' }, ...sources].map((value) => (
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="搜索来源筛选">
+        {[
+          {
+            source: 'all',
+            name: '聚合',
+            count: kind === 'track' ? aggregation.getSnapshot().length : state.items.length,
+            busy: state.sources.some((value) => value.busy),
+            unavailable: undefined,
+            error: undefined,
+            capped: false
+          },
+          ...state.sources
+        ].map((value) => (
           <ActionButton
             key={value.source}
             size="sm"
-            variant={filter === value.source ? 'secondary' : 'ghost'}
+            variant="outline"
+            className="h-10 gap-2 rounded-lg border-border px-3 aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary aria-pressed:ring-1 aria-pressed:ring-primary"
             aria-pressed={filter === value.source}
+            title={
+              value.unavailable ??
+              value.error ??
+              (value.capped ? '已达本次上限' : '数量仅统计已加载结果')
+            }
             onClick={() => {
               setFilter(value.source)
               query.loadVisible(value.source)
             }}
           >
             {value.name}
-          </ActionButton>
-        ))}
-      </div>
-      <div
-        className="mb-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground"
-        role="status"
-      >
-        {state.sources.map((value) => (
-          <div key={value.source}>
-            <span>
-              {value.name} ·{' '}
-              {value.unavailable ??
-                (value.busy
-                  ? '正在搜索…'
-                  : value.error
-                    ? `请求失败${value.count ? `，已保留 ${value.count} 项` : ''}`
-                    : value.count
-                      ? `已加载 ${value.count} 项`
-                      : '暂无结果')}
-              {value.capped ? '（已达本次上限）' : ''}
+            <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">
+              {value.count}
             </span>
-            {value.error && (
-              <ActionButton
-                size="sm"
-                variant="ghost"
-                aria-label={`重试${value.name}搜索`}
-                title={value.error}
-                onClick={() => void query.load(value.source, true)}
-              >
-                <RefreshCw aria-hidden="true" />
-                重试
-              </ActionButton>
+            {(value.unavailable || value.busy || value.error || value.capped) && (
+              <span className="text-xs">
+                {value.unavailable ??
+                  (value.busy ? '搜索中…' : value.error ? '请求失败' : '已达上限')}
+              </span>
             )}
-          </div>
+          </ActionButton>
         ))}
       </div>
       <p className="mb-3 text-xs text-muted-foreground">
@@ -315,11 +308,7 @@ export default function SearchPage({
       {isAndroid() && <MusicSearch pageMode />}
       {!isAndroid() && (
         <MusicPageHeader title={page.query || '搜索音乐'}>
-          <p>
-            {page.query
-              ? `聚合搜索 · ${sources.map((value) => value.name).join('、')}`
-              : '输入歌曲、歌手、歌单或专辑名称开始搜索。'}
-          </p>
+          <p>{page.query ? '聚合搜索' : '输入歌曲、歌手、歌单或专辑名称开始搜索。'}</p>
         </MusicPageHeader>
       )}
       {error && (

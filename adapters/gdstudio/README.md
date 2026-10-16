@@ -1,4 +1,4 @@
-# GD音乐台（星海）独立音源适配器
+# GD音乐台独立音源适配器
 
 替代默认接口返回 503 的 Huibq。协议来自本地 `lx-music-source/qdy/latest.js` 的“星海主”分支，并核对 [服务官方说明](https://music-api.gdstudio.xyz/api.php)与[维护者说明](https://github.com/UnblockNeteaseMusic/server/issues/1395)。当前只声明已验证的网易云搜索及 MP3 128k／320k 解析，不因上游列出其它平台就宣称它们可用。
 

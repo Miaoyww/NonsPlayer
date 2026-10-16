@@ -56,7 +56,10 @@ export function providerSearchSources(
     .flatMap(({ descriptor }) =>
       descriptor.searchPlatforms.map((platform) => ({
         source: `resource/${descriptor.id}/${platform}`,
-        name: `${descriptor.displayName} · ${statuses.find((s) => s.descriptor.source === platform)?.descriptor.displayName ?? platform}`,
+        name:
+          descriptor.searchPlatforms.length === 1
+            ? descriptor.displayName
+            : `${descriptor.displayName} · ${statuses.find((s) => s.descriptor.source === platform)?.descriptor.displayName ?? platform}`,
         provider: descriptor.id,
         platform
       }))
