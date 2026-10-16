@@ -197,97 +197,96 @@ impl CredentialStore for Secrets {
 }
 
 #[tokio::test]
-#[ignore = "Requires built XiaoBai/JBSou Components and live public APIs; isolated accounts"]
-async fn web_providers_component_live_lemon() {
-    for provider in ["xiaobai", "jbsou"] {
-        use crate::music::provider::ResourceProviderDescriptor;
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let package = root.join(format!("adapters/{provider}"));
-        let manifest: serde_json::Value =
-            serde_json::from_slice(&std::fs::read(package.join("manifest.json")).unwrap()).unwrap();
-        let descriptor: ResourceProviderDescriptor =
-            serde_json::from_value(manifest["resourceProvider"].clone()).unwrap();
-        let directory = tempfile::tempdir().unwrap();
-        let store = Arc::new(
-            crate::storage::Store::open(&directory.path().join("acceptance.sqlite3")).unwrap(),
-        );
-        let accounts =
-            Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets::default())).unwrap());
-        let (music, _) = crate::music::bundled::service(accounts.clone()).unwrap();
-        let services = Arc::new(
-            host::Services::new(
-                accounts,
-                Arc::downgrade(&music.adapters),
-                store,
-                Arc::new(crate::infrastructure::http::Http::new().unwrap()),
-                serde_json::from_value(manifest["permissions"].clone()).unwrap(),
-                SourceDescriptor {
-                    source: descriptor.id.clone(),
-                    display_name: descriptor.display_name.clone(),
-                    description: None,
-                    platforms: Default::default(),
-                    contract_version: descriptor.contract_version,
-                    login_methods: vec![],
-                    capabilities: Default::default(),
-                    cover_hosts: descriptor.cover_hosts.clone(),
-                    share_link_templates: Default::default(),
-                },
-            )
-            .unwrap(),
-        );
-        let adapter = ResourceComponent::load(
-            &package.join("dist/adapter.component.wasm"),
-            descriptor.clone(),
-            services,
+#[ignore = "Requires built XiaoBai Component and live public APIs; isolated accounts"]
+async fn xiaobai_component_live_lemon() {
+    let provider = "xiaobai";
+    use crate::music::provider::ResourceProviderDescriptor;
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let package = root.join(format!("adapters/{provider}"));
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(package.join("manifest.json")).unwrap()).unwrap();
+    let descriptor: ResourceProviderDescriptor =
+        serde_json::from_value(manifest["resourceProvider"].clone()).unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        crate::storage::Store::open(&directory.path().join("acceptance.sqlite3")).unwrap(),
+    );
+    let accounts =
+        Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets::default())).unwrap());
+    let (music, _) = crate::music::bundled::service(accounts.clone()).unwrap();
+    let services = Arc::new(
+        host::Services::new(
+            accounts,
+            Arc::downgrade(&music.adapters),
+            store,
+            Arc::new(crate::infrastructure::http::Http::new().unwrap()),
+            serde_json::from_value(manifest["permissions"].clone()).unwrap(),
+            SourceDescriptor {
+                source: descriptor.id.clone(),
+                display_name: descriptor.display_name.clone(),
+                description: None,
+                platforms: Default::default(),
+                contract_version: descriptor.contract_version,
+                login_methods: vec![],
+                capabilities: Default::default(),
+                cover_hosts: descriptor.cover_hosts.clone(),
+                share_link_templates: Default::default(),
+            },
         )
-        .await
+        .unwrap(),
+    );
+    let adapter = ResourceComponent::load(
+        &package.join("dist/adapter.component.wasm"),
+        descriptor.clone(),
+        services,
+    )
+    .await
+    .unwrap();
+    let adapter = Arc::new(adapter);
+    music
+        .adapters
+        .register_resource_provider(adapter.clone())
         .unwrap();
-        let adapter = Arc::new(adapter);
-        music
-            .adapters
-            .register_resource_provider(adapter.clone())
-            .unwrap();
-        use crate::music::provider::{ResourceProvider, ResourceRequest};
-        let track: MusicTrack = serde_json::from_value(serde_json::json!({
+    use crate::music::provider::{ResourceProvider, ResourceRequest};
+    let track: MusicTrack = serde_json::from_value(serde_json::json!({
         "reference":{"source":"qqmusic","kind":"track","id":"000akynZ2Rbro5"},
         "title":"Lemon","aliases":[],"artist":"米津玄師","artists":[],"album":"Lemon","albumReference":null,"durationMs":256000,"cover":"","associations":[]
     }))
     .unwrap();
-        let mut request = ResourceRequest {
-            track,
-            preferred_quality: "hires".into(),
-            allow_downgrade: true,
-        };
-        let (ticket, source) = music
-            .adapters
-            .resolve_with_providers(&request, Some(provider), 1)
-            .await
-            .unwrap();
-        assert_eq!(source.provider, provider);
-        assert_eq!(source.platform.as_str(), "qqmusic");
-        assert_eq!(source.track.id.as_str(), "000akynZ2Rbro5");
-        assert_eq!(ticket.quality(), "320k");
-        assert!(ticket.check(1).is_ok());
-        println!(
-            "Website live Lemon: provider={} platform={} actual_quality={}",
-            source.provider,
-            source.platform.as_str(),
-            ticket.quality()
-        );
-        let (session, adapter_generation) = music.adapters.stamp(&descriptor.id).unwrap();
-        let context = RequestContext {
-            session,
-            adapter_generation,
-            deadline: Instant::now() + std::time::Duration::from_secs(12),
-            cancellation: Default::default(),
-        };
-        request.allow_downgrade = false;
-        let error = match adapter.resolve(&request, &context).await {
-            Ok(_) => panic!("lossy audio must not satisfy Hi-Res without downgrade"),
-            Err(error) => error,
-        };
-        assert_eq!(error.code, ErrorCode::PermissionDenied);
-    }
+    let mut request = ResourceRequest {
+        track,
+        preferred_quality: "hires".into(),
+        allow_downgrade: true,
+    };
+    let (ticket, source) = music
+        .adapters
+        .resolve_with_providers(&request, Some(provider), 1)
+        .await
+        .unwrap();
+    assert_eq!(source.provider, provider);
+    assert_eq!(source.platform.as_str(), "qqmusic");
+    assert_eq!(source.track.id.as_str(), "000akynZ2Rbro5");
+    assert_eq!(ticket.quality(), "320k");
+    assert!(ticket.check(1).is_ok());
+    println!(
+        "Website live Lemon: provider={} platform={} actual_quality={}",
+        source.provider,
+        source.platform.as_str(),
+        ticket.quality()
+    );
+    let (session, adapter_generation) = music.adapters.stamp(&descriptor.id).unwrap();
+    let context = RequestContext {
+        session,
+        adapter_generation,
+        deadline: Instant::now() + std::time::Duration::from_secs(12),
+        cancellation: Default::default(),
+    };
+    request.allow_downgrade = false;
+    let error = match adapter.resolve(&request, &context).await {
+        Ok(_) => panic!("lossy audio must not satisfy Hi-Res without downgrade"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, ErrorCode::PermissionDenied);
 }
 
 #[tokio::test]

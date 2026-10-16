@@ -42,4 +42,4 @@ Component 继续使用现有 initialize／shutdown／call transport；独立音�
 
 2026-10-16：GD音乐台仅提供按已有平台歌曲 ID 的替换音源解析，`searchPlatforms` 为空，不参与聚合搜索或“歌曲来源”搜索；直接调用其搜索方法也会返回 `unsupported` 且不发起网络请求，避免批量搜索耗尽上游额度。其它音源的通用搜索契约保持可用。具体能力和验收限制见 `adapters/gdstudio/README.md`。
 
-2026-10-17：新增小白音乐（`xiaobai`）独立音源，按网易云、QQ 音乐、酷狗和酷我歌曲 ID 解析，不参与搜索。与煎饼搜共用 guest 内的 `packages/music-web-provider`，各自声明站点和域名权限；沿用完整时长、音质降级、受控资源访问及启停失效规则。公开 CDN 探测不附带站点 User-Agent／Cookie／Referer，验证成功后返回无自定义头的资源，匹配现有 URI 播放管线；仍需要站点凭据头的资源不伪装成可直接播放。
+2026-10-17：新增小白音乐（`xiaobai`）独立音源，按网易云、QQ 音乐、酷狗和酷我歌曲 ID 解析，不参与搜索。使用 guest 内的 `packages/music-web-provider`，声明站点和域名权限；沿用完整时长、音质降级、受控资源访问及启停失效规则。公开 CDN 探测不附带站点 User-Agent／Cookie／Referer，验证成功后返回无自定义头的资源，匹配现有 URI 播放管线；仍需要站点凭据头的资源不伪装成可直接播放。

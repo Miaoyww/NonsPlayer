@@ -300,11 +300,7 @@ fn url_authorization_checks_suffix_credentials_and_scheme() {
 #[test]
 fn adapter_manifests_keep_site_headers_and_permissions_separate() {
     for config in [
-        Config {
-            base: "https://www.jbsou.cn/",
-            user_agent: UA,
-            manifest: include_str!("../../../adapters/jbsou/manifest.json"),
-        },
+        CONFIG,
         Config {
             base: "https://music.90svip.cn/",
             user_agent: UA,
@@ -338,11 +334,7 @@ fn adapter_manifests_keep_site_headers_and_permissions_separate() {
                 .headers
                 .iter()
                 .any(|(k, v)| k == "Referer" && v == config.base));
-            let other = if config.base.contains("jbsou") {
-                "https://music.90svip.cn/api.php"
-            } else {
-                "https://www.jbsou.cn/api.php"
-            };
+            let other = "https://other.music.invalid/api.php";
             assert!(protocol::allowed(other, config.base, config).is_err());
         }
     }
