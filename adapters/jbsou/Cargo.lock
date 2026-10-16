@@ -403,10 +403,8 @@ dependencies = [
 name = "nons-adapter-jbsou"
 version = "0.1.0"
 dependencies = [
- "lofty",
- "nons-music-adapter-sdk",
+ "nons-music-web-provider",
  "serde_json",
- "url",
  "wit-bindgen",
 ]
 
@@ -418,6 +416,16 @@ dependencies = [
  "serde_json",
  "url",
  "zeroize",
+]
+
+[[package]]
+name = "nons-music-web-provider"
+version = "0.1.0"
+dependencies = [
+ "lofty",
+ "nons-music-adapter-sdk",
+ "serde_json",
+ "url",
 ]
 
 [[package]]

@@ -1,11 +1,22 @@
 use super::*;
+const BASE: &str = "https://fixture.music.invalid/";
+const UA: &str = "fixture-agent";
+const CONFIG: Config = Config {
+    base: BASE,
+    user_agent: UA,
+    manifest: include_str!("fixture.json"),
+};
+fn call(http: &impl Http, method: &str, args: &str) -> String {
+    super::call(http, method, args, CONFIG)
+}
+
 use std::{
     cell::RefCell,
     io::{Read, Seek, SeekFrom},
 };
 
 fn input(platform: &str, id: &str) -> Value {
-    json!({"request":{"track":{"reference":{"source":platform,"kind":"track","id":id},"title":"测试曲目","aliases":[],"artist":"测试歌手","artists":[],"album":"","albumReference":null,"durationMs":180000,"cover":"","associations":[]},"preferredQuality":"exhigh","allowDowngrade":false}})
+    json!({"request":{"track":{"reference":{"source":platform,"kind":"track","id":id},"title":"Test track","aliases":[],"artist":"Test artist","artists":[],"album":"","albumReference":null,"durationMs":180000,"cover":"","associations":[]},"preferredQuality":"exhigh","allowDowngrade":false}})
 }
 fn mp3() -> Vec<u8> {
     let mut data = vec![0; 6890 * 1044];
@@ -25,6 +36,7 @@ fn flac() -> Vec<u8> {
     data
 }
 struct Fixture {
+    config: Config,
     requests: RefCell<Vec<Request>>,
     media: Vec<u8>,
     row: Value,
@@ -34,6 +46,7 @@ struct Fixture {
 impl Fixture {
     fn new(id: &str) -> Self {
         Self {
+            config: CONFIG,
             requests: RefCell::new(vec![]),
             media: mp3(),
             row: json!({"songid":id,"url":"api.php?get=url&id=test"}),
@@ -58,7 +71,7 @@ impl Fixture {
                 .find(|(k, _)| k.eq_ignore_ascii_case(name))
                 .map(|(_, v)| v.as_str())
         };
-        if request.url == BASE {
+        if request.url == self.config.base {
             let body = if header("Cookie").is_some_and(|c| c.contains("mk_visit=visit")) {
                 b"<html>ready</html>".to_vec()
             } else {
@@ -73,7 +86,7 @@ impl Fixture {
                 body,
             };
         }
-        if request.url.starts_with(BASE) {
+        if request.url.starts_with(self.config.base) {
             assert!(header("Cookie").unwrap().contains("mk_visit=visit"));
             return Response {
                 status: 302,
@@ -84,6 +97,7 @@ impl Fixture {
                 body: vec![],
             };
         }
+        assert!(header("User-Agent").is_none());
         assert!(header("Cookie").is_none());
         assert!(header("Referer").is_none());
         assert!(header("Origin").is_none());
@@ -140,7 +154,7 @@ fn four_platforms_use_only_exact_id_and_keep_site_cookies_off_cdn() {
         assert_eq!(result["status"], "ok", "{result}");
         assert_eq!(result["data"]["metadata"]["extent"]["kind"], "full");
         assert_eq!(result["data"]["metadata"]["actualQuality"], "320k");
-        assert_eq!(result["data"]["headers"], json!([["User-Agent", UA]]));
+        assert_eq!(result["data"]["headers"], json!([]));
         let requests = fixture.requests.borrow();
         let post = requests.iter().find(|r| r.method == "POST").unwrap();
         let form: std::collections::BTreeMap<_, _> = url::form_urlencoded::parse(&post.body)
@@ -255,7 +269,7 @@ fn range_support_rate_limit_and_quality_are_enforced() {
 #[test]
 fn remote_reader_bounds_network_reads_and_seeks() {
     let fixture = Fixture::new("1");
-    let mut client = protocol::Client::new(&fixture);
+    let mut client = protocol::Client::new(&fixture, CONFIG);
     let mut reader = audio::Remote::new(
         &mut client,
         url::Url::parse("https://m1.music.126.net/fixture.mp3").unwrap(),
@@ -276,9 +290,60 @@ fn url_authorization_checks_suffix_credentials_and_scheme() {
         "https://music.126.net.evil.invalid/a",
         "https://127.0.0.1/a",
         "file:///audio",
-        "https://user@www.jbsou.cn/a",
-        "https://www.jbsou.cn:8443/a",
+        "https://user@fixture.music.invalid/a",
+        "https://fixture.music.invalid:8443/a",
     ] {
-        assert!(protocol::allowed(url, BASE).is_err(), "{url}");
+        assert!(protocol::allowed(url, BASE, CONFIG).is_err(), "{url}");
+    }
+}
+
+#[test]
+fn adapter_manifests_keep_site_headers_and_permissions_separate() {
+    for config in [
+        Config {
+            base: "https://www.jbsou.cn/",
+            user_agent: UA,
+            manifest: include_str!("../../../adapters/jbsou/manifest.json"),
+        },
+        Config {
+            base: "https://music.90svip.cn/",
+            user_agent: UA,
+            manifest: include_str!("../../../adapters/xiaobai/manifest.json"),
+        },
+    ] {
+        for (platform, id) in [
+            ("netease", "347230"),
+            ("qqmusic", "000akynZ2Rbro5"),
+            ("kugou", "AABBCCDDEEFF00112233445566778899"),
+            ("kuwo", "156483"),
+        ] {
+            let mut fixture = Fixture::new(id);
+            fixture.config = config;
+            let response: Value = serde_json::from_str(&super::call(
+                &fixture,
+                "music.resolve-resource",
+                &input(platform, id).to_string(),
+                config,
+            ))
+            .unwrap();
+            assert_eq!(response["status"], "ok", "{response}");
+            let requests = fixture.requests.borrow();
+            let post = requests.iter().find(|r| r.method == "POST").unwrap();
+            assert_eq!(post.url, config.base);
+            assert!(post
+                .headers
+                .iter()
+                .any(|(k, v)| k == "Origin" && v == config.base.trim_end_matches('/')));
+            assert!(post
+                .headers
+                .iter()
+                .any(|(k, v)| k == "Referer" && v == config.base));
+            let other = if config.base.contains("jbsou") {
+                "https://music.90svip.cn/api.php"
+            } else {
+                "https://www.jbsou.cn/api.php"
+            };
+            assert!(protocol::allowed(other, config.base, config).is_err());
+        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::{manifest, AdapterResult, Http, Request, Response, BASE, UA};
+use crate::{manifest, AdapterResult, Config, Http, Request, Response};
 use nons_music_adapter_sdk::identity::MusicTrack;
 use serde_json::Value;
 use url::Url;
@@ -61,12 +61,12 @@ impl Target {
     }
 }
 
-pub(crate) fn allowed(input: &str, base: &str) -> AdapterResult<Url> {
+pub(crate) fn allowed(input: &str, base: &str, config: Config) -> AdapterResult<Url> {
     let url = Url::parse(base)
         .and_then(|b| b.join(input))
         .map_err(|_| "invalidData")?;
     let host = url.host_str().ok_or("invalidData")?;
-    let matches = manifest()["permissions"]["httpHosts"]
+    let matches = manifest(config)["permissions"]["httpHosts"]
         .as_array()
         .unwrap()
         .iter()
@@ -91,21 +91,26 @@ pub(crate) fn allowed(input: &str, base: &str) -> AdapterResult<Url> {
 
 pub(crate) struct Client<'a, H> {
     pub http: &'a H,
+    config: Config,
     cookies: Vec<(String, String)>,
     redirects: u8,
 }
 impl<'a, H: Http> Client<'a, H> {
-    pub fn new(http: &'a H) -> Self {
+    pub fn new(http: &'a H, config: Config) -> Self {
         Self {
             http,
+            config,
             cookies: vec![],
             redirects: 0,
         }
     }
     pub fn headers(&self, url: &Url) -> Vec<(String, String)> {
-        let mut headers = vec![("User-Agent".into(), UA.into())];
-        if url.host_str() == Some("www.jbsou.cn") {
-            headers.push(("Referer".into(), BASE.into()));
+        // Public CDN resources must work without custom headers: the playback
+        // transport consumes a URI. Probe them under the same condition.
+        let mut headers = vec![];
+        if url.origin() == Url::parse(self.config.base).unwrap().origin() {
+            headers.push(("User-Agent".into(), self.config.user_agent.into()));
+            headers.push(("Referer".into(), self.config.base.into()));
             if !self.cookies.is_empty() {
                 headers.push((
                     "Cookie".into(),
@@ -141,7 +146,7 @@ impl<'a, H: Http> Client<'a, H> {
     }
     pub fn get(&mut self, url: &mut Url, extra: &[(String, String)]) -> AdapterResult<Response> {
         loop {
-            *url = allowed(url.as_str(), BASE)?;
+            *url = allowed(url.as_str(), self.config.base, self.config)?;
             let mut headers = self.headers(url);
             headers.extend_from_slice(extra);
             let response = self.http.send(Request {
@@ -158,6 +163,7 @@ impl<'a, H: Http> Client<'a, H> {
                 *url = allowed(
                     response.header("location").ok_or("invalidData")?,
                     url.as_str(),
+                    self.config,
                 )?;
                 continue;
             }
@@ -168,7 +174,7 @@ impl<'a, H: Http> Client<'a, H> {
     pub fn locate(&mut self, target: &Target) -> AdapterResult<Url> {
         // Each invocation owns its anonymous session; no persistent cookie or URL cache.
         for _ in 0..2 {
-            let response = self.get(&mut Url::parse(BASE).unwrap(), &[])?;
+            let response = self.get(&mut Url::parse(self.config.base).unwrap(), &[])?;
             if response.body.len() > 128 * 1024 {
                 return Err("invalidData");
             }
@@ -192,9 +198,12 @@ impl<'a, H: Http> Client<'a, H> {
                 break;
             }
         }
-        let mut headers = self.headers(&Url::parse(BASE).unwrap());
+        let mut headers = self.headers(&Url::parse(self.config.base).unwrap());
         headers.extend([
-            ("Origin".into(), BASE.trim_end_matches('/').into()),
+            (
+                "Origin".into(),
+                self.config.base.trim_end_matches('/').into(),
+            ),
             ("X-Requested-With".into(), "XMLHttpRequest".into()),
             ("Accept".into(), "application/json".into()),
             (
@@ -212,7 +221,7 @@ impl<'a, H: Http> Client<'a, H> {
             .finish()
             .into_bytes();
         let response = self.http.send(Request {
-            url: BASE.into(),
+            url: self.config.base.into(),
             method: "POST",
             headers,
             body,
@@ -247,6 +256,6 @@ impl<'a, H: Http> Client<'a, H> {
             .as_str()
             .filter(|u| !u.is_empty())
             .ok_or("notFound")?;
-        allowed(url, BASE)
+        allowed(url, self.config.base, self.config)
     }
 }

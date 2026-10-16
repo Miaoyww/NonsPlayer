@@ -171,12 +171,12 @@ fn properties(reader: &mut (impl Read + Seek)) -> AdapterResult<(FileProperties,
             if !matches!(file.properties().layer(), lofty::mpeg::Layer::Layer3) {
                 return Err("unsupported");
             }
-            Ok((file.properties().clone().into(), false))
+            Ok(((*file.properties()).into(), false))
         }
         FileType::Flac => {
             let file =
                 lofty::flac::FlacFile::read_from(reader, options).map_err(|_| "invalidData")?;
-            Ok((file.properties().clone().into(), true))
+            Ok(((*file.properties()).into(), true))
         }
         FileType::Mp4 => {
             let file =
@@ -191,13 +191,19 @@ fn properties(reader: &mut (impl Read + Seek)) -> AdapterResult<(FileProperties,
         _ => Err("unsupported"),
     }
 }
+pub(crate) struct InspectedAudio {
+    pub url: String,
+    pub quality: String,
+    pub headers: Vec<(String, String)>,
+}
+
 pub(crate) fn inspect<H: Http>(
     client: &mut Client<'_, H>,
     url: Url,
     expected: u64,
     requested: u32,
     downgrade: bool,
-) -> AdapterResult<(String, String, Vec<(String, String)>)> {
+) -> AdapterResult<InspectedAudio> {
     apply_global_options(
         GlobalOptions::new()
             .allocation_limit(65536)
@@ -235,5 +241,9 @@ pub(crate) fn inspect<H: Http>(
         n => format!("{n}k"),
     };
     let headers = reader.client.headers(&reader.url);
-    Ok((reader.url.to_string(), quality, headers))
+    Ok(InspectedAudio {
+        url: reader.url.to_string(),
+        quality,
+        headers,
+    })
 }
