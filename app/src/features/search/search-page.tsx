@@ -149,7 +149,6 @@ function Results({
             }
             onClick={() => {
               setFilter(value.source)
-              query.loadVisible(value.source)
             }}
           >
             {value.name}
