@@ -129,6 +129,15 @@ test('visible playback slots own transient errors; dialogs and pages without a b
       }
     })
   try {
+    for (const [bar, dialog] of [
+      [false, false],
+      ['fullscreen', false],
+      ['fullscreen', true]
+    ]) {
+      await render(bar, dialog, '账号或音乐来源状态已变化，请重试')
+      assert.equal(document.querySelector('[role="alert"]'), null)
+      assert.equal(storeModule.errorNotices.getSnapshot().length, 0)
+    }
     await render(true)
     assert.equal(
       document.querySelector('[data-playback-notices] [role="alert"]').textContent,

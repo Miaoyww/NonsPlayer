@@ -18,7 +18,8 @@ function hasVisiblePlayback() {
 }
 
 /** Dialogs own their errors. Other pages use a mounted playback notice slot. */
-export function ErrorNotice({ error }: { error?: string | null }) {
+export function ErrorNotice({ error: message }: { error?: string | null }) {
+  const error = message === '账号或音乐来源状态已变化，请重试' ? undefined : message
   const anchor = useRef<HTMLSpanElement>(null)
   const [inline, setInline] = useState(false)
   useLayoutEffect(() => {
