@@ -45,6 +45,7 @@ fn uniform_tracks_survive_real_storage_and_mixed_queue_restore() {
         duration_ms: 1000,
         cover: Default::default(),
         associations: vec![track_ref("netease", "123")],
+        lyric_identifiers: vec![],
     };
     let a = Track::from_music(music("qqmusic", "same/雪:1")).unwrap();
     let b = Track::from_music(music("other", "same/雪:1")).unwrap();

@@ -20,6 +20,7 @@ fn request() -> ResourceRequest {
             duration_ms: 180000,
             cover: Default::default(),
             associations: vec![],
+            lyric_identifiers: vec![],
             unavailable_reason: Some(ErrorCode::PermissionDenied),
         },
         preferred_quality: "320k".into(),

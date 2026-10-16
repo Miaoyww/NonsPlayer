@@ -1080,6 +1080,7 @@ mod tests {
                     duration_ms: 1000,
                     cover: Default::default(),
                     associations: vec![],
+                    lyric_identifiers: vec![],
                     unavailable_reason: None,
                 })
             })

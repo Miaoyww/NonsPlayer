@@ -41,6 +41,8 @@ export interface MusicTrack {
   durationMs: number
   cover: CoverInput
   associations: EntityRef[]
+  /** Typed IDs within reference.source; at most eight. */
+  lyricIdentifiers?: { kind: string; id: string }[]
 }
 export interface MusicEntity {
   reference: EntityRef

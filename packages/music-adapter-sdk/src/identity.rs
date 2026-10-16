@@ -82,6 +82,14 @@ pub struct MusicCredit {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LyricIdentifier {
+    /// Platform-local ID namespace, e.g. song-id, song-mid or track-id.
+    pub kind: String,
+    pub id: OpaqueId,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MusicTrack {
     pub reference: EntityRef,
@@ -95,6 +103,9 @@ pub struct MusicTrack {
     pub cover: crate::cover::CoverImage,
     /// Matching/lyric links do not replace reference, including for local tracks.
     pub associations: Vec<EntityRef>,
+    /// IDs belong to reference.source; never cross-platform associations.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lyric_identifiers: Vec<LyricIdentifier>,
     /// Retained catalog entries that currently cannot be played; absent means unknown/available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unavailable_reason: Option<ErrorCode>,
@@ -138,6 +149,14 @@ impl MusicTrack {
         {
             return Err("track.associations.kind: must be track");
         }
+        if self.lyric_identifiers.len() > 8
+            || self
+                .lyric_identifiers
+                .iter()
+                .any(|value| SourceId::try_from(value.kind.clone()).is_err())
+        {
+            return Err("track.lyricIdentifiers: at most 8 IDs with valid namespaces");
+        }
         if serde_json::to_vec(self)
             .map_err(|_| "track: serialization failed")?
             .len()
@@ -146,5 +165,49 @@ impl MusicTrack {
             return Err("track: serialized metadata exceeds 64 KiB");
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod lyric_identifier_tests {
+    use super::*;
+
+    fn track() -> MusicTrack {
+        serde_json::from_value(serde_json::json!({
+            "reference":{"source":"qqmusic","kind":"track","id":"001mid"},
+            "title":"Song","aliases":[],"artist":"Artist","artists":[],"album":"Album",
+            "albumReference":null,"durationMs":1000,"cover":"","associations":[]
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn old_metadata_deserializes_without_lyric_ids_and_typed_ids_round_trip() {
+        let mut value = track();
+        assert!(value.lyric_identifiers.is_empty());
+        value.lyric_identifiers.push(LyricIdentifier {
+            kind: "song-id".into(),
+            id: "123".to_string().try_into().unwrap(),
+        });
+        value.validate(&value.reference).unwrap();
+        let decoded: MusicTrack =
+            serde_json::from_slice(&serde_json::to_vec(&value).unwrap()).unwrap();
+        assert_eq!(decoded, value);
+    }
+
+    #[test]
+    fn lyric_id_count_and_namespace_are_bounded() {
+        let mut value = track();
+        value.lyric_identifiers = vec![
+            LyricIdentifier {
+                kind: "song-id".into(),
+                id: "123".to_string().try_into().unwrap()
+            };
+            9
+        ];
+        assert!(value.validate(&value.reference).is_err());
+        value.lyric_identifiers.truncate(1);
+        value.lyric_identifiers[0].kind = "another/platform".into();
+        assert!(value.validate(&value.reference).is_err());
     }
 }

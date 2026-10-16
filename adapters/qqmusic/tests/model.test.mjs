@@ -35,6 +35,10 @@ test('numeric song ID and audio media ID do not become the stable track identity
     album: { name: '专辑', mid: 'AlbumMID' }
   })
   assert.deepEqual(value.reference, { source: 'qqmusic', kind: 'track', id: 'SongMID' })
+  assert.deepEqual(value.lyricIdentifiers, [
+    { kind: 'song-mid', id: 'SongMID' },
+    { kind: 'song-id', id: '42' }
+  ])
   assert.equal(value.durationMs, 123000)
   assert.equal(value.artists[0].reference.id, 'ArtistMID')
   assert.equal(value.albumReference.id, 'AlbumMID')

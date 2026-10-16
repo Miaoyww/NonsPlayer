@@ -528,6 +528,10 @@ test('private owned playlists use authenticated read and keep uniform artwork', 
     })
     assert.equal(songs.status, 'ok', JSON.stringify(songs))
     assert.equal(songs.data.data.items[0].reference.id, 'SongMID')
+    assert.deepEqual(songs.data.data.items[0].lyricIdentifiers, [
+      { kind: 'song-mid', id: 'SongMID' },
+      { kind: 'song-id', id: '42' }
+    ])
     const request = fixture.requests
       .map((r) => {
         try {

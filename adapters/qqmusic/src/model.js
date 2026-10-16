@@ -82,6 +82,12 @@ export function track(value, unavailableReason = null) {
     albumReference: albumMid ? reference('album', albumMid) : null,
     durationMs: Math.max(0, Math.round(Number(song.interval ?? 0) * 1000)),
     cover: artwork(albumMid),
+    lyricIdentifiers: [
+      ...(mid ? [{ kind: 'song-mid', id: mid }] : []),
+      ...(Number.isSafeInteger(numericId) && numericId > 0
+        ? [{ kind: 'song-id', id: String(numericId) }]
+        : [])
+    ],
     associations: []
   }
 }

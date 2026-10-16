@@ -116,7 +116,7 @@ pub fn convert_track(track: Track) -> MusicResult<MigratedTrack> {
     let result = MigratedTrack {
         legacy_key: track.key,
         track: MusicTrack {
-            reference: identity,
+            reference: identity.clone(),
             title: track.title,
             aliases: track.aliases,
             artist: track.artist,
@@ -131,6 +131,14 @@ pub fn convert_track(track: Track) -> MusicResult<MigratedTrack> {
                 Default::default()
             },
             associations,
+            lyric_identifiers: if online {
+                vec![crate::identity::LyricIdentifier {
+                    kind: "song-id".into(),
+                    id: identity.id.clone(),
+                }]
+            } else {
+                vec![]
+            },
             unavailable_reason: None,
         },
         local_binding,
