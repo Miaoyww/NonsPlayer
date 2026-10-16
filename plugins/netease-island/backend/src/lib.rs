@@ -10,6 +10,22 @@ use serde_json::{json, Value};
 #[cfg(not(test))]
 struct Island;
 #[cfg(not(test))]
+fn report(operation: &str, message: &str) {
+    // Reporting failure must not turn a recoverable link failure into a plugin fault.
+    let _ = host::call(
+        "diagnostic.report",
+        &json!({"operation":operation,"message":message.chars().take(1024).collect::<String>()})
+            .to_string(),
+    );
+}
+#[cfg(not(test))]
+fn parse_json(operation: &str, message: &str, text: &str) -> Result<Value, String> {
+    serde_json::from_str(text).map_err(|error| {
+        report(operation, &error.to_string());
+        message.into()
+    })
+}
+#[cfg(not(test))]
 impl Guest for Island {
     fn initialize() -> Result<(), String> {
         host::call("config.get", "{}")?;
@@ -25,12 +41,11 @@ impl Guest for Island {
         if method != "event:clipboard-text" {
             return Err("未知方法".into());
         }
-        let config: Value =
-            serde_json::from_str(&host::call("config.get", "{}")?).map_err(|_| "无效配置")?;
+        let config = parse_json("config.parse", "无效配置", &host::call("config.get", "{}")?)?;
         if config["values"]["detectLinks"] == false {
             return Ok("null".into());
         }
-        let args: Value = serde_json::from_str(&args).map_err(|_| "无效参数")?;
+        let args = parse_json("clipboard.parse", "无效参数", &args)?;
         let text = args
             .get("text")
             .and_then(Value::as_str)
@@ -44,14 +59,20 @@ impl Guest for Island {
         let mut remaining = 3;
         if id.is_none() {
             for candidate in candidates {
-                if let Ok(url) = links::resolve(candidate, &mut remaining, |request| {
-                    serde_json::from_str(&host::call("http.request", &request.to_string())?)
-                        .map_err(|_| "无效 HTTP 响应".into())
+                match links::resolve(candidate, &mut remaining, |request| {
+                    parse_json(
+                        "http.parse",
+                        "无效 HTTP 响应",
+                        &host::call("http.request", &request.to_string())?,
+                    )
                 }) {
-                    id = links::song_id(&url);
-                    if id.is_some() {
-                        break;
+                    Ok(url) => {
+                        id = links::song_id(&url);
+                        if id.is_some() {
+                            break;
+                        }
                     }
+                    Err(error) => report("link.resolve", &error),
                 }
             }
         }
@@ -64,7 +85,7 @@ impl Guest for Island {
             &json!({"reference":{"source":"netease","kind":"track","id":id.to_string()}})
                 .to_string(),
         ) {
-            let song: Value = serde_json::from_str(&song).map_err(|_| "无效歌曲信息")?;
+            let song = parse_json("track.parse", "无效歌曲信息", &song)?;
             host::call(
                 "events.emit",
                 &json!({"event":"song-detected","payload":song}).to_string(),

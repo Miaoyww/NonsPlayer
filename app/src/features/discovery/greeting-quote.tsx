@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useState } from 'react'
 import { nativeCall } from '@/lib/player'
 import { TypingAnimation } from '@/components/magicui/typing-animation'
@@ -12,7 +13,9 @@ export function GreetingQuote() {
       .then((value) => {
         if (!disposed) setQuote(value.trim() || fallback)
       })
-      .catch(() => {
+      .catch((cause) => {
+        reportCaughtError('app/src/features/discovery/greeting-quote.tsx', cause)
+
         if (!disposed) setQuote(fallback)
       })
     return () => {

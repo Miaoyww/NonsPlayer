@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { Switch } from '@/components/ui/switch'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -69,6 +70,8 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
     try {
       await work()
     } catch (error) {
+      reportCaughtError('app/src/features/settings/pages/plugins.tsx', error)
+
       setError(errorText(error))
     } finally {
       running.current = false
@@ -106,6 +109,8 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
               setStatusFilter('unloaded')
               setTab('installed')
             } catch (error) {
+              reportCaughtError('app/src/features/settings/pages/plugins.tsx', error)
+
               failures.push(`${path.split(/[\\/]/).pop()}：${errorText(error)}`)
             }
           }
@@ -117,6 +122,8 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
         else unlisten = cleanup
       })
       .catch((error) => {
+        reportCaughtError('app/src/features/settings/pages/plugins.tsx', error)
+
         if (!disposed) setError(errorText(error))
       })
     return () => {

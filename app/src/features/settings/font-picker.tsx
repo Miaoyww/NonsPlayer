@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { useEffect, useMemo, useState } from 'react'
@@ -51,6 +52,8 @@ export function FontPicker({
         if (!disposed) setFamilies(fonts)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/settings/font-picker.tsx', cause)
+
         if (!disposed) setError(errorText(cause))
       })
       .finally(() => {

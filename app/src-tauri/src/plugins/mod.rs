@@ -7,6 +7,7 @@ mod clipboard;
 mod clipboard;
 mod configuration;
 mod database;
+mod diagnostics;
 mod files;
 mod http;
 mod install;
@@ -121,12 +122,26 @@ impl PluginManager {
                 .map_err(|e| e.to_string())?
                 .join("bundled-plugins");
             if bundled.is_dir() {
-                for entry in std::fs::read_dir(&bundled)
-                    .map_err(|e| e.to_string())?
-                    .flatten()
-                {
-                    let Ok(manifest) = Manifest::read(&entry.path()) else {
-                        continue;
+                for entry in std::fs::read_dir(&bundled).map_err(|e| e.to_string())? {
+                    let entry = match entry {
+                        Ok(entry) => entry,
+                        Err(error) => {
+                            crate::infrastructure::diagnostics::warn(
+                                "plugins.bundled_entry",
+                                error,
+                            );
+                            continue;
+                        }
+                    };
+                    let manifest = match Manifest::read(&entry.path()) {
+                        Ok(manifest) => manifest,
+                        Err(error) => {
+                            crate::infrastructure::diagnostics::warn(
+                                "plugins.bundled_manifest",
+                                error,
+                            );
+                            continue;
+                        }
                     };
                     let destination = manager.root.join(&manifest.id);
                     if destination.exists() {
@@ -134,12 +149,36 @@ impl PluginManager {
                     }
                     let staging = manager.root.join(format!(".bundled-{}", manifest.id));
                     if staging.exists() {
-                        let _ = std::fs::remove_dir_all(&staging);
+                        let _ = (std::fs::remove_dir_all(&staging)).inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn(
+                                "std::fs::remove_dir_all",
+                                error,
+                            );
+                        });
                     }
-                    if install::install(&entry.path(), &staging).is_ok()
-                        && std::fs::rename(&staging, destination).is_err()
+                    if install::install(&entry.path(), &staging)
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn(
+                                "plugins.bundled_install",
+                                error,
+                            )
+                        })
+                        .is_ok()
+                        && std::fs::rename(&staging, destination)
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn(
+                                    "plugins.bundled_publish",
+                                    error,
+                                )
+                            })
+                            .is_err()
                     {
-                        let _ = std::fs::remove_dir_all(&staging);
+                        let _ = (std::fs::remove_dir_all(&staging)).inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn(
+                                "std::fs::remove_dir_all",
+                                error,
+                            );
+                        });
                     }
                 }
                 manager.database.mark_initialized()?;
@@ -158,6 +197,12 @@ impl PluginManager {
                         };
                         manager
                             .list()
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn(
+                                    "plugins.configuration_reload",
+                                    error,
+                                )
+                            })
                             .unwrap_or_default()
                             .into_iter()
                             .filter(|p| p.manifest.configuration.is_some())
@@ -173,22 +218,35 @@ impl PluginManager {
                     break;
                 }
                 for id in ids {
-                    let _ = manager
+                    let _ = (manager
                         .app
-                        .emit("plugin-config-changed", serde_json::json!({"pluginId":id}));
-                    let target = manager.lock().ok().and_then(|r| {
-                        r.get(&id)
-                            .filter(|r| r.descriptor.loaded && r.runtime.is_some())
-                            .map(|r| r.descriptor.generation)
+                        .emit("plugin-config-changed", serde_json::json!({"pluginId":id})))
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("manager .app .emit", error);
                     });
+                    let target = manager
+                        .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("optional_result", error);
+                        })
+                        .ok()
+                        .and_then(|r| {
+                            r.get(&id)
+                                .filter(|r| r.descriptor.loaded && r.runtime.is_some())
+                                .map(|r| r.descriptor.generation)
+                        });
                     if let Some(generation) = target {
-                        if let Ok(snapshot) = manager.configurations.snapshot(&id) {
-                            if let Ok(args) = serde_json::to_string(
+                        if let Ok(snapshot) =
+                            (manager.configurations.snapshot(&id)).inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("optional_success", error);
+                            })
+                        {
+                            if let Ok(args) = (serde_json::to_string(
                                 &serde_json::json!({"revision":snapshot.revision,"pendingReload":snapshot.pending_reload}),
-                            ) {
-                                let _ = manager
+                            )).inspect_err(|error| { crate::infrastructure::diagnostics::warn("optional_success", error); }) {
+                                let _ = (manager
                                     .invoke(&id, generation, "event:config-changed", &args)
-                                    .await;
+                                    .await).inspect_err(|error| { crate::infrastructure::diagnostics::warn("manager .invoke", error); });
                             }
                         }
                     }
@@ -220,7 +278,12 @@ impl PluginManager {
         Ok(manager)
     }
     fn lock(&self) -> AppResult<std::sync::MutexGuard<'_, BTreeMap<String, Record>>> {
-        self.records.lock().map_err(|_| "插件注册表不可用".into())
+        self.records
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件注册表不可用".into())
     }
     fn context(&self, manifest: &Manifest, generation: u64) -> Context {
         Context {
@@ -239,6 +302,7 @@ impl PluginManager {
             player: self.player.clone(),
             app: self.app.clone(),
             event_budget: Arc::new(Mutex::new((Instant::now(), 0))),
+            diagnostic_budget: Arc::new(Mutex::new((Instant::now(), 0))),
             requests: Arc::new(tokio::sync::Semaphore::new(16)),
         }
     }
@@ -256,7 +320,17 @@ impl PluginManager {
             }
             let (manifest, configuration) = match Manifest::read_configured(&entry.path()) {
                 Ok((manifest, configuration)) if manifest.id == id => (manifest, configuration),
-                _ => continue,
+                Ok(_) => {
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.discover",
+                        "manifest ID does not match directory",
+                    );
+                    continue;
+                }
+                Err(error) => {
+                    crate::infrastructure::diagnostics::warn("plugins.discover", error);
+                    continue;
+                }
             };
             let generation = self.generation.fetch_add(1, Ordering::SeqCst);
             self.configurations.register(&id, configuration)?;
@@ -288,13 +362,21 @@ impl PluginManager {
             .collect())
     }
     fn notify(&self) {
-        let _ = self.app.emit("plugins-changed", ());
+        let _ = (self.app.emit("plugins-changed", ())).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("self.app.emit", error);
+        });
     }
     pub async fn startup(self: &Arc<Self>) {
-        if let Ok(plugins) = self.list() {
+        if let Ok(plugins) = (self.list()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             for plugin in plugins {
                 if plugin.enabled {
-                    let _ = self.action(&plugin.manifest.id, "load", false).await;
+                    let _ = (self.action(&plugin.manifest.id, "load", false).await).inspect_err(
+                        |error| {
+                            crate::infrastructure::diagnostics::warn("self.action", error);
+                        },
+                    );
                 }
             }
         }
@@ -310,11 +392,15 @@ impl PluginManager {
             let manifest = install::install(&source, &staging)?;
             let destination = root.join(&manifest.id);
             if destination.exists() {
-                let _ = std::fs::remove_dir_all(&staging);
+                let _ = (std::fs::remove_dir_all(&staging)).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("std::fs::remove_dir_all", error);
+                });
                 return Err("同 ID 插件已安装，请先卸载".into());
             }
             if let Err(error) = std::fs::rename(&staging, destination) {
-                let _ = std::fs::remove_dir_all(&staging);
+                let _ = (std::fs::remove_dir_all(&staging)).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("std::fs::remove_dir_all", error);
+                });
                 return Err(error.to_string());
             }
             Ok(())
@@ -327,7 +413,13 @@ impl PluginManager {
         Ok(())
     }
     fn get_engine(&self) -> AppResult<wasmtime::Engine> {
-        let mut engine = self.engine.lock().map_err(|_| "WASM Engine 不可用")?;
+        let mut engine = self
+            .engine
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "WASM Engine 不可用")?;
         if engine.is_none() {
             let value = runtime::engine()?;
             let weak = value.weak();
@@ -530,10 +622,13 @@ impl PluginManager {
         };
         self.notify();
         if let Some(runtime) = runtime {
-            let _ = tokio::time::timeout(Duration::from_secs(1), async {
+            let _ = (tokio::time::timeout(Duration::from_secs(1), async {
                 runtime.lock().await.shutdown().await
             })
-            .await;
+            .await)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("shutdown_timeout", error);
+                });
         }
         Ok(())
     }
@@ -570,6 +665,9 @@ impl PluginManager {
             .requests
             .clone()
             .try_acquire_owned()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "插件调用过于频繁")?;
         let runtime = self
             .lock()?
@@ -588,6 +686,9 @@ impl PluginManager {
             result
         })
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "插件调用队列超时".to_string())
         .and_then(|r| r);
         match result {
@@ -635,7 +736,13 @@ impl PluginManager {
         })
     }
     fn sync_watcher(self: &Arc<Self>) -> AppResult<()> {
-        let mut watcher = self.watcher.lock().map_err(|_| "剪贴板监听不可用")?;
+        let mut watcher = self
+            .watcher
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "剪贴板监听不可用")?;
         if self.has_clipboard_subscribers() && watcher.is_none() {
             *watcher = Some(clipboard::start(self)?);
         }
@@ -646,7 +753,13 @@ impl PluginManager {
             }
         }
         if !self.lock()?.values().any(|record| record.runtime.is_some()) {
-            *self.engine.lock().map_err(|_| "WASM Engine 不可用")? = None;
+            *self
+                .engine
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "WASM Engine 不可用")? = None;
         }
         Ok(())
     }
@@ -678,18 +791,24 @@ impl PluginManager {
             if self.scoped(id, *generation).is_err() {
                 continue;
             }
-            let _ = self.app.emit(
+            let _ = (self.app.emit(
                 "plugin-clipboard-changed",
                 serde_json::json!({"pluginId":id,"generation":generation,"text":change.text}),
-            );
-            let _ = self
+            ))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("self.app.emit", error);
+            });
+            let _ = (self
                 .invoke(
                     id,
                     *generation,
                     "event:clipboard-text",
                     &serde_json::json!({"text":change.text}).to_string(),
                 )
-                .await;
+                .await)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("self .invoke", error);
+                });
         }
     }
     pub fn resource(
@@ -702,13 +821,22 @@ impl PluginManager {
         let uri = request.uri();
         let decoded = percent_encoding::percent_decode_str(uri.path())
             .decode_utf8()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "插件资源编码无效")?;
         let path = decoded.trim_start_matches('/');
         let mut parts = path.splitn(3, '/');
         let id = parts.next().ok_or("插件资源无效")?;
         let generation = parts
             .next()
-            .and_then(|v| v.parse::<u64>().ok())
+            .and_then(|v| {
+                v.parse::<u64>()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+            })
             .ok_or("资源代次无效")?;
         let relative = parts.next().ok_or("资源路径无效")?;
         let context = self.scoped(id, generation)?;
@@ -753,19 +881,25 @@ impl PluginManager {
     }
     pub fn stop(&self) {
         self.stopped.store(true, Ordering::SeqCst);
-        if let Ok(records) = self.lock() {
+        if let Ok(records) = (self.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             for record in records.values() {
                 record.context.active.store(false, Ordering::SeqCst);
                 self.files
                     .close_instance(&record.descriptor.manifest.id, record.descriptor.generation);
             }
         }
-        if let Ok(mut watcher) = self.watcher.lock() {
+        if let Ok(mut watcher) = (self.watcher.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             if let Some(watcher) = watcher.take() {
                 watcher.stop();
             }
         }
-        if let Ok(mut engine) = self.engine.lock() {
+        if let Ok(mut engine) = (self.engine.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             *engine = None;
         }
         self.clipboard_sender.send_replace(None);
@@ -775,7 +909,7 @@ fn host_module(module: &str) -> AppResult<(Vec<u8>, &'static str)> {
     let (object, exports) = match module {
         "react.mjs" => ("react", "Children,Fragment,Profiler,StrictMode,Suspense,Component,PureComponent,createContext,createElement,cloneElement,isValidElement,forwardRef,memo,lazy,startTransition,useActionState,useCallback,useContext,useDebugValue,useDeferredValue,useEffect,useId,useImperativeHandle,useInsertionEffect,useLayoutEffect,useMemo,useOptimistic,useReducer,useRef,useState,useSyncExternalStore,useTransition,use,act,cache,version"),
         "jsx-runtime.mjs" => ("jsx", "Fragment,jsx,jsxs"),
-        "sdk.mjs" => ("sdk", "usePluginClipboard,usePluginHttp,useMusicSource,usePluginBackend,usePluginEvent,usePluginStorage,usePluginConfig,usePluginFiles,usePluginNavigate,usePluginRoute,usePlayer,useTheme,useCoverSource,useSongPlayback,SongArtists,SongLikeButton,SongIdentity,DownloadedSongList,MusicPageHeader,Button,Progress,Input,Icon,Tabs,TabsList,TabsTab,TabsPanel,TabsPanels"),
+        "sdk.mjs" => ("sdk", "reportCaughtError,usePluginClipboard,usePluginHttp,useMusicSource,usePluginBackend,usePluginEvent,usePluginStorage,usePluginConfig,usePluginFiles,usePluginNavigate,usePluginRoute,usePlayer,useTheme,useCoverSource,useSongPlayback,SongArtists,SongLikeButton,SongIdentity,DownloadedSongList,MusicPageHeader,Button,Progress,Input,Icon,Tabs,TabsList,TabsTab,TabsPanel,TabsPanels"),
         _ => return Err("未知宿主桥接模块".into()),
     };
     Ok((format!("const host=globalThis.__NONS_PLUGIN_HOST__.{object};export default host;export const {{{exports}}}=host;").into_bytes(), "text/javascript"))
@@ -835,6 +969,9 @@ pub async fn plugin_host_call(
         .requests
         .clone()
         .try_acquire_owned()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "插件调用过于频繁")?;
     context.call(&operation, &args).await
 }
@@ -863,7 +1000,13 @@ pub fn protocol(
     let origin = request
         .headers()
         .get("origin")
-        .and_then(|v| v.to_str().ok())
+        .and_then(|v| {
+            v.to_str()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
+                .ok()
+        })
         .unwrap_or("");
     let allowed = matches!(
         origin,
@@ -895,9 +1038,12 @@ pub fn protocol(
             .header("Content-Type", mime)
             .body(bytes)
             .expect("valid response"),
-        Err(_) => builder
-            .status(403)
-            .body(Vec::new())
-            .expect("valid response"),
+        Err(error) => {
+            crate::infrastructure::diagnostics::warn("plugins.resource", error);
+            builder
+                .status(403)
+                .body(Vec::new())
+                .expect("valid response")
+        }
     }
 }

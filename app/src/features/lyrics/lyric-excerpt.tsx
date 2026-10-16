@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { TextSkeleton } from '@/components/music/loading'
 import { ErrorNotice } from '@/components/error-notice'
 import { useLocalPreferences } from '@/features/local/use-local-preferences'
@@ -50,6 +51,8 @@ export function LyricExcerpt({ tracks, enabled = true }: { tracks?: Track[]; ena
           }
           failures.push(`「${track.title}」没有可用歌词`)
         } catch (cause) {
+          reportCaughtError('app/src/features/lyrics/lyric-excerpt.tsx', cause)
+
           failures.push(`「${track.title}」歌词读取失败：${errorText(cause)}`)
         }
       }
@@ -60,6 +63,8 @@ export function LyricExcerpt({ tracks, enabled = true }: { tracks?: Track[]; ena
         if (!quote) throw new Error('返回内容为空')
         setLines([quote])
       } catch (cause) {
+        reportCaughtError('app/src/features/lyrics/lyric-excerpt.tsx', cause)
+
         if (isCurrent()) setError([...failures, `一言获取失败：${errorText(cause)}`].join('；'))
       }
     }

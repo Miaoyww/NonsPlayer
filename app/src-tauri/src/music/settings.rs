@@ -13,7 +13,13 @@ pub struct AdapterSettings {
 }
 impl AdapterSettings {
     pub(crate) fn set_resource_enabled(&self, id: SourceId, enabled: bool) -> AppResult<()> {
-        let _guard = self.mutation.lock().map_err(|_| "适配器设置锁不可用")?;
+        let _guard = self
+            .mutation
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "适配器设置锁不可用")?;
         if !self
             .adapters
             .resource_provider_statuses()
@@ -56,7 +62,13 @@ impl AdapterSettings {
         format!("musicAdapterEnabledV1:{}", source.as_str())
     }
     pub(crate) fn restore_enabled(&self, source: &SourceId) -> AppResult<()> {
-        let _guard = self.mutation.lock().map_err(|_| "适配器设置锁不可用")?;
+        let _guard = self
+            .mutation
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "适配器设置锁不可用")?;
         let enabled = self.store.setting(&Self::key(source))?.as_deref() != Some("false");
         self.adapters
             .set_enabled(source, enabled)
@@ -66,7 +78,13 @@ impl AdapterSettings {
         self.adapters.statuses().map_err(|e| e.to_string())
     }
     pub fn set_enabled(&self, source: SourceId, enabled: bool) -> AppResult<()> {
-        let _guard = self.mutation.lock().map_err(|_| "适配器设置锁不可用")?;
+        let _guard = self
+            .mutation
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "适配器设置锁不可用")?;
         if !self.list()?.iter().any(|s| s.descriptor.source == source) {
             return Err("音乐来源不存在".into());
         }
@@ -78,7 +96,13 @@ impl AdapterSettings {
             .map_err(|e| e.to_string())
     }
     pub fn reload(&self, source: SourceId) -> AppResult<()> {
-        let _guard = self.mutation.lock().map_err(|_| "适配器设置锁不可用")?;
+        let _guard = self
+            .mutation
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "适配器设置锁不可用")?;
         self.adapters.stamp(&source).map_err(|e| e.to_string())?;
         self.adapters.reload(&source).map_err(|e| e.to_string())
     }
@@ -102,6 +126,9 @@ pub async fn adapter_set_enabled(
     let changed = source.clone();
     tauri::async_runtime::spawn_blocking(move || settings.set_enabled(source, enabled))
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "适配器设置任务失败")??;
     notify(&app, &changed);
     Ok(())
@@ -117,6 +144,9 @@ pub async fn adapter_reload(
     let changed = source.clone();
     tauri::async_runtime::spawn_blocking(move || settings.reload(source))
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "适配器设置任务失败")??;
     notify(&app, &changed);
     Ok(())
@@ -124,8 +154,12 @@ pub async fn adapter_reload(
 
 fn notify(app: &tauri::AppHandle, source: &SourceId) {
     use tauri::Emitter;
-    let _ = app.emit("adapters-changed", source);
-    let _ = app.emit("music-changed", source);
+    let _ = (app.emit("adapters-changed", source)).inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("app.emit", error);
+    });
+    let _ = (app.emit("music-changed", source)).inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("app.emit", error);
+    });
 }
 
 #[cfg(test)]

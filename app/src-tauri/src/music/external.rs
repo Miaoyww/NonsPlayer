@@ -81,6 +81,9 @@ impl ExternalAdapter {
         }
         let permit = COMPILATIONS
             .try_acquire()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::RateLimited)?;
         let engine_started = std::time::Instant::now();
         let engine = runtime::engine_with_budget(runtime::Budget::ADAPTER).map_err(|error| {
@@ -96,10 +99,10 @@ impl ExternalAdapter {
             let read_started = std::time::Instant::now();
             let mut bytes = Vec::new();
             std::fs::File::open(path)
-                .map_err(|_| ErrorCode::InvalidData)?
+                .inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| ErrorCode::InvalidData)?
                 .take(runtime::Budget::ADAPTER.component_bytes as u64 + 1)
                 .read_to_end(&mut bytes)
-                .map_err(|_| ErrorCode::InvalidData)?;
+                .inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| ErrorCode::InvalidData)?;
             if bytes.len() > runtime::Budget::ADAPTER.component_bytes {
                 return Err(ErrorCode::InvalidData);
             }
@@ -113,7 +116,7 @@ impl ExternalAdapter {
             })
         })
         .await
-        .map_err(|_| ErrorCode::Internal)??;
+        .inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| ErrorCode::Internal)??;
         let adapter = Self {
             descriptor: expected,
             engine,
@@ -144,8 +147,16 @@ impl ExternalAdapter {
             )
         };
         log::info!(target: "nons::adapter", "source={} stage=initialize elapsed_ms={}", adapter.descriptor.source.as_str(), initialize_started.elapsed().as_millis());
-        if actual.map_err(|_| ErrorCode::InvalidData)?
-            != expected.map_err(|_| ErrorCode::InvalidData)?
+        if actual
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::InvalidData)?
+            != expected
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| ErrorCode::InvalidData)?
         {
             return Err(ErrorCode::InvalidData.into());
         }
@@ -164,7 +175,12 @@ impl ExternalAdapter {
         } else {
             self.reads.as_ref()
         };
-        let _permit = budget.try_acquire().map_err(|_| ErrorCode::RateLimited)?;
+        let _permit = budget
+            .try_acquire()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::RateLimited)?;
         // Each request owns a fresh Store. Cancellation drops it, so no poisoned instance,
         // credentials, guest state or suspended execution survive into another session.
         // Compilation is shared; initialization and execution remain in the manager deadline.
@@ -199,7 +215,12 @@ impl ExternalAdapter {
             log::error!(target: "nons::adapter", "runtime_failure reason={error}");
             ErrorCode::Internal
         })?;
-        match serde_json::from_str::<Reply<T>>(&response).map_err(|_| ErrorCode::InvalidData)? {
+        match serde_json::from_str::<Reply<T>>(&response)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::InvalidData)?
+        {
             Reply::Ok(value) => Ok(value),
             Reply::Error(error) => Err(error),
         }
@@ -217,6 +238,9 @@ impl ExternalAdapter {
             "session": context.session,
             "adapterGeneration": context.adapter_generation,
         }))
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| ErrorCode::InvalidData.into())
     }
 }
@@ -274,6 +298,9 @@ impl super::provider::ResourceProvider for ResourceComponent {
                 .await?;
             let services = self.runtime.services.as_ref().ok_or(ErrorCode::Internal)?;
             crate::infrastructure::http::checked_url(&services.permissions.http_hosts, &wire.url)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| ErrorCode::PermissionDenied)?;
             Ok(PlaybackResource {
                 metadata: wire.metadata,
@@ -340,6 +367,9 @@ impl MusicAdapter for ExternalAdapter {
                     &services.permissions.http_hosts,
                     &wire.url,
                 )
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| ErrorCode::PermissionDenied)?;
             }
             Ok(PlaybackResource {
@@ -418,6 +448,9 @@ impl MusicAdapter for ExternalAdapter {
                     &services.permissions.http_hosts,
                     &wire.url,
                 )
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| ErrorCode::PermissionDenied)?;
             }
             Ok(PlaybackResource {

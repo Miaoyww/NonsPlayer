@@ -53,10 +53,10 @@ pub(crate) fn single_instance() -> tauri::plugin::TauriPlugin<tauri::Wry> {
         // Defer callbacks received during startup until application setup completes.
         if let Err(error) = app.run_on_main_thread(move || {
             if let Err(error) = open_main(&handle) {
-                eprintln!("唤醒已有实例失败：{error}");
+                log::warn!(target: "nons::window", "唤醒已有实例失败：{error}");
             }
         }) {
-            eprintln!("唤醒已有实例失败：{error}");
+            log::warn!(target: "nons::window", "唤醒已有实例失败：{error}");
         }
     })
 }
@@ -84,7 +84,7 @@ pub(crate) fn setup(app: &tauri::App) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| {
             if let Err(error) = menu_action(app, event.id().as_ref()) {
-                eprintln!("托盘操作失败：{error}");
+                log::warn!(target: "nons::window", "托盘操作失败：{error}");
             }
         })
         .on_tray_icon_event(|tray, event| {
@@ -97,7 +97,7 @@ pub(crate) fn setup(app: &tauri::App) -> tauri::Result<()> {
                 }
             ) {
                 if let Err(error) = open_main(tray.app_handle()) {
-                    eprintln!("托盘操作失败：{error}");
+                    log::warn!(target: "nons::window", "托盘操作失败：{error}");
                 }
             }
         });
@@ -117,7 +117,9 @@ pub(crate) fn on_window_event(window: &Window, event: &WindowEvent) {
         let backend = window.state::<Backend>();
         match read_close_behavior(&backend.store).unwrap_or_default() {
             CloseBehavior::Minimize => {
-                let _ = window.hide();
+                let _ = (window.hide()).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("window.hide", error);
+                });
             }
             CloseBehavior::Close => window.app_handle().exit(0),
         }

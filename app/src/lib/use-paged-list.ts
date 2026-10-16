@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { errorText } from './player'
 
@@ -66,6 +67,8 @@ export function usePagedList<T, M = undefined>(
         state.more = page!.more
         state.reloadPages = Math.max(1, offset / size)
       } catch (cause) {
+        reportCaughtError('app/src/lib/use-paged-list.ts', cause)
+
         if (request.current === state)
           setView((previous) => ({ ...previous, error: errorText(cause) }))
       } finally {

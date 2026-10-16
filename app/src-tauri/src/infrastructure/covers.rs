@@ -63,7 +63,11 @@ pub(crate) async fn fetch(url: String, backend: &crate::Backend) -> AppResult<St
 }
 
 async fn load(url: &str, backend: &crate::Backend, access: &str) -> AppResult<String> {
-    let parsed = url::Url::parse(url).map_err(|_| "封面地址无效")?;
+    let parsed = url::Url::parse(url)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "封面地址无效")?;
     let _permit = backend
         .cover_requests
         .acquire()
@@ -89,7 +93,13 @@ async fn load(url: &str, backend: &crate::Backend, access: &str) -> AppResult<St
     let content_type = response
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|h| h.to_str().ok())
+        .and_then(|h| {
+            h.to_str()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
+                .ok()
+        })
         .unwrap_or_default()
         .to_owned();
     let mime = image_mime(&content_type).ok_or("封面格式不支持")?;

@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { MotionConfig } from 'motion/react'
 import { Titlebar } from '@/features/workspace/titlebar'
 import { MusicWorkspace } from '@/features/workspace/music-workspace'
@@ -15,14 +16,18 @@ function App() {
   const [playerPhase, setPlayerPhase] = useState<'closed' | 'open' | 'closing'>(() => {
     try {
       return localStorage.getItem('nons-now-playing-open') === 'true' ? 'open' : 'closed'
-    } catch {
+    } catch (cause) {
+      reportCaughtError('app/src/App.tsx', cause)
+
       return 'closed'
     }
   })
   useEffect(() => {
     try {
       localStorage.setItem('nons-now-playing-open', String(playerPhase === 'open'))
-    } catch {
+    } catch (cause) {
+      reportCaughtError('app/src/App.tsx', cause)
+
       /* Storage may be unavailable. */
     }
   }, [playerPhase])

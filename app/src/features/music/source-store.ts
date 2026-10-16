@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import type { SourcePreferences } from './source-preferences'
 import type { SourceDescriptor } from './types'
 export interface SourceStatus {
@@ -60,6 +61,8 @@ export function createSourceStore(
               revision: value.revision + 1
             })
         } catch (cause) {
+          reportCaughtError('app/src/features/music/source-store.ts', cause)
+
           if (active === cycle && request === serial)
             publish({ ...value, loading: false, error: errorText(cause) })
         }
@@ -99,6 +102,8 @@ export function createSourceStore(
           if (active === cycle) return refresh()
         })
         .catch((cause) => {
+          reportCaughtError('app/src/features/music/source-store.ts', cause)
+
           if (active === cycle) publish({ ...value, loading: false, error: errorText(cause) })
         })
     }

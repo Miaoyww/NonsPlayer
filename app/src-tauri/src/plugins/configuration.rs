@@ -295,7 +295,13 @@ impl Configurations {
         }
     }
     pub fn register(&self, id: &str, compiled: Option<Arc<Compiled>>) -> AppResult<()> {
-        let mut entries = self.entries.lock().map_err(|_| "配置管理器不可用")?;
+        let mut entries = self
+            .entries
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "配置管理器不可用")?;
         entries.remove(id);
         if let Some(compiled) = compiled {
             entries.insert(
@@ -312,6 +318,9 @@ impl Configurations {
         Ok(self
             .entries
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "配置管理器不可用")?
             .get(id)
             .ok_or("插件未声明配置")?
@@ -320,7 +329,13 @@ impl Configurations {
             .clone())
     }
     pub fn snapshot(&self, id: &str) -> AppResult<Snapshot> {
-        let entries = self.entries.lock().map_err(|_| "配置管理器不可用")?;
+        let entries = self
+            .entries
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "配置管理器不可用")?;
         let entry = entries.get(id).ok_or("插件未声明配置")?;
         let (revision, raw) = self.database.config_read(id)?;
         let (values, diagnostics) = entry.compiled.effective(&raw);
@@ -344,6 +359,9 @@ impl Configurations {
         if let Some(entry) = self
             .entries
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "配置管理器不可用")?
             .get_mut(id)
         {
@@ -352,7 +370,9 @@ impl Configurations {
         Ok(())
     }
     pub fn unloaded(&self, id: &str) {
-        if let Ok(mut entries) = self.entries.lock() {
+        if let Ok(mut entries) = (self.entries.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             if let Some(entry) = entries.get_mut(id) {
                 entry.baseline = None;
             }
@@ -366,7 +386,13 @@ impl Configurations {
         reset: Option<Vec<String>>,
     ) -> AppResult<Snapshot> {
         {
-            let entries = self.entries.lock().map_err(|_| "配置管理器不可用")?;
+            let entries = self
+                .entries
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "配置管理器不可用")?;
             let compiled = &entries.get(id).ok_or("插件未声明配置")?.compiled;
             self.database.config_change(id, revision, |raw| {
                 if let Some(patch) = patch {
@@ -417,7 +443,9 @@ impl Configurations {
             })?;
         }
         let snapshot = self.snapshot(id)?;
-        let _ = self.changes.send(id.into());
+        let _ = (self.changes.send(id.into())).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("self.changes.send", error);
+        });
         Ok(snapshot)
     }
 }

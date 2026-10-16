@@ -150,7 +150,11 @@ impl MusicService {
         // Some searchable audio services omit duration. Hydrate only the selected
         // track through the ordinary catalog contract, never every search result.
         if metadata.duration_ms == 0 {
-            if let Ok(enriched) = self.adapters.read_track(&metadata.reference).await {
+            if let Ok(enriched) =
+                (self.adapters.read_track(&metadata.reference).await).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_success", error);
+                })
+            {
                 metadata = enriched;
                 track.duration_ms = metadata.duration_ms;
             }

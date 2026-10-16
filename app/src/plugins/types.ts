@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 export interface PluginManifest {
   id: string
   name: string
@@ -51,7 +52,9 @@ export function resolvePluginPath(path: string) {
   const relative = match[2] || '/'
   try {
     pluginPath(match[1], relative)
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/plugins/types.ts', cause)
+
     return undefined
   }
   const [pathname, ...query] = relative.split('?')

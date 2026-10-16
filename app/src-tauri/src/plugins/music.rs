@@ -24,6 +24,9 @@ impl SongService {
         use base64::Engine;
         let source: SourceId =
             serde_json::from_value(args.get("source").ok_or("缺少账号来源")?.clone())
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "账号来源无效")?;
         let stamp = self
             .music
@@ -134,6 +137,9 @@ impl SongService {
                 .map_err(|e| e.to_string())
         })
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "歌曲信息查询超时")??;
         if generation != self.generation.load(Ordering::SeqCst)
             || stamp

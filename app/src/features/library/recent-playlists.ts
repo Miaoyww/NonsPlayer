@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { validCoverInput } from '@/features/music/cover-image'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 
@@ -33,7 +34,9 @@ export function parseRecentPlaylists(saved: string | null): MusicCollection[] {
         return true
       })
       .slice(0, recentPlaylistLimit)
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/library/recent-playlists.ts', cause)
+
     return []
   }
 }

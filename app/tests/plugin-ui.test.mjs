@@ -6,7 +6,7 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { runInNewContext } from 'node:vm'
+import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import { test } from 'node:test'
 import * as React from 'react'
 import * as jsx from 'react/jsx-runtime'
@@ -203,14 +203,16 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
       'ui.mjs'
     )
     await mkdir(join(directory, '_host'))
+    const hostSource = readFileSync(
+      new URL('../src-tauri/src/plugins/mod.rs', import.meta.url),
+      'utf8'
+    )
+    const sdkExports = hostSource.match(/"sdk\.mjs"\s*=>\s*\("sdk",\s*"([^"]+)"\)/)?.[1]
+    assert.ok(sdkExports, 'use the production SDK bridge export list')
     for (const [name, object, exports] of [
       ['react', 'react', 'useEffect,useRef,useState'],
       ['jsx-runtime', 'jsx', 'jsx,jsxs,Fragment'],
-      [
-        'sdk',
-        'sdk',
-        'Button,SongArtists,SongLikeButton,useSongPlayback,useCoverSource,usePluginEvent,usePluginConfig'
-      ]
+      ['sdk', 'sdk', sdkExports]
     ]) {
       await writeFile(
         join(directory, '_host', `${name}.mjs`),

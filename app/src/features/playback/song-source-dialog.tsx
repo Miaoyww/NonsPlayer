@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -55,6 +56,8 @@ export function SongSourceDialog({ track, onClose }: { track: Track; onClose: ()
       })
       onClose()
     } catch (cause) {
+      reportCaughtError('app/src/features/playback/song-source-dialog.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       setBusy(false)

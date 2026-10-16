@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useContext, useEffect, useState, type ReactNode } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -32,6 +33,8 @@ export function MusicOptionsProvider({ children }: { children: ReactNode }) {
         if (!disposed) setOptions(value)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/playback/music-options.tsx', cause)
+
         if (!disposed) setError(errorText(cause))
       })
       .finally(() => {
@@ -48,7 +51,10 @@ export function MusicOptionsProvider({ children }: { children: ReactNode }) {
     setError(undefined)
     void nativeCall('set_music_options', next)
       .then(() => setOptions(next))
-      .catch((cause) => setError(errorText(cause)))
+      .catch((cause) => {
+        reportCaughtError('app/src/features/playback/music-options.tsx', cause)
+        return setError(errorText(cause))
+      })
       .finally(() => setBusy(false))
   }
   return (

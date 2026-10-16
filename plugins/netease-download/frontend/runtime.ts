@@ -1,4 +1,5 @@
 import type { ConfigSnapshot, PluginClient, PluginMenuSong, PluginTransfer } from '@app/plugin-sdk'
+import { reportCaughtError } from '@app/plugin-sdk'
 import { audioFormat, filename, LoginRequired, resolveResource, type Quality } from './protocol'
 import { accountCredential, accountScope } from './account'
 import { migrateSong } from './migration'
@@ -63,7 +64,7 @@ let persistence = Promise.resolve()
 function persist() {
   const record = tasks.map(({ transfer: _, ...task }) => task)
   persistence = persistence
-    .catch(() => {})
+    .catch((cause) => reportCaughtError('netease-download.persistence.previous', cause))
     .then(() => client.call('storage.set', { key: 'tasks', value: record }))
     .then(() => {})
   return persistence
@@ -80,6 +81,7 @@ export async function activate(next: PluginClient) {
       return { ...task, transfer: undefined }
     })
   } catch (error) {
+    reportCaughtError('netease-download.restore', error)
     view.message = String(error)
   }
   changed()
@@ -255,6 +257,7 @@ async function pump() {
     task.completedAt = Date.now()
     changed()
   } catch (error) {
+    reportCaughtError('netease-download.task', error)
     if (error instanceof LoginRequired) {
       view.message = '网易云登录已失效，请在 NonsPlayer 中重新登录后重试'
     }
@@ -265,9 +268,12 @@ async function pump() {
     changed()
   } finally {
     if (temporary && root && active)
-      await client.call('files.remove', { root, path: temporary }).catch(() => {})
+      await client
+        .call('files.remove', { root, path: temporary })
+        .catch((cause) => reportCaughtError('netease-download.cleanup', cause))
     if (active && JSON.stringify(task) !== previous)
       await persist().catch((error) => {
+        reportCaughtError('netease-download.persist', error)
         view.message = `保存下载记录失败：${String(error)}`
         changed()
       })

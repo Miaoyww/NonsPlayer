@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useLocalPreferences } from '@/features/local/use-local-preferences'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackArtists } from '@/components/music/music-links'
@@ -136,6 +137,8 @@ export default function LyricsView({
           isCurrent
         )
       } catch (cause) {
+        reportCaughtError('app/src/features/lyrics/lyrics-view.tsx', cause)
+
         if (isCurrent() && !(cause instanceof EmptyLyricsError)) setError(errorText(cause))
       } finally {
         if (isCurrent()) setLoading(false)
@@ -167,7 +170,9 @@ export default function LyricsView({
       ) {
         try {
           apply(payload.lyrics, track.durationMs, track.key, state.revision)
-        } catch {
+        } catch (cause) {
+          reportCaughtError('app/src/features/lyrics/lyrics-view.tsx', cause)
+
           /* Retain the last usable lyrics. */
         }
       }
@@ -177,6 +182,8 @@ export default function LyricsView({
         else stop = unlisten
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/lyrics/lyrics-view.tsx', cause)
+
         if (!disposed && isCurrentPlayback(track.key, state.revision)) setError(errorText(cause))
       })
     return () => {

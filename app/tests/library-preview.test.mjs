@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { runInNewContext } from 'node:vm'
+import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import { test } from 'node:test'
 import ts from 'typescript'
 import { coverImage } from './helpers/cover-image.mjs'

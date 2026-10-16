@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -55,6 +56,8 @@ export function LocalCachePage() {
         }
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/settings/pages/local-cache.tsx', cause)
+
         if (!disposed) setError(errorText(cause))
       })
     return () => {
@@ -71,6 +74,8 @@ export function LocalCachePage() {
       await reload()
       if (message) setNotice(message)
     } catch (cause) {
+      reportCaughtError('app/src/features/settings/pages/local-cache.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       setBusy(false)

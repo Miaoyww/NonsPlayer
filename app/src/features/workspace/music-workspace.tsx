@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { supportsMusicPage } from '@/features/music/source-capabilities'
 import { ListFindProvider } from '@/components/music/list-find'
 import { MusicPageSkeleton, LibraryPageSkeleton } from '@/components/music/loading'
@@ -232,6 +233,8 @@ export function MusicWorkspace({
       if (view === 'local') setRefresh((value) => value + 1)
       else navigate('local')
     } catch (cause) {
+      reportCaughtError('app/src/features/workspace/music-workspace.tsx', cause)
+
       onError(cause)
     } finally {
       setImporting(false)

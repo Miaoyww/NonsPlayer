@@ -86,7 +86,7 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
                             let _ = (reply.send(ReadyState {
                                 settings: std::mem::take(&mut pending_settings),
                                 shortcut: pending_shortcut.take(),
-                            })).map_err(|_| "reply receiver dropped").inspect_err(|error| { log::warn!(target: "nons::background", "operation=reply.send at={}:{} reason={error:?}", file!(), line!()); });
+                            })).map_err(|_| "reply receiver dropped").inspect_err(|error| { crate::infrastructure::diagnostics::warn("reply.send", error); });
                         }
                         Ok(Request::Shortcut(action)) => {
                             if action == "like" {
@@ -123,13 +123,13 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
                             app.state::<std::sync::Arc<PluginManager>>()
                                 .frontend_detached()?;
                             ready = false;
-                            eprintln!("主面板已隐藏 30 秒，WebView 已释放");
+                            log::info!(target: "nons::window", "主面板已隐藏 30 秒，WebView 已释放");
                         }
                     }
                     Ok(())
                 })();
                 if let Err(error) = result {
-                    eprintln!("主面板休眠操作失败：{error}");
+                    log::warn!(target: "nons::window", "主面板休眠操作失败：{error}");
                 }
                 if stopping {
                     break;
@@ -187,7 +187,7 @@ fn configure_browser_shortcuts(webview: &tauri::Webview) -> AppResult<()> {
                     Ok(())
                 })();
                 if let Err(error) = result {
-                    eprintln!("禁用浏览器快捷键失败：{error}");
+                    log::warn!(target: "nons::window", "禁用浏览器快捷键失败：{error}");
                 }
             })
             .map_err(|e| e.to_string())?;
@@ -209,7 +209,9 @@ pub(crate) fn open(app: &AppHandle, settings: bool) -> AppResult<()> {
 
 pub(crate) fn stop(app: &AppHandle) {
     if let Some(state) = app.try_state::<MainWebview>() {
-        let _ = state.0.send(Request::Stop);
+        let _ = (state.0.send(Request::Stop)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("state.0.send", error);
+        });
     }
 }
 
@@ -239,6 +241,9 @@ pub(crate) fn main_sleep_shortcuts(bindings: Vec<SleepShortcut>, app: AppHandle)
     *app.state::<SleepShortcuts>()
         .0
         .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "快捷键配置不可用")? = bindings;
     Ok(())
 }
@@ -265,10 +270,13 @@ pub(crate) fn background_shortcut(
             .parse::<tauri_plugin_global_shortcut::Shortcut>()
             .is_ok_and(|registered| registered.id() == shortcut.id())
     }) {
-        let _ = app
+        let _ = (app
             .state::<MainWebview>()
             .0
-            .send(Request::Shortcut(binding.action.clone()));
+            .send(Request::Shortcut(binding.action.clone())))
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("app .state::<MainWebview>", error);
+        });
     }
 }
 

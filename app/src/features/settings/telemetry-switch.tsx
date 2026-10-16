@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useState, useRef } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Switch } from '@/components/ui/switch'
@@ -18,6 +19,8 @@ export function TelemetrySwitch() {
         if (!disposed) setEnabled(value)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/settings/telemetry-switch.tsx', cause)
+
         if (!disposed) setError(errorText(cause))
       })
     return () => {
@@ -32,6 +35,8 @@ export function TelemetrySwitch() {
     try {
       setEnabled(await nativeCall<boolean>('set_telemetry_enabled', { enabled: value }))
     } catch (cause) {
+      reportCaughtError('app/src/features/settings/telemetry-switch.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       busy.current = false

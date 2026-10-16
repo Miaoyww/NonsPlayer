@@ -8,13 +8,71 @@ use std::sync::{
 use std::time::{Duration, Instant};
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
 
+// Stop formatting when the bound is reached, before a Debug representation or a
+// long error can allocate a second copy of an entire response in the log sink.
+fn bounded_message(args: std::fmt::Arguments<'_>) -> String {
+    struct Bounded(String);
+    impl std::fmt::Write for Bounded {
+        fn write_str(&mut self, text: &str) -> std::fmt::Result {
+            let remaining = 4096usize.saturating_sub(self.0.len());
+            let mut end = remaining.min(text.len());
+            while !text.is_char_boundary(end) {
+                end -= 1;
+            }
+            self.0.push_str(&text[..end]);
+            if end < text.len() {
+                Err(std::fmt::Error)
+            } else {
+                Ok(())
+            }
+        }
+    }
+    let mut output = Bounded(String::with_capacity(256));
+    // A formatting error here signals intentional truncation.
+    let _ = std::fmt::write(&mut output, args);
+    redact(&output.0)
+}
+
+/// Record a recovered or translated failure before its original cause is lost.
+/// Display avoids serializing error internals such as credential bytes.
+#[track_caller]
+pub(crate) fn warn(operation: &str, error: impl std::fmt::Display) {
+    let at = std::panic::Location::caller();
+    log::warn!(target: "nons::recovery", "operation={operation} at={}:{} reason={error}", at.file(), at.line());
+}
+
+#[track_caller]
+pub(crate) fn warn_error(operation: &str, error: &(dyn std::error::Error + 'static)) {
+    struct Chain<'a>(&'a (dyn std::error::Error + 'static));
+    impl std::fmt::Display for Chain<'_> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.0)?;
+            let mut cause = self.0.source();
+            for _ in 0..4 {
+                let Some(error) = cause else {
+                    break;
+                };
+                write!(f, "; caused_by={error}")?;
+                cause = error.source();
+            }
+            Ok(())
+        }
+    }
+    warn(operation, Chain(error));
+}
+
 pub(crate) fn redact(value: &str) -> String {
     static URL: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r#"(?i)https?://[^\s"'<>]+"#).unwrap());
     static PAYLOAD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[\[{].*$").unwrap());
-    static SECRET: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r#"(?i)\b(cookie|authorization|bearer|credential|password|token|secret|music_u|uin|skey|qqmusic_key)\b[\s"':=]+.*$"#).unwrap()
+    static SCALAR: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r#"((?:invalid (?:type|value): string|unknown variant|unknown field) )"(?:\\.|[^"\\])*(?:"|$)"#).unwrap()
     });
+    static SECRET: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r#"(?i)\b(cookie|authorization|bearer|credential|password|token|secret|music_u|uin|skey|qqmusic_key)\b[\s"']*[:=].*$"#).unwrap()
+    });
+    static AUTH: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"(?i)\b(cookie|authorization|bearer)\b\s+.*$").unwrap());
     // Bound work before regex processing and keep every record on a single physical line.
     let value: String = value
         .chars()
@@ -23,6 +81,8 @@ pub(crate) fn redact(value: &str) -> String {
         .collect();
     let value = URL.replace_all(&value, "<url>");
     let value = PAYLOAD.replace_all(&value, "<payload>");
+    let value = SCALAR.replace_all(&value, "$1<redacted>");
+    let value = AUTH.replace_all(&value, "$1=<redacted>");
     SECRET
         .replace_all(&value, "$1=<redacted>")
         .chars()
@@ -70,7 +130,7 @@ fn plugin<R: tauri::Runtime>(file: Option<TargetKind>) -> tauri::plugin::TauriPl
                 tauri_plugin_log::TimezoneStrategy::UseUtc.get_now(),
                 record.level(),
                 record.target(),
-                redact(&message.to_string())
+                bounded_message(*message)
             ))
         })
         .build()
@@ -210,6 +270,78 @@ pub(crate) fn diagnostic_report(entry: FrontendEntry) -> Result<(), String> {
 mod tests {
     use super::*;
     #[test]
+    fn recovered_errors_keep_display_causes_without_debug_payloads() {
+        struct Capture;
+        thread_local! {
+            static RECORDS: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+        }
+        impl log::Log for Capture {
+            fn enabled(&self, _: &log::Metadata<'_>) -> bool {
+                true
+            }
+            fn log(&self, record: &log::Record<'_>) {
+                RECORDS.with(|records| records.borrow_mut().push(bounded_message(*record.args())));
+            }
+            fn flush(&self) {}
+        }
+        static LOGGER: Capture = Capture;
+        log::set_logger(&LOGGER).unwrap();
+        log::set_max_level(log::LevelFilter::Info);
+
+        // These are the same values passed by credential and file IO recovery sites.
+        warn(
+            "credentials.read",
+            std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "credential store denied access",
+            ),
+        );
+        let invalid = String::from_utf8(vec![255, 254, 253]).unwrap_err();
+        warn("credentials.decode", invalid);
+        #[derive(Debug)]
+        struct Transport(std::io::Error);
+        impl std::fmt::Display for Transport {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("sending request to https://user:SECRET@example.com")
+            }
+        }
+        impl std::error::Error for Transport {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(&self.0)
+            }
+        }
+        warn_error(
+            "http.send",
+            &Transport(std::io::Error::other("connection refused")),
+        );
+        RECORDS.with(|records| {
+            let records = records.borrow();
+            assert!(records[0].contains("operation=credentials.read"));
+            assert!(records[0].contains("credential store denied access"));
+            assert!(records[0].contains("diagnostics.rs:"));
+            assert!(records[1].contains("invalid utf-8"));
+            assert!(!records[1].contains("255"));
+            assert!(records[2].contains("caused_by=connection refused"));
+            assert!(!records[2].contains("SECRET"));
+        });
+    }
+
+    #[test]
+    fn formatting_stops_before_evaluating_later_payloads_and_preserves_unicode() {
+        struct Never;
+        impl std::fmt::Display for Never {
+            fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                panic!("payload beyond the bound must not be formatted");
+            }
+        }
+        let long = "错".repeat(2000);
+        let message = bounded_message(format_args!("reason={long} {}", Never));
+        assert!(message.starts_with("reason=错"));
+        assert!(message.len() <= 4096);
+        assert!(message.chars().count() <= 2048);
+    }
+
+    #[test]
     fn command_errors_preserve_database_reason_and_code_for_the_webview() {
         let json = serde_json::to_value(internal_error(
             "save_queue_tracks",
@@ -234,6 +366,10 @@ mod tests {
             "Authorization: Bearer SECRET",
             "failed token=SECRET",
             "response {\"value\":\"SECRET\"}",
+            "invalid type: string \"SECRET\", expected a boolean at line 1 column 8",
+            "invalid value: string \"SECRET\\\"more\", expected a number",
+            "unknown variant \"SECRET\", expected `ok` or `error`",
+            "invalid type: string \"SECRET",
         ] {
             assert!(!redact(text).contains("SECRET"));
         }
@@ -243,5 +379,9 @@ mod tests {
             redact("数据库查询失败: no such column: source"),
             "数据库查询失败: no such column: source"
         );
+        let error = serde_json::from_str::<bool>("\"SECRET\"").unwrap_err();
+        let reason = bounded_message(format_args!("reason={error}"));
+        assert!(!reason.contains("SECRET"));
+        assert!(reason.contains("expected a boolean"));
     }
 }

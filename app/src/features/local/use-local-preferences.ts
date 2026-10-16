@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useSyncExternalStore } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { nativeCall } from '@/lib/player'
@@ -27,7 +28,9 @@ export function useLocalPreferences() {
     if (!isTauri()) return
     initial ??= nativeCall<LocalPreferences>('local_preferences')
       .then(update)
-      .catch(() => {
+      .catch((cause) => {
+        reportCaughtError('app/src/features/local/use-local-preferences.ts', cause)
+
         initial = undefined
       })
   }, [])

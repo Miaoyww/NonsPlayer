@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useLocalPreferences } from '@/features/local/use-local-preferences'
 import { readTrackInformation } from '@/features/music/queries'
 import { Fragment, useState, type MouseEvent } from 'react'
@@ -126,7 +127,10 @@ export function TrackArtists({ track }: { track: Track }) {
                     trackCount: 0
                   })
                 })
-                .catch((cause) => setError(errorText(cause)))
+                .catch((cause) => {
+                  reportCaughtError('app/src/components/music/music-links.tsx', cause)
+                  return setError(errorText(cause))
+                })
                 .finally(() => setBusy(false))
             }}
           >
@@ -204,7 +208,10 @@ export function TrackAlbum({ track }: { track: Track }) {
                 trackCount: 0
               })
             })
-            .catch((cause) => setError(errorText(cause)))
+            .catch((cause) => {
+              reportCaughtError('app/src/components/music/music-links.tsx', cause)
+              return setError(errorText(cause))
+            })
             .finally(() => setBusy(false))
         }}
       >

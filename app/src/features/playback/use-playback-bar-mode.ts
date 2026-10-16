@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useSyncExternalStore } from 'react'
 import { isAndroid } from '@/lib/platform'
 
@@ -11,7 +12,9 @@ function isMode(value: unknown): value is PlaybackBarMode {
 try {
   const saved = localStorage.getItem(storageKey)
   if (isMode(saved)) mode = saved
-} catch {
+} catch (cause) {
+  reportCaughtError('app/src/features/playback/use-playback-bar-mode.ts', cause)
+
   /* Storage is optional. */
 }
 const subscribe = (listener: () => void) => {
@@ -26,7 +29,9 @@ function setMode(value: PlaybackBarMode) {
   mode = value
   try {
     localStorage.setItem(storageKey, value)
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/playback/use-playback-bar-mode.ts', cause)
+
     /* Keep the current session usable. */
   }
   listeners.forEach((notify) => notify())

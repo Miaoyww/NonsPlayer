@@ -14,7 +14,12 @@ impl Database {
         Ok(Self(Mutex::new(db)))
     }
     fn lock(&self) -> AppResult<std::sync::MutexGuard<'_, Connection>> {
-        self.0.lock().map_err(|_| "插件存储不可用".into())
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件存储不可用".into())
     }
     pub fn secret_keys(&self, plugin: &str) -> AppResult<Vec<String>> {
         let db = self.lock()?;
@@ -195,7 +200,11 @@ impl Database {
         if value.len() > 65536 {
             return Err("插件存储单值超过 64KiB".into());
         }
-        serde_json::from_str::<serde_json::Value>(value).map_err(|_| "存储值必须为 JSON")?;
+        serde_json::from_str::<serde_json::Value>(value)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "存储值必须为 JSON")?;
         let mut db = self.lock()?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
         let total: i64 = tx.query_row("SELECT coalesce(sum(length(CAST(key AS BLOB))+length(CAST(value AS BLOB))),0) FROM storage WHERE plugin=?1 AND key!=?2", params![id,key], |r| r.get(0)).map_err(|e| e.to_string())?;

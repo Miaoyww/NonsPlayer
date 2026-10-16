@@ -750,6 +750,7 @@ version = "1.0.0"
 dependencies = [
  "base64 0.22.1",
  "cookie",
+ "log",
  "ncm-api-rs",
  "nons-music-adapter-sdk",
  "qrcode",

@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useRef } from 'react'
 import { onBackButtonPress } from '@tauri-apps/api/app'
 import { isTauri, type PluginListener } from '@tauri-apps/api/core'
@@ -27,7 +28,7 @@ export function useAndroidBack(options: {
         if (disposed) void registered.unregister()
         else listener = registered
       })
-      .catch(console.error)
+      .catch((cause) => reportCaughtError('app/src/features/workspace/use-android-back.ts', cause))
     return () => {
       disposed = true
       void listener?.unregister()

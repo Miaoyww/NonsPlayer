@@ -134,7 +134,13 @@ impl TtmlCache {
     pub fn new(store: Arc<Store>, default_directory: PathBuf) -> AppResult<Self> {
         let options = store
             .setting("localCache")?
-            .and_then(|s| serde_json::from_str::<CacheOptions>(&s).ok())
+            .and_then(|s| {
+                serde_json::from_str::<CacheOptions>(&s)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+            })
             .filter(|o| (1..=4096).contains(&o.max_mb) && Path::new(&o.directory).is_absolute())
             .unwrap_or(CacheOptions {
                 enabled: true,
@@ -157,7 +163,13 @@ impl TtmlCache {
         })
     }
     pub fn status(&self) -> AppResult<CacheStatus> {
-        let state = self.state.lock().map_err(|_| "缓存锁不可用")?;
+        let state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "缓存锁不可用")?;
         let (used_bytes, entries) = state
             .db
             .query_row(
@@ -173,7 +185,13 @@ impl TtmlCache {
         })
     }
     pub fn get(&self, key: &str) -> AppResult<Option<CachedLyrics>> {
-        let state = self.state.lock().map_err(|_| "缓存锁不可用")?;
+        let state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "缓存锁不可用")?;
         if !state.options.enabled {
             return Ok(None);
         }
@@ -212,7 +230,13 @@ impl TtmlCache {
         self.state.lock().map(|s| s.generation).unwrap_or_default()
     }
     pub fn set_lyric_sources(&self, value: &str) -> AppResult<()> {
-        let mut state = self.state.lock().map_err(|_| "缓存锁不可用")?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "缓存锁不可用")?;
         self.store.set_setting("lyricSources", value)?;
         state.generation += 1;
         self.store.clear_runtime_lyrics()
@@ -224,7 +248,13 @@ impl TtmlCache {
         ttl: i64,
         generation: u64,
     ) -> AppResult<()> {
-        let state = self.state.lock().map_err(|_| "缓存锁不可用")?;
+        let state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "缓存锁不可用")?;
         if state.generation != generation {
             return Ok(());
         }
@@ -237,17 +267,31 @@ impl TtmlCache {
         Ok(())
     }
     pub fn refresh_lyrics(&self, keys: &[&str]) -> AppResult<()> {
-        let mut state = self.state.lock().map_err(|_| "缓存锁不可用")?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "缓存锁不可用")?;
         state.generation += 1;
         for key in keys {
             self.store.invalidate_lyrics(key)?;
             // A broken disk index must not prevent refreshing online sources.
-            let _ = remove(&state, key);
+            let _ = (remove(&state, key)).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("remove", error);
+            });
         }
         Ok(())
     }
     pub fn clear(&self) -> AppResult<()> {
-        let mut state = self.state.lock().map_err(|_| "缓存锁不可用")?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "缓存锁不可用")?;
         state.generation += 1;
         self.store.clear_runtime_lyrics()?;
         let keys = state
@@ -271,7 +315,13 @@ impl TtmlCache {
         if !(1..=4096).contains(&options.max_mb) || !Path::new(&options.directory).is_absolute() {
             return Err("缓存上限须为 1–4096 MB，缓存目录须为绝对路径".into());
         }
-        let mut state = self.state.lock().map_err(|_| "缓存锁不可用")?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "缓存锁不可用")?;
         let mut next = open_state(options)?;
         next.generation = state.generation + 1;
         if state.root.canonicalize().map_err(|e| e.to_string())?
@@ -307,7 +357,9 @@ impl TtmlCache {
             // database is tiny and retained; unrelated user files are untouched.
             let previous = std::mem::replace(&mut *state, next);
             for (key, _, _) in &rows {
-                let _ = remove(&previous, key);
+                let _ = (remove(&previous, key)).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("remove", error);
+                });
             }
         } else {
             self.store.set_setting(
@@ -325,9 +377,15 @@ impl TtmlCache {
 fn read_content(path: &Path) -> Option<String> {
     let mut content = String::new();
     std::fs::File::open(path)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_result", error);
+        })
         .ok()?
         .take((MAX_LYRIC_BYTES + 1) as u64)
         .read_to_string(&mut content)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_result", error);
+        })
         .ok()?;
     valid_ttml(&content).then_some(content)
 }

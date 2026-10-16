@@ -48,7 +48,13 @@ impl Telemetry {
     }
 
     fn installation_id(&self) -> AppResult<String> {
-        let _guard = self.mutation.lock().map_err(|_| "遥测设置锁不可用")?;
+        let _guard = self
+            .mutation
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "遥测设置锁不可用")?;
         if let Some(id) = self.store.setting("anonymousInstallationId")? {
             if uuid::Uuid::parse_str(&id).is_ok() {
                 return Ok(id);
@@ -64,9 +70,9 @@ impl Telemetry {
         if cfg!(debug_assertions) || cfg!(feature = "plugin-probe") {
             return;
         }
-        if self.report_inner(app, occurred_at).await.is_err() {
+        if let Err(error) = self.report_inner(app, occurred_at).await {
             // Never log payloads, stable identifiers, headers or response bodies.
-            log::warn!(target: "nons::telemetry", "launch_report_failed");
+            log::warn!(target: "nons::telemetry", "launch_report_failed reason={error}");
         }
     }
 
@@ -81,6 +87,9 @@ impl Telemetry {
             .music
             .adapters
             .statuses()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "适配器状态不可用")?
             .into_iter()
             .filter(|entry| entry.enabled)
@@ -94,6 +103,9 @@ impl Telemetry {
             .music
             .adapters
             .resource_provider_statuses()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "音源状态不可用")?
         {
             if entry.enabled
@@ -129,7 +141,11 @@ impl Telemetry {
             adapters,
             plugins,
         };
-        let body = serde_json::to_vec(&event).map_err(|_| "遥测序列化失败")?;
+        let body = serde_json::to_vec(&event)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "遥测序列化失败")?;
         if body.len() > 65536 {
             return Err("遥测请求超过接口上限".into());
         }
@@ -137,6 +153,9 @@ impl Telemetry {
             .timeout(Duration::from_secs(8))
             .redirect(reqwest::redirect::Policy::none())
             .build()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "遥测网络初始化失败")?;
         transmit(&client, ENDPOINT, key, body, enabled, &[0, 15, 60, 300]).await
     }
@@ -150,7 +169,7 @@ async fn transmit(
     mut enabled: watch::Receiver<bool>,
     delays: &[u64],
 ) -> AppResult<()> {
-    for delay in delays {
+    for (attempt, delay) in delays.iter().enumerate() {
         if !*enabled.borrow_and_update() {
             return Ok(());
         }
@@ -167,10 +186,15 @@ async fn transmit(
         };
         match response {
             Ok(response) if response.status().is_success() => return Ok(()),
-            Ok(response) if !retryable(response.status().as_u16()) => {
-                return Err("遥测请求被拒绝".into())
+            Ok(response) => {
+                log::warn!(target: "nons::telemetry", "operation=transmit attempt={} status={}", attempt + 1, response.status().as_u16());
+                if !retryable(response.status().as_u16()) {
+                    return Err("遥测请求被拒绝".into());
+                }
             }
-            _ => {}
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn_error("telemetry.transmit", &error);
+            }
         }
     }
     Err("遥测重试结束".into())
@@ -200,7 +224,13 @@ pub fn set_telemetry_enabled(
     enabled: bool,
     telemetry: State<'_, Arc<Telemetry>>,
 ) -> AppResult<bool> {
-    let _guard = telemetry.mutation.lock().map_err(|_| "遥测设置锁不可用")?;
+    let _guard = telemetry
+        .mutation
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "遥测设置锁不可用")?;
     telemetry
         .store
         .set_setting(ENABLED, if enabled { "true" } else { "false" })?;

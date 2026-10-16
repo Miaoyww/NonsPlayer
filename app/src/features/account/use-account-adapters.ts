@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
@@ -35,6 +36,8 @@ export function useAccountAdapters() {
       )
       if (mounted.current && serial === generation.current) setAdapters(result)
     } catch (cause) {
+      reportCaughtError('app/src/features/account/use-account-adapters.ts', cause)
+
       if (mounted.current && serial === generation.current) setError(errorText(cause))
     } finally {
       if (mounted.current && serial === generation.current) setLoading(false)
@@ -55,6 +58,8 @@ export function useAccountAdapters() {
             else stops.push(stop)
           })
           .catch((cause) => {
+            reportCaughtError('app/src/features/account/use-account-adapters.ts', cause)
+
             if (!disposed) setError(errorText(cause))
           })
     return () => {

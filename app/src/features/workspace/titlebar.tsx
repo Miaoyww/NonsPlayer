@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { supportsMusicPage } from '@/features/music/source-capabilities'
 import { useMusicSources } from '@/features/music/use-music-sources'
@@ -72,25 +73,29 @@ export function Titlebar({
       const value = await appWindow.isMaximized()
       if (!disposed) setMaximized(value)
     }
-    void updateMaximized().catch(console.error)
+    void updateMaximized().catch((cause) =>
+      reportCaughtError('app/src/features/workspace/titlebar.tsx', cause)
+    )
     void appWindow
       .isFocused()
       .then((value) => {
         if (!disposed) setFocused(value)
       })
-      .catch(console.error)
+      .catch((cause) => reportCaughtError('app/src/features/workspace/titlebar.tsx', cause))
     void appWindow
       .onResized(() => {
-        void updateMaximized().catch(console.error)
+        void updateMaximized().catch((cause) =>
+          reportCaughtError('app/src/features/workspace/titlebar.tsx', cause)
+        )
       })
       .then(retain)
-      .catch(console.error)
+      .catch((cause) => reportCaughtError('app/src/features/workspace/titlebar.tsx', cause))
     void appWindow
       .onFocusChanged(({ payload }) => {
         if (!disposed) setFocused(payload)
       })
       .then(retain)
-      .catch(console.error)
+      .catch((cause) => reportCaughtError('app/src/features/workspace/titlebar.tsx', cause))
     return () => {
       disposed = true
       listeners.forEach((unlisten) => unlisten())
@@ -105,7 +110,7 @@ export function Titlebar({
       await appWindow[action]()
       if (action === 'toggleMaximize') setMaximized(await appWindow.isMaximized())
     } catch (cause) {
-      console.error('Window action failed', cause)
+      reportCaughtError(`window.${action}`, cause)
       setError('窗口操作失败，请重试。')
     }
   }

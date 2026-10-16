@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button, MusicPageHeader, Progress, usePluginFiles } from '@app/plugin-sdk'
+import {
+  Button,
+  MusicPageHeader,
+  Progress,
+  usePluginFiles,
+  reportCaughtError
+} from '@app/plugin-sdk'
 
 interface Item {
   root: string
@@ -43,6 +49,7 @@ export function ConverterPage() {
         )
       })
     } catch (cause) {
+      reportCaughtError('ncm-converter.select', cause)
       if (mounted.current) setError(String(cause))
     } finally {
       running.current = false
@@ -71,6 +78,7 @@ export function ConverterPage() {
           const result = await files.decodeAudio(item.root, item.path)
           update(item, { state: 'done', output: result.path })
         } catch (cause) {
+          reportCaughtError('ncm-converter.convert', cause)
           update(item, { state: 'error', error: String(cause) })
         }
       }

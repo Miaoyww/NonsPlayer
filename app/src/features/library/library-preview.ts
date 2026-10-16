@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 // Last rendered metadata only. A live host account must be confirmed before looking it up.
 import { validCoverInput } from '@/features/music/cover-image'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
@@ -55,7 +56,9 @@ function valid(value: Preview): boolean {
   let account: { source?: string; id?: string }
   try {
     account = JSON.parse(value.userId)
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/library/library-preview.ts', cause)
+
     return false
   }
   if (!account || !owner(account.source) || !owner(account.id)) return false
@@ -88,7 +91,9 @@ function read() {
       const raw = localStorage.getItem(key)
       const data: unknown = raw && raw.length * 2 <= 2 * limit ? JSON.parse(raw) : []
       entries = Array.isArray(data) ? data.filter(valid).slice(0, 2) : []
-    } catch {
+    } catch (cause) {
+      reportCaughtError('app/src/features/library/library-preview.ts', cause)
+
       entries = []
     }
   }
@@ -110,7 +115,9 @@ export function saveLibraryPreview(
   entries = [value, ...read().filter((item) => item.userId !== userId)].slice(0, 2)
   try {
     localStorage.setItem(key, JSON.stringify(entries))
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/library/library-preview.ts', cause)
+
     /* Quota/storage failure does not block rendering. */
   }
 }
@@ -118,7 +125,9 @@ export function clearLibraryPreviews() {
   entries = []
   try {
     localStorage.removeItem(key)
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/library/library-preview.ts', cause)
+
     /* Storage may be unavailable. */
   }
 }

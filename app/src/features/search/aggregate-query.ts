@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 // One cursor and in-flight page per source. Batches append in delivery order;
 // changing a filter never reconstructs or sorts already delivered results.
 export interface SearchBatch<T> {
@@ -100,6 +101,8 @@ export class AggregateQuery<T> {
       progress.capped = progress.count >= this.limit && batch.nextCursor !== null
       progress.more = batch.nextCursor !== null && !progress.capped
     } catch (cause) {
+      reportCaughtError('app/src/features/search/aggregate-query.ts', cause)
+
       if (this.active && generation === this.generation) progress.error = this.describeError(cause)
     } finally {
       if (this.active && generation === this.generation) {

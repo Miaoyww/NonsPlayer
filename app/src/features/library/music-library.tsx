@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { FindSongGrid } from '@/components/music/list-find'
 import { onlineReference, collectionReference } from '@/features/music/legacy-reference'
@@ -169,6 +170,8 @@ export default function MusicLibrary({
           }))
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/library/music-library.tsx', cause)
+
         if (!disposed) setSummaryError(errorText(cause))
       })
       .finally(() => {
@@ -242,6 +245,8 @@ export default function MusicLibrary({
       if (request === playRequest.current && truncated)
         onNotice('已将前 1000 首歌曲加入播放队列。其余歌曲可在收藏详情中继续浏览并播放。')
     } catch (cause) {
+      reportCaughtError('app/src/features/library/music-library.tsx', cause)
+
       if (request === playRequest.current) onError(cause)
     } finally {
       if (request === playRequest.current) setPlaying(false)

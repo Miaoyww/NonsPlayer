@@ -82,7 +82,9 @@ pub fn resolve(
         if location.len() > 2048 {
             return Err("分享链接过长".into());
         }
-        url = url.join(location).map_err(|_| "无效跳转地址")?;
+        url = url
+            .join(location)
+            .map_err(|error| format!("无效跳转地址：{error}"))?;
     }
     if allowed(&url) && direct(&url) {
         Ok(url)

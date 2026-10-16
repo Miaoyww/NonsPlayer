@@ -67,7 +67,12 @@ fn compile_with_cache(
     bytes: &[u8],
     cache: Option<&CodeCache>,
 ) -> AppResult<Compiled> {
-    let _guard = COMPILE.lock().map_err(|_| "WASM 编译锁不可用")?;
+    let _guard = COMPILE
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "WASM 编译锁不可用")?;
     let pool = POOL.get_or_init(|| {
         ThreadPoolBuilder::new()
             .num_threads(THREADS)

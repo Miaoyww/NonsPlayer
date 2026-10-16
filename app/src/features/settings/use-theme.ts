@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useSyncExternalStore } from 'react'
 
 export type Theme = 'light' | 'dark' | 'system'
@@ -7,7 +8,9 @@ let theme: Theme = 'system'
 try {
   const saved = localStorage.getItem(storageKey)
   if (saved === 'light' || saved === 'dark') theme = saved
-} catch {
+} catch (cause) {
+  reportCaughtError('app/src/features/settings/use-theme.ts', cause)
+
   /* Storage is optional. */
 }
 const subscribe = (listener: () => void) => {
@@ -20,7 +23,9 @@ function setTheme(value: Theme) {
   theme = value
   try {
     localStorage.setItem(storageKey, value)
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/settings/use-theme.ts', cause)
+
     /* Storage is optional. */
   }
   listeners.forEach((notify) => notify())

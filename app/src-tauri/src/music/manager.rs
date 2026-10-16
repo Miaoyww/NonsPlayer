@@ -96,6 +96,9 @@ impl AdapterManager {
         entry
             .login_challenges
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .remove(key);
         entry.adapter.cancel_login(key);
@@ -103,8 +106,20 @@ impl AdapterManager {
     }
     pub fn statuses(&self) -> MusicResult<Vec<AdapterStatus>> {
         // Use the same lock order as registration so its pending -> ready handoff is atomic to readers.
-        let entries = self.entries.lock().map_err(|_| ErrorCode::Internal)?;
-        let loading = self.loading.lock().map_err(|_| ErrorCode::Internal)?;
+        let entries = self
+            .entries
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
+        let loading = self
+            .loading
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         let mut statuses: Vec<_> = entries
             .values()
             .map(|entry| AdapterStatus {
@@ -129,6 +144,9 @@ impl AdapterManager {
         descriptor.validate()?;
         self.loading
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .insert(
                 descriptor.source.clone(),
@@ -142,7 +160,9 @@ impl AdapterManager {
         Ok(())
     }
     pub(crate) fn loading_failed(&self, source: &SourceId, reason: &str) {
-        if let Ok(mut loading) = self.loading.lock() {
+        if let Ok(mut loading) = (self.loading.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             if let Some(status) = loading.get_mut(source) {
                 status.loading = false;
                 status.load_error = Some(crate::infrastructure::diagnostics::redact(reason));
@@ -159,6 +179,9 @@ impl AdapterManager {
         if self
             .providers
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .contains_key(&source)
         {
@@ -167,7 +190,13 @@ impl AdapterManager {
         if (session)().source != source {
             return Err(ErrorCode::InvalidData.into());
         }
-        let mut entries = self.entries.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut entries = self
+            .entries
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         if entries.contains_key(&source) {
             return Err(ErrorCode::InvalidData.into());
         }
@@ -187,6 +216,9 @@ impl AdapterManager {
         );
         self.loading
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .remove(&source);
         Ok(())
@@ -204,6 +236,9 @@ impl AdapterManager {
             entry
                 .login_challenges
                 .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| ErrorCode::Internal)?
                 .clear();
         }
@@ -217,6 +252,9 @@ impl AdapterManager {
         entry
             .login_challenges
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .clear();
         Ok(())
@@ -224,6 +262,9 @@ impl AdapterManager {
     fn entry(&self, source: &SourceId) -> MusicResult<Arc<Entry>> {
         self.entries
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .get(source)
             .cloned()
@@ -271,11 +312,20 @@ impl AdapterManager {
         let (session, generation) = self.stamp(source)?;
         let entry = self.entry(source)?;
         serde_json::to_string(&(session, generation, entry.revision.load(Ordering::Acquire)))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal.into())
     }
     /// Authorization is checked even for public cache hits. Stamp changes on disable/reload.
     pub fn cover_access(&self, url: &str) -> MusicResult<String> {
-        let entries = self.entries.lock().map_err(|_| ErrorCode::Internal)?;
+        let entries = self
+            .entries
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         let mut owners = entries
             .values()
             .filter_map(|entry| {
@@ -290,6 +340,9 @@ impl AdapterManager {
         for provider in self
             .providers
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .values()
         {
@@ -305,12 +358,19 @@ impl AdapterManager {
             return Err(ErrorCode::PermissionDenied.into());
         }
         owners.sort();
-        serde_json::to_string(&owners).map_err(|_| ErrorCode::InvalidData.into())
+        serde_json::to_string(&owners)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::InvalidData.into())
     }
     pub fn descriptors(&self) -> MusicResult<Vec<SourceDescriptor>> {
         Ok(self
             .entries
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .values()
             .map(|e| e.adapter.descriptor().clone())
@@ -352,6 +412,9 @@ impl AdapterManager {
         let _permit = entry
             .reads
             .try_acquire()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::RateLimited)?;
         let revision = entry.revision.load(Ordering::Acquire);
         let scope = format!("{}-{revision}", cursor_scope(request, &context)?);
@@ -414,6 +477,9 @@ impl AdapterManager {
         use super::business::*;
         let entry = self.entry(source)?;
         if serde_json::to_vec(request)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::InvalidData)?
             .len()
             > 16 * 1024
@@ -424,10 +490,19 @@ impl AdapterManager {
         let _waiter = entry
             .account_waiters
             .try_acquire()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::RateLimited)?;
         let _permit = tokio::time::timeout_at(deadline.into(), entry.accounts.acquire())
             .await
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::DeadlineExceeded)?
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?;
         let mut context = Self::context(&entry, Duration::from_secs(12));
         context.deadline = deadline;
@@ -445,6 +520,9 @@ impl AdapterManager {
             let mut challenges = entry
                 .login_challenges
                 .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| ErrorCode::Internal)?;
             challenges.retain(|key, (_, _, expires)| {
                 let valid = Instant::now() < *expires;
@@ -476,6 +554,9 @@ impl AdapterManager {
             let mut challenges = entry
                 .login_challenges
                 .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| ErrorCode::Internal)?;
             challenges.retain(|key, (_, _, expires)| {
                 let valid = Instant::now() < *expires;
@@ -517,6 +598,9 @@ impl AdapterManager {
             .run(&entry, &context, entry.adapter.account(request, &context))
             .await?;
         if serde_json::to_vec(&outcome.presentation)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::InvalidData)?
             .len()
             > 64 * 1024
@@ -560,6 +644,9 @@ impl AdapterManager {
             let mut challenges = entry
                 .login_challenges
                 .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| ErrorCode::Internal)?;
             challenges.retain(|key, (_, _, expires)| {
                 let valid = Instant::now() < *expires;
@@ -597,6 +684,9 @@ impl AdapterManager {
                     let challenges = login_entry
                         .login_challenges
                         .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
                         .map_err(|_| ErrorCode::Internal)?;
                     if login_key
                         .as_ref()
@@ -626,6 +716,9 @@ impl AdapterManager {
                 entry
                     .login_challenges
                     .lock()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
                     .map_err(|_| ErrorCode::Internal)?
                     .remove(key);
                 entry.adapter.cancel_login(key);
@@ -649,6 +742,9 @@ impl AdapterManager {
         let _permit = entry
             .reads
             .try_acquire()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::RateLimited)?;
         let track = self
             .run(
@@ -687,6 +783,9 @@ impl AdapterManager {
         let _permit = entry
             .playback
             .try_acquire()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::RateLimited)?;
         let resource = self
             .run(
@@ -707,7 +806,13 @@ impl AdapterManager {
             return Err(ErrorCode::DeadlineExceeded.into());
         }
         entry.check(&context)?;
-        let mut resources = self.resources.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut resources = self
+            .resources
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         resources.retain(|_, v| v.strong_count() > 0);
         if resources.len() >= 16 {
             return Err(ErrorCode::RateLimited.into());
@@ -746,7 +851,11 @@ fn cursor_scope(
     context: &RequestContext,
 ) -> MusicResult<String> {
     use sha2::{Digest, Sha256};
-    let mut value = serde_json::to_value(request).map_err(|_| ErrorCode::InvalidData)?;
+    let mut value = serde_json::to_value(request)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| ErrorCode::InvalidData)?;
     if let Some(page) = value.get_mut("page") {
         page["cursor"] = serde_json::Value::Null;
     }
@@ -757,6 +866,9 @@ fn cursor_scope(
         context.session.generation,
         context.adapter_generation,
     ))
+    .inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("translate_error", error);
+    })
     .map_err(|_| ErrorCode::InvalidData)?;
     Ok(format!("{:x}", Sha256::digest(bytes)))
 }
@@ -764,23 +876,38 @@ fn decode_cursor(
     request: &super::business::BusinessRequest,
     scope: &str,
 ) -> MusicResult<super::business::BusinessRequest> {
-    let mut value = serde_json::to_value(request).map_err(|_| ErrorCode::InvalidData)?;
+    let mut value = serde_json::to_value(request)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| ErrorCode::InvalidData)?;
     if let Some(page) = value.get_mut("page") {
         if let Some(cursor) = page["cursor"].as_str() {
-            let (binding, raw): (String, String) =
-                serde_json::from_str(cursor).map_err(|_| ErrorCode::InvalidData)?;
+            let (binding, raw): (String, String) = serde_json::from_str(cursor)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| ErrorCode::InvalidData)?;
             if binding != scope {
                 return Err(ErrorCode::StaleContext.into());
             }
             page["cursor"] = serde_json::Value::String(raw);
         }
     }
-    serde_json::from_value(value).map_err(|_| ErrorCode::InvalidData.into())
+    serde_json::from_value(value)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| ErrorCode::InvalidData.into())
 }
 fn encode_cursor(cursor: &mut Option<Cursor>, scope: &str) -> MusicResult<()> {
     if let Some(raw) = cursor.take() {
         *cursor = Some(Cursor::try_from(
-            serde_json::to_string(&(scope, raw.as_str())).map_err(|_| ErrorCode::InvalidData)?,
+            serde_json::to_string(&(scope, raw.as_str()))
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| ErrorCode::InvalidData)?,
         )?);
     }
     Ok(())
@@ -791,7 +918,11 @@ fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
     if http.url.len() > 8192 {
         return Err(ErrorCode::InvalidData.into());
     }
-    let url = url::Url::parse(&http.url).map_err(|_| ErrorCode::InvalidData)?;
+    let url = url::Url::parse(&http.url)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| ErrorCode::InvalidData)?;
     if !matches!(url.scheme(), "https" | "http")
         || url.host_str().is_none()
         || !url.username().is_empty()

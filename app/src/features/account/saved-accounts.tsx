@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useRef, useState } from 'react'
 import { Check, RefreshCw, Trash2 } from 'lucide-react'
@@ -58,6 +59,8 @@ export function SavedAccounts({
         if (serial === generation.current) setRecords(result)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/account/saved-accounts.tsx', cause)
+
         if (serial === generation.current) setError(errorText(cause))
       })
       .finally(() => {
@@ -79,6 +82,8 @@ export function SavedAccounts({
         try {
           if (intent !== undefined) await sourcePreferences.use(record.reference.source, intent)
         } catch (cause) {
+          reportCaughtError('app/src/features/account/saved-accounts.tsx', cause)
+
           throw new Error(`账号选择成功，切换来源失败：${errorText(cause)}。可点击账号重试。`)
         }
       }
@@ -88,6 +93,8 @@ export function SavedAccounts({
         onChanged?.()
       }
     } catch (cause) {
+      reportCaughtError('app/src/features/account/saved-accounts.tsx', cause)
+
       if (serial === operationGeneration.current) setError(errorText(cause))
     } finally {
       if (serial === operationGeneration.current) setBusy(false)

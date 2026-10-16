@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { normalizeShortcut } from '@/features/playback/shortcuts/shortcut-keys'
 import { isTauri } from '@tauri-apps/api/core'
 import { register, unregister } from '@tauri-apps/plugin-global-shortcut'
@@ -30,7 +31,9 @@ try {
         settings.bindings[action] = normalizeShortcut(value) ?? ''
     }
   }
-} catch {
+} catch (cause) {
+  reportCaughtError('app/src/features/playback/shortcuts/shortcuts.ts', cause)
+
   /* Corrupt storage uses unbound defaults. */
 }
 let status = { settings, busy: false, error: undefined as string | undefined }
@@ -116,6 +119,8 @@ export async function saveShortcuts(next: ShortcutSettings, persist = true) {
     settings = cleaned
     return true
   } catch (cause) {
+    reportCaughtError('app/src/features/playback/shortcuts/shortcuts.ts', cause)
+
     status.error = `快捷键保存失败：${errorText(cause)}`
     try {
       await clear()
@@ -124,10 +129,14 @@ export async function saveShortcuts(next: ShortcutSettings, persist = true) {
         await syncSleepBindings(previous)
       }
     } catch (rollback) {
+      reportCaughtError('app/src/features/playback/shortcuts/shortcuts.ts', rollback)
+
       status.error += `；恢复失败：${errorText(rollback)}。请重新保存。`
       try {
         await clear()
       } catch (cleanup) {
+        reportCaughtError('app/src/features/playback/shortcuts/shortcuts.ts', cleanup)
+
         status.error += `；解绑失败：${errorText(cleanup)}`
       }
     }

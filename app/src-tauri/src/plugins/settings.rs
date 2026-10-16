@@ -127,7 +127,13 @@ pub async fn plugin_settings(
                 };
                 let keys = args
                     .get("keys")
-                    .map(|v| serde_json::from_value(v.clone()).map_err(|_| "配置键列表无效"))
+                    .map(|v| {
+                        serde_json::from_value(v.clone())
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("translate_error", error);
+                            })
+                            .map_err(|_| "配置键列表无效")
+                    })
                     .transpose()?;
                 manager.configurations.change(&id, revision, patch, keys)?;
             }
@@ -148,6 +154,6 @@ pub async fn plugin_settings(
     }
     validate()?;
     Ok(
-        serde_json::json!({"definition":manager.configurations.definition(&id).ok(),"snapshot":if manifest.configuration.is_some(){Some(manager.configurations.snapshot(&id)?)}else{None},"grants":manager.files.grants(&id)?}),
+        serde_json::json!({"definition":manager.configurations.definition(&id).inspect_err(|error| { crate::infrastructure::diagnostics::warn("optional_result", error); }).ok(),"snapshot":if manifest.configuration.is_some(){Some(manager.configurations.snapshot(&id)?)}else{None},"grants":manager.files.grants(&id)?}),
     )
 }

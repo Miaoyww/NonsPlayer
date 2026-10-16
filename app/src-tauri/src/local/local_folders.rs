@@ -41,15 +41,28 @@ impl LocalFolders {
     ) -> AppResult<Arc<Self>> {
         let paths: Vec<String> = store
             .setting("musicFolders")?
-            .and_then(|s| serde_json::from_str(&s).ok())
+            .and_then(|s| {
+                serde_json::from_str(&s)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+            })
             .unwrap_or_default();
         let (signal, receiver) = mpsc::sync_channel(1);
         let events = signal.clone();
         let watcher = notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
             // Reading tags generates access notifications on some systems.
             // Only mutations (and watcher errors requiring reconciliation) rescan.
-            if event.is_err() || event.is_ok_and(|e| !e.kind.is_access()) {
-                let _ = events.try_send(());
+            let rescan = match event {
+                Ok(event) => !event.kind.is_access(),
+                Err(error) => {
+                    crate::infrastructure::diagnostics::warn("local.watch", error);
+                    true
+                }
+            };
+            if rescan {
+                request_scan(&events);
             }
         })
         .map_err(|e| format!("无法监听音乐文件夹：{e}"))?;
@@ -68,10 +81,23 @@ impl LocalFolders {
             app,
         });
         {
-            let mut watcher = service.watcher.lock().map_err(|_| "目录监听锁不可用")?;
-            let mut status = service.status.lock().map_err(|_| "目录状态锁不可用")?;
+            let mut watcher = service
+                .watcher
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "目录监听锁不可用")?;
+            let mut status = service
+                .status
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "目录状态锁不可用")?;
             for path in status.paths.clone() {
                 if let Err(error) = watcher.watch(Path::new(&path), RecursiveMode::Recursive) {
+                    crate::infrastructure::diagnostics::warn("local.watch_folder", &error);
                     status.errors.insert(path, error.to_string());
                 }
             }
@@ -90,9 +116,13 @@ impl LocalFolders {
                         break;
                     };
                     if let Err(error) = service.scan() {
-                        let _ = service
+                        crate::infrastructure::diagnostics::warn("local.scan", &error);
+                        let _ = (service
                             .app
-                            .emit("local-library-updated", serde_json::json!({"error":error}));
+                            .emit("local-library-updated", serde_json::json!({"error":error})))
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("service .app .emit", error);
+                        });
                     }
                 }
             })
@@ -101,7 +131,13 @@ impl LocalFolders {
         Ok(service)
     }
     pub fn list(&self) -> AppResult<Vec<MusicFolder>> {
-        let status = self.status.lock().map_err(|_| "目录状态锁不可用")?;
+        let status = self
+            .status
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "目录状态锁不可用")?;
         status
             .paths
             .iter()
@@ -119,16 +155,25 @@ impl LocalFolders {
         let scanning = self
             .status
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("local.scan_status", error)
+            })
             .map(|s| !s.scanning.is_empty())
             .unwrap_or(false);
-        let _ = self.app.emit(
+        let _ = (self.app.emit(
             "local-library-updated",
             serde_json::json!({"scanning": scanning}),
-        );
+        ))
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("self.app.emit", error);
+        });
     }
     pub fn add(&self, path: String) -> AppResult<()> {
         let path = Path::new(&path)
             .canonicalize()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "音乐文件夹不存在或无法访问")?;
         if !path.is_dir() {
             return Err("请选择音乐文件夹".into());
@@ -137,9 +182,27 @@ impl LocalFolders {
             .to_string_lossy()
             .trim_start_matches(r"\\?\")
             .to_string();
-        let _scan = self.scans.lock().map_err(|_| "目录扫描锁不可用")?;
-        let mut watcher = self.watcher.lock().map_err(|_| "目录监听锁不可用")?;
-        let mut status = self.status.lock().map_err(|_| "目录状态锁不可用")?;
+        let _scan = self
+            .scans
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "目录扫描锁不可用")?;
+        let mut watcher = self
+            .watcher
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "目录监听锁不可用")?;
+        let mut status = self
+            .status
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "目录状态锁不可用")?;
         if status.paths.iter().any(|p| same_path(p, &path)) {
             return Ok(());
         }
@@ -155,7 +218,9 @@ impl LocalFolders {
             "musicFolders",
             &serde_json::to_string(&next).map_err(|e| e.to_string())?,
         ) {
-            let _ = watcher.unwatch(Path::new(&path));
+            let _ = (watcher.unwatch(Path::new(&path))).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("watcher.unwatch", error);
+            });
             return Err(error);
         }
         status.paths = next;
@@ -166,9 +231,27 @@ impl LocalFolders {
         Ok(())
     }
     pub fn remove(&self, path: String) -> AppResult<()> {
-        let _scan = self.scans.lock().map_err(|_| "目录扫描锁不可用")?;
-        let mut watcher = self.watcher.lock().map_err(|_| "目录监听锁不可用")?;
-        let mut status = self.status.lock().map_err(|_| "目录状态锁不可用")?;
+        let _scan = self
+            .scans
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "目录扫描锁不可用")?;
+        let mut watcher = self
+            .watcher
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "目录监听锁不可用")?;
+        let mut status = self
+            .status
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "目录状态锁不可用")?;
         if !status.paths.contains(&path) {
             return Err("音乐文件夹未添加".into());
         }
@@ -183,7 +266,9 @@ impl LocalFolders {
             &serde_json::to_string(&next).map_err(|e| e.to_string())?,
         )?;
         self.store.reconcile_origin(&path, &HashSet::new())?;
-        let _ = watcher.unwatch(Path::new(&path));
+        let _ = (watcher.unwatch(Path::new(&path))).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("watcher.unwatch", error);
+        });
         status.paths = next;
         status.errors.remove(&path);
         drop(status);
@@ -192,19 +277,31 @@ impl LocalFolders {
         Ok(())
     }
     pub fn rescan(&self) {
-        let _ = self.signal.try_send(());
+        request_scan(&self.signal);
     }
     fn scan(&self) -> AppResult<()> {
-        let _scan = self.scans.lock().map_err(|_| "目录扫描锁不可用")?;
+        let _scan = self
+            .scans
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "目录扫描锁不可用")?;
         let paths = self
             .status
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "目录状态锁不可用")?
             .paths
             .clone();
         for path in paths {
             self.status
                 .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "目录状态锁不可用")?
                 .scanning
                 .insert(path.clone());
@@ -216,7 +313,13 @@ impl LocalFolders {
                 self.fallback.clone(),
                 Some(path.clone()),
             );
-            let mut status = self.status.lock().map_err(|_| "目录状态锁不可用")?;
+            let mut status = self
+                .status
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "目录状态锁不可用")?;
             status.scanning.remove(&path);
             match result {
                 Ok(report) if report.skipped == 0 => {
@@ -237,6 +340,7 @@ impl LocalFolders {
                     );
                 }
                 Err(error) => {
+                    crate::infrastructure::diagnostics::warn("local.scan_folder", &error);
                     status.errors.insert(path, error);
                 }
             }
@@ -244,6 +348,12 @@ impl LocalFolders {
             self.changed();
         }
         Ok(())
+    }
+}
+fn request_scan(signal: &mpsc::SyncSender<()>) {
+    // Full means a rescan is already queued; watcher bursts intentionally coalesce.
+    if let Err(mpsc::TrySendError::Disconnected(())) = signal.try_send(()) {
+        crate::infrastructure::diagnostics::warn("local.request_scan", "scan worker disconnected");
     }
 }
 fn same_path(a: &str, b: &str) -> bool {

@@ -11,7 +11,12 @@ pub fn call(
     database: &super::database::Database,
     active: &std::sync::atomic::AtomicBool,
 ) -> AppResult<Value> {
-    let _guard = OPERATIONS.lock().map_err(|_| "凭据库不可用")?;
+    let _guard = OPERATIONS
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "凭据库不可用")?;
     if !active.load(std::sync::atomic::Ordering::SeqCst) {
         return Err("插件已停用".into());
     }
@@ -23,6 +28,9 @@ pub fn call(
         return Err("凭据键无效".into());
     }
     let entry = keyring::Entry::new("NonsPlayer.plugins", &format!("{plugin}:{key}"))
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "系统凭据库不可用")?;
     match operation {
         "secrets.get" => match entry.get_password() {
@@ -43,7 +51,12 @@ pub fn call(
                 return Err("每插件最多保存 16 个凭据".into());
             }
             database.secret_key(plugin, key, true)?;
-            entry.set_password(value).map_err(|_| "保存系统凭据失败")?;
+            entry
+                .set_password(value)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "保存系统凭据失败")?;
             Ok(Value::Null)
         }
         "secrets.delete" => {
@@ -59,9 +72,17 @@ pub fn call(
 }
 
 pub fn clear(plugin: &str, database: &super::database::Database) -> AppResult<()> {
-    let _guard = OPERATIONS.lock().map_err(|_| "凭据库不可用")?;
+    let _guard = OPERATIONS
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "凭据库不可用")?;
     for key in database.secret_keys(plugin)? {
         let entry = keyring::Entry::new("NonsPlayer.plugins", &format!("{plugin}:{key}"))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "凭据库不可用")?;
         match entry.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => (),

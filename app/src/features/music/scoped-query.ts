@@ -1,8 +1,12 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { CacheInvalidatedError, requestKey, type RuntimeCache } from '@/lib/runtime-cache'
 
 type Invoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
-const contextChanged = () => new Error('账号或音乐来源状态已变化，请重试')
-class WriteRevisionChangedError extends Error {}
+const contextChanged = () =>
+  Object.assign(new Error('账号或音乐来源状态已变化，请重试'), { code: 'staleContext' })
+class WriteRevisionChangedError extends Error {
+  readonly code = 'writeRevisionChanged'
+}
 
 // music_context serializes [SessionContext, adapter instance generation, write revision].
 // Unknown formats stay opaque: they are never treated as a safe write-only change.
@@ -19,6 +23,7 @@ function sameIdentity(before: string, after: string) {
       JSON.stringify(left.slice(0, 2)) === JSON.stringify(right.slice(0, 2))
     )
   } catch {
+    // Unknown scope formats are deliberately opaque and are not parsing failures.
     return false
   }
 }
@@ -73,6 +78,8 @@ export class ScopedMusicQueries {
         this.scopes.set(source, scope)
         return value
       } catch (cause) {
+        reportCaughtError('app/src/features/music/scoped-query.ts', cause)
+
         if (
           !(cause instanceof CacheInvalidatedError) &&
           !(cause instanceof WriteRevisionChangedError) &&

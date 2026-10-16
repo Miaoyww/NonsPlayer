@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { afterFirstPaint } from '@/lib/after-first-paint'
 import { coverCandidates, type CoverInput, type CoverSize } from '@/features/music/cover-image'
 import { useEffect, useState } from 'react'
@@ -42,7 +43,9 @@ export function useCoverImageSource(
         .then((source) => {
           if (!disposed) setLoaded({ identity, url, source, cached: true })
         })
-        .catch(() => {
+        .catch((cause) => {
+          reportCaughtError('app/src/components/music/use-cover-source.ts', cause)
+
           if (disposed) return
           if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
           else setLoaded({ identity, url, source: undefined, cached: false })
@@ -65,7 +68,9 @@ export function useCoverImageSource(
     if (!source || !url) return
     if (remote && isTauri() && current?.cached) {
       coverCache.delete(requestKey('runtime_cover', { url }))
-      void nativeCall('runtime_cover_invalidate', { url }).catch(() => {})
+      void nativeCall('runtime_cover_invalidate', { url }).catch((cause) => {
+        reportCaughtError('app/src/components/music/use-cover-source.ts', cause)
+      })
     }
     if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
     else setLoaded({ identity, url, source: undefined, cached: false })

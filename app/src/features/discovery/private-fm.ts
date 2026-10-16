@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import type { PlayerSnapshot } from '@/lib/player'
 import { discoveryTracks } from './discovery-api'
 import { onlineReference } from '@/features/music/legacy-reference'
@@ -49,6 +50,8 @@ export function createPrivateFm(
         await nativeCall('append_private_fm', { session, queueLen, keys })
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/discovery/private-fm.ts', cause)
+
         if (pending !== request || getPlayer().privateFmSession !== session) return
         reportError(cause instanceof Error ? cause.message : String(cause))
       })

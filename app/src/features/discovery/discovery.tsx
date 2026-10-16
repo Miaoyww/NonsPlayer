@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TrackListSkeleton, CollectionGridSkeleton, TextSkeleton } from '@/components/music/loading'
@@ -89,6 +90,8 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (value: 
         if (!disposed) setCategories(items)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/discovery/discovery.tsx', cause)
+
         if (!disposed) setError(errorText(cause))
       })
     return () => {
@@ -190,6 +193,8 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
         if (serial === generation.current) setTracks(items)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/discovery/discovery.tsx', cause)
+
         if (serial === generation.current) setError(errorText(cause))
       })
       .finally(() => {
@@ -214,6 +219,8 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
         await nativeCall('play_private_fm', { keys: tracks.map((item) => item.key) })
       }
     } catch (cause) {
+      reportCaughtError('app/src/features/discovery/discovery.tsx', cause)
+
       if (serial === generation.current) onError(cause)
     } finally {
       if (serial === generation.current) {
@@ -244,6 +251,8 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
       setTracks(fresh)
       await nativeCall('play_private_fm', { keys: fresh.map((item) => item.key) })
     } catch (cause) {
+      reportCaughtError('app/src/features/discovery/discovery.tsx', cause)
+
       if (serial === generation.current) setError(errorText(cause))
     } finally {
       if (serial === generation.current) {
@@ -382,7 +391,9 @@ export default function Discovery({
       .then((item) => {
         if (!disposed) setRadarInfo({ ...item, name: '私人雷达' })
       })
-      .catch(() => {
+      .catch((cause) => {
+        reportCaughtError('app/src/features/discovery/discovery.tsx', cause)
+
         /* The shortcut remains available if its optional cover fails. */
       })
     return () => {
@@ -422,6 +433,8 @@ export default function Discovery({
     try {
       if (await playLibraryCollection(item)) onNotice('已将前 1000 首歌曲加入播放队列。')
     } catch (cause) {
+      reportCaughtError('app/src/features/discovery/discovery.tsx', cause)
+
       onError(cause)
     } finally {
       pending.current = false
@@ -441,6 +454,8 @@ export default function Discovery({
       })
       onNotice(next ? '已将每日推荐按顺序加入下一首播放。' : '已播放每日推荐并替换播放列表。')
     } catch (cause) {
+      reportCaughtError('app/src/features/discovery/discovery.tsx', cause)
+
       onError(cause)
     } finally {
       pending.current = false

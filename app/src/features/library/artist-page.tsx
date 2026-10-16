@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton, CollectionGridSkeleton, TextSkeleton } from '@/components/music/loading'
 import { tracksForCollection, queryPage } from '@/features/music/queries'
@@ -76,6 +77,8 @@ export default function ArtistPage({
     try {
       if (await playLibraryCollection(item)) onNotice('已将前 1000 首歌曲加入播放队列。')
     } catch (cause) {
+      reportCaughtError('app/src/features/library/artist-page.tsx', cause)
+
       onError(cause)
     } finally {
       setPlaying(false)

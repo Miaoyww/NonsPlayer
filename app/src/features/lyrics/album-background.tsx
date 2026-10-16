@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import type { BackgroundRender, MeshGradientRenderer } from '@applemusic-like-lyrics/core'
 import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from 'motion/react'
@@ -65,7 +66,9 @@ export function AlbumBackground({
         await background.setAlbum(albumImage)
         if (!disposed) setReady(true)
       })
-      .catch(() => {
+      .catch((cause) => {
+        reportCaughtError('app/src/features/lyrics/album-background.tsx', cause)
+
         if (disposed) return
         background?.dispose()
         background = undefined

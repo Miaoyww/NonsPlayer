@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useSyncExternalStore } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall } from '@/lib/player'
@@ -34,6 +35,8 @@ export async function setLyricSources(sources: LyricSources) {
     await nativeCall('set_lyric_sources', { sources })
     update({ sources })
   } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyric-sources.ts', cause)
+
     update({ error: errorText(cause) })
   } finally {
     update({ busy: false })
@@ -47,6 +50,8 @@ export function useLyricSources() {
     initial ??= nativeCall<LyricSources>('lyric_sources')
       .then((sources) => update({ sources, ready: true, error: '' }))
       .catch((cause) => {
+        reportCaughtError('app/src/features/lyrics/use-lyric-sources.ts', cause)
+
         initial = undefined
         update({ error: errorText(cause) })
       })

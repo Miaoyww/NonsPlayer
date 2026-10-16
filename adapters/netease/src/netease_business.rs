@@ -26,9 +26,10 @@ pub fn reference(kind: EntityKind, id: u64) -> MusicResult<EntityRef> {
 }
 pub(super) fn track(mut value: Track) -> MusicResult<MusicTrack> {
     value.cover = crate::cover::image(&value.cover);
-    super::migration::legacy_track(
-        &serde_json::to_string(&value).map_err(|_| ErrorCode::InvalidData)?,
-    )
+    super::migration::legacy_track(&serde_json::to_string(&value).map_err(|error| {
+        crate::diagnostics::warn("track.encode", &error);
+        ErrorCode::InvalidData
+    })?)
     .map(|v| v.track)
 }
 pub(super) fn entity(value: legacy::Collection) -> MusicResult<MusicEntity> {

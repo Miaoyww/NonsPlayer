@@ -28,12 +28,20 @@ impl<R: Read + Seek> Decoder<R> {
         let mut reader =
             Ncmdump::from_reader(reader).map_err(|e| format!("NCM 文件无法解析：{e}"))?;
         // Missing metadata is permitted; audio magic is authoritative.
-        let info = reader.get_info().ok();
+        let info = reader
+            .get_info()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_result", error);
+            })
+            .ok();
         let image = reader.get_image().map_err(|e| e.to_string())?;
         reader.rewind().map_err(|e| e.to_string())?;
         let mut head = [0; 4];
         reader
             .read_exact(&mut head)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "NCM 音频正文不完整")?;
         let format = if &head == b"fLaC" {
             "flac"
@@ -128,7 +136,11 @@ pub fn write_tags<R: Read + Seek>(file: &mut File, decoder: &Decoder<R>) -> AppR
         }
     }
     if !decoder.image.is_empty() && tag.pictures().is_empty() {
-        if let Ok(mut picture) = Picture::from_reader(&mut std::io::Cursor::new(&decoder.image)) {
+        if let Ok(mut picture) = (Picture::from_reader(&mut std::io::Cursor::new(&decoder.image)))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            })
+        {
             picture.set_pic_type(PictureType::CoverFront);
             tag.push_picture(picture);
         }
@@ -146,6 +158,9 @@ pub fn prepare(path: &str) -> AppResult<Arc<tempfile::NamedTempFile>> {
     let mut entries = LEASES
         .get_or_init(Default::default)
         .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "音频解析锁不可用")?;
     entries.retain(|(_, file)| file.strong_count() > 0);
     let metadata = std::fs::metadata(path).map_err(|e| e.to_string())?;

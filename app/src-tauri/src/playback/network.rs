@@ -31,14 +31,22 @@ pub fn configure_source(source: &gst::Element) {
         {
             return;
         }
-        if let Ok(proxy) = sysproxy::Sysproxy::get_system_proxy() {
+        if let Ok(proxy) = (sysproxy::Sysproxy::get_system_proxy()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             if proxy.enable && !proxy.host.is_empty() {
                 let location = source
                     .find_property("location")
                     .and_then(|_| source.property::<Option<String>>("location"));
                 let host = location
                     .as_deref()
-                    .and_then(|s| url::Url::parse(s).ok())
+                    .and_then(|s| {
+                        url::Url::parse(s)
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("optional_result", error);
+                            })
+                            .ok()
+                    })
                     .and_then(|u| u.host_str().map(str::to_owned));
                 let bypass = host.is_some_and(|host| {
                     proxy.bypass.split([';', ',']).any(|pattern| {

@@ -85,6 +85,9 @@ fn music_queue_tracks(
     if tracks.len() > 100
         || tracks.iter().any(|track| track.reference.source != source)
         || serde_json::to_vec(&tracks)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| crate::music::ErrorCode::InvalidData)?
             .len()
             > 2 * 1024 * 1024
@@ -139,7 +142,9 @@ async fn music_write(
         return Err(crate::music::ErrorCode::InvalidData.into());
     }
     let response = backend.music.adapters.business(&source, &request).await?;
-    let _ = app.emit("music-changed", &source);
+    let _ = (app.emit("music-changed", &source)).inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("app.emit", error);
+    });
     Ok(response)
 }
 #[tauri::command]
@@ -772,7 +777,7 @@ pub fn run() {
             let account_events = app.handle().clone();
             accounts.on_change(Arc::new(move |source| {
                 use tauri::Emitter;
-                let _ = account_events.emit("music-account-changed", source);
+                let _ = (account_events.emit("music-account-changed", source)).inspect_err(|error| { crate::infrastructure::diagnostics::warn("account_events.emit", error); });
             }));
             let (music, netease) = crate::music::bundled::service(accounts)?;
             let music = Arc::new(music);
@@ -848,9 +853,9 @@ pub fn run() {
                 };
                 if let Err(error) = result {
                     log::error!(target: "nons::adapter", "load_components_failed directory={} reason={error}", component_directory.display());
-                    let _ = component_app.emit("adapter-load-failed", error);
+                    let _ = (component_app.emit("adapter-load-failed", error)).inspect_err(|error| { crate::infrastructure::diagnostics::warn("component_app.emit", error); });
                 }
-                let _ = component_app.emit("adapters-changed", ());
+                let _ = (component_app.emit("adapters-changed", ())).inspect_err(|error| { crate::infrastructure::diagnostics::warn("component_app.emit", error); });
             });
             #[cfg(feature = "plugin-probe")]
             plugins::probe::start(plugin_manager.clone());
@@ -874,7 +879,13 @@ pub fn run() {
             });
             let telemetry_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                let _ = tokio::join!(adapters_startup, plugins_startup);
+                let (adapters, plugins) = tokio::join!(adapters_startup, plugins_startup);
+                if let Err(error) = adapters {
+                    crate::infrastructure::diagnostics::warn("adapters.startup.join", error);
+                }
+                if let Err(error) = plugins {
+                    crate::infrastructure::diagnostics::warn("plugins.startup.join", error);
+                }
                 telemetry.report(telemetry_app, launch_time).await;
             });
             #[cfg(desktop)]
@@ -885,7 +896,7 @@ pub fn run() {
                 if !cfg!(debug_assertions) && !cfg!(feature = "plugin-probe") {
                     tauri::async_runtime::spawn(async move {
                         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-                        let _ = updates.check(&update_app).await;
+                        let _ = (updates.check(&update_app).await).inspect_err(|error| { crate::infrastructure::diagnostics::warn("updates.check", error); });
                     });
                 }
                 desktop::setup(app)?;

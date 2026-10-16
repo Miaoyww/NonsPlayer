@@ -58,8 +58,11 @@ pub fn legacy_queue(json: &str) -> MusicResult<MigratedQueue> {
     if json.len() > 8 * 1024 * 1024 {
         return Err(ErrorCode::InvalidData.into());
     }
-    let mut state: PlayerSnapshot =
-        serde_json::from_str(json).map_err(|_| ErrorCode::InvalidData)?;
+    let mut state: PlayerSnapshot = serde_json::from_str(json)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| ErrorCode::InvalidData)?;
     if state.queue.len() > 1000
         || state.index.is_some_and(|index| index >= state.queue.len())
         || !state.volume.is_finite()
@@ -102,7 +105,11 @@ pub fn legacy_account(profile: &str) -> MusicResult<super::account::AccountRecor
     if profile.len() > 64 * 1024 {
         return Err(ErrorCode::InvalidData.into());
     }
-    let value: LegacyProfile = serde_json::from_str(profile).map_err(|_| ErrorCode::InvalidData)?;
+    let value: LegacyProfile = serde_json::from_str(profile)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| ErrorCode::InvalidData)?;
     if value.user_id == 0 {
         return Err(ErrorCode::InvalidData.into());
     }

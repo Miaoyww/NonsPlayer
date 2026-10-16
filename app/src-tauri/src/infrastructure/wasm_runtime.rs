@@ -186,7 +186,14 @@ impl wasmtime::component::HasData for PollData {
 }
 impl nons::plugin::host::Host for State {
     async fn call(&mut self, operation: String, args: String) -> Result<String, String> {
-        self.host.call(&operation, &args).await
+        self.host
+            .call(&operation, &args)
+            .await
+            .inspect_err(|error| {
+                if operation != "diagnostic.report" {
+                    crate::infrastructure::diagnostics::warn(&operation, error);
+                }
+            })
     }
 }
 impl host_io::TransportHost for State {
@@ -371,6 +378,9 @@ impl Runtime {
             Plugin::instantiate_async(&mut store, component, &linker),
         )
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "WASM 实例化超时")?
         .map_err(|e| e.to_string())?;
         let mut runtime = Self {
@@ -385,6 +395,9 @@ impl Runtime {
             runtime.bindings.call_initialize(&mut runtime.store),
         )
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "插件初始化超时")?
         .map_err(|e| e.to_string())??;
         Ok(runtime)
@@ -415,7 +428,8 @@ impl Runtime {
                 self.faulted = true;
                 return Err(format!("插件执行失败: {error:#}"));
             }
-            Err(_) => {
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn("error_fallback", error);
                 self.faulted = true;
                 return Err("插件执行超时".into());
             }
@@ -424,19 +438,34 @@ impl Runtime {
             self.faulted = true;
             return Err("插件响应过大".into());
         }
-        if serde_json::from_str::<serde_json::Value>(&result).is_err() {
+        if let Err(error) = serde_json::from_str::<serde_json::Value>(&result) {
+            crate::infrastructure::diagnostics::warn("wasm.response.decode", error);
             self.faulted = true;
             return Err("插件返回了无效 JSON".into());
         }
         Ok(result)
     }
     pub async fn shutdown(&mut self) {
-        if self.reset_budget().is_ok() {
-            let _ = tokio::time::timeout(
-                Duration::from_secs(1),
-                self.bindings.call_shutdown(&mut self.store),
-            )
-            .await;
+        if let Err(error) = self.reset_budget() {
+            crate::infrastructure::diagnostics::warn("wasm.shutdown.budget", error);
+            return;
+        }
+        match tokio::time::timeout(
+            Duration::from_secs(1),
+            self.bindings.call_shutdown(&mut self.store),
+        )
+        .await
+        {
+            Ok(Ok(Ok(()))) => {}
+            Ok(Ok(Err(error))) => {
+                crate::infrastructure::diagnostics::warn("wasm.shutdown.guest", error);
+            }
+            Ok(Err(error)) => {
+                crate::infrastructure::diagnostics::warn("wasm.shutdown.runtime", error);
+            }
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn("wasm.shutdown.timeout", error);
+            }
         }
     }
 }

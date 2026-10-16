@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useSyncExternalStore } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { nativeCall } from '@/lib/player'
@@ -25,7 +26,9 @@ export function useLocalOptions() {
     if (!isTauri()) return
     initial ??= nativeCall<{ showCovers: boolean }>('local_options')
       .then((options) => update(options.showCovers))
-      .catch(() => {
+      .catch((cause) => {
+        reportCaughtError('app/src/features/local/use-local-options.ts', cause)
+
         initial = undefined
       })
   }, [])

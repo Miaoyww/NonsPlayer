@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { afterFirstPaint } from '@/lib/after-first-paint'
 import * as React from 'react'
@@ -47,7 +48,7 @@ function deactivate(plugin: Loaded) {
   try {
     plugin.dispose?.()
   } catch (error) {
-    console.error('插件清理失败', error)
+    reportCaughtError('plugins.dispose', error)
   }
 }
 function isComponent(value: unknown) {
@@ -161,6 +162,8 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                   generation: descriptor.generation
                 })
               } catch (error) {
+                reportCaughtError('app/src/plugins/host.tsx', error)
+
                 if (plugin) deactivate(plugin)
                 if (loaded.get(descriptor.manifest.id) === plugin)
                   loaded.delete(descriptor.manifest.id)
@@ -169,7 +172,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                     id: descriptor.manifest.id,
                     generation: descriptor.generation,
                     error: errorText(error)
-                  }).catch(console.error)
+                  }).catch((cause) => reportCaughtError('app/src/plugins/host.tsx', cause))
               } finally {
                 pending.delete(key)
               }
@@ -186,7 +189,8 @@ export function PluginProvider({ children }: { children: ReactNode }) {
       scheduled = true
       cancelRefresh = afterFirstPaint(() => {
         scheduled = false
-        if (!disposed) void refresh().catch(console.error)
+        if (!disposed)
+          void refresh().catch((cause) => reportCaughtError('app/src/plugins/host.tsx', cause))
       })
     }
     const retain = (cleanup: () => void) => {
@@ -221,7 +225,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         })
       )
       scheduleRefresh()
-    })().catch(console.error)
+    })().catch((cause) => reportCaughtError('app/src/plugins/host.tsx', cause))
     return () => {
       disposed = true
       cancelRefresh()
@@ -244,7 +248,7 @@ class PluginBoundary extends Component<
     deactivate(this.props.plugin)
     const { manifest, generation } = this.props.plugin.scope.descriptor
     void nativeCall('plugin_fault', { id: manifest.id, generation, error: error.message }).catch(
-      console.error
+      (cause) => reportCaughtError('app/src/plugins/host.tsx', cause)
     )
   }
   render() {

@@ -58,6 +58,9 @@ pub async fn lookup(
         lookup_inner(client, track, skip_qrc, separators),
     )
     .await
+    .inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("translate_error", error);
+    })
     .map_err(|_| "QQ 歌词查询超时".to_string())?
 }
 
@@ -86,7 +89,8 @@ async fn lookup_inner(
                 "param": {"num_per_page": "20", "page_num": "1", "query": query, "search_type": 0}}}));
         let response = match read_json(request).await.and_then(candidates) {
             Ok(value) => value,
-            Err(_) => {
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn("error_fallback", error);
                 failed = true;
                 continue;
             }
@@ -155,7 +159,16 @@ async fn fetch_candidate(
                 .await
                 .map_err(|e| e.to_string())?
         };
-        if let Ok(Ok(Some(lyrics))) = tokio::time::timeout(Duration::from_millis(900), qrc).await {
+        if let Ok(Ok(Some(lyrics))) = (tokio::time::timeout(Duration::from_millis(900), async {
+            qrc.await.inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("lyrics.qq.qrc", error)
+            })
+        })
+        .await)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            })
+        {
             if lyrics.translation.is_some() {
                 return Ok(Some(lyrics));
             }
@@ -177,8 +190,17 @@ async fn fetch_candidate(
             play_lyric::fetch(client, candidate, skip_qrc, endpoints.musicu),
         )
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_result", error);
+        })
         .ok()
-        .and_then(Result::ok)
+        .and_then(|result| {
+            result
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("lyrics.qq.modern", error)
+                })
+                .ok()
+        })
         .flatten()
     } else {
         None
@@ -324,7 +346,13 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
     let mut translation = String::new();
     let mut romanization = String::new();
     loop {
-        match reader.read_event().map_err(|_| "QQ QRC 响应 XML 无效")? {
+        match reader
+            .read_event()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "QQ QRC 响应 XML 无效")?
+        {
             Event::Start(e) => {
                 field = match e.local_name().as_ref() {
                     b"content" => Some(0),
@@ -335,7 +363,12 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
             }
             Event::CData(e) => {
                 if let Some(field) = field {
-                    let text = e.decode().map_err(|_| "QQ QRC 字段编码无效")?;
+                    let text = e
+                        .decode()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "QQ QRC 字段编码无效")?;
                     match field {
                         0 => original.push_str(&text),
                         1 => translation.push_str(&text),
@@ -345,7 +378,12 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
             }
             Event::Text(e) => {
                 if let Some(field) = field {
-                    let text = e.xml_content().map_err(|_| "QQ QRC 字段编码无效")?;
+                    let text = e
+                        .xml_content()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "QQ QRC 字段编码无效")?;
                     match field {
                         0 => original.push_str(&text),
                         1 => translation.push_str(&text),
@@ -371,7 +409,13 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
     // Auxiliary failures must not discard usable word-level lyrics.
     let auxiliary = |text: &str| {
         (!text.trim().is_empty())
-            .then(|| decode_qrc_field(text).ok())
+            .then(|| {
+                decode_qrc_field(text)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+            })
             .flatten()
     };
     let translation = auxiliary(&translation);
@@ -406,14 +450,27 @@ fn decode_qrc_field(text: &str) -> AppResult<String> {
     let mut reader = Reader::from_str(&text);
     let mut content = None;
     loop {
-        match reader.read_event().map_err(|_| "QRC 正文 XML 无效")? {
+        match reader
+            .read_event()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "QRC 正文 XML 无效")?
+        {
             Event::Start(e) | Event::Empty(e) if e.local_name().as_ref() == b"Lyric_1" => {
                 for attribute in e.attributes() {
-                    let attribute = attribute.map_err(|_| "QRC 正文属性无效")?;
+                    let attribute = attribute
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "QRC 正文属性无效")?;
                     if attribute.key.as_ref() == b"LyricContent" {
                         let raw = reader
                             .decoder()
                             .decode(attribute.value.as_ref())
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("translate_error", error);
+                            })
                             .map_err(|_| "QRC 正文编码无效")?;
                         // QQ can leave literal '&' in this attribute. Decode valid entities
                         // while preserving that text instead of rejecting the whole QRC.
@@ -439,8 +496,17 @@ fn decode_lyrics(value: Value) -> AppResult<Option<Lyrics>> {
         let Some(text) = value[field].as_str().filter(|s| !s.trim().is_empty()) else {
             return Ok(None);
         };
-        let bytes = STANDARD.decode(text).map_err(|_| "QQ 歌词编码无效")?;
-        let text = String::from_utf8(bytes).map_err(|_| "QQ 歌词编码无效")?;
+        let bytes = STANDARD
+            .decode(text)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "QQ 歌词编码无效")?;
+        let text = String::from_utf8(bytes)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "QQ 歌词编码无效")?;
         Ok((!text.trim().is_empty()).then_some(text))
     };
     let Some(content) = decode("lyric")? else {

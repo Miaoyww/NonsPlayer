@@ -43,6 +43,9 @@ pub(crate) fn public_ip(ip: IpAddr) -> bool {
 pub(crate) async fn public_addresses(host: &str, port: u16) -> AppResult<Vec<SocketAddr>> {
     let addresses: Vec<_> = tokio::net::lookup_host((host, port))
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "网络目标解析失败")?
         .take(33)
         .collect();
@@ -108,7 +111,11 @@ pub(crate) fn checked_url(hosts: &[String], input: &str) -> AppResult<url::Url> 
     if input.len() > 2048 {
         return Err("HTTP URL 超过 2048 字节".into());
     }
-    let url = url::Url::parse(input).map_err(|_| "HTTP URL 无效")?;
+    let url = url::Url::parse(input)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "HTTP URL 无效")?;
     if !matches!(url.scheme(), "http" | "https")
         || !url.username().is_empty()
         || url.password().is_some()
@@ -218,9 +225,15 @@ impl Http {
                 return Err("HTTP 请求头不可由 guest 设置".into());
             }
             let name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "HTTP 请求头无效")?;
-            let value =
-                reqwest::header::HeaderValue::from_str(value).map_err(|_| "HTTP 请求头无效")?;
+            let value = reqwest::header::HeaderValue::from_str(value)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "HTTP 请求头无效")?;
             builder = builder.header(name, value);
         }
         if method == reqwest::Method::POST {
@@ -228,13 +241,24 @@ impl Http {
         }
         let operation =
             tokio::time::timeout(Duration::from_millis(request.timeout_ms as u64), async {
-                let mut response = builder.send().await.map_err(|_| "HTTP 请求失败")?;
+                let mut response = builder
+                    .send()
+                    .await
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn_error("http.send", error);
+                    })
+                    .map_err(|_| "HTTP 请求失败")?;
                 self.check_target(&response)?;
                 let status = response.status().as_u16();
                 let mut headers = Vec::new();
                 let mut count = 0;
                 for (name, value) in response.headers() {
-                    let value = value.to_str().map_err(|_| "HTTP 响应头不是文本")?;
+                    let value = value
+                        .to_str()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "HTTP 响应头不是文本")?;
                     count += name.as_str().len() + value.len();
                     if count > 16384 {
                         return Err("HTTP 响应头超过额度".into());
@@ -243,7 +267,13 @@ impl Http {
                 }
                 let mut body = Vec::new();
                 if method != reqwest::Method::HEAD {
-                    while let Some(chunk) = response.chunk().await.map_err(|_| "HTTP 读取失败")?
+                    while let Some(chunk) = response
+                        .chunk()
+                        .await
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn_error("http.read", error);
+                        })
+                        .map_err(|_| "HTTP 读取失败")?
                     {
                         if body.len() + chunk.len() > 2 * 1024 * 1024 {
                             return Err("HTTP 响应超过 2MiB".into());
@@ -258,7 +288,7 @@ impl Http {
                 })
             });
         tokio::select! {
-            result = operation => result.map_err(|_| "HTTP 请求超时")?,
+            result = operation => result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "HTTP 请求超时")?,
             _ = async { while active.load(Ordering::Acquire) { tokio::time::sleep(Duration::from_millis(20)).await; } } => Err("调用上下文已失效".into()),
         }
     }
@@ -268,8 +298,11 @@ impl Http {
         args: &Value,
         active: &std::sync::atomic::AtomicBool,
     ) -> AppResult<Value> {
-        let request: Request =
-            serde_json::from_value(args.clone()).map_err(|_| "HTTP 请求参数无效")?;
+        let request: Request = serde_json::from_value(args.clone())
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "HTTP 请求参数无效")?;
         let url = checked_url(hosts, &request.url)?;
         let method = match request.method.as_deref().unwrap_or("GET") {
             "GET" => reqwest::Method::GET,
@@ -303,28 +336,53 @@ impl Http {
                 return Err("HTTP 请求头无效或超过 16KiB".into());
             }
             let name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "HTTP 请求头无效")?;
-            let value =
-                reqwest::header::HeaderValue::from_str(value).map_err(|_| "HTTP 请求头无效")?;
+            let value = reqwest::header::HeaderValue::from_str(value)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "HTTP 请求头无效")?;
             builder = builder.header(name, value);
         }
         if let Some(body) = request.body {
             builder = builder.body(body);
         }
         let operation = tokio::time::timeout(Duration::from_millis(timeout), async {
-            let mut response = builder.send().await.map_err(|_| "HTTP 请求失败")?;
+            let mut response = builder
+                .send()
+                .await
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn_error("http.send", error);
+                })
+                .map_err(|_| "HTTP 请求失败")?;
             self.check_target(&response)?;
             let status = response.status().as_u16();
             let cookies: Vec<String> = response
                 .headers()
                 .get_all("set-cookie")
                 .iter()
-                .filter_map(|value| value.to_str().ok().map(str::to_string))
+                .filter_map(|value| {
+                    value
+                        .to_str()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("optional_result", error);
+                        })
+                        .ok()
+                        .map(str::to_string)
+                })
                 .collect();
             let mut headers = BTreeMap::new();
             let mut header_bytes = 0;
             for (name, value) in response.headers() {
-                let value = value.to_str().map_err(|_| "HTTP 响应头不是文本")?;
+                let value = value
+                    .to_str()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| "HTTP 响应头不是文本")?;
                 header_bytes += name.as_str().len() + value.len();
                 if header_bytes
                     > if method == reqwest::Method::POST {
@@ -339,7 +397,13 @@ impl Http {
             }
             let mut bytes = Vec::new();
             if read_body {
-                while let Some(chunk) = response.chunk().await.map_err(|_| "HTTP 响应读取失败")?
+                while let Some(chunk) = response
+                    .chunk()
+                    .await
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn_error("http.read", error);
+                    })
+                    .map_err(|_| "HTTP 响应读取失败")?
                 {
                     if bytes.len() + chunk.len() > 8192 {
                         return Err("HTTP 文本响应超过 8KiB".into());
@@ -347,11 +411,15 @@ impl Http {
                     bytes.extend_from_slice(&chunk);
                 }
             }
-            let body = String::from_utf8(bytes).map_err(|_| "HTTP 响应不是 UTF-8 文本")?;
+            let body = String::from_utf8(bytes)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "HTTP 响应不是 UTF-8 文本")?;
             Ok(json!({"status":status,"headers":headers,"body":body,"cookies":cookies}))
         });
         tokio::select! {
-            result = operation => result.map_err(|_| "HTTP 请求超时")?,
+            result = operation => result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "HTTP 请求超时")?,
             _ = async {
                 while active.load(std::sync::atomic::Ordering::SeqCst) {
                     tokio::time::sleep(Duration::from_millis(20)).await;

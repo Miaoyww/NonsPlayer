@@ -3,8 +3,11 @@ use crate::infrastructure::credentials as keyring;
 pub use nons_adapter_netease::platform::*;
 #[allow(dead_code)]
 pub fn probe_client() -> crate::model::AppResult<Netease> {
-    let entry =
-        keyring::Entry::new("NonsPlayer", "netease-session").map_err(|_| "系统凭据存储不可用")?;
+    let entry = keyring::Entry::new("NonsPlayer", "netease-session")
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "系统凭据存储不可用")?;
     let cookie = match entry.get_password() {
         Ok(v) => Some(v),
         Err(keyring::Error::NoEntry) => None,

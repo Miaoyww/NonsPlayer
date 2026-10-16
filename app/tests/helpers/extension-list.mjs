@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { runInNewContext } from 'node:vm'
+import { runInNewContext } from './diagnostic-vm.mjs'
 import ts from 'typescript'
 import { Tabs } from '@base-ui/react/tabs'
 

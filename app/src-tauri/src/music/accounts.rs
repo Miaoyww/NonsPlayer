@@ -14,7 +14,13 @@ pub trait CredentialStore: Send + Sync {
     fn delete(&self, key: &str) -> MusicResult<()>;
     fn read_text(&self, key: &str) -> MusicResult<Option<String>> {
         self.read(key)?
-            .map(|bytes| String::from_utf8(bytes).map_err(|_| ErrorCode::InvalidData.into()))
+            .map(|bytes| {
+                String::from_utf8(bytes)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| ErrorCode::InvalidData.into())
+            })
             .transpose()
     }
 }
@@ -22,6 +28,9 @@ pub struct SystemCredentials;
 impl CredentialStore for SystemCredentials {
     fn read_text(&self, key: &str) -> MusicResult<Option<String>> {
         match keyring::Entry::new("NonsPlayer", key)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .get_password()
         {
@@ -32,6 +41,9 @@ impl CredentialStore for SystemCredentials {
     }
     fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>> {
         match keyring::Entry::new("NonsPlayer", key)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .get_secret()
         {
@@ -42,12 +54,21 @@ impl CredentialStore for SystemCredentials {
     }
     fn write(&self, key: &str, bytes: &[u8]) -> MusicResult<()> {
         keyring::Entry::new("NonsPlayer", key)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .set_secret(bytes)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal.into())
     }
     fn delete(&self, key: &str) -> MusicResult<()> {
         match keyring::Entry::new("NonsPlayer", key)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .delete_credential()
         {
@@ -94,7 +115,11 @@ impl AccountManager {
                 if v.len() > 2 * 1024 * 1024 {
                     return Err(ErrorCode::InvalidData);
                 }
-                serde_json::from_str(&v).map_err(|_| ErrorCode::InvalidData)
+                serde_json::from_str(&v)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| ErrorCode::InvalidData)
             })
             .transpose()?
             .unwrap_or_default();
@@ -153,7 +178,9 @@ impl AccountManager {
             adapters: Default::default(),
         };
         // Tombstones prevent crash recovery from restoring an account whose deletion failed.
-        let _ = manager.retry_cleanup();
+        let _ = (manager.retry_cleanup()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("manager.retry_cleanup", error);
+        });
         Ok(manager)
     }
     pub(crate) async fn blocking<T: Send + 'static>(
@@ -164,6 +191,9 @@ impl AccountManager {
             .io
             .clone()
             .try_acquire_owned()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::RateLimited)?;
         let manager = self.clone();
         tokio::task::spawn_blocking(move || {
@@ -171,6 +201,9 @@ impl AccountManager {
             operation(&manager)
         })
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| ErrorCode::Internal)?
     }
     pub(crate) fn on_change(&self, callback: AccountChanged) {
@@ -180,8 +213,13 @@ impl AccountManager {
         *self.adapters.lock().expect("account adapter lock") = Arc::downgrade(adapters);
     }
     fn persist(&self, saved: &SavedAccounts) -> MusicResult<()> {
-        self.store
-            .save(&serde_json::to_string(saved).map_err(|_| ErrorCode::Internal)?)
+        self.store.save(
+            &serde_json::to_string(saved)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| ErrorCode::Internal)?,
+        )
     }
     fn session_locked(state: &State, source: &SourceId) -> SessionContext {
         SessionContext {
@@ -227,6 +265,9 @@ impl AccountManager {
         Ok(self
             .state
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .saved
             .records
@@ -236,7 +277,13 @@ impl AccountManager {
             .collect())
     }
     pub fn current_record(&self, source: &SourceId) -> MusicResult<Option<AccountRecord>> {
-        let state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         Ok(state
             .saved
             .records
@@ -248,7 +295,13 @@ impl AccountManager {
             .cloned())
     }
     pub fn select(&self, reference: &AccountRef) -> MusicResult<()> {
-        let mut state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         if !state
             .saved
             .records
@@ -297,6 +350,9 @@ impl AccountManager {
         let adapters = self
             .adapters
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .upgrade()
             .ok_or(ErrorCode::SourceUnavailable)?;
@@ -320,7 +376,13 @@ impl AccountManager {
         {
             return Err(ErrorCode::InvalidData.into());
         }
-        let mut state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, &expected.source) != *expected {
             return Err(ErrorCode::StaleContext.into());
         }
@@ -377,14 +439,23 @@ impl AccountManager {
         self.advance(&mut state, &expected.source);
         // Cleanup failure is retryable and must not undo a committed login.
         if state.saved.legacy_migrated {
-            let _ = self
+            let _ = (self
                 .credentials
-                .delete(super::migration::LEGACY_CREDENTIAL_KEY);
+                .delete(super::migration::LEGACY_CREDENTIAL_KEY))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("self .credentials .delete", error);
+            });
         }
         Ok(())
     }
     pub fn invalidate(&self, expected: &SessionContext) -> MusicResult<()> {
-        let mut state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, &expected.source) != *expected {
             return Err(ErrorCode::StaleContext.into());
         }
@@ -400,7 +471,13 @@ impl AccountManager {
         &self,
         source: &SourceId,
     ) -> MusicResult<Option<OpaqueCredential>> {
-        let state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         let bytes =
             if let Some(reference) = state.saved.selected.iter().find(|r| &r.source == source) {
                 self.credentials.read(&key(reference))?
@@ -414,7 +491,13 @@ impl AccountManager {
         bytes.map(OpaqueCredential::new).transpose()
     }
     pub fn remove(&self, reference: &AccountRef) -> MusicResult<()> {
-        let mut state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         if !state
             .saved
             .records
@@ -441,7 +524,13 @@ impl AccountManager {
     }
     pub(crate) fn clear_expected(&self, expected: &SessionContext) -> MusicResult<()> {
         let source = &expected.source;
-        let mut state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, source) != *expected {
             return Err(ErrorCode::StaleContext.into());
         }
@@ -456,7 +545,13 @@ impl AccountManager {
         Ok(())
     }
     fn retry_cleanup(&self) -> MusicResult<()> {
-        let mut state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         let mut saved = state.saved.clone();
         let mut failed = false;
         saved.pending_deletions.retain(|r| {
@@ -482,6 +577,9 @@ impl AccountManager {
         let adapters = self
             .adapters
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| ErrorCode::Internal)?
             .upgrade()
             .ok_or(ErrorCode::SourceUnavailable)?;
@@ -496,7 +594,13 @@ impl AccountManager {
 impl AccountManager {
     fn read_bound(&self, context: &RequestContext) -> MusicResult<OpaqueCredential> {
         let reference = self.authorize(context)?;
-        let state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, &reference.source) != context.session {
             return Err(ErrorCode::StaleContext.into());
         }
@@ -515,7 +619,13 @@ impl AccountManager {
         credential: OpaqueCredential,
     ) -> MusicResult<()> {
         let reference = self.authorize(context)?;
-        let mut state = self.state.lock().map_err(|_| ErrorCode::Internal)?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, &reference.source) != context.session {
             return Err(ErrorCode::StaleContext.into());
         }

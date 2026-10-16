@@ -165,7 +165,11 @@ pub fn checked_file(root: &Path, relative: &str) -> AppResult<PathBuf> {
     let mut current = root.to_path_buf();
     for part in relative.components() {
         current.push(part);
-        let meta = std::fs::symlink_metadata(&current).map_err(|_| "插件文件不存在")?;
+        let meta = std::fs::symlink_metadata(&current)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件文件不存在")?;
         if is_link(&meta) {
             return Err("插件目录不允许链接".into());
         }
@@ -247,7 +251,11 @@ impl Manifest {
             return Err("插件描述必须是 1 至 1024 个字符的非空文本".into());
         }
         if let Some(repository) = &self.repository {
-            let url = url::Url::parse(repository).map_err(|_| "插件代码仓库链接无效")?;
+            let url = url::Url::parse(repository)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "插件代码仓库链接无效")?;
             if !(repository.starts_with("https://") || repository.starts_with("http://"))
                 || repository.chars().count() > 2048
                 || repository
@@ -261,13 +269,20 @@ impl Manifest {
                 return Err("插件代码仓库必须是最多 2048 个字符且不含凭证的 HTTP(S) 链接".into());
             }
         }
-        Version::parse(&self.version).map_err(|_| "插件版本必须是 SemVer")?;
+        Version::parse(&self.version)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件版本必须是 SemVer")?;
         for (range, version) in [
             (&self.engines.app, env!("CARGO_PKG_VERSION")),
             (&self.engines.plugin_api, API_VERSION),
             (&self.engines.ui_api, API_VERSION),
         ] {
             if !VersionReq::parse(range)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "版本范围无效")?
                 .matches(&Version::parse(version).map_err(|e| e.to_string())?)
             {

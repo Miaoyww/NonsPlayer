@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -36,6 +37,8 @@ export function FolderManager() {
       const value = await nativeCall<MusicFolder[]>('music_folders')
       if (generation === serial.current) setFolders(value)
     } catch (cause) {
+      reportCaughtError('app/src/features/local/folder-manager.tsx', cause)
+
       if (generation === serial.current) setError(errorText(cause))
     }
   }, [])
@@ -55,7 +58,10 @@ export function FolderManager() {
           if (disposed) fn()
           else stop = fn
         })
-        .catch((cause) => setError(errorText(cause)))
+        .catch((cause) => {
+          reportCaughtError('app/src/features/local/folder-manager.tsx', cause)
+          return setError(errorText(cause))
+        })
     return () => {
       disposed = true
       serial.current++
@@ -70,6 +76,8 @@ export function FolderManager() {
       await action()
       await reload()
     } catch (cause) {
+      reportCaughtError('app/src/features/local/folder-manager.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       setBusy(false)

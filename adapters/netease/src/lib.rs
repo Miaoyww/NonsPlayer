@@ -5,6 +5,7 @@ pub use nons_music_adapter_sdk::{
     CONTRACT_VERSION,
 };
 mod cover;
+mod diagnostics;
 mod netease;
 mod netease_business;
 pub mod platform;

@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { collectionShareLink } from '@/features/music/share-links'
 import { musicClient } from '@/features/music/client'
@@ -88,6 +89,8 @@ export function CollectionActionsProvider({
           }
         })
         .catch((cause) => {
+          reportCaughtError('app/src/features/library/collection-actions.tsx', cause)
+
           if (!disposed) setError(errorText(cause))
         })
         .finally(() => {
@@ -107,6 +110,8 @@ export function CollectionActionsProvider({
         `${next ? '已按顺序加入下一首播放' : '已替换播放列表'}${truncated ? '（前 1000 首）' : ''}。`
       )
     } catch (cause) {
+      reportCaughtError('app/src/features/library/collection-actions.tsx', cause)
+
       onError(cause)
     } finally {
       pending.current = false
@@ -136,6 +141,8 @@ export function CollectionActionsProvider({
         )
       onNotice(target.deleting ? '已删除歌单。' : '已保存歌单信息。')
     } catch (cause) {
+      reportCaughtError('app/src/features/library/collection-actions.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       pending.current = false

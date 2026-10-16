@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { LRUCache } from 'lru-cache'
 
 export const RUNTIME_TTL = 10 * 60 * 1000
@@ -11,6 +12,7 @@ interface ReadOptions {
 }
 
 export class CacheInvalidatedError extends Error {
+  readonly code = 'cacheInvalidated'
   constructor() {
     super('缓存请求已失效，请重试。')
   }
@@ -65,6 +67,8 @@ export class RuntimeCache {
       if (pending.invalidated) throw new CacheInvalidatedError()
       return result.value as T
     } catch (cause) {
+      reportCaughtError('app/src/lib/runtime-cache.ts', cause)
+
       if (pending.invalidated) throw new CacheInvalidatedError()
       throw cause
     } finally {

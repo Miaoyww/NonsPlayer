@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { onlineReference, collectionReference } from '@/features/music/legacy-reference'
@@ -80,6 +81,8 @@ export function PlaylistPicker({
         throw new Error('歌单数量过多，请在音乐库中整理后重试。')
       })()
         .catch((cause) => {
+          reportCaughtError('app/src/features/library/playlist-picker.tsx', cause)
+
           if (!disposed) setError(errorText(cause))
         })
         .finally(() => {
@@ -124,6 +127,8 @@ export function PlaylistPicker({
       onNotice(`已收藏到「${item.name}」。`)
       onClose()
     } catch (cause) {
+      reportCaughtError('app/src/features/library/playlist-picker.tsx', cause)
+
       if (account.current === userId) setError(errorText(cause))
     } finally {
       pending.current = false

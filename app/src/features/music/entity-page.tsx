@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
@@ -37,6 +38,8 @@ export default function EntityPage(props: EntityPageProps) {
             else stops.push(stop)
           })
           .catch((cause) => {
+            reportCaughtError('app/src/features/music/entity-page.tsx', cause)
+
             if (!disposed) props.onError(cause)
           })
       }
@@ -102,6 +105,8 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
       if (response.data.total !== null) setTotal(response.data.total)
       state.more = state.cursor !== null
     } catch (cause) {
+      reportCaughtError('app/src/features/music/entity-page.tsx', cause)
+
       if (query.current === state && active.current) setError(errorText(cause))
     } finally {
       if (query.current === state && active.current) {
@@ -126,6 +131,8 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
           } else if (response.type === 'entity') setDetail(musicCollection(response.data))
         })
         .catch((cause) => {
+          reportCaughtError('app/src/features/music/entity-page.tsx', cause)
+
           if (active.current && query.current === state) onError(cause)
         })
     } else setBusy(false)

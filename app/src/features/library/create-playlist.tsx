@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useState, type FormEvent } from 'react'
 import { Plus } from 'lucide-react'
@@ -45,6 +46,8 @@ export function CreatePlaylist({
       setName('')
       onCreated()
     } catch (cause) {
+      reportCaughtError('app/src/features/library/create-playlist.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       setBusy(false)

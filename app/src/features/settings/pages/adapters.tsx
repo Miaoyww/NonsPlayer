@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -99,6 +100,8 @@ export function AdaptersPage() {
         setError(errors.length ? errors.join('\n') : undefined)
       }
     } catch (cause) {
+      reportCaughtError('app/src/features/settings/pages/adapters.tsx', cause)
+
       if (mounted.current && serial.current === request) setError(errorText(cause))
     } finally {
       if (mounted.current && serial.current === request) setLoading(false)
@@ -118,6 +121,8 @@ export function AdaptersPage() {
           else stop = unlisten
         })
         .catch((cause) => {
+          reportCaughtError('app/src/features/settings/pages/adapters.tsx', cause)
+
           if (!disposed) setError(errorText(cause))
         })
     return () => {
@@ -148,6 +153,8 @@ export function AdaptersPage() {
       invalidateNativeCache()
       if (mounted.current) await refresh()
     } catch (cause) {
+      reportCaughtError('app/src/features/settings/pages/adapters.tsx', cause)
+
       if (mounted.current) setError(errorText(cause))
     } finally {
       running.current = false

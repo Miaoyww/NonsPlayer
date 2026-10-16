@@ -30,6 +30,7 @@ function load(path, modules) {
   })
   // Use the same Promise realm as LRUCache, so abort tests exercise real fetch semantics.
   runInThisContext(`(function(exports, require) { ${outputText}\n })`)(exports, (name) => {
+    if (name === '@/lib/diagnostics') return { ...modules[name], reportCaughtError() {} }
     assert.ok(name in modules, `unexpected dependency: ${name}`)
     return modules[name]
   })

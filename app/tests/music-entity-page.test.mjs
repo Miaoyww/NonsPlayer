@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { runInNewContext } from 'node:vm'
+import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as jsx from 'react/jsx-runtime'

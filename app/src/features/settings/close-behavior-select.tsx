@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -33,6 +34,8 @@ export function CloseBehaviorSelect() {
         }
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/settings/close-behavior-select.tsx', cause)
+
         if (!disposed) setError(errorText(cause))
       })
     return () => {
@@ -48,6 +51,8 @@ export function CloseBehaviorSelect() {
       await nativeCall('set_close_behavior', { behavior: value })
       setBehavior(value)
     } catch (cause) {
+      reportCaughtError('app/src/features/settings/close-behavior-select.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       setSaving(false)

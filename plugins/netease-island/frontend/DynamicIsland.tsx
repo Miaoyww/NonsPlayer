@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  reportCaughtError,
   Button,
   SongArtists,
   SongLikeButton,
@@ -31,7 +32,7 @@ export function DynamicIsland() {
       }
       cleanup = unlisten
       apply(await config.getSnapshot())
-    })().catch(console.error)
+    })().catch((cause) => reportCaughtError('netease-island.config', cause))
     return () => {
       disposed = true
       cleanup?.()
@@ -144,6 +145,7 @@ function SongControls({ song }: { song: PluginSong }) {
       await play(song.reference, mode)
       if (active.current) setMessage(mode === 'next' ? '已加入下一首播放' : '已开始播放')
     } catch (cause) {
+      reportCaughtError('netease-island.play', cause)
       onError(cause)
     } finally {
       pending.current = false

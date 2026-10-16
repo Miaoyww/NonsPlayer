@@ -65,7 +65,9 @@ impl Netease {
         if let Some(accounts) = &self.accounts {
             let expected = accounts.session();
             if expected.generation == expected_generation {
-                let _ = accounts.invalidate(expected).await;
+                let _ = accounts.invalidate(expected).await.inspect_err(|error| {
+                    crate::diagnostics::warn("account.invalidate", error);
+                });
             }
             return;
         }
@@ -89,10 +91,15 @@ impl Netease {
             if let Some(accounts) = &self.accounts {
                 return accounts
                     .credential()
-                    .map_err(|e| e.to_string())?
+                    .map_err(|e| {
+                        crate::diagnostics::warn("account.credential.read", &e);
+                        e.to_string()
+                    })?
                     .map(|v| {
-                        String::from_utf8(v.expose().to_vec())
-                            .map_err(|_| "网易云凭据格式无效".to_owned())
+                        String::from_utf8(v.expose().to_vec()).map_err(|error| {
+                            crate::diagnostics::warn("account.credential.decode", &error);
+                            "网易云凭据格式无效".to_owned()
+                        })
                     })
                     .transpose();
             }
@@ -100,7 +107,10 @@ impl Netease {
         self.cookie
             .lock()
             .map(|cookie| cookie.clone())
-            .map_err(|_| "登录状态锁不可用".into())
+            .map_err(|error| {
+                crate::diagnostics::warn("account.credential.lock", &error);
+                "登录状态锁不可用".into()
+            })
     }
     pub fn with_accounts(
         accounts: std::sync::Arc<dyn nons_music_adapter_sdk::account::ProviderAccounts>,
@@ -134,8 +144,10 @@ impl Netease {
         };
         let cookie = bytes
             .map(|v| {
-                String::from_utf8(v.expose().to_vec())
-                    .map_err(|_| nons_music_adapter_sdk::ErrorCode::InvalidData)
+                String::from_utf8(v.expose().to_vec()).map_err(|error| {
+                    crate::diagnostics::warn("account.scoped.decode", &error);
+                    nons_music_adapter_sdk::ErrorCode::InvalidData
+                })
             })
             .transpose()?;
         // Business endpoints can include full playlist metadata before pagination.
@@ -371,7 +383,10 @@ impl Netease {
             .pointer("/data/qrurl")
             .and_then(Value::as_str)
             .ok_or("二维码地址缺失")?;
-        let qr = qrcode::QrCode::new(url).map_err(|_| "无法生成二维码图片")?;
+        let qr = qrcode::QrCode::new(url).map_err(|error| {
+            crate::diagnostics::warn("account.qr.encode", &error);
+            "无法生成二维码图片"
+        })?;
         let svg = qr
             .render::<qrcode::render::svg::Color>()
             .min_dimensions(224, 224)
@@ -404,10 +419,13 @@ impl Netease {
         if code == 803 {
             let mut tokens = std::collections::BTreeMap::new();
             for cookie in &response.cookie {
-                if let Ok(cookie) = cookie::Cookie::parse(cookie.as_str()) {
-                    if matches!(cookie.name(), "MUSIC_U" | "__csrf" | "MUSIC_A" | "NMTID") {
-                        tokens.insert(cookie.name().to_string(), cookie.value().to_string());
+                match cookie::Cookie::parse(cookie.as_str()) {
+                    Ok(cookie) => {
+                        if matches!(cookie.name(), "MUSIC_U" | "__csrf" | "MUSIC_A" | "NMTID") {
+                            tokens.insert(cookie.name().to_string(), cookie.value().to_string());
+                        }
                     }
+                    Err(error) => crate::diagnostics::warn("account.cookie.parse", &error),
                 }
             }
             if !tokens.contains_key("MUSIC_U") {
@@ -468,7 +486,10 @@ impl Netease {
         &self,
         credential: &nons_music_adapter_sdk::account::OpaqueCredential,
     ) -> AppResult<Option<AccountProfile>> {
-        let cookie = std::str::from_utf8(credential.expose()).map_err(|_| "网易云凭据格式无效")?;
+        let cookie = std::str::from_utf8(credential.expose()).map_err(|error| {
+            crate::diagnostics::warn("account.profile.decode", &error);
+            "网易云凭据格式无效"
+        })?;
         let body = checked(self.client.login_status(&Query::new().cookie(cookie))).await?;
         Ok(account_profile(&body))
     }
@@ -501,8 +522,14 @@ async fn timed<F: Future<Output = ncm_api_rs::error::Result<ApiResponse>>>(
 ) -> AppResult<ApiResponse> {
     tokio::time::timeout(Duration::from_secs(12), future)
         .await
-        .map_err(|_| "网易云请求超时，请重试")?
-        .map_err(|_| "网易云请求失败，请检查网络后重试".into())
+        .map_err(|error| {
+            crate::diagnostics::warn("login.request.timeout", &error);
+            "网易云请求超时，请重试"
+        })?
+        .map_err(|error| {
+            crate::diagnostics::warn("login.request", &error);
+            "网易云请求失败，请检查网络后重试".into()
+        })
 }
 
 async fn checked<F: Future<Output = ncm_api_rs::error::Result<ApiResponse>>>(
@@ -638,20 +665,30 @@ async fn checked_with_limit<F: Future<Output = ncm_api_rs::error::Result<ApiResp
     use nons_music_adapter_sdk::ErrorCode;
     let response = tokio::time::timeout(Duration::from_secs(12), future)
         .await
-        .map_err(|_| ErrorCode::DeadlineExceeded)?
+        .map_err(|error| {
+            crate::diagnostics::warn("music.request.timeout", &error);
+            ErrorCode::DeadlineExceeded
+        })?
         .map_err(music_error)?;
-    match response
+    let status = response
         .body
         .get("code")
         .and_then(Value::as_i64)
-        .unwrap_or(response.status)
-    {
+        .unwrap_or(response.status);
+    if status != 200 {
+        log::warn!(target: "nons_adapter_netease::recovery", "operation=music.response http_status={} platform_code={status}", response.status);
+    }
+    match status {
         200 => {
             if serde_json::to_vec(&response.body)
-                .map_err(|_| ErrorCode::InvalidData)?
+                .map_err(|error| {
+                    crate::diagnostics::warn("music.response.encode", &error);
+                    ErrorCode::InvalidData
+                })?
                 .len()
                 > response_limit
             {
+                log::warn!(target: "nons_adapter_netease::recovery", "operation=music.response reason=response exceeds byte limit limit={response_limit}");
                 return Err(ErrorCode::InvalidData.into());
             }
             Ok(response.body)
@@ -667,6 +704,7 @@ async fn checked_with_limit<F: Future<Output = ncm_api_rs::error::Result<ApiResp
 fn music_error(error: ncm_api_rs::error::NcmError) -> nons_music_adapter_sdk::MusicError {
     use ncm_api_rs::error::NcmError;
     use nons_music_adapter_sdk::ErrorCode;
+    crate::diagnostics::warn("music.request", &error);
     let code = match error {
         NcmError::AuthRequired(_) => ErrorCode::Unauthenticated,
         NcmError::RateLimited(_) => ErrorCode::RateLimited,
@@ -695,6 +733,57 @@ mod tests {
         ApiResponse, Track,
     };
     use serde_json::json;
+
+    #[tokio::test]
+    async fn platform_failures_keep_the_original_cause_before_public_error_translation() {
+        struct Capture;
+        thread_local! {
+            static RECORDS: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
+        }
+        impl log::Log for Capture {
+            fn enabled(&self, _: &log::Metadata<'_>) -> bool {
+                true
+            }
+            fn log(&self, record: &log::Record<'_>) {
+                RECORDS.with(|records| records.borrow_mut().push(record.args().to_string()));
+            }
+            fn flush(&self) {}
+        }
+        static LOGGER: Capture = Capture;
+        log::set_logger(&LOGGER).unwrap();
+        log::set_max_level(log::LevelFilter::Info);
+        let error = music_checked(async {
+            Err(ncm_api_rs::error::NcmError::Unknown(
+                "transport disconnected".into(),
+            ))
+        })
+        .await
+        .unwrap_err();
+        assert_eq!(error.code, nons_music_adapter_sdk::ErrorCode::Network);
+        let error = super::timed(async {
+            Err(ncm_api_rs::error::NcmError::Timeout(
+                "socket read timed out".into(),
+            ))
+        })
+        .await
+        .unwrap_err();
+        assert_eq!(error, "网易云请求失败，请检查网络后重试");
+        let records = RECORDS.with(|records| records.borrow().join("\n"));
+        assert!(
+            records.contains("operation=music.request")
+                && records.contains("transport disconnected"),
+            "{records}"
+        );
+        assert!(
+            records.contains("operation=login.request")
+                && records.contains("socket read timed out"),
+            "{records}"
+        );
+        assert!(
+            records.replace('\\', "/").contains("platform/mod.rs:"),
+            "{records}"
+        );
+    }
 
     #[tokio::test]
     async fn large_liked_playlist_raw_body_does_not_fail_the_small_preview() {

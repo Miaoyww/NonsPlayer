@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -26,6 +27,8 @@ export function AutostartSwitch() {
           setError(undefined)
         }
       } catch (cause) {
+        reportCaughtError('app/src/features/settings/autostart-switch.tsx', cause)
+
         if (!disposed && current === revision.current) {
           setStatus(undefined)
           setError(errorText(cause))
@@ -49,11 +52,15 @@ export function AutostartSwitch() {
     try {
       setStatus(await nativeCall<AutostartStatus>('set_autostart', { enabled }))
     } catch (cause) {
+      reportCaughtError('app/src/features/settings/autostart-switch.tsx', cause)
+
       setError(errorText(cause))
       // Writes can partially succeed: re-read the platform instead of retaining stale UI.
       try {
         setStatus(await nativeCall<AutostartStatus>('autostart_status'))
-      } catch {
+      } catch (cause) {
+        reportCaughtError('app/src/features/settings/autostart-switch.tsx', cause)
+
         setStatus(undefined)
       }
     } finally {

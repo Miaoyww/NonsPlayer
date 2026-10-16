@@ -32,6 +32,7 @@ pub struct Context {
     pub player: Arc<Player>,
     pub app: tauri::AppHandle,
     pub event_budget: Arc<std::sync::Mutex<(Instant, usize)>>,
+    pub diagnostic_budget: Arc<std::sync::Mutex<(Instant, usize)>>,
     pub requests: Arc<tokio::sync::Semaphore>,
 }
 impl Context {
@@ -48,6 +49,9 @@ impl Context {
             )
         })
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "文件路径解析失败")?
     }
     pub fn check(&self, permission: Option<&str>) -> AppResult<()> {
@@ -63,8 +67,17 @@ impl Context {
         if args.len() > MAX_JSON {
             return Err("插件请求过大".into());
         }
-        let args: Value = serde_json::from_str(args).map_err(|_| "插件参数必须为 JSON")?;
+        let args: Value = serde_json::from_str(args)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件参数必须为 JSON")?;
         let result = match operation {
+            "diagnostic.report" => {
+                self.check(None)?;
+                super::diagnostics::report(&self.id, &self.diagnostic_budget, args)?;
+                Value::Null
+            }
             "files.pick-audio" => super::audio_files::pick(self, &args).await?,
             "accounts.credential-read" => {
                 self.check(Some("account:credentials"))?;
@@ -96,6 +109,9 @@ impl Context {
                     super::secrets::call(&id, &op, &args, &database, &active)
                 })
                 .await
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "凭据操作失败")??
             }
             "transfers.start" | "transfers.get" | "transfers.cancel" | "transfers.pause"
@@ -124,7 +140,16 @@ impl Context {
                     };
                     let keys = args
                         .get("keys")
-                        .map(|v| serde_json::from_value(v.clone()).map_err(|_| "配置键列表无效"))
+                        .map(|v| {
+                            serde_json::from_value(v.clone())
+                                .inspect_err(|error| {
+                                    crate::infrastructure::diagnostics::warn(
+                                        "translate_error",
+                                        error,
+                                    );
+                                })
+                                .map_err(|_| "配置键列表无效")
+                        })
                         .transpose()?;
                     self.configurations
                         .change(&self.id, revision, patch, keys)?
@@ -156,6 +181,9 @@ impl Context {
                     let location = self.file_location(args.clone()).await?;
                     let mut track: crate::model::Track =
                         serde_json::from_value(args.get("track").ok_or("缺少歌曲信息")?.clone())
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("translate_error", error);
+                            })
                             .map_err(|_| "歌曲信息无效")?;
                     let path = location["path"]
                         .as_str()
@@ -232,6 +260,9 @@ impl Context {
                 self.check(Some("music:metadata"))?;
                 let reference: crate::music::identity::EntityRef =
                     serde_json::from_value(args.get("reference").ok_or("缺少曲目引用")?.clone())
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
                         .map_err(|_| "曲目引用无效")?;
                 serde_json::to_value(self.songs.read_track(&reference).await?)
                     .map_err(|e| e.to_string())?
@@ -239,9 +270,15 @@ impl Context {
             "music.query" | "music.write" => {
                 let source: crate::music::identity::SourceId =
                     serde_json::from_value(args.get("source").ok_or("缺少音乐来源")?.clone())
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
                         .map_err(|_| "音乐来源无效")?;
                 let request: crate::music::business::BusinessRequest =
                     serde_json::from_value(args.get("request").ok_or("缺少音乐请求")?.clone())
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
                         .map_err(|_| "音乐请求无效")?;
                 self.check(Some(if request.is_write() {
                     "music:write"
@@ -262,7 +299,9 @@ impl Context {
                     .map_err(|e| e.to_string())?;
                 self.check(None)?;
                 if request.is_write() {
-                    let _ = self.app.emit("music-changed", &source);
+                    let _ = (self.app.emit("music-changed", &source)).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("self.app.emit", error);
+                    });
                 }
                 serde_json::to_value(response).map_err(|e| e.to_string())?
             }
@@ -277,7 +316,13 @@ impl Context {
                 {
                     return Err("事件名称无效".into());
                 }
-                let mut budget = self.event_budget.lock().map_err(|_| "事件限制不可用")?;
+                let mut budget = self
+                    .event_budget
+                    .lock()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| "事件限制不可用")?;
                 if budget.0.elapsed() >= Duration::from_secs(1) {
                     *budget = (Instant::now(), 0);
                 }
@@ -328,6 +373,9 @@ impl Context {
                 };
                 let reference =
                     serde_json::from_value(args.get("reference").ok_or("缺少曲目引用")?.clone())
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
                         .map_err(|_| "曲目引用无效")?;
                 let track =
                     crate::model::Track::from_music(self.songs.read_track(&reference).await?)

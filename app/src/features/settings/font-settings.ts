@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 export const defaultFontStack = '"Segoe UI Variable", "Segoe UI", "Microsoft YaHei", sans-serif'
 export const fontSettingsKey = 'nons-font-settings'
 export type FontSettings = { app: string; lyrics: string }
@@ -30,7 +31,9 @@ export function initializeFontSettings() {
         lyrics: validFamily(value.lyrics) ? value.lyrics : ''
       }
     }
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/settings/font-settings.ts', cause)
+
     /* Invalid or unavailable storage uses the default font. */
   }
   apply()
@@ -49,7 +52,9 @@ export function setFont(target: keyof FontSettings, family: string) {
   settings = { ...settings, [target]: family }
   try {
     localStorage.setItem(fontSettingsKey, JSON.stringify(settings))
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/settings/font-settings.ts', cause)
+
     /* Selection remains effective for this session. */
   }
   apply()

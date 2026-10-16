@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TextSkeleton } from '@/components/music/loading'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -59,6 +60,8 @@ export function PluginConfigurationPage({
           if (!disposed) accept(v)
         })
         .catch((e) => {
+          reportCaughtError('app/src/features/settings/plugins/configuration-page.tsx', e)
+
           if (!disposed) setError(errorText(e))
         })
     }
@@ -71,6 +74,8 @@ export function PluginConfigurationPage({
           else unlisten = cleanup
         })
         .catch((e) => {
+          reportCaughtError('app/src/features/settings/plugins/configuration-page.tsx', e)
+
           if (!disposed) setError(errorText(e))
         })
     refresh()
@@ -82,7 +87,9 @@ export function PluginConfigurationPage({
   }, [request, accept, plugin.manifest.id])
   function change(operation: string, args: unknown = {}) {
     const work = tail.current
-      .catch(() => {})
+      .catch((cause) => {
+        reportCaughtError('app/src/features/settings/plugins/configuration-page.tsx', cause)
+      })
       .then(async () => {
         if (mounted.current) setBusy(true)
         try {
@@ -90,10 +97,17 @@ export function PluginConfigurationPage({
           accept(await request(operation, { ...(args as object), revision }))
           if (mounted.current) setError(undefined)
         } catch (error) {
+          reportCaughtError('app/src/features/settings/plugins/configuration-page.tsx', error)
+
           // Refresh the authoritative revision, retaining each field's failed draft.
           await request('get')
             .then(accept)
-            .catch(() => {})
+            .catch((cause) => {
+              reportCaughtError(
+                'app/src/features/settings/plugins/configuration-page.tsx:94',
+                cause
+              )
+            })
           throw error
         } finally {
           if (mounted.current) setBusy(false)
@@ -133,7 +147,13 @@ export function PluginConfigurationPage({
                   accept(v)
                   setError(undefined)
                 })
-                .catch((e) => setError(errorText(e)))
+                .catch((e) => {
+                  reportCaughtError(
+                    'app/src/features/settings/plugins/configuration-page.tsx:131',
+                    e
+                  )
+                  return setError(errorText(e))
+                })
             }}
           >
             重试
@@ -155,7 +175,10 @@ export function PluginConfigurationPage({
                 id: plugin.manifest.id,
                 action: 'reload',
                 confirmed: false
-              }).catch((e) => setError(errorText(e)))
+              }).catch((e) => {
+                reportCaughtError('app/src/features/settings/plugins/configuration-page.tsx', e)
+                return setError(errorText(e))
+              })
             }}
           >
             <RotateCw aria-hidden="true" />
@@ -174,7 +197,13 @@ export function PluginConfigurationPage({
               onClick={() => {
                 void change('reset')
                   .then(() => setResetEpoch((v) => v + 1))
-                  .catch((e) => setError(errorText(e)))
+                  .catch((e) => {
+                    reportCaughtError(
+                      'app/src/features/settings/plugins/configuration-page.tsx:175',
+                      e
+                    )
+                    return setError(errorText(e))
+                  })
               }}
             >
               全部恢复默认
@@ -232,7 +261,10 @@ export function PluginConfigurationPage({
             className="mt-3"
             disabled={busy}
             onClick={() => {
-              void change('open-data').catch((e) => setError(errorText(e)))
+              void change('open-data').catch((e) => {
+                reportCaughtError('app/src/features/settings/plugins/configuration-page.tsx', e)
+                return setError(errorText(e))
+              })
             }}
           >
             <FolderOpen aria-hidden="true" />
@@ -254,7 +286,10 @@ export function PluginConfigurationPage({
             variant="outline"
             disabled={busy}
             onClick={() => {
-              void change('grant', { writable }).catch((e) => setError(errorText(e)))
+              void change('grant', { writable }).catch((e) => {
+                reportCaughtError('app/src/features/settings/plugins/configuration-page.tsx', e)
+                return setError(errorText(e))
+              })
             }}
           >
             <FolderOpen aria-hidden="true" />
@@ -276,7 +311,13 @@ export function PluginConfigurationPage({
                   aria-label={`撤销 ${grant.path} 的授权`}
                   title="撤销授权"
                   onClick={() => {
-                    void change('revoke', { root: grant.id }).catch((e) => setError(errorText(e)))
+                    void change('revoke', { root: grant.id }).catch((e) => {
+                      reportCaughtError(
+                        'app/src/features/settings/plugins/configuration-page.tsx:279',
+                        e
+                      )
+                      return setError(errorText(e))
+                    })
                   }}
                 >
                   <Trash2 aria-hidden="true" />

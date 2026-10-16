@@ -1,5 +1,6 @@
 import { useMemo, useState, useSyncExternalStore } from 'react'
 import {
+  reportCaughtError,
   Button,
   DownloadedSongList,
   Icon,
@@ -72,6 +73,7 @@ export function DownloadsPage() {
     try {
       await work()
     } catch (error) {
+      reportCaughtError('netease-download.action', error)
       setMessage(error instanceof Error ? error.message : String(error))
     } finally {
       setBusy(undefined)

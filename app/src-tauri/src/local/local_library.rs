@@ -35,7 +35,13 @@ pub fn options_from_db(db: &Connection) -> AppResult<LocalPreferences> {
 }
 pub fn preferences(store: &Store) -> AppResult<LocalPreferences> {
     {
-        let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+        let db = store
+            .0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "曲库锁不可用")?;
         options_from_db(&db)
     }
 }
@@ -102,6 +108,9 @@ impl Store {
     pub fn has_local_information(&self, key: &str) -> AppResult<bool> {
         self.0
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "曲库锁不可用")?
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM local_metadata WHERE key=?1)",
@@ -111,17 +120,29 @@ impl Store {
             .map_err(|e| e.to_string())
     }
     pub fn save_local_information(&self, key: &str, value: &LocalInformation) -> AppResult<()> {
-        self.0.lock().map_err(|_| "曲库锁不可用")?.execute("INSERT INTO local_metadata(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key, serde_json::to_string(value).map_err(|e| e.to_string())?]).map_err(|e| e.to_string())?;
+        self.0.lock().inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "曲库锁不可用")?.execute("INSERT INTO local_metadata(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key, serde_json::to_string(value).map_err(|e| e.to_string())?]).map_err(|e| e.to_string())?;
         Ok(())
     }
     pub fn rebuild_local_index(&self) -> AppResult<()> {
-        let mut db = self.0.lock().map_err(|_| "曲库锁不可用")?;
+        let mut db = self
+            .0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "曲库锁不可用")?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
         rebuild_index(&tx)?;
         tx.commit().map_err(|e| e.to_string())
     }
     pub fn configure_local_preferences(&self, options: &LocalPreferences) -> AppResult<()> {
-        let mut db = self.0.lock().map_err(|_| "曲库锁不可用")?;
+        let mut db = self
+            .0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "曲库锁不可用")?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
         let previous = options_from_db(&tx)?;
         tx.execute("INSERT INTO settings(key,value) VALUES('localPreferences',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [serde_json::to_string(options).map_err(|e| e.to_string())?]).map_err(|e| e.to_string())?;
@@ -161,7 +182,13 @@ pub fn index_track(db: &Connection, track: &Track, options: &LocalPreferences) -
         .optional()
         .map_err(|e| e.to_string())?;
     let album_artist = metadata
-        .and_then(|s| serde_json::from_str::<LocalInformation>(&s).ok())
+        .and_then(|s| {
+            serde_json::from_str::<LocalInformation>(&s)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
+                .ok()
+        })
         .and_then(|m| m.album_artist)
         .unwrap_or_else(|| track.artist.clone());
     let album_id =
@@ -215,7 +242,13 @@ pub async fn local_entities(
         .map_err(|e| e.to_string())?
 }
 fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> AppResult<EntityPage> {
-    let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    let db = store
+        .0
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "曲库锁不可用")?;
     let sql = if kind == "playlist" {
         "SELECT CAST(p.id AS TEXT),'playlist',p.name,COALESCE((SELECT json_extract(t.value,'$.cover') FROM local_playlist_tracks pt JOIN tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id ORDER BY pt.position LIMIT 1),''),'',COUNT(t.key) FROM local_playlists p LEFT JOIN local_playlist_tracks pt ON pt.playlist_id=p.id LEFT JOIN tracks t ON t.key=pt.key AND t.source='local' WHERE instr(lower(p.name),lower(?2))>0 GROUP BY p.id ORDER BY p.id DESC LIMIT 31 OFFSET ?3"
     } else {
@@ -265,7 +298,13 @@ pub async fn local_entity_detail(
         .map_err(|e| e.to_string())?
 }
 fn entity_detail(store: &Store, kind: String, id: String) -> AppResult<LocalEntity> {
-    let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    let db = store
+        .0
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "曲库锁不可用")?;
     let id = resolve_entity_id(&db, &kind, id)?;
     let row = |r: &rusqlite::Row<'_>| {
         Ok(LocalEntity {
@@ -304,7 +343,13 @@ fn entity_tracks(
     keyword: String,
     offset: u32,
 ) -> AppResult<TrackPage> {
-    let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    let db = store
+        .0
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "曲库锁不可用")?;
     let id = resolve_entity_id(&db, &kind, id)?;
     let options = options_from_db(&db)?;
     let sql = match kind.as_str() {
@@ -372,10 +417,13 @@ pub async fn set_local_preferences(
     })
     .await
     .map_err(|e| e.to_string())??;
-    let _ = app.emit(
+    let _ = (app.emit(
         "local-library-updated",
         serde_json::json!({"scanning":false}),
-    );
+    ))
+    .inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("app.emit", error);
+    });
     Ok(())
 }
 fn playlist_name(name: &str) -> AppResult<&str> {
@@ -397,7 +445,13 @@ pub fn create_local_playlist(
     Ok(result)
 }
 fn create_playlist(store: &Store, name: String) -> AppResult<String> {
-    let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    let db = store
+        .0
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "曲库锁不可用")?;
     let count: u32 = db
         .query_row("SELECT COUNT(*) FROM local_playlists", [], |r| r.get(0))
         .map_err(|e| e.to_string())?;
@@ -425,7 +479,13 @@ pub fn rename_local_playlist(
     Ok(())
 }
 fn rename_playlist(store: &Store, id: String, name: String) -> AppResult<()> {
-    let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    let db = store
+        .0
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "曲库锁不可用")?;
     if db
         .execute(
             "UPDATE local_playlists SET name=?1 WHERE id=?2",
@@ -450,7 +510,13 @@ pub fn delete_local_playlist(
     Ok(())
 }
 fn delete_playlist(store: &Store, id: String) -> AppResult<()> {
-    let mut db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    let mut db = store
+        .0
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "曲库锁不可用")?;
     let tx = db.transaction().map_err(|e| e.to_string())?;
     tx.execute(
         "DELETE FROM local_playlist_tracks WHERE playlist_id=?1",
@@ -478,7 +544,13 @@ fn add_playlist_track(store: &Store, id: String, key: String) -> AppResult<()> {
     if !matches!(store.track(&key)?.source, TrackSource::Local { .. }) {
         return Err("本地歌单仅支持本地歌曲".into());
     }
-    let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    let db = store
+        .0
+        .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "曲库锁不可用")?;
     let exists: bool = db
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM local_playlists WHERE id=?1)",
@@ -518,6 +590,9 @@ fn remove_playlist_track(store: &Store, id: String, key: String) -> AppResult<()
     store
         .0
         .lock()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "曲库锁不可用")?
         .execute(
             "DELETE FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2",
@@ -528,10 +603,13 @@ fn remove_playlist_track(store: &Store, id: String, key: String) -> AppResult<()
 }
 
 fn emit_library_change(app: &tauri::AppHandle) {
-    let _ = app.emit(
+    let _ = (app.emit(
         "local-library-updated",
         serde_json::json!({"scanning":false}),
-    );
+    ))
+    .inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("app.emit", error);
+    });
 }
 
 #[cfg(test)]

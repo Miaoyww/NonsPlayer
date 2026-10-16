@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
@@ -44,6 +45,8 @@ export function ArtistSeparatorsDialog({
       setOpened(false)
       onSaved()
     } catch (cause) {
+      reportCaughtError('app/src/features/local/artist-separators-dialog.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       setSaving(false)

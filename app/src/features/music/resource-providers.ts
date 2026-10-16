@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
@@ -34,6 +35,8 @@ export function useResourceProviders() {
           setError(undefined)
         }
       } catch (cause) {
+        reportCaughtError('app/src/features/music/resource-providers.ts', cause)
+
         if (!disposed && request === revision) setError(errorText(cause))
       }
     }

@@ -7,6 +7,14 @@ pub enum Error {
     NoEntry,
     Unavailable,
 }
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::NoEntry => "credential entry not found",
+            Self::Unavailable => "Android credential storage unavailable",
+        })
+    }
+}
 pub struct Entry {
     service: String,
     key: String,
@@ -35,14 +43,26 @@ impl Entry {
                     "service": self.service, "key": self.key, "operation": operation, "value": value
                 }),
             )
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| Error::Unavailable)
     }
     pub fn get_secret(&self) -> Result<Vec<u8>, Error> {
         let value = self.call("read", None)?.value.ok_or(Error::NoEntry)?;
-        STANDARD.decode(value).map_err(|_| Error::Unavailable)
+        STANDARD
+            .decode(value)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| Error::Unavailable)
     }
     pub fn get_password(&self) -> Result<String, Error> {
-        String::from_utf8(self.get_secret()?).map_err(|_| Error::Unavailable)
+        String::from_utf8(self.get_secret()?)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| Error::Unavailable)
     }
     pub fn set_secret(&self, value: &[u8]) -> Result<(), Error> {
         self.call("write", Some(STANDARD.encode(value)))?;

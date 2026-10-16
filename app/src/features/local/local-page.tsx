@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton, CollectionGridSkeleton } from '@/components/music/loading'
 import { CollectionTabs } from '@/features/library/collection-tabs'
@@ -91,6 +92,8 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
     try {
       if (await playLocalEntity(item.kind, item.id)) onNotice('已将前 1000 首歌曲加入播放队列。')
     } catch (cause) {
+      reportCaughtError('app/src/features/local/local-page.tsx', cause)
+
       onError(cause)
     } finally {
       setPlaying(false)
@@ -327,6 +330,8 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
       if (await playLocalEntity(collection.kind, collection.localId!))
         onNotice('已将前 1000 首歌曲加入播放队列。')
     } catch (cause) {
+      reportCaughtError('app/src/features/local/local-page.tsx', cause)
+
       onError(cause)
     } finally {
       setPlaying(false)
@@ -359,6 +364,8 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
       setRevision((v) => v + 1)
       setEditing(undefined)
     } catch (cause) {
+      reportCaughtError('app/src/features/local/local-page.tsx', cause)
+
       setDialogError(errorText(cause))
     } finally {
       setSaving(false)

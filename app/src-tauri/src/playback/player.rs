@@ -162,7 +162,13 @@ impl Player {
     ) -> AppResult<Self> {
         let mut restored = store
             .setting("player")?
-            .and_then(|s| serde_json::from_str::<PlayerSnapshot>(&s).ok())
+            .and_then(|s| {
+                serde_json::from_str::<PlayerSnapshot>(&s)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+            })
             .map(restore_player)
             .unwrap_or_default();
         restored.playback_options = stored_options(&store, restored.playback_options)?;
@@ -185,14 +191,21 @@ impl Player {
                 match result {
                     Ok(mut actor) => actor.run(receiver),
                     Err(error) => {
-                        if let Ok(mut state) = shared.write() {
+                        if let Ok(mut state) = (shared.write()).inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("optional_success", error);
+                        }) {
                             let mut failed = state.snapshot.clone();
                             failed.status = PlaybackStatus::Error;
                             failed.error = Some(error);
                             let (event, _, progress) = state.update(&failed);
-                            let _ = app.emit("player-state", event);
+                            let _ = (app.emit("player-state", event)).inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("app.emit", error);
+                            });
                             if let Some(progress) = progress {
-                                let _ = app.emit("player-progress", progress);
+                                let _ =
+                                    (app.emit("player-progress", progress)).inspect_err(|error| {
+                                        crate::infrastructure::diagnostics::warn("app.emit", error);
+                                    });
                             }
                         }
                     }
@@ -212,6 +225,9 @@ impl Player {
             mpsc::TrySendError::Disconnected(_) => self
                 .snapshot
                 .read()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
                 .ok()
                 .and_then(|state| state.snapshot.error.clone())
                 .unwrap_or_else(|| "播放核心不可用，请重启应用".into()),
@@ -222,6 +238,9 @@ impl Player {
         self.snapshot
             .read()
             .map(|s| s.snapshot.clone())
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "播放状态不可用".into())
     }
 
@@ -229,6 +248,9 @@ impl Player {
         self.snapshot
             .read()
             .map(|s| s.bootstrap())
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "播放状态不可用".into())
     }
 
@@ -245,6 +267,9 @@ impl Player {
                             | PlaybackStatus::Buffering
                     )
             })
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "播放状态不可用".into())
     }
 
@@ -253,6 +278,9 @@ impl Player {
         self.send(Command::Devices(sender))?;
         receiver
             .recv_timeout(Duration::from_secs(3))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "查询音频设备超时".to_string())?
     }
 
@@ -261,6 +289,9 @@ impl Player {
         self.send(Command::Options(options, sender))?;
         receiver
             .recv_timeout(Duration::from_secs(3))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "保存播放设置超时".to_string())?
     }
 
@@ -269,14 +300,28 @@ impl Player {
         self.send(Command::OutputMode(mode, sender))?;
         receiver
             .recv_timeout(Duration::from_secs(3))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "切换音频输出模式超时".to_string())?
     }
 
     pub fn shutdown(&self) {
-        let _ = self.sender.send(Command::Shutdown);
-        if let Ok(mut thread) = self.thread.lock() {
+        let _ = (self.sender.send(Command::Shutdown)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("self.sender.send", error);
+        });
+        if let Ok(mut thread) = (self.thread.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             if let Some(thread) = thread.take() {
-                let _ = thread.join();
+                let _ = (thread.join()).inspect_err(|error| {
+                    let reason = error
+                        .downcast_ref::<String>()
+                        .map(String::as_str)
+                        .or_else(|| error.downcast_ref::<&str>().copied())
+                        .unwrap_or("audio worker panicked with a non-text payload");
+                    crate::infrastructure::diagnostics::warn("audio.join", reason);
+                });
             }
         }
     }
@@ -328,13 +373,18 @@ impl Actor {
         crate::network::prefer_http_source();
         let playbin = gst::ElementFactory::make("playbin3")
             .build()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "GStreamer 缺少 playbin3 插件，请检查运行时")?;
         let bus = playbin.bus().ok_or("音频消息总线不可用")?;
         playbin.set_property("buffer-size", 4_194_304_i32);
         playbin.set_property("buffer-duration", 10_000_000_000_i64);
         playbin.set_property_from_str("flags", "audio+soft-volume+buffering");
         playbin.connect("source-setup", false, |values| {
-            if let Ok(source) = values[1].get::<gst::Element>() {
+            if let Ok(source) = (values[1].get::<gst::Element>()).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            }) {
                 crate::network::configure_source(&source);
             }
             None
@@ -342,6 +392,9 @@ impl Actor {
         let monitor = super::output::start_device_monitor()?;
         let mut state = shared
             .read()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "播放状态不可用")?
             .snapshot
             .clone();
@@ -357,7 +410,11 @@ impl Actor {
                 format!("{:x}", Sha256::digest(identity.as_bytes())) == *id
             });
             if let Some(device) = device {
-                if let Ok(sink) = super::output::create_sink(Some(&device), state.audio_output_mode)
+                if let Ok(sink) =
+                    (super::output::create_sink(Some(&device), state.audio_output_mode))
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("optional_success", error);
+                        })
                 {
                     playbin.set_property("audio-sink", sink);
                 } else {
@@ -396,7 +453,9 @@ impl Actor {
         playbin.connect("about-to-finish", false, move |values| {
             // Only consume a prepared URI here. This runs on a streaming thread:
             // no HTTP, database work, events, or channel waits are allowed.
-            if let Ok(mut slot) = pending.lock() {
+            if let Ok(mut slot) = (pending.lock()).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            }) {
                 if !super::transitions::gapless_allowed(&gapless) {
                     return None;
                 }
@@ -409,7 +468,9 @@ impl Actor {
                     let element = values[0]
                         .get::<gst::Element>()
                         .expect("GStreamer signal instance");
-                    if let Ok(mut slot) = advancing.lock() {
+                    if let Ok(mut slot) = (advancing.lock()).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_success", error);
+                    }) {
                         element.set_property("uri", &next.resolved.uri);
                         *slot = Some(next);
                     }
@@ -504,8 +565,12 @@ impl Actor {
             }
         }
         self.cancel_jobs();
-        let _ = self.store.save_player(&self.state);
-        let _ = self.playbin.set_state(gst::State::Null);
+        let _ = (self.store.save_player(&self.state)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("self.store.save_player", error);
+        });
+        let _ = (self.playbin.set_state(gst::State::Null)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("self.playbin.set_state", error);
+        });
         if let Some(monitor) = &self.monitor {
             monitor.stop();
         }
@@ -516,9 +581,12 @@ impl Actor {
         let command = match command {
             Command::Media { command, reply } => {
                 let result = self.command(*command);
-                let _ = reply.send(result.clone().map(|_| {
+                let _ = (reply.send(result.clone().map(|_| {
                     crate::platform::android::playback::Snapshot::from_player(&self.state)
-                }));
+                })))
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("reply.send", error);
+                });
                 return result;
             }
             command => command,
@@ -659,14 +727,20 @@ impl Actor {
                     }
                     .await;
                     let _ = tauri::async_runtime::spawn_blocking(move || {
-                        let _ = sender.send(Command::CollectionReady {
+                        let _ = (sender.send(Command::CollectionReady {
                             serial,
                             scope,
                             result,
                             reply,
+                        }))
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("sender.send", error);
                         });
                     })
-                    .await;
+                    .await
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("collection.deliver.join", error);
+                    });
                 }));
             }
             Command::CollectionReady {
@@ -676,17 +750,37 @@ impl Actor {
                 reply,
             } => {
                 let Some(key) = self.collection_request.take(serial) else {
-                    let _ = reply.send(Ok(false));
+                    let _ = (reply.send(Ok(false))).inspect_err(|_| {
+                        crate::infrastructure::diagnostics::warn(
+                            "collection.reply",
+                            "reply receiver dropped",
+                        );
+                    });
                     return Ok(());
                 };
                 self.collection_job = None;
-                if self.music.adapters.stamp(&scope.0.source).ok().as_ref() != Some(&scope) {
+                if self
+                    .music
+                    .adapters
+                    .stamp(&scope.0.source)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+                    .as_ref()
+                    != Some(&scope)
+                {
                     if self.state.current().is_none() {
                         self.desired_playing = false;
                         self.state.status = PlaybackStatus::Stopped;
                         self.publish();
                     }
-                    let _ = reply.send(Ok(false));
+                    let _ = (reply.send(Ok(false))).inspect_err(|_| {
+                        crate::infrastructure::diagnostics::warn(
+                            "collection.reply",
+                            "reply receiver dropped",
+                        );
+                    });
                     return Ok(());
                 }
                 let result = result.and_then(|(tracks, more)| {
@@ -702,6 +796,7 @@ impl Actor {
                     Ok(more)
                 });
                 if let Err(error) = &result {
+                    crate::infrastructure::diagnostics::warn("collection.prepare", error);
                     // A known song remains playable even if its collection cannot be expanded.
                     self.state.error = Some(format!("歌单准备失败：{error}"));
                     if self.state.current().is_none() {
@@ -710,7 +805,12 @@ impl Actor {
                     }
                     self.publish();
                 }
-                let _ = reply.send(result);
+                let _ = (reply.send(result)).inspect_err(|_| {
+                    crate::infrastructure::diagnostics::warn(
+                        "collection.reply",
+                        "reply receiver dropped",
+                    );
+                });
             }
             Command::Queue(queue, index) => {
                 if queue.is_empty() || queue.len() > 1000 || index >= queue.len() {
@@ -744,8 +844,20 @@ impl Actor {
                     && self.state.index == self.state.queue.len().checked_sub(1);
                 // Lock in the streaming callback's order while shifting history.
                 let (trim, displaced) = {
-                    let mut prepared = self.prepared.lock().map_err(|_| "预加载状态不可用")?;
-                    let mut armed = self.armed.lock().map_err(|_| "预加载状态不可用")?;
+                    let mut prepared = self
+                        .prepared
+                        .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "预加载状态不可用")?;
+                    let mut armed = self
+                        .armed
+                        .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "预加载状态不可用")?;
                     let Some(trim) = self.state.append_private_fm(session, queue_len, tracks)?
                     else {
                         return Ok(());
@@ -805,10 +917,19 @@ impl Actor {
                 // Hold the prepared lock while clearing armed state so the streaming
                 // callback cannot arm the old next track between these operations.
                 let transitioning = {
-                    let mut prepared = self.prepared.lock().map_err(|_| "预加载状态不可用")?;
+                    let mut prepared = self
+                        .prepared
+                        .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "预加载状态不可用")?;
                     *prepared = None;
                     self.armed
                         .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
                         .map_err(|_| "预加载状态不可用")?
                         .take()
                         .is_some()
@@ -829,10 +950,19 @@ impl Actor {
                 // Use the same lock order as the streaming callback, so it cannot
                 // arm a removed next track between checking and invalidating it.
                 let transitioning = {
-                    let mut prepared = self.prepared.lock().map_err(|_| "预加载状态不可用")?;
+                    let mut prepared = self
+                        .prepared
+                        .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "预加载状态不可用")?;
                     *prepared = None;
                     self.armed
                         .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
                         .map_err(|_| "预加载状态不可用")?
                         .take()
                         .is_some()
@@ -871,7 +1001,12 @@ impl Actor {
                         self.state.position_ms,
                     )
                 })();
-                let _ = reply.send(result.clone());
+                let _ = (reply.send(result.clone())).inspect_err(|_| {
+                    crate::infrastructure::diagnostics::warn(
+                        "source.reply",
+                        "reply receiver dropped",
+                    );
+                });
                 result?;
             }
             Command::SourceAttempt {
@@ -894,9 +1029,21 @@ impl Actor {
                 // handed over a URI, reload that entry rather than losing the
                 // StreamStart metadata while changing the future play order.
                 let transitioning = {
-                    let mut prepared = self.prepared.lock().map_err(|_| "预加载状态不可用")?;
+                    let mut prepared = self
+                        .prepared
+                        .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "预加载状态不可用")?;
                     *prepared = None;
-                    self.armed.lock().map_err(|_| "预加载状态不可用")?.take()
+                    self.armed
+                        .lock()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "预加载状态不可用")?
+                        .take()
                 };
                 if matches!(command, Command::Shuffle) {
                     self.state.toggle_shuffle(
@@ -1015,12 +1162,16 @@ impl Actor {
             Command::Device(id) => self.select_device(id)?,
             Command::OutputMode(mode, reply) => {
                 let result = self.select_output_mode(mode);
-                let _ = reply.send(result.clone());
+                let _ = (reply.send(result.clone())).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("reply.send", error);
+                });
                 result?;
             }
             Command::Options(options, reply) => {
                 let result = self.apply_options(options);
-                let _ = reply.send(result.clone());
+                let _ = (reply.send(result.clone())).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("reply.send", error);
+                });
                 result?;
             }
             Command::Resolved {
@@ -1045,14 +1196,22 @@ impl Actor {
                         return Ok(());
                     }
                     self.next_job = None;
-                    if let Ok((resolved, resource, source)) = *result {
+                    if let Ok((resolved, resource, source)) = (*result).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_success", error);
+                    }) {
                         if resource
                             .as_ref()
                             .is_some_and(|r| r.check(generation).is_err())
                         {
                             return Ok(());
                         }
-                        *self.prepared.lock().map_err(|_| "预加载状态不可用")? = Some(Prepared {
+                        *self
+                            .prepared
+                            .lock()
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("translate_error", error);
+                            })
+                            .map_err(|_| "预加载状态不可用")? = Some(Prepared {
                             generation,
                             index,
                             resolved,
@@ -1100,11 +1259,14 @@ impl Actor {
                 }
             }
             Command::Devices(reply) => {
-                let _ = reply.send(Ok(self
+                let _ = (reply.send(Ok(self
                     .devices()
                     .into_iter()
                     .map(|(info, _)| info)
-                    .collect()));
+                    .collect())))
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("reply.send", error);
+                });
             }
             Command::Toggle => unreachable!("toggle is resolved before command dispatch"),
             Command::Shutdown => {}
@@ -1125,12 +1287,24 @@ impl Actor {
             }
         }
         let transitioning = {
-            let mut prepared = self.prepared.lock().map_err(|_| "预加载状态不可用")?;
+            let mut prepared = self
+                .prepared
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "预加载状态不可用")?;
             self.gapless_enabled
                 .store(options.gapless, Ordering::Release);
             if !options.gapless {
                 *prepared = None;
-                self.armed.lock().map_err(|_| "预加载状态不可用")?.take()
+                self.armed
+                    .lock()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| "预加载状态不可用")?
+                    .take()
             } else {
                 None
             }
@@ -1199,12 +1373,18 @@ impl Actor {
         let quality = self
             .store
             .setting("quality")
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_result", error);
+            })
             .ok()
             .flatten()
             .unwrap_or_else(|| "exhigh".into());
         let downgrade = self
             .store
             .setting("allowDowngrade")
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_result", error);
+            })
             .ok()
             .flatten()
             .as_deref()
@@ -1215,11 +1395,14 @@ impl Actor {
             let progress_key = key.clone();
             let notify = move |source| {
                 if !next {
-                    let _ = progress_sender.try_send(Command::SourceAttempt {
+                    let _ = (progress_sender.try_send(Command::SourceAttempt {
                         generation,
                         index,
                         key: progress_key.clone(),
                         source,
+                    }))
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("progress_sender.try_send", error);
                     });
                 }
             };
@@ -1230,15 +1413,21 @@ impl Actor {
                 .await;
             // Bounded channel delivery is performed off the audio thread.
             let _ = tauri::async_runtime::spawn_blocking(move || {
-                let _ = sender.send(Command::Resolved {
+                let _ = (sender.send(Command::Resolved {
                     generation,
                     index,
                     key,
                     result: Box::new(result),
                     next,
+                }))
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("sender.send", error);
                 });
             })
-            .await;
+            .await
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("playback.resolve.deliver.join", error);
+            });
         });
         if next {
             self.next_job = Some(task);
@@ -1257,10 +1446,14 @@ impl Actor {
         if let Some(job) = self.next_job.take() {
             job.abort();
         }
-        if let Ok(mut slot) = self.prepared.lock() {
+        if let Ok(mut slot) = (self.prepared.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             *slot = None;
         }
-        if let Ok(mut slot) = self.armed.lock() {
+        if let Ok(mut slot) = (self.armed.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             *slot = None;
         }
         self.next_attempt = None;
@@ -1295,7 +1488,11 @@ impl Actor {
             self.publish();
             return Ok(());
         }
-        crate::audio::seek_stream(&self.playbin, ms).map_err(|_| "当前资源不支持定位")?;
+        crate::audio::seek_stream(&self.playbin, ms)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "当前资源不支持定位")?;
         self.state.position_ms = ms;
         self.publish();
         Ok(())
@@ -1330,7 +1527,14 @@ impl Actor {
                     self.publish();
                     return;
                 }
-                let armed = self.armed.lock().ok().and_then(|mut slot| slot.take());
+                let armed = self
+                    .armed
+                    .lock()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+                    .and_then(|mut slot| slot.take());
                 if let Some(next) =
                     armed.filter(|p| p.generation == self.generation.load(Ordering::Acquire))
                 {
@@ -1395,7 +1599,9 @@ impl Actor {
                     self.desired_playing = false;
                     self.state.status = PlaybackStatus::Stopped;
                     self.state.position_ms = self.state.duration_ms;
-                    let _ = self.playbin.set_state(gst::State::Null);
+                    let _ = (self.playbin.set_state(gst::State::Null)).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("self.playbin.set_state", error);
+                    });
                     self.fade.reset();
                     self.decoded_audio = None;
                     self.publish();
@@ -1412,7 +1618,9 @@ impl Actor {
                     self.desired_playing = false;
                     self.state.status = PlaybackStatus::Stopped;
                     self.state.position_ms = self.state.duration_ms;
-                    let _ = self.playbin.set_state(gst::State::Null);
+                    let _ = (self.playbin.set_state(gst::State::Null)).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("self.playbin.set_state", error);
+                    });
                     self.decoded_audio = None;
                     self.publish();
                 }
@@ -1431,7 +1639,9 @@ impl Actor {
                         format!("音频播放失败：{}", error.error())
                     },
                 );
-                let _ = self.playbin.set_state(gst::State::Null);
+                let _ = (self.playbin.set_state(gst::State::Null)).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("self.playbin.set_state", error);
+                });
                 self.fade.reset();
                 self.publish();
             }
@@ -1440,7 +1650,9 @@ impl Actor {
     }
 
     fn tick(&mut self) {
-        if let Ok(mut prepared) = self.prepared.lock() {
+        if let Ok(mut prepared) = (self.prepared.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             if prepared.as_ref().is_some_and(|p| {
                 p.resource
                     .as_ref()
@@ -1469,8 +1681,14 @@ impl Actor {
                 .query_duration::<gst::ClockTime>()
                 .map_or(self.state.duration_ms, |t| t.mseconds());
             self.update_media();
-            if let Ok(mut shared) = self.shared.write() {
-                let _ = self.app.emit("player-progress", shared.tick(&self.state));
+            if let Ok(mut shared) = (self.shared.write()).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            }) {
+                let _ = (self.app.emit("player-progress", shared.tick(&self.state))).inspect_err(
+                    |error| {
+                        crate::infrastructure::diagnostics::warn("self.app.emit", error);
+                    },
+                );
             }
             if self.state.playback_options.gapless
                 && !self.collection_request.is_pending()
@@ -1502,14 +1720,22 @@ impl Actor {
 
     fn publish(&mut self) {
         self.update_media();
-        if let Ok(mut shared) = self.shared.write() {
+        if let Ok(mut shared) = (self.shared.write()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             let (state, queue, progress) = shared.update(&self.state);
             if let Some(queue) = queue {
-                let _ = self.app.emit("player-queue", queue);
+                let _ = (self.app.emit("player-queue", queue)).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("self.app.emit", error);
+                });
             }
-            let _ = self.app.emit("player-state", state);
+            let _ = (self.app.emit("player-state", state)).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("self.app.emit", error);
+            });
             if let Some(progress) = progress {
-                let _ = self.app.emit("player-progress", progress);
+                let _ = (self.app.emit("player-progress", progress)).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("self.app.emit", error);
+                });
             }
         }
     }
@@ -1603,8 +1829,12 @@ impl Actor {
                 "audioOutputMode",
                 &serde_json::to_string(&previous).map_err(|e| e.to_string())?,
             );
-            if let Ok(sink) = self.output_sink(&id, previous) {
-                let _ = self.replace_output(sink, id);
+            if let Ok(sink) = (self.output_sink(&id, previous)).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            }) {
+                let _ = (self.replace_output(sink, id)).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("self.replace_output", error);
+                });
             }
             self.publish();
             rollback.map_err(|e| format!("{error}；恢复输出设置失败：{e}"))?;

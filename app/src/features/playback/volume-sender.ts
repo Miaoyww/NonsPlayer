@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 // One in-flight command and one latest pending value, shared by every volume input.
 // Keeping the optimistic value until its state acknowledgement prevents old echoes
 // from pulling the sliders backwards during a drag.
@@ -53,6 +54,8 @@ export function createVolumeSender(
     void Promise.resolve()
       .then(() => send(request.volume))
       .catch((error) => {
+        reportCaughtError('app/src/features/playback/volume-sender.ts', error)
+
         if (request.serial === serial) {
           optimistic = null
           notify()

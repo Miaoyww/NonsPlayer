@@ -3,7 +3,9 @@ import type { LyricLine } from '@applemusic-like-lyrics/core'
 import type { Lyrics } from '@/lib/player'
 import { matchAuxiliary } from './auxiliary-matching'
 
-export class EmptyLyricsError extends Error {}
+export class EmptyLyricsError extends Error {
+  readonly code = 'emptyLyrics'
+}
 
 export function parseLyricsContent(value: Lyrics): LyricLine[] {
   switch (value.format) {

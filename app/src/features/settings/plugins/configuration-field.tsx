@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useId, useRef, useState } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
@@ -62,6 +63,8 @@ export function ConfigurationField({
       dirty.current = false
       setDraft(next)
     } catch (error) {
+      reportCaughtError('app/src/features/settings/plugins/configuration-field.tsx', error)
+
       dirty.current = true
       setError(errorText(error))
     } finally {
@@ -111,7 +114,13 @@ export function ConfigurationField({
           variant="outline"
           disabled={blocked || !authorize}
           onClick={() => {
-            void authorize?.(field.key).catch((error) => setError(errorText(error)))
+            void authorize?.(field.key).catch((error) => {
+              reportCaughtError(
+                'app/src/features/settings/plugins/configuration-field.tsx:114',
+                error
+              )
+              return setError(errorText(error))
+            })
           }}
         >
           选择并授权
@@ -248,6 +257,11 @@ export function ConfigurationField({
                     await commit(path)
                   }
                 } catch (error) {
+                  reportCaughtError(
+                    'app/src/features/settings/plugins/configuration-field.tsx:250',
+                    error
+                  )
+
                   setError(errorText(error))
                 }
               })()
@@ -288,7 +302,13 @@ export function ConfigurationField({
                 setDraft(field.default)
                 setError(undefined)
               })
-              .catch((error) => setError(errorText(error)))
+              .catch((error) => {
+                reportCaughtError(
+                  'app/src/features/settings/plugins/configuration-field.tsx:285',
+                  error
+                )
+                return setError(errorText(error))
+              })
               .finally(() => setSaving(false))
           }}
         >

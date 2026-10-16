@@ -12,7 +12,11 @@ pub async fn pick(context: &super::capability::Context, args: &Value) -> AppResu
     context.check(Some("files:selected"))?;
     let unrestricted = context.file_roots.iter().any(|r| r == "*");
     let extensions: Vec<String> = if let Some(value) = args.get("extensions") {
-        serde_json::from_value(value.clone()).map_err(|_| "音频筛选扩展名无效")?
+        serde_json::from_value(value.clone())
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "音频筛选扩展名无效")?
     } else {
         crate::library::AUDIO_EXTENSIONS
             .iter()
@@ -155,15 +159,20 @@ pub fn decode(
         )
     })();
     if result.is_err() {
-        let _ = files.call(
+        let _ = (files.call(
             plugin,
             generation,
             "files.close",
             &json!({"handle":handle}),
             active,
-        );
+        ))
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("files.call", error);
+        });
         // Clean only our unpublished file through the original directory handle.
-        let _ = dir.remove_file(&part);
+        let _ = (dir.remove_file(&part)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("dir.remove_file", error);
+        });
     }
     result
 }

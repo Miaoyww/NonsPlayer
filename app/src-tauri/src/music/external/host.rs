@@ -88,7 +88,14 @@ impl Context {
         if !self.active.load(Ordering::Acquire) {
             return Err("staleContext".into());
         }
-        let context = self.context.lock().map_err(|_| "internal")?.clone();
+        let context = self
+            .context
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "internal")?
+            .clone();
         let manager = self
             .services
             .adapters
@@ -103,7 +110,13 @@ impl Context {
         Ok(context)
     }
     pub fn renew(&self, next: RequestContext) -> AppResult<()> {
-        let mut current = self.context.lock().map_err(|_| "internal")?;
+        let mut current = self
+            .context
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "internal")?;
         if current.session != next.session || current.adapter_generation != next.adapter_generation
         {
             return Err("staleContext".into());
@@ -114,7 +127,9 @@ impl Context {
     pub async fn release(&self) {
         self.active.store(false, Ordering::Release);
         self.sockets.clear().await;
-        if let Ok(mut pending) = self.pending.lock() {
+        if let Ok(mut pending) = (self.pending.lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             pending.take();
         }
     }
@@ -138,8 +153,11 @@ impl HostHandler for Context {
             if operation != "diagnostic.report" || args.len() > 1024 {
                 return Err("permissionDenied".into());
             }
-            let value: std::collections::BTreeMap<String, String> =
-                serde_json::from_str(args).map_err(|_| "invalidData")?;
+            let value: std::collections::BTreeMap<String, String> = serde_json::from_str(args)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "invalidData")?;
             if value.len() > 3
                 || value.iter().any(|(key, value)| {
                     !matches!(key.as_str(), "stage" | "class" | "code")
@@ -151,7 +169,13 @@ impl HostHandler for Context {
             {
                 return Err("invalidData".into());
             }
-            let mut budget = self.diagnostics.lock().map_err(|_| "internal")?;
+            let mut budget = self
+                .diagnostics
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "internal")?;
             if budget.0.elapsed() >= std::time::Duration::from_secs(1) {
                 *budget = (std::time::Instant::now(), 0);
             }
@@ -325,8 +349,11 @@ impl HostHandler for Context {
             if !self.login || !self.services.permissions.credentials || metadata.len() > 16384 {
                 return Err("permissionDenied".into());
             }
-            let record: AccountRecord =
-                serde_json::from_str(&metadata).map_err(|_| "invalidData")?;
+            let record: AccountRecord = serde_json::from_str(&metadata)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "invalidData")?;
             if record.reference.source != context.session.source || record.display_name.len() > 1024
             {
                 return Err("invalidData".into());
@@ -336,7 +363,13 @@ impl HostHandler for Context {
                 .validate_hosts(&self.services.descriptor.cover_hosts)
                 .map_err(|e| e.to_string())?;
             let credential = OpaqueCredential::new(data).map_err(|e| e.to_string())?;
-            let mut pending = self.pending.lock().map_err(|_| "internal")?;
+            let mut pending = self
+                .pending
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "internal")?;
             if pending.is_some() {
                 return Err("invalidData".into());
             }
@@ -359,7 +392,13 @@ impl HostHandler for Context {
             }
             let services = self.services.clone();
             let value = tauri::async_runtime::spawn_blocking(move || {
-                let _guard = services.state_lock.lock().map_err(|_| "状态锁不可用")?;
+                let _guard = services
+                    .state_lock
+                    .lock()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| "状态锁不可用")?;
                 let name = format!(
                     "musicAdapterStateV1:{}",
                     services.descriptor.source.as_str()
@@ -367,12 +406,21 @@ impl HostHandler for Context {
                 let map: std::collections::BTreeMap<String, String> = services
                     .store
                     .setting(&name)?
-                    .map(|s| serde_json::from_str(&s).map_err(|_| String::from("适配器状态损坏")))
+                    .map(|s| {
+                        serde_json::from_str(&s)
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("translate_error", error);
+                            })
+                            .map_err(|_| String::from("适配器状态损坏"))
+                    })
                     .transpose()?
                     .unwrap_or_default();
                 Ok::<_, String>(map.get(&key).cloned())
             })
             .await
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "状态读取失败")??;
             self.check()?;
             Ok(value)
@@ -396,7 +444,13 @@ impl HostHandler for Context {
             let services = self.services.clone();
             let active = self.active.clone();
             tauri::async_runtime::spawn_blocking(move || {
-                let _guard = services.state_lock.lock().map_err(|_| "状态锁不可用")?;
+                let _guard = services
+                    .state_lock
+                    .lock()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| "状态锁不可用")?;
                 let check = || -> AppResult<()> {
                     if !active.load(Ordering::Acquire) {
                         return Err("staleContext".into());
@@ -417,11 +471,21 @@ impl HostHandler for Context {
                 let previous = services.store.setting(&name)?;
                 let mut map: std::collections::BTreeMap<String, String> = previous
                     .clone()
-                    .map(|s| serde_json::from_str(&s).map_err(|_| String::from("适配器状态损坏")))
+                    .map(|s| {
+                        serde_json::from_str(&s)
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("translate_error", error);
+                            })
+                            .map_err(|_| String::from("适配器状态损坏"))
+                    })
                     .transpose()?
                     .unwrap_or_default();
                 map.insert(key, value);
-                let value = serde_json::to_string(&map).map_err(|_| "状态编码失败")?;
+                let value = serde_json::to_string(&map)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| "状态编码失败")?;
                 if map.len() > 16 || value.len() > 65536 {
                     return Err("适配器状态超过额度".into());
                 }
@@ -435,6 +499,9 @@ impl HostHandler for Context {
                 Ok(())
             })
             .await
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "状态保存失败")??;
             self.check()?;
             Ok(())

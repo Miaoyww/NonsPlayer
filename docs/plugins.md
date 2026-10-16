@@ -89,6 +89,8 @@ backend／frontend 可独立省略，但至少有一个入口。UI 贡献必须�
 
 ## Host Capability 与 SDK
 
+前端捕获并恢复的失败可调用 SDK 的 `reportCaughtError(operation, cause)`；它复用宿主的脱敏、去重和有界日志队列。Backend 可调用 `diagnostic.report`，参数为 `{operation,message}`：operation 为 1–64 字节的字母、数字、点或连字符，message 最多 4096 字节，不接收额外字段；仅活跃实例可用，每个实例每秒最多 16 条。错误消息由统一日志出口脱敏，不应主动传入请求、响应或凭据正文；诊断上报失败不递归上报。Host 调用失败即使被 Guest 恢复，也会记录操作与原始原因。
+
 WIT Host 的 `call(operation, args-json)` 返回 JSON 或业务错误，身份来自 Store，Guest 不能指定另一个 pluginId。当前操作：
 
 | 操作                     | 权限                         | 行为                                                                                |

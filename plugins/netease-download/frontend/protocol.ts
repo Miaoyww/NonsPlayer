@@ -2,6 +2,7 @@ import { ecb } from '@noble/ciphers/aes.js'
 import { md5 } from '@noble/hashes/legacy.js'
 import { bytesToHex } from '@noble/hashes/utils.js'
 import type { PluginClient, PluginHttpResponse } from '@app/plugin-sdk'
+import { reportCaughtError } from '@app/plugin-sdk'
 
 const utf8 = new TextEncoder()
 export const qualities = ['standard', 'higher', 'exhigh', 'lossless', 'hires'] as const
@@ -91,7 +92,8 @@ export async function api(
   let body: Record<string, any>
   try {
     body = JSON.parse(response.body)
-  } catch {
+  } catch (cause) {
+    reportCaughtError('netease-download.response.parse', cause)
     throw new Error('网易云返回了无效响应，请重试')
   }
   if (body.code === 301 || body.code === 302)

@@ -1,3 +1,5 @@
+import { reportCaughtError } from '@/lib/diagnostics'
+export { reportCaughtError } from '@/lib/diagnostics'
 import { coverOriginal } from '@/features/music/cover-image'
 import { useCallback, useContext, useMemo, useSyncExternalStore } from 'react'
 import { listen } from '@tauri-apps/api/event'
@@ -253,7 +255,7 @@ export function usePluginConfig() {
               .then((value) => {
                 if (!disposed && request === serial && scope.active) callback(value)
               })
-              .catch(console.error)
+              .catch((cause) => reportCaughtError('app/src/plugins/sdk.ts', cause))
           }
         )
         if (!scope.active) {

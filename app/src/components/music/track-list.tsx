@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useListFind } from './list-find'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -651,9 +652,13 @@ export const TrackList = memo(function TrackList({
                             onClick={() => {
                               if (favorite !== undefined) {
                                 setLikeError(undefined)
-                                void toggleLike(favorite).catch((cause) =>
-                                  setLikeError(errorText(cause))
-                                )
+                                void toggleLike(favorite).catch((cause) => {
+                                  reportCaughtError(
+                                    'app/src/components/music/track-list.tsx:654',
+                                    cause
+                                  )
+                                  return setLikeError(errorText(cause))
+                                })
                               }
                             }}
                           >

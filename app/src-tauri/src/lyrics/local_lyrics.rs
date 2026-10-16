@@ -21,10 +21,16 @@ pub async fn get(track: Track, skip_embedded: bool) -> AppResult<Option<Lyrics>>
 fn embedded(path: &Path) -> Option<String> {
     let tagged = if crate::encoded_audio::is_encoded(path) {
         crate::encoded_audio::read_tags(&path.to_string_lossy())
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_result", error);
+            })
             .ok()?
             .0
     } else {
         Probe::open(path)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_result", error);
+            })
             .ok()?
             .options(
                 ParseOptions::new()
@@ -32,6 +38,9 @@ fn embedded(path: &Path) -> Option<String> {
                     .read_cover_art(false),
             )
             .read()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_result", error);
+            })
             .ok()?
     };
     let tag = tagged.primary_tag().or_else(|| tagged.first_tag())?;
@@ -59,9 +68,17 @@ fn decode(bytes: Vec<u8>) -> AppResult<String> {
                 }
             })
             .collect();
-        String::from_utf16(&units).map_err(|_| "本地歌词 UTF-16 编码无效")?
+        String::from_utf16(&units)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "本地歌词 UTF-16 编码无效")?
     } else {
-        String::from_utf8(bytes).map_err(|_| "本地歌词不是有效的 UTF-8 或带 BOM 的 UTF-16")?
+        String::from_utf8(bytes)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "本地歌词不是有效的 UTF-8 或带 BOM 的 UTF-16")?
     };
     if text.len() > MAX_LYRIC_BYTES {
         return Err("本地歌词超过 2MiB 上限".into());

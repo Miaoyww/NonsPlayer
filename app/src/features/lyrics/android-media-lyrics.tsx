@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { nativeCall, usePlayer } from '@/lib/player'
@@ -30,7 +31,9 @@ export function AndroidMediaLyrics() {
   useEffect(() => {
     if (!track || !ready) return
     let disposed = false
-    void nativeCall('android_media_lyrics', { key: track.key, lines: [] }).catch(() => {})
+    void nativeCall('android_media_lyrics', { key: track.key, lines: [] }).catch((cause) => {
+      reportCaughtError('app/src/features/lyrics/android-media-lyrics.tsx', cause)
+    })
     void loadLyrics(
       track,
       false,
@@ -42,7 +45,9 @@ export function AndroidMediaLyrics() {
         if (!disposed && value)
           return nativeCall('android_media_lyrics', { key: track.key, lines: value.parsed })
       })
-      .catch(() => {
+      .catch((cause) => {
+        reportCaughtError('app/src/features/lyrics/android-media-lyrics.tsx', cause)
+
         // Missing/invalid lyrics do not interrupt playback; the normal lyric page exposes retry.
       })
     return () => {

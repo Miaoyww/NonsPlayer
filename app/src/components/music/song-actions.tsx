@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { trackShareLink } from '@/features/music/share-links'
 import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
@@ -119,6 +120,8 @@ export function SongActionsProvider({
           if (!disposed) setLocalInformation(value)
         })
         .catch((cause) => {
+          reportCaughtError('app/src/components/music/song-actions.tsx', cause)
+
           if (!disposed) setError(errorText(cause))
         })
         .finally(() => {
@@ -130,6 +133,8 @@ export function SongActionsProvider({
           if (!disposed) setInformation(value)
         })
         .catch((cause) => {
+          reportCaughtError('app/src/components/music/song-actions.tsx', cause)
+
           if (!disposed) setError(errorText(cause))
         })
         .finally(() => {
@@ -159,6 +164,8 @@ export function SongActionsProvider({
       setCopyMessage('已复制')
       onNotice('已复制到剪贴板。')
     } catch (cause) {
+      reportCaughtError('app/src/components/music/song-actions.tsx', cause)
+
       setCopyMessage('复制失败，请重试')
       onError(cause)
     } finally {

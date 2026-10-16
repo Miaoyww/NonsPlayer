@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { onlineReference, optionalCollectionReference } from './legacy-reference'
 import type { Track } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
@@ -13,7 +14,9 @@ export function entityShareLink(reference: EntityRef, sources: SourceDescriptor[
     return ['https:', 'http:'].includes(parsed.protocol) && !parsed.username && !parsed.password
       ? link
       : ''
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/music/share-links.ts', cause)
+
     return ''
   }
 }

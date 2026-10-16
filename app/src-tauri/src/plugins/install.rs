@@ -24,7 +24,9 @@ pub fn install(source: &Path, staging: &Path) -> AppResult<Manifest> {
         Manifest::read(staging)
     })();
     if result.is_err() {
-        let _ = fs::remove_dir_all(staging);
+        let _ = (fs::remove_dir_all(staging)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("fs::remove_dir_all", error);
+        });
     }
     result
 }

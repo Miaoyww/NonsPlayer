@@ -13,8 +13,17 @@ pub fn init() -> TauriPlugin<tauri::Wry> {
     Builder::new("nons-android")
         .setup(|app, api| {
             let handle = api.register_android_plugin("com.miaoyww.nons", "NonsAndroidPlugin")?;
-            HANDLE.set(handle).map_err(|_| "Android 能力重复初始化")?;
-            APP.set(app.clone()).map_err(|_| "Android 能力重复初始化")?;
+            HANDLE
+                .set(handle)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "Android 能力重复初始化")?;
+            APP.set(app.clone())
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "Android 能力重复初始化")?;
             Ok(())
         })
         .build()

@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useState } from 'react'
 import { queryMusic } from '@/features/music/queries'
 import { collectionReference } from '@/features/music/legacy-reference'
@@ -33,6 +34,8 @@ export function useEntityDetail(collection: MusicCollection, refresh: number, en
           if (!disposed) setDetail(value)
         })
         .catch((cause) => {
+          reportCaughtError('app/src/features/library/music-entities.ts', cause)
+
           if (!disposed) setError(errorText(cause))
         })
         .finally(() => {

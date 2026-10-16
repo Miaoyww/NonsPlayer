@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
@@ -71,7 +72,7 @@ export function SettingsDialog({
             )
         }
       })
-      .catch(console.error)
+      .catch((cause) => reportCaughtError('app/src/features/settings/settings-dialog.tsx', cause))
     return () => {
       disposed = true
       stop?.()

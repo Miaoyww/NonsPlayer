@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useCallback, useEffect, useState } from 'react'
 import { nativeCall, errorText, type Track } from '@/lib/player'
@@ -50,6 +51,8 @@ export function LocalPlaylistPicker({
       onNotice('已添加到本地歌单。')
       onClose()
     } catch (cause) {
+      reportCaughtError('app/src/features/local/local-playlist-picker.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       setBusy(false)

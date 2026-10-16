@@ -14,9 +14,8 @@ function load(file, modules) {
   const { outputText } = ts.transpileModule(readFileSync(new URL(file, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
   })
-  runInThisContext(`(function(exports, require) { ${outputText}\n })`)(
-    exports,
-    (name) => modules[name]
+  runInThisContext(`(function(exports, require) { ${outputText}\n })`)(exports, (name) =>
+    name === '@/lib/diagnostics' ? { ...modules[name], reportCaughtError() {} } : modules[name]
   )
   return exports
 }

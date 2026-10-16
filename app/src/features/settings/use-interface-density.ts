@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useSyncExternalStore } from 'react'
 import { isAndroid } from '@/lib/platform'
 
@@ -11,7 +12,9 @@ function isMode(value: unknown): value is InterfaceDensity {
 try {
   const saved = localStorage.getItem(storageKey) ?? localStorage.getItem('nons-song-card-mode')
   if (isMode(saved)) mode = saved
-} catch {
+} catch (cause) {
+  reportCaughtError('app/src/features/settings/use-interface-density.ts', cause)
+
   /* Storage is optional. */
 }
 const subscribe = (listener: () => void) => {
@@ -25,7 +28,9 @@ function setMode(value: InterfaceDensity) {
   mode = value
   try {
     localStorage.setItem(storageKey, value)
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/settings/use-interface-density.ts', cause)
+
     /* Keep the current session usable. */
   }
   listeners.forEach((notify) => notify())

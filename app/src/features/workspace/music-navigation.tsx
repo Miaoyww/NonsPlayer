@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 export type MusicView =
@@ -80,7 +81,9 @@ function restoreHistory(): NavigationHistory {
       )
     )
       return saved
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/workspace/music-navigation.tsx', cause)
+
     /* A damaged snapshot starts at the library. */
   }
   return { entries: [{ view: 'library', query: '' }], index: 0 }
@@ -91,7 +94,9 @@ export function MusicNavigationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(historyKey, JSON.stringify(history))
-    } catch {
+    } catch (cause) {
+      reportCaughtError('app/src/features/workspace/music-navigation.tsx', cause)
+
       /* Navigation still works without storage. */
     }
   }, [history])

@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
 import { isTauri } from '@tauri-apps/api/core'
@@ -39,7 +40,9 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
     if (previous.userId !== userId) {
       try {
         items = parseRecentPlaylists(localStorage.getItem(recentPlaylistKey(userId)))
-      } catch {
+      } catch (cause) {
+        reportCaughtError('app/src/features/library/playlist-sidebar.tsx', cause)
+
         /* Storage may be unavailable. */
       }
     }
@@ -52,7 +55,9 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
       items = rememberPlaylist(items, page.collection)
       try {
         localStorage.setItem(recentPlaylistKey(userId), JSON.stringify(items))
-      } catch {
+      } catch (cause) {
+        reportCaughtError('app/src/features/library/playlist-sidebar.tsx', cause)
+
         /* Keep session history. */
       }
     }

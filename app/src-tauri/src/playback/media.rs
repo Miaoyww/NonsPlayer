@@ -63,7 +63,9 @@ impl MediaControls {
                 SystemMediaTransportControlsButtonPressedEventArgs,
             >::new(move |_, args| {
                 if let Some(args) = args.as_ref() {
-                    let command = match args.Button()? {
+                    let command = match args.Button().inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("smtc.button", error)
+                    })? {
                         SystemMediaTransportControlsButton::Play => Some(Command::Resume),
                         SystemMediaTransportControlsButton::Pause => Some(Command::Pause),
                         SystemMediaTransportControlsButton::Stop => Some(Command::Stop),
@@ -72,7 +74,12 @@ impl MediaControls {
                         _ => None,
                     };
                     if let Some(command) = command {
-                        let _ = button_sender.try_send(command);
+                        let _ = (button_sender.try_send(command)).inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn(
+                                "button_sender.try_send",
+                                error,
+                            );
+                        });
                     }
                 }
                 Ok(())
@@ -84,8 +91,17 @@ impl MediaControls {
                 PlaybackPositionChangeRequestedEventArgs,
             >::new(move |_, args| {
                 if let Some(args) = args.as_ref() {
-                    let ms = args.RequestedPlaybackPosition()?.Duration.max(0) as u64 / 10_000;
-                    let _ = sender.try_send(Command::Seek(ms));
+                    let ms = args
+                        .RequestedPlaybackPosition()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("smtc.seek", error)
+                        })?
+                        .Duration
+                        .max(0) as u64
+                        / 10_000;
+                    let _ = (sender.try_send(Command::Seek(ms))).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("sender.try_send", error);
+                    });
                 }
                 Ok(())
             }))
@@ -239,11 +255,21 @@ mod tests {
 #[cfg(windows)]
 impl Drop for MediaControls {
     fn drop(&mut self) {
-        let _ = self.controls.RemoveButtonPressed(self.button_token);
-        let _ = self
+        let _ = (self.controls.RemoveButtonPressed(self.button_token)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("self.controls.RemoveButtonPressed", error);
+        });
+        let _ = (self
             .controls
-            .RemovePlaybackPositionChangeRequested(self.seek_token);
-        let _ = self.controls.SetIsEnabled(false);
+            .RemovePlaybackPositionChangeRequested(self.seek_token))
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn(
+                "self .controls .RemovePlaybackPositionChangeRequested",
+                error,
+            );
+        });
+        let _ = (self.controls.SetIsEnabled(false)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("self.controls.SetIsEnabled", error);
+        });
         // Controls are released after Drop; balancing COM while references remain
         // would be premature. The owning thread exits immediately afterwards.
     }

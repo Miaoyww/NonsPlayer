@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { clearLibraryPreviews } from '@/features/library/library-preview'
 import { coverOriginal, type CoverInput } from '@/features/music/cover-image'
 import { ScopedMusicQueries } from '@/features/music/scoped-query'
@@ -282,7 +283,9 @@ export async function connectPlayer(): Promise<UnlistenFn> {
   }
   function recover() {
     if (playerStore.needsSnapshot)
-      void synchronize().catch(() => {
+      void synchronize().catch((cause) => {
+        reportCaughtError('app/src/lib/player.ts', cause)
+
         // A later event can retry; retain the last consistent view on IPC failure.
       })
   }
@@ -325,6 +328,8 @@ export async function connectPlayer(): Promise<UnlistenFn> {
       listeners.forEach((unlisten) => unlisten())
     }
   } catch (error) {
+    reportCaughtError('app/src/lib/player.ts', error)
+
     disposed = true
     fm.dispose()
     if (privateFm === fm) privateFm = undefined

@@ -74,7 +74,9 @@ impl Files {
         }
         let root =
             Dir::open_ambient_dir(&self.data, ambient_authority()).map_err(|e| e.to_string())?;
-        if let Ok(meta) = std::fs::symlink_metadata(&path) {
+        if let Ok(meta) = (std::fs::symlink_metadata(&path)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             if super::manifest::is_link(&meta) {
                 return Err("专属数据目录不允许链接".into());
             }
@@ -101,6 +103,9 @@ impl Files {
         self.database.grant(plugin, &id, &grant.path, writable)?;
         self.state
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "插件文件管理器不可用")?
             .roots
             .insert(
@@ -114,7 +119,13 @@ impl Files {
         Ok(grant)
     }
     pub fn revoke(&self, plugin: &str, root: Option<&str>) -> AppResult<()> {
-        let mut state = self.state.lock().map_err(|_| "插件文件管理器不可用")?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件文件管理器不可用")?;
         self.database.revoke(plugin, root)?;
         state
             .handles
@@ -125,7 +136,9 @@ impl Files {
         Ok(())
     }
     pub fn close_instance(self: &Arc<Self>, plugin: &str, generation: u64) {
-        if let Ok(mut state) = self.state.try_lock() {
+        if let Ok(mut state) = (self.state.try_lock()).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             state
                 .handles
                 .retain(|_, h| h.plugin != plugin || h.generation != generation);
@@ -136,7 +149,9 @@ impl Files {
             let files = self.clone();
             let plugin = plugin.to_string();
             tauri::async_runtime::spawn_blocking(move || {
-                if let Ok(mut state) = files.state.lock() {
+                if let Ok(mut state) = (files.state.lock()).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_success", error);
+                }) {
                     state
                         .handles
                         .retain(|_, h| h.plugin != plugin || h.generation != generation);
@@ -167,7 +182,13 @@ impl Files {
         data: &[u8],
         active: &std::sync::atomic::AtomicBool,
     ) -> AppResult<()> {
-        let mut state = self.state.lock().map_err(|_| "插件文件管理器不可用")?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件文件管理器不可用")?;
         if !active.load(std::sync::atomic::Ordering::SeqCst) {
             return Err("插件已停用".into());
         }
@@ -178,6 +199,9 @@ impl Files {
             .ok_or("文件句柄已失效或目录授权已撤销")?;
         h.file
             .write_all(data)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "写入文件失败：请检查磁盘空间".to_string())
     }
     pub fn sync_transfer(
@@ -187,7 +211,13 @@ impl Files {
         handle: u64,
         active: &std::sync::atomic::AtomicBool,
     ) -> AppResult<()> {
-        let state = self.state.lock().map_err(|_| "插件文件管理器不可用")?;
+        let state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件文件管理器不可用")?;
         if !active.load(std::sync::atomic::Ordering::SeqCst) {
             return Err("插件已停用".into());
         }
@@ -198,6 +228,9 @@ impl Files {
             .ok_or("文件句柄已失效或目录授权已撤销")?
             .file
             .sync_all()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "保存文件失败".to_string())
     }
     /// Absolute paths are accepted only after the caller validates wildcard authorization.
@@ -249,13 +282,22 @@ impl Files {
             if to.is_absolute() {
                 normalized["to"] = json!(to
                     .strip_prefix(base)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
                     .map_err(|_| "目标须在相同文件系统根内")?
                     .to_string_lossy()
                     .replace('\\', "/"));
             }
         }
         {
-            let mut state = self.state.lock().map_err(|_| "文件管理器不可用")?;
+            let mut state = self
+                .state
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "文件管理器不可用")?;
             if !state.roots.contains_key(&(plugin.into(), root_id.clone())) {
                 if state
                     .roots
@@ -295,7 +337,13 @@ impl Files {
             &json!({"root":root,"path":path}),
             active,
         )?;
-        let state = self.state.lock().map_err(|_| "插件文件管理器不可用")?;
+        let state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件文件管理器不可用")?;
         let root = state
             .roots
             .get(&(plugin.into(), root.into()))
@@ -327,10 +375,19 @@ impl Files {
             let _permit = JOBS
                 .get_or_init(|| tokio::sync::Semaphore::new(2))
                 .try_acquire()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "转换任务繁忙，请稍后重试")?;
             return super::audio_files::decode(self, plugin, generation, args, active);
         }
-        let mut state = self.state.lock().map_err(|_| "插件文件管理器不可用")?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "插件文件管理器不可用")?;
         if !active.load(std::sync::atomic::Ordering::SeqCst) {
             return Err("插件加载代次已失效".into());
         }
@@ -374,6 +431,9 @@ impl Files {
                     }
                     let data = STANDARD
                         .decode(text(args, "data")?)
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
                         .map_err(|_| "文件数据必须为 base64")?;
                     if data.len() > BLOCK {
                         return Err("写入块超过 32KiB".into());
@@ -491,6 +551,12 @@ impl Files {
                     let name = entry
                         .file_name()
                         .into_string()
+                        .inspect_err(|_| {
+                            crate::infrastructure::diagnostics::warn(
+                                "files.list",
+                                "file name is not valid UTF-8",
+                            );
+                        })
                         .map_err(|_| "文件名称不是 UTF-8")?;
                     let kind = entry.file_type().map_err(|e| e.to_string())?;
                     let item =
@@ -522,6 +588,9 @@ impl Files {
                 // Creating a hard link is atomic and fails if the destination exists.
                 root.dir
                     .hard_link(path, &root.dir, to)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
                     .map_err(|_| "保存失败：目标已存在或目录不支持原子发布")?;
                 root.dir.remove_file(path).map_err(|e| e.to_string())?;
                 Ok(Value::Null)

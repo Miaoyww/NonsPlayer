@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { hasPersonalPages } from '@/features/music/source-capabilities'
 import { useState } from 'react'
@@ -32,6 +33,8 @@ export function AccountMenu() {
       await operation()
       await refresh()
     } catch (cause) {
+      reportCaughtError('app/src/features/account/account-menu.tsx', cause)
+
       setActionError(errorText(cause))
     } finally {
       setBusy(false)

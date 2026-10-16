@@ -100,18 +100,37 @@ fn device_configuration(device: Option<&gst::Device>) -> AppResult<(String, gst:
         .ok_or("没有可用的默认输出设备")?;
     let endpoint = selected
         .properties()
-        .and_then(|p| p.get::<String>("device.actual-id").ok())
+        .and_then(|p| {
+            p.get::<String>("device.actual-id")
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
+                .ok()
+        })
         .ok_or("无法解析独占输出设备端点")?;
     let physical = devices
         .iter()
         .find(|d| {
-            d.properties()
-                .is_some_and(|p| p.get::<String>("device.id").ok().as_ref() == Some(&endpoint))
+            d.properties().is_some_and(|p| {
+                p.get::<String>("device.id")
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+                    .as_ref()
+                    == Some(&endpoint)
+            })
         })
         .ok_or("独占输出设备已断开")?;
     let caps = physical
         .properties()
-        .and_then(|p| p.get::<gst::Caps>("device.exclusive-caps").ok())
+        .and_then(|p| {
+            p.get::<gst::Caps>("device.exclusive-caps")
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
+                .ok()
+        })
         .filter(|caps| !caps.is_empty())
         .ok_or("设备未提供可用的独占音频格式，请切回共享模式")?;
     Ok((endpoint, fixed_device_format(physical, caps)))
@@ -125,8 +144,24 @@ fn fixed_device_format(device: &gst::Device, supported: gst::Caps) -> gst::Caps 
         let structure = caps.structure(0)?;
         Some(
             gst::Caps::builder("audio/x-raw")
-                .field("rate", structure.get::<i32>("rate").ok()?)
-                .field("channels", structure.get::<i32>("channels").ok()?)
+                .field(
+                    "rate",
+                    structure
+                        .get::<i32>("rate")
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("optional_result", error);
+                        })
+                        .ok()?,
+                )
+                .field(
+                    "channels",
+                    structure
+                        .get::<i32>("channels")
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("optional_result", error);
+                        })
+                        .ok()?,
+                )
                 .build(),
         )
     });
@@ -189,6 +224,12 @@ pub(super) fn create_exclusive_sink(device: Option<&gst::Device>) -> AppResult<g
     bin.imp()
         .endpoint
         .set(Some(endpoint))
+        .inspect_err(|_| {
+            crate::infrastructure::diagnostics::warn(
+                "audio.exclusive_endpoint",
+                "exclusive endpoint was already set",
+            );
+        })
         .map_err(|_| "独占设备重复设置")?;
     Ok(bin.upcast())
 }

@@ -421,7 +421,10 @@ impl AdapterManager {
                 entry.check(&context)?;
                 Some((entry, context))
             }
-            Err(_) => None,
+            Err(error) => {
+                log::info!(target: "nons::music", "operation=resolve_origin source={} code={:?}; trying resource providers", platform.as_str(), error.code);
+                None
+            }
         };
         let providers = self.audio_candidates(platform)?;
         if selected.is_some_and(|id| {

@@ -31,6 +31,12 @@ pub(crate) fn initialize() -> std::io::Result<()> {
     }
     PORTABLE_DATA
         .set(data)
+        .inspect_err(|_| {
+            crate::infrastructure::diagnostics::warn(
+                "directories.initialize",
+                "data directory was already initialized",
+            );
+        })
         .map_err(|_| std::io::Error::other("数据目录已初始化"))
 }
 

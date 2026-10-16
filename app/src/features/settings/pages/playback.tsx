@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { Switch } from '@/components/ui/switch'
 import { useEffect, useState } from 'react'
@@ -34,7 +35,10 @@ export function PlaybackPage() {
     setSavingTransitions(true)
     setError(undefined)
     void nativeCall('set_playback_options', { options: { ...state.playbackOptions, ...patch } })
-      .catch((cause) => setError(errorText(cause)))
+      .catch((cause) => {
+        reportCaughtError('app/src/features/settings/pages/playback.tsx', cause)
+        return setError(errorText(cause))
+      })
       .finally(() => setSavingTransitions(false))
   }
   useEffect(() => {
@@ -45,6 +49,8 @@ export function PlaybackPage() {
         if (!disposed) setOutputModes(modes)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/settings/pages/playback.tsx', cause)
+
         if (!disposed) setModeError(errorText(cause))
       })
     void nativeCall<OutputDevice[]>('output_devices')
@@ -52,6 +58,8 @@ export function PlaybackPage() {
         if (!disposed) setDevices(value)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/settings/pages/playback.tsx', cause)
+
         if (!disposed) setError(errorText(cause))
       })
     return () => {
@@ -77,13 +85,19 @@ export function PlaybackPage() {
             if (open)
               void nativeCall<OutputDevice[]>('output_devices')
                 .then(setDevices)
-                .catch((cause) => setError(errorText(cause)))
+                .catch((cause) => {
+                  reportCaughtError('app/src/features/settings/pages/playback.tsx', cause)
+                  return setError(errorText(cause))
+                })
           }}
           onValueChange={(deviceId) => {
             setSwitching(true)
             setError(undefined)
             void nativeCall('player_device', { deviceId })
-              .catch((cause) => setError(errorText(cause)))
+              .catch((cause) => {
+                reportCaughtError('app/src/features/settings/pages/playback.tsx', cause)
+                return setError(errorText(cause))
+              })
               .finally(() => setSwitching(false))
           }}
         >
@@ -122,7 +136,10 @@ export function PlaybackPage() {
               setSwitching(true)
               setModeError(undefined)
               void nativeCall('set_audio_output_mode', { mode })
-                .catch((cause) => setModeError(errorText(cause)))
+                .catch((cause) => {
+                  reportCaughtError('app/src/features/settings/pages/playback.tsx', cause)
+                  return setModeError(errorText(cause))
+                })
                 .finally(() => setSwitching(false))
             }}
           >

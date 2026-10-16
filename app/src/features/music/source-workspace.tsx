@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useState } from 'react'
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
 import { ActionButton } from '@/components/music/action-button'
@@ -116,6 +117,8 @@ function SourceCollections({
     try {
       if (await playLibraryCollection(item)) onNotice('已将前 1000 首歌曲加入播放队列。')
     } catch (cause) {
+      reportCaughtError('app/src/features/music/source-workspace.tsx', cause)
+
       onError(cause)
     } finally {
       setPlaying(false)

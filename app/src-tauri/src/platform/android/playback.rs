@@ -113,10 +113,13 @@ pub(crate) fn initialize(sender: SyncSender<Command>) -> AppResult<()> {
                 })
                 .is_err()
             {
-                let _ = call(
+                let _ = (call(
                     "mediaCommandResult",
                     serde_json::json!({"id": request.id, "error": "收藏操作忙碌"}),
-                );
+                ))
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("call", error);
+                });
             }
             return Ok(());
         }
@@ -127,14 +130,25 @@ pub(crate) fn initialize(sender: SyncSender<Command>) -> AppResult<()> {
                     command: Box::new(command),
                     reply,
                 })
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "播放核心忙碌或已退出".to_owned())
         });
         tauri::async_runtime::spawn(async move {
             let result = match result {
                 Ok(()) => tokio::time::timeout(std::time::Duration::from_secs(5), receive)
                     .await
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
                     .map_err(|_| "媒体命令超时".to_owned())
-                    .and_then(|r| r.map_err(|_| "播放核心已退出".to_owned()))
+                    .and_then(|r| {
+                        r.inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "播放核心已退出".to_owned())
+                    })
                     .and_then(|r| r),
                 Err(e) => Err(e),
             };
@@ -142,10 +156,13 @@ pub(crate) fn initialize(sender: SyncSender<Command>) -> AppResult<()> {
                 Ok(snapshot) => (Some(snapshot), None),
                 Err(error) => (None, Some(error)),
             };
-            let _ = call(
+            let _ = (call(
                 "mediaCommandResult",
                 serde_json::json!({"id": request.id, "snapshot": snapshot, "error": error}),
-            );
+            ))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("call", error);
+            });
         });
         Ok(())
     });
@@ -158,7 +175,9 @@ pub(crate) fn update(snapshot: &Snapshot) -> AppResult<()> {
     )
 }
 pub(crate) fn shutdown() {
-    let _ = call("mediaShutdown", serde_json::json!({}));
+    let _ = (call("mediaShutdown", serde_json::json!({}))).inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("call", error);
+    });
 }
 pub(crate) fn debug_status() -> AppResult<serde_json::Value> {
     super::HANDLE
@@ -178,6 +197,9 @@ pub(crate) fn artwork(key: String, url: String) {
         let data = if url.starts_with("http://") || url.starts_with("https://") {
             crate::infrastructure::covers::fetch(url.clone(), &backend)
                 .await
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
                 .ok()
         } else {
             let path = std::path::PathBuf::from(&url);
@@ -191,12 +213,18 @@ pub(crate) fn artwork(key: String, url: String) {
                         .is_ok_and(|m| m.len() <= 4 * 1024 * 1024)
                     {
                         use base64::Engine;
-                        tokio::fs::read(path).await.ok().map(|b| {
-                            format!(
-                                "data:image/png;base64,{}",
-                                base64::engine::general_purpose::STANDARD.encode(b)
-                            )
-                        })
+                        tokio::fs::read(path)
+                            .await
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("optional_result", error);
+                            })
+                            .ok()
+                            .map(|b| {
+                                format!(
+                                    "data:image/png;base64,{}",
+                                    base64::engine::general_purpose::STANDARD.encode(b)
+                                )
+                            })
                     } else {
                         None
                     }
@@ -205,10 +233,13 @@ pub(crate) fn artwork(key: String, url: String) {
             }
         };
         if let Some(data) = data {
-            let _ = call(
+            let _ = (call(
                 "mediaArtwork",
                 serde_json::json!({"key": key, "cover": url, "data": data}),
-            );
+            ))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("call", error);
+            });
         }
     });
 }

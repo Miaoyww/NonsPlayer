@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -25,6 +26,8 @@ export function AboutPage({ version }: { version: string }) {
     try {
       await operation()
     } catch (cause) {
+      reportCaughtError('app/src/features/settings/pages/about.tsx', cause)
+
       setError(errorText(cause))
     }
   }

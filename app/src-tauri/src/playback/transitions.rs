@@ -133,11 +133,13 @@ impl PlaybackFade {
             .property("strict-buffer-size", false)
             .build()
             .map_err(|e| e.to_string())?;
-        if let Some(parent) = self
-            .element
-            .parent()
-            .and_then(|p| p.downcast::<gst::Bin>().ok())
-        {
+        if let Some(parent) = self.element.parent().and_then(|p| {
+            p.downcast::<gst::Bin>()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
+                .ok()
+        }) {
             parent.remove(&self.element).map_err(|e| e.to_string())?;
         }
         // Pacing must not depend on a device clock that waits for its ring buffer
@@ -229,7 +231,11 @@ fn pace_output(element: &gst::Element, pad: &gst::Pad, time: gst::ClockTime) {
         // Bounded waits let state changes and flush interrupt a future timestamp.
         let deadline = clock.time()
             + gst::ClockTime::from_mseconds((lead - OUTPUT_LEAD_MS).min(CLOCK_WAIT_MS));
-        let _ = clock.new_single_shot_id(deadline).wait();
+        let _ = (clock.new_single_shot_id(deadline).wait())
+            .0
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("clock.new_single_shot_id", error);
+            });
     }
 }
 

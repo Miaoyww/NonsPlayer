@@ -29,9 +29,14 @@ pub(crate) async fn resource_provider_set_enabled(
     let changed = id.clone();
     tauri::async_runtime::spawn_blocking(move || settings.set_resource_enabled(id, enabled))
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "音源设置任务失败")??;
     use tauri::Emitter;
-    let _ = app.emit("adapters-changed", changed);
+    let _ = (app.emit("adapters-changed", changed)).inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("app.emit", error);
+    });
     Ok(())
 }
 #[derive(Serialize)]
@@ -65,7 +70,9 @@ pub(crate) async fn resource_search(
         .map_err(|e| e.to_string())?;
     for track in &mut tracks {
         if track.duration_ms == 0 {
-            if let Ok(existing) = backend.store.track(&track.key) {
+            if let Ok(existing) = (backend.store.track(&track.key)).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            }) {
                 if existing.source_id() == track.source_id() && existing.duration_ms > 0 {
                     *track = existing;
                 }
@@ -128,5 +135,10 @@ pub(crate) async fn player_select_source(
         selection: super::service::PlaybackSelection { provider, track },
         reply,
     })?;
-    response.await.map_err(|_| "音源切换任务已结束")?
+    response
+        .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "音源切换任务已结束")?
 }

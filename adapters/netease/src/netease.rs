@@ -39,7 +39,10 @@ impl NeteaseAdapter {
             client.scoped(&context)
         })
         .await
-        .map_err(|_| ErrorCode::Internal)?
+        .map_err(|error| {
+            crate::diagnostics::warn("account.scoped.join", &error);
+            ErrorCode::Internal
+        })?
     }
     async fn invalidate_on_error<T>(
         &self,
@@ -51,7 +54,12 @@ impl NeteaseAdapter {
             .is_err_and(|error| error.code == ErrorCode::Unauthenticated)
         {
             if let Some(accounts) = &self.client.accounts {
-                let _ = accounts.invalidate(context.session.clone()).await;
+                let _ = accounts
+                    .invalidate(context.session.clone())
+                    .await
+                    .inspect_err(|error| {
+                        crate::diagnostics::warn("account.invalidate", error);
+                    });
             } else {
                 self.client
                     .invalidate_session(context.session.generation)
@@ -167,9 +175,10 @@ impl MusicAdapter for NeteaseAdapter {
             let client = self.scoped_client(context).await?;
             let result = client.song(numeric_id(reference)?).await;
             let track = self.invalidate_on_error(result, context).await?;
-            super::migration::legacy_track(
-                &serde_json::to_string(&track).map_err(|_| ErrorCode::InvalidData)?,
-            )
+            super::migration::legacy_track(&serde_json::to_string(&track).map_err(|error| {
+                crate::diagnostics::warn("track.encode", &error);
+                ErrorCode::InvalidData
+            })?)
             .map(|v| v.track)
         })
     }

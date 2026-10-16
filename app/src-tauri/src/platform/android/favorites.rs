@@ -32,29 +32,50 @@ struct Favorites {
 impl Favorites {
     fn publish(&mut self, pending: bool) {
         self.sequence += 1;
-        let _ = super::playback::call(
+        let _ = (super::playback::call(
             "mediaFavorite",
             serde_json::json!({
                 "key": self.key, "sequence": self.sequence,
                 "liked": self.reference.as_ref().is_some_and(|r| self.ids.contains(r)),
                 "available": self.available && !pending,
             }),
-        );
+        ))
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("super::playback::call", error);
+        });
     }
     async fn refresh(&mut self, backend: &crate::Backend) {
         let track = backend
             .player
             .snapshot()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_result", error);
+            })
             .ok()
             .and_then(|s| s.current().cloned());
         let key = track.as_ref().map_or_else(String::new, |t| t.key.clone());
         let reference = track
             .filter(|t| !matches!(t.source, TrackSource::Local { .. }))
-            .and_then(|t| nons_music_adapter_sdk::migration::convert_track(t).ok())
+            .and_then(|t| {
+                nons_music_adapter_sdk::migration::convert_track(t)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+            })
             .map(|t| t.track.reference);
         let scope = reference
             .as_ref()
-            .and_then(|r| backend.music.adapters.cache_identity(&r.source).ok())
+            .and_then(|r| {
+                backend
+                    .music
+                    .adapters
+                    .cache_identity(&r.source)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+            })
             .unwrap_or_default();
         let changed = scope != self.scope || reference != self.reference || key != self.key;
         let expired = self.refreshed.is_none_or(|time| {
@@ -85,22 +106,31 @@ impl Favorites {
             return;
         };
         // The manager enforces capabilities, login, instance generations and read budgets.
-        if let Ok(BusinessResponse::Favorites(ids)) = backend
+        if let Ok(BusinessResponse::Favorites(ids)) = (backend
             .music
             .adapters
             .business(&reference.source, &BusinessRequest::Favorites)
-            .await
+            .await)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            })
         {
             if backend
                 .music
                 .adapters
                 .cache_identity(&reference.source)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
                 .ok()
                 .as_deref()
                 != Some(&scope)
                 || backend
                     .player
                     .snapshot()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
                     .ok()
                     .and_then(|s| s.current().map(|t| t.key.clone()))
                     .as_deref()
@@ -133,6 +163,9 @@ impl Favorites {
                 .music
                 .adapters
                 .cache_identity(&reference.source)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
                 .ok()
                 .as_deref()
                 != Some(&self.scope)
@@ -169,6 +202,9 @@ impl Favorites {
                     .music
                     .adapters
                     .stamp(&reference.source)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
                     .ok()
                     .as_ref()
                     == Some(&stamp) =>
@@ -183,9 +219,14 @@ impl Favorites {
                     .adapters
                     .cache_identity(&reference.source)
                     .map_err(|e| e.to_string())?;
-                let _ = app.emit("music-changed", &reference.source);
+                let _ = (app.emit("music-changed", &reference.source)).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("app.emit", error);
+                });
                 // Also refresh the legacy bundled-provider account UI through its existing API/cache.
-                let _ = app.emit("media-favorite-changed", &reference.source);
+                let _ =
+                    (app.emit("media-favorite-changed", &reference.source)).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("app.emit", error);
+                    });
                 self.publish(false);
                 Ok(())
             }
@@ -220,9 +261,9 @@ pub(super) fn initialize() -> tokio::sync::mpsc::Sender<Request> {
                     let result = if let Some(backend) = app.try_state::<crate::Backend>() {
                         favorites.toggle(&request, &app, &backend).await
                     } else { Err("音乐服务尚未就绪".into()) };
-                    let _ = super::playback::call("mediaCommandResult", serde_json::json!({
+                    let _ = (super::playback::call("mediaCommandResult", serde_json::json!({
                         "id": request.id, "error": result.err(),
-                    }));
+                    }))).inspect_err(|error| { crate::infrastructure::diagnostics::warn("super::playback::call", error); });
                 }
                 _ = interval.tick() => {
                     if let Some(backend) = app.try_state::<crate::Backend>() { favorites.refresh(&backend).await; }

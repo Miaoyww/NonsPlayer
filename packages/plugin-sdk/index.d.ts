@@ -1,5 +1,7 @@
 import type { ComponentType, ReactNode, ComponentProps } from 'react'
 export type PluginSong = import('./music').MusicTrack
+/** Records a recovered failure in the console and bounded, redacted local log. */
+export function reportCaughtError(operation: string, cause: unknown): void
 export function usePluginBackend(): {
   call<T = unknown>(method: string, args?: unknown): Promise<T>
 }

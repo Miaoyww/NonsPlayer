@@ -46,7 +46,12 @@ impl ClipboardHandler for Handler {
 pub const MAX_TEXT: usize = 16 * 1024;
 
 fn read_context(context: &ClipboardContext) -> AppResult<String> {
-    let text = context.get_text().map_err(|_| "剪贴板中没有可读取的文本")?;
+    let text = context
+        .get_text()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "剪贴板中没有可读取的文本")?;
     if text.len() > MAX_TEXT {
         return Err("剪贴板文本超过 16KiB".into());
     }
@@ -82,13 +87,18 @@ pub fn start(manager: &Arc<PluginManager>) -> AppResult<Shutdown> {
                     }
                 }
                 Err(error) => {
-                    let _ = sender.send(Err(error));
+                    let _ = (sender.send(Err(error))).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("sender.send", error);
+                    });
                 }
             }
         })
         .map_err(|e| e.to_string())?;
     receiver
         .recv_timeout(Duration::from_secs(2))
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "剪贴板监听初始化超时")?
 }
 #[cfg(not(windows))]

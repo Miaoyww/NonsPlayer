@@ -34,7 +34,13 @@ pub struct Transfers {
 }
 impl Transfers {
     pub fn call(&self, context: Context, operation: &str, args: &Value) -> AppResult<Value> {
-        let mut tasks = self.tasks.lock().map_err(|_| "传输管理器不可用")?;
+        let mut tasks = self
+            .tasks
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "传输管理器不可用")?;
         if operation != "transfers.start" {
             let id = args
                 .get("id")
@@ -48,7 +54,13 @@ impl Transfers {
                 task.cancel.store(true, Ordering::SeqCst);
             }
             if matches!(operation, "transfers.pause" | "transfers.resume") {
-                let mut snapshot = task.snapshot.lock().map_err(|_| "传输状态不可用")?;
+                let mut snapshot = task
+                    .snapshot
+                    .lock()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| "传输状态不可用")?;
                 if matches!(snapshot.state.as_str(), "running" | "paused") {
                     let paused = operation == "transfers.pause";
                     task.paused.store(paused, Ordering::SeqCst);
@@ -56,7 +68,13 @@ impl Transfers {
                 }
             }
             return serde_json::to_value(
-                task.snapshot.lock().map_err(|_| "传输状态不可用")?.clone(),
+                task.snapshot
+                    .lock()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| "传输状态不可用")?
+                    .clone(),
             )
             .map_err(|e| e.to_string());
         }
@@ -156,7 +174,9 @@ impl Transfers {
                 (&cancel, &paused),
             )
             .await;
-            if let Ok(mut state) = snapshot.lock() {
+            if let Ok(mut state) = (snapshot.lock()).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            }) {
                 state.state = if result.is_ok() {
                     "completed"
                 } else if cancel.load(Ordering::SeqCst) || !context.active.load(Ordering::SeqCst) {
@@ -224,6 +244,9 @@ async fn run(
         json!({"root":root,"path":path,"mode":"create"}),
     )
     .await
+    .inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("translate_error", error);
+    })
     .map_err(|_| "创建文件失败")??;
     let handle = opened["handle"].as_u64().ok_or("文件句柄无效")?;
     let transfer = async {
@@ -237,7 +260,13 @@ async fn run(
                 .send(),
         )
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "连接资源超时")?
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "连接资源失败")?;
         context.http.check_target(&response)?;
         if !response.status().is_success() {
@@ -247,7 +276,13 @@ async fn run(
         if total.is_some_and(|n| n > max) {
             return Err("资源超过传输大小上限".into());
         }
-        snapshot.lock().map_err(|_| "传输状态不可用")?.total = total;
+        snapshot
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "传输状态不可用")?
+            .total = total;
         let mut bytes = 0u64;
         let mut network_time = Duration::ZERO;
         loop {
@@ -257,7 +292,13 @@ async fn run(
             let started = std::time::Instant::now();
             let chunk = tokio::time::timeout(Duration::from_secs(30), response.chunk())
                 .await
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "传输停滞超过 30 秒")?
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "读取资源失败")?;
             network_time += started.elapsed();
             if network_time > Duration::from_secs(600) {
@@ -283,9 +324,18 @@ async fn run(
                     files.write_transfer(&plugin, generation, handle, &data, &active)
                 })
                 .await
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "文件写入失败")??;
             }
-            snapshot.lock().map_err(|_| "传输状态不可用")?.bytes = bytes;
+            snapshot
+                .lock()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "传输状态不可用")?
+                .bytes = bytes;
         }
         if bytes == 0 || total.is_some_and(|n| n != bytes) {
             return Err("资源内容不完整".into());
@@ -298,6 +348,9 @@ async fn run(
             files.sync_transfer(&plugin, generation, handle, &active)
         })
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "文件保存失败")??;
         Ok(())
     };
@@ -307,9 +360,13 @@ async fn run(
             tokio::time::sleep(Duration::from_millis(50)).await;
         } } => Err("传输已取消".into()),
     };
-    let _ = io("files.close", json!({"handle":handle})).await;
+    let _ = (io("files.close", json!({"handle":handle})).await).inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("io", error);
+    });
     if result.is_err() {
-        let _ = io("files.remove", json!({"root":root,"path":path})).await;
+        let _ = (io("files.remove", json!({"root":root,"path":path})).await).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("io", error);
+        });
     }
     result
 }

@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { nativeCall, type Lyrics, type Track } from '@/lib/player'
 import type { LyricSources } from '@/features/lyrics/use-lyric-sources'
 
@@ -21,6 +22,8 @@ export async function loadLyrics<T>(
       try {
         return { lyrics, parsed: parse(lyrics) }
       } catch (cause) {
+        reportCaughtError('app/src/features/lyrics/load-lyrics.ts', cause)
+
         if (skipEmbedded) throw cause
       }
     }
@@ -44,6 +47,8 @@ export async function loadLyrics<T>(
     try {
       return { lyrics, parsed: parse(lyrics) }
     } catch (cause) {
+      reportCaughtError('app/src/features/lyrics/load-lyrics.ts', cause)
+
       if (lyrics?.source === 'amll') skipAmll = true
       else if (lyrics?.source === 'qq' && lyrics.format === 'qrc' && !skipQrc) skipQrc = true
       else if (lyrics?.source === 'qq') skipQq = true

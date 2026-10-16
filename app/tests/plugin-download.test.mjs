@@ -3,7 +3,7 @@ import { musicReference } from './helpers/music-reference.mjs'
 import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { runInNewContext } from 'node:vm'
+import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import { test } from 'node:test'
 import { createCipheriv, createHash, webcrypto } from 'node:crypto'
 import ts from 'typescript'
@@ -69,6 +69,30 @@ const protocol = load('../../plugins/netease-download/frontend/protocol.ts', {
   '@noble/hashes/utils.js': { bytesToHex }
 })
 const menus = load('../src/plugins/song-menu-context.ts')
+
+test('malformed download responses log the parser cause before showing the stable retry message', async () => {
+  const reports = []
+  const protocol = load('../../plugins/netease-download/frontend/protocol.ts', {
+    '@noble/ciphers/aes.js': { ecb },
+    '@noble/hashes/legacy.js': { md5 },
+    '@noble/hashes/utils.js': { bytesToHex },
+    '@app/plugin-sdk': {
+      reportCaughtError: (operation, cause) => reports.push({ operation, cause })
+    }
+  })
+  await assert.rejects(
+    protocol.api(
+      { call: async () => ({ status: 200, body: 'invalid json' }) },
+      '/api/test',
+      {},
+      ''
+    ),
+    /网易云返回了无效响应，请重试/
+  )
+  assert.equal(reports.length, 1)
+  assert.equal(reports[0].operation, 'netease-download.response.parse')
+  assert.equal(reports[0].cause.name, 'SyntaxError')
+})
 
 test('completed songs resolve authorized local files, retain available rows and play through the scoped file capability', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/' })

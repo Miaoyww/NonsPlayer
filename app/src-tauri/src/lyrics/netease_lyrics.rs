@@ -13,6 +13,9 @@ pub(crate) async fn lookup(
 ) -> AppResult<Option<Lyrics>> {
     tokio::time::timeout(Duration::from_secs(6), lookup_inner(api, track, separators))
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "网易云歌词搜索超时".to_string())?
 }
 
@@ -29,7 +32,8 @@ async fn lookup_inner(
     for query in lyric_matching::queries(track, separators) {
         let candidates = match api.search(&query, 0).await {
             Ok(value) => value,
-            Err(_) => {
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn("error_fallback", error);
                 failed = true;
                 continue;
             }

@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
@@ -55,11 +56,17 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
         if (!disposed && current === revision) setStatus(snapshot)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/updates/update-provider.tsx', cause)
+
         if (!disposed) setError(errorText(cause))
       })
     return () => {
       disposed = true
-      void subscription.then((unlisten) => unlisten()).catch(() => {})
+      void subscription
+        .then((unlisten) => unlisten())
+        .catch((cause) => {
+          reportCaughtError('app/src/features/updates/update-provider.tsx', cause)
+        })
     }
   }, [])
   useEffect(() => {
@@ -77,6 +84,8 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     try {
       await nativeCall(command)
     } catch (cause) {
+      reportCaughtError('app/src/features/updates/update-provider.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       operation.current = false

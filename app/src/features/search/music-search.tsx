@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Combobox as Primitive } from '@base-ui/react/combobox'
@@ -24,7 +25,9 @@ function readHistory(limit = 10): string[] {
           .map((value) => value.trim())
       )
     ].slice(0, limit)
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/search/music-search.tsx', cause)
+
     return []
   }
 }
@@ -67,7 +70,9 @@ export function MusicSearch({ pageMode = false }: { pageMode?: boolean } = {}) {
             setOpen(items.length > 0)
           }
         })
-        .catch(() => {
+        .catch((cause) => {
+          reportCaughtError('app/src/features/search/music-search.tsx', cause)
+
           if (!disposed) setSuggestions([])
         })
     }, 250)
@@ -86,7 +91,9 @@ export function MusicSearch({ pageMode = false }: { pageMode?: boolean } = {}) {
       setHistory(next)
       try {
         localStorage.setItem(historyKey, JSON.stringify(next))
-      } catch {
+      } catch (cause) {
+        reportCaughtError('app/src/features/search/music-search.tsx', cause)
+
         /* History remains available for this session if storage is unavailable. */
       }
     }
@@ -138,7 +145,9 @@ export function MusicSearch({ pageMode = false }: { pageMode?: boolean } = {}) {
                   setHistory([])
                   try {
                     localStorage.removeItem(historyKey)
-                  } catch {
+                  } catch (cause) {
+                    reportCaughtError('app/src/features/search/music-search.tsx', cause)
+
                     /* Storage is optional. */
                   }
                 }}

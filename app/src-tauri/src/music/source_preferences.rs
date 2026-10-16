@@ -25,9 +25,11 @@ pub struct SourceSettings {
 impl SourceSettings {
     pub fn new(store: Arc<Store>, adapters: Arc<AdapterManager>) -> AppResult<Self> {
         let state = match store.setting(KEY)? {
-            Some(value) => {
-                serde_json::from_str::<SourcePreferences>(&value).map_err(|_| "音乐来源配置损坏")?
-            }
+            Some(value) => serde_json::from_str::<SourcePreferences>(&value)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
+                .map_err(|_| "音乐来源配置损坏")?,
             None => SourcePreferences {
                 current: super::bundled::default_source(),
                 supplementary: vec![],
@@ -62,6 +64,9 @@ impl SourceSettings {
         Ok(self
             .state
             .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "音乐来源配置锁不可用")?
             .clone())
     }
@@ -76,7 +81,13 @@ impl SourceSettings {
     }
 
     pub fn begin_intent(&self) -> AppResult<u64> {
-        let mut intent = self.intent.lock().map_err(|_| "来源操作锁不可用")?;
+        let mut intent = self
+            .intent
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "来源操作锁不可用")?;
         *intent = intent.checked_add(1).ok_or("来源操作代次已耗尽")?;
         Ok(*intent)
     }
@@ -109,12 +120,24 @@ impl SourceSettings {
     ) -> AppResult<SourcePreferences> {
         // Keep intent checking and publication in one critical section. A delayed login
         // cannot win after a newer login, saved-account selection or explicit switch.
-        let mut intent = self.intent.lock().map_err(|_| "来源操作锁不可用")?;
+        let mut intent = self
+            .intent
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "来源操作锁不可用")?;
         if expected_intent.is_some_and(|expected| expected != *intent) {
             return Err("来源操作已被更新的操作取代".into());
         }
         let next_intent = intent.checked_add(1).ok_or("来源操作代次已耗尽")?;
-        let mut state = self.state.lock().map_err(|_| "音乐来源配置锁不可用")?;
+        let mut state = self
+            .state
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "音乐来源配置锁不可用")?;
         if state.revision != revision {
             return Err("音乐来源配置已变化，请刷新后重试".into());
         }
@@ -177,8 +200,13 @@ pub async fn music_use_source(
     let settings = settings.inner().clone();
     let next = tauri::async_runtime::spawn_blocking(move || settings.use_source(current, intent))
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "来源切换任务失败")??;
-    let _ = app.emit("music-source-preferences-changed", &next);
+    let _ = (app.emit("music-source-preferences-changed", &next)).inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("app.emit", error);
+    });
     Ok(next)
 }
 
@@ -203,8 +231,13 @@ pub async fn music_set_source_preferences(
         settings.update(current, supplementary, revision)
     })
     .await
+    .inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("translate_error", error);
+    })
     .map_err(|_| "音乐来源配置任务失败")??;
-    let _ = app.emit("music-source-preferences-changed", &next);
+    let _ = (app.emit("music-source-preferences-changed", &next)).inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("app.emit", error);
+    });
     Ok(next)
 }
 

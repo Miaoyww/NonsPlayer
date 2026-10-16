@@ -36,6 +36,9 @@ pub(super) async fn fetch(
             .map_err(|e| e.to_string())?
     })
     .await
+    .inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn("translate_error", error);
+    })
     .map_err(|_| "QQ 补充歌词查询超时".to_string())?
 }
 
@@ -63,7 +66,13 @@ fn decode(value: Value) -> AppResult<Option<Lyrics>> {
         data[field]
             .as_str()
             .filter(|s| !s.trim().is_empty())
-            .and_then(|s| decode_qrc_field(s).ok())
+            .and_then(|s| {
+                decode_qrc_field(s)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                    })
+                    .ok()
+            })
             .filter(|s| !s.trim().is_empty())
     };
     let translation = auxiliary("trans");

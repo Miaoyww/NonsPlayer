@@ -3,7 +3,7 @@ import { coverImage } from './helpers/cover-image.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { runInNewContext } from 'node:vm'
+import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
 test('plugin song menus preserve online references and never classify unknown platforms as local or Netease', () => {

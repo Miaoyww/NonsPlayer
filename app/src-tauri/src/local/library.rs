@@ -41,8 +41,20 @@ pub fn import(
     let mut complete = true;
     let mut cover_bytes: u64 = std::fs::read_dir(&cover_dir)
         .map_err(|e| e.to_string())?
-        .filter_map(Result::ok)
-        .filter_map(|e| e.metadata().ok())
+        .filter_map(|result| {
+            result
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("local.scan_cover_directory", error)
+                })
+                .ok()
+        })
+        .filter_map(|e| {
+            e.metadata()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                })
+                .ok()
+        })
         .map(|m| m.len())
         .sum();
     for root in paths {
@@ -50,7 +62,8 @@ pub fn import(
         for entry in walkdir::WalkDir::new(root).follow_links(false).max_open(8) {
             let entry = match entry {
                 Ok(e) => e,
-                Err(_) => {
+                Err(error) => {
+                    crate::infrastructure::diagnostics::warn("error_fallback", error);
                     report.skipped += 1;
                     complete = false;
                     continue;
@@ -59,7 +72,9 @@ pub fn import(
             if !entry.file_type().is_file() || !is_audio(entry.path()) {
                 continue;
             }
-            if let Ok(path) = entry.path().canonicalize() {
+            if let Ok(path) = (entry.path().canonicalize()).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("optional_success", error);
+            }) {
                 let path = path
                     .to_string_lossy()
                     .trim_start_matches(r"\\?\")
@@ -78,6 +93,7 @@ pub fn import(
                     report.imported += 1;
                 }
                 Err(error) => {
+                    crate::infrastructure::diagnostics::warn("local.read_track", &error);
                     report.skipped += 1;
                     if report.errors.len() < 20 {
                         report
@@ -114,7 +130,12 @@ fn read_track(
     store: &Store,
     cover_bytes: &mut u64,
 ) -> AppResult<Track> {
-    let path = path.canonicalize().map_err(|_| "文件路径不可用")?;
+    let path = path
+        .canonicalize()
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "文件路径不可用")?;
     let path = path
         .to_string_lossy()
         .trim_start_matches(r"\\?\")
@@ -125,7 +146,9 @@ fn read_track(
     if store.file_unchanged(&key, &modified, metadata.len())?
         && store.has_local_information(&key)?
     {
-        if let Ok(track) = store.track(&key) {
+        if let Ok(track) = (store.track(&key)).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_success", error);
+        }) {
             return Ok(track);
         }
     }
@@ -159,6 +182,9 @@ fn read_track(
     // Re-importing a file must preserve a user's explicit lyric binding.
     let netease_id = store
         .track(&key)
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("optional_result", error);
+        })
         .ok()
         .and_then(|t| t.netease_id())
         .or_else(|| ncm_info.as_ref().map(|i| i.id).filter(|id| *id > 0));

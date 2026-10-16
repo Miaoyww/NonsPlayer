@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { useSyncExternalStore } from 'react'
 
 const storageKey = 'nons-lyrics-background-speed'
@@ -8,7 +9,9 @@ try {
   const stored = localStorage.getItem(storageKey)
   const value = stored === null ? NaN : Number(stored)
   if (Number.isFinite(value) && value >= 0 && value <= 4) backgroundSpeed = value
-} catch {
+} catch (cause) {
+  reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
   /* Keep the default when storage is unavailable. */
 }
 
@@ -24,7 +27,9 @@ function setBackgroundSpeed(value: number) {
   backgroundSpeed = Math.max(0, Math.min(4, value))
   try {
     localStorage.setItem(storageKey, String(backgroundSpeed))
-  } catch {
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
     /* Changes still work for this session. */
   }
   listeners.forEach((notify) => notify())

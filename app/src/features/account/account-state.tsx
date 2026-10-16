@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import {
   createContext,
   useCallback,
@@ -145,6 +146,8 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
         updateProfile((previous) => reconcileProfile(previous, current))
       })()
         .catch((cause) => {
+          reportCaughtError('app/src/features/account/account-state.tsx', cause)
+
           if (!disposed && serial === generation.current) setError(errorText(cause))
         })
         .finally(() => {
@@ -237,6 +240,8 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
         setLikesReady(true)
       })
       .catch((cause) => {
+        reportCaughtError('app/src/features/account/account-state.tsx', cause)
+
         if (serial === likesGeneration.current) setLikesError(errorText(cause))
       })
     return () => {

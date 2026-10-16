@@ -66,11 +66,19 @@ impl Sockets {
         {
             return Err("WebSocket 参数或上下文无效".into());
         }
-        let mut url = url::Url::parse(&input).map_err(|_| "WebSocket 地址无效")?;
+        let mut url = url::Url::parse(&input)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "WebSocket 地址无效")?;
         if url.scheme() != "wss" {
             return Err("WebSocket 仅支持 WSS".into());
         }
-        url.set_scheme("https").map_err(|_| "WebSocket 地址无效")?;
+        url.set_scheme("https")
+            .inspect_err(|_| {
+                super::diagnostics::warn("websocket.set_scheme", "invalid scheme transition");
+            })
+            .map_err(|_| "WebSocket 地址无效")?;
         let url = checked_url(hosts, url.as_str())?;
         let mut connections = self.connections.lock().await;
         if connections.len() >= 2 {
@@ -79,23 +87,44 @@ impl Sockets {
         let id = self
             .next
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |id| id.checked_add(1))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "WebSocket 句柄耗尽")?;
         let socket = tokio::time::timeout(Duration::from_millis(timeout_ms as u64), async {
             let addresses =
                 public_addresses(url.host_str().ok_or("WebSocket 目标无效")?, 443).await?;
             let tcp = tokio::net::TcpStream::connect(addresses.as_slice())
                 .await
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "WebSocket 连接失败")?;
-            if !public_ip(tcp.peer_addr().map_err(|_| "WebSocket 目标不可验证")?.ip()) {
+            if !public_ip(
+                tcp.peer_addr()
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
+                    .map_err(|_| "WebSocket 目标不可验证")?
+                    .ip(),
+            ) {
                 return Err("WebSocket 连接目标不是公网".into());
             }
             let mut request = input
                 .into_client_request()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "WebSocket 握手参数无效")?;
             if !protocol.is_empty() {
                 request.headers_mut().insert(
                     "sec-websocket-protocol",
-                    protocol.parse().map_err(|_| "WebSocket 子协议无效")?,
+                    protocol
+                        .parse()
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                        })
+                        .map_err(|_| "WebSocket 子协议无效")?,
                 );
             }
             let config = WebSocketConfig::default()
@@ -106,12 +135,21 @@ impl Sockets {
             let (socket, response) =
                 tokio_tungstenite::client_async_tls_with_config(request, tcp, Some(config), None)
                     .await
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                    })
                     .map_err(|_| "WebSocket TLS 或握手失败")?;
             if !protocol.is_empty()
                 && response
                     .headers()
                     .get("sec-websocket-protocol")
-                    .and_then(|v| v.to_str().ok())
+                    .and_then(|v| {
+                        v.to_str()
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::warn("optional_result", error);
+                            })
+                            .ok()
+                    })
                     != Some(protocol.as_str())
             {
                 return Err("WebSocket 子协议未获确认".into());
@@ -119,6 +157,9 @@ impl Sockets {
             Ok::<_, String>(socket)
         })
         .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
         .map_err(|_| "WebSocket 连接超时")??;
         let (commands, mut command_rx) = mpsc::channel(16);
         let events = self.events.clone();
@@ -129,20 +170,23 @@ impl Sockets {
             loop {
                 tokio::select! {
                     command = command_rx.recv() => match command {
-                        Some(Command::Send(bytes)) => if writer.send(Frame::Binary(bytes.into())).await.is_err() { break; },
-                        _ => { let _ = writer.send(Frame::Close(None)).await; break; }
+                        Some(Command::Send(bytes)) => if let Err(error) = writer.send(Frame::Binary(bytes.into())).await { super::diagnostics::warn("websocket.send", error); break; },
+                        _ => { let _ = (writer.send(Frame::Close(None)).await).inspect_err(|error| { crate::infrastructure::diagnostics::warn("writer.send", error); }); break; }
                     },
                     frame = reader.next() => match frame {
-                        Some(Ok(Frame::Binary(bytes))) => if events.try_send(Event::Binary(Message { socket: id, data: bytes.to_vec() })).is_err() { break; },
-                        Some(Ok(Frame::Ping(bytes))) => if writer.send(Frame::Pong(bytes)).await.is_err() { break; },
+                        Some(Ok(Frame::Binary(bytes))) => if let Err(error) = events.try_send(Event::Binary(Message { socket: id, data: bytes.to_vec() })) { super::diagnostics::warn("websocket.publish_binary", error); break; },
+                        Some(Ok(Frame::Ping(bytes))) => if let Err(error) = writer.send(Frame::Pong(bytes)).await { super::diagnostics::warn("websocket.pong", error); break; },
                         Some(Ok(Frame::Pong(_))) => (),
+                        Some(Err(error)) => { super::diagnostics::warn("websocket.receive", error); break; },
                         _ => break,
                     },
                     _ = tokio::time::sleep(Duration::from_millis(20)) => if !active.load(Ordering::Acquire) { break; },
                 }
             }
             failed.store(id, Ordering::Release);
-            let _ = events.try_send(Event::Closed(id));
+            let _ = (events.try_send(Event::Closed(id))).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("events.try_send", error);
+            });
         });
         connections.insert(
             id,
@@ -162,17 +206,24 @@ impl Sockets {
         connection
             .commands
             .try_send(Command::Send(bytes))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
             .map_err(|_| "WebSocket 已关闭或发送队列已满".into())
     }
     pub async fn close(&self, socket: u32) -> AppResult<()> {
         if let Some(mut connection) = self.connections.lock().await.remove(&socket) {
-            let _ = connection.commands.try_send(Command::Close);
+            let _ = (connection.commands.try_send(Command::Close)).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("connection.commands.try_send", error);
+            });
             if let Some(mut task) = connection.task.take() {
-                if tokio::time::timeout(Duration::from_secs(1), &mut task)
-                    .await
-                    .is_err()
-                {
-                    task.abort();
+                match tokio::time::timeout(Duration::from_secs(1), &mut task).await {
+                    Ok(Ok(())) => {}
+                    Ok(Err(error)) => super::diagnostics::warn("websocket.join", error),
+                    Err(error) => {
+                        super::diagnostics::warn("websocket.close_timeout", error);
+                        task.abort();
+                    }
                 }
             }
         }

@@ -4,9 +4,10 @@ import { test } from 'node:test'
 import { runInThisContext } from 'node:vm'
 import ts from 'typescript'
 
-function harness(failLog = false) {
+function harness(failLog = false, holdLogs = false) {
   const calls = [],
     consoleLogs = [],
+    completions = [],
     handlers = new Map()
   const output = ts.transpileModule(
     readFileSync(new URL('../src/lib/diagnostics.ts', import.meta.url), 'utf8'),
@@ -25,6 +26,7 @@ function harness(failLog = false) {
         calls.push({ command, args })
         if (command === 'diagnostic_report') {
           if (failLog) throw new Error('disk unavailable')
+          if (holdLogs) await new Promise((resolve) => completions.push(resolve))
           return
         }
         throw { code: 'internal', message: 'database table missing', stage: 'save_queue_tracks' }
@@ -35,8 +37,56 @@ function harness(failLog = false) {
     ),
     { addEventListener: (name, callback) => handlers.set(name, callback) }
   )
-  return { ...exports, calls, consoleLogs, handlers }
+  return { ...exports, calls, consoleLogs, handlers, completions }
 }
+
+test('caught errors keep the original cause, deduplicate recovery boundaries and classify expected retries', async () => {
+  const app = harness()
+  let original
+  try {
+    await app.diagnosticInvoke('music_query')
+  } catch (cause) {
+    original = cause
+    app.reportCaughtError('query.recover', cause)
+  }
+  assert.equal(original.message, 'database table missing')
+  assert.equal(app.calls.filter((call) => call.command === 'diagnostic_report').length, 1)
+  for (const code of [
+    'staleContext',
+    'cancelled',
+    'cacheInvalidated',
+    'writeRevisionChanged',
+    'emptyLyrics'
+  ]) {
+    app.reportCaughtError('query.retry', { code, message: 'expected lifecycle change' })
+    assert.equal(app.calls.at(-1).args.entry.level, 'info')
+  }
+  const cause = new Error('fallback failed')
+  app.reportCaughtError('fallback', cause)
+  app.reportCaughtError('page', cause)
+  assert.equal(app.calls.at(-1).args.entry.level, 'error')
+  assert.match(app.calls.at(-1).args.entry.message, /fallback failed/)
+})
+
+test('a burst stays bounded and records an overflow count after the sink recovers', async () => {
+  const app = harness(false, true)
+  for (let i = 0; i < 100; i++) {
+    app.reportCaughtError('burst', new Error(`failure ${i}`))
+  }
+  assert.ok(app.completions.length <= 16)
+  for (let round = 0; round < 10; round++) {
+    app.completions.splice(0).forEach((resolve) => resolve())
+    await new Promise((resolve) => setTimeout(resolve, 140))
+  }
+  const entries = app.calls
+    .filter((call) => call.command === 'diagnostic_report')
+    .map((call) => call.args.entry)
+  const summary = entries.find((entry) => entry.code === 'diagnosticOverflow')
+  assert.ok(summary, 'overflow must leave a file diagnostic')
+  const dropped = Number(summary.message.match(/dropped=(\d+)/)?.[1])
+  assert.ok(dropped > 0)
+  assert.equal(entries.filter((entry) => entry.operation === 'burst').length + dropped, 100)
+})
 
 test('handled music failures log operation, source, duration and code without request payloads', async () => {
   const app = harness()
@@ -69,10 +119,22 @@ test('redaction removes URLs, credential tails, JSON payloads and log line injec
     'response {"data":"SECRET"}',
     'failed token=SECRET',
     'failed credential: SECRET',
-    'failed\nCookie: SECRET'
+    'failed\nCookie: SECRET',
+    'invalid type: string "SECRET", expected a boolean at line 1 column 8',
+    'invalid value: string "SECRET\\"more", expected a number',
+    'unknown variant "SECRET", expected `ok` or `error`',
+    'invalid type: string "SECRET'
   ])
     assert.ok(!app.redactDiagnostic(text).includes('SECRET'))
   assert.ok(!app.redactDiagnostic('bad\nforged log').includes('\n'))
+  assert.equal(
+    app.redactDiagnostic('credential store denied access'),
+    'credential store denied access'
+  )
+  assert.match(
+    app.redactDiagnostic('invalid type: string "SECRET", expected a boolean'),
+    /expected a boolean/
+  )
 })
 
 test('unhandled errors are reported and a failed log sink never rejects or recurses', async () => {

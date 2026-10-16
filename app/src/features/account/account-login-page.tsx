@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { hasPersonalPages } from '@/features/music/source-capabilities'
 import { TextSkeleton } from '@/components/music/loading'
@@ -39,7 +40,10 @@ export function AdapterLoginCard({
   const cancel = useCallback(() => {
     const key = challenge.current
     challenge.current = undefined
-    if (key) void musicClient.cancelLogin(source, key).catch(() => {})
+    if (key)
+      void musicClient.cancelLogin(source, key).catch((cause) => {
+        reportCaughtError('app/src/features/account/account-login-page.tsx', cause)
+      })
   }, [source])
   const generate = useCallback(async () => {
     const serial = ++generation.current
@@ -62,8 +66,13 @@ export function AdapterLoginCard({
         setMessage(
           `使用${methods.find((item) => item.id === method)?.label ?? displayName}，并确认登录。`
         )
-      } else void musicClient.cancelLogin(source, result.data.key).catch(() => {})
+      } else
+        void musicClient.cancelLogin(source, result.data.key).catch((cause) => {
+          reportCaughtError('app/src/features/account/account-login-page.tsx', cause)
+        })
     } catch (cause) {
+      reportCaughtError('app/src/features/account/account-login-page.tsx', cause)
+
       if (serial === generation.current) setMessage(errorText(cause))
     } finally {
       if (serial === generation.current) setBusy(false)
@@ -94,6 +103,8 @@ export function AdapterLoginCard({
             if (hasPersonalPages(adapter.descriptor))
               await sourcePreferences.use(source, intent.current!)
           } catch (cause) {
+            reportCaughtError('app/src/features/account/account-login-page.tsx', cause)
+
             if (!disposed && serial === generation.current)
               setMessage(`登录成功，切换来源失败：${errorText(cause)}。可点击“使用此来源”重试。`)
           }
@@ -109,6 +120,8 @@ export function AdapterLoginCard({
           return
         }
       } catch (cause) {
+        reportCaughtError('app/src/features/account/account-login-page.tsx', cause)
+
         if (!disposed && serial === generation.current) {
           setMessage(errorText(cause))
           setQr(undefined)
@@ -173,7 +186,10 @@ export function AdapterLoginCard({
                   .beginIntent()
                   .then((value) => sourcePreferences.use(source, value))
                   .then(() => setMessage(''))
-                  .catch((cause) => setMessage(`切换来源失败：${errorText(cause)}`))
+                  .catch((cause) => {
+                    reportCaughtError('app/src/features/account/account-login-page.tsx', cause)
+                    return setMessage(`切换来源失败：${errorText(cause)}`)
+                  })
                   .finally(() => setBusy(false))
               }}
             >
@@ -192,7 +208,10 @@ export function AdapterLoginCard({
                     throw new Error('退出当前账号失败，请重试。')
                   onChanged()
                 })
-                .catch((cause) => setMessage(errorText(cause)))
+                .catch((cause) => {
+                  reportCaughtError('app/src/features/account/account-login-page.tsx', cause)
+                  return setMessage(errorText(cause))
+                })
                 .finally(() => setBusy(false))
             }}
           >

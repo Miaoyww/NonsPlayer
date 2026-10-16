@@ -1,3 +1,4 @@
+import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useState } from 'react'
 import { TrackList } from '@/components/music/track-list'
@@ -82,7 +83,10 @@ export function DownloadedSongList({ songs }: { songs: DownloadedSong[] }) {
           setError('')
           void createPluginClient(scope, () => {})
             .call('files.play', { root: entry.root, path: entry.path, track: tracks[index] })
-            .catch((reason) => setError(String(reason)))
+            .catch((reason) => {
+              reportCaughtError('app/src/plugins/downloaded-song-list.tsx', reason)
+              return setError(String(reason))
+            })
             .finally(() => setBusy(false))
         }}
         extraColumns={[

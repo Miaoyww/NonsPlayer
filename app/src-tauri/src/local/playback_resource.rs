@@ -10,6 +10,9 @@ pub(crate) async fn resolve(track: Track) -> AppResult<ResolvedTrack> {
                 .get_or_init(|| std::sync::Arc::new(tokio::sync::Semaphore::new(2)))
                 .clone()
                 .try_acquire_owned()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                })
                 .map_err(|_| "音频解析繁忙，请稍后重试")?;
             Some(
                 tauri::async_runtime::spawn_blocking(move || {
@@ -27,6 +30,12 @@ pub(crate) async fn resolve(track: Track) -> AppResult<ResolvedTrack> {
             .map(|f| f.path())
             .unwrap_or_else(|| std::path::Path::new(path));
         let uri = url::Url::from_file_path(playable_path)
+            .inspect_err(|_| {
+                crate::infrastructure::diagnostics::warn(
+                    "local.file_uri",
+                    "file path cannot be represented as a file URL",
+                );
+            })
             .map_err(|_| "本地文件路径无效")?
             .to_string();
         if !std::path::Path::new(path).is_file() {
