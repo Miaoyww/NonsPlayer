@@ -7,6 +7,7 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
+mod files;
 
 // Stop formatting when the bound is reached, before a Debug representation or a
 // long error can allocate a second copy of an entire response in the log sink.
@@ -91,21 +92,43 @@ pub(crate) fn redact(value: &str) -> String {
 }
 
 pub(crate) fn initialize<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
-    let file = match super::directories::portable() {
-        Some(data) => TargetKind::Folder {
-            path: data.join("logs"),
-            file_name: Some("nons".into()),
-        },
-        None => TargetKind::LogDir {
-            file_name: Some("nons".into()),
-        },
-    };
-    if let Err(error) = app.plugin(plugin(Some(file))) {
+    use tauri::Manager;
+    let destination = (|| -> Result<_, Box<dyn std::error::Error>> {
+        let directory = match super::directories::portable() {
+            Some(data) => data.join("logs"),
+            None => app.path().app_log_dir()?,
+        };
+        let name = files::reserve(
+            &directory,
+            tauri_plugin_log::TimezoneStrategy::UseLocal.get_now(),
+            std::process::id(),
+        )?;
+        Ok((directory, name))
+    })();
+    let file = destination
+        .as_ref()
+        .ok()
+        .map(|(directory, name)| TargetKind::Folder {
+            path: directory.clone(),
+            file_name: Some(name.clone()),
+        });
+    if let Err(error) = app.plugin(plugin(file)) {
         // File logging must not prevent music playback or application startup.
         if app.plugin(plugin(None)).is_err() {
             eprintln!("日志初始化失败：{}", redact(&error.to_string()));
         } else {
             log::error!(target: "nons::diagnostics", "file_logging_unavailable reason={}", error);
+        }
+    }
+    match destination {
+        Ok((directory, name)) => {
+            log::info!(target: "nons::diagnostics", "session_log={}", directory.join(format!("{name}.log")).display());
+            if let Err(error) = files::prune(&directory, std::time::SystemTime::now()) {
+                warn("diagnostics.prune", error);
+            }
+        }
+        Err(error) => {
+            log::error!(target: "nons::diagnostics", "file_logging_unavailable reason={error}")
         }
     }
 }
@@ -121,13 +144,14 @@ fn plugin<R: tauri::Runtime>(file: Option<TargetKind>) -> tauri::plugin::TauriPl
         .targets(targets)
         .max_file_size(2 * 1024 * 1024)
         .rotation_strategy(RotationStrategy::KeepSome(4))
+        .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
         .level(log::LevelFilter::Info)
         // Dependency HTTP debug output may contain headers. Only application diagnostics enter this sink.
         .filter(|metadata| metadata.target().starts_with("nons"))
         .format(|out, message, record| {
             out.finish(format_args!(
                 "{} {} {} {}",
-                tauri_plugin_log::TimezoneStrategy::UseUtc.get_now(),
+                files::timestamp(tauri_plugin_log::TimezoneStrategy::UseLocal.get_now()),
                 record.level(),
                 record.target(),
                 bounded_message(*message)
