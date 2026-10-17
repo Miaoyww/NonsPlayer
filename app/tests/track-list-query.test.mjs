@@ -109,10 +109,17 @@ async function harness(run, android = false) {
     '@/features/settings/use-interface-density': { useInterfaceDensity: () => ['compact'] },
     '@/lib/player': { errorText: String, formatTime: String },
     'lucide-react': Object.fromEntries(
-      ['Heart', 'ListPlus', 'Play', 'Search', 'ArrowUpDown', 'ArrowUp', 'ArrowDown'].map((name) => [
-        name,
-        () => null
-      ])
+      [
+        'Heart',
+        'ListPlus',
+        'Play',
+        'Search',
+        'ArrowUpDown',
+        'ArrowUp',
+        'ArrowDown',
+        'ChevronDown',
+        'ChevronUp'
+      ].map((name) => [name, () => null])
     )
   }
   function load(path) {
@@ -136,6 +143,10 @@ async function harness(run, android = false) {
     )
     return exports
   }
+  modules['./cue-card.css'] = {}
+  modules['@/features/local/cue-groups'] = load('../src/features/local/cue-groups.ts')
+  modules['./cue-track-card'] = load('../src/features/local/cue-track-card.tsx')
+  modules['@/features/local/cue-card'] = load('../src/features/local/cue-card.tsx')
   modules['./track-column-sizing'] = load('../src/components/music/track-column-sizing.tsx')
   modules['@/components/music/track-identity'] = load('../src/components/music/track-identity.tsx')
   const exports = {}
@@ -220,6 +231,39 @@ async function harness(run, android = false) {
     })
   }
 }
+
+test('CUE groups preserve flat playback indices, scoped search and original removal indices', async () => {
+  await harness(async ({ tracks, render, search, plays, menus, removes }) => {
+    const cue = (number) => ({
+      ...tracks[0],
+      key: `cue:${number}`,
+      title: `Part ${number}`,
+      source: { kind: 'local', cue: { sheetPath: 'disc.cue', trackNumber: number } }
+    })
+    const supplied = [cue(4), tracks[1], cue(2), cue(1), cue(3)]
+    await render({ tracks: supplied, groupCue: true, onAppend() {} })
+    assert.equal(document.querySelectorAll('.cue-card').length, 1)
+    assert.equal(document.querySelectorAll('.track-row').length, 1)
+    await act(async () => document.querySelector('.cue-card-open').click())
+    assert.equal(document.querySelectorAll('.cue-track-card').length, 4)
+    await act(async () => document.querySelectorAll('.cue-track-text')[2].click())
+    assert.equal(plays.at(-1)[0], 2)
+    assert.deepEqual(
+      Array.from(plays.at(-1)[1], (track) => track.key),
+      ['cue:1', 'cue:2', 'cue:3', 'cue:4', 'b']
+    )
+    const childMenu = menus.findLast((menu) => menu.track.key === 'cue:3')
+    childMenu.onRemove()
+    assert.equal(removes.at(-1)[1], 4)
+    await act(async () => document.querySelector('.track-cover').click())
+    assert.equal(plays.at(-1)[0], 4)
+    await search('Part 2')
+    assert.equal(document.querySelectorAll('.cue-track-card').length, 1)
+    assert.match(document.querySelector('.cue-track-card').textContent, /Part 2/)
+    await render({ tracks: supplied, groupCue: false })
+    assert.equal(document.querySelectorAll('.cue-card').length, 0)
+  })
+})
 
 test('mobile detail filtering removes extra columns and plays the filtered queue without an internal input', async () => {
   await harness(async ({ render, plays }) => {

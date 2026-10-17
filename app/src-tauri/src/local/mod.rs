@@ -1,4 +1,5 @@
 pub(crate) mod cue;
+mod cue_cover;
 pub(crate) mod encoded_audio;
 pub(crate) mod library;
 pub(crate) mod local_folders;

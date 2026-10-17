@@ -189,6 +189,17 @@ fn import_sheet(
         .clone()
         .unwrap_or_else(|| base.artist.clone());
     let mut tracks = super::cue::expand(sheet, path, &base)?;
+    if base.cover.to_string() == fallback {
+        match super::cue_cover::find(path, covers, cover_bytes) {
+            Ok(Some(cover)) => {
+                for track in &mut tracks {
+                    track.cover = cover.clone().into();
+                }
+            }
+            Ok(None) => {}
+            Err(error) => crate::infrastructure::diagnostics::warn("local.cue_cover", error),
+        }
+    }
     let information = store.local_information(&base.key)?;
     for track in &mut tracks {
         let mut metadata = information.clone();

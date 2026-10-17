@@ -112,6 +112,7 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
       ) : list.items.length > 0 ? (
         kind === 'song' ? (
           <TrackList
+            groupCue
             tracks={tracks}
             hasMore={list.more}
             sortable
@@ -452,6 +453,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
               <TrackListSkeleton online={false} />
             ) : list.items.length > 0 ? (
               <TrackList
+                groupCue
                 tracks={list.items}
                 key={`${collection.kind}:${collection.localId ?? collection.id}`}
                 searchable

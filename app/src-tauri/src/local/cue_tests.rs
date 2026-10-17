@@ -1,6 +1,7 @@
 use super::*;
 use crate::{local::library, storage::Store, test_support::TestDir};
 use gstreamer::{self as gst, prelude::*};
+use sha2::Digest;
 use std::sync::{Arc, Mutex};
 
 fn wav(path: &Path) {
@@ -23,6 +24,78 @@ fn wav(path: &Path) {
 }
 
 const CUE: &str = "PERFORMER \"艺术家\"\nTITLE \"专辑\"\nFILE \"album.wav\" WAVE\n TRACK 01 AUDIO\n TITLE \"第一首\"\n INDEX 01 00:00:00\n TRACK 02 AUDIO\n TITLE \"第二首\"\n INDEX 00 00:01:60\n INDEX 01 00:02:00\n";
+
+#[test]
+fn cue_cover_falls_back_in_order_and_refreshes_without_audio_changes() {
+    let dir = TestDir::new();
+    let music = dir.0.join("music");
+    let covers = dir.0.join("covers");
+    std::fs::create_dir(&music).unwrap();
+    std::fs::create_dir(&covers).unwrap();
+    wav(&music.join("album.wav"));
+    std::fs::write(music.join("album.cue"), CUE).unwrap();
+    let image = |name: &str, color: u8| {
+        image::RgbImage::from_pixel(2, 2, image::Rgb([color, 0, 0]))
+            .save(music.join(name))
+            .unwrap();
+    };
+    image("folder.png", 20);
+    image("COVER.PNG", 80);
+    let store = Arc::new(Store::open(&dir.0.join("library.sqlite")).unwrap());
+    let scan = || {
+        let report = library::import(
+            vec![music.to_string_lossy().into_owned()],
+            store.clone(),
+            covers.clone(),
+            String::new(),
+            Some("managed".into()),
+        )
+        .unwrap();
+        assert!(report.errors.is_empty());
+        store.local_tracks("", 0).unwrap()
+    };
+    let tracks = scan();
+    let cover = tracks[0].cover.to_string();
+    assert!(tracks.iter().all(|track| track.cover.to_string() == cover));
+    assert_eq!(
+        std::fs::read(&cover).unwrap(),
+        std::fs::read(music.join("COVER.PNG")).unwrap()
+    );
+    image("COVER.PNG", 120);
+    let updated = scan()[0].cover.to_string();
+    assert_ne!(cover, updated);
+    std::fs::write(music.join("COVER.PNG"), "corrupt").unwrap();
+    let fallback = scan()[0].cover.to_string();
+    assert_eq!(
+        std::fs::read(&fallback).unwrap(),
+        std::fs::read(music.join("folder.png")).unwrap()
+    );
+    std::fs::remove_file(music.join("COVER.PNG")).unwrap();
+    std::fs::remove_file(music.join("folder.png")).unwrap();
+    assert!(scan()
+        .iter()
+        .all(|track| track.cover.to_string().is_empty()));
+    // A cached audio cover represents the embedded tag and takes priority on later scans.
+    let mut base = store
+        .track(&format!(
+            "local:{:x}",
+            sha2::Sha256::digest(
+                music
+                    .join("album.wav")
+                    .canonicalize()
+                    .unwrap()
+                    .to_string_lossy()
+                    .trim_start_matches(r"\\?\")
+                    .as_bytes()
+            )
+        ))
+        .unwrap();
+    base.cover = "embedded.img".into();
+    store.save_tracks(&[base]).unwrap();
+    assert!(scan()
+        .iter()
+        .all(|track| track.cover.to_string() == "embedded.img"));
+}
 
 #[test]
 fn cue_directory_rescan_hides_whole_file_and_restores_it_after_removal() {
@@ -254,6 +327,13 @@ fn cue_real_album_has_four_tracks_and_correct_pcm_boundaries() {
         "雨だれの歌(instrumental)",
     ];
     assert_eq!(tracks.len(), 4);
+    let cover = tracks[0].cover.to_string();
+    assert!(!cover.is_empty());
+    assert_eq!(
+        std::fs::read(&cover).unwrap(),
+        std::fs::read(path.parent().unwrap().join("cover.jpg")).unwrap()
+    );
+    assert!(tracks.iter().all(|track| track.cover.to_string() == cover));
     for (index, track) in tracks.iter().enumerate() {
         assert_eq!(track.title, expected[index]);
         assert_eq!(
