@@ -30,6 +30,7 @@ fn request() -> ResourceRequest {
 struct Audio {
     descriptor: ResourceProviderDescriptor,
     calls: AtomicU64,
+    busy_for: AtomicU64,
     blocked: bool,
     wrong_platform: bool,
     preview: bool,
@@ -44,7 +45,10 @@ impl ResourceProvider for Audio {
         _: &'a RequestContext,
     ) -> AdapterFuture<'a, PlaybackResource> {
         Box::pin(async move {
-            self.calls.fetch_add(1, Ordering::AcqRel);
+            let call = self.calls.fetch_add(1, Ordering::AcqRel) + 1;
+            if call <= self.busy_for.load(Ordering::Acquire) {
+                return Err(ErrorCode::RateLimited.into());
+            }
             if self.blocked {
                 std::future::pending::<()>().await;
             }
@@ -97,10 +101,29 @@ fn audio(blocked: bool, wrong_platform: bool, preview: bool) -> Arc<Audio> {
             cover_hosts: Default::default(),
         },
         calls: AtomicU64::new(0),
+        busy_for: AtomicU64::new(0),
         blocked,
         wrong_platform,
         preview,
     })
+}
+#[tokio::test]
+async fn busy_playback_provider_recovers_without_switching_sources() {
+    let audio = audio(false, false, false);
+    audio.busy_for.store(3, Ordering::Release);
+    let manager = AdapterManager::default();
+    manager.register_resource_provider(audio.clone()).unwrap();
+    let sources = Mutex::new(Vec::new());
+    let (ticket, source) = manager
+        .resolve_with_providers_notifying(&request(), Some("audio-test"), 7, &|source| {
+            sources.lock().unwrap().push(source.provider)
+        })
+        .await
+        .unwrap();
+    ticket.check(7).unwrap();
+    assert_eq!(source.provider, "audio-test");
+    assert_eq!(audio.calls.load(Ordering::Acquire), 4);
+    assert_eq!(*sources.lock().unwrap(), vec!["audio-test"]);
 }
 struct Catalog {
     descriptor: SourceDescriptor,

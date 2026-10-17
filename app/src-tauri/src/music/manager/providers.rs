@@ -343,17 +343,35 @@ impl AdapterManager {
             .get(id)
             .cloned()
             .ok_or(ErrorCode::NotFound)?;
-        request.validate(entry.adapter.descriptor())?;
-        let _permit = entry
-            .reads
-            .try_acquire()
-            .map_err(|_| ErrorCode::RateLimited)?;
         let context = RequestContext {
             session: entry.session(),
             adapter_generation: entry.generation.load(Ordering::Acquire),
             deadline: Instant::now() + Duration::from_secs(12),
             cancellation: Default::default(),
         };
+        self.run_provider(
+            &entry,
+            &context,
+            None,
+            retry::rate_limited(|| {
+                self.search_resource_provider_inner(&entry, &context, id, request)
+            }),
+        )
+        .await
+    }
+    async fn search_resource_provider_inner(
+        &self,
+        entry: &ProviderEntry,
+        context: &RequestContext,
+        id: &SourceId,
+        request: &ResourceSearchRequest,
+    ) -> MusicResult<Page<MusicTrack>> {
+        entry.check(context)?;
+        request.validate(entry.adapter.descriptor())?;
+        let _permit = entry
+            .reads
+            .try_acquire()
+            .map_err(|_| ErrorCode::RateLimited)?;
         let scope = serde_json::to_string(&(
             id,
             context.adapter_generation,
@@ -529,17 +547,45 @@ impl AdapterManager {
         deadline: Instant,
         generation: u64,
     ) -> MusicResult<Arc<ResourceTicket>> {
-        request.validate(entry.adapter.descriptor())?;
-        let _permit = entry
-            .playback
-            .try_acquire()
-            .map_err(|_| ErrorCode::RateLimited)?;
         let context = RequestContext {
             session: entry.session(),
             adapter_generation: entry.generation.load(Ordering::Acquire),
             deadline: deadline.min(Instant::now() + Duration::from_secs(12)),
             cancellation: Default::default(),
         };
+        self.run_provider(
+            &entry,
+            &context,
+            origin.as_ref(),
+            retry::rate_limited(|| {
+                self.resolve_provider_inner(
+                    entry.clone(),
+                    context.clone(),
+                    request,
+                    origin.clone(),
+                    generation,
+                )
+            }),
+        )
+        .await
+    }
+    async fn resolve_provider_inner(
+        &self,
+        entry: Arc<ProviderEntry>,
+        context: RequestContext,
+        request: &ResourceRequest,
+        origin: Option<(Arc<Entry>, RequestContext)>,
+        generation: u64,
+    ) -> MusicResult<Arc<ResourceTicket>> {
+        entry.check(&context)?;
+        if let Some((owner, scope)) = &origin {
+            owner.check(scope)?;
+        }
+        request.validate(entry.adapter.descriptor())?;
+        let _permit = entry
+            .playback
+            .try_acquire()
+            .map_err(|_| ErrorCode::RateLimited)?;
         let resource = self
             .run_provider(
                 &entry,

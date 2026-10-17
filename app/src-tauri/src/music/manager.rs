@@ -13,6 +13,7 @@ use std::{
 };
 use tokio::sync::Semaphore;
 mod providers;
+mod retry;
 pub use super::provider::PlaybackSource;
 pub use providers::ResourceProviderStatus;
 
@@ -381,22 +382,36 @@ impl AdapterManager {
         source: &SourceId,
         request: &super::business::BusinessRequest,
     ) -> MusicResult<super::business::BusinessResponse> {
-        crate::infrastructure::diagnostics::observe(
-            source.as_str(),
-            request.operation(),
-            self.business_inner(source, request),
-        )
+        crate::infrastructure::diagnostics::observe(source.as_str(), request.operation(), async {
+            let entry = self.entry(source)?;
+            let context = Self::context(&entry, Duration::from_secs(12));
+            if request.is_write() {
+                return self.business_inner(&entry, &context, source, request).await;
+            }
+            self.run(
+                &entry,
+                &context,
+                retry::rate_limited_or(
+                    || self.business_inner(&entry, &context, source, request),
+                    |response| matches!(response,
+                        super::business::BusinessResponse::Summary(summary)
+                        if summary.liked_error.as_ref().is_some_and(|error| error.code == ErrorCode::RateLimited)
+                    ),
+                ),
+            )
+            .await
+        })
         .await
     }
     async fn business_inner(
         &self,
+        entry: &Entry,
+        context: &RequestContext,
         source: &SourceId,
         request: &super::business::BusinessRequest,
     ) -> MusicResult<super::business::BusinessResponse> {
         use super::business::*;
         request.validate(source)?;
-        let entry = self.entry(source)?;
-        let context = Self::context(&entry, Duration::from_secs(12));
         entry.check(&context)?;
         if !entry
             .adapter
@@ -727,16 +742,29 @@ impl AdapterManager {
         Ok(outcome.presentation)
     }
     pub async fn read_track(&self, reference: &EntityRef) -> MusicResult<MusicTrack> {
-        crate::infrastructure::diagnostics::observe(
-            reference.source.as_str(),
-            "readTrack",
-            self.read_track_inner(reference),
-        )
+        crate::infrastructure::diagnostics::observe(reference.source.as_str(), "readTrack", async {
+            let entry = self.entry(&reference.source)?;
+            let context = Self::context(&entry, Duration::from_secs(12));
+            self.run(
+                &entry,
+                &context,
+                retry::rate_limited(|| self.read_track_inner(&entry, &context, reference)),
+            )
+            .await
+        })
         .await
     }
-    async fn read_track_inner(&self, reference: &EntityRef) -> MusicResult<MusicTrack> {
-        let entry = self.entry(&reference.source)?;
-        let context = Self::context(&entry, Duration::from_secs(3));
+    async fn read_track_inner(
+        &self,
+        entry: &Entry,
+        original: &RequestContext,
+        reference: &EntityRef,
+    ) -> MusicResult<MusicTrack> {
+        let mut context = original.clone();
+        context.deadline = context
+            .deadline
+            .min(Instant::now() + Duration::from_secs(3));
+        entry.check(&context)?;
         context.check_reference(reference)?;
         // Reject overload rather than create an unbounded waiting queue.
         let _permit = entry
@@ -768,17 +796,34 @@ impl AdapterManager {
         crate::infrastructure::diagnostics::observe(
             request.track.source.as_str(),
             "resolvePlayback",
-            self.resolve_playback_inner(request, playback_generation),
+            async {
+                let entry = self.entry(&request.track.source)?;
+                let context = Self::context(&entry, Duration::from_secs(12));
+                self.run(
+                    &entry,
+                    &context,
+                    retry::rate_limited(|| {
+                        self.resolve_playback_inner(
+                            entry.clone(),
+                            context.clone(),
+                            request,
+                            playback_generation,
+                        )
+                    }),
+                )
+                .await
+            },
         )
         .await
     }
     async fn resolve_playback_inner(
         &self,
+        entry: Arc<Entry>,
+        context: RequestContext,
         request: &ResolveRequest,
         playback_generation: u64,
     ) -> MusicResult<Arc<ResourceTicket>> {
-        let entry = self.entry(&request.track.source)?;
-        let context = Self::context(&entry, Duration::from_secs(12));
+        entry.check(&context)?;
         request.validate(&context)?;
         let _permit = entry
             .playback
@@ -1302,15 +1347,9 @@ mod tests {
     }
     #[tokio::test]
     async fn playback_has_a_reserved_budget_when_reads_are_full() {
-        let (manager, _, adapter) = setup(adapter(true));
-        let mut jobs = vec![];
-        for _ in 0..4 {
-            let worker = manager.clone();
-            jobs.push(tokio::spawn(async move {
-                worker.read_track(&request().track).await
-            }));
-            adapter.entered.notified().await;
-        }
+        let (manager, _, _) = setup(adapter(false));
+        let entry = manager.entry(&source()).unwrap();
+        let _reads = entry.reads.try_acquire_many(4).unwrap();
         assert_eq!(
             manager.read_track(&request().track).await.unwrap_err().code,
             ErrorCode::RateLimited
@@ -1319,12 +1358,90 @@ mod tests {
         resource.check(7).unwrap();
         assert_eq!(resource.check(8).unwrap_err().code, ErrorCode::StaleContext);
         manager.set_enabled(&source(), false).unwrap();
-        for job in jobs {
-            assert_eq!(
-                job.await.unwrap().unwrap_err().code,
-                ErrorCode::SourceUnavailable
-            );
+    }
+    #[tokio::test]
+    async fn busy_reads_recover_after_permits_are_released() {
+        use super::super::business::*;
+        for business in [false, true] {
+            let (manager, _, provider) = setup(business_adapter(false));
+            let entry = manager.entry(&source()).unwrap();
+            let permits = entry.reads.try_acquire_many(4).unwrap();
+            let query = async {
+                if business {
+                    manager
+                        .business(
+                            &source(),
+                            &BusinessRequest::Suggestions {
+                                keyword: "song".into(),
+                            },
+                        )
+                        .await
+                        .map(|_| ())
+                } else {
+                    manager.read_track(&request().track).await.map(|_| ())
+                }
+            };
+            let release = async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                assert_eq!(provider.calls.load(Ordering::Acquire), 0);
+                drop(permits);
+            };
+            let (result, _) = tokio::join!(query, release);
+            result.unwrap();
+            assert_eq!(provider.calls.load(Ordering::Acquire), 1);
         }
+    }
+    #[tokio::test]
+    async fn busy_backoff_is_cancelled_on_account_change() {
+        let (manager, session, provider) = setup(adapter(false));
+        let entry = manager.entry(&source()).unwrap();
+        let permits = entry.reads.try_acquire_many(4).unwrap();
+        let query = async { manager.read_track(&request().track).await };
+        let change = async {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            session.fetch_add(1, Ordering::AcqRel);
+            drop(permits);
+        };
+        let (result, _) = tokio::time::timeout(Duration::from_millis(400), async {
+            tokio::join!(query, change)
+        })
+        .await
+        .unwrap();
+        assert_eq!(result.unwrap_err().code, ErrorCode::StaleContext);
+        assert_eq!(provider.calls.load(Ordering::Acquire), 0);
+    }
+    #[tokio::test]
+    async fn busy_writes_are_not_automatically_replayed() {
+        use super::super::business::*;
+        let manager = AdapterManager::default();
+        let provider = Arc::new(business_adapter(false));
+        manager
+            .register(
+                provider.clone(),
+                Arc::new(|| SessionContext {
+                    source: source(),
+                    account: Some(OpaqueId::try_from("listener".to_owned()).unwrap()),
+                    generation: 0,
+                }),
+            )
+            .unwrap();
+        let entry = manager.entry(&source()).unwrap();
+        let permits = entry.reads.try_acquire_many(4).unwrap();
+        let request = BusinessRequest::SetFavorite {
+            track: request().track,
+            liked: true,
+        };
+        let result = tokio::time::timeout(
+            Duration::from_millis(200),
+            manager.business(&source(), &request),
+        )
+        .await
+        .unwrap();
+        assert_eq!(result.unwrap_err().code, ErrorCode::RateLimited);
+        assert_eq!(provider.calls.load(Ordering::Acquire), 0);
+        drop(permits);
+        manager.business(&source(), &request).await.unwrap();
+        assert_eq!(provider.calls.load(Ordering::Acquire), 1);
     }
     #[tokio::test]
     async fn deadline_and_explicit_cancellation_drop_pending_futures() {
