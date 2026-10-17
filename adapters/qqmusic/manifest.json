@@ -5,7 +5,7 @@
     "contractVersion": 1,
     "platforms": ["qqmusic"],
     "loginMethods": [
-      { "id": "qq", "label": "QQ 音乐扫码" },
+      { "id": "qq", "label": "QQ 扫码" },
       { "id": "wechat", "label": "微信扫码" }
     ],
     "capabilities": ["search", "browse", "account", "userLibrary"],
