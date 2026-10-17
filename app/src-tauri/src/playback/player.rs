@@ -1355,7 +1355,8 @@ impl Actor {
         self.state.actual_quality = None;
         self.state.playback_source = None;
         self.state.error = None;
-        self.pending_seek = (self.state.position_ms > 0).then_some(self.state.position_ms);
+        self.pending_seek =
+            (self.state.position_ms > 0 || track.cue().is_some()).then_some(self.state.position_ms);
         self.awaiting_first_stream = true;
         self.start_gate.prepare(cfg!(target_os = "android"));
         self.state.status = PlaybackStatus::Loading;
@@ -1488,11 +1489,15 @@ impl Actor {
             self.publish();
             return Ok(());
         }
-        crate::audio::seek_stream(&self.playbin, ms)
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
-            })
-            .map_err(|_| "当前资源不支持定位")?;
+        crate::audio::seek_track(
+            &self.playbin,
+            self.state.current().ok_or("没有当前歌曲")?,
+            ms,
+        )
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("translate_error", error);
+        })
+        .map_err(|_| "当前资源不支持定位")?;
         self.state.position_ms = ms;
         self.publish();
         Ok(())
@@ -1506,8 +1511,16 @@ impl Actor {
                 let mut resume = cfg!(target_os = "android") && preroll;
                 if let Some(position) = self.pending_seek.take() {
                     // The resource has finished preroll; seek the pipeline directly.
-                    if let Err(error) = crate::audio::seek_stream(&self.playbin, position) {
+                    let Some(track) = self.state.current() else {
+                        return;
+                    };
+                    if let Err(error) = crate::audio::seek_track(&self.playbin, track, position) {
                         self.state.error = Some(format!("恢复播放位置失败：{error}"));
+                        self.state.status = PlaybackStatus::Error;
+                        self.desired_playing = false;
+                        let _ = self.playbin.set_state(gst::State::Null);
+                        self.publish();
+                        return;
                     }
                     resume = true;
                 }
@@ -1587,10 +1600,12 @@ impl Actor {
                 self.publish();
             }
             MessageView::DurationChanged(_) => {
-                self.state.duration_ms = self
-                    .playbin
-                    .query_duration::<gst::ClockTime>()
-                    .map_or(self.state.duration_ms, |t| t.mseconds());
+                self.state.duration_ms = crate::audio::track_duration(
+                    self.state.current(),
+                    self.playbin
+                        .query_duration::<gst::ClockTime>()
+                        .map_or(self.state.duration_ms, |t| t.mseconds()),
+                );
             }
             MessageView::Eos(_) => {
                 if self.deferred.take().is_some() || !self.desired_playing {
@@ -1674,12 +1689,16 @@ impl Actor {
                 self.state.position_ms = self
                     .playbin
                     .query_position::<gst::ClockTime>()
-                    .map_or(self.state.position_ms, |t| t.mseconds());
+                    .map_or(self.state.position_ms, |t| {
+                        crate::audio::track_position(self.state.current(), t.mseconds())
+                    });
             }
-            self.state.duration_ms = self
-                .playbin
-                .query_duration::<gst::ClockTime>()
-                .map_or(self.state.duration_ms, |t| t.mseconds());
+            self.state.duration_ms = crate::audio::track_duration(
+                self.state.current(),
+                self.playbin
+                    .query_duration::<gst::ClockTime>()
+                    .map_or(self.state.duration_ms, |t| t.mseconds()),
+            );
             self.update_media();
             if let Ok(mut shared) = (self.shared.write()).inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn("optional_success", error);
@@ -1691,6 +1710,10 @@ impl Actor {
                 );
             }
             if self.state.playback_options.gapless
+                && self
+                    .state
+                    .current()
+                    .is_none_or(|track| track.cue().is_none())
                 && !self.collection_request.is_pending()
                 && self.deferred.is_none()
                 && self.state.status == PlaybackStatus::Playing
@@ -1709,6 +1732,9 @@ impl Actor {
                     || self.armed.lock().map(|p| p.is_some()).unwrap_or(false);
                 if !ready {
                     if let Some(index) = self.state.following(false) {
+                        if self.state.queue[index].cue().is_some() {
+                            return;
+                        }
                         self.next_attempt = Some(Instant::now());
                         self.next_attempts += 1;
                         self.resolve(index, self.state.queue[index].clone(), true);
@@ -1853,7 +1879,9 @@ impl Actor {
         let position = self.pending_seek.unwrap_or_else(|| {
             self.playbin
                 .query_position::<gst::ClockTime>()
-                .map_or(self.state.position_ms, |time| time.mseconds())
+                .map_or(self.state.position_ms, |time| {
+                    crate::audio::track_position(self.state.current(), time.mseconds())
+                })
         });
         self.cancel_jobs();
         self.playbin

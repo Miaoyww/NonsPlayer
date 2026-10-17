@@ -65,7 +65,7 @@ pub fn split_artists(value: &str, separators: &[String]) -> Vec<String> {
     }
     names
 }
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalInformation {
     pub track_number: Option<u32>,
@@ -105,6 +105,20 @@ pub fn information(file: &lofty::file::TaggedFile, path: &str) -> LocalInformati
     }
 }
 impl Store {
+    pub fn local_information(&self, key: &str) -> AppResult<LocalInformation> {
+        let value: String = self
+            .0
+            .lock()
+            .map_err(|_| "曲库锁不可用")?
+            .query_row(
+                "SELECT value FROM local_metadata WHERE key=?1",
+                [key],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+        serde_json::from_str(&value).map_err(|e| e.to_string())
+    }
+
     pub fn has_local_information(&self, key: &str) -> AppResult<bool> {
         self.0
             .lock()
@@ -250,9 +264,9 @@ fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> App
         })
         .map_err(|_| "曲库锁不可用")?;
     let sql = if kind == "playlist" {
-        "SELECT CAST(p.id AS TEXT),'playlist',p.name,COALESCE((SELECT json_extract(t.value,'$.cover') FROM local_playlist_tracks pt JOIN tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id ORDER BY pt.position LIMIT 1),''),'',COUNT(t.key) FROM local_playlists p LEFT JOIN local_playlist_tracks pt ON pt.playlist_id=p.id LEFT JOIN tracks t ON t.key=pt.key AND t.source='local' WHERE instr(lower(p.name),lower(?2))>0 GROUP BY p.id ORDER BY p.id DESC LIMIT 31 OFFSET ?3"
+        "SELECT CAST(p.id AS TEXT),'playlist',p.name,COALESCE((SELECT json_extract(t.value,'$.cover') FROM local_playlist_tracks pt JOIN visible_local_tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id ORDER BY pt.position LIMIT 1),''),'',COUNT(t.key) FROM local_playlists p LEFT JOIN local_playlist_tracks pt ON pt.playlist_id=p.id LEFT JOIN visible_local_tracks t ON t.key=pt.key AND t.source='local' WHERE instr(lower(p.name),lower(?2))>0 GROUP BY p.id ORDER BY p.id DESC LIMIT 31 OFFSET ?3"
     } else {
-        "SELECT e.id,e.kind,e.name,e.cover,e.subtitle,COUNT(t.key) FROM local_entities e JOIN local_members m ON m.kind=e.kind AND m.id=e.id JOIN tracks t ON t.key=m.key AND t.source='local' WHERE e.kind=?1 AND instr(lower(e.name),lower(?2))>0 GROUP BY e.kind,e.id ORDER BY e.name,e.id LIMIT 31 OFFSET ?3"
+        "SELECT e.id,e.kind,e.name,e.cover,e.subtitle,COUNT(t.key) FROM local_entities e JOIN local_members m ON m.kind=e.kind AND m.id=e.id JOIN visible_local_tracks t ON t.key=m.key AND t.source='local' WHERE e.kind=?1 AND instr(lower(e.name),lower(?2))>0 GROUP BY e.kind,e.id ORDER BY e.name,e.id LIMIT 31 OFFSET ?3"
     };
     let mut stmt = db.prepare(sql).map_err(|e| e.to_string())?;
     let mut items = stmt
@@ -317,9 +331,9 @@ fn entity_detail(store: &Store, kind: String, id: String) -> AppResult<LocalEnti
         })
     };
     if kind == "playlist" {
-        db.query_row("SELECT CAST(p.id AS TEXT),'playlist',p.name,COALESCE((SELECT json_extract(t.value,'$.cover') FROM local_playlist_tracks pt JOIN tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id ORDER BY pt.position LIMIT 1),''),'',(SELECT COUNT(*) FROM local_playlist_tracks pt JOIN tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id AND t.source='local') FROM local_playlists p WHERE p.id=?1", [&id], row).map_err(|e| e.to_string())
+        db.query_row("SELECT CAST(p.id AS TEXT),'playlist',p.name,COALESCE((SELECT json_extract(t.value,'$.cover') FROM local_playlist_tracks pt JOIN visible_local_tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id ORDER BY pt.position LIMIT 1),''),'',(SELECT COUNT(*) FROM local_playlist_tracks pt JOIN visible_local_tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id AND t.source='local') FROM local_playlists p WHERE p.id=?1", [&id], row).map_err(|e| e.to_string())
     } else {
-        db.query_row("SELECT e.id,e.kind,e.name,e.cover,e.subtitle,(SELECT COUNT(*) FROM local_members m JOIN tracks t ON t.key=m.key WHERE m.kind=e.kind AND m.id=e.id AND t.source='local') FROM local_entities e WHERE e.kind=?1 AND e.id=?2", params![kind,id], row).map_err(|e| e.to_string())
+        db.query_row("SELECT e.id,e.kind,e.name,e.cover,e.subtitle,(SELECT COUNT(*) FROM local_members m JOIN visible_local_tracks t ON t.key=m.key WHERE m.kind=e.kind AND m.id=e.id AND t.source='local') FROM local_entities e WHERE e.kind=?1 AND e.id=?2", params![kind,id], row).map_err(|e| e.to_string())
     }
 }
 
@@ -353,9 +367,9 @@ fn entity_tracks(
     let id = resolve_entity_id(&db, &kind, id)?;
     let options = options_from_db(&db)?;
     let sql = match kind.as_str() {
-            "artist" | "album" => "SELECT t.value FROM tracks t JOIN local_members m ON m.key=t.key WHERE t.source='local' AND m.kind=?1 AND m.id=?2 ORDER BY COALESCE(json_extract((SELECT value FROM local_metadata WHERE key=t.key),'$.discNumber'),0),COALESCE(json_extract((SELECT value FROM local_metadata WHERE key=t.key),'$.trackNumber'),0),t.title,t.key LIMIT 101 OFFSET ?4",
-            "playlist" => "SELECT t.value FROM tracks t JOIN local_playlist_tracks p ON p.key=t.key WHERE t.source='local' AND p.playlist_id=?2 ORDER BY p.position LIMIT 101 OFFSET ?4",
-            _ => "SELECT value FROM tracks WHERE source='local' AND (instr(lower(title),lower(?3))>0 OR instr(lower(artist),lower(?3))>0 OR instr(lower(json_extract(value,'$.album')),lower(?3))>0) ORDER BY title,key LIMIT 101 OFFSET ?4"
+            "artist" | "album" => "SELECT t.value FROM visible_local_tracks t JOIN local_members m ON m.key=t.key WHERE t.source='local' AND m.kind=?1 AND m.id=?2 ORDER BY COALESCE(json_extract((SELECT value FROM local_metadata WHERE key=t.key),'$.discNumber'),0),COALESCE(json_extract((SELECT value FROM local_metadata WHERE key=t.key),'$.trackNumber'),0),t.title,t.key LIMIT 101 OFFSET ?4",
+            "playlist" => "SELECT t.value FROM visible_local_tracks t JOIN local_playlist_tracks p ON p.key=t.key WHERE t.source='local' AND p.playlist_id=?2 ORDER BY p.position LIMIT 101 OFFSET ?4",
+            _ => "SELECT value FROM visible_local_tracks WHERE source='local' AND (instr(lower(title),lower(?3))>0 OR instr(lower(artist),lower(?3))>0 OR instr(lower(json_extract(value,'$.album')),lower(?3))>0) ORDER BY title,key LIMIT 101 OFFSET ?4"
         };
     let mut stmt = db.prepare(sql).map_err(|e| e.to_string())?;
     let values = stmt
@@ -384,12 +398,24 @@ pub async fn local_track_information(
     backend: State<'_, Backend>,
 ) -> AppResult<LocalInformation> {
     let track = backend.store.track(&key)?;
-    let TrackSource::Local { path, .. } = track.source else {
+    let TrackSource::Local { path, cue, .. } = track.source else {
         return Err("不是本地歌曲".into());
     };
-    tauri::async_runtime::spawn_blocking(move || read_information(&path))
-        .await
-        .map_err(|e| e.to_string())?
+    let album_artist = if cue.is_some() {
+        backend.store.local_information(&key)?.album_artist
+    } else {
+        None
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut information = read_information(&path)?;
+        if let Some(cue) = cue {
+            information.track_number = Some(cue.track_number);
+            information.album_artist = album_artist;
+        }
+        Ok(information)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 #[tauri::command]
 pub fn local_preferences(backend: State<'_, Backend>) -> AppResult<LocalPreferences> {
@@ -629,6 +655,7 @@ mod tests {
             source: TrackSource::Local {
                 path: key.into(),
                 netease_id: None,
+                cue: None,
             },
         }
     }

@@ -63,7 +63,9 @@ pub fn convert_track(track: Track) -> MusicResult<MigratedTrack> {
             vec![],
             true,
         ),
-        TrackSource::Local { path, netease_id } => {
+        TrackSource::Local {
+            path, netease_id, ..
+        } => {
             if path.is_empty() {
                 return Err(ErrorCode::InvalidData.into());
             }

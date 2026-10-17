@@ -101,6 +101,13 @@ impl Store {
             CREATE INDEX IF NOT EXISTS local_members_entity ON local_members(kind,id);
             CREATE TABLE IF NOT EXISTS local_playlists (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(playlist_id,key));
+            CREATE INDEX IF NOT EXISTS local_audio_path ON tracks(json_extract(value,'$.source.path')) WHERE source='local';
+            CREATE VIEW IF NOT EXISTS visible_local_tracks AS
+                SELECT t.* FROM tracks t WHERE t.source='local' AND (
+                    json_extract(t.value,'$.source.cue') IS NOT NULL OR NOT EXISTS (
+                        SELECT 1 FROM tracks c WHERE c.source='local'
+                        AND json_extract(c.value,'$.source.path')=json_extract(t.value,'$.source.path')
+                        AND json_extract(c.value,'$.source.cue') IS NOT NULL));
             PRAGMA user_version=1;").map_err(|e| e.to_string())?;
         Ok(Self(Mutex::new(connection)))
     }
@@ -167,7 +174,7 @@ impl Store {
             })
             .map_err(|_| "曲库锁不可用")?
             .query_row(
-                "SELECT COUNT(*) FROM local_origins WHERE origin=?1",
+                "SELECT COUNT(*) FROM local_origins o JOIN visible_local_tracks t ON t.key=o.key WHERE o.origin=?1",
                 [origin],
                 |r| r.get(0),
             )
@@ -257,7 +264,7 @@ impl Store {
                 crate::infrastructure::diagnostics::warn("translate_error", error);
             })
             .map_err(|_| "曲库锁不可用")?;
-        let mut statement = db.prepare_cached("SELECT value FROM tracks WHERE source='local' AND (instr(lower(title),lower(?1))>0 OR instr(lower(artist),lower(?1))>0) ORDER BY title,key LIMIT 100 OFFSET ?2").map_err(|e| e.to_string())?;
+        let mut statement = db.prepare_cached("SELECT value FROM visible_local_tracks WHERE source='local' AND (instr(lower(title),lower(?1))>0 OR instr(lower(artist),lower(?1))>0) ORDER BY title,key LIMIT 100 OFFSET ?2").map_err(|e| e.to_string())?;
         let rows = statement
             .query_map(params![search, offset], |row| row.get::<_, String>(0))
             .map_err(|e| e.to_string())?;

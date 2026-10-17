@@ -102,8 +102,14 @@ export default function LyricsView({
   const generation = useRef(0)
   const appliedSource = useRef<string | undefined>(undefined)
   const apply = useCallback(
-    (value: Lyrics | null, duration: number, key: string, revision: number) => {
-      const parsed = value ? parseLyrics(value, duration) : []
+    (
+      value: Lyrics | null,
+      duration: number,
+      key: string,
+      revision: number,
+      cue?: { startMs: number; endMs: number }
+    ) => {
+      const parsed = value ? parseLyrics(value, duration, cue) : []
       appliedSource.current = value?.source
       setDisplay({
         key,
@@ -138,7 +144,14 @@ export default function LyricsView({
           track,
           refresh,
           sources,
-          (value) => apply(value, track.durationMs, track.key, state.revision),
+          (value) =>
+            apply(
+              value,
+              track.durationMs,
+              track.key,
+              state.revision,
+              track.source.kind === 'local' ? track.source.cue : undefined
+            ),
           isCurrent
         )
       } catch (cause) {

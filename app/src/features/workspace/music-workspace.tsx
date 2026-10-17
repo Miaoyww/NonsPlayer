@@ -216,7 +216,8 @@ export function MusicWorkspace({
                   'aiff',
                   'ape',
                   'wv',
-                  'ncm'
+                  'ncm',
+                  'cue'
                 ]
               }
             ]

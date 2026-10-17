@@ -19,7 +19,18 @@ pub enum TrackSource {
     Local {
         path: String,
         netease_id: Option<u64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cue: Option<CueTrack>,
     },
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CueTrack {
+    pub sheet_path: String,
+    pub track_number: u32,
+    pub start_ms: u64,
+    pub end_ms: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -48,6 +59,13 @@ pub struct Track {
 }
 
 impl Track {
+    pub fn cue(&self) -> Option<&CueTrack> {
+        match &self.source {
+            TrackSource::Local { cue, .. } => cue.as_ref(),
+            _ => None,
+        }
+    }
+
     pub fn from_music(track: crate::identity::MusicTrack) -> crate::MusicResult<Self> {
         track.validate(&track.reference)?;
         if track.reference.source.as_str() == "local" {

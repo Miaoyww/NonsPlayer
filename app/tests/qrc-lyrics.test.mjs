@@ -255,3 +255,23 @@ test('large equal-time groups preserve order without a pair matrix', () => {
   assert.equal(result[19999], '19999')
   assert.equal(result[20000], undefined)
 })
+
+test('CUE local lyrics use the track window while online lyrics keep their own timeline', () => {
+  const local = {
+    source: 'local',
+    format: 'lrc',
+    content: '[00:01.00]before\n[00:03.00]inside\n[00:05.00]next track'
+  }
+  const cue = { startMs: 2000, endMs: 5000 }
+  const lines = exports.parseLyrics(local, 3000, cue)
+  assert.equal(lines.length, 1)
+  assert.equal(lines[0].startTime, 1000)
+  assert.equal(lines[0].endTime, 3000)
+  assert.equal(lines[0].words[0].word, 'inside')
+  assert.ok(lines[0].words.every((word) => word.startTime >= 0 && word.endTime <= 3000))
+  assert.equal(exports.parseLyrics({ ...local, source: 'qq' }, 3000, cue).length, 3)
+  assert.throws(
+    () => exports.parseLyrics(local, 1000, { startMs: 6000, endMs: 7000 }),
+    exports.EmptyLyricsError
+  )
+})

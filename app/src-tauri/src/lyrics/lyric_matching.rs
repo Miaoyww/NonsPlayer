@@ -238,6 +238,7 @@ mod tests {
             source: TrackSource::Local {
                 path: String::new(),
                 netease_id: None,
+                cue: None,
             },
         }
     }

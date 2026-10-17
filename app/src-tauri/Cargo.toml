@@ -42,6 +42,8 @@ moka = { version = "0.12", features = ["future"] }
 tokio = { version = "1", features = ["sync", "time", "fs", "macros"] }
 rusqlite = { version = "0.38", features = ["bundled"] }
 lofty = "0.25"
+cue_lib = "0.1.0"
+encoding_rs = "0.8"
 ncmdump = { path = "vendor/ncmdump" }
 tempfile = "3"
 url = "2"

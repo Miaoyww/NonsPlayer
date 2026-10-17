@@ -43,7 +43,11 @@ function auxiliary(text: string) {
     .sort((left, right) => left.start - right.start)
 }
 
-export function parseLyrics(value: Lyrics, duration: number): LyricLine[] {
+export function parseLyrics(
+  value: Lyrics,
+  duration: number,
+  cue?: { startMs: number; endMs: number }
+): LyricLine[] {
   const result = parseLyricsContent(value).filter((line) =>
     line.words.some((word) => word.word.trim())
   )
@@ -51,7 +55,7 @@ export function parseLyrics(value: Lyrics, duration: number): LyricLine[] {
   const translations = matchAuxiliary(starts, value.translation ? auxiliary(value.translation) : [])
   const romans = matchAuxiliary(starts, value.romanization ? auxiliary(value.romanization) : [])
   if (!result.length) throw new EmptyLyricsError()
-  return result.map((line, index) => {
+  const parsed = result.map((line, index) => {
     const end =
       Number.isFinite(line.endTime) && line.endTime > line.startTime
         ? line.endTime
@@ -83,4 +87,19 @@ export function parseLyrics(value: Lyrics, duration: number): LyricLine[] {
         : cleanAuxiliary(romans[index] ?? '')
     }
   })
+  if (!cue || value.source !== 'local') return parsed
+  const shifted = parsed
+    .filter((line) => line.startTime >= cue.startMs && line.startTime < cue.endMs)
+    .map((line) => ({
+      ...line,
+      startTime: line.startTime - cue.startMs,
+      endTime: Math.min(line.endTime, cue.endMs) - cue.startMs,
+      words: line.words.map((word) => ({
+        ...word,
+        startTime: Math.max(0, Math.min(word.startTime, cue.endMs) - cue.startMs),
+        endTime: Math.max(0, Math.min(word.endTime, cue.endMs) - cue.startMs)
+      }))
+    }))
+  if (!shifted.length) throw new EmptyLyricsError()
+  return shifted
 }

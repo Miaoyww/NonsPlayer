@@ -47,6 +47,7 @@ async fn main() -> Result<(), String> {
             source: model::TrackSource::Local {
                 path,
                 netease_id: None,
+                cue: None,
             },
         }
     } else {
@@ -63,6 +64,7 @@ async fn main() -> Result<(), String> {
             source: model::TrackSource::Local {
                 path: String::new(),
                 netease_id: None,
+                cue: None,
             },
         }
     };

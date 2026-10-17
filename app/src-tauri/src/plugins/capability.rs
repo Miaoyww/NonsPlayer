@@ -194,6 +194,7 @@ impl Context {
                     track.source = crate::model::TrackSource::Local {
                         path,
                         netease_id: None,
+                        cue: None,
                     };
                     self.check(Some("player:control"))?;
                     self.player.send(Command::Queue(vec![track], 0))?;

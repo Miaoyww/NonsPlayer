@@ -27,7 +27,12 @@ import {
 export type TrackSource =
   | { kind: 'online'; track: import('@/features/music/types').MusicTrack }
   | { kind: 'netease'; id: number }
-  | { kind: 'local'; path: string; neteaseId: number | null }
+  | {
+      kind: 'local'
+      path: string
+      neteaseId: number | null
+      cue?: { sheetPath: string; trackNumber: number; startMs: number; endMs: number }
+    }
 export interface MusicCredit {
   name: string
   id?: number | null

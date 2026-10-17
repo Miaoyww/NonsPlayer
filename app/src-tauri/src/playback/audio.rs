@@ -70,6 +70,47 @@ pub fn seek_stream(playbin: &gst::Element, position_ms: u64) -> Result<(), gst::
     )
 }
 
+pub fn seek_track(
+    playbin: &gst::Element,
+    track: &crate::model::Track,
+    position_ms: u64,
+) -> Result<(), gst::glib::BoolError> {
+    if let Some(cue) = track.cue() {
+        if cue.end_ms <= cue.start_ms || cue.end_ms > i64::MAX as u64 / 1_000_000 {
+            return Err(gst::glib::bool_error!("CUE 时间范围无效"));
+        }
+        // A bounded, non-SEGMENT seek emits EOS at the track end, reusing queue/repeat handling.
+        playbin.seek(
+            1.0,
+            gst::SeekFlags::FLUSH | gst::SeekFlags::ACCURATE,
+            gst::SeekType::Set,
+            gst::ClockTime::from_mseconds(
+                cue.start_ms + position_ms.min(cue.end_ms - cue.start_ms),
+            ),
+            gst::SeekType::Set,
+            gst::ClockTime::from_mseconds(cue.end_ms),
+        )
+    } else {
+        seek_stream(playbin, position_ms)
+    }
+}
+
+pub fn track_position(track: Option<&crate::model::Track>, position_ms: u64) -> u64 {
+    track
+        .and_then(|track| track.cue())
+        .map_or(position_ms, |cue| {
+            position_ms
+                .saturating_sub(cue.start_ms)
+                .min(cue.end_ms.saturating_sub(cue.start_ms))
+        })
+}
+
+pub fn track_duration(track: Option<&crate::model::Track>, duration_ms: u64) -> u64 {
+    track
+        .and_then(|track| track.cue())
+        .map_or(duration_ms, |cue| cue.end_ms.saturating_sub(cue.start_ms))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

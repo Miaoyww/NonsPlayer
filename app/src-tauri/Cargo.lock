@@ -1229,6 +1229,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "914a755b7c2d4af2bdcff7ce1739e2db9a1b81a9b07123d8015786ae03c0980d"
 
 [[package]]
+name = "cue_lib"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d814a6c68b6d19e46ddd0fccf80208e69e13f485eeea825a5c97c46071dcc2f5"
+
+[[package]]
 name = "darling"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3921,6 +3927,8 @@ dependencies = [
  "cipher",
  "clipboard-rs",
  "clipboard-win",
+ "cue_lib",
+ "encoding_rs",
  "fastrand",
  "flate2",
  "font-kit",
