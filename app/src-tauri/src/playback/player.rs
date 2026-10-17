@@ -584,8 +584,11 @@ impl Actor {
                 let _ = (reply.send(result.clone().map(|_| {
                     crate::platform::android::playback::Snapshot::from_player(&self.state)
                 })))
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("reply.send", error);
+                .inspect_err(|_| {
+                    crate::infrastructure::diagnostics::warn(
+                        "media.reply.send",
+                        "媒体会话响应接收端已关闭",
+                    );
                 });
                 return result;
             }

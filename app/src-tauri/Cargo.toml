@@ -72,6 +72,7 @@ percent-encoding = "2"
 zip = { version = "8", default-features = false, features = ["deflate"] }
 jsonschema = { version = "0.46", default-features = false }
 cap-std = "4"
+image = { version = "0.25", default-features = false }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }
