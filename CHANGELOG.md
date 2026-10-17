@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 稳定性修复
+
+- 本地页左上角搜索统一使用与音乐库、发现相同的网络搜索、搜索建议和历史记录，不再与页面内的本地曲库搜索共用关键词或入口。
+
 ## [1.5.0]
 
 ![NonsPlayer v1.5.0 备用音源扩展与搜索改进发布头图](https://raw.githubusercontent.com/Miaoyww/NonsPlayer/v1.5.0/docs/release-assets/header-1.5.0.png)

@@ -273,10 +273,14 @@ test('submitted history keeps ten unique recent terms and survives remount', () 
   assert.deepEqual([...restored.render().props.items], expected)
   h.changePage({ view: 'local', query: '' })
   submit('local song')
-  assert.deepEqual(JSON.parse(h.storage.get('nons-search-history')), expected)
+  assert.deepEqual(JSON.parse(h.storage.get('nons-search-history')), [
+    'local song',
+    ...expected.slice(0, 9)
+  ])
+  assert.deepEqual(h.navigations.at(-1), ['search', 'local song'])
   h.type('')
   h.input().props.onFocus()
-  assert.equal(h.render().props.open, false)
+  assert.equal(h.render().props.open, true)
 })
 
 test('invalid or unavailable storage does not prevent search', () => {
@@ -337,7 +341,7 @@ test('suggestions debounce typing, ignore older responses and display at most fi
   assert.deepEqual(h.navigations, [['search', 'b']])
 })
 
-test('composition and local search skip suggestions; failed suggestions still allow direct submit', async () => {
+test('composition skips suggestions; failed suggestions still allow direct submit', async () => {
   const h = harness()
   h.render()
   h.input().props.onFocus()
@@ -355,12 +359,29 @@ test('composition and local search skip suggestions; failed suggestions still al
   await settle()
   h.render().props.children[0].props.onSubmit({ preventDefault() {} })
   assert.deepEqual(h.navigations, [['search', '中']])
+})
+
+test('local page uses online search without sharing its page search keyword', async () => {
+  const h = harness()
   h.changePage({ view: 'local', query: 'local' })
-  h.type('local music')
+  assert.equal(h.render().props.inputValue, '')
+  assert.equal(h.input().props.placeholder, '搜索音乐')
+  h.input().props.onFocus()
+  h.type('online music')
+  h.changePage({ view: 'local', query: 'another local query' })
+  assert.equal(h.render().props.inputValue, 'online music')
   h.tick()
   assert.equal(h.requests.length, 1)
+  assert.equal(h.requests[0].args.keyword, 'online music')
+  h.requests[0].resolve(['online suggestion'])
+  await settle()
+  assert.deepEqual([...h.render().props.items], ['online suggestion'])
+  assert.equal(h.render().props.open, true)
   h.render().props.children[0].props.onSubmit({ preventDefault() {} })
-  assert.deepEqual(h.navigations[1], ['local', 'local music'])
+  assert.deepEqual(h.navigations, [['search', 'online music']])
+  h.changePage({ view: 'search', query: 'online music' })
+  h.changePage({ view: 'local', query: 'local' })
+  assert.equal(h.render().props.inputValue, 'online music')
 })
 
 test('blur drops in-flight suggestions and prevents the popup from reopening', async () => {

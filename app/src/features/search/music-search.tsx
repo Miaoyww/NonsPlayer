@@ -34,11 +34,10 @@ function readHistory(limit = 10): string[] {
 
 export function MusicSearch({ pageMode = false }: { pageMode?: boolean } = {}) {
   const { page, navigate } = useMusicNavigation()
-  const local = !pageMode && page.view === 'local'
   const historyLimit = pageMode ? 20 : 10
   const { preferences, revision } = useMusicSources()
   const source = preferences?.current
-  const [keyword, setKeyword] = useState(page.view === 'search' || local ? page.query : '')
+  const [keyword, setKeyword] = useState(page.view === 'search' ? page.query : '')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [history, setHistory] = useState(() => readHistory(historyLimit))
   const [focused, setFocused] = useState(false)
@@ -49,17 +48,17 @@ export function MusicSearch({ pageMode = false }: { pageMode?: boolean } = {}) {
   const showingHistory = !keyword.trim()
   const items = showingHistory ? history : suggestions
   useEffect(() => {
-    if (page.view === 'search' || page.view === 'local') setKeyword(page.query)
+    if (page.view === 'search') setKeyword(page.query)
     setOpen(false)
   }, [page])
   useEffect(() => {
     let disposed = false
     setSuggestions([])
     if (!keyword.trim()) {
-      setOpen(focused && !local && !composing)
+      setOpen(focused && !composing)
       return
     }
-    if (local || !focused || composing || !keyword.trim() || !isTauri() || !source) return
+    if (!focused || composing || !keyword.trim() || !isTauri() || !source) return
     const timer = window.setTimeout(() => {
       void musicClient
         .query(source, { operation: 'suggestions', keyword: keyword.trim() })
@@ -80,27 +79,25 @@ export function MusicSearch({ pageMode = false }: { pageMode?: boolean } = {}) {
       disposed = true
       window.clearTimeout(timer)
     }
-  }, [keyword, local, focused, composing, source, revision, pageMode])
+  }, [keyword, focused, composing, source, revision, pageMode])
   function search(value: string) {
     if (!value.trim() || composing) return
-    if (!local) {
-      const next = [value.trim(), ...history.filter((item) => item !== value.trim())].slice(
-        0,
-        historyLimit
-      )
-      setHistory(next)
-      try {
-        localStorage.setItem(historyKey, JSON.stringify(next))
-      } catch (cause) {
-        reportCaughtError('app/src/features/search/music-search.tsx', cause)
+    const next = [value.trim(), ...history.filter((item) => item !== value.trim())].slice(
+      0,
+      historyLimit
+    )
+    setHistory(next)
+    try {
+      localStorage.setItem(historyKey, JSON.stringify(next))
+    } catch (cause) {
+      reportCaughtError('app/src/features/search/music-search.tsx', cause)
 
-        /* History remains available for this session if storage is unavailable. */
-      }
+      /* History remains available for this session if storage is unavailable. */
     }
     setKeyword(value)
     setOpen(false)
     input.current?.blur()
-    navigate(local ? 'local' : 'search', value.trim())
+    navigate('search', value.trim())
   }
   if (pageMode)
     return (
@@ -210,7 +207,7 @@ export function MusicSearch({ pageMode = false }: { pageMode?: boolean } = {}) {
           }
           setKeyword(value)
         }}
-        open={open && focused && !local && !composing && items.length > 0}
+        open={open && focused && !composing && items.length > 0}
         onOpenChange={setOpen}
         onValueChange={(value) => {
           if (typeof value === 'string') search(value)
@@ -236,8 +233,8 @@ export function MusicSearch({ pageMode = false }: { pageMode?: boolean } = {}) {
           <Primitive.Input
             data-global-music-search
             ref={input}
-            aria-label={local ? '搜索本地曲库' : '搜索音乐'}
-            placeholder={local ? '搜索本地曲库' : '搜索音乐'}
+            aria-label="搜索音乐"
+            placeholder="搜索音乐"
             maxLength={85}
             onFocus={() => {
               setFocused(true)
