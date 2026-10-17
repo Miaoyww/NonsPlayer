@@ -341,34 +341,7 @@ impl Netease {
             "playlist" => checked(self.client.playlist_detail(&query)).await?,
             _ => return Err("音乐详情类型无效".into()),
         };
-        let value = if kind == "artist" {
-            body.pointer("/data/artist")
-        } else if kind == "playlist" {
-            body.get("playlist")
-        } else {
-            body.get("album")
-        }
-        .ok_or("音乐详情缺失")?;
-        let mut item = collection(value, kind).ok_or("音乐详情 ID 缺失")?;
-        if kind == "artist" {
-            item.cover = value
-                .get("avatar")
-                .or_else(|| value.get("cover"))
-                .and_then(Value::as_str)
-                .unwrap_or(&item.cover)
-                .into();
-            item.track_count = value.get("musicSize").and_then(Value::as_u64).unwrap_or(0);
-        }
-        Ok(EntityDetail {
-            item,
-            description: collection_description(value).or_else(|| {
-                value
-                    .get("briefDesc")
-                    .and_then(Value::as_str)
-                    .map(|v| v.chars().take(16_000).collect())
-            }),
-            album_count: value.get("albumSize").and_then(Value::as_u64),
-        })
+        entity_detail(&body, kind)
     }
 
     pub async fn artist_albums(&self, id: u64, offset: u32) -> AppResult<CollectionPage> {
@@ -446,6 +419,38 @@ impl Netease {
         checked(self.client.playlist_create(&query)).await?;
         Ok(())
     }
+}
+
+fn entity_detail(body: &Value, kind: &str) -> AppResult<EntityDetail> {
+    let value = if kind == "artist" {
+        body.pointer("/data/artist")
+    } else if kind == "playlist" {
+        body.get("playlist")
+    } else {
+        body.get("album")
+    }
+    .ok_or("音乐详情缺失")?;
+    let mut item = collection(value, kind).ok_or("音乐详情 ID 缺失")?;
+    if kind == "artist" {
+        item.cover = crate::cover::image(
+            value
+                .get("avatar")
+                .or_else(|| value.get("cover"))
+                .and_then(Value::as_str)
+                .unwrap_or(&item.cover),
+        );
+        item.track_count = value.get("musicSize").and_then(Value::as_u64).unwrap_or(0);
+    }
+    Ok(EntityDetail {
+        item,
+        description: collection_description(value).or_else(|| {
+            value
+                .get("briefDesc")
+                .and_then(Value::as_str)
+                .map(|v| v.chars().take(16_000).collect())
+        }),
+        album_count: value.get("albumSize").and_then(Value::as_u64),
+    })
 }
 
 pub(super) fn array<'a>(value: &'a Value, key: &str) -> &'a [Value] {
@@ -579,7 +584,54 @@ fn track_page<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nons_music_adapter_sdk::{
+        business::{BusinessRequest, BusinessResponse, EntityDetail as MusicEntityDetail},
+        cover::CoverSize,
+    };
     use serde_json::json;
+
+    #[test]
+    fn artist_details_preserve_metadata_and_pass_the_live_response_contract() {
+        for field in ["avatar", "cover", "picUrl", "missing"] {
+            let mut artist = json!({
+                "id": 42, "name": "米津玄师", "musicSize": 123,
+                "albumSize": 12, "briefDesc": "歌手简介"
+            });
+            if field != "missing" {
+                artist[field] = json!("https://p1.music.126.net/artist.jpg?param=200y200");
+            }
+            let detail = entity_detail(&json!({"data": {"artist": artist}}), "artist").unwrap();
+            assert_eq!(detail.item.name, "米津玄师");
+            assert_eq!(detail.item.track_count, 123);
+            assert_eq!(detail.album_count, Some(12));
+            assert_eq!(detail.description.as_deref(), Some("歌手简介"));
+            if field == "missing" {
+                assert!(detail.item.cover.is_empty());
+            } else {
+                assert_eq!(
+                    detail.item.cover.url(CoverSize::Original),
+                    "https://p1.music.126.net/artist.jpg"
+                );
+                assert_eq!(
+                    detail.item.cover.url(CoverSize::Large),
+                    "https://p1.music.126.net/artist.jpg?param=512y512"
+                );
+            }
+            let item = crate::netease_business::entity(detail.item).unwrap();
+            let request = BusinessRequest::Detail {
+                entity: item.reference.clone(),
+            };
+            let source = item.reference.source.clone();
+            BusinessResponse::Detail(MusicEntityDetail {
+                item,
+                description: detail.description,
+                album_count: detail.album_count,
+            })
+            .validate(&request, &source)
+            .unwrap();
+        }
+    }
+
     #[test]
     fn playlist_play_counts_accept_both_api_fields_and_omit_missing_values() {
         for (input, expected) in [
