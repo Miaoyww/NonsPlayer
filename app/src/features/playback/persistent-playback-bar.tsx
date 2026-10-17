@@ -6,7 +6,7 @@ import { PlaybackTimeline } from '@/features/playback/playback-timeline'
 import { PlaybackTransport } from '@/features/playback/playback-transport'
 import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/playback-notice'
 import { QueuePopover } from '@/features/queue/queue-popover'
-import { trackDisplayTitle } from '@/components/music/track-title'
+import { TrackIdentity } from '@/components/music/track-identity'
 import { VolumeControl } from '@/features/playback/volume-control'
 import { isAndroid } from '@/lib/platform'
 import { useState } from 'react'
@@ -26,28 +26,32 @@ export function PersistentPlaybackBar({
 }) {
   const state = usePlayer('actualQuality', 'index', 'queue', 'status')
   const track = state.index === null ? undefined : state.queue[state.index]
-  const title = track ? trackDisplayTitle(track) : '选择一首音乐'
   const mobile = isAndroid()
   const [expanded, setExpanded] = useState(false)
+  const cover = (
+    <button
+      type="button"
+      className="persistent-cover"
+      aria-label="打开正在播放"
+      title="打开全屏播放器"
+      onClick={onLyrics}
+    >
+      <Cover size="small" cover={track?.cover} className="size-12" />
+    </button>
+  )
   const identity = (
     <div className="persistent-track">
-      <button
-        type="button"
-        className="persistent-cover"
-        aria-label="打开正在播放"
-        title="打开全屏播放器"
-        onClick={onLyrics}
-      >
-        <Cover size="small" cover={track?.cover} className="size-12" />
-      </button>
-      <div className="persistent-track-text">
-        <p className="persistent-track-title" title={title}>
-          {title}
-        </p>
-        <p className="persistent-track-artist" title={track?.artist}>
-          {track?.artist || 'Nons'}
-        </p>
-      </div>
+      {track ? (
+        <TrackIdentity track={track} cover={cover} />
+      ) : (
+        <>
+          {cover}
+          <div className="persistent-track-text">
+            <p className="persistent-track-title">选择一首音乐</p>
+            <p className="persistent-track-artist">Nons</p>
+          </div>
+        </>
+      )}
     </div>
   )
   return (

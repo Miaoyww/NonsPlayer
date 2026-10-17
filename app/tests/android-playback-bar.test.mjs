@@ -30,6 +30,9 @@ function harness(android) {
       statusLabels: { playing: '播放中' }
     },
     '@/components/music/track-title': { trackDisplayTitle: (track) => track.title },
+    '@/components/music/track-identity': {
+      TrackIdentity: ({ cover }) => jsx('track-identity', { children: cover })
+    },
     '@/components/music/action-button': { ActionButton: 'button' },
     '@/components/music/cover': { Cover: 'cover' },
     '@/features/playback/current-track-like': { CurrentTrackLike: 'like' },
@@ -65,6 +68,7 @@ function harness(android) {
 }
 function find(node, predicate) {
   if (!node || typeof node !== 'object') return
+  if (typeof node.type === 'function') return find(node.type(node.props), predicate)
   if (predicate(node)) return node
   for (const child of [node.props?.children].flat()) {
     const result = find(child, predicate)

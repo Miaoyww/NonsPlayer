@@ -2481,13 +2481,17 @@
 .persistent-track-text {
   min-width: 0;
 }
+.persistent-track > .track-identity {
+  flex: 1;
+}
 .persistent-track-title,
 .persistent-track-artist {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.persistent-track-title {
+.persistent-track-title,
+.persistent-track .track-title {
   font-size: 14px;
   font-weight: 650;
 }
