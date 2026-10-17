@@ -11,6 +11,13 @@ import { JSDOM } from 'jsdom'
 const modules = {
   react: React,
   'react/jsx-runtime': jsx,
+  'motion/react': {
+    AnimatePresence: ({ children }) => children,
+    useReducedMotion: () => true,
+    motion: {
+      div: ({ initial, animate, exit, transition, ...props }) => React.createElement('div', props)
+    }
+  },
   'lucide-react': Object.fromEntries(
     ['ChevronDown', 'ChevronUp', 'ListPlus', 'Play'].map((name) => [name, () => null])
   ),
@@ -25,6 +32,20 @@ const modules = {
     SongContextMenu: ({ render, children }) => React.cloneElement(render, {}, children)
   },
   '@/lib/player': { formatTime: (ms) => `${ms / 1000}s` },
+  './cue-context-menu': {
+    CueContextMenu: ({ render, children }) => React.cloneElement(render, {}, children)
+  },
+  '@/components/music/track-identity': {
+    TrackIdentity: ({ track, cover }) =>
+      React.createElement(
+        'div',
+        {},
+        cover,
+        React.createElement('span', { className: 'track-title' }, track.title),
+        React.createElement('span', {}, track.artist)
+      ),
+    TrackSourceLabel: () => React.createElement('span', {}, '本地音乐')
+  },
   './cue-card.css': {}
 }
 function load(path) {
@@ -96,6 +117,16 @@ test('CUE card expands into four numbered compact children and preserves play/ap
     const [expanded, setExpanded] = React.useState(false)
     return React.createElement(CueCard, {
       entries,
+      sequence: 1,
+      columns: [
+        { id: 'index', size: 48 },
+        { id: 'title', size: 480 },
+        { id: 'album', size: 200 },
+        { id: 'source', size: 104 },
+        { id: 'duration', size: 80 },
+        { id: 'append', size: 48 }
+      ],
+      onPlayGroup() {},
       expanded,
       onExpandedChange: setExpanded,
       busy: false,

@@ -64,6 +64,7 @@ export function songCopyName(track: Track) {
 const SongActionsContext = createContext<{
   songLink: (track: Track) => string
   collect: (track: Track) => void
+  collectGroup: (tracks: Track[]) => void
   details: (track: Track) => void
   run: (
     operation: () => void | Promise<unknown>,
@@ -96,6 +97,7 @@ export function SongActionsProvider({
   const sources = statuses.filter((status) => status.enabled).map((status) => status.descriptor)
   const songLink = (track: Track) => trackShareLink(track, sources)
   const [collectTrack, setCollectTrack] = useState<Track>()
+  const [collectGroup, setCollectGroup] = useState<Track[]>()
   const [track, setTrack] = useState<Track>()
   const [localInformation, setLocalInformation] = useState<LocalInformation>()
   const [information, setInformation] = useState<SongInformation>()
@@ -251,6 +253,7 @@ export function SongActionsProvider({
       value={{
         songLink,
         collect: setCollectTrack,
+        collectGroup: setCollectGroup,
         details: (value) => {
           setRetry(0)
           setTrack(value)
@@ -264,7 +267,11 @@ export function SongActionsProvider({
       {children}
       <LocalPlaylistPicker
         track={collectTrack?.source.kind === 'local' ? collectTrack : undefined}
-        onClose={() => setCollectTrack(undefined)}
+        tracks={collectGroup}
+        onClose={() => {
+          setCollectTrack(undefined)
+          setCollectGroup(undefined)
+        }}
         onNotice={onNotice}
       />
       <PlaylistPicker

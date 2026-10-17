@@ -1,63 +1,20 @@
 .cue-card {
   border-radius: 12px;
   background: var(--background);
-  border: 1px solid var(--border);
-  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .cue-card-header {
-  display: flex;
-  align-items: center;
-  padding-right: 8px;
-}
-.cue-card-open {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
+}
+.cue-parent-row {
   cursor: pointer;
 }
-.cue-card-open:hover,
-.cue-card-header:focus-within {
-  background: var(--accent);
-}
-.cue-card-cover {
-  width: 48px;
-  height: 48px;
-}
-.cue-card-text {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-.cue-card-title,
-.cue-track-title {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-weight: 500;
-}
-.cue-card-subtitle,
-.cue-track-artist {
-  color: var(--muted-foreground);
+.cue-card-count {
   font-size: 12px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.cue-card-count,
-.cue-card-duration,
-.cue-track-duration {
-  color: var(--muted-foreground);
-  font-size: 12px;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.cue-card-duration {
-  width: 64px;
 }
 .cue-card-children {
   margin: 0 12px 10px 39px;
@@ -80,8 +37,7 @@
 .cue-track-card[data-selected='true'] {
   background: var(--accent);
 }
-.cue-track-card[data-current='true'] .cue-track-title,
-.cue-card[data-current='true'] .cue-card-title {
+.cue-track-card[data-current='true'] .cue-track-title {
   color: var(--primary);
 }
 .cue-track-number {
@@ -118,25 +74,7 @@
   outline-offset: -2px;
   border-radius: 8px;
 }
-.track-list[data-mode='compact'] .cue-card-open {
-  padding-block: 6px;
-}
-.track-list[data-mode='compact'] .cue-card-cover {
-  width: 40px;
-  height: 40px;
-}
 @media (max-width: 600px) {
-  .cue-card-open {
-    gap: 10px;
-    padding: 10px;
-    flex-wrap: wrap;
-  }
-  .cue-card-duration {
-    display: none;
-  }
-  .cue-card-count {
-    font-size: 11px;
-  }
   .cue-card-children {
     margin-left: 16px;
     margin-right: 8px;

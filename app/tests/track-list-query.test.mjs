@@ -35,6 +35,7 @@ async function harness(run, android = false) {
     },
     { key: 'a', title: 'Zulu', artist: 'Alpha', album: 'Second', durationMs: 3000 }
   ].map((track) => ({ ...track, source: { kind: 'local' }, cover: '' }))
+  const navigations = []
   const plays = [],
     removes = [],
     menus = [],
@@ -48,6 +49,13 @@ async function harness(run, android = false) {
   }
   const trackSearchContext = React.createContext(undefined)
   const modules = {
+    '@/features/local/use-local-preferences': {
+      useLocalPreferences: () => ({ options: { artistSeparators: [' / '] } })
+    },
+    '@/features/workspace/music-navigation': {
+      useMusicNavigation: () => ({ navigate: (...args) => navigations.push(args) })
+    },
+    '@/features/music/queries': { readTrackInformation: async () => ({}) },
     '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     '@/lib/platform': { isAndroid: () => android },
     './list-find': { useListFind() {} },
@@ -57,6 +65,13 @@ async function harness(run, android = false) {
     react: React,
     '@tanstack/react-table': table,
     'react/jsx-runtime': jsx,
+    'motion/react': {
+      AnimatePresence: ({ children }) => children,
+      useReducedMotion: () => true,
+      motion: {
+        div: ({ initial, animate, exit, transition, ...props }) => React.createElement('div', props)
+      }
+    },
     '@tanstack/react-virtual': {
       useVirtualizer: ({ count }) => {
         virtualizer.getVirtualItems = () =>
@@ -102,7 +117,8 @@ async function harness(run, android = false) {
       useAccount: () => ({ getAccount: () => ({ likedIds: new Set(), pendingLikes: new Set() }) })
     },
     '@/features/music/source-label': {
-      sourceLabel: (source) => (source === 'netease' ? '网易云音乐' : source),
+      sourceLabel: (source) =>
+        source === 'netease' ? '网易云音乐' : source === 'local' ? '本地音乐' : source,
       trackSource: (track) =>
         track.source.kind === 'online' ? track.source.track.reference.source : track.source.kind
     },
@@ -144,11 +160,18 @@ async function harness(run, android = false) {
     return exports
   }
   modules['./cue-card.css'] = {}
+  modules['./cue-context-menu'] = {
+    CueContextMenu: ({ render, children, ...props }) => {
+      menus.push({ ...props, cueGroup: true })
+      return React.cloneElement(render, {}, children)
+    }
+  }
   modules['@/features/local/cue-groups'] = load('../src/features/local/cue-groups.ts')
   modules['./cue-track-card'] = load('../src/features/local/cue-track-card.tsx')
-  modules['@/features/local/cue-card'] = load('../src/features/local/cue-card.tsx')
+  modules['./music-links'] = load('../src/components/music/music-links.tsx')
   modules['./track-column-sizing'] = load('../src/components/music/track-column-sizing.tsx')
   modules['@/components/music/track-identity'] = load('../src/components/music/track-identity.tsx')
+  modules['@/features/local/cue-card'] = load('../src/features/local/cue-card.tsx')
   const exports = {}
   runInNewContext(
     ts.transpileModule(
@@ -220,7 +243,7 @@ async function harness(run, android = false) {
   }
   try {
     await render()
-    await run({ tracks, plays, removes, menus, copies, render, search, dom })
+    await run({ tracks, plays, removes, menus, copies, render, search, dom, navigations })
   } finally {
     await act(async () => root.unmount())
     dom.window.close()
@@ -233,7 +256,7 @@ async function harness(run, android = false) {
 }
 
 test('CUE groups preserve flat playback indices, scoped search and original removal indices', async () => {
-  await harness(async ({ tracks, render, search, plays, menus, removes }) => {
+  await harness(async ({ tracks, render, search, plays, menus, removes, dom, navigations }) => {
     const cue = (number) => ({
       ...tracks[0],
       key: `cue:${number}`,
@@ -243,7 +266,44 @@ test('CUE groups preserve flat playback indices, scoped search and original remo
     const supplied = [cue(4), tracks[1], cue(2), cue(1), cue(3)]
     await render({ tracks: supplied, groupCue: true, onAppend() {} })
     assert.equal(document.querySelectorAll('.cue-card').length, 1)
-    assert.equal(document.querySelectorAll('.track-row').length, 1)
+    const parent = document.querySelector('.cue-parent-row')
+    assert.equal(parent.cells[0].textContent, '1')
+    assert.match(parent.cells[2].textContent, /CUE · 4 首/)
+    assert.equal(parent.cells[3].textContent, '本地音乐')
+    const outerCols = [...document.querySelector('.track-list > colgroup').children]
+    const innerCols = [...document.querySelector('.cue-card-header > colgroup').children]
+    assert.deepEqual(
+      innerCols.map((col) => col.style.width),
+      outerCols.map((col) => col.style.width)
+    )
+    await act(async () => parent.click())
+    assert.equal(document.querySelectorAll('.cue-track-card').length, 4)
+    await act(async () => parent.querySelector('.music-entity-link').click())
+    assert.equal(navigations.at(-1)[0], 'local-artist')
+    assert.equal(document.querySelectorAll('.cue-track-card').length, 4)
+    const before = innerCols[1].style.width
+    await act(async () =>
+      document
+        .querySelector('[aria-label="调整标题列宽"]')
+        .dispatchEvent(
+          new dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+        )
+    )
+    assert.notEqual(innerCols[1].style.width, before)
+    assert.deepEqual(
+      innerCols.map((col) => col.style.width),
+      outerCols.map((col) => col.style.width)
+    )
+
+    await act(async () => parent.click())
+    assert.equal(document.querySelectorAll('.cue-track-card').length, 0)
+    menus.findLast((menu) => menu.cueGroup).onPlay()
+    assert.deepEqual(
+      Array.from(plays.at(-1)[1], (track) => track.key),
+      ['cue:1', 'cue:2', 'cue:3', 'cue:4']
+    )
+
+    assert.equal(document.querySelectorAll('.track-row').length, 2)
     await act(async () => document.querySelector('.cue-card-open').click())
     assert.equal(document.querySelectorAll('.cue-track-card').length, 4)
     await act(async () => document.querySelectorAll('.cue-track-text')[2].click())
@@ -255,7 +315,9 @@ test('CUE groups preserve flat playback indices, scoped search and original remo
     const childMenu = menus.findLast((menu) => menu.track.key === 'cue:3')
     childMenu.onRemove()
     assert.equal(removes.at(-1)[1], 4)
-    await act(async () => document.querySelector('.track-cover').click())
+    await act(async () =>
+      document.querySelector('.track-row:not(.cue-parent-row) .track-cover').click()
+    )
     assert.equal(plays.at(-1)[0], 4)
     await search('Part 2')
     assert.equal(document.querySelectorAll('.cue-track-card').length, 1)
@@ -641,7 +703,7 @@ test('track sources have a dedicated column and never appear in the artist text'
     assert.match(document.querySelector('thead').textContent, /来源/)
     const rows = [...document.querySelectorAll('tbody tr')]
     assert.equal(rows[0].querySelector('.track-source').textContent, '网易云音乐')
-    assert.equal(rows[1].querySelector('.track-source').textContent, 'local')
+    assert.equal(rows[1].querySelector('.track-source').textContent, '本地音乐')
     for (const row of rows)
       assert.equal(row.querySelector('.track-identity-artist .track-source'), null)
   })

@@ -17,10 +17,12 @@ import { Cover } from '@/components/music/cover'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 export function LocalPlaylistPicker({
   track,
+  tracks,
   onClose,
   onNotice
 }: {
   track?: Track
+  tracks?: Track[]
   onClose: () => void
   onNotice: (message: string) => void
 }) {
@@ -30,7 +32,7 @@ export function LocalPlaylistPicker({
   useEffect(() => {
     setName('')
     setError(undefined)
-  }, [track])
+  }, [track, tracks])
   const loader = useCallback(
     (offset: number) =>
       nativeCall<{ items: LocalEntity[]; more: boolean }>('local_entities', {
@@ -38,16 +40,18 @@ export function LocalPlaylistPicker({
         keyword: '',
         offset
       }),
-    [track]
+    [track, tracks]
   )
-  const list = usePagedList<LocalEntity>(loader, 30, !!track)
+  const list = usePagedList<LocalEntity>(loader, 30, !!track || !!tracks?.length)
   async function add(id?: string) {
-    if (!track || busy) return
+    if ((!track && !tracks?.length) || busy) return
     setBusy(true)
     setError(undefined)
     try {
       id ??= await nativeCall<string>('create_local_playlist', { name })
-      await nativeCall('add_local_playlist_track', { id, key: track.key })
+      for (const item of tracks ?? (track ? [track] : [])) {
+        await nativeCall('add_local_playlist_track', { id, key: item.key })
+      }
       onNotice('已添加到本地歌单。')
       onClose()
     } catch (cause) {
@@ -60,7 +64,7 @@ export function LocalPlaylistPicker({
   }
   return (
     <Dialog
-      open={!!track}
+      open={!!track || !!tracks?.length}
       onOpenChange={(open) => {
         if (!open && !busy) onClose()
       }}
@@ -68,7 +72,9 @@ export function LocalPlaylistPicker({
       <DialogContent className="max-h-[80dvh] overflow-auto">
         <DialogHeader>
           <DialogTitle>添加到本地歌单</DialogTitle>
-          <DialogDescription>{track?.title}</DialogDescription>
+          <DialogDescription>
+            {tracks?.length ? `${tracks[0].album} · ${tracks.length} 首` : track?.title}
+          </DialogDescription>
         </DialogHeader>
         <form
           className="flex gap-2"

@@ -588,6 +588,18 @@ export const TrackList = memo(function TrackList({
                       <td colSpan={columns} style={{ padding: 0 }}>
                         <CueCard
                           entries={groups[row.index]}
+                          columns={columnSizing.columns}
+                          sequence={offset + row.index + 1}
+                          mobile={mobile}
+                          showDuration={showDuration}
+                          showLikes={showLikes}
+                          extraCells={extraColumns.map((column) => column.render(track, index))}
+                          onPlayGroup={() =>
+                            onPlay(
+                              0,
+                              groups[row.index].map(({ track }) => track)
+                            )
+                          }
                           expanded={expandedSheets.has(sheet)}
                           onExpandedChange={(expanded) =>
                             setExpandedSheets((old) => {
