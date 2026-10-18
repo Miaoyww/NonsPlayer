@@ -1,3 +1,4 @@
+import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton, CollectionGridSkeleton } from '@/components/music/loading'
@@ -74,7 +75,9 @@ function useLocalResults(kind: Kind, keyword: string, refresh: number) {
     },
     [kind, keyword, refresh]
   )
-  return usePagedList<Track | LocalEntity, true>(loader, kind === 'song' ? 100 : 30, isTauri())
+  return usePagedList<Track | LocalEntity, true>(loader, kind === 'song' ? 100 : 30, isTauri(), {
+    cacheKey: presentationKey('local', kind, keyword)
+  })
 }
 
 function BrowseResults(props: Omit<ResultProps, 'list'>) {
@@ -321,7 +324,9 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
       }),
     [collection?.kind, collection?.localId, refresh, revision]
   )
-  const list = usePagedList<Track>(loader, 100, isTauri() && !!collection)
+  const list = usePagedList<Track>(loader, 100, isTauri() && !!collection, {
+    cacheKey: presentationKey('local-detail', collection?.kind, collection?.localId)
+  })
   const player = usePlayer('index', 'queue')
   const [playing, setPlaying] = useState(false)
   async function play() {

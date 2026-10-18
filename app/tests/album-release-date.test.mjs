@@ -1,3 +1,4 @@
+import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -30,6 +31,7 @@ test('album cards fill missing list dates from visible album details and ignore 
     disconnect() {}
   }
   const modules = {
+    '@/lib/runtime-cache': createRuntimeCache(),
     '@/features/music/legacy-reference': musicReference,
     '@/features/music/entities': { musicCollection: (item) => item },
     '@/features/music/queries': {

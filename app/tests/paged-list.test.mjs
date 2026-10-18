@@ -1,10 +1,11 @@
+import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
-function harness() {
+function harness(cache = createRuntimeCache(), initialCacheKey) {
   const slots = [],
     effects = [],
     requests = []
@@ -55,7 +56,8 @@ function harness() {
   const exports = {}
   runInNewContext(outputText, {
     exports,
-    require: (name) => (name === 'react' ? react : { errorText: String })
+    require: (name) =>
+      name === '@/lib/runtime-cache' ? cache : name === 'react' ? react : { errorText: String }
   })
   const newLoader = () => (offset) =>
     new Promise((resolve, reject) => requests.push({ offset, resolve, reject }))
@@ -63,16 +65,18 @@ function harness() {
   let size = 50,
     enabled = true,
     refreshKey = 0,
-    reconcile
+    reconcile,
+    cacheKey = initialCacheKey
   const render = (flushEffects = true) => {
     cursor = 0
-    const value = exports.usePagedList(loader, size, enabled, { refreshKey, reconcile })
+    const value = exports.usePagedList(loader, size, enabled, { refreshKey, reconcile, cacheKey })
     if (flushEffects) while (effects.length) effects.shift()()
     return value
   }
   return {
     render,
     requests,
+    cache,
     switchLoader() {
       loader = newLoader()
     },
@@ -80,6 +84,7 @@ function harness() {
       size = options.size ?? size
       enabled = options.enabled ?? enabled
       reconcile = options.reconcile ?? reconcile
+      cacheKey = options.cacheKey ?? cacheKey
     },
     refresh() {
       refreshKey++
@@ -305,4 +310,69 @@ test('a newer refresh discards the old refresh and preserves the loaded depth', 
   app.requests[4].resolve({ items: ['new second'], more: false })
   await settle()
   assert.deepEqual([...app.render().items], ['new first', 'new second'])
+})
+
+test('returning to a cached list displays its first page before effects and reloads its cursor', async () => {
+  const cache = createRuntimeCache()
+  const key = cache.presentationKey('songs', 'account-a')
+  const first = harness(cache, key)
+  assert.equal(first.render().busy, true)
+  first.requests[0].resolve({ items: ['cached'], more: true, metadata: { total: 90 } })
+  await settle()
+  const second = harness(cache, key)
+  const initial = second.render(false)
+  assert.deepEqual([...initial.items], ['cached'])
+  assert.equal(initial.metadata.total, 90)
+  assert.equal(initial.busy, false)
+  second.render()
+  assert.equal(second.requests[0].offset, 0)
+  void second.render().loadMore()
+  assert.equal(second.requests.length, 1, 'wait for first-page cursor reconstruction')
+  second.requests[0].resolve({ items: ['fresh'], more: true })
+  await settle()
+  const next = second.render().loadMore()
+  assert.equal(second.requests[1].offset, 50)
+  second.requests[1].resolve({ items: ['next'], more: false })
+  await next
+  assert.deepEqual([...second.render().items], ['fresh', 'next'])
+})
+
+test('cached empty lists do not flash a skeleton, and disabled or different queries never reuse them', () => {
+  const cache = createRuntimeCache()
+  const key = cache.presentationKey('songs', 'account-a')
+  cache.requestCache.set(key, { items: [], more: false })
+  const app = harness(cache, key)
+  assert.equal(app.render().busy, false)
+  assert.equal(app.render().busy, false)
+  app.configure({ cacheKey: cache.presentationKey('songs', 'account-b') })
+  assert.equal(app.render(false).busy, true)
+  app.configure({ enabled: false, cacheKey: key })
+  assert.equal(app.render(false).busy, false)
+  assert.equal(app.render(false).items.length, 0)
+})
+
+test('invalidation clears display snapshots and prevents late requests from repopulating them', async () => {
+  const cache = createRuntimeCache()
+  const key = cache.presentationKey('songs', 'account-a')
+  cache.requestCache.set(key, { items: ['old'], more: true })
+  const app = harness(cache, key)
+  app.render()
+  cache.invalidateNativeCache(['music_query'])
+  assert.equal(cache.requestCache.peekFresh(key), undefined)
+  app.requests[0].resolve({ items: ['late'], more: false })
+  await settle()
+  assert.equal(cache.requestCache.peekFresh(key), undefined)
+  const fresh = harness(cache, key)
+  assert.equal(fresh.render(false).busy, true)
+  assert.equal(fresh.render(false).items.length, 0)
+})
+
+test('expired display snapshots miss, and refreshing an expired entry starts a new TTL', async () => {
+  const { RuntimeCache } = createRuntimeCache()
+  const cache = new RuntimeCache(1024, 1)
+  cache.set('presentation:ttl', { items: ['old'], more: false })
+  await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.equal(cache.peekFresh('presentation:ttl'), undefined)
+  cache.set('presentation:ttl', { items: ['new'], more: false })
+  assert.equal(cache.peekFresh('presentation:ttl').items[0], 'new')
 })

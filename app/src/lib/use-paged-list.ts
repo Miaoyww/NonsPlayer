@@ -1,6 +1,7 @@
 import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { errorText } from './player'
+import { requestCache } from '@/lib/runtime-cache'
 
 export interface ListPage<T, M = undefined> {
   items: T[]
@@ -16,19 +17,25 @@ export function usePagedList<T, M = undefined>(
   enabled: boolean,
   {
     refreshKey,
+    cacheKey,
     reconcile
   }: {
     refreshKey?: unknown
+    cacheKey?: string
     reconcile?: (previous: T[], next: T[]) => T[]
   } = {}
 ) {
-  const query = useMemo(() => ({ loader, size, enabled }), [loader, size, enabled])
+  const query = useMemo(
+    () => ({ loader, size, enabled, cacheKey }),
+    [loader, size, enabled, cacheKey]
+  )
+  const cached = enabled && cacheKey ? requestCache.peekFresh<ListPage<T, M>>(cacheKey) : undefined
   const empty = {
     query,
-    items: [] as T[],
-    metadata: undefined as M | undefined,
-    more: false,
-    busy: enabled,
+    items: cached?.items ?? ([] as T[]),
+    metadata: cached?.metadata,
+    more: cached?.more ?? false,
+    busy: enabled && !cached,
     error: undefined as string | undefined
   }
   const [view, setView] = useState(empty)
@@ -38,7 +45,12 @@ export function usePagedList<T, M = undefined>(
       const state = request.current
       if (!enabled || state.query !== query || state.busy || !state.more) return
       state.busy = true
-      setView((previous) => ({ ...previous, busy: true, error: undefined }))
+      const revision = requestCache.revision
+      setView((previous) => ({
+        ...previous,
+        busy: !cached || previous.items.length > 0,
+        error: undefined
+      }))
       try {
         const firstPage = state.offset === 0
         let offset = state.offset
@@ -47,6 +59,8 @@ export function usePagedList<T, M = undefined>(
         for (let index = 0; index < pages; index++) {
           page = await loader(offset)
           if (request.current !== state) return
+          if (offset === 0 && cacheKey && requestCache.revision === revision)
+            requestCache.set(cacheKey, page)
           items.push(...page.items)
           offset += size
           if (!page.more) break
@@ -86,7 +100,9 @@ export function usePagedList<T, M = undefined>(
     request.current = { query, offset: 0, busy: false, more: true, reloadPages: pages }
     // Refresh this query in the background; only a different query clears its rows.
     setView((previous) =>
-      previous.query === query ? { ...previous, busy: enabled, error: undefined } : empty
+      previous.query === query
+        ? { ...previous, busy: enabled && (!cached || previous.items.length > 0), error: undefined }
+        : empty
     )
     void load(pages)
     return () => {

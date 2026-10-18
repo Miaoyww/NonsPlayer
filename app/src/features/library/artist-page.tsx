@@ -1,3 +1,4 @@
+import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton, CollectionGridSkeleton, TextSkeleton } from '@/components/music/loading'
@@ -65,9 +66,13 @@ export default function ArtistPage({
     },
     [collection.id, refresh]
   )
-  const songs = usePagedList<Track>(songLoader, 100, isTauri())
+  const songs = usePagedList<Track>(songLoader, 100, isTauri(), {
+    cacheKey: presentationKey('artist-tracks', collection.reference ?? collection)
+  })
   // The first album page also supplies the two latest releases; further pages load in the album tab.
-  const albums = usePagedList<MusicCollection>(albumLoader, 30, isTauri())
+  const albums = usePagedList<MusicCollection>(albumLoader, 30, isTauri(), {
+    cacheKey: presentationKey('artist-albums', collection.reference ?? collection)
+  })
   const latest = [...albums.items.slice(0, 30)]
     .sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0))
     .slice(0, 2)

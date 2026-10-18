@@ -1,3 +1,4 @@
+import { requestCache, presentationKey, invalidateNativeCache } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -31,7 +32,10 @@ export default function EntityPage(props: EntityPageProps) {
     if (isTauri())
       for (const event of ['music-account-changed', 'adapters-changed', 'music-changed']) {
         void listen<string>(event, ({ payload }) => {
-          if (!disposed && payload === source) setRevision((value) => value + 1)
+          if (!disposed && payload === source) {
+            invalidateNativeCache(['music_query'])
+            setRevision((value) => value + 1)
+          }
         })
           .then((stop) => {
             if (disposed) stop()
@@ -63,11 +67,13 @@ function EntityContent(props: EntityPageProps) {
 
 function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
   const reference = collection.reference!
-  const [tracks, setTracks] = useState<Track[]>([])
-  const [busy, setBusy] = useState(true)
+  const cacheKey = presentationKey('entity-tracks', reference)
+  const cached = requestCache.peekFresh<{ tracks: Track[]; total: number | null }>(cacheKey)
+  const [tracks, setTracks] = useState<Track[]>(cached?.tracks ?? [])
+  const [busy, setBusy] = useState(!cached)
   const [error, setError] = useState<string>()
   const [detail, setDetail] = useState(collection)
-  const [total, setTotal] = useState(collection.trackCount)
+  const [total, setTotal] = useState(cached?.total ?? collection.trackCount)
   const [playing, setPlaying] = useState(false)
   const [description, setDescription] = useState<string>()
   const player = usePlayer('index', 'queue')
@@ -77,7 +83,8 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
     const state = query.current
     if (!active.current || state.busy || !state.more) return
     state.busy = true
-    setBusy(true)
+    const revision = requestCache.revision
+    setBusy(!cached || tracks.length > 0)
     setError(undefined)
     try {
       const response = await musicClient.query(
@@ -94,7 +101,11 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
       if (response.type !== 'tracks') throw new Error('音乐来源返回了错误的歌曲列表')
       const next = await musicClient.queueTracks(reference.source, response.data.items)
       if (query.current !== state || !active.current) return
+      if (state.cursor === null && requestCache.revision === revision)
+        requestCache.set(cacheKey, { tracks: next, total: response.data.total })
+      const firstPage = state.cursor === null
       setTracks((previous) => {
+        if (firstPage) return next
         const keys = new Set(previous.map((track) => track.key))
         return [
           ...previous,
@@ -164,7 +175,7 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
         <TrackList
           tracks={tracks}
           hasMore={query.current.more}
-          loading={busy && tracks.length === 0}
+          loading={busy && tracks.length === 0 && !cached}
           busy={busy}
           showLikes
           searchable

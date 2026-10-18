@@ -3011,7 +3011,7 @@
   outline-offset: 2px;
 }
 
-.music-cover-image[data-ready='true'] {
+.music-cover-image[data-ready='true'][data-animate='true'] {
   animation: music-cover-reveal 320ms ease-out backwards;
 }
 .music-cover-skeleton[data-ready='true'] {
@@ -3026,7 +3026,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .music-cover-image[data-ready='true'],
+  .music-cover-image[data-ready='true'][data-animate='true'],
   .music-cover-skeleton[data-ready='true'] {
     animation: none;
   }

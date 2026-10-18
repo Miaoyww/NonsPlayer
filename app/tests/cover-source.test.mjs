@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
-function harness({ intersecting = true, tauri = true } = {}) {
+function harness({ intersecting = true, tauri = true, cached = false } = {}) {
   const slots = [],
     effects = [],
     requests = [],
@@ -53,7 +53,11 @@ function harness({ intersecting = true, tauri = true } = {}) {
         new Promise((resolve, reject) => requests.push({ command, args, resolve, reject }))
     },
     '@/lib/runtime-cache': {
-      coverCache: { delete: (key) => deleted.push(key) },
+      coverCache: {
+        peekFresh: () =>
+          cached ? { access: 'valid', data: 'data:image/jpeg;base64,ready' } : undefined,
+        delete: (key) => deleted.push(key)
+      },
       requestKey: (command, args) => `${command}:${JSON.stringify(args)}`
     },
     '@/features/local/use-local-options': { useLocalOptions: () => ({ showCovers: true }) }
@@ -322,4 +326,48 @@ test('non-Tauri previews retain display-only URLs without claiming a native cach
   assert.equal(h.requests.length, 0)
   h.render(cover).onError()
   assert.equal(h.render(cover).source, undefined)
+})
+
+test('cached cover skips skeleton and reveal while retaining live host validation', async () => {
+  const h = harness({ cached: true })
+  const props = { loading: 'eager' }
+  let tree = h.renderCover(cover, true, props)
+  assert.equal(
+    tree.props.children.some((child) => child?.type === 'skeleton'),
+    false
+  )
+  assert.equal(h.requests.length, 1, 'cache hints must not bypass host authorization')
+  assert.equal(
+    tree.props.children.some((child) => child?.type === 'img'),
+    false
+  )
+  h.requests[0].resolve('data:image/jpeg;base64,ready')
+  await settle()
+  tree = h.renderCover(cover, true, props)
+  const image = tree.props.children.find((child) => child?.type === 'img')
+  assert.equal(image.props['data-ready'], true, 'cached content needs no second load event')
+  assert.equal(image.props['data-animate'], false)
+  assert.equal(
+    tree.props.children.some((child) => child?.type === 'skeleton'),
+    false
+  )
+  image.props.onError()
+  assert.equal(h.renderCover(cover, false, props), undefined)
+  assert.equal(h.deleted.length, 1)
+})
+
+test('already complete local images skip skeleton and reveal on attachment', () => {
+  const h = harness({ tauri: false })
+  const props = { loading: 'eager' }
+  const image = h.renderCover('asset://cover.jpg', false, props)
+  image.props.ref({ complete: true, naturalWidth: 100 })
+  const tree = h.renderCover('asset://cover.jpg', true, props)
+  assert.equal(
+    tree.props.children.some((child) => child?.type === 'skeleton'),
+    false
+  )
+  assert.equal(
+    tree.props.children.find((child) => child?.type === 'img').props['data-animate'],
+    false
+  )
 })

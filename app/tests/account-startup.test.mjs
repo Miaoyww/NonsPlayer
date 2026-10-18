@@ -145,7 +145,8 @@ for (const changedMetadata of [false, true])
     )
     modules['@/lib/use-paged-list'] = load('../src/lib/use-paged-list.ts', {
       react: React,
-      './player': { errorText: String }
+      './player': { errorText: String },
+      '@/lib/runtime-cache': cache
     })
     const account = load('../src/features/account/account-state.tsx', modules)
     modules['@/features/account/account'] = account

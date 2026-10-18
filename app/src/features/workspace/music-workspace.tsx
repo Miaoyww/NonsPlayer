@@ -450,6 +450,7 @@ export function MusicWorkspace({
                       }
                     >
                       <Discovery
+                        source={currentSource}
                         key={`${currentSource}:${sources.revision}`}
                         onError={onError}
                         onNotice={showNotice}

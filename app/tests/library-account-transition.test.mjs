@@ -1,3 +1,4 @@
+import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
@@ -16,7 +17,7 @@ test('library preview renders through account reset without throwing or showing 
         collections: { items: [JSON.parse(key).source] }
       })
     },
-    '@/lib/runtime-cache': { invalidateNativeCache() {} },
+    '@/lib/runtime-cache': createRuntimeCache(),
     '@/features/music/queries': { clearContinuations() {} }
   }
   runInNewContext(

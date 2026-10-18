@@ -24,6 +24,7 @@ export class RuntimeCache {
   private cache: LRUCache<string, Entry, Loader>
   private pending = new Map<string, { readers: number; invalidated: boolean; refresh: boolean }>()
   contextRevision = 0
+  revision = 0
   constructor(maxBytes = 48 * 1024 * 1024, ttl = RUNTIME_TTL) {
     this.cache = new LRUCache<string, Entry, Loader>({
       max: 512,
@@ -79,7 +80,14 @@ export class RuntimeCache {
   peek<T>(key: string): T | undefined {
     return this.cache.peek(key, { allowStale: true })?.value as T | undefined
   }
+  peekFresh<T>(key: string): T | undefined {
+    return this.cache.peek(key, { allowStale: false })?.value as T | undefined
+  }
+  set<T>(key: string, value: T) {
+    this.cache.set(key, { value }, { noUpdateTTL: this.cache.has(key) })
+  }
   invalidate(prefixes?: readonly string[], reason: 'refresh' | 'context' = 'refresh') {
+    this.revision++
     if (reason === 'context') this.contextRevision++
     if (!prefixes) {
       for (const pending of this.pending.values()) pending.invalidated = true
@@ -125,5 +133,10 @@ export function invalidateNativeCache(
   commands?: readonly string[],
   reason: 'refresh' | 'context' = 'refresh'
 ) {
-  requestCache.invalidate(commands, reason)
+  requestCache.invalidate(commands ? [...commands, 'presentation'] : undefined, reason)
+}
+
+// Derived first-page display state shares the query cache's capacity and invalidation.
+export function presentationKey(...parts: unknown[]) {
+  return `presentation:${JSON.stringify(parts)}`
 }

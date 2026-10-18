@@ -96,7 +96,7 @@ async function harness(t, { delayedImport = false } = {}) {
     '@/features/local/use-local-options': { useLocalOptions: () => ({ showCovers: true }) },
     '@/features/lyrics/use-lyrics-settings': { useLyricsSettings: () => ({ backgroundSpeed: 1 }) },
     '@/lib/runtime-cache': {
-      coverCache: { delete: (key) => deleted.push(key) },
+      coverCache: { peekFresh: () => undefined, delete: (key) => deleted.push(key) },
       requestKey: (command, args) => command + ':' + args.url
     },
     '@/lib/player': {

@@ -1,3 +1,4 @@
+import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { FindSongGrid } from '@/components/music/list-find'
@@ -196,7 +197,8 @@ export default function MusicLibrary({
   const list = usePagedList<Track | MusicCollection>(
     listLoader,
     tab === 'history' ? 100 : 30,
-    !!profile && isTauri() && !showingDetail
+    !!profile && isTauri() && !showingDetail,
+    { cacheKey: presentationKey('library', account, tab, filter, week) }
   )
   const preview =
     profile &&
@@ -223,7 +225,11 @@ export default function MusicLibrary({
     detailLoader,
     100,
     !!collection && !!profile && showingDetail && isTauri(),
-    { refreshKey: `${refresh}:${likesRevision}:${collectionRevision}`, reconcile: reconcileTracks }
+    {
+      cacheKey: presentationKey('library-detail', account, collection?.reference ?? collection),
+      refreshKey: `${refresh}:${likesRevision}:${collectionRevision}`,
+      reconcile: reconcileTracks
+    }
   )
   const detail = {
     ...detailList.metadata,

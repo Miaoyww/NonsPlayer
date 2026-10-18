@@ -1,3 +1,4 @@
+import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import { errorNoticeModule } from './helpers/error-notice.mjs'
 import { musicReference } from './helpers/music-reference.mjs'
 import assert from 'node:assert/strict'
@@ -205,9 +206,11 @@ async function harness(run, android = false) {
       require: (name) =>
         name === '@/components/error-notice'
           ? errorNoticeModule
-          : name === 'react'
-            ? React
-            : modules['@/lib/player']
+          : name === '@/lib/runtime-cache'
+            ? createRuntimeCache()
+            : name === 'react'
+              ? React
+              : modules['@/lib/player']
     }
   )
   function PagedResults({ pageLoader, kind, ...props }) {

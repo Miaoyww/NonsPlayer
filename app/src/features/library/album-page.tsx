@@ -1,3 +1,4 @@
+import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton } from '@/components/music/loading'
@@ -46,7 +47,9 @@ export default function AlbumPage({
     },
     [collection.id, refresh]
   )
-  const list = usePagedList<Track, CollectionTracks>(loader, 100, isTauri())
+  const list = usePagedList<Track, CollectionTracks>(loader, 100, isTauri(), {
+    cacheKey: presentationKey('album-tracks', collection.reference ?? collection)
+  })
   async function play() {
     if (playing) return
     setPlaying(true)

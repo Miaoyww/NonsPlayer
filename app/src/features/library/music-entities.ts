@@ -1,3 +1,4 @@
+import { requestCache, presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useState } from 'react'
 import { queryMusic } from '@/features/music/queries'
@@ -20,18 +21,24 @@ async function readDetail(collection: MusicCollection): Promise<EntityDetail> {
 }
 
 export function useEntityDetail(collection: MusicCollection, refresh: number, enabled = true) {
-  const [detail, setDetail] = useState<EntityDetail>()
+  const cacheKey = presentationKey('entity-detail', collectionReference(collection))
+  const cached = enabled ? requestCache.peekFresh<EntityDetail>(cacheKey) : undefined
+  const [detail, setDetail] = useState<EntityDetail | undefined>(cached)
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
   useEffect(() => {
     let disposed = false
-    setDetail(undefined)
+    const revision = requestCache.revision
+    setDetail(cached)
     setError(undefined)
-    setBusy(enabled && isTauri())
+    setBusy(enabled && isTauri() && !cached)
     if (enabled && isTauri())
       void readDetail(collection)
         .then((value) => {
-          if (!disposed) setDetail(value)
+          if (!disposed) {
+            if (requestCache.revision === revision) requestCache.set(cacheKey, value)
+            setDetail(value)
+          }
         })
         .catch((cause) => {
           reportCaughtError('app/src/features/library/music-entities.ts', cause)
@@ -44,6 +51,6 @@ export function useEntityDetail(collection: MusicCollection, refresh: number, en
     return () => {
       disposed = true
     }
-  }, [collection.kind, collection.id, refresh, enabled])
+  }, [cacheKey, refresh, enabled])
   return { detail, error, busy }
 }

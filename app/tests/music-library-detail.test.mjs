@@ -1,3 +1,4 @@
+import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -14,7 +15,9 @@ test('likes refresh the loaded playlist in the background without unmounting its
     new URL('../src/features/library/music-library.tsx', import.meta.url),
     'utf8'
   )
-  const modules = {}
+  const modules = {
+    '@/lib/runtime-cache': createRuntimeCache()
+  }
   const placeholder = ({ children }) => React.createElement('div', {}, children)
   const parsed = ts.createSourceFile(
     'library.tsx',
@@ -31,6 +34,7 @@ test('likes refresh the loaded playlist in the background without unmounting its
         bindings.elements.map((item) => [item.name.text, placeholder])
       )
   }
+  modules['@/lib/runtime-cache'] = createRuntimeCache()
   const profile = { userId: '1', reference: { source: 'netease', id: '1' } }
   const collection = { kind: 'playlist', id: 1, name: '我喜欢的音乐', liked: true, creatorId: '1' }
   const summary = { profile, likedPlaylist: collection, likedTracks: [] }
@@ -170,7 +174,9 @@ test('playlist detail siblings have distinct keys and tabs reset when switching 
     new URL('../src/features/library/music-library.tsx', import.meta.url),
     'utf8'
   )
-  const modules = {}
+  const modules = {
+    '@/lib/runtime-cache': createRuntimeCache()
+  }
   const placeholder = ({ children }) => React.createElement('div', {}, children)
   const parsed = ts.createSourceFile(
     'music-library.tsx',
@@ -277,7 +283,9 @@ test('library home limits the featured preview to twelve without changing the fa
     new URL('../src/features/library/music-library.tsx', import.meta.url),
     'utf8'
   )
-  const modules = {}
+  const modules = {
+    '@/lib/runtime-cache': createRuntimeCache()
+  }
   const placeholder = ({ children }) => React.createElement('div', {}, children)
   const parsed = ts.createSourceFile(
     'library.tsx',
@@ -294,6 +302,7 @@ test('library home limits the featured preview to twelve without changing the fa
         bindings.elements.map((item) => [item.name.text, placeholder])
       )
   }
+  modules['@/lib/runtime-cache'] = createRuntimeCache()
   const profile = { userId: 'qq-user', nickname: 'QQ', reference: { source: 'qqmusic' } }
   const summary = {
     profile,

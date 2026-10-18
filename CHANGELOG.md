@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 歌词与界面
+
+- 已缓存的封面跳过骨架和渐显动画；重新进入已读取的歌曲、专辑、歌手及发现列表时直接显示缓存内容，后台更新不再先清空为加载骨架。
+
 ## [1.6.0]
 
 ![NonsPlayer v1.6.0 CUE 分轨与本地音乐改进发布头图](https://raw.githubusercontent.com/Miaoyww/NonsPlayer/v1.6.0/docs/release-assets/header-1.6.0.png)

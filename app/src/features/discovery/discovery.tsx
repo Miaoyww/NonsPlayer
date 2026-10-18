@@ -1,3 +1,4 @@
+import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -372,9 +373,11 @@ function PrivateFM({ onError }: { onError: (cause: unknown) => void }) {
 }
 
 export default function Discovery({
+  source,
   onError,
   onNotice
 }: {
+  source?: string
   onError: (cause: unknown) => void
   onNotice: (message: string) => void
 }) {
@@ -417,7 +420,9 @@ export default function Discovery({
       }),
     [section, category, order, revision, profile]
   )
-  const list = usePagedList(loader, 30, isTauri() && !daily)
+  const list = usePagedList(loader, 30, isTauri() && !daily, {
+    cacheKey: presentationKey('discovery', source, profile?.reference, section, category, order)
+  })
   const dailyLoader = useCallback(
     async () => ({
       items: await discoveryTracks('daily', revision > 0),
@@ -425,7 +430,9 @@ export default function Discovery({
     }),
     [profile, revision]
   )
-  const songs = usePagedList(dailyLoader, 100, isTauri() && daily && !!profile)
+  const songs = usePagedList(dailyLoader, 100, isTauri() && daily && !!profile, {
+    cacheKey: presentationKey('daily', source, profile?.reference)
+  })
   async function play(item: MusicCollection) {
     if (pending.current) return
     pending.current = true

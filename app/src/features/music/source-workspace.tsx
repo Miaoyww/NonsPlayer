@@ -1,3 +1,4 @@
+import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useState } from 'react'
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
@@ -110,7 +111,9 @@ function SourceCollections({
     })(),
     [source, discovery, kind]
   )
-  const list = usePagedList(loader, 30, isTauri())
+  const list = usePagedList(loader, 30, isTauri(), {
+    cacheKey: presentationKey('source-collections', source, kind, discovery)
+  })
   async function play(item: MusicCollection) {
     if (playing) return
     setPlaying(true)

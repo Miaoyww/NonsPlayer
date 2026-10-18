@@ -1,3 +1,4 @@
+import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -8,6 +9,7 @@ import * as jsx from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 function load(file, modules) {
+  modules = { '@/lib/runtime-cache': createRuntimeCache(), ...modules }
   const exports = {}
   runInNewContext(
     ts.transpileModule(readFileSync(new URL(file, import.meta.url), 'utf8'), {

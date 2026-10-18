@@ -1,3 +1,4 @@
+import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import { errorNoticeModule } from './helpers/error-notice.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -51,6 +52,7 @@ function harness() {
   }
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/lib/runtime-cache': createRuntimeCache(),
     react,
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@tauri-apps/api/core': { isTauri: () => true },

@@ -30,16 +30,19 @@ export function Cover({
     observer.observe(host.current)
     return () => observer.disconnect()
   }, [loading])
+  const [completeSource, setCompleteSource] = useState<string>()
   const [readySource, setReadySource] = useState<string>()
   const enabled = loading === 'eager' || visible
-  const { source, onError, pending } = useCoverImageSource(cover, enabled, size)
+  const { source, onError, pending, skipAnimation } = useCoverImageSource(cover, enabled, size)
+  const instant = skipAnimation || (!!source && completeSource === source)
+  const ready = readySource === source || instant
   const pendingImage = pending || (!!source && readySource !== source) || (!!cover && !enabled)
   return (
     <div
       ref={host}
       className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted ${className}`}
     >
-      {(pendingImage || !!source) && (
+      {!instant && (pendingImage || !!source) && (
         <Skeleton
           key={`skeleton:${source ?? cover}`}
           data-ready={!pendingImage}
@@ -49,11 +52,16 @@ export function Cover({
       {source ? (
         <img
           key={source}
+          ref={(image) => {
+            if (image?.complete && image.naturalWidth > 0 && readySource !== source)
+              setCompleteSource(source)
+          }}
           src={source}
           alt=""
           loading={loading}
-          data-ready={readySource === source}
-          className={`music-cover-image h-full w-full object-cover ${readySource === source ? 'opacity-100' : 'opacity-0'}`}
+          data-ready={ready}
+          data-animate={!instant}
+          className={`music-cover-image h-full w-full object-cover ${ready ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setReadySource(source)}
           onError={onError}
         />

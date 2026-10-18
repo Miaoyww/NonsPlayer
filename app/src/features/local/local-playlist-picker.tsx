@@ -1,3 +1,4 @@
+import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useCallback, useEffect, useState } from 'react'
@@ -42,7 +43,9 @@ export function LocalPlaylistPicker({
       }),
     [track, tracks]
   )
-  const list = usePagedList<LocalEntity>(loader, 30, !!track || !!tracks?.length)
+  const list = usePagedList<LocalEntity>(loader, 30, !!track || !!tracks?.length, {
+    cacheKey: presentationKey('local-playlist-picker')
+  })
   async function add(id?: string) {
     if ((!track && !tracks?.length) || busy) return
     setBusy(true)

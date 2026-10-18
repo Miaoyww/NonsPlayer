@@ -1,3 +1,4 @@
+import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
@@ -69,6 +70,7 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
     [userId]
   )
   const playlists = usePagedList(loader, 30, open && !!profile && isTauri(), {
+    cacheKey: presentationKey('sidebar-playlists', userId),
     refreshKey: refresh
   })
   const matches = (item: MusicCollection) =>

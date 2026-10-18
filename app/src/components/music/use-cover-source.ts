@@ -1,7 +1,7 @@
 import { reportCaughtError } from '@/lib/diagnostics'
 import { afterFirstPaint } from '@/lib/after-first-paint'
 import { coverCandidates, type CoverInput, type CoverSize } from '@/features/music/cover-image'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { coverSource, nativeCall } from '@/lib/player'
 import { coverCache, requestKey } from '@/lib/runtime-cache'
@@ -29,6 +29,12 @@ export function useCoverImageSource(
   const { showCovers } = useLocalOptions()
   const remote = /^https?:\/\//.test(url)
   const visible = enabled && !!url && (remote || showCovers)
+  const animation = useRef<{ url: string; cached: boolean } | undefined>(undefined)
+  if (animation.current?.url !== url)
+    animation.current = {
+      url,
+      cached: remote && coverCache.peekFresh(requestKey('runtime_cover', { url })) !== undefined
+    }
   const [loaded, setLoaded] = useState<LoadedCover>()
   useEffect(() => {
     if (!visible) {
@@ -75,5 +81,10 @@ export function useCoverImageSource(
     if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
     else setLoaded({ identity, url, source: undefined, cached: false })
   }
-  return { source, onError, pending: visible && remote && isTauri() && !current }
+  return {
+    source,
+    onError,
+    skipAnimation: animation.current.cached,
+    pending: visible && remote && isTauri() && !current
+  }
 }

@@ -1,3 +1,4 @@
+import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -23,6 +24,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
   const calls = []
   let table
   const modules = {
+    '@/lib/runtime-cache': createRuntimeCache(),
     react: React,
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => true },
@@ -171,6 +173,18 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     assert.equal(document.getElementById('tracks').textContent, '')
     await act(async () => pending[6].resolve(page('fresh', null)))
     assert.equal(document.getElementById('tracks').textContent, 'qqmusic:fresh')
+    await act(async () => root.render(null))
+    await act(async () =>
+      root.render(React.createElement(exports.default, { collection, onError() {} }))
+    )
+    assert.equal(table.loading, false, 'cached first page must render without a skeleton')
+    assert.equal(document.getElementById('tracks').textContent, 'qqmusic:fresh')
+    await act(async () => pending[8].resolve(page('replacement', null)))
+    assert.equal(
+      document.getElementById('tracks').textContent,
+      'qqmusic:replacement',
+      'background first page replaces cached rows'
+    )
     for (const kind of ['artist', 'album']) {
       await act(async () =>
         root.render(
