@@ -20,6 +20,7 @@ import {
   cachedCommands,
   coverCache,
   invalidateNativeCache,
+  invalidateCollectionCache,
   requestCache,
   requestKey
 } from '@/lib/runtime-cache'
@@ -315,6 +316,12 @@ export async function connectPlayer(): Promise<UnlistenFn> {
     )
     listeners.push(playerStore.subscribeState(() => fm.update()))
     listeners.push(await listen('lyrics-updated', () => invalidateNativeCache(['track_lyrics'])))
+    listeners.push(
+      await listen<import('@/features/music/types').EntityRef>(
+        'music-collection-updated',
+        ({ payload }) => invalidateCollectionCache(payload)
+      )
+    )
     listeners.push(
       await listen('music-changed', () => {
         clearLibraryPreviews()

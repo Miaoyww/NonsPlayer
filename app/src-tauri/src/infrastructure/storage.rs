@@ -108,7 +108,8 @@ impl Store {
                         SELECT 1 FROM tracks c WHERE c.source='local'
                         AND json_extract(c.value,'$.source.path')=json_extract(t.value,'$.source.path')
                         AND json_extract(c.value,'$.source.cue') IS NOT NULL));
-            PRAGMA user_version=1;").map_err(|e| e.to_string())?;
+            ").map_err(|e| e.to_string())?;
+        crate::music::collections::store::migrate(&connection).map_err(|e| e.to_string())?;
         Ok(Self(Mutex::new(connection)))
     }
 
@@ -121,6 +122,14 @@ impl Store {
             })
             .map_err(|_| "曲库锁不可用")?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
+        Self::save_tracks_in(&tx, tracks)?;
+        tx.commit().map_err(|e| e.to_string())
+    }
+
+    pub(crate) fn save_tracks_in(
+        tx: &rusqlite::Transaction<'_>,
+        tracks: &[Track],
+    ) -> AppResult<()> {
         let options = crate::local_library::options_from_db(&tx)?;
         {
             let mut insert = tx.prepare_cached("INSERT INTO tracks(key,source,title,artist,value) VALUES(?1,?2,?3,?4,?5)
@@ -145,7 +154,7 @@ impl Store {
                 }
             }
         }
-        tx.commit().map_err(|e| e.to_string())
+        Ok(())
     }
 
     pub fn mark_origin(&self, tracks: &[Track], origin: &str) -> AppResult<()> {

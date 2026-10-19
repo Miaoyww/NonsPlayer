@@ -309,6 +309,25 @@ test('same-key refresh joins a replacement read instead of exposing deleted', as
   assert.deepEqual(await result, [['fresh'], ['fresh']])
 })
 
+test('published playlist refresh is read back without forcing another network refresh', async () => {
+  const { client, requests, cache } = harness()
+  const entity = { source: 'netease', kind: 'playlist', id: '42' }
+  const read = client.refresh(entity.source, {
+    operation: 'tracks',
+    entity,
+    page: { cursor: null, limit: 100 }
+  })
+  await tick()
+  assert.equal(requests[0].args.refresh, true)
+  cache.invalidateCollectionCache(entity)
+  requests[0].resolve(['published'])
+  await tick()
+  assert.equal(requests.length, 2)
+  assert.equal(requests[1].args.refresh, false)
+  requests[1].resolve(['published'])
+  assert.deepEqual(await read, ['published'])
+})
+
 test('account and instance changes reject old reads rather than crossing identity', async () => {
   for (const scope of [
     JSON.stringify([{ source: 'netease', account: 'b', generation: 2 }, 1, 1]),
@@ -338,6 +357,19 @@ test('real errors remain errors and unrelated invalidation does not retry them',
   await failure
   await tick()
   assert.equal(requests.length, 1)
+})
+
+test('persisted playlist rows are read without another save or a frontend result cache', async () => {
+  const { client, requests } = harness()
+  for (const marker of ['first', 'updated']) {
+    const before = requests.length
+    const reading = client.storedTracks('netease', [])
+    await tick()
+    assert.equal(requests.length, before + 1)
+    assert.equal(requests.at(-1).command, 'music_stored_tracks')
+    requests.at(-1).resolve([{ key: marker }])
+    assert.deepEqual(await reading, [{ key: marker }])
+  }
 })
 
 test('query recovery is bounded under continuous invalidation', async () => {

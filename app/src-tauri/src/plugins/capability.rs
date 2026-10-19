@@ -294,8 +294,13 @@ impl Context {
                 let response = self
                     .songs
                     .music
-                    .adapters
-                    .business(&source, &request)
+                    .query(
+                        &source,
+                        &request,
+                        args.get("refresh")
+                            .and_then(serde_json::Value::as_bool)
+                            .unwrap_or(false),
+                    )
                     .await
                     .map_err(|e| e.to_string())?;
                 self.check(None)?;

@@ -21,8 +21,49 @@ pub struct CollectionQueue {
 pub struct MusicService {
     pub adapters: Arc<AdapterManager>,
     pub accounts: Option<Arc<super::accounts::AccountManager>>,
+    pub collections: Option<Arc<super::collections::Collections>>,
 }
 impl MusicService {
+    pub async fn query(
+        &self,
+        source: &super::identity::SourceId,
+        request: &super::business::BusinessRequest,
+        refresh: bool,
+    ) -> super::MusicResult<super::business::BusinessResponse> {
+        if let (Some(collections), super::business::BusinessRequest::Tracks { entity, page }) =
+            (&self.collections, request)
+        {
+            if entity.source != *source {
+                return Err(super::ErrorCode::InvalidData.into());
+            }
+            if entity.kind == super::identity::EntityKind::Playlist {
+                return collections.query(entity, page, refresh).await;
+            }
+        }
+        let response = self.adapters.business(source, request).await?;
+        if request.is_write() {
+            if let Some(collections) = &self.collections {
+                let _ = collections
+                    .invalidate_source(source.clone())
+                    .await
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn("collection.invalidate", error)
+                    });
+            }
+        }
+        Ok(response)
+    }
+    pub(crate) async fn cached_collection(
+        &self,
+        entity: &super::identity::EntityRef,
+    ) -> AppResult<Option<super::collections::CachedCollection>> {
+        if entity.kind == super::identity::EntityKind::Playlist {
+            if let Some(collections) = &self.collections {
+                return collections.cached(entity).await.map_err(|e| e.to_string());
+            }
+        }
+        Ok(None)
+    }
     pub async fn collection_queue(
         &self,
         entity: &super::identity::EntityRef,
@@ -48,6 +89,23 @@ impl MusicService {
         if entity.kind == EntityKind::Track {
             return Err("曲目不能作为收藏展开".into());
         }
+        if entity.kind == EntityKind::Playlist {
+            if let Some(collections) = &self.collections {
+                if let Some(cached) = collections
+                    .cached(entity)
+                    .await
+                    .map_err(|e| e.to_string())?
+                {
+                    if cached.ready || cached.tracks.len() >= limit {
+                        let more = cached.more || cached.tracks.len() > limit;
+                        return Ok(CollectionQueue {
+                            tracks: cached.tracks.into_iter().take(limit).collect(),
+                            more,
+                        });
+                    }
+                }
+            }
+        }
         let scope = self
             .adapters
             .cache_identity(&entity.source)
@@ -56,6 +114,7 @@ impl MusicService {
         let mut seen = std::collections::BTreeSet::new();
         let mut cursor = None;
         let mut more = false;
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(12);
         for _ in 0..100 {
             let page = PageRequest {
                 cursor: cursor.clone(),
@@ -72,11 +131,11 @@ impl MusicService {
                     page,
                 }
             };
-            let BusinessResponse::Tracks(response) = self
-                .adapters
-                .business(&entity.source, &request)
-                .await
-                .map_err(|e| e.to_string())?
+            let BusinessResponse::Tracks(response) =
+                tokio::time::timeout_at(deadline, self.query(&entity.source, &request, false))
+                    .await
+                    .map_err(|_| "歌单准备超时".to_owned())?
+                    .map_err(|e| e.to_string())?
             else {
                 return Err("收藏曲目响应无效".into());
             };
@@ -108,6 +167,7 @@ impl MusicService {
         Self {
             adapters,
             accounts: None,
+            collections: None,
         }
     }
     pub async fn resolve(

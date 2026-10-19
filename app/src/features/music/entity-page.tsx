@@ -99,7 +99,7 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
       )
       if (query.current !== state || !active.current) return
       if (response.type !== 'tracks') throw new Error('音乐来源返回了错误的歌曲列表')
-      const next = await musicClient.queueTracks(reference.source, response.data.items)
+      const next = await musicClient.storedTracks(reference.source, response.data.items)
       if (query.current !== state || !active.current) return
       if (state.cursor === null && requestCache.revision === revision)
         requestCache.set(cacheKey, { tracks: next, total: response.data.total })
@@ -118,7 +118,18 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
     } catch (cause) {
       reportCaughtError('app/src/features/music/entity-page.tsx', cause)
 
-      if (query.current === state && active.current) setError(errorText(cause))
+      if (query.current === state && active.current) {
+        if (
+          typeof cause === 'object' &&
+          cause !== null &&
+          'code' in cause &&
+          cause.code === 'staleContext'
+        ) {
+          state.cursor = null
+          state.more = true
+          setError('歌单已更新，请重试加载最新列表。')
+        } else setError(errorText(cause))
+      }
     } finally {
       if (query.current === state && active.current) {
         state.busy = false

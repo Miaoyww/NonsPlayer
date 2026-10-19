@@ -47,6 +47,7 @@ async fn music_query(
     source: crate::music::identity::SourceId,
     request: crate::music::business::BusinessRequest,
     scope: String,
+    refresh: Option<bool>,
     backend: State<'_, Backend>,
 ) -> crate::music::MusicResult<crate::music::business::BusinessResponse> {
     if request.is_write() {
@@ -55,7 +56,10 @@ async fn music_query(
     if backend.music.adapters.cache_identity(&source)? != scope {
         return Err(crate::music::ErrorCode::StaleContext.into());
     }
-    let response = backend.music.adapters.business(&source, &request).await?;
+    let response = backend
+        .music
+        .query(&source, &request, refresh.unwrap_or(false))
+        .await?;
     if backend.music.adapters.cache_identity(&source)? != scope {
         return Err(crate::music::ErrorCode::StaleContext.into());
     }
@@ -109,6 +113,22 @@ fn music_queue_tracks(
 }
 
 #[tauri::command]
+async fn music_stored_tracks(
+    source: crate::music::identity::SourceId,
+    scope: String,
+    tracks: Vec<crate::music::identity::MusicTrack>,
+    backend: State<'_, Backend>,
+) -> crate::music::MusicResult<Vec<Track>> {
+    backend
+        .music
+        .collections
+        .as_ref()
+        .ok_or(crate::music::ErrorCode::Internal)?
+        .stored_tracks(&source, &scope, tracks)
+        .await
+}
+
+#[tauri::command]
 async fn music_queue_track(
     reference: crate::music::identity::EntityRef,
     scope: String,
@@ -142,7 +162,7 @@ async fn music_write(
     if !request.is_write() {
         return Err(crate::music::ErrorCode::InvalidData.into());
     }
-    let response = backend.music.adapters.business(&source, &request).await?;
+    let response = backend.music.query(&source, &request, false).await?;
     let _ = (app.emit("music-changed", &source)).inspect_err(|error| {
         crate::infrastructure::diagnostics::warn("app.emit", error);
     });
@@ -239,6 +259,16 @@ async fn music_remove_account(
     let result = accounts
         .blocking(move |accounts| accounts.remove(&removed))
         .await;
+    if result.is_ok()
+        || accounts
+            .records(&reference.source)?
+            .iter()
+            .all(|record| record.reference != reference)
+    {
+        if let Some(collections) = &backend.music.collections {
+            collections.remove_account(reference.clone()).await?;
+        }
+    }
     if accounts.session(&reference.source) != before {
         plugins.account_changed().await;
     }
@@ -362,14 +392,30 @@ async fn music_play_collection(
     }
     if next {
         let mut page = backend.music.collection_queue(&entity).await?;
-        save_library_tracks(&mut page.tracks, &backend)?;
+        if entity.kind != crate::music::identity::EntityKind::Playlist
+            || backend.music.collections.is_none()
+        {
+            save_library_tracks(&mut page.tracks, &backend)?;
+        }
         backend.player.send(Command::PlayNext(page.tracks))?;
         return Ok(page.more);
     }
-    let track = key
-        .as_deref()
-        .map(|key| backend.store.track(key))
-        .transpose()?;
+    let scope = backend
+        .music
+        .adapters
+        .cache_identity(&entity.source)
+        .map_err(|e| e.to_string())?;
+    let cached = backend.music.cached_collection(&entity).await?;
+    let track = if let Some(key) = key {
+        let store = backend.store.clone();
+        Some(
+            tauri::async_runtime::spawn_blocking(move || store.track(&key))
+                .await
+                .map_err(|error| error.to_string())??,
+        )
+    } else {
+        None
+    };
     let (reply, completion) = tokio::sync::oneshot::channel();
     if track
         .as_ref()
@@ -380,6 +426,8 @@ async fn music_play_collection(
     backend.player.send(Command::Collection {
         entity,
         track: track.map(Box::new),
+        cached,
+        scope,
         fallback_cover: backend.fallback_cover.clone(),
         reply,
     })?;
@@ -778,7 +826,14 @@ pub fn run() {
                 use tauri::Emitter;
                 let _ = (account_events.emit("music-account-changed", source)).inspect_err(|error| { crate::infrastructure::diagnostics::warn("account_events.emit", error); });
             }));
-            let (music, netease) = crate::music::bundled::service(accounts)?;
+            let (mut music, netease) = crate::music::bundled::service(accounts)?;
+            let collections=crate::music::collections::Collections::new(store.clone(),music.adapters.clone());
+            let collection_events=app.handle().clone();
+            collections.on_change(Arc::new(move |entity| {
+                use tauri::Emitter;
+                let _=collection_events.emit("music-collection-updated",entity).inspect_err(|error|crate::infrastructure::diagnostics::warn("collection.notify",error));
+            }));
+            music.collections=Some(collections);
             let music = Arc::new(music);
             app.manage(Arc::new(crate::music::settings::AdapterSettings::new(
                 store.clone(),
@@ -964,6 +1019,7 @@ pub fn run() {
             music_read_track,
             music_queue_track,
             music_queue_tracks,
+            music_stored_tracks,
             music_account,
             music_accounts,
             music_current_account,

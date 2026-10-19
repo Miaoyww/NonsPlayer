@@ -318,6 +318,29 @@ impl AdapterManager {
             })
             .map_err(|_| ErrorCode::Internal.into())
     }
+    /// Cached catalog data must pass the same admission checks as a live business read.
+    pub(crate) fn authorize_business(
+        &self,
+        source: &SourceId,
+        request: &super::business::BusinessRequest,
+    ) -> MusicResult<String> {
+        request.validate(source)?;
+        let entry = self.entry(source)?;
+        let context = Self::context(&entry, Duration::from_secs(12));
+        entry.check(&context)?;
+        if !entry
+            .adapter
+            .descriptor()
+            .capabilities
+            .contains(&request.capability())
+        {
+            return Err(ErrorCode::Unsupported.into());
+        }
+        if request.requires_account() && context.session.account.is_none() {
+            return Err(ErrorCode::Unauthenticated.into());
+        }
+        self.cache_identity(source)
+    }
     /// Authorization is checked even for public cache hits. Stamp changes on disable/reload.
     pub fn cover_access(&self, url: &str) -> MusicResult<String> {
         let entries = self

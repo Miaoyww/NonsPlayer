@@ -64,7 +64,8 @@ test('uniform details retain cursor and rows on failure, reload only their own s
       musicClient: {
         query: (source, request) =>
           new Promise((resolve, reject) => pending.push({ source, request, resolve, reject })),
-        queueTracks: async (source, items) => items.map((item) => ({ key: `${source}:${item.id}` }))
+        storedTracks: async (source, items) =>
+          items.map((item) => ({ key: `${source}:${item.id}` }))
       }
     }
   }

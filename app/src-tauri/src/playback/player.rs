@@ -43,12 +43,15 @@ pub enum Command {
     Collection {
         entity: crate::music::identity::EntityRef,
         track: Option<Box<Track>>,
+        cached: Option<crate::music::collections::CachedCollection>,
+        scope: String,
         fallback_cover: String,
         reply: tokio::sync::oneshot::Sender<AppResult<bool>>,
     },
     CollectionReady {
         serial: u64,
-        scope: (crate::music::account::SessionContext, u64),
+        scope: String,
+        prefix: Vec<String>,
         entity: crate::music::identity::EntityRef,
         fallback_cover: String,
         result: AppResult<(Vec<Track>, bool)>,
@@ -688,6 +691,7 @@ impl Actor {
             &command,
             Command::PlayNext(_)
                 | Command::PlayNextNow(_)
+                | Command::Remove(_, _)
                 | Command::Pause
                 | Command::Next
                 | Command::Previous
@@ -701,17 +705,52 @@ impl Actor {
             Command::Collection {
                 entity,
                 track,
+                cached,
+                scope,
                 fallback_cover,
                 reply,
             } => {
-                let scope = self
+                if self
                     .music
                     .adapters
-                    .stamp(&entity.source)
-                    .map_err(|e| e.to_string())?;
-                let key = track.as_ref().map(|track| track.key.clone());
-                if let Some(track) = track {
-                    self.command_now(Command::Queue(vec![*track], 0))?;
+                    .cache_identity(&entity.source)
+                    .map_err(|e| e.to_string())?
+                    != scope
+                {
+                    let _ = reply.send(Ok(false));
+                    return Ok(());
+                }
+                let known = track.as_ref().map(|track| track.key.clone());
+                let (mut initial, ready, cached_more) = cached
+                    .map(|cached| (cached.tracks, cached.ready, cached.more))
+                    .unwrap_or_default();
+                if known
+                    .as_ref()
+                    .is_some_and(|key| !initial.iter().any(|track| &track.key == key))
+                {
+                    initial.clear();
+                }
+                let cached_ready = ready && !initial.is_empty();
+                if initial.is_empty() {
+                    if let Some(track) = track {
+                        initial.push(*track);
+                    }
+                }
+                let index = known
+                    .as_ref()
+                    .and_then(|key| initial.iter().position(|track| &track.key == key))
+                    .unwrap_or(0);
+                let key = initial.get(index).map(|track| track.key.clone());
+                let prefix = initial
+                    .iter()
+                    .map(|track| track.key.clone())
+                    .collect::<Vec<_>>();
+                if !initial.is_empty() {
+                    self.command_now(Command::Queue(initial, index))?;
+                    if cached_ready {
+                        let _ = reply.send(Ok(cached_more));
+                        return Ok(());
+                    }
                 } else {
                     self.command_now(Command::Clear)?;
                     self.state.status = PlaybackStatus::Loading;
@@ -737,9 +776,15 @@ impl Actor {
                         }
                         // Metadata persistence must not block the audio actor.
                         let tracks = page.tracks.clone();
-                        tauri::async_runtime::spawn_blocking(move || store.save_tracks(&tracks))
+                        if entity.kind != crate::music::identity::EntityKind::Playlist
+                            || music.collections.is_none()
+                        {
+                            tauri::async_runtime::spawn_blocking(move || {
+                                store.save_tracks(&tracks)
+                            })
                             .await
                             .map_err(|error| error.to_string())??;
+                        }
                         Ok((page.tracks, page.more))
                     }
                     .await;
@@ -747,6 +792,7 @@ impl Actor {
                         let _ = (sender.send(Command::CollectionReady {
                             serial,
                             scope,
+                            prefix,
                             entity,
                             fallback_cover,
                             result,
@@ -765,6 +811,7 @@ impl Actor {
             Command::CollectionReady {
                 serial,
                 scope,
+                prefix,
                 entity,
                 fallback_cover,
                 result,
@@ -783,7 +830,7 @@ impl Actor {
                 if self
                     .music
                     .adapters
-                    .stamp(&scope.0.source)
+                    .cache_identity(&entity.source)
                     .inspect_err(|error| {
                         crate::infrastructure::diagnostics::warn("optional_result", error);
                     })
@@ -812,6 +859,8 @@ impl Actor {
                             return self.command_now(Command::Collection {
                                 entity,
                                 track: Some(Box::new(track.clone())),
+                                cached: None,
+                                scope: scope.clone(),
                                 fallback_cover,
                                 reply,
                             });
@@ -823,7 +872,18 @@ impl Actor {
                         return Err("这个收藏还没有可播放的歌曲".into());
                     }
                     if let Some(key) = key {
-                        super::collection::hydrate(&mut self.state, &key, tracks)?;
+                        if entity.kind == crate::music::identity::EntityKind::Playlist
+                            && self.music.collections.is_some()
+                        {
+                            super::collection::hydrate_prefix(
+                                &mut self.state,
+                                &key,
+                                &prefix,
+                                tracks,
+                            )?;
+                        } else {
+                            super::collection::hydrate(&mut self.state, &key, tracks)?;
+                        }
                         self.publish();
                     } else {
                         self.command_now(Command::Queue(tracks, 0))?;

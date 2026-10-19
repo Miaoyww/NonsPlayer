@@ -48,6 +48,25 @@ pub(super) fn hydrate(state: &mut PlayerSnapshot, key: &str, tracks: Vec<Track>)
     Ok(())
 }
 
+pub(super) fn hydrate_prefix(
+    state: &mut PlayerSnapshot,
+    key: &str,
+    prefix: &[String],
+    tracks: Vec<Track>,
+) -> AppResult<()> {
+    if !prefix.is_empty()
+        && (state.queue.iter().map(|track| &track.key).ne(prefix.iter())
+            || tracks
+                .iter()
+                .take(prefix.len())
+                .map(|track| &track.key)
+                .ne(prefix.iter()))
+    {
+        return Err("歌单已更新，保留当前播放列表，请重新打开歌单后重试".into());
+    }
+    hydrate(state, key, tracks)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -66,6 +85,38 @@ mod tests {
             cover: Default::default(),
             source: TrackSource::Netease { id: 1 },
         }
+    }
+
+    #[test]
+    fn cached_prefix_is_extended_without_reordering_or_restarting() {
+        let mut state = PlayerSnapshot {
+            queue: vec![track("A"), track("B"), track("C")].into(),
+            index: Some(1),
+            revision: 7,
+            position_ms: 4200,
+            status: PlaybackStatus::Playing,
+            ..Default::default()
+        };
+        let prefix = vec!["A".into(), "B".into(), "C".into()];
+        assert!(hydrate_prefix(
+            &mut state,
+            "B",
+            &prefix,
+            vec![track("X"), track("B"), track("C"), track("D")]
+        )
+        .is_err());
+        assert_eq!(state.queue.len(), 3);
+        hydrate_prefix(
+            &mut state,
+            "B",
+            &prefix,
+            vec![track("A"), track("B"), track("C"), track("D")],
+        )
+        .unwrap();
+        assert_eq!(state.queue.len(), 4);
+        assert_eq!(state.index, Some(1));
+        assert_eq!(state.position_ms, 4200);
+        assert_eq!(state.revision, 7);
     }
 
     #[test]

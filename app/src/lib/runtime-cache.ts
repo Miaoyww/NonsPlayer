@@ -104,6 +104,33 @@ export class RuntimeCache {
     this.pending.delete(key)
     this.cache.delete(key)
   }
+  invalidateMatching(matches: (key: string) => boolean) {
+    this.revision++
+    for (const key of new Set([...this.cache.keys(), ...this.pending.keys()]))
+      if (matches(key)) this.delete(key)
+  }
+}
+
+export function invalidateCollectionCache(entity: { source: string; kind: string; id: string }) {
+  const same = (value: unknown) => {
+    const candidate = value as typeof entity | undefined
+    return (
+      candidate?.source === entity.source &&
+      candidate.kind === entity.kind &&
+      candidate.id === entity.id
+    )
+  }
+  requestCache.invalidateMatching((key) => {
+    try {
+      if (key.startsWith('music_query:'))
+        return same(JSON.parse(key.slice('music_query:'.length)).request?.entity)
+      if (key.startsWith('presentation:'))
+        return (JSON.parse(key.slice('presentation:'.length)) as unknown[]).some(same)
+    } catch {
+      return false
+    }
+    return false
+  })
 }
 
 export const requestCache = new RuntimeCache()

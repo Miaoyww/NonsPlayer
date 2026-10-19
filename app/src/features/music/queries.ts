@@ -72,7 +72,9 @@ export async function tracksForCollection(collection: MusicCollection, offset: n
   )
   if (response.type !== 'tracks') throw new Error('曲目列表响应无效')
   return {
-    tracks: await musicClient.queueTracks(reference.source, response.data.items),
+    tracks: await (
+      reference.kind === 'playlist' ? musicClient.storedTracks : musicClient.queueTracks
+    )(reference.source, response.data.items),
     total: response.data.total ?? response.data.items.length,
     more: response.data.nextCursor !== null,
     description: response.data.description

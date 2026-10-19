@@ -52,7 +52,8 @@ export class ScopedMusicQueries {
     }
     const request = args?.request as { page?: { cursor?: unknown } } | undefined
     const paginated = Boolean(request?.page?.cursor) || Number(args?.offset ?? 0) > 0
-    const cached = command !== 'music_queue_track' && command !== 'music_queue_tracks'
+    const mutation = command === 'music_queue_track' || command === 'music_queue_tracks'
+    const cached = !mutation && command !== 'music_stored_tracks'
     for (let attempt = 0; attempt < 3; attempt++) {
       check()
       if ((args?.scope !== undefined && args.scope !== scope) || (paginated && initial !== scope))
@@ -60,7 +61,14 @@ export class ScopedMusicQueries {
       const key = requestKey(command, { ...args, source, scope })
       try {
         const load = async () => {
-          const result = await this.invoke<T>(command, { ...args, source, scope })
+          // A published snapshot can invalidate its own refresh response. Retrying
+          // reads the replacement rather than starting another forced refresh.
+          const result = await this.invoke<T>(command, {
+            ...args,
+            ...(attempt > 0 && args?.refresh ? { refresh: false } : {}),
+            source,
+            scope
+          })
           return result
         }
         const validate = async () => {
@@ -79,6 +87,14 @@ export class ScopedMusicQueries {
         return value
       } catch (cause) {
         reportCaughtError('app/src/features/music/scoped-query.ts', cause)
+        if (
+          paginated &&
+          typeof cause === 'object' &&
+          cause !== null &&
+          'code' in cause &&
+          cause.code === 'staleContext'
+        )
+          throw cause
 
         if (
           !(cause instanceof CacheInvalidatedError) &&
@@ -95,7 +111,7 @@ export class ScopedMusicQueries {
       const next = await this.invoke<string>('music_context', { source })
       check(next)
       // Queue mutations must never be replayed. Old pages belong to their original scope.
-      if (!cached) throw contextChanged()
+      if (mutation) throw contextChanged()
       scope = next
     }
     throw new Error('音乐数据频繁变化，请稍后重试')
