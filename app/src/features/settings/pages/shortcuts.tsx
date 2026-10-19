@@ -109,7 +109,7 @@ export function ShortcutsPage() {
         </SettingsCard>
         <SettingsCard
           title="快捷搜索歌曲"
-          description="应用内生效，固定不可更改。在歌曲列表中查找已加载歌曲；发现页、播放队列及没有歌曲列表的页面聚焦顶部搜索框。Mac 可使用 Command+F。"
+          description="应用内生效，固定不可更改。在歌曲列表中查找已加载歌曲，上下方向键选择，Enter 插入下一首并立即播放；发现页、播放队列及没有歌曲列表的页面聚焦顶部搜索框。Mac 可使用 Command+F。"
         >
           <KbdGroup>
             <Kbd>Ctrl</Kbd>

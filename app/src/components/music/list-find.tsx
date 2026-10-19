@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -10,11 +11,11 @@ import {
   type RefObject
 } from 'react'
 import { Search, X } from 'lucide-react'
-import type { Track } from '@/lib/player'
+import { nativeCall, type Track } from '@/lib/player'
 import { Input } from '@/components/ui/input'
 import { ActionButton } from './action-button'
 import { TrackIdentity } from './track-identity'
-import { SongContextMenu } from './song-actions'
+import { SongContextMenu, useSongActions } from './song-actions'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 
 type FindEntry = { track: Track; index: number }
@@ -50,9 +51,14 @@ export function ListFindProvider({
   onGlobalSearch: () => void
 }) {
   const { page } = useMusicNavigation()
+  const actions = useSongActions()
+  const resultsId = useId()
   const sources = useRef(new Map<symbol, Registration>())
   const [active, setActive] = useState<Registration | null>(null)
   const [query, setQuery] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
+  const pending = useRef(false)
   const resultsElement = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -145,6 +151,12 @@ export function ListFindProvider({
     }
     return matches
   }, [active, query])
+  const selected = Math.min(selectedIndex, results.length - 1)
+  useEffect(() => {
+    resultsElement.current
+      ?.querySelector<HTMLElement>('[aria-selected="true"]')
+      ?.scrollIntoView?.({ block: 'nearest' })
+  }, [selected, results])
   useEffect(() => {
     if (resultsElement.current) resultsElement.current.scrollTop = 0
   }, [query])
@@ -169,10 +181,50 @@ export function ListFindProvider({
                 ref={input}
                 type="search"
                 aria-label="快捷搜索列表歌曲"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={results.length > 0}
+                aria-controls={resultsId}
+                aria-activedescendant={selected >= 0 ? `${resultsId}-${selected}` : undefined}
                 placeholder="搜索歌曲、艺术家、专辑"
                 value={query}
                 onChange={(event) => {
                   setQuery(event.target.value)
+                  setSelectedIndex(0)
+                }}
+                onKeyDown={(event) => {
+                  if (
+                    event.nativeEvent.isComposing ||
+                    event.keyCode === 229 ||
+                    event.ctrlKey ||
+                    event.metaKey ||
+                    event.altKey ||
+                    event.shiftKey ||
+                    !results.length
+                  )
+                    return
+                  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const delta = event.key === 'ArrowDown' ? 1 : -1
+                    setSelectedIndex((selected + delta + results.length) % results.length)
+                  } else if (event.key === 'Enter') {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    if (event.repeat || active.busy || pending.current) return
+                    const { track } = results[selected]
+                    pending.current = true
+                    setSubmitting(true)
+                    actions.run(async () => {
+                      try {
+                        await nativeCall('append_queue', { keys: [track.key], play: true })
+                        close()
+                      } finally {
+                        pending.current = false
+                        setSubmitting(false)
+                      }
+                    })
+                  }
                 }}
               />
               <ActionButton
@@ -191,25 +243,40 @@ export function ListFindProvider({
             </p>
             <div
               ref={resultsElement}
+              id={resultsId}
+              role="listbox"
+              aria-label="匹配的歌曲"
+              aria-busy={submitting}
               className="max-h-[min(28rem,55vh)] overflow-y-auto overscroll-contain"
             >
-              {results.map(({ track, index }) => (
+              {results.map(({ track, index }, resultIndex) => (
                 <SongContextMenu
                   key={`${track.key}:${index}`}
                   track={track}
-                  busy={active.busy}
+                  busy={active.busy || submitting}
                   onPlay={() => active.play(index)}
                   onLocate={() => locate(index)}
                   onRemove={active.remove ? () => active.remove!(index) : undefined}
                   removeLabel={active.removeLabel}
                   render={
-                    <div className="rounded-lg px-2 py-2 hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary" />
+                    <div
+                      id={`${resultsId}-${resultIndex}`}
+                      role="option"
+                      aria-selected={selected === resultIndex}
+                      onPointerMove={() => setSelectedIndex(resultIndex)}
+                      className={`rounded-lg px-2 py-2 hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary ${selected === resultIndex ? 'bg-muted ring-1 ring-inset ring-primary/40' : ''}`}
+                    />
                   }
                 >
                   <TrackIdentity track={track} showSource />
                 </SongContextMenu>
               ))}
             </div>
+            {results.length > 0 && (
+              <p className="mt-2 px-2 text-xs text-muted-foreground">
+                ↑↓ 选择歌曲 · Enter 插入下一首并立即播放
+              </p>
+            )}
           </div>
         )}
       </div>

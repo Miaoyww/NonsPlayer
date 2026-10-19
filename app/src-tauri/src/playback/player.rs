@@ -60,6 +60,7 @@ pub enum Command {
         tracks: Vec<Track>,
     },
     PlayNext(Vec<Track>),
+    PlayNextNow(Vec<Track>),
     Jump(usize),
     Pause,
     Toggle,
@@ -635,6 +636,7 @@ impl Actor {
             Command::Stop
                 | Command::Clear
                 | Command::Jump(_)
+                | Command::PlayNextNow(_)
                 | Command::Next
                 | Command::Queue(_, _)
                 | Command::Collection { .. }
@@ -682,10 +684,15 @@ impl Actor {
     fn command_now(&mut self, command: Command) -> AppResult<()> {
         if matches!(
             &command,
-            Command::PlayNext(_) | Command::Pause | Command::Next | Command::Previous
+            Command::PlayNext(_)
+                | Command::PlayNextNow(_)
+                | Command::Pause
+                | Command::Next
+                | Command::Previous
         ) {
             self.cancel_collection();
         }
+        let play_now = matches!(&command, Command::PlayNextNow(_));
         match command {
             #[cfg(target_os = "android")]
             Command::Media { .. } => unreachable!("Media commands are unwrapped before dispatch"),
@@ -905,15 +912,21 @@ impl Actor {
                 }
                 self.publish();
             }
-            Command::PlayNext(tracks) => {
-                if tracks.iter().all(|t| {
-                    self.state
-                        .current()
-                        .is_some_and(|current| current.key == t.key)
-                }) {
+            Command::PlayNext(tracks) | Command::PlayNextNow(tracks) => {
+                if !play_now
+                    && tracks.iter().all(|t| {
+                        self.state
+                            .current()
+                            .is_some_and(|current| current.key == t.key)
+                    })
+                {
                     return Ok(());
                 }
                 let position = self.state.insert_next(tracks)?;
+                if play_now {
+                    self.load(position, true)?;
+                    return Ok(());
+                }
                 if let Some(job) = self.next_job.take() {
                     job.abort();
                 }

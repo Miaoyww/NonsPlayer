@@ -460,7 +460,11 @@ fn append_private_fm(
 }
 
 #[tauri::command]
-fn append_queue(keys: Vec<String>, backend: State<'_, Backend>) -> AppResult<()> {
+fn append_queue(
+    keys: Vec<String>,
+    play: Option<bool>,
+    backend: State<'_, Backend>,
+) -> AppResult<()> {
     if keys.is_empty() || keys.len() > 1000 {
         return Err("待添加的歌曲无效".into());
     }
@@ -468,7 +472,11 @@ fn append_queue(keys: Vec<String>, backend: State<'_, Backend>) -> AppResult<()>
         .iter()
         .map(|key| backend.store.track(key))
         .collect::<AppResult<Vec<_>>>()?;
-    backend.player.send(Command::PlayNext(tracks))
+    backend.player.send(if play.unwrap_or(false) {
+        Command::PlayNextNow(tracks)
+    } else {
+        Command::PlayNext(tracks)
+    })
 }
 
 #[tauri::command]
