@@ -7,7 +7,7 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
 const jsx = (type, props) => ({ type, props })
-function load(path, modules) {
+function load(path, modules, storage) {
   const source = readFileSync(new URL(path, import.meta.url), 'utf8')
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
@@ -15,6 +15,7 @@ function load(path, modules) {
   const exports = {}
   runInNewContext(outputText, {
     exports,
+    localStorage: storage,
     require(name) {
       if (name === '@/components/error-notice') return errorNoticeModule
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }
@@ -32,34 +33,40 @@ function find(node, type) {
     if (match) return match
   }
 }
-function harness(initialMode = 'collapsible') {
+function harness(initialMode = 'collapsible', storage) {
   let phase
   let barMode = initialMode
-  const App = load('../src/App.tsx', {
-    '@/features/updates/update-provider': { UpdateProvider: 'UpdateProvider' },
-    '@/features/workspace/use-android-window-layout': { useAndroidWindowLayout() {} },
-    '@/features/lyrics/android-media-lyrics': { AndroidMediaLyrics: 'AndroidMediaLyrics' },
-    '@/lib/platform': { isAndroid: () => false },
-    react: {
-      useState(initial) {
-        phase ??= typeof initial === 'function' ? initial() : initial
-        return [
-          phase,
-          (next) => {
-            phase = typeof next === 'function' ? next(phase) : next
-          }
-        ]
+  const App = load(
+    '../src/App.tsx',
+    {
+      '@/features/updates/update-provider': { UpdateProvider: 'UpdateProvider' },
+      '@/features/workspace/use-android-window-layout': { useAndroidWindowLayout() {} },
+      '@/features/lyrics/android-media-lyrics': { AndroidMediaLyrics: 'AndroidMediaLyrics' },
+      '@/lib/platform': { isAndroid: () => false },
+      react: {
+        useState(initial) {
+          phase ??= typeof initial === 'function' ? initial() : initial
+          return [
+            phase,
+            (next) => {
+              phase = typeof next === 'function' ? next(phase) : next
+            }
+          ]
+        },
+        useEffect() {}
       },
-      useEffect() {}
+      'motion/react': { MotionConfig: 'MotionConfig' },
+      '@/features/workspace/titlebar': { Titlebar: 'Titlebar' },
+      '@/features/workspace/music-workspace': { MusicWorkspace: 'MusicWorkspace' },
+      '@/features/playback/music-options': { MusicOptionsProvider: 'MusicOptionsProvider' },
+      '@/features/workspace/music-navigation': {
+        MusicNavigationProvider: 'MusicNavigationProvider'
+      },
+      '@/features/account/account': { AccountProvider: 'AccountProvider' },
+      '@/plugins/host': { PluginProvider: 'PluginProvider', PluginSlot: 'PluginSlot' }
     },
-    'motion/react': { MotionConfig: 'MotionConfig' },
-    '@/features/workspace/titlebar': { Titlebar: 'Titlebar' },
-    '@/features/workspace/music-workspace': { MusicWorkspace: 'MusicWorkspace' },
-    '@/features/playback/music-options': { MusicOptionsProvider: 'MusicOptionsProvider' },
-    '@/features/workspace/music-navigation': { MusicNavigationProvider: 'MusicNavigationProvider' },
-    '@/features/account/account': { AccountProvider: 'AccountProvider' },
-    '@/plugins/host': { PluginProvider: 'PluginProvider', PluginSlot: 'PluginSlot' }
-  }).default
+    storage
+  ).default
   const MusicWorkspace = load('../src/features/workspace/music-workspace.tsx', {
     '@/features/music/source-capabilities': sourceCapabilities,
     '@/components/music/list-find': { ListFindProvider: 'ListFindProvider' },
@@ -189,4 +196,22 @@ test('persistent and hidden modes respect fullscreen exit ownership and live set
   assert.equal(app.render().bar.type, 'PlaybackBar')
   app.setMode('persistent')
   assert.equal(app.render().bar.type, 'PersistentPlaybackBar')
+})
+
+test('startup keeps fullscreen closed even if an older version saved it as open', () => {
+  let reads = 0
+  const app = harness('collapsible', {
+    getItem() {
+      reads++
+      return 'true'
+    },
+    setItem() {
+      assert.fail('fullscreen location must not be persisted')
+    }
+  })
+  assert.equal(app.render().nowPlaying, false)
+  assert.equal(app.render().playerVisible, false)
+  assert.equal(reads, 0)
+  app.render().onNowPlayingChange(true)
+  assert.equal(app.render().nowPlaying, true)
 })

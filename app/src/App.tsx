@@ -1,11 +1,10 @@
-import { reportCaughtError } from '@/lib/diagnostics'
 import { MotionConfig } from 'motion/react'
 import { Titlebar } from '@/features/workspace/titlebar'
 import { MusicWorkspace } from '@/features/workspace/music-workspace'
 import { MusicOptionsProvider } from '@/features/playback/music-options'
 import { MusicNavigationProvider } from '@/features/workspace/music-navigation'
 import { AccountProvider } from '@/features/account/account'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { PluginProvider, PluginSlot } from '@/plugins/host'
 import { useAndroidWindowLayout } from '@/features/workspace/use-android-window-layout'
 import { AndroidMediaLyrics } from '@/features/lyrics/android-media-lyrics'
@@ -13,24 +12,7 @@ import { isAndroid } from '@/lib/platform'
 import { UpdateProvider } from '@/features/updates/update-provider'
 
 function App() {
-  const [playerPhase, setPlayerPhase] = useState<'closed' | 'open' | 'closing'>(() => {
-    try {
-      return localStorage.getItem('nons-now-playing-open') === 'true' ? 'open' : 'closed'
-    } catch (cause) {
-      reportCaughtError('app/src/App.tsx', cause)
-
-      return 'closed'
-    }
-  })
-  useEffect(() => {
-    try {
-      localStorage.setItem('nons-now-playing-open', String(playerPhase === 'open'))
-    } catch (cause) {
-      reportCaughtError('app/src/App.tsx', cause)
-
-      /* Storage may be unavailable. */
-    }
-  }, [playerPhase])
+  const [playerPhase, setPlayerPhase] = useState<'closed' | 'open' | 'closing'>('closed')
   const nowPlaying = playerPhase === 'open'
   useAndroidWindowLayout(playerPhase !== 'closed')
   const setNowPlaying = (value: boolean) =>

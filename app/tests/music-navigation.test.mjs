@@ -5,7 +5,7 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 
-function harness() {
+function harness(storage) {
   const dom = new JSDOM('<button id="card">歌单卡片</button>')
   const { window } = dom
   const slots = [],
@@ -47,6 +47,7 @@ function harness() {
   runInNewContext(outputText, {
     exports,
     window,
+    localStorage: storage ?? { removeItem() {} },
     document: window.document,
     require: (name) => (name === 'react' ? react : { jsx, jsxs: jsx })
   })
@@ -135,4 +136,41 @@ test('navigation listeners are removed on provider unmount', () => {
   assert.equal(app.mouse('mousedown', 3).defaultPrevented, false)
   assert.equal(app.render().page.view, 'discover')
   app.close()
+})
+
+test('startup ignores and removes saved locations without persisting new navigation', () => {
+  const saved = new Map([
+    [
+      'nons-workspace-history',
+      JSON.stringify({ entries: [{ view: 'settings', query: '' }], index: 0 })
+    ],
+    ['nons-now-playing-open', 'true'],
+    ['unrelated-setting', 'keep']
+  ])
+  const storage = {
+    getItem() {
+      assert.fail('navigation must not restore a saved location')
+    },
+    setItem() {
+      assert.fail('navigation must not persist a location')
+    },
+    removeItem(key) {
+      saved.delete(key)
+    }
+  }
+  const app = harness(storage)
+  assert.equal(app.render().page.view, 'library')
+  assert.equal(app.render().canBack, false)
+  assert.equal(saved.has('nons-workspace-history'), false)
+  assert.equal(saved.has('nons-now-playing-open'), false)
+  assert.equal(saved.get('unrelated-setting'), 'keep')
+  app.render().navigate('search', 'test')
+  assert.equal(app.render().page.view, 'search')
+  app.render().back()
+  assert.equal(app.render().page.view, 'library')
+  app.close()
+  const reopened = harness(storage)
+  assert.equal(reopened.render().page.view, 'library')
+  assert.equal(reopened.render().canForward, false)
+  reopened.close()
 })
