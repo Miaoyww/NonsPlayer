@@ -1,0 +1,85 @@
+.release-notes > :first-child {
+  margin-top: 0;
+}
+
+.release-notes > :last-child {
+  margin-bottom: 0;
+}
+
+.release-notes :is(h1, h2, h3, h4, h5, h6) {
+  margin-block: 1.5em 0.6em;
+  color: var(--foreground);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.release-notes h1 {
+  font-size: 1.5em;
+}
+.release-notes h2 {
+  font-size: 1.3em;
+}
+.release-notes h3 {
+  font-size: 1.15em;
+}
+.release-notes :is(p, ul, ol, blockquote, pre, table) {
+  margin-block: 0.85em;
+}
+.release-notes :is(ul, ol) {
+  padding-left: 1.5em;
+}
+.release-notes ul {
+  list-style: disc;
+}
+.release-notes ol {
+  list-style: decimal;
+}
+.release-notes li + li {
+  margin-top: 0.4em;
+}
+.release-notes a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.release-notes img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+}
+.release-notes blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1em;
+  color: var(--muted-foreground);
+}
+.release-notes code {
+  border-radius: 0.25rem;
+  background: var(--muted);
+  padding: 0.15em 0.35em;
+  font-size: 0.9em;
+}
+.release-notes pre {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  padding: 1em;
+}
+.release-notes pre code {
+  padding: 0;
+}
+.release-notes table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.release-notes :is(th, td) {
+  border: 1px solid var(--border);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.release-notes th {
+  background: var(--muted);
+}
+.release-notes hr {
+  margin-block: 1.5em;
+  border-color: var(--border);
+}

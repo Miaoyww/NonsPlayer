@@ -8,6 +8,8 @@ import { createRoot } from 'react-dom/client'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 import { errorNoticeModule } from './helpers/error-notice.mjs'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 test('updates require a download click and separate installation confirmation; portable opens its download', async () => {
   const dom = new JSDOM('<div id="root"></div>')
@@ -24,6 +26,7 @@ test('updates require a download click and separate installation confirmation; p
     downloaded: 0
   }
   const calls = []
+  let finishCheck
   const container = ({ children }) => React.createElement('div', {}, children)
   const modules = {
     react: React,
@@ -40,7 +43,8 @@ test('updates require a download click and separate installation confirmation; p
       Button: ({ children, ...props }) => React.createElement('button', props, children)
     },
     '@/components/ui/dialog': {
-      Dialog: ({ open, children }) => (open ? container({ children }) : null),
+      Dialog: ({ open, children }) =>
+        open ? React.createElement('div', { role: 'dialog' }, children) : null,
       DialogContent: container,
       DialogDescription: container,
       DialogFooter: container,
@@ -50,11 +54,20 @@ test('updates require a download click and separate installation confirmation; p
     '@/components/error-notice': errorNoticeModule,
     '@/features/settings/settings-card': { SettingsCard: container },
     '@/lib/platform': { isAndroid: () => false },
+    'react-markdown': { __esModule: true, default: Markdown },
+    'remark-gfm': { __esModule: true, default: remarkGfm },
+    '@tauri-apps/plugin-opener': { openUrl: async () => {} },
+    './release-notes.css': {},
     '@/lib/player': {
       errorText: String,
       nativeCall: async (command) => {
         if (command === 'update_status') return status
         calls.push(command)
+        if (command === 'update_check') {
+          return new Promise((resolve, reject) => {
+            finishCheck = { resolve, reject }
+          })
+        }
         if (command === 'update_download') {
           status = { ...status, phase: 'ready' }
           listener({ payload: status })
@@ -62,6 +75,15 @@ test('updates require a download click and separate installation confirmation; p
       }
     }
   }
+  const notesExports = {}
+  runInNewContext(
+    ts.transpileModule(
+      readFileSync(new URL('../src/features/updates/release-notes.tsx', import.meta.url), 'utf8'),
+      { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
+    ).outputText,
+    { exports: notesExports, require: (name) => modules[name] }
+  )
+  modules['./release-notes'] = notesExports
   const exports = {}
   runInNewContext(
     ts.transpileModule(
@@ -86,11 +108,40 @@ test('updates require a download click and separate installation confirmation; p
         React.createElement(exports.UpdateProvider, {}, React.createElement(exports.UpdateCard))
       )
     )
+    await click('检查更新')
+    assert.equal(document.querySelector('[role="dialog"]'), null)
+    assert.ok(
+      [...document.querySelectorAll('button')].find(
+        (button) => button.textContent === '正在检查' && button.disabled
+      )
+    )
     await React.act(async () => {
-      status = { ...status, phase: 'available', version: '1.4.0', notes: '新版说明' }
+      status = { ...status, phase: 'current' }
+      finishCheck.resolve(status)
+    })
+    assert.equal(document.querySelector('[role="dialog"]'), null)
+    assert.match(document.body.textContent, /当前已是最新版本/)
+    await click('检查更新')
+    await React.act(async () => finishCheck.reject(new Error('检查失败')))
+    assert.equal(document.querySelector('[role="dialog"]'), null)
+    assert.match(document.body.textContent, /检查失败/)
+    assert.doesNotMatch(document.body.textContent, /当前已是最新版本/)
+    calls.length = 0
+    await React.act(async () => {
+      status = {
+        ...status,
+        phase: 'available',
+        version: '1.4.0',
+        notes:
+          '### 新版说明\n\n- **播放改进**\n\n[发布页面](https://example.com)\n\n| 项目 | 状态 |\n| --- | --- |\n| 播放 | 完成 |'
+      }
       listener({ payload: status })
     })
     assert.match(document.body.textContent, /新版说明/)
+    assert.equal(document.querySelector('h3').textContent, '新版说明')
+    assert.equal(document.querySelector('li strong').textContent, '播放改进')
+    assert.equal(document.querySelector('a').getAttribute('target'), '_blank')
+    assert.equal(document.querySelectorAll('table td').length, 2)
     assert.deepEqual(calls, [])
     await click('下载更新')
     assert.deepEqual(calls, ['update_download'])
@@ -104,6 +155,15 @@ test('updates require a download click and separate installation confirmation; p
     await click('下载便携版')
     assert.equal(calls.at(-1), 'update_open_download')
     assert.equal(calls.filter((command) => command === 'update_install').length, 1)
+    await click('稍后')
+    assert.equal(document.querySelector('[role="dialog"]'), null)
+    await click('检查更新')
+    assert.equal(document.querySelector('[role="dialog"]'), null)
+    await React.act(async () => finishCheck.resolve(status))
+    assert.ok(
+      document.querySelector('[role="dialog"]'),
+      'manual check reopens an already announced update'
+    )
   } finally {
     await React.act(async () => root.unmount())
     dom.window.close()

@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { Download, RefreshCw } from 'lucide-react'
+import { ReleaseNotes } from './release-notes'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -31,6 +32,8 @@ interface UpdateStatus {
 const UpdateContext = createContext<{
   status?: UpdateStatus
   busy: boolean
+  checking: boolean
+  error?: string
   check: () => void
 } | null>(null)
 
@@ -38,7 +41,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<UpdateStatus>()
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string>()
-  const [working, setWorking] = useState(false)
+  const [working, setWorking] = useState<string>()
   const operation = useRef(false)
   const announced = useRef<string | null>(null)
   useEffect(() => {
@@ -70,32 +73,40 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     }
   }, [])
   useEffect(() => {
-    if (status?.version && status.version !== announced.current) {
+    if (
+      status?.version &&
+      ['available', 'ready'].includes(status.phase) &&
+      status.version !== announced.current
+    ) {
       announced.current = status.version
       setOpen(true)
     }
-  }, [status?.version])
+  }, [status?.version, status?.phase])
 
   async function run(command: string) {
     if (operation.current) return
     operation.current = true
-    setWorking(true)
+    setWorking(command)
     setError(undefined)
     try {
-      await nativeCall(command)
+      const snapshot = await nativeCall<UpdateStatus>(command)
+      if (snapshot) setStatus(snapshot)
+      return snapshot
     } catch (cause) {
       reportCaughtError('app/src/features/updates/update-provider.tsx', cause)
 
       setError(errorText(cause))
     } finally {
       operation.current = false
-      setWorking(false)
+      setWorking(undefined)
     }
   }
-  const busy = working || ['checking', 'downloading', 'installing'].includes(status?.phase ?? '')
+  const busy = !!working || ['checking', 'downloading', 'installing'].includes(status?.phase ?? '')
+  const checking = working === 'update_check' || status?.phase === 'checking'
   const check = () => {
-    setOpen(true)
-    void run('update_check')
+    void run('update_check').then((snapshot) => {
+      if (snapshot?.version && ['available', 'ready'].includes(snapshot.phase)) setOpen(true)
+    })
   }
   const progress = status?.total
     ? Math.min(100, Math.floor((status.downloaded / status.total) * 100))
@@ -118,11 +129,11 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
                 : '启动后自动检查，也可以手动检查新版本。'
 
   return (
-    <UpdateContext.Provider value={{ status, busy, check }}>
+    <UpdateContext.Provider value={{ status, busy, checking, error, check }}>
       {children}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="flex max-h-[85dvh] flex-col overflow-hidden sm:max-w-4xl sm:p-8">
+          <DialogHeader className="shrink-0 pr-8">
             <DialogTitle>
               {status?.version ? `发现新版本 v${status.version}` : '版本更新'}
             </DialogTitle>
@@ -131,16 +142,12 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
           {status?.phase === 'downloading' && (
             <progress className="h-2 w-full" aria-label="更新下载进度" value={progress} max={100} />
           )}
-          {status?.notes && (
-            <div className="max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-sm text-muted-foreground">
-              {status.notes}
-            </div>
-          )}
+          {status?.notes && <ReleaseNotes notes={status.notes} />}
           <p className="sr-only" role="status">
             {message}
           </p>
           {(error || status?.error) && <ErrorNotice error={error || status?.error || ''} />}
-          <DialogFooter>
+          <DialogFooter className="shrink-0">
             <Button variant="outline" onClick={() => setOpen(false)}>
               稍后
             </Button>
@@ -165,7 +172,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
             ) : (
               <Button disabled={busy || !status?.supported} onClick={check}>
                 <RefreshCw aria-hidden="true" />
-                检查更新
+                {checking ? '正在检查' : '检查更新'}
               </Button>
             )}
           </DialogFooter>
@@ -180,23 +187,42 @@ export function UpdateCard() {
   const status = updates?.status
   const supported = isTauri() && !isAndroid() && status?.supported
   return (
-    <SettingsCard
-      title="版本更新"
-      description={
-        supported
-          ? '启动后自动检查新版本，优先使用下载镜像，失败时切换至 GitHub。'
-          : '自动更新支持 Windows x64，其他平台请从 GitHub 下载。'
-      }
-    >
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={!supported || updates?.busy}
-        onClick={updates?.check}
+    <div className="space-y-2">
+      <SettingsCard
+        title="版本更新"
+        description={
+          supported
+            ? '启动后自动检查新版本，优先使用下载镜像，失败时切换至 GitHub。'
+            : '自动更新支持 Windows x64，其他平台请从 GitHub 下载。'
+        }
       >
-        <RefreshCw aria-hidden="true" />
-        {status?.phase === 'ready' ? '更新已就绪' : updates?.busy ? '正在处理…' : '检查更新'}
-      </Button>
-    </SettingsCard>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!supported || updates?.busy}
+          onClick={updates?.check}
+        >
+          <RefreshCw
+            aria-hidden="true"
+            className={updates?.checking ? 'motion-safe:animate-spin' : undefined}
+          />
+          {updates?.checking
+            ? '正在检查'
+            : status?.phase === 'ready'
+              ? '更新已就绪'
+              : updates?.busy
+                ? '正在处理…'
+                : '检查更新'}
+        </Button>
+      </SettingsCard>
+      <div role="status" aria-live="polite">
+        {!updates?.busy && !updates?.error && !status?.error && status?.phase === 'current' && (
+          <p className="px-6 text-xs text-muted-foreground">当前已是最新版本。</p>
+        )}
+        {(updates?.error || status?.error) && (
+          <ErrorNotice error={updates?.error || status?.error || ''} />
+        )}
+      </div>
+    </div>
   )
 }

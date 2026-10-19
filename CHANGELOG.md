@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 歌词与界面
+
+- 手动检查更新时直接在按钮显示“正在检查”，仅发现新版本时打开更新弹窗；最新版本与检查失败提示在设置内展示。
+- 扩大更新弹窗，发布说明通过 Markdown 渲染标题、列表、图片、链接与表格，正文独立滚动，底部更新操作保持可见。
+
 ## [1.6.1] - 2026-10-19
 
 ![NonsPlayer v1.6.1 歌单加载与快速播放改进发布头图](https://raw.githubusercontent.com/Miaoyww/NonsPlayer/v1.6.1/docs/release-assets/header-1.6.1.png)
