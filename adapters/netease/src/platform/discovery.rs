@@ -81,11 +81,9 @@ impl Netease {
         ))
     }
     pub async fn discovery_radar(&self) -> AppResult<Collection> {
-        let body = checked(
-            self.client
-                .playlist_detail(&self.query()?.param("id", "3136952023")),
-        )
-        .await?;
+        let body = self
+            .playlist_metadata(self.query()?.param("id", "3136952023"))
+            .await?;
         collection(&body["playlist"], "playlist").ok_or_else(|| "私人雷达信息缺失".into())
     }
     pub async fn discovery_categories(&self) -> AppResult<Vec<PlaylistCategory>> {

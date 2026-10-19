@@ -11,7 +11,7 @@ impl ApiClient {
     pub async fn playlist_detail(&self, query: &Query) -> Result<ApiResponse> {
         let data = json!({
             "id": query.get_or("id", "0"),
-            "n": 100000,
+            "n": query.get_or("n", "100000").parse::<u32>().unwrap_or(100000).min(100000),
             "s": query.get_or("s", "8").parse::<i64>().unwrap_or(8)
         });
         self.request(

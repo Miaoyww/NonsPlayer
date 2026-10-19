@@ -53,16 +53,23 @@ pub struct LibrarySummary {
 }
 
 impl Netease {
+    /// Song bodies are fetched separately for the requested page.
+    pub(super) async fn playlist_metadata(&self, query: super::Query) -> AppResult<Value> {
+        checked(
+            self.client
+                .playlist_detail(&query.param("n", "0").param("s", "0")),
+        )
+        .await
+    }
+
     async fn owned_playlist(&self, id: u64) -> AppResult<Value> {
         if id == 0 {
             return Err("歌单 ID 无效".into());
         }
         let profile = self.library_account().await?;
-        let body = checked(
-            self.client
-                .playlist_detail(&self.query()?.param("id", &id.to_string())),
-        )
-        .await?;
+        let body = self
+            .playlist_metadata(self.query()?.param("id", &id.to_string()))
+            .await?;
         let playlist = body.get("playlist").ok_or("歌单详情缺失")?;
         if playlist.pointer("/creator/userId").and_then(Value::as_u64) != Some(profile.user_id) {
             return Err("只能编辑自己创建的歌单".into());
@@ -168,7 +175,7 @@ impl Netease {
         }
         let profile = self.library_account().await?;
         let query = self.query()?.param("id", &playlist_id.to_string());
-        let body = checked(self.client.playlist_detail(&query)).await?;
+        let body = self.playlist_metadata(query).await?;
         let playlist = body.get("playlist").ok_or("歌单详情缺失")?;
         if playlist.pointer("/creator/userId").and_then(Value::as_u64) != Some(profile.user_id) {
             return Err("只能编辑自己创建的歌单".into());
@@ -286,7 +293,7 @@ impl Netease {
         let query = self.query()?.param("id", &id.to_string());
         match kind {
             "playlist" => {
-                let body = checked(self.client.playlist_detail(&query)).await?;
+                let body = self.playlist_metadata(query).await?;
                 let playlist = body.get("playlist").ok_or("歌单详情缺失")?;
                 let ids = playlist_ids(playlist, offset as usize, limit);
                 let total = array(playlist, "trackIds").len();
@@ -338,7 +345,7 @@ impl Netease {
         let body = match kind {
             "artist" => checked(self.client.artist_detail(&query)).await?,
             "album" => checked(self.client.album(&query)).await?,
-            "playlist" => checked(self.client.playlist_detail(&query)).await?,
+            "playlist" => self.playlist_metadata(query).await?,
             _ => return Err("音乐详情类型无效".into()),
         };
         entity_detail(&body, kind)
@@ -589,6 +596,78 @@ mod tests {
         cover::CoverSize,
     };
     use serde_json::json;
+
+    #[tokio::test]
+    async fn playlist_metadata_does_not_request_unused_song_bodies() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            stream
+                .set_read_timeout(Some(std::time::Duration::from_secs(3)))
+                .unwrap();
+            let mut received = Vec::new();
+            let mut buffer = [0; 4096];
+            let (header_end, length) = loop {
+                let read = stream.read(&mut buffer).unwrap();
+                assert_ne!(read, 0);
+                received.extend_from_slice(&buffer[..read]);
+                assert!(received.len() < 64 * 1024);
+                if let Some(end) = received.windows(4).position(|v| v == b"\r\n\r\n") {
+                    let header = std::str::from_utf8(&received[..end]).unwrap();
+                    let length: usize = header
+                        .lines()
+                        .find_map(|line| {
+                            let (key, value) = line.split_once(':')?;
+                            key.eq_ignore_ascii_case("content-length")
+                                .then(|| value.trim().parse().unwrap())
+                        })
+                        .unwrap();
+                    break (end + 4, length);
+                }
+            };
+            while received.len() < header_end + length {
+                let read = stream.read(&mut buffer).unwrap();
+                assert_ne!(read, 0);
+                received.extend_from_slice(&buffer[..read]);
+                assert!(received.len() < 64 * 1024);
+            }
+            let form: HashMap<_, _> =
+                url::form_urlencoded::parse(&received[header_end..header_end + length])
+                    .into_owned()
+                    .collect();
+            let (_, request) = ncm_api_rs::crypto::eapi_req_decrypt(&form["params"]).unwrap();
+            let response = serde_json::to_vec(&json!({"code":200,"playlist":{
+                "id":42,"name":"Test playlist","description":"Description","trackCount":3,
+                "creator":{"userId":123,"nickname":"Creator"},
+                "trackIds":[{"id":3},{"id":1},{"id":2}],"tracks":[]
+            }}))
+            .unwrap();
+            write!(stream,"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",response.len()).unwrap();
+            stream.write_all(&response).unwrap();
+            // Return only non-sensitive request fields, never eapi headers or cookies.
+            json!({"n":request["n"],"s":request["s"]})
+        });
+        let api = Netease::with_cookie(None);
+        let mut query = super::super::Query::new().param("id", "42");
+        query.domain = Some(format!("http://{address}"));
+        let result = api.playlist_metadata(query).await.unwrap();
+        let request = server.join().unwrap();
+        assert_eq!(
+            request["n"], 0,
+            "metadata must not fetch unused song bodies"
+        );
+        assert_eq!(request["s"], 0, "subscriber previews are not displayed");
+        let playlist = &result["playlist"];
+        assert_eq!(playlist_ids(playlist, 0, 100), [3, 1, 2]);
+        assert_eq!(playlist_ids(playlist, 1, 1), [1]);
+        let detail = entity_detail(&result, "playlist").unwrap();
+        assert_eq!(detail.item.name, "Test playlist");
+        assert_eq!(detail.item.track_count, 3);
+        assert_eq!(detail.item.creator_id, 123);
+        assert_eq!(detail.description.as_deref(), Some("Description"));
+    }
 
     #[test]
     fn artist_details_preserve_metadata_and_pass_the_live_response_contract() {
