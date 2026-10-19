@@ -1,3 +1,4 @@
+import { AggregateSection } from '@/features/aggregate/aggregate-page'
 import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
@@ -11,7 +12,6 @@ import {
   SongGridSkeleton,
   TextSkeleton
 } from '@/components/music/loading'
-import AccountLoginPage from '@/features/account/account-login-page'
 import { CollectionTabs } from '@/features/library/collection-tabs'
 import { MusicPage } from '@/components/music/music-page'
 import { CollectionContextMenu, useCollectionActions } from '@/features/library/collection-actions'
@@ -295,10 +295,19 @@ export default function MusicLibrary({
     </ActionButton>
   )
 
-  if (!showingDetail && !profile && !accountLoading) return <AccountLoginPage />
+  if (!showingDetail && !profile && !accountLoading)
+    return (
+      <MusicPage>
+        <AggregateSection onError={onError} />
+        <ActionButton variant="outline" onClick={() => navigate('accounts')}>
+          登录平台账号
+        </ActionButton>
+      </MusicPage>
+    )
 
   return (
     <MusicPage aria-label="音乐库">
+      {!showingDetail && <AggregateSection onError={onError} />}
       {showingDetail ? (
         <>
           <CollectionHeader

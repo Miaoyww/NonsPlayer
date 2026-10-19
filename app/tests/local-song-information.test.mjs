@@ -62,7 +62,9 @@ function harness() {
     'lucide-react': {},
     '@/plugins/song-menu': { PluginSongMenuItems: () => null },
     '@/features/library/playlist-picker': { PlaylistPicker: 'PlaylistPicker' },
-    '@/features/local/local-playlist-picker': { LocalPlaylistPicker: 'LocalPlaylistPicker' },
+    '@/features/aggregate/aggregate-playlist-picker': {
+      AggregatePlaylistPicker: 'AggregatePlaylistPicker'
+    },
     '@/components/music/action-button': { ActionButton: 'ActionButton' },
     '@/features/account/account': {},
     '@/components/ui/dialog': Object.fromEntries(

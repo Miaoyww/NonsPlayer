@@ -6,7 +6,7 @@ import { readTrackInformation } from '@/features/music/queries'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { TextSkeleton } from '@/components/music/loading'
 import { PluginSongMenuItems } from '@/plugins/song-menu'
-import { LocalPlaylistPicker } from '@/features/local/local-playlist-picker'
+import { AggregatePlaylistPicker } from '@/features/aggregate/aggregate-playlist-picker'
 import { PlaylistPicker } from '@/features/library/playlist-picker'
 import { ContextMenu } from '@base-ui/react/context-menu'
 import {
@@ -63,6 +63,7 @@ export function songCopyName(track: Track) {
 
 const SongActionsContext = createContext<{
   songLink: (track: Track) => string
+  collectAggregate: (track: Track) => void
   collect: (track: Track) => void
   collectGroup: (tracks: Track[]) => void
   details: (track: Track) => void
@@ -97,6 +98,7 @@ export function SongActionsProvider({
   const sources = statuses.filter((status) => status.enabled).map((status) => status.descriptor)
   const songLink = (track: Track) => trackShareLink(track, sources)
   const [collectTrack, setCollectTrack] = useState<Track>()
+  const [aggregateTrack, setAggregateTrack] = useState<Track>()
   const [collectGroup, setCollectGroup] = useState<Track[]>()
   const [track, setTrack] = useState<Track>()
   const [localInformation, setLocalInformation] = useState<LocalInformation>()
@@ -253,6 +255,7 @@ export function SongActionsProvider({
       value={{
         songLink,
         collect: setCollectTrack,
+        collectAggregate: setAggregateTrack,
         collectGroup: setCollectGroup,
         details: (value) => {
           setRetry(0)
@@ -265,12 +268,13 @@ export function SongActionsProvider({
       }}
     >
       {children}
-      <LocalPlaylistPicker
-        track={collectTrack?.source.kind === 'local' ? collectTrack : undefined}
+      <AggregatePlaylistPicker
+        track={aggregateTrack ?? (collectTrack?.source.kind === 'local' ? collectTrack : undefined)}
         tracks={collectGroup}
         onClose={() => {
           setCollectTrack(undefined)
           setCollectGroup(undefined)
+          setAggregateTrack(undefined)
         }}
         onNotice={onNotice}
       />
@@ -434,10 +438,10 @@ export function SongContextMenu({
               )}
             <PluginSongMenuItems track={track} run={(work, notice) => actions.run(work, notice)} />
             {!unavailable && <ContextMenu.Separator />}
-            {!unavailable && track.source.kind === 'local' && (
-              <ContextMenu.Item onClick={() => actions.collect(track)}>
+            {!unavailable && (
+              <ContextMenu.Item onClick={() => actions.collectAggregate(track)}>
                 <FolderPlus aria-hidden="true" />
-                添加到本地歌单
+                添加到聚合歌单
               </ContextMenu.Item>
             )}
             {!unavailable && canCollect && (

@@ -34,8 +34,8 @@ pub(super) fn hydrate(state: &mut PlayerSnapshot, key: &str, tracks: Vec<Track>)
     if state.current().is_none_or(|track| track.key != key) {
         return Err("播放选择已变化".into());
     }
-    if tracks.is_empty() || tracks.len() > 1000 {
-        return Err("播放队列无效，最多支持 1000 首歌曲".into());
+    if tracks.is_empty() || tracks.len() > 10000 {
+        return Err("播放队列无效，最多支持 10000 首歌曲".into());
     }
     let index = tracks
         .iter()

@@ -5,7 +5,7 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 
-function harness(storage) {
+function harness(storage, replacement = () => undefined) {
   const dom = new JSDOM('<button id="card">歌单卡片</button>')
   const { window } = dom
   const slots = [],
@@ -49,7 +49,23 @@ function harness(storage) {
     window,
     localStorage: storage ?? { removeItem() {} },
     document: window.document,
-    require: (name) => (name === 'react' ? react : { jsx, jsxs: jsx })
+    require: (name) =>
+      name === '@/features/aggregate/aggregate-library'
+        ? {
+            useAggregateReplacement: () => replacement,
+            aggregateCollection: (p) => ({
+              id: p.id,
+              localId: p.id,
+              kind: 'playlist',
+              name: p.name,
+              cover: '',
+              subtitle: '聚合歌单',
+              trackCount: 0
+            })
+          }
+        : name === 'react'
+          ? react
+          : { jsx, jsxs: jsx }
   })
   function render() {
     cursor = 0
@@ -173,4 +189,23 @@ test('startup ignores and removes saved locations without persisting new navigat
   assert.equal(reopened.render().page.view, 'library')
   assert.equal(reopened.render().canForward, false)
   reopened.close()
+})
+
+test('platform entries open the aggregate while explicit origin bypass remains remote', () => {
+  const item = {
+    id: 'remote',
+    kind: 'playlist',
+    name: 'Platform',
+    reference: { source: 'qqmusic', kind: 'playlist', id: 'remote' }
+  }
+  const app = harness(undefined, (item) =>
+    item.bypassAggregate ? undefined : { id: '17', name: 'Aggregate' }
+  )
+  app.render().navigate('collection', '', item)
+  assert.equal(app.render().page.view, 'local-playlist')
+  assert.equal(app.render().page.collection.localId, '17')
+  app.render().navigate('collection', '', { ...item, bypassAggregate: true })
+  assert.equal(app.render().page.view, 'collection')
+  assert.equal(app.render().page.collection.reference.source, 'qqmusic')
+  app.close()
 })

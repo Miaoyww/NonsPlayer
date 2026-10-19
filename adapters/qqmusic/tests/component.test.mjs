@@ -583,6 +583,10 @@ test('private owned playlists use authenticated read and keep uniform artwork', 
     assert.equal(lists.status, 'ok', JSON.stringify(lists))
     assert.equal(lists.data.data.items[0].reference.id, '123')
     assert.equal(lists.data.data.items[0].name, 'Private playlist')
+    assert.deepEqual(
+      lists.data.data.items[0].creator,
+      fixture.call('music.account', { operation: 'profile' }).data.data.reference
+    )
     assert.equal(lists.data.data.items[0].subtitle, '测试账号')
     assert.equal(lists.data.data.items[0].cover.original, 'https://y.gtimg.cn/private.jpg')
     const songs = fixture.call('music.business', {

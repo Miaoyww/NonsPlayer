@@ -1,3 +1,4 @@
+import { useAggregateReplacement } from '@/features/aggregate/aggregate-library'
 import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -18,6 +19,7 @@ import { parseRecentPlaylists, recentPlaylistKey, rememberPlaylist } from './rec
 export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
   const { profile, loading } = useAccount()
   const { page, navigate } = useMusicNavigation()
+  const replacement = useAggregateReplacement()
   const [open, setOpen] = useState(false)
   const [keyword, setKeyword] = useState('')
   const [refresh, setRefresh] = useState(0)
@@ -81,7 +83,17 @@ export function PlaylistSidebar({ hidden = false }: { hidden?: boolean }) {
     setOpen(false)
   }
   function row(item: MusicCollection) {
-    const selected = page.view === 'collection' && page.collection?.id === item.id
+    const aggregate = replacement(item)
+    if (aggregate)
+      item = {
+        ...item,
+        name: aggregate.name,
+        trackCount: aggregate.trackCount,
+        cover: aggregate.covers[0] ?? ''
+      }
+    const selected = aggregate
+      ? page.view === 'local-playlist' && page.collection?.localId === aggregate.id
+      : page.view === 'collection' && page.collection?.id === item.id
     return (
       <Button
         key={item.id}

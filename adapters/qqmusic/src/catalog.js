@@ -138,7 +138,8 @@ async function collections(auth, filter) {
   let values = Array.isArray(created.v_playlist)
     ? created.v_playlist.map((value) => ({
         ...value,
-        creatorName: text(value.creatorName) || owner
+        creatorName: text(value.creatorName) || owner,
+        ownerAccount: accountRecord({}, auth.credential).reference
       }))
     : []
   values = values.filter((value) => Number(value.dirId ?? value.dirid) !== 201)

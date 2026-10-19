@@ -37,7 +37,7 @@ const categories = [
   { value: 'song', label: '音乐', icon: Music2 },
   { value: 'artist', label: '艺术家', icon: Mic2 },
   { value: 'album', label: '专辑', icon: Disc3 },
-  { value: 'playlist', label: '歌单', icon: ListMusic }
+  { value: 'playlist', label: '聚合歌单', icon: ListMusic }
 ] as const
 type Kind = (typeof categories)[number]['value']
 interface Props {
@@ -616,10 +616,10 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
           <DialogHeader>
             <DialogTitle>
               {editing === 'create'
-                ? '创建本地歌单'
+                ? '创建聚合歌单'
                 : editing === 'rename'
                   ? '修改歌单名称'
-                  : '删除本地歌单'}
+                  : '删除聚合歌单'}
             </DialogTitle>
             <DialogDescription>
               {editing === 'delete'

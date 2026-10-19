@@ -93,6 +93,37 @@ pub enum Command {
     Shutdown,
 }
 
+fn next_available(
+    state: &PlayerSnapshot,
+    failed: &std::collections::HashSet<String>,
+) -> Option<usize> {
+    let current = state.index?;
+    let count = state.queue.len();
+    let slot = if state.shuffle {
+        state.shuffle_order.iter().position(|i| *i == current)?
+    } else {
+        current
+    };
+    for step in 1..=count {
+        let candidate = slot + step;
+        if candidate >= count
+            && !state.shuffle
+            && state.repeat_mode == crate::model::RepeatMode::Off
+        {
+            break;
+        }
+        let index = if state.shuffle {
+            *state.shuffle_order.get(candidate % count)?
+        } else {
+            candidate % count
+        };
+        if !failed.contains(&state.queue[index].key) {
+            return Some(index);
+        }
+    }
+    None
+}
+
 fn previous_command(state: &PlayerSnapshot) -> Option<Command> {
     state.current()?;
     // Manual navigation always selects a queue entry, regardless of position.
@@ -346,6 +377,7 @@ struct Actor {
     monitor: Option<gst::DeviceMonitor>,
     media: Option<MediaControls>,
     desired_playing: bool,
+    failed_keys: std::collections::HashSet<String>,
     generation: Arc<AtomicU64>,
     prepared: Arc<Mutex<Option<Prepared>>>,
     armed: Arc<Mutex<Option<Prepared>>>,
@@ -498,6 +530,7 @@ impl Actor {
             monitor,
             media,
             desired_playing: false,
+            failed_keys: Default::default(),
             generation,
             prepared,
             armed,
@@ -583,6 +616,15 @@ impl Actor {
     }
 
     fn command(&mut self, command: Command) -> AppResult<()> {
+        if !matches!(
+            &command,
+            Command::Resolved { .. }
+                | Command::SourceAttempt { .. }
+                | Command::CollectionReady { .. }
+        ) {
+            self.failed_keys.clear();
+        }
+
         #[cfg(target_os = "android")]
         let command = match command {
             Command::Media { command, reply } => {
@@ -626,9 +668,9 @@ impl Actor {
         }
         match &command {
             Command::Queue(queue, index)
-                if queue.is_empty() || queue.len() > 1000 || *index >= queue.len() =>
+                if queue.is_empty() || queue.len() > 10000 || *index >= queue.len() =>
             {
-                return Err("播放队列无效，最多支持 1000 首歌曲".into());
+                return Err("播放队列无效，最多支持 10000 首歌曲".into());
             }
             Command::Jump(index) if *index >= self.state.queue.len() => {
                 return Err("歌曲不在播放队列中".into());
@@ -908,8 +950,8 @@ impl Actor {
                 });
             }
             Command::Queue(queue, index) => {
-                if queue.is_empty() || queue.len() > 1000 || index >= queue.len() {
-                    return Err("播放队列无效，最多支持 1000 首歌曲".into());
+                if queue.is_empty() || queue.len() > 10000 || index >= queue.len() {
+                    return Err("播放队列无效，最多支持 10000 首歌曲".into());
                 }
                 self.state.private_fm_session = None;
                 self.selections.clear();
@@ -1351,10 +1393,7 @@ impl Actor {
                             self.decoded_audio = resolved.decoded_audio;
                         }
                         Err(error) => {
-                            self.state.status = PlaybackStatus::Error;
-                            self.state.error = Some(error);
-                            self.desired_playing = false;
-                            self.publish();
+                            self.skip_failed(error)?;
                         }
                     }
                 }
@@ -1425,6 +1464,26 @@ impl Actor {
         Ok(())
     }
 
+    fn skip_failed(&mut self, error: String) -> AppResult<()> {
+        if let Some(track) = self.state.current() {
+            self.failed_keys.insert(track.key.clone());
+            let _ = self.app.emit(
+                "playback-notice",
+                format!("已跳过「{}」：{}", track.title, error),
+            );
+        }
+        if self.desired_playing && self.state.private_fm_session.is_none() {
+            if let Some(index) = next_available(&self.state, &self.failed_keys) {
+                self.load(index, true)?;
+                return Ok(());
+            }
+        }
+        self.desired_playing = false;
+        self.state.status = PlaybackStatus::Stopped;
+        self.state.error = Some(format!("没有后续可播放的歌曲：{error}"));
+        self.publish();
+        Ok(())
+    }
     fn load(&mut self, index: usize, playing: bool) -> AppResult<()> {
         self.load_at(index, playing, 0)
     }
@@ -1742,6 +1801,21 @@ impl Actor {
                 }
             }
             MessageView::Error(error) => {
+                if self.state.audio_output_mode != AudioOutputMode::Exclusive
+                    && self.desired_playing
+                {
+                    self.cancel_jobs();
+                    let _ = self.playbin.set_state(gst::State::Null);
+                    self.fade.reset();
+                    if let Err(cause) = self.skip_failed(format!("音频播放失败：{}", error.error()))
+                    {
+                        self.state.error = Some(cause);
+                        self.state.status = PlaybackStatus::Error;
+                        self.desired_playing = false;
+                        self.publish();
+                    }
+                    return;
+                }
                 self.cancel_jobs();
                 self.desired_playing = false;
                 self.state.status = PlaybackStatus::Error;
@@ -1766,6 +1840,10 @@ impl Actor {
     }
 
     fn tick(&mut self) {
+        if self.state.status == PlaybackStatus::Playing && self.state.position_ms >= 1000 {
+            self.failed_keys.clear();
+        }
+
         if let Ok(mut prepared) = (self.prepared.lock()).inspect_err(|error| {
             crate::infrastructure::diagnostics::warn("optional_success", error);
         }) {
@@ -2007,6 +2085,25 @@ impl Actor {
 mod tests {
     use super::*;
     use crate::model::TrackSource;
+
+    #[test]
+    fn unavailable_tracks_stop_boundedly_with_repeat_and_shuffle() {
+        let mut state = snapshot(0, 0, RepeatMode::One);
+        let mut failed = std::collections::HashSet::new();
+        failed.insert(state.queue[0].key.clone());
+        assert_eq!(next_available(&state, &failed), Some(1));
+        failed.extend(state.queue.iter().map(|t| t.key.clone()));
+        assert_eq!(next_available(&state, &failed), None);
+        state.shuffle = true;
+        state.shuffle_order = vec![2, 0, 1].into();
+        assert_eq!(next_available(&state, &failed), None);
+        failed.remove(&state.queue[2].key);
+        assert_eq!(next_available(&state, &failed), Some(2));
+        state.shuffle = false;
+        state.index = Some(2);
+        state.repeat_mode = RepeatMode::Off;
+        assert_eq!(next_available(&state, &failed), None);
+    }
 
     #[test]
     fn command_backpressure_and_initialization_failure_have_distinct_errors() {

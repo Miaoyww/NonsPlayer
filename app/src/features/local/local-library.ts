@@ -12,6 +12,10 @@ export function localCollection(item: LocalEntity): MusicCollection {
   return { ...item, id: 0, localId: item.id }
 }
 export async function playLocalEntity(kind: string, id: string) {
+  if (kind === 'playlist') {
+    await nativeCall('aggregate_play', { id })
+    return false
+  }
   const tracks: Track[] = []
   let more = true
   for (let offset = 0; more && tracks.length < 1000; offset += 100) {

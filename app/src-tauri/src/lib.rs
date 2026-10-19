@@ -1,3 +1,4 @@
+mod aggregate;
 mod application;
 mod discovery;
 mod infrastructure;

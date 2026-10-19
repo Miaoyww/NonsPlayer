@@ -1,3 +1,4 @@
+import AggregatePage, { AggregateSection } from '@/features/aggregate/aggregate-page'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { supportsMusicPage } from '@/features/music/source-capabilities'
 import { ListFindProvider } from '@/components/music/list-find'
@@ -123,6 +124,23 @@ export function MusicWorkspace({
     const timer = window.setTimeout(() => setNotice(undefined), 3000)
     return () => window.clearTimeout(timer)
   }, [notice])
+  useEffect(() => {
+    if (!isTauri()) return
+    let disposed = false
+    let stop: (() => void) | undefined
+    void listen<string>('playback-notice', ({ payload }) => {
+      if (!disposed) showNotice(payload)
+    })
+      .then((fn) => {
+        if (disposed) fn()
+        else stop = fn
+      })
+      .catch(onError)
+    return () => {
+      disposed = true
+      stop?.()
+    }
+  }, [showNotice])
   const [refresh, setRefresh] = useState(0)
   const [operationError, setOperationError] = useState<{ id: number; message: string }>()
   const onError = useCallback((cause: unknown) => {
@@ -342,8 +360,15 @@ export function MusicWorkspace({
                       这是界面预览。播放、搜索和导入功能需要在桌面应用中使用。
                     </p>
                   )}
-                  {page.collection?.reference &&
-                  ['artist', 'album', 'collection'].includes(view) ? (
+                  {view === 'local-playlist' && page.collection?.localId ? (
+                    <AggregatePage
+                      key={page.collection.localId}
+                      id={page.collection.localId}
+                      onError={onError}
+                      onNotice={showNotice}
+                    />
+                  ) : page.collection?.reference &&
+                    ['artist', 'album', 'collection'].includes(view) ? (
                     <Suspense
                       fallback={
                         <MusicPageSkeleton view="collection" collection={page.collection} />
@@ -419,6 +444,7 @@ export function MusicWorkspace({
                       )
                     ) : (
                       <MusicPage>
+                        {view === 'library' && <AggregateSection onError={onError} />}
                         <p role="status" className="py-6 text-sm text-muted-foreground">
                           {currentSource
                             ? `${sourceLabel(

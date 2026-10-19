@@ -133,9 +133,37 @@ export function invalidateCollectionCache(entity: { source: string; kind: string
   })
 }
 
+// Playlist mutations leave unrelated member pages and online queries reusable.
+export function invalidateAggregateCache(id?: string) {
+  requestCache.invalidateMatching((key) => {
+    const separator = key.indexOf(':')
+    const command = key.slice(0, separator)
+    try {
+      const args = JSON.parse(key.slice(separator + 1))
+      if (command === 'aggregate_playlists') return true
+      if (command === 'aggregate_tracks' || command === 'aggregate_playlist')
+        return !id || args.id === id
+      if (command === 'local_entities') return args.kind === 'playlist'
+      if (command === 'local_entity_detail' || command === 'local_entity_tracks')
+        return args.kind === 'playlist' && (!id || args.id === id)
+      if (command === 'presentation')
+        return (
+          args[0] === 'aggregate-playlist-picker' ||
+          (args[0] === 'local-detail' && args[1] === 'playlist' && (!id || args[2] === id))
+        )
+    } catch {
+      return false
+    }
+    return false
+  })
+}
+
 export const requestCache = new RuntimeCache()
 export const coverCache = new RuntimeCache(48 * 1024 * 1024)
 export const cachedCommands = new Set([
+  'aggregate_playlists',
+  'aggregate_playlist',
+  'aggregate_tracks',
   'music_query',
   'music_read_track',
   'discovery_hitokoto',

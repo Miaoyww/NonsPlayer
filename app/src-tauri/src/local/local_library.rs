@@ -223,6 +223,16 @@ pub fn index_track(db: &Connection, track: &Track, options: &LocalPreferences) -
     }
     Ok(())
 }
+fn aggregate_entity(p: crate::aggregate::Playlist) -> LocalEntity {
+    LocalEntity {
+        id: p.id,
+        kind: "playlist".into(),
+        name: p.name,
+        cover: p.covers.first().cloned().unwrap_or_default(),
+        subtitle: "聚合歌单".into(),
+        track_count: p.track_count,
+    }
+}
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalEntity {
@@ -256,6 +266,19 @@ pub async fn local_entities(
         .map_err(|e| e.to_string())?
 }
 fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> AppResult<EntityPage> {
+    if kind == "playlist" {
+        let mut items = crate::aggregate::playlists(store)?
+            .into_iter()
+            .filter(|p| p.name.to_lowercase().contains(&keyword.to_lowercase()))
+            .skip(offset as usize)
+            .take(31)
+            .map(aggregate_entity)
+            .collect::<Vec<_>>();
+        let more = items.len() > 30;
+        items.truncate(30);
+        return Ok(EntityPage { items, more });
+    }
+
     let db = store
         .0
         .lock()
@@ -263,11 +286,7 @@ fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> App
             crate::infrastructure::diagnostics::warn("translate_error", error);
         })
         .map_err(|_| "曲库锁不可用")?;
-    let sql = if kind == "playlist" {
-        "SELECT CAST(p.id AS TEXT),'playlist',p.name,COALESCE((SELECT json_extract(t.value,'$.cover') FROM local_playlist_tracks pt JOIN visible_local_tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id ORDER BY pt.position LIMIT 1),''),'',COUNT(t.key) FROM local_playlists p LEFT JOIN local_playlist_tracks pt ON pt.playlist_id=p.id LEFT JOIN visible_local_tracks t ON t.key=pt.key AND t.source='local' WHERE instr(lower(p.name),lower(?2))>0 GROUP BY p.id ORDER BY p.id DESC LIMIT 31 OFFSET ?3"
-    } else {
-        "SELECT e.id,e.kind,e.name,e.cover,e.subtitle,COUNT(t.key) FROM local_entities e JOIN local_members m ON m.kind=e.kind AND m.id=e.id JOIN visible_local_tracks t ON t.key=m.key AND t.source='local' WHERE e.kind=?1 AND instr(lower(e.name),lower(?2))>0 GROUP BY e.kind,e.id ORDER BY e.name,e.id LIMIT 31 OFFSET ?3"
-    };
+    let sql = "SELECT e.id,e.kind,e.name,e.cover,e.subtitle,COUNT(t.key) FROM local_entities e JOIN local_members m ON m.kind=e.kind AND m.id=e.id JOIN visible_local_tracks t ON t.key=m.key AND t.source='local' WHERE e.kind=?1 AND instr(lower(e.name),lower(?2))>0 GROUP BY e.kind,e.id ORDER BY e.name,e.id LIMIT 31 OFFSET ?3";
     let mut stmt = db.prepare(sql).map_err(|e| e.to_string())?;
     let mut items = stmt
         .query_map(params![kind, keyword, offset], |r| {
@@ -312,6 +331,10 @@ pub async fn local_entity_detail(
         .map_err(|e| e.to_string())?
 }
 fn entity_detail(store: &Store, kind: String, id: String) -> AppResult<LocalEntity> {
+    if kind == "playlist" {
+        return crate::aggregate::playlist(store, &id).map(aggregate_entity);
+    }
+
     let db = store
         .0
         .lock()
@@ -330,11 +353,7 @@ fn entity_detail(store: &Store, kind: String, id: String) -> AppResult<LocalEnti
             track_count: r.get(5)?,
         })
     };
-    if kind == "playlist" {
-        db.query_row("SELECT CAST(p.id AS TEXT),'playlist',p.name,COALESCE((SELECT json_extract(t.value,'$.cover') FROM local_playlist_tracks pt JOIN visible_local_tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id ORDER BY pt.position LIMIT 1),''),'',(SELECT COUNT(*) FROM local_playlist_tracks pt JOIN visible_local_tracks t ON t.key=pt.key WHERE pt.playlist_id=p.id AND t.source='local') FROM local_playlists p WHERE p.id=?1", [&id], row).map_err(|e| e.to_string())
-    } else {
-        db.query_row("SELECT e.id,e.kind,e.name,e.cover,e.subtitle,(SELECT COUNT(*) FROM local_members m JOIN visible_local_tracks t ON t.key=m.key WHERE m.kind=e.kind AND m.id=e.id AND t.source='local') FROM local_entities e WHERE e.kind=?1 AND e.id=?2", params![kind,id], row).map_err(|e| e.to_string())
-    }
+    db.query_row("SELECT e.id,e.kind,e.name,e.cover,e.subtitle,(SELECT COUNT(*) FROM local_members m JOIN visible_local_tracks t ON t.key=m.key WHERE m.kind=e.kind AND m.id=e.id AND t.source='local') FROM local_entities e WHERE e.kind=?1 AND e.id=?2", params![kind,id], row).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -357,6 +376,14 @@ fn entity_tracks(
     keyword: String,
     offset: u32,
 ) -> AppResult<TrackPage> {
+    if kind == "playlist" {
+        let page = crate::aggregate::tracks(store, &id, offset, false)?;
+        return Ok(TrackPage {
+            items: page.items.into_iter().map(|m| m.track).collect(),
+            more: page.more,
+        });
+    }
+
     let db = store
         .0
         .lock()
@@ -368,7 +395,6 @@ fn entity_tracks(
     let options = options_from_db(&db)?;
     let sql = match kind.as_str() {
             "artist" | "album" => "SELECT t.value FROM visible_local_tracks t JOIN local_members m ON m.key=t.key WHERE t.source='local' AND m.kind=?1 AND m.id=?2 ORDER BY COALESCE(json_extract((SELECT value FROM local_metadata WHERE key=t.key),'$.discNumber'),0),COALESCE(json_extract((SELECT value FROM local_metadata WHERE key=t.key),'$.trackNumber'),0),t.title,t.key LIMIT 101 OFFSET ?4",
-            "playlist" => "SELECT t.value FROM visible_local_tracks t JOIN local_playlist_tracks p ON p.key=t.key WHERE t.source='local' AND p.playlist_id=?2 ORDER BY p.position LIMIT 101 OFFSET ?4",
             _ => "SELECT value FROM visible_local_tracks WHERE source='local' AND (instr(lower(title),lower(?3))>0 OR instr(lower(artist),lower(?3))>0 OR instr(lower(json_extract(value,'$.album')),lower(?3))>0) ORDER BY title,key LIMIT 101 OFFSET ?4"
         };
     let mut stmt = db.prepare(sql).map_err(|e| e.to_string())?;
@@ -452,14 +478,6 @@ pub async fn set_local_preferences(
     });
     Ok(())
 }
-fn playlist_name(name: &str) -> AppResult<&str> {
-    let name = name.trim();
-    if name.is_empty() || name.chars().count() > 100 {
-        Err("歌单名称需要 1–100 个字符".into())
-    } else {
-        Ok(name)
-    }
-}
 #[tauri::command]
 pub fn create_local_playlist(
     name: String,
@@ -471,26 +489,10 @@ pub fn create_local_playlist(
     Ok(result)
 }
 fn create_playlist(store: &Store, name: String) -> AppResult<String> {
-    let db = store
-        .0
-        .lock()
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
-        })
-        .map_err(|_| "曲库锁不可用")?;
-    let count: u32 = db
-        .query_row("SELECT COUNT(*) FROM local_playlists", [], |r| r.get(0))
-        .map_err(|e| e.to_string())?;
-    if count >= 200 {
-        return Err("最多创建 200 个本地歌单".into());
-    }
-    db.execute(
-        "INSERT INTO local_playlists(name) VALUES(?1)",
-        [playlist_name(&name)?],
+    crate::aggregate::write(
+        store,
+        &crate::aggregate::Write::Create { name, keys: vec![] },
     )
-    .map_err(|e| e.to_string())?;
-    let id = db.last_insert_rowid().to_string();
-    Ok(id)
 }
 
 #[tauri::command]
@@ -505,24 +507,7 @@ pub fn rename_local_playlist(
     Ok(())
 }
 fn rename_playlist(store: &Store, id: String, name: String) -> AppResult<()> {
-    let db = store
-        .0
-        .lock()
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
-        })
-        .map_err(|_| "曲库锁不可用")?;
-    if db
-        .execute(
-            "UPDATE local_playlists SET name=?1 WHERE id=?2",
-            params![playlist_name(&name)?, id],
-        )
-        .map_err(|e| e.to_string())?
-        == 0
-    {
-        return Err("歌单不存在".into());
-    }
-    Ok(())
+    crate::aggregate::write(store, &crate::aggregate::Write::Rename { id, name }).map(|_| ())
 }
 
 #[tauri::command]
@@ -536,23 +521,7 @@ pub fn delete_local_playlist(
     Ok(())
 }
 fn delete_playlist(store: &Store, id: String) -> AppResult<()> {
-    let mut db = store
-        .0
-        .lock()
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
-        })
-        .map_err(|_| "曲库锁不可用")?;
-    let tx = db.transaction().map_err(|e| e.to_string())?;
-    tx.execute(
-        "DELETE FROM local_playlist_tracks WHERE playlist_id=?1",
-        [&id],
-    )
-    .map_err(|e| e.to_string())?;
-    tx.execute("DELETE FROM local_playlists WHERE id=?1", [&id])
-        .map_err(|e| e.to_string())?;
-    tx.commit().map_err(|e| e.to_string())?;
-    Ok(())
+    crate::aggregate::write(store, &crate::aggregate::Write::Delete { id }).map(|_| ())
 }
 
 #[tauri::command]
@@ -567,38 +536,14 @@ pub fn add_local_playlist_track(
     Ok(())
 }
 fn add_playlist_track(store: &Store, id: String, key: String) -> AppResult<()> {
-    if !matches!(store.track(&key)?.source, TrackSource::Local { .. }) {
-        return Err("本地歌单仅支持本地歌曲".into());
-    }
-    let db = store
-        .0
-        .lock()
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
-        })
-        .map_err(|_| "曲库锁不可用")?;
-    let exists: bool = db
-        .query_row(
-            "SELECT EXISTS(SELECT 1 FROM local_playlists WHERE id=?1)",
-            [&id],
-            |r| r.get(0),
-        )
-        .map_err(|e| e.to_string())?;
-    if !exists {
-        return Err("歌单不存在".into());
-    }
-    let count: u32 = db
-        .query_row(
-            "SELECT COUNT(*) FROM local_playlist_tracks WHERE playlist_id=?1",
-            [&id],
-            |r| r.get(0),
-        )
-        .map_err(|e| e.to_string())?;
-    if count >= 10000 {
-        return Err("一个歌单最多保存 10000 首歌曲".into());
-    }
-    db.execute("INSERT OR IGNORE INTO local_playlist_tracks(playlist_id,key,position) VALUES(?1,?2,COALESCE((SELECT MAX(position)+1 FROM local_playlist_tracks WHERE playlist_id=?1),0))", params![id,key]).map_err(|e| e.to_string())?;
-    Ok(())
+    crate::aggregate::write(
+        store,
+        &crate::aggregate::Write::Add {
+            id,
+            keys: vec![key],
+        },
+    )
+    .map(|_| ())
 }
 
 #[tauri::command]
@@ -613,19 +558,14 @@ pub fn remove_local_playlist_track(
     Ok(())
 }
 fn remove_playlist_track(store: &Store, id: String, key: String) -> AppResult<()> {
-    store
-        .0
-        .lock()
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
-        })
-        .map_err(|_| "曲库锁不可用")?
-        .execute(
-            "DELETE FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2",
-            params![id, key],
-        )
-        .map_err(|e| e.to_string())?;
-    Ok(())
+    crate::aggregate::write(
+        store,
+        &crate::aggregate::Write::Remove {
+            id,
+            keys: vec![key],
+        },
+    )
+    .map(|_| ())
 }
 
 fn emit_library_change(app: &tauri::AppHandle) {

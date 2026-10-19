@@ -20,6 +20,7 @@ import {
   cachedCommands,
   coverCache,
   invalidateNativeCache,
+  invalidateAggregateCache,
   invalidateCollectionCache,
   requestCache,
   requestKey
@@ -209,6 +210,17 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
     return value
   }
   const result = await invoke<T>(command, args)
+  if (command === 'aggregate_write') invalidateAggregateCache(String(result))
+  if (
+    [
+      'create_local_playlist',
+      'rename_local_playlist',
+      'delete_local_playlist',
+      'add_local_playlist_track',
+      'remove_local_playlist_track'
+    ].includes(command)
+  )
+    invalidateAggregateCache(String(args?.id ?? result))
   const affected: Record<string, string[]> = {
     music_write: ['music_query', 'music_read_track', 'music_queue_track', 'music_queue_tracks'],
     import_music: [

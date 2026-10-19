@@ -1,3 +1,4 @@
+import { DeriveAction } from '@/features/aggregate/derive-action'
 import { DetailHeader } from '@/features/library/detail-header'
 import { DetailDescription } from '@/features/library/detail-description'
 import { Play } from 'lucide-react'
@@ -54,6 +55,7 @@ export function CollectionHeader({
             <Play aria-hidden="true" />
             {busy ? '正在加载…' : '播放'}
           </ActionButton>
+          <DeriveAction collection={collection} />
         </div>
       </div>
     </DetailHeader>

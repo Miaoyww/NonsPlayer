@@ -12,7 +12,7 @@ import * as table from '@tanstack/react-table'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 
-async function harness(run, android = false) {
+async function harness(run, android = false, rangeStart = 0, rangeSize = Infinity) {
   const dom = new JSDOM('<div id="root"></div>')
   const previous = {
     window: globalThis.window,
@@ -76,7 +76,11 @@ async function harness(run, android = false) {
     '@tanstack/react-virtual': {
       useVirtualizer: ({ count }) => {
         virtualizer.getVirtualItems = () =>
-          Array.from({ length: count }, (_, index) => ({ index, start: 0, end: 0 }))
+          Array.from({ length: Math.min(count - rangeStart, rangeSize) }, (_, offset) => ({
+            index: rangeStart + offset,
+            start: (rangeStart + offset) * 60,
+            end: (rangeStart + offset + 1) * 60
+          }))
         return virtualizer
       }
     },
@@ -730,4 +734,29 @@ test('aggregate row identity, member playback state and source button survive a 
     assert.equal(document.querySelector('tbody tr[data-index]'), row)
     assert.equal(row.getAttribute('aria-current'), 'true')
   })
+})
+
+test('ten thousand songs retain their full playback order when the virtual viewport reaches the end', async () => {
+  await harness(
+    async ({ tracks, render, plays }) => {
+      const large = Array.from({ length: 10000 }, (_, i) => ({
+        ...tracks[0],
+        key: `song:${i}`,
+        title: `Song ${i}`
+      }))
+      await render({ tracks: large, groupCue: false })
+      const rows = [...document.querySelectorAll('tr[data-index]')]
+      assert.equal(rows.length, 20)
+      const last = rows.at(-1)
+      assert.equal(last.dataset.index, '9999')
+      assert.match(last.textContent, /Song 9999/)
+      await act(async () => last.querySelector('.track-cover').click())
+      assert.equal(plays.at(-1)[0], 9999)
+      assert.equal(plays.at(-1)[1].length, 10000)
+      assert.equal(plays.at(-1)[1][0].key, 'song:0')
+    },
+    false,
+    9980,
+    20
+  )
 })

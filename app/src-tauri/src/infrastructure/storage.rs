@@ -109,6 +109,7 @@ impl Store {
                         AND json_extract(c.value,'$.source.path')=json_extract(t.value,'$.source.path')
                         AND json_extract(c.value,'$.source.cue') IS NOT NULL));
             ").map_err(|e| e.to_string())?;
+        crate::aggregate::migrate(&connection).map_err(|e| e.to_string())?;
         crate::music::collections::store::migrate(&connection).map_err(|e| e.to_string())?;
         Ok(Self(Mutex::new(connection)))
     }
@@ -237,6 +238,7 @@ impl Store {
                 .map_err(|e| e.to_string())?;
             }
         }
+        tx.execute("UPDATE local_playlist_tracks SET value=(SELECT value FROM tracks WHERE tracks.key=local_playlist_tracks.key) WHERE key IN (SELECT key FROM tracks WHERE source='local')", []).map_err(|e|e.to_string())?;
         tx.execute("DELETE FROM tracks WHERE source='local' AND key NOT IN (SELECT key FROM local_origins)", []).map_err(|e| e.to_string())?;
         tx.execute(
             "DELETE FROM local_file_stats WHERE key NOT IN (SELECT key FROM tracks)",

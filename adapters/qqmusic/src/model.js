@@ -144,7 +144,7 @@ export function entity(value, kind) {
             0
         )
       ) || 0,
-    creator: null,
+    creator: value.ownerAccount ?? null,
     liked: false,
     playCount: null,
     publishedAt: /^\d{4}-\d{2}-\d{2}$/.test(

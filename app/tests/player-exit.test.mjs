@@ -39,6 +39,9 @@ function harness(initialMode = 'collapsible', storage) {
   const App = load(
     '../src/App.tsx',
     {
+      '@/features/aggregate/aggregate-library': {
+        AggregateLibraryProvider: 'AggregateLibraryProvider'
+      },
       '@/features/updates/update-provider': { UpdateProvider: 'UpdateProvider' },
       '@/features/workspace/use-android-window-layout': { useAndroidWindowLayout() {} },
       '@/features/lyrics/android-media-lyrics': { AndroidMediaLyrics: 'AndroidMediaLyrics' },
@@ -68,6 +71,11 @@ function harness(initialMode = 'collapsible', storage) {
     storage
   ).default
   const MusicWorkspace = load('../src/features/workspace/music-workspace.tsx', {
+    '@/features/aggregate/aggregate-page': {
+      __esModule: true,
+      default: 'AggregatePage',
+      AggregateSection: 'AggregateSection'
+    },
     '@/features/music/source-capabilities': sourceCapabilities,
     '@/components/music/list-find': { ListFindProvider: 'ListFindProvider' },
     '@/features/music/use-music-sources': {

@@ -43,6 +43,9 @@ function harness() {
   )
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/features/aggregate/derive-action': { useCanDerive: () => false },
+    '@/features/aggregate/sync-control': {},
+    '@/features/aggregate/aggregate-library': { useAggregateReplacement: () => () => undefined },
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({
         statuses: [
@@ -185,6 +188,9 @@ test('song favorite action precedes the divider and unavailable remove actions a
     ].map((key) => [key, key])
   )
   const modules = {
+    '@/features/aggregate/derive-action': { useCanDerive: () => false },
+    '@/features/aggregate/sync-control': {},
+    '@/features/aggregate/aggregate-library': { useAggregateReplacement: () => () => undefined },
     '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     '@/components/music/loading': { TextSkeleton: 'div' },
     react: {

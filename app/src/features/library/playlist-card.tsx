@@ -1,3 +1,8 @@
+import { AggregateCover } from '@/features/aggregate/aggregate-cover'
+import {
+  useAggregateReplacement,
+  aggregateCollection
+} from '@/features/aggregate/aggregate-library'
 import { CollectionContextMenu } from '@/features/library/collection-actions'
 import { Play } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
@@ -25,6 +30,8 @@ export function PlaylistCard({
   onOpen: (item: MusicCollection) => void
   onPlay: (item: MusicCollection) => void
 }) {
+  const replacement = useAggregateReplacement()(item)
+  if (replacement) item = { ...aggregateCollection(replacement), reference: item.reference }
   return (
     <CollectionContextMenu
       item={item}
@@ -37,7 +44,11 @@ export function PlaylistCard({
           onClick={() => onOpen(item)}
           aria-label={`打开 ${item.name}`}
         >
-          <Cover cover={item.cover} className="aspect-square w-full" />
+          {replacement ? (
+            <AggregateCover playlist={replacement} />
+          ) : (
+            <Cover cover={item.cover} className="aspect-square w-full" />
+          )}
         </button>
         {showPlayCount && item.playCount != null && (
           <span className="playlist-play-count" aria-label={`${item.playCount} 次播放`}>
@@ -50,7 +61,7 @@ export function PlaylistCard({
           className="library-cover-play"
           disabled={busy}
           aria-label={`播放 ${item.name}`}
-          title="播放歌单（最多 1000 首）"
+          title={replacement ? '播放整个聚合歌单' : '播放歌单（最多 1000 首）'}
           onClick={() => onPlay(item)}
         >
           <Play aria-hidden="true" />

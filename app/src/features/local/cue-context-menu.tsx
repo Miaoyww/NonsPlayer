@@ -56,7 +56,7 @@ export function CueContextMenu({
             </ContextMenu.Item>
             <ContextMenu.Item disabled={disabled} onClick={() => actions.collectGroup(tracks)}>
               <FolderPlus aria-hidden="true" />
-              添加到本地歌单
+              添加到聚合歌单
             </ContextMenu.Item>
             <ContextMenu.Separator />
             <ContextMenu.Item

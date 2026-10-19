@@ -17,6 +17,7 @@ mod telemetry;
 mod updates;
 
 pub(crate) struct Backend {
+    pub(crate) aggregate: Arc<crate::aggregate::SyncJobs>,
     pub(crate) store: Arc<storage::Store>,
     pub(crate) music: Arc<crate::music::service::MusicService>,
     pub(crate) lyrics: Arc<lyrics::LyricService>,
@@ -464,7 +465,7 @@ async fn import_music(
 
 #[tauri::command]
 fn play_queue(keys: Vec<String>, index: usize, backend: State<'_, Backend>) -> AppResult<()> {
-    if keys.is_empty() || keys.len() > 1000 || index >= keys.len() {
+    if keys.is_empty() || keys.len() > 10000 || index >= keys.len() {
         return Err("播放队列无效".into());
     }
     let tracks = keys
@@ -513,7 +514,7 @@ fn append_queue(
     play: Option<bool>,
     backend: State<'_, Backend>,
 ) -> AppResult<()> {
-    if keys.is_empty() || keys.len() > 1000 {
+    if keys.is_empty() || keys.len() > 10000 {
         return Err("待添加的歌曲无效".into());
     }
     let tracks = keys
@@ -917,6 +918,7 @@ pub fn run() {
                 plugin_manager.startup().await;
             });
             app.manage(Backend {
+                aggregate: Arc::new(crate::aggregate::SyncJobs::default()),
                 store,
                 music,
                 lyrics,
@@ -959,6 +961,14 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            crate::aggregate::aggregate_playlists,
+            crate::aggregate::aggregate_playlist,
+            crate::aggregate::aggregate_play,
+            crate::aggregate::aggregate_tracks,
+            crate::aggregate::aggregate_write,
+            crate::aggregate::sync::aggregate_sync,
+            crate::aggregate::sync::aggregate_sync_status,
+            crate::aggregate::sync::aggregate_sync_cancel,
             telemetry::telemetry_enabled,
             telemetry::set_telemetry_enabled,
             #[cfg(desktop)]

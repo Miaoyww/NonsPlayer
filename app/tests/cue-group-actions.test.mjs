@@ -95,43 +95,49 @@ test('CUE parent menu sends the entire ordered group to play, append, collect an
   ])
 })
 
-test('local playlist picker adds every CUE track in order through the existing invalidating mutation', async () => {
+test('aggregate playlist picker atomically adds the complete ordered CUE group', async () => {
   const calls = [],
     buttons = []
   let closed = false
   const Wrapper = ({ children }) => React.createElement('div', {}, children)
-  const { LocalPlaylistPicker } = load('../src/features/local/local-playlist-picker.tsx', {
-    react: { useState: () => ['', () => {}], useEffect: () => {}, useCallback: (fn) => fn },
-    'react/jsx-runtime': jsx,
-    '@/components/error-notice': { ErrorNotice: () => null },
-    '@/lib/player': {
-      nativeCall: async (command, args) => calls.push([command, args.id, args.key]),
-      errorText: String
-    },
-    '@/lib/use-paged-list': {
-      usePagedList: () => ({
-        items: [{ id: 'playlist', name: 'Playlist', trackCount: 0 }],
-        more: false
-      })
-    },
-    '@/components/ui/dialog': Object.fromEntries(
-      ['Dialog', 'DialogContent', 'DialogHeader', 'DialogTitle', 'DialogDescription'].map((key) => [
-        key,
-        Wrapper
-      ])
-    ),
-    '@/components/ui/input': { Input: () => null },
-    '@/components/music/action-button': {
-      ActionButton: ({ children, onClick }) => {
-        if (onClick) buttons.push(onClick)
-        return React.createElement('span', {}, children)
-      }
-    },
-    '@/components/music/cover': { Cover: () => null },
-    '@/components/music/infinite-load': { InfiniteLoad: () => null }
-  })
+  const { AggregatePlaylistPicker } = load(
+    '../src/features/aggregate/aggregate-playlist-picker.tsx',
+    {
+      '@/features/aggregate/aggregate-library': {
+        useAggregateLibrary: () => ({ reload: async () => {} }),
+        writeAggregate: async (request) => calls.push(request)
+      },
+      react: { useState: () => ['', () => {}], useEffect: () => {}, useCallback: (fn) => fn },
+      'react/jsx-runtime': jsx,
+      '@/components/error-notice': { ErrorNotice: () => null },
+      '@/lib/player': {
+        nativeCall: async (command, args) => calls.push([command, args.id, args.key]),
+        errorText: String
+      },
+      '@/lib/use-paged-list': {
+        usePagedList: () => ({
+          items: [{ id: 'playlist', name: 'Playlist', trackCount: 0 }],
+          more: false
+        })
+      },
+      '@/components/ui/dialog': Object.fromEntries(
+        ['Dialog', 'DialogContent', 'DialogHeader', 'DialogTitle', 'DialogDescription'].map(
+          (key) => [key, Wrapper]
+        )
+      ),
+      '@/components/ui/input': { Input: () => null },
+      '@/components/music/action-button': {
+        ActionButton: ({ children, onClick }) => {
+          if (onClick) buttons.push(onClick)
+          return React.createElement('span', {}, children)
+        }
+      },
+      '@/components/music/cover': { Cover: () => null },
+      '@/components/music/infinite-load': { InfiniteLoad: () => null }
+    }
+  )
   renderToStaticMarkup(
-    LocalPlaylistPicker({
+    AggregatePlaylistPicker({
       tracks,
       onClose: () => {
         closed = true
@@ -141,9 +147,8 @@ test('local playlist picker adds every CUE track in order through the existing i
   )
   buttons[0]()
   await new Promise((resolve) => setImmediate(resolve))
-  assert.deepEqual(
-    calls,
-    tracks.map((track) => ['add_local_playlist_track', 'playlist', track.key])
-  )
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)), [
+    { operation: 'add', id: 'playlist', keys: tracks.map((track) => track.key) }
+  ])
   assert.equal(closed, true)
 })

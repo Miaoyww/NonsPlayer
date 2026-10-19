@@ -232,7 +232,7 @@ impl PlayerSnapshot {
         }
         let trim = (self.queue.len() + tracks.len()).saturating_sub(1000);
         if trim > self.index.unwrap_or(0) {
-            return Err("播放队列最多支持 1000 首歌曲".into());
+            return Err("私人 FM 队列最多支持 1000 首歌曲".into());
         }
         Arc::make_mut(&mut self.queue).drain(..trim);
         self.index = self.index.map(|i| i - trim);
@@ -263,8 +263,8 @@ impl PlayerSnapshot {
         }
         let existing: std::collections::HashSet<_> = self.queue.iter().map(|t| &t.key).collect();
         let new_count = tracks.iter().filter(|t| !existing.contains(&t.key)).count();
-        if new_count + self.queue.len() > 1000 {
-            return Err("播放队列最多支持 1000 首歌曲".into());
+        if new_count + self.queue.len() > 10000 {
+            return Err("播放队列最多支持 10000 首歌曲".into());
         }
         for index in (0..self.queue.len()).rev() {
             if seen.contains(&self.queue[index].key) {
@@ -605,16 +605,44 @@ mod tests {
     }
 
     #[test]
+    fn ten_thousand_track_queue_shuffles_cycles_and_restores_every_entry() {
+        let mut state = PlayerSnapshot {
+            queue: (0..10000).map(track).collect::<Vec<_>>().into(),
+            index: Some(9999),
+            ..Default::default()
+        };
+        state.shuffle = true;
+        state.reset_shuffle_order(state.index);
+        let mut seen = std::collections::HashSet::new();
+        for _ in 0..10000 {
+            seen.insert(state.index.unwrap());
+            state.index = state.following(false);
+        }
+        assert_eq!(seen.len(), 10000);
+        assert_eq!(state.index, Some(9999));
+        let mut restored: PlayerSnapshot =
+            serde_json::from_str(&serde_json::to_string(&state).unwrap()).unwrap();
+        restored.restore_shuffle_order();
+        assert_eq!(restored.shuffle_order, state.shuffle_order);
+        restored.shuffle = false;
+        restored.repeat_mode = RepeatMode::All;
+        assert_eq!(restored.following(false), Some(0));
+        restored.repeat_mode = RepeatMode::One;
+        assert_eq!(restored.following(false), Some(9999));
+        restored.repeat_mode = RepeatMode::Off;
+        assert_eq!(restored.following(false), None);
+    }
+    #[test]
     fn full_queue_allows_moves_and_checks_unique_additions_atomically() {
         let mut state = PlayerSnapshot {
-            queue: (0..1000).map(track).collect::<Vec<_>>().into(),
+            queue: (0..10000).map(track).collect::<Vec<_>>().into(),
             index: Some(500),
             ..Default::default()
         };
         state
             .insert_next(vec![track(1), track(999), track(1)])
             .unwrap();
-        assert_eq!(state.queue.len(), 1000);
+        assert_eq!(state.queue.len(), 10000);
         assert_eq!(state.current().unwrap().key, "500");
         assert_eq!(state.queue[state.index.unwrap() + 1].key, "1");
         let before = state
@@ -622,7 +650,7 @@ mod tests {
             .iter()
             .map(|t| t.key.clone())
             .collect::<Vec<_>>();
-        assert!(state.insert_next(vec![track(2), track(1001)]).is_err());
+        assert!(state.insert_next(vec![track(2), track(10001)]).is_err());
         assert_eq!(
             state
                 .queue
@@ -686,7 +714,7 @@ mod tests {
         assert_eq!(state.status, PlaybackStatus::Stopped);
         state.insert_next(vec![track(2)]).unwrap();
         assert_eq!(state.queue[1].key, "2");
-        assert!(state.insert_next((3..1002).map(track).collect()).is_err());
+        assert!(state.insert_next((3..10002).map(track).collect()).is_err());
         assert_eq!(state.queue.len(), 2);
     }
     #[test]

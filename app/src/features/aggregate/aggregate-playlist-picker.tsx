@@ -1,3 +1,4 @@
+import { writeAggregate, useAggregateLibrary } from '@/features/aggregate/aggregate-library'
 import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
@@ -16,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { InfiniteLoad } from '@/components/music/infinite-load'
-export function LocalPlaylistPicker({
+export function AggregatePlaylistPicker({
   track,
   tracks,
   onClose,
@@ -27,6 +28,7 @@ export function LocalPlaylistPicker({
   onClose: () => void
   onNotice: (message: string) => void
 }) {
+  const { reload } = useAggregateLibrary()
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
@@ -44,21 +46,21 @@ export function LocalPlaylistPicker({
     [track, tracks]
   )
   const list = usePagedList<LocalEntity>(loader, 30, !!track || !!tracks?.length, {
-    cacheKey: presentationKey('local-playlist-picker')
+    cacheKey: presentationKey('aggregate-playlist-picker')
   })
   async function add(id?: string) {
     if ((!track && !tracks?.length) || busy) return
     setBusy(true)
     setError(undefined)
     try {
-      id ??= await nativeCall<string>('create_local_playlist', { name })
-      for (const item of tracks ?? (track ? [track] : [])) {
-        await nativeCall('add_local_playlist_track', { id, key: item.key })
-      }
-      onNotice('已添加到本地歌单。')
+      const keys = (tracks ?? (track ? [track] : [])).map((item) => item.key)
+      if (id) await writeAggregate({ operation: 'add', id, keys })
+      else await writeAggregate({ operation: 'create', name, keys })
+      await reload()
+      onNotice('已添加到聚合歌单。')
       onClose()
     } catch (cause) {
-      reportCaughtError('app/src/features/local/local-playlist-picker.tsx', cause)
+      reportCaughtError('app/src/features/aggregate/aggregate-playlist-picker.tsx', cause)
 
       setError(errorText(cause))
     } finally {
@@ -74,7 +76,7 @@ export function LocalPlaylistPicker({
     >
       <DialogContent className="max-h-[80dvh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>添加到本地歌单</DialogTitle>
+          <DialogTitle>添加到聚合歌单</DialogTitle>
           <DialogDescription>
             {tracks?.length ? `${tracks[0].album} · ${tracks.length} 首` : track?.title}
           </DialogDescription>
@@ -114,7 +116,7 @@ export function LocalPlaylistPicker({
           ))}
         </div>
         {!list.busy && !list.items.length && (
-          <p className="text-sm text-muted-foreground">还没有本地歌单，可以在上方创建。</p>
+          <p className="text-sm text-muted-foreground">还没有聚合歌单，可以在上方创建。</p>
         )}
         <InfiniteLoad more={list.more} busy={list.busy} error={list.error} onLoad={list.loadMore} />
         {error && <ErrorNotice error={error} />}

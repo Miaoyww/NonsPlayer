@@ -25,6 +25,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
   const playback = []
   let table
   const modules = {
+    '@/features/aggregate/derive-action': { DeriveAction: () => null },
     '@/lib/runtime-cache': createRuntimeCache(),
     react: React,
     'react/jsx-runtime': jsx,

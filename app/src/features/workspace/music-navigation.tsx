@@ -1,3 +1,7 @@
+import {
+  useAggregateReplacement,
+  aggregateCollection
+} from '@/features/aggregate/aggregate-library'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
@@ -18,6 +22,8 @@ export type MusicView =
   | 'local-album'
   | 'local-playlist'
 export interface MusicCollection {
+  bypassAggregate?: boolean
+
   reference?: import('@/features/music/types').EntityRef
   localId?: string
   id: number | string
@@ -48,6 +54,7 @@ const NavigationContext = createContext<{
 
 type NavigationHistory = { entries: Page[]; index: number }
 export function MusicNavigationProvider({ children }: { children: ReactNode }) {
+  const replacement = useAggregateReplacement()
   const [history, setHistory] = useState<NavigationHistory>({
     entries: [{ view: 'library', query: '' }],
     index: 0
@@ -82,6 +89,13 @@ export function MusicNavigationProvider({ children }: { children: ReactNode }) {
     }
   }, [])
   function navigate(view: MusicView, query = '', collection?: MusicCollection) {
+    if (collection && view === 'collection') {
+      const aggregate = replacement(collection)
+      if (aggregate) {
+        view = 'local-playlist'
+        collection = aggregateCollection(aggregate)
+      }
+    }
     if (view === 'collection' && collection?.kind === 'artist') view = 'artist'
     if (view === 'collection' && collection?.kind === 'album') view = 'album'
     setHistory((previous) => {
@@ -92,6 +106,7 @@ export function MusicNavigationProvider({ children }: { children: ReactNode }) {
         current.collection?.id === collection?.id &&
         current.collection?.kind === collection?.kind &&
         current.collection?.localId === collection?.localId &&
+        current.collection?.bypassAggregate === collection?.bypassAggregate &&
         JSON.stringify(current.collection?.reference) === JSON.stringify(collection?.reference) &&
         current.collection?.name === collection?.name
       )

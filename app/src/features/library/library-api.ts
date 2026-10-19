@@ -134,10 +134,12 @@ export async function getLibraryHistory(week: boolean, offset: number): Promise<
   }
 }
 export const playMusicCollection = (collection: MusicCollection, next = false, key?: string) =>
-  nativeCall<boolean>('music_play_collection', {
-    entity: collectionReference(collection),
-    next,
-    key: key ?? null
-  })
+  collection.localId
+    ? nativeCall<number>('aggregate_play', { id: collection.localId, key, next }).then(() => false)
+    : nativeCall<boolean>('music_play_collection', {
+        entity: collectionReference(collection),
+        next,
+        key: key ?? null
+      })
 export const playLibraryCollection = (collection: MusicCollection, key?: string) =>
   playMusicCollection(collection, false, key)

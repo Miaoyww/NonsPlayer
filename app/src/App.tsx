@@ -1,3 +1,4 @@
+import { AggregateLibraryProvider } from '@/features/aggregate/aggregate-library'
 import { MotionConfig } from 'motion/react'
 import { Titlebar } from '@/features/workspace/titlebar'
 import { MusicWorkspace } from '@/features/workspace/music-workspace'
@@ -23,26 +24,28 @@ function App() {
         {isAndroid() && <AndroidMediaLyrics />}
         <AccountProvider>
           <MusicOptionsProvider>
-            <MusicNavigationProvider>
-              <PluginProvider>
-                <div
-                  className={`app-shell relative flex h-dvh flex-col overflow-hidden bg-background text-foreground ${nowPlaying ? 'now-playing' : ''}`}
-                >
-                  <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
-                  <MusicWorkspace
-                    nowPlaying={nowPlaying}
-                    playerVisible={playerPhase !== 'closed'}
-                    onNowPlayingChange={setNowPlaying}
-                    onPlayerExitComplete={() =>
-                      setPlayerPhase((phase) => (phase === 'closing' ? 'closed' : phase))
-                    }
-                  />
-                  <div className="pointer-events-none absolute inset-x-0 top-16 z-50 flex flex-col items-center gap-2">
-                    <PluginSlot name="main.overlay" />
+            <AggregateLibraryProvider>
+              <MusicNavigationProvider>
+                <PluginProvider>
+                  <div
+                    className={`app-shell relative flex h-dvh flex-col overflow-hidden bg-background text-foreground ${nowPlaying ? 'now-playing' : ''}`}
+                  >
+                    <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
+                    <MusicWorkspace
+                      nowPlaying={nowPlaying}
+                      playerVisible={playerPhase !== 'closed'}
+                      onNowPlayingChange={setNowPlaying}
+                      onPlayerExitComplete={() =>
+                        setPlayerPhase((phase) => (phase === 'closing' ? 'closed' : phase))
+                      }
+                    />
+                    <div className="pointer-events-none absolute inset-x-0 top-16 z-50 flex flex-col items-center gap-2">
+                      <PluginSlot name="main.overlay" />
+                    </div>
                   </div>
-                </div>
-              </PluginProvider>
-            </MusicNavigationProvider>
+                </PluginProvider>
+              </MusicNavigationProvider>
+            </AggregateLibraryProvider>
           </MusicOptionsProvider>
         </AccountProvider>
       </UpdateProvider>
