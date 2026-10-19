@@ -308,7 +308,7 @@ export default function MusicLibrary({
             total={detailList.metadata?.total ?? collection.trackCount}
             busy={playing}
             disabled={playing || !profile || detailBusy || !detail.tracks.length}
-            onPlay={() => void playCollection(collection)}
+            onPlay={() => void playCollection(collection, detail.tracks[0]?.key)}
           />
           <CollectionTabs
             key={`${collection.kind}:${collection.id}`}
@@ -428,7 +428,7 @@ export default function MusicLibrary({
                 aria-label="播放我喜欢的音乐"
                 disabled={playing || !liked || !summary?.likedTracks.length}
                 onClick={() => {
-                  if (liked) void playCollection(liked)
+                  if (liked) void playCollection(liked, summary?.likedTracks[0]?.key)
                 }}
                 title="播放收藏（最多 1000 首）"
               >

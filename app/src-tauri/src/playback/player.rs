@@ -49,6 +49,8 @@ pub enum Command {
     CollectionReady {
         serial: u64,
         scope: (crate::music::account::SessionContext, u64),
+        entity: crate::music::identity::EntityRef,
+        fallback_cover: String,
         result: AppResult<(Vec<Track>, bool)>,
         reply: tokio::sync::oneshot::Sender<AppResult<bool>>,
     },
@@ -716,13 +718,18 @@ impl Actor {
                     self.desired_playing = true;
                     self.publish();
                 }
+                let first = key.is_none();
                 let serial = self.collection_request.begin(key);
                 let music = self.music.clone();
                 let store = self.store.clone();
                 let sender = self.sender.clone();
                 self.collection_job = Some(tauri::async_runtime::spawn(async move {
                     let result = async {
-                        let mut page = music.collection_queue(&entity).await?;
+                        let mut page = if first {
+                            music.collection_first(&entity).await?
+                        } else {
+                            music.collection_queue(&entity).await?
+                        };
                         for track in &mut page.tracks {
                             if track.cover.is_empty() {
                                 track.cover = fallback_cover.clone().into();
@@ -740,6 +747,8 @@ impl Actor {
                         let _ = (sender.send(Command::CollectionReady {
                             serial,
                             scope,
+                            entity,
+                            fallback_cover,
                             result,
                             reply,
                         }))
@@ -756,6 +765,8 @@ impl Actor {
             Command::CollectionReady {
                 serial,
                 scope,
+                entity,
+                fallback_cover,
                 result,
                 reply,
             } => {
@@ -792,6 +803,20 @@ impl Actor {
                         );
                     });
                     return Ok(());
+                }
+                if key.is_none() {
+                    if let Ok((tracks, true)) = &result {
+                        if let Some(track) = tracks.first() {
+                            // Start the first song now; a new actor-owned request hydrates
+                            // the full collection without restarting this song.
+                            return self.command_now(Command::Collection {
+                                entity,
+                                track: Some(Box::new(track.clone())),
+                                fallback_cover,
+                                reply,
+                            });
+                        }
+                    }
                 }
                 let result = result.and_then(|(tracks, more)| {
                     if tracks.is_empty() {

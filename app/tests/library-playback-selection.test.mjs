@@ -69,6 +69,10 @@ test('homepage allows a newer song selection while the previous collection is pr
     '@/components/music/track-title': { TrackTitle: ({ track }) => track.title },
     '@/components/music/music-links': { TrackArtists: () => null },
     '@/components/music/cover': { Cover: () => null },
+    '@/components/music/action-button': {
+      ActionButton: ({ children, variant, size, ...props }) =>
+        React.createElement('button', props, children)
+    },
     '@/features/library/reconcile-tracks': { reconcileTracks: (_previous, next) => next }
   })
   const exports = {}
@@ -102,6 +106,10 @@ test('homepage allows a newer song selection while the previous collection is pr
         })
       )
     )
+    await act(async () => document.querySelector('[aria-label="播放我喜欢的音乐"]').click())
+    assert.equal(requests[0].key, 'A', 'the collection header must seed the loaded first song')
+    await act(async () => requests[0].resolve(false))
+    requests.shift()
     await act(async () => document.querySelector('[aria-label="播放 A"]').click())
     assert.equal(requests[0].key, 'A')
     assert.equal(document.querySelector('[aria-label="播放 B"]').disabled, false)

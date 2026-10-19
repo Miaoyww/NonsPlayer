@@ -22,6 +22,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
   const events = new Map()
   const pending = []
   const calls = []
+  const playback = []
   let table
   const modules = {
     '@/lib/runtime-cache': createRuntimeCache(),
@@ -81,7 +82,12 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     },
     'lucide-react': { Play: () => null },
     '@/features/library/collection-tabs': { CollectionTabs: ({ children }) => children },
-    '@/features/library/library-api': { playLibraryCollection: async () => false },
+    '@/features/library/library-api': {
+      playLibraryCollection: async (collection, key) => {
+        playback.push({ collection, key })
+        return false
+      }
+    },
     '@/features/library/artist-page': {
       __esModule: true,
       default: () => React.createElement('p', {}, '歌手完整详情')
@@ -153,6 +159,12 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     assert.match(document.body.textContent, /歌单创建者/)
     assert.match(document.body.textContent, /200 首音乐/)
     assert.equal(document.getElementById('tracks').textContent, 'qqmusic:one')
+    await act(async () => document.querySelector('header button').click())
+    assert.equal(
+      playback[0].key,
+      'qqmusic:one',
+      'start the loaded first song before hydrating the remaining pages'
+    )
     await click()
     assert.equal(pending[2].request.page.cursor, 'opaque:next')
     await act(async () => pending[2].reject(new Error('network failed')))

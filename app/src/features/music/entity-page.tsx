@@ -163,7 +163,7 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
         onPlay={() => {
           if (playing) return
           setPlaying(true)
-          void playLibraryCollection(detail)
+          void playLibraryCollection(detail, tracks[0]?.key)
             .then((truncated) => {
               if (truncated) onNotice?.('已将前 1000 首歌曲加入播放队列。')
             })

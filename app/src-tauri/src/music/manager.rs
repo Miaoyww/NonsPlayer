@@ -1075,6 +1075,35 @@ mod tests {
                             description: None,
                         }))
                     }
+                    BusinessRequest::Tracks { page, .. }
+                    | BusinessRequest::ArtistTracks { page, .. } => {
+                        let offset = page
+                            .cursor
+                            .as_ref()
+                            .map_or(0, |cursor| cursor.as_str().parse::<usize>().unwrap());
+                        if offset > 0 {
+                            self.release.notified().await;
+                        }
+                        let end = (offset + usize::from(page.limit)).min(150);
+                        let template = adapter(false)
+                            .read_track(&reference_for("template"), context)
+                            .await?;
+                        let items = (offset..end)
+                            .map(|index| MusicTrack {
+                                reference: reference_for(&index.to_string()),
+                                ..template.clone()
+                            })
+                            .collect();
+                        Ok(BusinessResponse::Tracks(TrackPage {
+                            page: Page {
+                                items,
+                                next_cursor: (end < 150)
+                                    .then(|| Cursor::try_from(end.to_string()).unwrap()),
+                            },
+                            total: Some(150),
+                            description: None,
+                        }))
+                    }
                     BusinessRequest::FavoritesPage { page } => {
                         if let Some(cursor) = &page.cursor {
                             assert_eq!(cursor.as_str(), "provider:next/page");
@@ -1197,6 +1226,50 @@ mod tests {
             )
             .unwrap();
         (manager, generation, adapter)
+    }
+    #[tokio::test]
+    async fn collection_first_returns_before_slow_remaining_pages() {
+        for kind in [EntityKind::Playlist, EntityKind::Artist] {
+            let mut fixture = adapter(false);
+            fixture.descriptor.capabilities.insert(Capability::Browse);
+            let (manager, _, provider) = setup(fixture);
+            let service = Arc::new(super::super::service::MusicService::new(manager));
+            let entity = EntityRef {
+                source: source(),
+                kind,
+                id: OpaqueId::try_from("collection".to_owned()).unwrap(),
+            };
+            let first =
+                tokio::time::timeout(Duration::from_secs(1), service.collection_first(&entity))
+                    .await
+                    .expect("first song must not wait for blocked later pages")
+                    .unwrap();
+            assert_eq!(first.tracks.len(), 1);
+            assert!(first.more);
+            assert_eq!(provider.calls.load(Ordering::SeqCst), 1);
+            let key = first.tracks[0].key.clone();
+            let full = tokio::spawn(async move { service.collection_queue(&entity).await });
+            tokio::time::timeout(Duration::from_secs(1), async {
+                while provider.calls.load(Ordering::SeqCst) < 3 {
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .unwrap();
+            assert!(
+                !full.is_finished(),
+                "remaining pages should still be blocked"
+            );
+            provider.release.notify_one();
+            let queue = tokio::time::timeout(Duration::from_secs(1), full)
+                .await
+                .unwrap()
+                .unwrap()
+                .unwrap();
+            assert_eq!(queue.tracks.len(), 150);
+            assert_eq!(queue.tracks[0].key, key);
+            assert!(!queue.more);
+        }
     }
     fn request() -> ResolveRequest {
         ResolveRequest {

@@ -54,7 +54,8 @@ export default function AlbumPage({
     if (playing) return
     setPlaying(true)
     try {
-      if (await playLibraryCollection(album)) onNotice('已将前 1000 首歌曲加入播放队列。')
+      if (await playLibraryCollection(album, list.items[0]?.key))
+        onNotice('已将前 1000 首歌曲加入播放队列。')
     } catch (cause) {
       reportCaughtError('app/src/features/library/album-page.tsx', cause)
 

@@ -27,6 +27,19 @@ impl MusicService {
         &self,
         entity: &super::identity::EntityRef,
     ) -> AppResult<CollectionQueue> {
+        self.collection_tracks(entity, 1000).await
+    }
+    pub(crate) async fn collection_first(
+        &self,
+        entity: &super::identity::EntityRef,
+    ) -> AppResult<CollectionQueue> {
+        self.collection_tracks(entity, 1).await
+    }
+    async fn collection_tracks(
+        &self,
+        entity: &super::identity::EntityRef,
+        limit: usize,
+    ) -> AppResult<CollectionQueue> {
         use super::{
             adapter::PageRequest,
             business::{BusinessRequest, BusinessResponse},
@@ -46,7 +59,7 @@ impl MusicService {
         for _ in 0..100 {
             let page = PageRequest {
                 cursor: cursor.clone(),
-                limit: 100,
+                limit: limit.min(100) as u16,
             };
             let request = if entity.kind == EntityKind::Artist {
                 BusinessRequest::ArtistTracks {
@@ -71,13 +84,13 @@ impl MusicService {
                 return Err("音乐来源返回重复游标".into());
             }
             for track in response.page.items {
-                if seen.insert(track.reference.clone()) && tracks.len() < 1000 {
+                if seen.insert(track.reference.clone()) && tracks.len() < limit {
                     tracks.push(Track::from_music(track).map_err(|e| e.to_string())?);
                 }
             }
             cursor = response.page.next_cursor;
             more = cursor.is_some();
-            if !more || tracks.len() >= 1000 {
+            if !more || tracks.len() >= limit {
                 break;
             }
         }
