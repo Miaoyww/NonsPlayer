@@ -43,7 +43,6 @@ function harness() {
   )
   const jsx = (type, props) => ({ type, props })
   const modules = {
-    '@/features/aggregate/derive-action': { useCanDerive: () => false },
     '@/features/aggregate/sync-control': {},
     '@/features/aggregate/aggregate-library': { useAggregateReplacement: () => () => undefined },
     '@/features/music/use-music-sources': {
@@ -188,7 +187,6 @@ test('song favorite action precedes the divider and unavailable remove actions a
     ].map((key) => [key, key])
   )
   const modules = {
-    '@/features/aggregate/derive-action': { useCanDerive: () => false },
     '@/features/aggregate/sync-control': {},
     '@/features/aggregate/aggregate-library': { useAggregateReplacement: () => () => undefined },
     '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
@@ -205,7 +203,6 @@ test('song favorite action precedes the divider and unavailable remove actions a
     '@/lib/player': {},
     '@/components/animate-ui/components/base/dialog': {},
     '@/components/music/action-button': {},
-    '@/features/library/playlist-picker': {},
     '@/features/account/account': {
       useAccount: () => ({
         profile: { userId: '7', reference: { source: 'netease', id: '7' } },

@@ -1,27 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { RefreshCw, X, GitFork } from 'lucide-react'
+import { RefreshCw, X } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { ErrorNotice } from '@/components/error-notice'
 import { nativeCall, errorText } from '@/lib/player'
-import type { EntityRef } from '@/features/music/types'
 import { useMusicSources } from '@/features/music/use-music-sources'
-import { useMusicNavigation } from '@/features/workspace/music-navigation'
-import {
-  useAggregateLibrary,
-  aggregateCollection,
-  type AggregatePlaylist,
-  type SyncProgress
-} from './aggregate-library'
+import { useAggregateLibrary, type SyncProgress } from './aggregate-library'
 
-export function SyncControl({
-  id,
-  reference,
-  automatic = false
-}: {
-  id?: string
-  reference?: EntityRef
-  automatic?: boolean
-}) {
+export function SyncControl({ id, automatic = false }: { id: string; automatic?: boolean }) {
   const [progress, setProgress] = useState<SyncProgress>()
   const [error, setError] = useState<string>()
   const [starting, setStarting] = useState(false)
@@ -29,13 +14,12 @@ export function SyncControl({
   const request = useRef(0)
   const { reload } = useAggregateLibrary()
   const { revision: sourceRevision } = useMusicSources()
-  const { navigate } = useMusicNavigation()
   async function start(force: boolean) {
     const serial = ++request.current
     setStarting(true)
     setError(undefined)
     try {
-      const value = await nativeCall<SyncProgress>('aggregate_sync', { id, reference, force })
+      const value = await nativeCall<SyncProgress>('aggregate_sync', { id, force })
       if (mounted.current && request.current === serial) setProgress(value)
     } catch (cause) {
       if (mounted.current && request.current === serial) setError(errorText(cause))
@@ -70,13 +54,6 @@ export function SyncControl({
         if (!value.running) {
           setError(value.error ?? undefined)
           await reload()
-          if (!disposed && !id && value.playlistId && !value.error) {
-            const items = await nativeCall<AggregatePlaylist[]>('aggregate_playlists', {
-              refresh: true
-            })
-            const item = items.find((p) => p.id === value.playlistId)
-            if (!disposed && item) navigate('local-playlist', '', aggregateCollection(item))
-          }
         } else timer = setTimeout(poll, 750)
       } catch (cause) {
         if (!disposed) {
@@ -98,14 +75,8 @@ export function SyncControl({
         disabled={starting || progress?.running}
         onClick={() => void start(true)}
       >
-        {id ? <RefreshCw aria-hidden="true" /> : <GitFork aria-hidden="true" />}
-        {starting
-          ? '正在准备…'
-          : progress?.running
-            ? `正在读取 ${progress.count} 首…`
-            : id
-              ? '立即同步'
-              : '派生为聚合歌单'}
+        <RefreshCw aria-hidden="true" />
+        {starting ? '正在准备…' : progress?.running ? `正在读取 ${progress.count} 首…` : '立即同步'}
       </ActionButton>
       {progress?.running && (
         <ActionButton

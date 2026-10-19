@@ -42,6 +42,14 @@ test('likes refresh the loaded playlist in the background without unmounting its
   const requests = []
   let mounts = 0
   Object.assign(modules, {
+    '@/features/aggregate/aggregate-library': {
+      useAggregateLibrary: () => ({ playlists: [] }),
+      useAggregateReplacement: () => () => undefined,
+      aggregateCollection: (p) => p
+    },
+    '@/features/aggregate/playlist-targets': {
+      mergeLibraryPlaylists: (remote, local) => [...remote, ...local]
+    },
     react: React,
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => true },
@@ -195,6 +203,14 @@ test('playlist detail siblings have distinct keys and tabs reset when switching 
   }
   let collection = { kind: 'playlist', id: 18282029444, name: 'First' }
   Object.assign(modules, {
+    '@/features/aggregate/aggregate-library': {
+      useAggregateLibrary: () => ({ playlists: [] }),
+      useAggregateReplacement: () => () => undefined,
+      aggregateCollection: (p) => p
+    },
+    '@/features/aggregate/playlist-targets': {
+      mergeLibraryPlaylists: (remote, local) => [...remote, ...local]
+    },
     react: React,
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => false },
@@ -310,6 +326,14 @@ test('library home limits the featured preview to twelve without changing the fa
     likedTracks: Array.from({ length: 25 }, (_, i) => ({ key: String(i), title: `Song ${i}` }))
   }
   Object.assign(modules, {
+    '@/features/aggregate/aggregate-library': {
+      useAggregateLibrary: () => ({ playlists: [] }),
+      useAggregateReplacement: () => () => undefined,
+      aggregateCollection: (p) => p
+    },
+    '@/features/aggregate/playlist-targets': {
+      mergeLibraryPlaylists: (remote, local) => [...remote, ...local]
+    },
     react: React,
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => true },

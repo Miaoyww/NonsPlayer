@@ -43,6 +43,25 @@ test('homepage allows a newer song selection while the previous collection is pr
     errors = [],
     notices = []
   Object.assign(modules, {
+    '@/features/aggregate/aggregate-page': {
+      CreateAggregatePlaylist: () => React.createElement('button', {}, '创建聚合歌单')
+    },
+    '@/features/library/create-playlist': {
+      CreatePlaylist: () => React.createElement('button', {}, '新建歌单')
+    },
+    '@/features/library/playlist-card': {
+      PlaylistCard: ({ item }) => React.createElement('article', {}, item.name)
+    },
+    '@/features/aggregate/aggregate-library': {
+      useAggregateLibrary: () => ({
+        playlists: [{ id: 'local', localId: 'local', kind: 'playlist', name: 'Local mix' }]
+      }),
+      useAggregateReplacement: () => () => undefined,
+      aggregateCollection: (p) => p
+    },
+    '@/features/aggregate/playlist-targets': {
+      mergeLibraryPlaylists: (remote, local) => [...remote, ...local]
+    },
     react: React,
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => true },
@@ -106,6 +125,12 @@ test('homepage allows a newer song selection while the previous collection is pr
         })
       )
     )
+    assert.equal(
+      document.querySelector('.library-tabs-row > .flex')?.textContent,
+      '创建聚合歌单新建歌单'
+    )
+    assert.match(document.querySelector('.discover-playlist-grid')?.textContent ?? '', /Local mix/)
+    assert.equal(document.body.textContent.includes('派生为聚合歌单'), false)
     await act(async () => document.querySelector('[aria-label="播放我喜欢的音乐"]').click())
     assert.equal(requests[0].key, 'A', 'the collection header must seed the loaded first song')
     await act(async () => requests[0].resolve(false))

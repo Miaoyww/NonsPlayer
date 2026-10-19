@@ -76,7 +76,7 @@ async fn owned(music: &MusicService, link: &Link, expected: &str) -> AppResult<S
             filter: "created".into(),
             page: PageRequest {
                 cursor: cursor.clone(),
-                limit: 100,
+                limit: 30,
             },
         };
         let BusinessResponse::Entities(page) = music

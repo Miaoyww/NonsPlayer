@@ -131,6 +131,14 @@ for (const changedMetadata of [false, true])
             query('librarySummary', { profile: account.accountProfile(record), likedTracks: [] }),
           getLibraryCollections: () => query('libraryCollections', { items: [], more: false })
         },
+        '@/features/aggregate/aggregate-library': {
+          useAggregateLibrary: () => ({ playlists: [] }),
+          useAggregateReplacement: () => () => undefined,
+          aggregateCollection: (p) => p
+        },
+        '@/features/aggregate/playlist-targets': {
+          mergeLibraryPlaylists: (remote, local) => [...remote, ...local]
+        },
         '@/features/library/collection-actions': {
           useCollectionActions: () => ({ revision: 0 }),
           CollectionContextMenu: wrapper

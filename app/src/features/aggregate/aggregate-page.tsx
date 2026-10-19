@@ -25,86 +25,28 @@ import { usePagedList } from '@/lib/use-paged-list'
 import { nativeCall, usePlayer } from '@/lib/player'
 import { AggregateCover } from './aggregate-cover'
 import { SyncControl } from './sync-control'
-import { CollectionContextMenu } from '@/features/library/collection-actions'
+import { PlaylistCard } from '@/features/library/playlist-card'
 import {
   aggregateCollection,
   allAggregateTracks,
-  matchesAccount,
   playAggregate,
   useAggregateLibrary,
   writeAggregate,
   type AggregateMember
 } from './aggregate-library'
 
-export function AggregateSection({ onError }: { onError: (cause: unknown) => void }) {
-  const { playlists, accounts, reload, error } = useAggregateLibrary()
+export function CreateAggregatePlaylist({ onError }: { onError: (cause: unknown) => void }) {
+  const { reload } = useAggregateLibrary()
   const { navigate } = useMusicNavigation()
-  const { statuses } = useMusicSources()
-  const [showLinked, setShowLinked] = useState(false)
   const [create, setCreate] = useState(false)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
-  const items = playlists.filter(
-    (p) =>
-      showLinked ||
-      !p.link ||
-      !matchesAccount(accounts[p.link.reference.source], p.link.account) ||
-      !statuses.some((s) => s.enabled && s.descriptor.source === p.link!.reference.source) ||
-      !!p.link.error
-  )
   return (
-    <section className="my-8" aria-label="聚合歌单">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">聚合歌单</h2>
-        <ActionButton disabled={!isTauri()} variant="outline" onClick={() => setCreate(true)}>
-          <Plus aria-hidden="true" />
-          创建聚合歌单
-        </ActionButton>
-      </div>
-      <label className="mb-3 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={showLinked}
-          onChange={(e) => setShowLinked(e.target.checked)}
-        />
-        显示所有已关联歌单
-      </label>
-      <ErrorNotice error={error} />
-      <div className="discover-playlist-grid">
-        {items.map((p) => (
-          <CollectionContextMenu
-            key={p.id}
-            item={aggregateCollection(p)}
-            busy={busy}
-            render={<article />}
-          >
-            <button
-              className="w-full text-left"
-              onClick={() => navigate('local-playlist', '', aggregateCollection(p))}
-            >
-              <AggregateCover playlist={p} />
-              <span className="mt-2 block truncate font-semibold">{p.name}</span>
-              <span className="text-sm text-muted-foreground">
-                {p.trackCount} 首
-                {p.link
-                  ? !matchesAccount(accounts[p.link.reference.source], p.link.account) ||
-                    !statuses.some(
-                      (s) => s.enabled && s.descriptor.source === p.link!.reference.source
-                    ) ||
-                    p.link.error
-                    ? ' · 同步已暂停'
-                    : ' · 已关联平台歌单'
-                  : ''}
-              </span>
-            </button>
-          </CollectionContextMenu>
-        ))}
-      </div>
-      {!items.length && (
-        <p className="text-sm text-muted-foreground">
-          在这里创建跨平台歌单，或从自己的平台歌单派生。
-        </p>
-      )}
+    <>
+      <ActionButton variant="ghost" disabled={!isTauri()} onClick={() => setCreate(true)}>
+        <Plus aria-hidden="true" />
+        创建聚合歌单
+      </ActionButton>
       <Dialog
         open={create}
         onOpenChange={(open) => {
@@ -151,6 +93,31 @@ export function AggregateSection({ onError }: { onError: (cause: unknown) => voi
           </form>
         </DialogContent>
       </Dialog>
+    </>
+  )
+}
+// Used when the selected source cannot display its own library.
+export function AggregateSection({ onError }: { onError: (cause: unknown) => void }) {
+  const { playlists, error } = useAggregateLibrary()
+  const { navigate } = useMusicNavigation()
+  return (
+    <section aria-label="全部歌单">
+      <div className="library-tabs-row">
+        <h2>全部歌单</h2>
+        <CreateAggregatePlaylist onError={onError} />
+      </div>
+      <ErrorNotice error={error} />
+      <div className="discover-playlist-grid">
+        {playlists.map((p) => (
+          <PlaylistCard
+            key={p.id}
+            item={aggregateCollection(p)}
+            busy={false}
+            onOpen={(item) => navigate('local-playlist', '', item)}
+            onPlay={() => void playAggregate(p.id).catch(onError)}
+          />
+        ))}
+      </div>
     </section>
   )
 }

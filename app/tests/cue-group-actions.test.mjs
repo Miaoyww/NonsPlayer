@@ -103,11 +103,31 @@ test('aggregate playlist picker atomically adds the complete ordered CUE group',
   const { AggregatePlaylistPicker } = load(
     '../src/features/aggregate/aggregate-playlist-picker.tsx',
     {
+      './playlist-targets': {},
+      '@/features/library/create-playlist': { CreatePlaylist: () => null },
+      '@/features/library/collection-actions': { useCollectionActions: () => ({ changed() {} }) },
+      '@tanstack/react-virtual': {
+        useVirtualizer: ({ count }) => ({
+          getTotalSize: () => count * 64,
+          getVirtualItems: () =>
+            Array.from({ length: count }, (_, index) => ({ index, start: index * 64, size: 64 }))
+        })
+      },
+      '@/features/music/legacy-reference': {},
+      '@/features/music/use-music-sources': {
+        useMusicSources: () => ({ statuses: [], revision: 0 })
+      },
+      './aggregate-library': { useAggregateReplacement: () => () => undefined },
       '@/features/aggregate/aggregate-library': {
         useAggregateLibrary: () => ({ reload: async () => {} }),
         writeAggregate: async (request) => calls.push(request)
       },
-      react: { useState: () => ['', () => {}], useEffect: () => {}, useCallback: (fn) => fn },
+      react: {
+        useRef: (value) => ({ current: value }),
+        useState: (value) => [value, () => {}],
+        useEffect: () => {},
+        useCallback: (fn) => fn
+      },
       'react/jsx-runtime': jsx,
       '@/components/error-notice': { ErrorNotice: () => null },
       '@/lib/player': {

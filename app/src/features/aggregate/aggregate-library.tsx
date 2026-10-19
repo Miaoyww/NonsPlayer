@@ -150,14 +150,16 @@ export function useAggregateReplacement() {
   return (item: MusicCollection) =>
     item.bypassAggregate
       ? undefined
-      : playlists.find(
-          (p) =>
-            p.link &&
-            item.reference?.kind === 'playlist' &&
-            p.link.reference.source === item.reference.source &&
-            p.link.reference.id === item.reference.id &&
-            matchesAccount(accounts[item.reference.source], p.link.account)
-        )
+      : item.localId
+        ? playlists.find((p) => p.id === item.localId)
+        : playlists.find(
+            (p) =>
+              p.link &&
+              item.reference?.kind === 'playlist' &&
+              p.link.reference.source === item.reference.source &&
+              p.link.reference.id === item.reference.id &&
+              matchesAccount(accounts[item.reference.source], p.link.account)
+          )
 }
 export async function writeAggregate(request: AggregateWrite) {
   const id = await nativeCall<string>('aggregate_write', { request })

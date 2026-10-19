@@ -1,5 +1,3 @@
-import { useCanDerive } from '@/features/aggregate/derive-action'
-import { SyncControl } from '@/features/aggregate/sync-control'
 import { playAggregate, useAggregateReplacement } from '@/features/aggregate/aggregate-library'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
@@ -9,7 +7,7 @@ import { collectionReference } from '@/features/music/legacy-reference'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { TextSkeleton } from '@/components/music/loading'
 import { ContextMenu } from '@base-ui/react/context-menu'
-import { Copy, ListPlus, Pencil, Play, Trash2, GitFork, FolderOpen } from 'lucide-react'
+import { Copy, ListPlus, Pencil, Play, Trash2, FolderOpen } from 'lucide-react'
 import {
   cloneElement,
   createContext,
@@ -41,7 +39,6 @@ const CollectionActions = createContext<{
   edit: (item: MusicCollection) => void
   remove: (item: MusicCollection) => void
   play: (item: MusicCollection, next?: boolean) => void
-  derive: (item: MusicCollection) => void
   manageAggregate: (item: MusicCollection) => void
   copy: (item: MusicCollection) => void
   busy: boolean
@@ -67,7 +64,6 @@ export function CollectionActionsProvider({
   const { page, navigate } = useMusicNavigation()
   const [revision, setRevision] = useState(0)
   const replacement = useAggregateReplacement()
-  const [deriveTarget, setDeriveTarget] = useState<MusicCollection>()
   const [target, setTarget] = useState<{ item: MusicCollection; deleting: boolean }>()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -79,11 +75,7 @@ export function CollectionActionsProvider({
   const changed = () => setRevision((v) => v + 1)
   useEffect(() => {
     setTarget(undefined)
-    setDeriveTarget(undefined)
   }, [profile?.userId])
-  useEffect(() => {
-    if (page.view === 'local-playlist') setDeriveTarget(undefined)
-  }, [page])
   useEffect(() => {
     let disposed = false
     setReady(false)
@@ -174,7 +166,6 @@ export function CollectionActionsProvider({
     <CollectionActions.Provider
       value={{
         link,
-        derive: setDeriveTarget,
         manageAggregate: (item) => navigate('local-playlist', '', item),
         revision,
         changed,
@@ -192,20 +183,6 @@ export function CollectionActionsProvider({
       }}
     >
       {children}
-      <Dialog
-        open={!!deriveTarget}
-        onOpenChange={(open) => {
-          if (!open) setDeriveTarget(undefined)
-        }}
-      >
-        <DialogContent>
-          <DialogTitle>派生聚合歌单</DialogTitle>
-          <DialogDescription>
-            完整读取后创建本机歌单，保留原平台歌单。离开此窗口不会取消后台任务。
-          </DialogDescription>
-          {deriveTarget && <SyncControl reference={deriveTarget.reference} />}
-        </DialogContent>
-      </Dialog>
       <Dialog
         open={!!target}
         onOpenChange={(open) => {
@@ -302,7 +279,6 @@ export function CollectionContextMenu({
   onNext?: () => void
 }) {
   const actions = useCollectionActions()
-  const canDerive = useCanDerive(item)
   const { profile } = useAccount()
   const { statuses } = useMusicSources()
   const unavailable = busy || actions.busy || !isTauri()
@@ -365,12 +341,6 @@ export function CollectionContextMenu({
               <ContextMenu.Item onClick={() => actions.manageAggregate(item)}>
                 <FolderOpen aria-hidden="true" />
                 管理聚合歌单
-              </ContextMenu.Item>
-            )}
-            {canDerive && !unavailable && item && (
-              <ContextMenu.Item onClick={() => actions.derive(item)}>
-                <GitFork aria-hidden="true" />
-                派生为聚合歌单
               </ContextMenu.Item>
             )}
             {item?.kind === 'playlist' && editable && !unavailable && (

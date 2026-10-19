@@ -85,6 +85,8 @@ impl MusicAdapter for Fixture {
         Box::pin(async move {
             match request {
                 BusinessRequest::LibraryCollections { page, .. } => {
+                    // The bundled provider accepts library pages of exactly 30.
+                    assert_eq!(page.limit, 30);
                     let mut item:MusicEntity=serde_json::from_value(serde_json::json!({"reference":entity(),"name":"测试歌单","cover":"","subtitle":"","trackCount":0,"creator":account(),"liked":false,"playCount":null,"publishedAt":null,"artists":[]})).unwrap();
                     if !self.owned.load(Ordering::Acquire) {
                         item.creator = None;

@@ -61,7 +61,6 @@ function harness() {
     '@base-ui/react/context-menu': { ContextMenu: {} },
     'lucide-react': {},
     '@/plugins/song-menu': { PluginSongMenuItems: () => null },
-    '@/features/library/playlist-picker': { PlaylistPicker: 'PlaylistPicker' },
     '@/features/aggregate/aggregate-playlist-picker': {
       AggregatePlaylistPicker: 'AggregatePlaylistPicker'
     },

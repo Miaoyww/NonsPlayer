@@ -1,4 +1,10 @@
-import { AggregateSection } from '@/features/aggregate/aggregate-page'
+import { mergeLibraryPlaylists } from '@/features/aggregate/playlist-targets'
+import { CreateAggregatePlaylist } from '@/features/aggregate/aggregate-page'
+import {
+  aggregateCollection,
+  useAggregateLibrary,
+  useAggregateReplacement
+} from '@/features/aggregate/aggregate-library'
 import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
@@ -127,6 +133,8 @@ export default function MusicLibrary({
   } = useAccount()
   const account = profile?.reference
   const { revision: collectionRevision } = useCollectionActions()
+  const aggregate = useAggregateLibrary()
+  const replacement = useAggregateReplacement()
   const { page, navigate } = useMusicNavigation()
   const player = usePlayer('index', 'queue')
   const currentKey = player.index !== null ? player.queue[player.index]?.key : undefined
@@ -209,7 +217,11 @@ export default function MusicLibrary({
       ? peekLibraryCollections(profile.userId, profile.reference?.source)
       : undefined
   const collections = {
-    items: (preview?.items ?? list.items) as MusicCollection[],
+    items: mergeLibraryPlaylists(
+      (preview?.items ?? list.items) as MusicCollection[],
+      tab === 'playlist' && filter !== 'liked' ? aggregate.playlists.map(aggregateCollection) : [],
+      replacement
+    ),
     more: list.more
   }
   const history = { tracks: list.items as Track[], more: list.more }
@@ -295,19 +307,8 @@ export default function MusicLibrary({
     </ActionButton>
   )
 
-  if (!showingDetail && !profile && !accountLoading)
-    return (
-      <MusicPage>
-        <AggregateSection onError={onError} />
-        <ActionButton variant="outline" onClick={() => navigate('accounts')}>
-          登录平台账号
-        </ActionButton>
-      </MusicPage>
-    )
-
   return (
     <MusicPage aria-label="音乐库">
-      {!showingDetail && <AggregateSection onError={onError} />}
       {showingDetail ? (
         <>
           <CollectionHeader
@@ -592,14 +593,18 @@ export default function MusicLibrary({
                   </ActionButton>
                 ))}
             </div>
-            {tab === 'playlist' && profile && !readOnly && (
-              <CreatePlaylist
-                onCreated={() => {
-                  setRefresh((value) => value + 1)
-                }}
-              />
-            )}
+            <div className="flex items-center gap-2">
+              {tab === 'playlist' && <CreateAggregatePlaylist onError={onError} />}
+              {tab === 'playlist' && profile && !readOnly && (
+                <CreatePlaylist
+                  onCreated={() => {
+                    setRefresh((value) => value + 1)
+                  }}
+                />
+              )}
+            </div>
           </div>
+          <ErrorNotice error={aggregate.error} />
           {tab === 'history' && (
             <div className="mb-5 flex gap-2">
               <ActionButton
@@ -626,7 +631,7 @@ export default function MusicLibrary({
           )}
           {accountLoading && !profile ? (
             <CollectionGridSkeleton />
-          ) : !profile ? (
+          ) : !profile && !collections.items.length ? (
             <p className="library-empty text-muted-foreground">
               登录后查看收藏的歌单、专辑和艺人。
             </p>

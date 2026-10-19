@@ -7,7 +7,6 @@ import { useMusicSources } from '@/features/music/use-music-sources'
 import { TextSkeleton } from '@/components/music/loading'
 import { PluginSongMenuItems } from '@/plugins/song-menu'
 import { AggregatePlaylistPicker } from '@/features/aggregate/aggregate-playlist-picker'
-import { PlaylistPicker } from '@/features/library/playlist-picker'
 import { ContextMenu } from '@base-ui/react/context-menu'
 import {
   ChevronRight,
@@ -269,18 +268,13 @@ export function SongActionsProvider({
     >
       {children}
       <AggregatePlaylistPicker
-        track={aggregateTrack ?? (collectTrack?.source.kind === 'local' ? collectTrack : undefined)}
+        track={aggregateTrack ?? collectTrack}
         tracks={collectGroup}
         onClose={() => {
           setCollectTrack(undefined)
           setCollectGroup(undefined)
           setAggregateTrack(undefined)
         }}
-        onNotice={onNotice}
-      />
-      <PlaylistPicker
-        track={collectTrack && onlineReference(collectTrack) ? collectTrack : undefined}
-        onClose={() => setCollectTrack(undefined)}
         onNotice={onNotice}
       />
       <Dialog
@@ -375,16 +369,6 @@ export function SongContextMenu({
   const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } = useAccount(
     onlineReference(track)?.source
   )
-  const { statuses } = useMusicSources()
-  const reference = onlineReference(track)
-  const canCollect =
-    reference?.source === profile?.reference.source &&
-    statuses.some(
-      (value) =>
-        value.enabled &&
-        value.descriptor.source === reference?.source &&
-        value.descriptor.capabilities.includes('playlistWrite')
-    )
   const id = favoriteId(track, profile?.reference)
   const liked = id !== undefined && likedIds.has(id)
   const unavailable = busy || !isTauri()
@@ -441,13 +425,7 @@ export function SongContextMenu({
             {!unavailable && (
               <ContextMenu.Item onClick={() => actions.collectAggregate(track)}>
                 <FolderPlus aria-hidden="true" />
-                添加到聚合歌单
-              </ContextMenu.Item>
-            )}
-            {!unavailable && canCollect && (
-              <ContextMenu.Item onClick={() => actions.collect(track)}>
-                <FolderPlus aria-hidden="true" />
-                收藏到歌单
+                添加到歌单
               </ContextMenu.Item>
             )}
             {track.source.kind === 'local' ? (
