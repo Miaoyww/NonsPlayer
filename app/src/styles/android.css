@@ -1,0 +1,383 @@
+/* The Android trial reuses the workspace with a touch-sized two-row header. */
+:root[data-platform='android'] .titlebar {
+  position: relative;
+  padding-top: var(--nons-safe-area-top, env(safe-area-inset-top));
+}
+:root[data-platform='android'] .music-workspace {
+  padding-top: 0;
+}
+:root[data-platform='android'] .music-page {
+  padding-left: calc(
+    var(--music-page-inline) + var(--nons-safe-area-left, env(safe-area-inset-left))
+  );
+  padding-right: calc(
+    var(--music-page-inline) + var(--nons-safe-area-right, env(safe-area-inset-right))
+  );
+}
+:root[data-platform='android'] .now-playing > .titlebar {
+  height: calc(48px + var(--nons-safe-area-top, env(safe-area-inset-top)));
+}
+:root[data-platform='android'] .persistent-playback[data-mobile-expanded] {
+  left: calc(50% + (var(--nons-safe-area-left, 0px) - var(--nons-safe-area-right, 0px)) / 2);
+  width: calc(100% - 32px - var(--nons-safe-area-left, 0px) - var(--nons-safe-area-right, 0px));
+}
+:root[data-platform='android'] .music-page {
+  margin-top: 0;
+}
+:root[data-platform='android'] .library-featured-songs {
+  display: none;
+}
+:root[data-platform='android'] .library-featured {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-platform='android'] .nons-lyrics {
+  padding-top: 0;
+}
+:root[data-platform='android'] .titlebar-control {
+  display: none;
+}
+:root[data-platform='android'] .titlebar:has(nav) {
+  display: flex;
+  height: auto;
+  min-height: calc(56px + var(--nons-safe-area-top, env(safe-area-inset-top)));
+  gap: 4px;
+  padding-inline: 8px;
+  padding-top: var(--nons-safe-area-top, env(safe-area-inset-top));
+  padding-left: calc(8px + var(--nons-safe-area-left, env(safe-area-inset-left)));
+  padding-right: calc(8px + var(--nons-safe-area-right, env(safe-area-inset-right)));
+}
+:root[data-platform='android'] .now-playing > .titlebar {
+  padding-left: calc(8px + var(--nons-safe-area-left, env(safe-area-inset-left)));
+  padding-right: calc(8px + var(--nons-safe-area-right, env(safe-area-inset-right)));
+}
+:root[data-platform='android'] .titlebar:has(nav) > div:not(:last-child) {
+  display: none;
+}
+:root[data-platform='android'] .titlebar > nav {
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: 4px;
+}
+:root[data-platform='android'] .titlebar > nav::-webkit-scrollbar {
+  display: none;
+}
+:root[data-platform='android'] .titlebar > nav button {
+  flex-shrink: 0;
+}
+:root[data-platform='android'] .titlebar > div:last-child {
+  grid-row: 1;
+  grid-column: 2;
+  padding-left: 0;
+  flex-shrink: 0;
+}
+:root[data-platform='android'] .titlebar > div:last-child > div > span {
+  display: none;
+}
+:root[data-platform='android'] .titlebar button {
+  min-height: 48px;
+  min-width: 48px;
+}
+:root[data-platform='android'] .titlebar[data-subpage='true'] {
+  display: none;
+}
+.mobile-page-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding: calc(12px + var(--nons-safe-area-top, env(safe-area-inset-top))) 16px 12px;
+  padding-left: calc(16px + var(--nons-safe-area-left, env(safe-area-inset-left)));
+  padding-right: calc(16px + var(--nons-safe-area-right, env(safe-area-inset-right)));
+}
+.mobile-page-header button {
+  min-width: 48px;
+  min-height: 48px;
+}
+.mobile-page-title-row,
+.mobile-collection-search-row {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+}
+.mobile-collection-search-field {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+.mobile-collection-search-field input {
+  height: 48px;
+  padding-inline: 0;
+  font-size: 1rem;
+}
+.track-table-container[data-mobile='true'] {
+  overflow-x: hidden;
+  margin-inline: 0;
+  padding-inline: 0;
+}
+.track-list[data-mobile='true'] .track-identity-cell {
+  padding-right: 0;
+}
+.track-list[data-mobile='true'] .track-row td:first-child {
+  padding-left: 12px;
+}
+:root[data-platform='android'] .queue-page-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 calc(16px + var(--nons-safe-area-right, 0px)) 12px
+    calc(16px + var(--nons-safe-area-left, 0px));
+}
+:root[data-platform='android'] .queue-page-summary h1 {
+  display: none;
+}
+:root[data-platform='android'] .queue-page-summary p {
+  margin-top: 0;
+}
+:root[data-platform='android'] .queue-page-summary {
+  grid-row: 1;
+  grid-column: 1;
+}
+:root[data-platform='android'] .queue-page-tools {
+  display: contents;
+}
+:root[data-platform='android'] .queue-page-tools > div {
+  grid-row: 1;
+  grid-column: 2;
+}
+:root[data-platform='android'] .queue-page-search {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+}
+:root[data-platform='android'] .queue-page-search input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  font-size: 16px;
+}
+:root[data-platform='android'] .queue-page-tools button {
+  min-height: 48px;
+}
+:root[data-platform='android'] .queue-page-scroll {
+  padding-inline: calc(4px + var(--nons-safe-area-left, 0px))
+    calc(4px + var(--nons-safe-area-right, 0px));
+  padding-bottom: var(--mobile-playback-clearance, calc(112px + var(--nons-safe-area-bottom, 0px)));
+  scroll-padding-bottom: var(
+    --mobile-playback-clearance,
+    calc(112px + var(--nons-safe-area-bottom, 0px))
+  );
+}
+:root[data-platform='android'] .queue-page-scroll .track-list[data-mobile='true'] thead {
+  display: none;
+}
+:root[data-platform='android'] .library-cover-grid,
+:root[data-platform='android'] .discover-playlist-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 12px;
+}
+:root[data-platform='android'] .library-cover-title {
+  font-size: 14px;
+}
+:root[data-platform='android'] .library-cover-subtitle {
+  font-size: 12px;
+}
+:root[data-platform='android'] .library-tabs-row {
+  margin: 32px 0 16px;
+  gap: 8px;
+}
+:root[data-platform='android'] .library-tabs {
+  width: 100%;
+  min-width: 0;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+:root[data-platform='android'] .library-tabs::-webkit-scrollbar {
+  display: none;
+}
+:root[data-platform='android'] .library-tab {
+  height: 44px;
+  padding: 8px 10px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+:root[data-platform='android'] .library-tabs > * {
+  flex-shrink: 0;
+}
+:root[data-platform='android'] .discover-featured {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+:root[data-platform='android'] .discover-shortcuts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+:root[data-platform='android'] .discover-shortcut {
+  padding: 10px;
+  gap: 8px;
+}
+:root[data-platform='android'] .discover-shortcut-cover {
+  display: none;
+}
+:root[data-platform='android'] .discover-shortcut-title {
+  font-size: 14px;
+  white-space: nowrap;
+  gap: 6px;
+}
+:root[data-platform='android'] .discover-shortcut-title svg {
+  width: 16px;
+  height: 16px;
+}
+:root[data-platform='android'] .discover-shortcut-desc {
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+:root[data-platform='android'] .discover-shortcut-arrow {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: transparent;
+}
+:root[data-platform='android'] .discover-fm {
+  gap: 16px;
+  padding: 16px;
+}
+:root[data-platform='android'] .discover-fm-cover {
+  width: clamp(96px, 36%, 144px);
+}
+:root[data-platform='android'] .discover-fm-info h2 {
+  font-size: 18px;
+}
+:root[data-platform='android'] .discover-fm-meta {
+  height: 18px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+:root[data-platform='android'] .discover-fm-bottom {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 8px;
+}
+:root[data-platform='android'] .discover-fm-controls {
+  gap: 4px;
+}
+:root[data-platform='android'] .discover-fm-controls > button:not(.discover-fm-play) {
+  width: 40px;
+  height: 44px;
+}
+:root[data-platform='android'] .discover-fm-play {
+  width: 48px;
+  height: 48px;
+}
+:root[data-platform='android'] .discover-fm-label {
+  align-self: flex-end;
+  font-size: 10px;
+}
+:root[data-platform='android'] .now-playing > .titlebar:not(:has(nav)) {
+  position: absolute;
+  inset: 0 0 auto;
+  background: transparent;
+}
+@media (max-width: 359px) {
+  :root[data-platform='android'] .persistent-playback[data-mobile-expanded] {
+    width: calc(100% - 16px - var(--nons-safe-area-left, 0px) - var(--nons-safe-area-right, 0px));
+  }
+}
+:root[data-platform='android'] .mobile-settings-page {
+  --music-page-bottom: calc(24px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom)));
+}
+:root[data-platform='android'] .titlebar:not(:has(nav)) > .titlebar-settings {
+  display: none;
+}
+:root[data-platform='android'] .settings-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding-inline: 16px;
+}
+:root[data-platform='android'] .settings-card > div:first-child {
+  flex: 1;
+}
+:root[data-platform='android'] .settings-card > div:last-child {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 68%;
+}
+:root[data-platform='android'] .settings-card > div:last-child > * {
+  max-width: 100%;
+}
+.mobile-settings-detail .settings-card-description,
+.mobile-settings-detail > div > div:first-child:has(> h2) {
+  display: none;
+}
+.mobile-search-entry {
+  margin-bottom: 24px;
+}
+.mobile-search-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--muted);
+}
+.mobile-search-form input {
+  font-size: 1rem;
+  height: 48px;
+}
+.mobile-search-entry button {
+  min-height: 48px;
+}
+.mobile-search-history,
+.mobile-search-suggestions {
+  margin-top: 20px;
+}
+:root[data-platform='android'] .titlebar-search-slot {
+  min-width: 0;
+}
+:root[data-platform='android'] .titlebar-search {
+  height: 44px;
+}
+:root[data-platform='android'] .music-page {
+  --music-page-top: 24px;
+  --music-page-inline: 16px;
+}
+:root[data-platform='android'] .settings-dialog > div:has(> aside) {
+  flex-direction: column;
+}
+:root[data-platform='android'] .settings-dialog aside {
+  width: 100%;
+}
+:root[data-platform='android'] .settings-dialog aside > div:first-child {
+  padding: 16px;
+}
+:root[data-platform='android'] .settings-dialog aside nav {
+  flex-direction: row;
+  flex: none;
+  padding-block: 8px;
+}
+:root[data-platform='android'] .settings-dialog aside nav button {
+  flex-shrink: 0;
+  min-height: 44px;
+}
+:root[data-platform='android'] .settings-dialog section {
+  padding: 20px 16px;
+}

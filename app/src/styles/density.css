@@ -1,0 +1,152 @@
+:where(.music-workspace[data-density='compact']) .music-page {
+  --music-page-inline: clamp(24px, 4vw, 72px);
+  --music-page-top: 64px;
+}
+:where(.music-workspace[data-density='compact']) .library-detail-header {
+  --detail-cover-size: clamp(168px, 17vw, 224px);
+  gap: 28px;
+  margin-bottom: 24px;
+}
+:where(.music-workspace[data-density='compact']) .library-detail-cover {
+  flex-shrink: 0;
+}
+:where(.music-workspace[data-density='compact']) .library-detail-title {
+  font-size: clamp(28px, 2.8vw, 38px);
+}
+:where(.music-workspace[data-density='compact']) .library-detail-info {
+  padding-block: 0;
+}
+:where(.music-workspace[data-density='compact']) .library-detail-meta,
+:where(.music-workspace[data-density='compact']) .library-detail-description {
+  margin-top: 12px;
+}
+:where(.music-workspace[data-density='compact']) .library-detail-actions {
+  margin-top: auto;
+  padding-top: 8px;
+}
+:where(.music-workspace[data-density='compact']) .library-heading {
+  font-size: clamp(26px, 2.8vw, 34px);
+}
+:where(.music-workspace[data-density='compact']) .music-page-heading {
+  margin-bottom: 16px;
+}
+:where(.music-workspace[data-density='compact']) .library-featured {
+  gap: 24px;
+  margin-top: 20px;
+}
+:where(.music-workspace[data-density='compact']) .library-liked-card,
+:where(.music-workspace[data-density='compact']) .library-liked-open {
+  min-height: 176px;
+}
+:where(.music-workspace[data-density='compact']) .library-liked-open {
+  gap: 16px;
+  padding: 16px 20px;
+}
+:where(.music-workspace[data-density='compact']) .library-tabs-row {
+  margin: 28px 0 16px;
+}
+:where(.music-workspace[data-density='compact']) .library-tab {
+  height: 36px;
+  font-size: 16px;
+}
+:where(.music-workspace[data-density='compact']) .discover-playlist-grid,
+:where(.music-workspace[data-density='compact']) .library-cover-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  gap: 20px 16px;
+}
+:where(.music-workspace[data-density='compact']) .discover-playlist-grid > *,
+:where(.music-workspace[data-density='compact']) .library-cover-grid > * {
+  max-width: 200px;
+}
+:where(.music-workspace[data-density='compact']) .artist-releases {
+  margin-block: 24px;
+}
+:where(.music-workspace[data-density='compact']) .artist-release-grid {
+  gap: 16px;
+}
+:where(.music-workspace[data-density='compact']) .artist-release {
+  gap: 16px;
+}
+:where(.music-workspace[data-density='compact']) .artist-release-cover {
+  width: clamp(80px, 8vw, 112px);
+}
+:where(.music-workspace[data-density='compact']) .music-page-section-bar {
+  gap: 16px;
+  margin: 20px 0 16px;
+}
+:where(.music-workspace[data-density='compact']) .music-page-section-bar h2 {
+  font-size: 22px;
+}
+:where(.music-workspace[data-density='compact']) .discover-featured {
+  gap: 16px;
+}
+:where(.music-workspace[data-density='compact']) .discover-shortcut {
+  gap: 12px;
+  padding: 10px 12px;
+}
+:where(.music-workspace[data-density='compact']) .discover-shortcut-cover {
+  width: 48px;
+  height: 48px;
+}
+:where(.music-workspace[data-density='compact']) .discover-shortcut-title {
+  font-size: 18px;
+}
+:where(.music-workspace[data-density='compact']) .discover-fm {
+  gap: 16px;
+  padding: 12px;
+}
+:where(.music-workspace[data-density='compact']) .discover-fm-cover {
+  flex-shrink: 0;
+  width: clamp(96px, 11cqw, 128px);
+}
+:where(.music-workspace[data-density='compact']) .discover-filters {
+  gap: 12px;
+  margin-bottom: 16px;
+}
+:where(.music-workspace[data-density='compact']) .local-tabs-row {
+  gap: 16px;
+  margin-bottom: 20px;
+}
+:where(.music-workspace[data-density='compact']) .local-folder-actions {
+  margin-bottom: 16px;
+}
+:where(.music-workspace[data-density='compact']) .music-tabs {
+  height: 40px;
+}
+:where(.music-workspace[data-density='compact']) .music-tabs [data-slot='tabs-tab'] {
+  padding: 6px 14px;
+  font-size: 14px;
+}
+:where(.music-workspace[data-density='compact']) .queue-page-header {
+  padding: 24px 24px 16px;
+}
+:where(.music-workspace[data-density='compact']) .queue-page-scroll {
+  padding-inline: 24px;
+}
+@media (max-width: 700px) {
+  :where(.music-workspace[data-density='compact']) .music-page {
+    --music-page-inline: 24px;
+  }
+  :where(.music-workspace[data-density='compact']) .library-detail-header {
+    --detail-cover-size: 112px;
+    flex-direction: row;
+    gap: 16px;
+  }
+  :where(.music-workspace[data-density='compact']) .library-detail-cover {
+    width: 112px;
+  }
+  :where(.music-workspace[data-density='compact']) .library-detail-title {
+    font-size: 24px;
+  }
+}
+@container (max-width: 560px) {
+  :where(.music-workspace[data-density='compact']) .discover-playlist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  :where(.music-workspace[data-density='compact']) .library-detail-cover {
+    width: max(var(--detail-cover-size), var(--detail-content-height, 0px));
+  }
+}

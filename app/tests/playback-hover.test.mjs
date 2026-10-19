@@ -70,7 +70,7 @@ test('left hover opens the player and moving to right controls holds it until le
       }
     }
   )
-  const css = readFileSync(new URL('../src/styles/globals.css', import.meta.url), 'utf8')
+  const css = readFileSync(new URL('../src/styles/playback.css', import.meta.url), 'utf8')
   const selector = css
     .match(/(\.playback-capsule:is\([\s\S]*?\))\s*\{\s*width: 648px/)[1]
     .replaceAll(':hover', '[data-test-hover]')

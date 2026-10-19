@@ -1,0 +1,83 @@
+.music-input {
+  height: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+  padding: 0 0.75rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+}
+
+.music-input:focus-visible,
+.music-select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.music-select {
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.music-tabs {
+  height: 48px;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+.music-tabs [data-slot='tabs-tab'] {
+  padding: 8px 20px;
+  font-size: 16px;
+  border-radius: 9px;
+}
+.music-tabs [data-slot='tabs-highlight-item'] {
+  display: flex;
+}
+@media (prefers-reduced-motion: reduce) {
+  .music-tabs * {
+    transition-duration: 0s !important;
+  }
+}
+
+/* Music credits keep each structured artist independently navigable. */
+.music-entity-link {
+  cursor: pointer;
+  border-radius: 3px;
+  text-align: inherit;
+  color: inherit;
+}
+.music-entity-link:hover {
+  color: var(--library-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.music-entity-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.music-credit-separator {
+  opacity: 0.6;
+}
+
+.collection-tabs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 4px;
+}
+.collection-tabs-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+}
+.collection-content-tabs .track-list thead th {
+  padding-block: 4px;
+}

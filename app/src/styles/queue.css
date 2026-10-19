@@ -1,0 +1,140 @@
+.queue-positioner {
+  position: fixed !important;
+  inset: 80px 16px auto auto !important;
+  transform: none !important;
+  z-index: 40;
+}
+.queue-popover {
+  width: min(330px, calc(100vw - 32px));
+  height: calc(100dvh - 160px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 18%);
+  transition:
+    transform 220ms ease-out,
+    opacity 180ms ease-out;
+}
+.queue-popover[data-starting-style],
+.queue-popover[data-ending-style] {
+  transform: translateX(calc(100% + 16px));
+  opacity: 0;
+}
+.queue-card-scroll {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  padding: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.queue-track-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 68px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 160ms;
+}
+.queue-track-card:hover {
+  background: var(--muted);
+}
+.queue-track-card[data-mode='compact'] {
+  height: 48px;
+  gap: 12px;
+  padding: 6px 12px;
+}
+.queue-track-card[data-current='true'] {
+  background: var(--current-track-background);
+  box-shadow: inset 3px 0 var(--current-track-marker);
+}
+.queue-track-card:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.queue-page-scroll {
+  padding-bottom: 120px;
+  scroll-padding-bottom: 120px;
+}
+.queue-card-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.queue-card-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--border);
+}
+.queue-card-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  .queue-track-card,
+  .queue-popover {
+    transition: none;
+  }
+}
+
+.queue-page-link {
+  flex-shrink: 0;
+  display: block;
+  padding: 8px;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms;
+}
+.queue-page-link:hover {
+  background: var(--muted);
+}
+.queue-page-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.queue-popover header > div {
+  gap: 0;
+}
+.queue-popover header > div button {
+  padding-inline: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .queue-page-link {
+    transition: none;
+  }
+}
+.queue-track-cover {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 8px;
+}
+.queue-track-cover-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 35%);
+  color: white;
+  opacity: 0;
+  transition: opacity 160ms;
+}
+.queue-track-cover-play svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+.queue-track-card:hover .queue-track-cover-play,
+.queue-track-card:focus-visible .queue-track-cover-play {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .queue-track-cover-play {
+    transition: none;
+  }
+}

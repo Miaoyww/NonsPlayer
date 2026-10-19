@@ -1,0 +1,67 @@
+.nons-lyrics .amll-lyric-player {
+  font-family: var(--nons-lyrics-font, var(--nons-app-font));
+  --amll-lp-color: var(--foreground);
+  --amll-lp-hover-bg-color: var(--muted);
+  --amll-lp-font-size: clamp(26px, 3vw, 44px);
+  mix-blend-mode: normal;
+}
+.now-playing-lyrics {
+  mask-image: linear-gradient(transparent, black 12%, black 85%, transparent);
+}
+.lyric-loading {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(24px, 4vh, 48px);
+  padding-inline: 24px;
+}
+.lyric-renderer {
+  animation: lyric-reveal 180ms ease-out;
+}
+@keyframes lyric-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lyric-renderer {
+    animation: none;
+  }
+}
+.lyrics-display-controls {
+  position: absolute;
+  top: 64px;
+  right: clamp(24px, 4vw, 64px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.25;
+  transition: opacity 160ms;
+}
+.lyrics-display-controls:is(:hover, :focus-within) {
+  opacity: 1;
+}
+.lyrics-display-controls button {
+  color: var(--muted-foreground);
+}
+.lyrics-display-controls button[aria-pressed='true'] {
+  color: var(--foreground);
+  background: var(--accent);
+}
+.lyrics-display-controls svg {
+  width: 20px;
+  height: 20px;
+}
+.now-playing .nons-lyrics .amll-lyric-player {
+  --amll-lp-hover-bg-color: rgb(255 255 255 / 10%);
+}
+@media (max-width: 600px) {
+  .now-playing-lyrics {
+    min-height: 360px;
+  }
+}

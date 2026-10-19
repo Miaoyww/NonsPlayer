@@ -1,0 +1,91 @@
+.titlebar-control {
+  width: 2.5rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  color: var(--muted-foreground);
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+
+.titlebar-control:active {
+  transform: none;
+}
+
+.titlebar-close:hover:not(:disabled) {
+  background: var(--destructive);
+  color: white;
+}
+
+.titlebar[data-focused='false'] > div:first-child {
+  opacity: 0.55;
+}
+
+/* Reserve the expanded width so search cannot displace or cover navigation. */
+.titlebar-search-slot {
+  width: 220px;
+  min-width: 36px;
+  max-width: 220px;
+  flex: 1 1 220px;
+  display: flex;
+  justify-content: flex-start;
+}
+.titlebar-search {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 2px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--muted);
+  transition:
+    width 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 160ms;
+}
+.titlebar-search input {
+  width: 180px;
+  min-width: 0;
+  flex: 1 1 180px;
+  opacity: 1;
+  padding-inline: 6px;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  outline: none;
+  transition: opacity 160ms;
+}
+.titlebar-search:hover,
+.titlebar-search:focus-within {
+  width: 100%;
+  background: var(--muted);
+}
+.titlebar-search:hover input,
+.titlebar-search:focus-within input {
+  opacity: 1;
+}
+.titlebar-search:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.titlebar-search-suggestions {
+  width: max-content;
+  min-width: min(360px, var(--available-width));
+  max-width: min(480px, var(--available-width));
+}
+@media (max-width: 950px) {
+  .titlebar > div:first-child span {
+    display: none;
+  }
+}
+/* Content scrolls beneath the titlebar so backdrop blur has real content to sample. */
+.titlebar {
+  position: absolute;
+  inset: 0 0 auto;
+}
+.titlebar.glass-surface {
+  border-width: 0 0 1px;
+  box-shadow: 0 4px 20px rgb(0 0 0 / 5%);
+}
