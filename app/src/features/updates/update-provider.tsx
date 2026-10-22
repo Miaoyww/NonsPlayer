@@ -5,6 +5,7 @@ import { listen } from '@tauri-apps/api/event'
 import { Download, RefreshCw } from 'lucide-react'
 import { ReleaseNotes } from './release-notes'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import { errorText, nativeCall } from '@/lib/player'
 import { isAndroid } from '@/lib/platform'
 
 interface UpdateStatus {
+  autoCheck: boolean
   phase: 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'ready' | 'installing'
   version: string | null
   notes: string | null
@@ -35,6 +37,7 @@ const UpdateContext = createContext<{
   checking: boolean
   error?: string
   check: () => void
+  setAutoCheck: (enabled: boolean) => void
 } | null>(null)
 
 export function UpdateProvider({ children }: { children: ReactNode }) {
@@ -83,13 +86,13 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     }
   }, [status?.version, status?.phase])
 
-  async function run(command: string) {
+  async function run(command: string, args?: { enabled: boolean }) {
     if (operation.current) return
     operation.current = true
     setWorking(command)
     setError(undefined)
     try {
-      const snapshot = await nativeCall<UpdateStatus>(command)
+      const snapshot = await nativeCall<UpdateStatus>(command, args)
       if (snapshot) setStatus(snapshot)
       return snapshot
     } catch (cause) {
@@ -126,10 +129,19 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
                 ? status.portable
                   ? '便携版请下载新版压缩包，退出应用后解压，并保留原有 data 文件夹。'
                   : '下载完成后，可选择重启并安装更新。'
-                : '启动后自动检查，也可以手动检查新版本。'
+                : '可以手动检查新版本，或开启启动时自动检查。'
 
   return (
-    <UpdateContext.Provider value={{ status, busy, checking, error, check }}>
+    <UpdateContext.Provider
+      value={{
+        status,
+        busy,
+        checking,
+        error,
+        check,
+        setAutoCheck: (enabled) => void run('set_update_auto_check', { enabled })
+      }}
+    >
       {children}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="flex max-h-[85dvh] flex-col overflow-hidden sm:max-w-4xl sm:p-8">
@@ -192,28 +204,39 @@ export function UpdateCard() {
         title="版本更新"
         description={
           supported
-            ? '启动后自动检查新版本，优先使用下载镜像，失败时切换至 GitHub。'
+            ? '优先使用下载镜像，失败时切换至 GitHub；发现新版本时弹出更新提示。'
             : '自动更新支持 Windows x64，其他平台请从 GitHub 下载。'
         }
       >
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!supported || updates?.busy}
-          onClick={updates?.check}
-        >
-          <RefreshCw
-            aria-hidden="true"
-            className={updates?.checking ? 'motion-safe:animate-spin' : undefined}
-          />
-          {updates?.checking
-            ? '正在检查'
-            : status?.phase === 'ready'
-              ? '更新已就绪'
-              : updates?.busy
-                ? '正在处理…'
-                : '检查更新'}
-        </Button>
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-xs">
+            <Switch
+              aria-label="启动时自动检查"
+              checked={status?.autoCheck ?? true}
+              disabled={!supported || updates?.busy}
+              onCheckedChange={(enabled) => updates?.setAutoCheck(enabled)}
+            />
+            启动时自动检查
+          </label>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!supported || updates?.busy}
+            onClick={updates?.check}
+          >
+            <RefreshCw
+              aria-hidden="true"
+              className={updates?.checking ? 'motion-safe:animate-spin' : undefined}
+            />
+            {updates?.checking
+              ? '正在检查'
+              : status?.phase === 'ready'
+                ? '更新已就绪'
+                : updates?.busy
+                  ? '正在处理…'
+                  : '检查更新'}
+          </Button>
+        </div>
       </SettingsCard>
       <div role="status" aria-live="polite">
         {!updates?.busy && !updates?.error && !status?.error && status?.phase === 'current' && (

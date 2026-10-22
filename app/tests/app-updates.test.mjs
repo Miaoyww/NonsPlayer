@@ -18,6 +18,7 @@ test('updates require a download click and separate installation confirmation; p
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   let listener
   let status = {
+    autoCheck: true,
     phase: 'idle',
     version: null,
     supported: true,
@@ -26,6 +27,7 @@ test('updates require a download click and separate installation confirmation; p
     downloaded: 0
   }
   const calls = []
+  let failPreferenceSave = false
   let finishCheck
   const container = ({ children }) => React.createElement('div', {}, children)
   const modules = {
@@ -41,6 +43,15 @@ test('updates require a download click and separate installation confirmation; p
     'lucide-react': { Download: () => null, RefreshCw: () => null },
     '@/components/ui/button': {
       Button: ({ children, ...props }) => React.createElement('button', props, children)
+    },
+    '@/components/ui/switch': {
+      Switch: ({ checked, onCheckedChange, ...props }) =>
+        React.createElement('button', {
+          ...props,
+          role: 'switch',
+          'aria-checked': checked,
+          onClick: () => onCheckedChange(!checked)
+        })
     },
     '@/components/ui/dialog': {
       Dialog: ({ open, children }) =>
@@ -60,9 +71,15 @@ test('updates require a download click and separate installation confirmation; p
     './release-notes.css': {},
     '@/lib/player': {
       errorText: String,
-      nativeCall: async (command) => {
+      nativeCall: async (command, args) => {
         if (command === 'update_status') return status
         calls.push(command)
+        if (command === 'set_update_auto_check') {
+          if (failPreferenceSave) throw new Error('设置保存失败')
+          status = { ...status, autoCheck: args.enabled }
+          listener({ payload: status })
+          return status
+        }
         if (command === 'update_check') {
           return new Promise((resolve, reject) => {
             finishCheck = { resolve, reject }
@@ -108,6 +125,27 @@ test('updates require a download click and separate installation confirmation; p
         React.createElement(exports.UpdateProvider, {}, React.createElement(exports.UpdateCard))
       )
     )
+    const autoCheckSwitch = () => document.querySelector('[role="switch"]')
+    assert.equal(autoCheckSwitch().getAttribute('aria-checked'), 'true')
+    assert.deepEqual(calls, [], 'loading settings does not trigger an extra update check')
+    await React.act(async () => autoCheckSwitch().click())
+    assert.equal(status.autoCheck, false)
+    assert.equal(autoCheckSwitch().getAttribute('aria-checked'), 'false')
+    await React.act(async () => root.render(null))
+    await React.act(async () =>
+      root.render(
+        React.createElement(exports.UpdateProvider, {}, React.createElement(exports.UpdateCard))
+      )
+    )
+    assert.equal(autoCheckSwitch().getAttribute('aria-checked'), 'false')
+    failPreferenceSave = true
+    await React.act(async () => autoCheckSwitch().click())
+    assert.equal(autoCheckSwitch().getAttribute('aria-checked'), 'false')
+    assert.match(document.body.textContent, /设置保存失败/)
+    failPreferenceSave = false
+    await React.act(async () => autoCheckSwitch().click())
+    assert.equal(autoCheckSwitch().getAttribute('aria-checked'), 'true')
+    calls.length = 0
     await click('检查更新')
     assert.equal(document.querySelector('[role="dialog"]'), null)
     assert.ok(

@@ -946,13 +946,13 @@ pub fn run() {
             });
             #[cfg(desktop)]
             {
-                let updates = updates::Updates::new();
+                let updates = updates::Updates::new(updates::auto_check_enabled(&app.state::<Backend>().store)?);
                 app.manage(updates.clone());
                 let update_app = app.handle().clone();
                 if !cfg!(debug_assertions) && !cfg!(feature = "plugin-probe") {
                     tauri::async_runtime::spawn(async move {
                         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-                        let _ = (updates.check(&update_app).await).inspect_err(|error| { crate::infrastructure::diagnostics::warn("updates.check", error); });
+                        let _ = (updates.check_on_startup(&update_app).await).inspect_err(|error| { crate::infrastructure::diagnostics::warn("updates.check_on_startup", error); });
                     });
                 }
                 desktop::setup(app)?;
@@ -973,6 +973,8 @@ pub fn run() {
             telemetry::set_telemetry_enabled,
             #[cfg(desktop)]
             updates::update_status,
+            #[cfg(desktop)]
+            updates::set_update_auto_check,
             #[cfg(desktop)]
             updates::update_check,
             #[cfg(desktop)]

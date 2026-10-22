@@ -13,10 +13,16 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 const MIRROR: &str = "https://download.miaoyww.top/nons/releases/latest.json";
 const GITHUB: &str = "https://github.com/Miaoyww/Nons/releases/latest/download/latest.json";
 const MAX_BYTES: u64 = 512 * 1024 * 1024;
+const AUTO_CHECK: &str = "updateAutoCheck";
+
+pub fn auto_check_enabled(store: &crate::storage::Store) -> AppResult<bool> {
+    Ok(store.setting(AUTO_CHECK)?.as_deref() != Some("false"))
+}
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Snapshot {
+    auto_check: bool,
     phase: &'static str,
     version: Option<String>,
     notes: Option<String>,
@@ -37,11 +43,12 @@ pub struct Updates {
     inner: Mutex<Inner>,
 }
 impl Updates {
-    pub fn new() -> Arc<Self> {
+    pub fn new(auto_check: bool) -> Arc<Self> {
         Arc::new(Self {
             operation: tokio::sync::Mutex::new(()),
             inner: Mutex::new(Inner {
                 snapshot: Snapshot {
+                    auto_check,
                     phase: "idle",
                     version: None,
                     notes: None,
@@ -149,6 +156,12 @@ impl Updates {
                 Err(message.into())
             }
         }
+    }
+    pub async fn check_on_startup(&self, app: &tauri::AppHandle) -> AppResult<()> {
+        if self.snapshot()?.auto_check {
+            self.check(app).await?;
+        }
+        Ok(())
     }
     async fn download(&self, app: &tauri::AppHandle) -> AppResult<Snapshot> {
         let _guard = self
@@ -323,6 +336,26 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn startup_check_preference_defaults_on_and_survives_restart() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("settings.sqlite3");
+        let store = crate::storage::Store::open(&path).unwrap();
+        assert!(auto_check_enabled(&store).unwrap());
+        store.set_setting(AUTO_CHECK, "false").unwrap();
+        drop(store);
+        let store = crate::storage::Store::open(&path).unwrap();
+        assert!(!auto_check_enabled(&store).unwrap());
+        assert!(
+            !Updates::new(auto_check_enabled(&store).unwrap())
+                .snapshot()
+                .unwrap()
+                .auto_check
+        );
+        store.set_setting(AUTO_CHECK, "true").unwrap();
+        assert!(auto_check_enabled(&store).unwrap());
+    }
     #[tokio::test]
     async fn mirror_success_and_no_update_do_not_contact_github() {
         for value in [Some("1.4.0"), None] {
@@ -355,6 +388,18 @@ mod tests {
 #[tauri::command]
 pub fn update_status(updates: State<'_, Arc<Updates>>) -> AppResult<Snapshot> {
     updates.snapshot()
+}
+#[tauri::command]
+pub fn set_update_auto_check(
+    enabled: bool,
+    app: tauri::AppHandle,
+    backend: State<'_, super::Backend>,
+    updates: State<'_, Arc<Updates>>,
+) -> AppResult<Snapshot> {
+    backend
+        .store
+        .set_setting(AUTO_CHECK, if enabled { "true" } else { "false" })?;
+    updates.change(&app, |inner| inner.snapshot.auto_check = enabled)
 }
 #[tauri::command]
 pub async fn update_check(
