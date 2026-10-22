@@ -103,7 +103,10 @@ test('aggregate playlist picker atomically adds the complete ordered CUE group',
   const { AggregatePlaylistPicker } = load(
     '../src/features/aggregate/aggregate-playlist-picker.tsx',
     {
-      './playlist-targets': {},
+      './playlist-targets': {
+        addToAggregatePlaylist: async (id, tracks) =>
+          calls.push({ operation: 'add', id, keys: tracks.map((track) => track.key) })
+      },
       '@/features/library/create-playlist': { CreatePlaylist: () => null },
       '@/features/library/collection-actions': { useCollectionActions: () => ({ changed() {} }) },
       '@tanstack/react-virtual': {

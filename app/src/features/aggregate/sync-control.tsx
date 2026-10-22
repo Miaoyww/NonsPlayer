@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { RefreshCw, X } from 'lucide-react'
-import { ActionButton } from '@/components/music/action-button'
-import { ErrorNotice } from '@/components/error-notice'
 import { nativeCall, errorText } from '@/lib/player'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { useAggregateLibrary, type SyncProgress } from './aggregate-library'
 
-export function SyncControl({ id, automatic = false }: { id: string; automatic?: boolean }) {
+export function usePlaylistSync(id: string, automatic = false) {
   const [progress, setProgress] = useState<SyncProgress>()
   const [error, setError] = useState<string>()
   const [starting, setStarting] = useState(false)
@@ -68,30 +65,9 @@ export function SyncControl({ id, automatic = false }: { id: string; automatic?:
       clearTimeout(timer)
     }
   }, [progress?.key, progress?.running])
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <ActionButton
-        variant="outline"
-        disabled={starting || progress?.running}
-        onClick={() => void start(true)}
-      >
-        <RefreshCw aria-hidden="true" />
-        {starting ? '正在准备…' : progress?.running ? `正在读取 ${progress.count} 首…` : '立即同步'}
-      </ActionButton>
-      {progress?.running && (
-        <ActionButton
-          variant="ghost"
-          onClick={() =>
-            void nativeCall('aggregate_sync_cancel', { key: progress.key }).catch((cause) =>
-              setError(errorText(cause))
-            )
-          }
-        >
-          <X aria-hidden="true" />
-          取消同步
-        </ActionButton>
-      )}
-      <ErrorNotice error={error} />
-    </div>
-  )
+  const cancel = () =>
+    nativeCall('aggregate_sync_cancel', { key: progress!.key }).catch((cause) =>
+      setError(errorText(cause))
+    )
+  return { progress, error, starting, start, cancel }
 }

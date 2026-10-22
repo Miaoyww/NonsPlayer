@@ -11,8 +11,8 @@ export function mergeLibraryPlaylists(
   local: MusicCollection[],
   replacement: (item: MusicCollection) => { id: string } | undefined
 ) {
-  const represented = new Set(remote.map((item) => replacement(item)?.id).filter(Boolean))
-  return [...remote, ...local.filter((item) => !represented.has(item.localId))]
+  const represented = new Set(local.map((item) => item.localId))
+  return [...local, ...remote.filter((item) => !represented.has(replacement(item)?.id))]
 }
 
 export interface PlaylistTarget {
@@ -51,7 +51,6 @@ export async function ownedPlaylistTargets(
 }
 
 export async function addToPlaylist(target: PlaylistTarget, tracks: Track[], localId?: string) {
-  const keys = tracks.map((track) => track.key)
   const checkAccount = async () => {
     const current = (await musicClient.currentAccount(target.account.source))?.reference
     if (current?.source !== target.account.source || current.id !== target.account.id)
@@ -70,7 +69,7 @@ export async function addToPlaylist(target: PlaylistTarget, tracks: Track[], loc
         p.link.account.id === target.account.id
     )?.id
   }
-  if (localId) return writeAggregate({ operation: 'add', id: localId, keys })
+  if (localId) return addToAggregatePlaylist(localId, tracks)
   const references = tracks.map(onlineReference)
   if (references.every((reference) => reference?.source === playlist.source)) {
     if (!target.writable) throw new Error('此来源不支持修改平台歌单')
@@ -100,5 +99,47 @@ export async function addToPlaylist(target: PlaylistTarget, tracks: Track[], loc
   }
   if (progress.error || !progress.playlistId) throw new Error(progress.error ?? '未能建立聚合歌单')
   await checkAccount()
-  return writeAggregate({ operation: 'add', id: progress.playlistId, keys })
+  return addToAggregatePlaylist(progress.playlistId, tracks)
+}
+
+// Same-platform additions are uploaded before the local batch is committed.
+// Other sources and detached playlists remain local.
+export async function addToAggregatePlaylist(id: string, tracks: Track[]) {
+  const playlist = await nativeCall<AggregatePlaylist>('aggregate_playlist', { id, refresh: true })
+  const link = playlist.link
+  const references = [
+    ...new Map(
+      tracks
+        .map(onlineReference)
+        .filter((reference) => reference && reference.source === link?.reference.source)
+        .map((reference) => [reference!.id, reference!])
+    ).values()
+  ]
+  let uploaded = 0
+  if (link && references.length) {
+    for (const track of references) {
+      const current = (await musicClient.currentAccount(link.account.source))?.reference
+      if (current?.source !== link.account.source || current.id !== link.account.id)
+        throw new Error('请先选择关联账号，再添加此平台的歌曲；本机尚未添加')
+      try {
+        await musicClient.write(link.reference.source, {
+          operation: 'playlistTrack',
+          playlist: link.reference,
+          track,
+          add: true
+        })
+        uploaded++
+      } catch (cause) {
+        throw new Error(
+          `${uploaded ? `已有 ${uploaded} 首上传成功；` : ''}上传失败，本机尚未添加，可重试：${String(cause)}`
+        )
+      }
+    }
+  }
+  try {
+    return await writeAggregate({ operation: 'add', id, keys: tracks.map((track) => track.key) })
+  } catch (cause) {
+    if (uploaded) throw new Error(`服务器已保存，但本机添加失败，请重试：${String(cause)}`)
+    throw cause
+  }
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { DetailHeader } from '@/features/library/detail-header'
 import { DetailDescription } from '@/features/library/detail-description'
 import { Play } from 'lucide-react'
@@ -11,6 +12,9 @@ interface Props {
   total: number
   busy: boolean
   disabled: boolean
+  cover?: ReactNode
+  actions?: ReactNode
+  kindLabel?: string
   onPlay: () => void
 }
 
@@ -20,22 +24,27 @@ export function CollectionHeader({
   total,
   busy,
   disabled,
-  onPlay
+  onPlay,
+  cover,
+  actions,
+  kindLabel
 }: Props) {
   const kind =
     collection.kind === 'playlist' ? '歌单' : collection.kind === 'album' ? '专辑' : '艺人'
   return (
     <DetailHeader>
-      <Cover
-        size="large"
-        cover={collection.cover}
-        className={`library-detail-cover ${collection.kind === 'artist' ? 'rounded-full' : 'rounded-xl'}`}
-      />
+      {cover ?? (
+        <Cover
+          size="large"
+          cover={collection.cover}
+          className={`library-detail-cover ${collection.kind === 'artist' ? 'rounded-full' : 'rounded-xl'}`}
+        />
+      )}
       <div className="library-detail-info">
         <h1 className="library-detail-title">{collection.name}</h1>
         <div className="library-detail-meta">
           <p className="font-semibold">
-            {kind}
+            {kindLabel ?? kind}
             {collection.subtitle && ` · ${collection.subtitle}`}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -44,7 +53,7 @@ export function CollectionHeader({
           </p>
         </div>
         <DetailDescription description={description} />
-        <div className="library-detail-actions">
+        <div className="library-detail-actions flex flex-wrap items-center gap-2">
           <ActionButton
             variant="secondary"
             className="library-detail-play"
@@ -54,6 +63,7 @@ export function CollectionHeader({
             <Play aria-hidden="true" />
             {busy ? '正在加载…' : '播放'}
           </ActionButton>
+          {actions}
         </div>
       </div>
     </DetailHeader>

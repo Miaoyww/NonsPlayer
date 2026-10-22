@@ -1,6 +1,11 @@
 import { CreatePlaylist } from '@/features/library/create-playlist'
 import { onlineReference } from '@/features/music/legacy-reference'
-import { ownedPlaylistTargets, addToPlaylist, type PlaylistTarget } from './playlist-targets'
+import {
+  ownedPlaylistTargets,
+  addToPlaylist,
+  addToAggregatePlaylist,
+  type PlaylistTarget
+} from './playlist-targets'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { useAggregateReplacement } from './aggregate-library'
 import { writeAggregate, useAggregateLibrary } from '@/features/aggregate/aggregate-library'
@@ -160,7 +165,7 @@ export function AggregatePlaylistPicker({
     setError(undefined)
     try {
       const keys = (tracks ?? (track ? [track] : [])).map((item) => item.key)
-      if (id) await writeAggregate({ operation: 'add', id, keys })
+      if (id) await addToAggregatePlaylist(id, selected)
       else await writeAggregate({ operation: 'create', name, keys })
       await reload()
       onNotice('已添加到聚合歌单。')

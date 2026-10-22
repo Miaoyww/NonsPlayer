@@ -1,17 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Plus,
-  Play,
-  Trash2,
-  Pencil,
-  Unlink,
-  ExternalLink,
-  ArrowUpDown,
-  FolderPlus,
-  RotateCcw
-} from 'lucide-react'
+import { Plus, Trash2, ArrowUpDown, FolderPlus, RotateCcw } from 'lucide-react'
 import { isTauri } from '@tauri-apps/api/core'
-import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
+import { MusicPage } from '@/components/music/music-page'
 import { ActionButton } from '@/components/music/action-button'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
@@ -23,8 +13,7 @@ import { useMusicSources } from '@/features/music/use-music-sources'
 import { useSongActions } from '@/components/music/song-actions'
 import { usePagedList } from '@/lib/use-paged-list'
 import { nativeCall, usePlayer } from '@/lib/player'
-import { AggregateCover } from './aggregate-cover'
-import { SyncControl } from './sync-control'
+import { AggregateHeader } from './aggregate-header'
 import { PlaylistCard } from '@/features/library/playlist-card'
 import {
   aggregateCollection,
@@ -205,90 +194,24 @@ export default function AggregatePage({
   }
   return (
     <MusicPage aria-label="聚合歌单">
-      <div className="mb-6 flex flex-wrap gap-6">
-        <AggregateCover playlist={playlist} className="w-44 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <MusicPageHeader title={playlist.name} />
-          <p className="my-3 text-sm text-muted-foreground">
-            聚合歌单 · {playlist.trackCount} 首{playlist.link ? ' · 名称跟随原歌单' : ''}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <ActionButton
-              disabled={busy || !playlist.trackCount}
-              onClick={() =>
-                void run(async () => {
-                  const skipped = await playAggregate(id)
-                  onNotice(
-                    skipped ? `已开始播放，跳过 ${skipped} 首已退出曲库的歌曲。` : '已开始播放。'
-                  )
-                })
-              }
-            >
-              <Play aria-hidden="true" />
-              播放全部
-            </ActionButton>
-            {!playlist.link && (
-              <ActionButton
-                variant="outline"
-                onClick={() => {
-                  setName(playlist.name)
-                  setEdit('rename')
-                }}
-              >
-                <Pencil aria-hidden="true" />
-                改名
-              </ActionButton>
-            )}
-            <ActionButton variant="outline" onClick={() => setEdit('delete')}>
-              <Trash2 aria-hidden="true" />
-              删除本机歌单
-            </ActionButton>
-            {playlist.link && (
-              <>
-                <ActionButton
-                  variant="outline"
-                  onClick={() =>
-                    navigate('collection', '', {
-                      id: playlist.link!.reference.id,
-                      reference: playlist.link!.reference,
-                      bypassAggregate: true,
-                      kind: 'playlist',
-                      name: playlist.name,
-                      cover: playlist.covers[0] ?? '',
-                      subtitle: '',
-                      trackCount: 0
-                    })
-                  }
-                >
-                  <ExternalLink aria-hidden="true" />
-                  查看原歌单
-                </ActionButton>
-                <ActionButton variant="outline" onClick={() => setEdit('unlink')}>
-                  <Unlink aria-hidden="true" />
-                  解除关联
-                </ActionButton>
-              </>
-            )}
-          </div>
-          {playlist.link && (
-            <div className="mt-3">
-              <SyncControl key={id} id={id} automatic />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {playlist.link.lastSuccess
-                  ? `上次同步：${new Date(playlist.link.lastSuccess * 1000).toLocaleString()}`
-                  : '尚未同步'}
-              </p>
-              <ErrorNotice error={playlist.link.error ?? undefined} />
-            </div>
-          )}
-        </div>
-      </div>
+      <AggregateHeader
+        key={id}
+        playlist={playlist}
+        excluded={excluded}
+        busy={busy}
+        onPlay={() =>
+          void run(async () => {
+            const skipped = await playAggregate(id)
+            onNotice(skipped ? `已开始播放，跳过 ${skipped} 首已退出曲库的歌曲。` : '已开始播放。')
+          })
+        }
+        onEdit={(operation) => {
+          setName(playlist.name)
+          setEdit(operation)
+        }}
+        onExclusions={() => setExcluded((v) => !v)}
+      />
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {playlist.link && (
-          <ActionButton variant="outline" onClick={() => setExcluded((v) => !v)}>
-            {excluded ? '返回歌曲' : '管理同步排除'}
-          </ActionButton>
-        )}
         <ActionButton
           variant="ghost"
           disabled={!list.items.length}
@@ -392,7 +315,7 @@ export default function AggregatePage({
                       })
                     }}
                   />
-                  <span className="text-xs">{m.manual ? '手动保留' : '同步'}</span>
+                  <span className="text-xs">{m.manual ? '手动保留' : '来自原歌单'}</span>
                 </label>
               )
             }
