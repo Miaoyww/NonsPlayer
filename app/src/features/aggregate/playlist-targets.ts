@@ -85,8 +85,14 @@ export async function addToPlaylist(target: PlaylistTarget, tracks: Track[], loc
     return
   }
   if (target.item.liked) throw new Error('我喜欢的音乐不能转为聚合歌单，请选择普通歌单')
+  const id = await derivePlaylist(playlist)
+  await checkAccount()
+  return addToAggregatePlaylist(id, tracks)
+}
+
+export async function derivePlaylist(reference: ReturnType<typeof collectionReference>) {
   let progress = await nativeCall<SyncProgress>('aggregate_sync', {
-    reference: playlist,
+    reference,
     force: true
   })
   while (progress.running) {
@@ -98,8 +104,7 @@ export async function addToPlaylist(target: PlaylistTarget, tracks: Track[], loc
     progress = status
   }
   if (progress.error || !progress.playlistId) throw new Error(progress.error ?? '未能建立聚合歌单')
-  await checkAccount()
-  return addToAggregatePlaylist(progress.playlistId, tracks)
+  return progress.playlistId
 }
 
 // Same-platform additions are uploaded before the local batch is committed.

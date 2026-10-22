@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Trash2, ArrowUpDown, FolderPlus, RotateCcw, Check, ListChecks } from 'lucide-react'
+import { Plus, Trash2, ArrowUpDown, Check, ListChecks } from 'lucide-react'
 import { isTauri } from '@tauri-apps/api/core'
 import { MusicPage } from '@/components/music/music-page'
 import { ActionButton } from '@/components/music/action-button'
@@ -126,7 +126,6 @@ export default function AggregatePage({
   const actions = useSongActions()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [batch, setBatch] = useState(false)
-  const [excluded, setExcluded] = useState(false)
   const [busy, setBusy] = useState(false)
   const [edit, setEdit] = useState<'rename' | 'delete' | 'unlink' | 'order'>()
   const [name, setName] = useState('')
@@ -137,16 +136,15 @@ export default function AggregatePage({
     (offset: number) =>
       nativeCall<{ items: AggregateMember[]; more: boolean }>('aggregate_tracks', {
         id,
-        offset,
-        excluded
+        offset
       }),
-    [id, excluded, revision]
+    [id, revision]
   )
   const list = usePagedList(loader, 100, isTauri())
   const members = useMemo(() => new Map(list.items.map((m) => [m.track.key, m])), [list.items])
   useEffect(() => {
     setSelected(new Set())
-  }, [id, excluded, revision])
+  }, [id, revision])
   useEffect(() => {
     setBatch(false)
   }, [id])
@@ -167,7 +165,7 @@ export default function AggregatePage({
       setBusy(false)
     }
   }
-  const mutate = (operation: 'remove' | 'restore' | 'add', keys = [...selected]) =>
+  const mutate = (operation: 'remove', keys = [...selected]) =>
     run(() => writeAggregate({ operation, id, keys }))
   if (!playlist)
     return (
@@ -205,7 +203,6 @@ export default function AggregatePage({
       <AggregateHeader
         key={id}
         playlist={playlist}
-        excluded={excluded}
         batch={batch}
         onBatch={toggleBatch}
         busy={busy}
@@ -219,7 +216,6 @@ export default function AggregatePage({
           setName(playlist.name)
           setEdit(operation)
         }}
-        onExclusions={() => setExcluded((v) => !v)}
       />
       {batch && (
         <div
@@ -231,53 +227,43 @@ export default function AggregatePage({
             <ListChecks aria-hidden="true" className="size-4" />
             已选 {selected.size} 首
           </span>
-          {excluded ? (
-            <ActionButton disabled={busy || !selected.size} onClick={() => void mutate('restore')}>
-              <RotateCcw aria-hidden="true" />
-              取消排除
-            </ActionButton>
-          ) : (
-            <>
-              <ActionButton
-                disabled={busy || !selected.size}
-                variant="outline"
-                onClick={() => void mutate('remove')}
-              >
-                <Trash2 aria-hidden="true" />
-                移除
-              </ActionButton>
-              {playlist.link && (
-                <ActionButton
-                  disabled={busy || !selected.size}
-                  variant="outline"
-                  onClick={() => void mutate('add')}
-                >
-                  <FolderPlus aria-hidden="true" />
-                  手动保留
-                </ActionButton>
-              )}
-              <ActionButton
-                disabled={busy || !selected.size}
-                variant="outline"
-                onClick={() =>
-                  actions.collectGroup(
-                    list.items.filter((m) => selected.has(m.track.key)).map((m) => m.track)
-                  )
-                }
-              >
-                <Plus aria-hidden="true" />
-                添加到其他聚合歌单
-              </ActionButton>
-              <ActionButton
-                disabled={busy || !selected.size}
-                variant="outline"
-                onClick={() => setEdit('order')}
-              >
-                <ArrowUpDown aria-hidden="true" />
-                移动到位置
-              </ActionButton>
-            </>
-          )}
+          <ActionButton
+            disabled={
+              busy ||
+              !selected.size ||
+              list.items.some((m) => selected.has(m.track.key) && m.remote)
+            }
+            variant="outline"
+            title={
+              list.items.some((m) => selected.has(m.track.key) && m.remote)
+                ? '原歌单歌曲始终跟随平台，请在原歌单中删除'
+                : undefined
+            }
+            onClick={() => void mutate('remove')}
+          >
+            <Trash2 aria-hidden="true" />
+            移除
+          </ActionButton>
+          <ActionButton
+            disabled={busy || !selected.size}
+            variant="outline"
+            onClick={() =>
+              actions.collectGroup(
+                list.items.filter((m) => selected.has(m.track.key)).map((m) => m.track)
+              )
+            }
+          >
+            <Plus aria-hidden="true" />
+            添加到其他聚合歌单
+          </ActionButton>
+          <ActionButton
+            disabled={busy || !selected.size}
+            variant="outline"
+            onClick={() => setEdit('order')}
+          >
+            <ArrowUpDown aria-hidden="true" />
+            移动到位置
+          </ActionButton>
           <ActionButton variant="outline" className="ml-auto" disabled={busy} onClick={toggleBatch}>
             <Check aria-hidden="true" />
             完成
@@ -288,7 +274,7 @@ export default function AggregatePage({
         tracks={list.items.map((m) => m.track)}
         busy={busy}
         currentKey={currentKey}
-        searchable
+        searchable={!batch}
         hasMore={list.more}
         groupCue={false}
         selection={
@@ -315,11 +301,11 @@ export default function AggregatePage({
             : undefined
         }
         onPlay={(_, tracks) => {
-          if (excluded) onNotice('请先取消排除，再从歌单播放。')
-          else void run(() => playAggregate(id, tracks[_]?.key))
+          void run(() => playAggregate(id, tracks[_]?.key))
         }}
-        onRemove={(track) => mutate(excluded ? 'restore' : 'remove', [track.key])}
-        removeLabel={excluded ? '取消排除' : '从聚合歌单移除'}
+        onRemove={(track) => mutate('remove', [track.key])}
+        canRemove={(track) => !members.get(track.key)?.remote}
+        removeLabel="从聚合歌单移除"
         renderSource={(track) => {
           const m = members.get(track.key)!
           return (
@@ -329,22 +315,10 @@ export default function AggregatePage({
             </span>
           )
         }}
-        extraColumns={[
-          {
-            label: '保留状态',
-            render: (track) => (
-              <span className="text-xs">
-                {members.get(track.key)!.manual ? '手动保留' : '来自原歌单'}
-              </span>
-            )
-          }
-        ]}
       />
       <InfiniteLoad more={list.more} busy={list.busy} error={list.error} onLoad={list.loadMore} />
       {!list.busy && !list.items.length && (
-        <p className="py-8 text-muted-foreground">
-          {excluded ? '没有同步排除记录。' : '还没有歌曲，可从歌曲菜单添加。'}
-        </p>
+        <p className="py-8 text-muted-foreground">还没有歌曲，可从歌曲菜单添加。</p>
       )}
       <Dialog
         open={!!edit}
@@ -367,7 +341,7 @@ export default function AggregatePage({
             {edit === 'delete'
               ? '只删除本机歌单和同步关联，原平台歌单及音频文件保留。'
               : edit === 'unlink'
-                ? '保留当前歌曲，清除排除记录，转为独立聚合歌单并恢复原平台入口。'
+                ? '保留当前歌曲，转为独立聚合歌单并恢复原平台入口。'
                 : edit === 'order'
                   ? '选中歌曲按当前歌单顺序整体移动，位置从 1 开始。'
                   : '名称需要 1–100 个字符。'}

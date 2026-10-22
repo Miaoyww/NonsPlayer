@@ -49,7 +49,7 @@ fn migrates_existing_ids_order_and_retains_unavailable_local_metadata() {
     drop(db);
     let store = Store::open(&path).unwrap();
     assert_eq!(playlist(&store, "17").unwrap().name, "原歌单");
-    assert!(tracks(&store, "17", 0, false).unwrap().items[0].manual);
+    assert!(!tracks(&store, "17", 0, false).unwrap().items[0].remote);
     store
         .0
         .lock()
@@ -66,36 +66,66 @@ fn migrates_existing_ids_order_and_retains_unavailable_local_metadata() {
     assert_eq!(playlist(&store, "17").unwrap().track_count, 1);
 }
 #[test]
-fn sync_merges_latest_local_edits_preserves_order_exclusions_and_manual_members() {
+fn sync_always_follows_original_members_and_preserves_only_other_sources() {
     let dir = TestDir::new();
-    let store = Store::open(&dir.0.join("db")).unwrap();
+    let path = dir.0.join("db");
+    let store = Store::open(&path).unwrap();
     let l = link();
     let id = apply(&store, None, &l, "原名", &[song(1), song(2), song(3)]).unwrap();
-    // These edits happen after the sync's candidate was read but before its commit.
-    write(
-        &store,
-        &Write::Remove {
-            id: id.clone(),
-            keys: vec![song(1).key],
-        },
-    )
-    .unwrap();
+    let mut extra = song(8);
+    extra.key = "local:extra".into();
+    extra.source = TrackSource::Local {
+        path: "extra.mp3".into(),
+        netease_id: None,
+        cue: None,
+    };
+    store.save_tracks(&[extra.clone(), song(9)]).unwrap();
     write(
         &store,
         &Write::Add {
             id: id.clone(),
-            keys: vec![song(2).key],
+            keys: vec![extra.key.clone(), song(9).key],
         },
     )
     .unwrap();
+    // Mixed removal must roll back even the preceding extra member deletion.
+    assert!(write(
+        &store,
+        &Write::Remove {
+            id: id.clone(),
+            keys: vec![extra.key.clone(), song(1).key]
+        }
+    )
+    .is_err());
+    assert_eq!(playlist(&store, &id).unwrap().track_count, 5);
     write(
         &store,
         &Write::Reorder {
             id: id.clone(),
-            keys: vec![song(3).key, song(2).key],
+            keys: vec![
+                song(3).key,
+                song(2).key,
+                song(1).key,
+                extra.key.clone(),
+                song(9).key,
+            ],
         },
     )
     .unwrap();
+    // Simulate flags left by the previous retention/exclusion feature.
+    store
+        .0
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE local_playlist_tracks SET manual=1,excluded=1 WHERE playlist_id=?1 AND key=?2",
+            rusqlite::params![id, song(1).key],
+        )
+        .unwrap();
+    drop(store);
+    let store = Store::open(&path).unwrap();
+    assert!(tracks(&store, &id, 0, true).unwrap().items.is_empty());
+    assert_eq!(playlist(&store, &id).unwrap().track_count, 5);
     apply(
         &store,
         Some(&id),
@@ -104,32 +134,30 @@ fn sync_merges_latest_local_edits_preserves_order_exclusions_and_manual_members(
         &[song(1), song(3), song(4)],
     )
     .unwrap();
+    // Local unavailable extra remains in members even though playback skips it.
+    let rows = tracks(&store, &id, 0, false).unwrap();
     assert_eq!(
-        keys(&store, &id),
-        vec![song(3).key, song(2).key, song(4).key]
+        rows.items
+            .iter()
+            .map(|m| m.track.key.clone())
+            .collect::<Vec<_>>(),
+        vec![song(3).key, song(1).key, extra.key.clone(), song(4).key]
     );
     assert_eq!(playlist(&store, &id).unwrap().name, "远端改名");
-    assert_eq!(
-        tracks(&store, &id, 0, true).unwrap().items[0].track.key,
-        song(1).key
-    );
-    assert!(write(
-        &store,
-        &Write::Rename {
-            id: id.clone(),
-            name: "禁止".into()
-        }
-    )
-    .is_err());
+    apply(&store, Some(&id), &l, "空的原歌单", &[]).unwrap();
+    assert_eq!(playlist(&store, &id).unwrap().track_count, 1);
     write(
         &store,
-        &Write::Restore {
+        &Write::Remove {
             id: id.clone(),
-            keys: vec![song(1).key],
+            keys: vec![extra.key],
         },
     )
     .unwrap();
-    assert_eq!(keys(&store, &id).len(), 4);
+    assert_eq!(playlist(&store, &id).unwrap().track_count, 0);
+    apply(&store, Some(&id), &l, "恢复", &[song(1)]).unwrap();
+    write(&store, &Write::Unlink { id: id.clone() }).unwrap();
+    assert!(apply(&store, Some(&id), &l, "迟到", &[song(5)]).is_err());
     write(
         &store,
         &Write::Remove {
@@ -140,26 +168,13 @@ fn sync_merges_latest_local_edits_preserves_order_exclusions_and_manual_members(
     .unwrap();
     write(
         &store,
-        &Write::Add {
-            id: id.clone(),
-            keys: vec![song(1).key],
-        },
-    )
-    .unwrap();
-    apply(&store, Some(&id), &l, "空的远端", &[]).unwrap();
-    assert_eq!(keys(&store, &id), vec![song(1).key, song(2).key]);
-    write(&store, &Write::Unlink { id: id.clone() }).unwrap();
-    assert!(playlist(&store, &id).unwrap().link.is_none());
-    assert!(apply(&store, Some(&id), &l, "迟到", &[song(5)]).is_err());
-    write(
-        &store,
         &Write::Rename {
             id: id.clone(),
             name: "独立".into(),
         },
     )
     .unwrap();
-    write(&store, &Write::Delete { id: id.clone() }).unwrap();
+    write(&store, &Write::Delete { id }).unwrap();
     assert!(store.track(&song(1).key).is_ok());
 }
 #[test]

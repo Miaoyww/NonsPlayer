@@ -7,7 +7,6 @@ import {
   ExternalLink,
   RefreshCw,
   X,
-  ListFilter,
   ListChecks
 } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
@@ -23,19 +22,15 @@ export function AggregateHeader({
   busy,
   onPlay,
   onEdit,
-  onExclusions,
   onBatch,
-  batch = false,
-  excluded = false
+  batch = false
 }: {
   playlist: AggregatePlaylist
   busy: boolean
   onPlay: () => void
   onEdit: (operation: 'rename' | 'delete' | 'unlink') => void
-  excluded?: boolean
   onBatch?: () => void
   batch?: boolean
-  onExclusions: () => void
 }) {
   const { navigate } = useMusicNavigation()
   const sync = usePlaylistSync(playlist.id, !!playlist.link)
@@ -113,10 +108,6 @@ export function AggregateHeader({
                             取消更新
                           </Menu.Item>
                         )}
-                        <Menu.Item onClick={onExclusions}>
-                          <ListFilter aria-hidden="true" />
-                          {excluded ? '返回歌曲' : '管理同步排除'}
-                        </Menu.Item>
                         <Menu.Separator />
                       </>
                     )}

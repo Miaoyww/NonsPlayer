@@ -30,7 +30,6 @@ export interface AggregatePlaylist {
 }
 export interface AggregateMember {
   track: Track
-  manual: boolean
   remote: boolean
   unavailable: string | null
 }
@@ -45,7 +44,7 @@ export type AggregateWrite =
   | { operation: 'create'; name: string; keys?: string[] }
   | { operation: 'rename'; id: string; name: string }
   | { operation: 'delete' | 'unlink'; id: string }
-  | { operation: 'add' | 'remove' | 'restore' | 'reorder'; id: string; keys: string[] }
+  | { operation: 'add' | 'remove' | 'reorder'; id: string; keys: string[] }
 const Context = createContext<{
   playlists: AggregatePlaylist[]
   accounts: Record<string, AccountRef | null>

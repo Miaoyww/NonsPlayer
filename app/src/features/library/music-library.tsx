@@ -1,3 +1,4 @@
+import { PlatformPlaylistMenu } from '@/features/aggregate/platform-playlist-menu'
 import { mergeLibraryPlaylists } from '@/features/aggregate/playlist-targets'
 import { CreateAggregatePlaylist } from '@/features/aggregate/aggregate-page'
 import {
@@ -315,6 +316,16 @@ export default function MusicLibrary({
             key={`header:${collection.kind}:${collection.id}`}
             collection={collection}
             description={detail.description}
+            actions={
+              collection.kind === 'playlist' ? (
+                <PlatformPlaylistMenu
+                  key={`${account?.source}:${account?.id}:${collection.id}`}
+                  collection={collection}
+                  account={account}
+                  onError={onError}
+                />
+              ) : undefined
+            }
             total={detailList.metadata?.total ?? collection.trackCount}
             busy={playing}
             disabled={playing || !profile || detailBusy || !detail.tracks.length}

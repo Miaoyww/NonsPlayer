@@ -788,3 +788,14 @@ test('batch checkboxes replace the leading sequence and select only filtered loa
     assert.equal(document.querySelector('thead th:first-child').textContent.trim(), '#')
   })
 })
+
+test('batch mode hides search and original members have no local removal action', async () => {
+  await harness(async ({ tracks, render, search, menus }) => {
+    await search(tracks[1].title)
+    await render({ searchable: false, canRemove: (track) => track.key !== tracks[0].key })
+    assert.equal(document.querySelector('input[type="search"]'), null)
+    assert.equal(document.querySelectorAll('tbody .track-row').length, 3)
+    assert.equal(menus.find((menu) => menu.track.key === tracks[0].key).onRemove, undefined)
+    assert.equal(typeof menus.find((menu) => menu.track.key === tracks[1].key).onRemove, 'function')
+  })
+})

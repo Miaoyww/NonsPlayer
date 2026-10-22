@@ -49,7 +49,9 @@ pub(crate) fn migrate(db: &Connection) -> rusqlite::Result<()> {
     }
     db.execute_batch("UPDATE local_playlist_tracks SET value=COALESCE((SELECT value FROM tracks WHERE tracks.key=local_playlist_tracks.key),json_object('key',key,'title','已退出曲库的歌曲','artist','未知艺术家','album','','durationMs',0,'cover','','source',json_object('kind','local','path',''))) WHERE value IS NULL;
         CREATE INDEX IF NOT EXISTS aggregate_member_order ON local_playlist_tracks(playlist_id,position);
-        CREATE TABLE IF NOT EXISTS aggregate_links(playlist_id INTEGER PRIMARY KEY, source TEXT NOT NULL, account TEXT NOT NULL, entity TEXT NOT NULL, reference TEXT NOT NULL, last_success INTEGER NOT NULL DEFAULT 0, last_attempt INTEGER NOT NULL DEFAULT 0, error TEXT, UNIQUE(source,account,entity));")
+        CREATE TABLE IF NOT EXISTS aggregate_links(playlist_id INTEGER PRIMARY KEY, source TEXT NOT NULL, account TEXT NOT NULL, entity TEXT NOT NULL, reference TEXT NOT NULL, last_success INTEGER NOT NULL DEFAULT 0, last_attempt INTEGER NOT NULL DEFAULT 0, error TEXT, UNIQUE(source,account,entity));
+        DELETE FROM local_playlist_tracks WHERE excluded=1 AND remote=0;
+        UPDATE local_playlist_tracks SET manual=0,remote=1,excluded=0 WHERE playlist_id IN (SELECT playlist_id FROM aggregate_links) AND (remote=1 OR COALESCE(json_extract(value,'$.source.track.reference.source'),json_extract(value,'$.source.kind'))=(SELECT source FROM aggregate_links WHERE playlist_id=local_playlist_tracks.playlist_id));")
 }
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -73,7 +75,6 @@ pub struct Playlist {
 #[serde(rename_all = "camelCase")]
 pub struct Member {
     pub track: Track,
-    pub manual: bool,
     pub remote: bool,
     pub unavailable: Option<String>,
 }
@@ -110,10 +111,6 @@ pub enum Write {
         keys: Vec<String>,
     },
     Remove {
-        id: String,
-        keys: Vec<String>,
-    },
-    Restore {
         id: String,
         keys: Vec<String>,
     },
@@ -187,11 +184,10 @@ pub(crate) fn tracks(store: &Store, id: &str, offset: u32, excluded: bool) -> Ap
         .map_err(|e| e.to_string())?;
     let mut items = Vec::new();
     for row in rows {
-        let (value, manual, remote, unavailable) = row.map_err(|e| e.to_string())?;
+        let (value, _manual, remote, unavailable) = row.map_err(|e| e.to_string())?;
         if let Some(value) = value {
             items.push(Member {
                 track: serde_json::from_str(&value).map_err(|e| e.to_string())?,
-                manual,
                 remote,
                 unavailable,
             });
@@ -250,7 +246,6 @@ pub(crate) fn write(store: &Store, request: &Write) -> AppResult<String> {
         Write::Create { keys, .. }
         | Write::Add { keys, .. }
         | Write::Remove { keys, .. }
-        | Write::Restore { keys, .. }
         | Write::Reorder { keys, .. } => Some(keys),
         _ => None,
     };
@@ -264,7 +259,6 @@ pub(crate) fn write(store: &Store, request: &Write) -> AppResult<String> {
         | Write::Unlink { id }
         | Write::Add { id, .. }
         | Write::Remove { id, .. }
-        | Write::Restore { id, .. }
         | Write::Reorder { id, .. } => {
             exists(&tx, id)?;
             id.clone()
@@ -272,21 +266,27 @@ pub(crate) fn write(store: &Store, request: &Write) -> AppResult<String> {
     };
     match request {
         Write::Create { keys, .. } | Write::Add { keys, .. } => {
+            let link = linked(&tx, &id)?;
             for key in keys {
                 let value:String=tx.query_row("SELECT value FROM tracks WHERE key=?1",[key],|r|r.get(0)).optional().map_err(|e|e.to_string())?.or(tx.query_row("SELECT value FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2",params![id,key],|r|r.get(0)).optional().map_err(|e|e.to_string())?.flatten()).ok_or("歌曲不存在")?;
-                tx.execute("INSERT INTO local_playlist_tracks(playlist_id,key,position,manual,remote,excluded,value) VALUES(?1,?2,COALESCE((SELECT MAX(position)+1 FROM local_playlist_tracks WHERE playlist_id=?1),0),1,0,0,?3) ON CONFLICT(playlist_id,key) DO UPDATE SET manual=1,excluded=0,value=excluded.value",params![id,key,value]).map_err(|e|e.to_string())?;
+                let track: Track = serde_json::from_str(&value).map_err(|e| e.to_string())?;
+                let remote = link
+                    .as_ref()
+                    .is_some_and(|link| link.reference.source.as_str() == track.source_id());
+                tx.execute("INSERT INTO local_playlist_tracks(playlist_id,key,position,manual,remote,excluded,value) VALUES(?1,?2,COALESCE((SELECT MAX(position)+1 FROM local_playlist_tracks WHERE playlist_id=?1),0),?4,?5,0,?3) ON CONFLICT(playlist_id,key) DO UPDATE SET manual=?4,remote=MAX(remote,?5),excluded=0,value=excluded.value",params![id,key,value,!remote,remote]).map_err(|e|e.to_string())?;
             }
         }
         Write::Remove { keys, .. } => {
             for key in keys {
-                tx.execute("UPDATE local_playlist_tracks SET excluded=1,manual=0 WHERE playlist_id=?1 AND key=?2 AND remote=1",params![id,key]).map_err(|e|e.to_string())?;
-                tx.execute("DELETE FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2 AND remote=0",params![id,key]).map_err(|e|e.to_string())?;
-            }
-        }
-        Write::Restore { keys, .. } => {
-            for key in keys {
-                tx.execute("UPDATE local_playlist_tracks SET excluded=0 WHERE playlist_id=?1 AND key=?2 AND remote=1",params![id,key]).map_err(|e|e.to_string())?;
-                tx.execute("DELETE FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2 AND remote=0 AND excluded=1",params![id,key]).map_err(|e|e.to_string())?;
+                let remote: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2 AND remote=1)",params![id,key],|row| row.get(0)).map_err(|e|e.to_string())?;
+                if remote {
+                    return Err("原歌单歌曲始终跟随平台，请在原歌单中删除".into());
+                }
+                tx.execute(
+                    "DELETE FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2",
+                    params![id, key],
+                )
+                .map_err(|e| e.to_string())?;
             }
         }
         Write::Rename { name, .. } => {
@@ -388,7 +388,11 @@ pub(crate) fn apply_checked(
     };
     Store::save_tracks_in(&tx, tracks)?;
     tx.execute(
-        "UPDATE local_playlist_tracks SET remote=0 WHERE playlist_id=?1",
+        "UPDATE local_playlist_tracks SET manual=0 WHERE playlist_id=?1 AND (remote=1 OR COALESCE(json_extract(value,'$.source.track.reference.source'),json_extract(value,'$.source.kind'))=?2)",
+        params![id,link.reference.source.as_str()],
+    ).map_err(|e|e.to_string())?;
+    tx.execute(
+        "UPDATE local_playlist_tracks SET remote=0,excluded=0 WHERE playlist_id=?1",
         [&id],
     )
     .map_err(|e| e.to_string())?;
@@ -396,7 +400,7 @@ pub(crate) fn apply_checked(
         if index % 100 == 0 {
             validate()?;
         }
-        tx.execute("INSERT INTO local_playlist_tracks(playlist_id,key,position,manual,remote,excluded,value) VALUES(?1,?2,COALESCE((SELECT MAX(position)+1 FROM local_playlist_tracks WHERE playlist_id=?1),0),0,1,0,?3) ON CONFLICT(playlist_id,key) DO UPDATE SET remote=1,value=excluded.value",params![id,track.key,serde_json::to_string(track).map_err(|e|e.to_string())?]).map_err(|e|e.to_string())?;
+        tx.execute("INSERT INTO local_playlist_tracks(playlist_id,key,position,manual,remote,excluded,value) VALUES(?1,?2,COALESCE((SELECT MAX(position)+1 FROM local_playlist_tracks WHERE playlist_id=?1),0),0,1,0,?3) ON CONFLICT(playlist_id,key) DO UPDATE SET manual=0,remote=1,excluded=0,value=excluded.value",params![id,track.key,serde_json::to_string(track).map_err(|e|e.to_string())?]).map_err(|e|e.to_string())?;
     }
     tx.execute("DELETE FROM local_playlist_tracks WHERE playlist_id=?1 AND remote=0 AND manual=0 AND excluded=0",[&id]).map_err(|e|e.to_string())?;
     capacity(&tx, &id)?;

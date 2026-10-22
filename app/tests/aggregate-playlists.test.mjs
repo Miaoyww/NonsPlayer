@@ -344,8 +344,7 @@ test('aggregate detail reuses the platform header and keeps deletion and refresh
     busy: false,
     onPlay() {},
     onEdit: (operation) => edits.push(operation),
-    onBatch: () => calls.push(['batch']),
-    onExclusions: () => calls.push(['exclude'])
+    onBatch: () => calls.push(['batch'])
   })
   const flatten = (node) =>
     Array.isArray(node)
@@ -377,4 +376,72 @@ test('aggregate detail reuses the platform header and keeps deletion and refresh
   assert.equal(origin.bypassAggregate, true)
   assert.equal(origin.localId, undefined)
   assert.equal(origin.id, 'original')
+})
+
+test('ordinary playlist menu exposes only derivation for owned playlists and opens the native version', async () => {
+  const jsx = (type, props) => ({ type, props })
+  const calls = []
+  const { PlatformPlaylistMenu } = load('../src/features/aggregate/platform-playlist-menu.tsx', {
+    react: {
+      useState: () => [false, () => {}],
+      useRef: (current) => ({ current }),
+      useEffect() {}
+    },
+    'react/jsx-runtime': { jsx, jsxs: jsx },
+    '@base-ui/react/menu': {
+      Menu: Object.fromEntries(
+        ['Root', 'Trigger', 'Portal', 'Positioner', 'Popup', 'Item'].map((name) => [name, name])
+      )
+    },
+    'lucide-react': { Ellipsis: 'Ellipsis', GitBranch: 'GitBranch' },
+    '@/components/music/action-button': { ActionButton: 'Button' },
+    '@/features/music/legacy-reference': { collectionReference: (item) => item.reference },
+    '@/features/music/client': {
+      musicClient: { currentAccount: async () => ({ reference: { source: 'netease', id: '42' } }) }
+    },
+    '@/features/workspace/music-navigation': {
+      useMusicNavigation: () => ({ navigate: (...args) => calls.push(args) })
+    },
+    './playlist-targets': {
+      derivePlaylist: async (ref) => {
+        calls.push(['derive', ref.id])
+        return 'local'
+      }
+    },
+    './aggregate-library': {
+      useAggregateLibrary: () => ({ reload: async () => calls.push(['reload']) }),
+      aggregateCollection: (p) => ({ ...p, localId: p.id })
+    }
+  })
+  const props = {
+    collection: {
+      id: 'p',
+      name: '原歌单',
+      kind: 'playlist',
+      creatorId: '42',
+      trackCount: 3,
+      reference: { source: 'netease', kind: 'playlist', id: 'p' }
+    },
+    account: { source: 'netease', id: '42' },
+    onError: (cause) => {
+      throw cause
+    }
+  }
+  const flat = (node) =>
+    Array.isArray(node)
+      ? node.flatMap(flat)
+      : node && typeof node === 'object'
+        ? [node, ...flat(node.props?.children)]
+        : []
+  const items = flat(PlatformPlaylistMenu(props)).filter((node) => node.type === 'Item')
+  assert.equal(items.length, 1)
+  assert.equal(items[0].props.children[1], '派生为聚合歌单')
+  items[0].props.onClick()
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(calls.at(-1)[0], 'local-playlist')
+  assert.equal(calls.at(-1)[2].localId, 'local')
+  assert.equal(
+    PlatformPlaylistMenu({ ...props, collection: { ...props.collection, creatorId: 'other' } }),
+    null
+  )
 })

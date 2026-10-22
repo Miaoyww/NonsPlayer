@@ -83,6 +83,7 @@ interface Props {
   currentIndex?: number
   locateRequest?: number
   onRemove?: (track: Track, index: number) => void | Promise<unknown>
+  canRemove?: (track: Track) => boolean
   removeLabel?: string
   extraColumns?: {
     label: string
@@ -119,6 +120,7 @@ export const TrackList = memo(function TrackList({
   locateRequest,
   onRemove,
   removeLabel,
+  canRemove,
   extraColumns = [],
   selection,
   sortable = false,
@@ -292,11 +294,14 @@ export const TrackList = memo(function TrackList({
           setFindTarget({ index, serial: Date.now() })
         },
         remove: onRemove
-          ? (index: number) => onRemove(entries[index].track, entries[index].index)
+          ? (index: number) => {
+              if (canRemove?.(entries[index].track) !== false)
+                return onRemove(entries[index].track, entries[index].index)
+            }
           : undefined,
         removeLabel
       }),
-      [loading, entries, hasMore, busy, onPlay, visibleTracks, onRemove, removeLabel]
+      [loading, entries, hasMore, busy, onPlay, visibleTracks, onRemove, canRemove, removeLabel]
     )
   )
   useLayoutEffect(() => {
@@ -670,7 +675,11 @@ export const TrackList = memo(function TrackList({
                     track={track}
                     onPlay={() => onPlay(playIndex, visibleTracks)}
                     busy={busy}
-                    onRemove={onRemove ? () => onRemove(track, index) : undefined}
+                    onRemove={
+                      onRemove && canRemove?.(track) !== false
+                        ? () => onRemove(track, index)
+                        : undefined
+                    }
                     removeLabel={removeLabel}
                     render={
                       <tr
