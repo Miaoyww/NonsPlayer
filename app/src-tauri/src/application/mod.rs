@@ -550,6 +550,10 @@ fn player_jump(index: usize, backend: State<'_, Backend>) -> AppResult<()> {
     backend.player.send(Command::Jump(index))
 }
 #[tauri::command]
+fn player_retry(revision: u64, key: String, backend: State<'_, Backend>) -> AppResult<()> {
+    backend.player.send(Command::Retry { revision, key })
+}
+#[tauri::command]
 fn player_seek(position_ms: u64, backend: State<'_, Backend>) -> AppResult<()> {
     backend.player.send(Command::Seek(position_ms))
 }
@@ -1071,6 +1075,7 @@ pub fn run() {
             append_queue,
             player_action,
             player_jump,
+            player_retry,
             player_seek,
             player_volume,
             player_device,

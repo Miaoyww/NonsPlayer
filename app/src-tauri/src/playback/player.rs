@@ -67,6 +67,10 @@ pub enum Command {
     PlayNext(Vec<Track>),
     PlayNextNow(Vec<Track>),
     Jump(usize),
+    Retry {
+        revision: u64,
+        key: String,
+    },
     Pause,
     Toggle,
     Resume,
@@ -129,6 +133,19 @@ fn previous_command(state: &PlayerSnapshot) -> Option<Command> {
     // Manual navigation always selects a queue entry, regardless of position.
     // Jump goes through load(), invalidating prepared/armed gapless work.
     state.previous().map(Command::Jump)
+}
+
+fn retry_position(state: &PlayerSnapshot, revision: u64, key: &str) -> Option<(usize, u64)> {
+    if state.revision != revision
+        || state.current()?.key != key
+        || !matches!(
+            state.status,
+            PlaybackStatus::Stopped | PlaybackStatus::Error
+        )
+    {
+        return None;
+    }
+    Some((state.index?, state.position_ms))
 }
 
 fn restore_player(mut state: PlayerSnapshot) -> PlayerSnapshot {
@@ -616,6 +633,11 @@ impl Actor {
     }
 
     fn command(&mut self, command: Command) -> AppResult<()> {
+        if let Command::Retry { revision, key } = &command {
+            if retry_position(&self.state, *revision, key).is_none() {
+                return Ok(());
+            }
+        }
         if !matches!(
             &command,
             Command::Resolved { .. }
@@ -742,6 +764,11 @@ impl Actor {
         }
         let play_now = matches!(&command, Command::PlayNextNow(_));
         match command {
+            Command::Retry { revision, key } => {
+                if let Some((index, position)) = retry_position(&self.state, revision, &key) {
+                    self.load_at(index, true, position)?;
+                }
+            }
             #[cfg(target_os = "android")]
             Command::Media { .. } => unreachable!("Media commands are unwrapped before dispatch"),
             Command::Collection {
@@ -2085,6 +2112,22 @@ impl Actor {
 mod tests {
     use super::*;
     use crate::model::TrackSource;
+
+    #[test]
+    fn retry_is_bound_to_failed_revision_and_keeps_the_current_position() {
+        let mut state = snapshot(0, 850, RepeatMode::Off);
+        state.status = PlaybackStatus::Error;
+        state.revision = 7;
+        let key = state.queue[0].key.clone();
+        assert_eq!(retry_position(&state, 7, &key), Some((0, 850)));
+        assert_eq!(retry_position(&state, 6, &key), None);
+        assert_eq!(retry_position(&state, 7, "another-song"), None);
+        state.status = PlaybackStatus::Loading;
+        assert_eq!(retry_position(&state, 7, &key), None);
+        state.status = PlaybackStatus::Stopped;
+        state.index = None;
+        assert_eq!(retry_position(&state, 7, &key), None);
+    }
 
     #[test]
     fn unavailable_tracks_stop_boundedly_with_repeat_and_shuffle() {

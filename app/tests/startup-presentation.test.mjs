@@ -14,6 +14,7 @@ function load(path, modules) {
     }).outputText,
     {
       exports,
+      window: {},
       require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
     }
   )
@@ -28,6 +29,7 @@ const react = {
   Suspense: 'Suspense'
 }
 const base = {
+  '@/features/playback/playback-recovery': { PlaybackRecovery: () => null },
   react,
   'react/jsx-runtime': { jsx, jsxs: jsx },
   '@tauri-apps/api/core': { isTauri: () => true },

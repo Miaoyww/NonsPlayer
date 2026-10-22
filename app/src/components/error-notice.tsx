@@ -45,8 +45,42 @@ export function ErrorNotice({ error: message }: { error?: string | null }) {
 export function ErrorNoticeViewport() {
   const messages = useSyncExternalStore(errorNotices.subscribe, errorNotices.getSnapshot)
   return messages.map((item) => (
-    <p key={item.id} role="alert" className="playback-notice glass-surface">
-      {item.message}
-    </p>
+    <div
+      key={item.id}
+      role="alert"
+      className="playback-notice glass-surface"
+      data-actionable={!!item.actions?.length}
+    >
+      <p>{item.message}</p>
+      {item.actions?.length ? (
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          {item.actions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              className="text-xs font-medium underline underline-offset-4"
+              onClick={() => {
+                errorNotices.dismiss(item.id)
+                void Promise.resolve()
+                  .then(action.run)
+                  .catch((cause) =>
+                    errorNotices.push(cause instanceof Error ? cause.message : String(cause))
+                  )
+              }}
+            >
+              {action.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="ml-auto text-xs opacity-70"
+            aria-label="关闭错误提示"
+            onClick={() => errorNotices.dismiss(item.id)}
+          >
+            关闭
+          </button>
+        </div>
+      ) : null}
+    </div>
   ))
 }

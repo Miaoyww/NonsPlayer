@@ -33,6 +33,7 @@ import { isAndroid } from '@/lib/platform'
 import { usePrimaryMusicPage } from './use-primary-music-page'
 import { MobilePageHeader } from './mobile-page-header'
 import { settingsSections } from '@/features/settings/settings-sections'
+import { PlaybackRecovery } from '@/features/playback/playback-recovery'
 import { TrackSearchContext } from '@/components/music/track-search-context'
 
 const LyricsView = lazy(() => import('@/features/lyrics/lyrics-view'))
@@ -62,7 +63,7 @@ export function MusicWorkspace({
   onNowPlayingChange: (value: boolean) => void
   onPlayerExitComplete: () => void
 }) {
-  const state = usePlayer('error', 'mediaError')
+  const state = usePlayer('error', 'mediaError', 'status')
   const [barMode] = usePlaybackBarMode()
   const [density] = useInterfaceDensity()
   const { page, navigate, back } = useMusicNavigation()
@@ -263,7 +264,11 @@ export function MusicWorkspace({
   return (
     <CollectionActionsProvider onError={onError} onNotice={showNotice}>
       <ErrorNotice key={operationError?.id} error={operationError?.message} />
-      <ErrorNotice error={state.error} />
+      <PlaybackRecovery
+        fallback={barMode === 'off' && !playerVisible}
+        onAccount={() => onNowPlayingChange(false)}
+      />
+      <ErrorNotice error={['stopped', 'error'].includes(state.status) ? undefined : state.error} />
       <ErrorNotice error={state.mediaError} />
       <ErrorNotice error={sources.error} />
       <SongActionsProvider onError={onError} onNotice={showNotice}>

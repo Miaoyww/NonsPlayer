@@ -91,7 +91,7 @@ export default function LyricsView({
   const { options: localPreferences } = useLocalPreferences()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
-  const playbackError = error ?? state.error ?? state.mediaError
+  const playbackError = error
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
   const hasTranslation = lines.some((line) => !!line.translatedLyric.trim())

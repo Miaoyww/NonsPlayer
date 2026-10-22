@@ -15,8 +15,10 @@ function load(path, modules, storage) {
   const exports = {}
   runInNewContext(outputText, {
     exports,
+    window: {},
     localStorage: storage,
     require(name) {
+      if (name === '@/features/playback/playback-recovery') return { PlaybackRecovery: () => null }
       if (name === '@/components/error-notice') return errorNoticeModule
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }
       assert.ok(name in modules, `unexpected dependency: ${name}`)
