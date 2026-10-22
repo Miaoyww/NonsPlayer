@@ -1,23 +1,18 @@
 import { useState } from 'react'
-import { ArrowLeft, Wrench, X } from 'lucide-react'
-import { useReducedMotion } from 'motion/react'
+import { Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogDescription,
-  DialogPopup,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/animate-ui/components/base/dialog'
+import { Dialog, DialogTrigger } from '@/components/animate-ui/components/base/dialog'
+import { WorkspaceDialogPopup } from '@/components/workspace-dialog'
 import { PluginPageHost } from '@/plugins/host'
 import { pluginPath, resolvePluginPath } from '@/plugins/types'
-import { ToolsContent } from './tools-page'
+import { useMusicTools } from './use-music-tools'
 
 export function ToolsDialog() {
   const [open, setOpen] = useState(false)
-  const [path, setPath] = useState<string>()
-  const reducedMotion = useReducedMotion()
+  const [selection, setSelection] = useState<{ id: string; path: string }>()
+  const tools = useMusicTools()
+  const selected = tools.find((tool) => tool.id === selection?.id) ?? tools[0]
+  const path = selected && (selection?.id === selected.id ? selection.path : selected.path)
   const route = path ? resolvePluginPath(path) : undefined
 
   return (
@@ -25,7 +20,7 @@ export function ToolsDialog() {
       open={open}
       onOpenChange={(next) => {
         setOpen(next)
-        if (next) setPath(undefined)
+        if (next) setSelection(undefined)
       }}
     >
       <DialogTrigger
@@ -33,59 +28,43 @@ export function ToolsDialog() {
       >
         <Wrench aria-hidden="true" />
       </DialogTrigger>
-      <DialogPopup
-        showCloseButton={false}
-        className="flex flex-col overflow-hidden rounded-lg"
-        style={{ width: 1024, maxWidth: 'calc(100vw - 40px)', height: '85dvh', padding: 0, gap: 0 }}
-        initial={{ opacity: 0, scale: reducedMotion ? 1 : 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.98 }}
-        transition={{ duration: reducedMotion ? 0 : 0.18 }}
-      >
-        <div className="flex shrink-0 items-center gap-3 border-b px-5 py-4">
-          {path && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="返回工具列表"
-              title="返回工具列表"
-              onClick={() => setPath(undefined)}
-            >
-              <ArrowLeft aria-hidden="true" />
-            </Button>
-          )}
-          <div className="min-w-0 flex-1">
-            <DialogTitle className="text-[26px] font-bold leading-none tracking-tight">
-              工具
-            </DialogTitle>
-            <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
-              处理音乐文件，让收藏更易整理。
-            </DialogDescription>
-          </div>
-          <DialogClose
-            render={
-              <Button variant="ghost" size="icon-sm" aria-label="关闭工具" title="关闭工具" />
-            }
+      <WorkspaceDialogPopup
+        title="工具"
+        description="音乐文件与收藏整理"
+        navigation={tools.map((tool) => (
+          <Button
+            key={tool.id}
+            variant={selected?.id === tool.id ? 'secondary' : 'ghost'}
+            className="justify-start gap-2.5 rounded-lg px-3"
+            aria-current={selected?.id === tool.id ? 'page' : undefined}
+            title={tool.item.label}
+            onClick={() => setSelection({ id: tool.id, path: tool.path })}
           >
-            <X aria-hidden="true" />
-          </DialogClose>
-        </div>
-        <section
-          key={path ? route?.pluginId : 'tools'}
-          aria-label={path ? '工具内容' : '工具列表'}
-          className="music-library min-w-0 flex-1 overflow-auto p-5 sm:p-10"
-        >
-          {open &&
-            (path && route ? (
-              <PluginPageHost
-                path={path}
-                navigate={(relative) => setPath(pluginPath(route.pluginId, relative))}
-              />
-            ) : (
-              <ToolsContent onOpenTool={setPath} />
-            ))}
-        </section>
-      </DialogPopup>
+            <Wrench aria-hidden="true" />
+            <span className="truncate">{tool.item.label}</span>
+          </Button>
+        ))}
+        contentLabel={selected?.item.label ?? '音乐工具'}
+        contentKey={selected?.id}
+        contentClassName="music-library [&_.library-heading]:text-xl [&_.library-heading]:leading-7 [&_.music-page-heading]:mb-0"
+      >
+        {open &&
+          (selected && path && route ? (
+            <PluginPageHost
+              path={path}
+              navigate={(relative) =>
+                setSelection({ id: selected.id, path: pluginPath(route.pluginId, relative) })
+              }
+            />
+          ) : (
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold">还没有启用音乐工具</h2>
+              <p className="text-sm text-muted-foreground">
+                在设置 → 插件中安装并启用工具插件，入口会显示在这里。
+              </p>
+            </div>
+          ))}
+      </WorkspaceDialogPopup>
     </Dialog>
   )
 }

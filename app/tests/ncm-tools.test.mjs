@@ -108,14 +108,17 @@ test('tools page displays active tool contributions and preserves plugin page na
     let loaded = new Map([['convert', {}]])
     const navigation = []
     const routing = load('../src/plugins/types.ts', {})
+    const musicTools = load('../src/features/tools/use-music-tools.ts', {
+      '@/plugins/types': routing,
+      '@/plugins/host': { usePlugins: () => ({ plugins: [tool], loaded }) }
+    })
     const { ToolsPage } = load('../src/features/tools/tools-page.tsx', {
       react: React,
       'react/jsx-runtime': jsx,
       'lucide-react': { Wrench: 'svg', ArrowUpRight: 'svg' },
       '@/components/music/music-page': { MusicPage: 'section', MusicPageHeader: Header },
       '@/components/ui/button': { Button },
-      '@/plugins/types': routing,
-      '@/plugins/host': { usePlugins: () => ({ plugins: [tool], loaded }) },
+      './use-music-tools': musicTools,
       '@/features/workspace/music-navigation': {
         useMusicNavigation: () => ({ navigate: (...args) => navigation.push(args) })
       }

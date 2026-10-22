@@ -2,8 +2,7 @@ import { ArrowUpRight, Wrench } from 'lucide-react'
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
 import { Button } from '@/components/ui/button'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
-import { usePlugins } from '@/plugins/host'
-import { pluginPath } from '@/plugins/types'
+import { useMusicTools } from './use-music-tools'
 
 export function ToolsPage() {
   const { navigate } = useMusicNavigation()
@@ -17,27 +16,18 @@ export function ToolsPage() {
 }
 
 export function ToolsContent({ onOpenTool }: { onOpenTool: (path: string) => void }) {
-  const { plugins, loaded } = usePlugins()
-  const tools = plugins
-    .filter((plugin) => loaded.has(plugin.manifest.id))
-    .flatMap((plugin) =>
-      plugin.manifest.contributes.navigation
-        .filter((item) => item.category === 'tool')
-        .map((item) => ({ plugin, item }))
-    )
+  const tools = useMusicTools()
   return (
     <>
       {tools.length ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {tools.map(({ plugin, item }) => {
-            const target = plugin.manifest.contributes.pages.find((page) => page.id === item.page)
-            if (!target) return null
+          {tools.map(({ id, plugin, item, path }) => {
             return (
               <Button
-                key={`${plugin.manifest.id}:${item.id}`}
+                key={id}
                 variant="outline"
                 className="h-auto min-h-40 items-start justify-start whitespace-normal rounded-2xl p-5 text-left"
-                onClick={() => onOpenTool(pluginPath(plugin.manifest.id, target.path))}
+                onClick={() => onOpenTool(path)}
               >
                 <span className="flex w-full flex-col gap-4">
                   <span className="flex items-center justify-between">

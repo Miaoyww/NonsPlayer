@@ -17,17 +17,10 @@ import {
 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogDescription,
-  DialogPopup,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/animate-ui/components/base/dialog'
+import { Dialog, DialogTrigger } from '@/components/animate-ui/components/base/dialog'
+import { WorkspaceDialogPopup } from '@/components/workspace-dialog'
 import { useTheme } from '@/features/settings/use-theme'
 import { SettingsContent } from './settings-content'
-import { version } from '../../../package.json'
 import { nativeCall } from '@/lib/player'
 import {
   Sheet,
@@ -181,168 +174,129 @@ export function SettingsDialog({
           <Settings aria-hidden="true" />
         </motion.span>
       </DialogTrigger>
-      <DialogPopup
-        showCloseButton={false}
-        className="settings-dialog overflow-hidden rounded-lg"
-        style={{ width: 1024, maxWidth: 'calc(100vw - 40px)', height: '85dvh', padding: 0, gap: 0 }}
-        initial={{ opacity: 0, scale: reducedMotion ? 1 : 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.98 }}
-        transition={{ duration: reducedMotion ? 0 : 0.18 }}
-      >
-        <DialogClose
-          render={
+      <WorkspaceDialogPopup
+        title="设置"
+        description="个性化与全局设置"
+        className="settings-dialog"
+        navigation={
+          <>
             <Button
-              variant="ghost"
-              size="icon-sm"
-              className="absolute right-4 top-4 rounded-lg"
-              aria-label="关闭设置"
-              title="关闭设置"
-            />
-          }
+              variant={section === 'general' ? 'secondary' : 'ghost'}
+              className="justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'general' ? 'page' : undefined}
+              onClick={() => setSection('general')}
+            >
+              <Settings aria-hidden="true" />
+              <span>常规设置</span>
+            </Button>
+            <Button
+              variant={section === 'personalization' ? 'secondary' : 'ghost'}
+              className="justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'personalization' ? 'page' : undefined}
+              onClick={() => setSection('personalization')}
+            >
+              <SlidersHorizontal aria-hidden="true" />
+              <span>个性化设置</span>
+            </Button>
+            <Button
+              variant={section === 'playback' ? 'secondary' : 'ghost'}
+              className="justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'playback' ? 'page' : undefined}
+              onClick={() => setSection('playback')}
+            >
+              <Volume2 aria-hidden="true" />
+              <span>播放设置</span>
+            </Button>
+            <Button
+              variant={section === 'shortcuts' ? 'secondary' : 'ghost'}
+              className="justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'shortcuts' ? 'page' : undefined}
+              onClick={() => setSection('shortcuts')}
+            >
+              <Keyboard aria-hidden="true" />
+              <span>快捷键设置</span>
+            </Button>
+            <Button
+              variant={section === 'lyrics' ? 'secondary' : 'ghost'}
+              className="justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'lyrics' ? 'page' : undefined}
+              onClick={() => setSection('lyrics')}
+            >
+              <Mic2 aria-hidden="true" />
+              <span>歌词设置</span>
+            </Button>
+            <Button
+              variant={section === 'local-cache' ? 'secondary' : 'ghost'}
+              className="justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'local-cache' ? 'page' : undefined}
+              onClick={() => setSection('local-cache')}
+            >
+              <FolderCog aria-hidden="true" />
+              <span>本地与缓存</span>
+            </Button>
+            <Button
+              variant={section === 'adapters' ? 'secondary' : 'ghost'}
+              className="justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'adapters' ? 'page' : undefined}
+              onClick={() => setSection('adapters')}
+            >
+              <Blocks aria-hidden="true" />
+              <span>适配器设置</span>
+            </Button>
+            <Button
+              variant={section === 'plugins' ? 'secondary' : 'ghost'}
+              className="justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'plugins' ? 'page' : undefined}
+              onClick={() => setSection('plugins')}
+            >
+              <LayoutGrid aria-hidden="true" />
+              <span>插件设置</span>
+            </Button>
+            <Button
+              variant={section === 'about' ? 'secondary' : 'ghost'}
+              className="mt-auto justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'about' ? 'page' : undefined}
+              onClick={() => setSection('about')}
+            >
+              <Info aria-hidden="true" />
+              <span>关于</span>
+            </Button>
+          </>
+        }
+        contentLabel={
+          section === 'general'
+            ? '常规设置'
+            : section === 'personalization'
+              ? '个性化设置'
+              : section === 'playback'
+                ? '播放设置'
+                : section === 'lyrics'
+                  ? '歌词设置'
+                  : section === 'local-cache'
+                    ? '本地与缓存'
+                    : section === 'adapters'
+                      ? '适配器设置'
+                      : section === 'plugins'
+                        ? '插件设置'
+                        : section === 'shortcuts'
+                          ? '快捷键设置'
+                          : '关于 Nons'
+        }
+      >
+        <motion.div
+          key={section}
+          initial={{ opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
         >
-          <X aria-hidden="true" />
-        </DialogClose>
-        <div className="flex h-full min-h-0 w-full overflow-hidden">
-          <aside className="flex w-44 shrink-0 flex-col bg-muted/50 sm:w-60">
-            <div className="px-5 pb-4 pt-5">
-              <DialogTitle className="text-[26px] font-bold leading-none tracking-tight">
-                设置
-              </DialogTitle>
-              <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
-                个性化与全局设置
-              </DialogDescription>
-            </div>
-            <div className="mx-3 border-t border-border" role="separator" />
-            <nav
-              aria-label="设置导航"
-              className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto px-3 py-3"
-            >
-              <Button
-                variant={section === 'general' ? 'secondary' : 'ghost'}
-                className="justify-start gap-2.5 rounded-lg px-3"
-                aria-current={section === 'general' ? 'page' : undefined}
-                onClick={() => setSection('general')}
-              >
-                <Settings aria-hidden="true" />
-                <span>常规设置</span>
-              </Button>
-              <Button
-                variant={section === 'personalization' ? 'secondary' : 'ghost'}
-                className="justify-start gap-2.5 rounded-lg px-3"
-                aria-current={section === 'personalization' ? 'page' : undefined}
-                onClick={() => setSection('personalization')}
-              >
-                <SlidersHorizontal aria-hidden="true" />
-                <span>个性化设置</span>
-              </Button>
-              <Button
-                variant={section === 'playback' ? 'secondary' : 'ghost'}
-                className="justify-start gap-2.5 rounded-lg px-3"
-                aria-current={section === 'playback' ? 'page' : undefined}
-                onClick={() => setSection('playback')}
-              >
-                <Volume2 aria-hidden="true" />
-                <span>播放设置</span>
-              </Button>
-              <Button
-                variant={section === 'shortcuts' ? 'secondary' : 'ghost'}
-                className="justify-start gap-2.5 rounded-lg px-3"
-                aria-current={section === 'shortcuts' ? 'page' : undefined}
-                onClick={() => setSection('shortcuts')}
-              >
-                <Keyboard aria-hidden="true" />
-                <span>快捷键设置</span>
-              </Button>
-              <Button
-                variant={section === 'lyrics' ? 'secondary' : 'ghost'}
-                className="justify-start gap-2.5 rounded-lg px-3"
-                aria-current={section === 'lyrics' ? 'page' : undefined}
-                onClick={() => setSection('lyrics')}
-              >
-                <Mic2 aria-hidden="true" />
-                <span>歌词设置</span>
-              </Button>
-              <Button
-                variant={section === 'local-cache' ? 'secondary' : 'ghost'}
-                className="justify-start gap-2.5 rounded-lg px-3"
-                aria-current={section === 'local-cache' ? 'page' : undefined}
-                onClick={() => setSection('local-cache')}
-              >
-                <FolderCog aria-hidden="true" />
-                <span>本地与缓存</span>
-              </Button>
-              <Button
-                variant={section === 'adapters' ? 'secondary' : 'ghost'}
-                className="justify-start gap-2.5 rounded-lg px-3"
-                aria-current={section === 'adapters' ? 'page' : undefined}
-                onClick={() => setSection('adapters')}
-              >
-                <Blocks aria-hidden="true" />
-                <span>适配器设置</span>
-              </Button>
-              <Button
-                variant={section === 'plugins' ? 'secondary' : 'ghost'}
-                className="justify-start gap-2.5 rounded-lg px-3"
-                aria-current={section === 'plugins' ? 'page' : undefined}
-                onClick={() => setSection('plugins')}
-              >
-                <LayoutGrid aria-hidden="true" />
-                <span>插件设置</span>
-              </Button>
-              <Button
-                variant={section === 'about' ? 'secondary' : 'ghost'}
-                className="mt-auto justify-start gap-2.5 rounded-lg px-3"
-                aria-current={section === 'about' ? 'page' : undefined}
-                onClick={() => setSection('about')}
-              >
-                <Info aria-hidden="true" />
-                <span>关于</span>
-              </Button>
-            </nav>
-            <div className="flex flex-col gap-1 px-5 pb-5 pt-2">
-              <span className="text-sm font-semibold">Nons</span>
-              <span className="text-xs text-muted-foreground">Version {version}</span>
-            </div>
-          </aside>
-          <section
-            aria-label={
-              section === 'general'
-                ? '常规设置'
-                : section === 'personalization'
-                  ? '个性化设置'
-                  : section === 'playback'
-                    ? '播放设置'
-                    : section === 'lyrics'
-                      ? '歌词设置'
-                      : section === 'local-cache'
-                        ? '本地与缓存'
-                        : section === 'adapters'
-                          ? '适配器设置'
-                          : section === 'plugins'
-                            ? '插件设置'
-                            : section === 'shortcuts'
-                              ? '快捷键设置'
-                              : '关于 Nons'
-            }
-            className="min-w-0 flex-1 overflow-auto bg-background p-5 pt-14 sm:p-10"
-          >
-            <motion.div
-              key={section}
-              initial={{ opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <SettingsContent
-                section={section}
-                theme={theme}
-                onThemeChange={setTheme}
-                pluginId={pluginId}
-              />
-            </motion.div>
-          </section>
-        </div>
-      </DialogPopup>
+          <SettingsContent
+            section={section}
+            theme={theme}
+            onThemeChange={setTheme}
+            pluginId={pluginId}
+          />
+        </motion.div>
+      </WorkspaceDialogPopup>
     </Dialog>
   )
 }
