@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SettingsDialog } from '@/features/settings/settings-dialog'
+import { ToolsDialog } from '@/features/tools/tools-dialog'
 import { AccountMenu } from '@/features/account/account-menu'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { MusicSearch } from '@/features/search/music-search'
@@ -162,18 +163,6 @@ export function Titlebar({
               </Button>
             ) : null}
             {!isAndroid() && <PlaylistSidebar hidden={playerMode} />}
-            {!playerMode && hasTools && (
-              <Button
-                variant={toolsSelected ? 'secondary' : 'ghost'}
-                size="icon-sm"
-                aria-label="工具"
-                title="工具"
-                aria-current={toolsSelected ? 'page' : undefined}
-                onClick={() => navigate('tools')}
-              >
-                <Wrench aria-hidden="true" />
-              </Button>
-            )}
           </div>
 
           {!playerMode && !isAndroid() && (
@@ -292,6 +281,7 @@ export function Titlebar({
                   <Search aria-hidden="true" />
                 </Button>
               )}
+              {!isAndroid() && hasTools && <ToolsDialog />}
               {!isAndroid() && <SettingsDialog />}
             </div>
 

@@ -27,6 +27,7 @@ function harness(playerMode = false) {
     'lucide-react': {},
     '@/components/ui/button': { Button: 'button' },
     '@/features/settings/settings-dialog': { SettingsDialog: 'settings' },
+    '@/features/tools/tools-dialog': { ToolsDialog: 'tools' },
     '@/features/account/account-menu': { AccountMenu: 'account' },
     '@/features/workspace/music-navigation': {
       useMusicNavigation: () => ({ page: { view: 'library' }, navigate() {} })

@@ -6,8 +6,18 @@ import { usePlugins } from '@/plugins/host'
 import { pluginPath } from '@/plugins/types'
 
 export function ToolsPage() {
-  const { plugins, loaded } = usePlugins()
   const { navigate } = useMusicNavigation()
+  return (
+    <MusicPage aria-label="音乐工具">
+      <MusicPageHeader title="工具" />
+      <p className="mb-6 text-sm text-muted-foreground">处理音乐文件，让收藏更易整理。</p>
+      <ToolsContent onOpenTool={(path) => navigate('plugin', path)} />
+    </MusicPage>
+  )
+}
+
+export function ToolsContent({ onOpenTool }: { onOpenTool: (path: string) => void }) {
+  const { plugins, loaded } = usePlugins()
   const tools = plugins
     .filter((plugin) => loaded.has(plugin.manifest.id))
     .flatMap((plugin) =>
@@ -16,9 +26,7 @@ export function ToolsPage() {
         .map((item) => ({ plugin, item }))
     )
   return (
-    <MusicPage aria-label="音乐工具">
-      <MusicPageHeader title="工具" />
-      <p className="mb-6 text-sm text-muted-foreground">处理音乐文件，让收藏更易整理。</p>
+    <>
       {tools.length ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {tools.map(({ plugin, item }) => {
@@ -29,7 +37,7 @@ export function ToolsPage() {
                 key={`${plugin.manifest.id}:${item.id}`}
                 variant="outline"
                 className="h-auto min-h-40 items-start justify-start whitespace-normal rounded-2xl p-5 text-left"
-                onClick={() => navigate('plugin', pluginPath(plugin.manifest.id, target.path))}
+                onClick={() => onOpenTool(pluginPath(plugin.manifest.id, target.path))}
               >
                 <span className="flex w-full flex-col gap-4">
                   <span className="flex items-center justify-between">
@@ -54,6 +62,6 @@ export function ToolsPage() {
           </p>
         </div>
       )}
-    </MusicPage>
+    </>
   )
 }

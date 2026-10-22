@@ -143,7 +143,7 @@ manifest 的可选 `fileRoots: ["*"]` 须同时声明 `files:selected`。启用�
 | `usePluginFiles().decodeAudio(root,path)`／`files.decode-audio` | 恢复支持的音频容器，当前支持 NCM → 原始 MP3／FLAC；返回 `{path,format,bytes}`，其中 bytes 为音频正文大小。默认同目录、保留源文件与歌曲信息／内嵌封面、同名失败不覆盖。单文件 256MiB，全局最多 2 个转换，阻塞线程流式读取。 |
 | `MusicPageHeader`                                               | 插件复用宿主页面标题。页面 shell 仍由 `MusicWorkspace` 提供。                                                                                                                                                              |
 
-工具页面在 navigation 条目声明 `category: "tool"`，宿主“工具”页显示已加载实例的入口卡片，点击沿用 `/plugins/<id>/*` 与应用历史。省略 category 保留原主导航入口；同一工具不再占用顶栏独立按钮。
+工具页面在 navigation 条目声明 `category: "tool"`，宿主显示已加载实例的入口卡片。桌面工具入口位于设置左侧，列表与具体工具在同一弹窗内展示，插件内导航沿用 `/plugins/<id>/*`，独立于工作区历史；可返回工具列表，关闭弹窗时卸载工具页面。Android 继续使用工具工作区页面与应用历史。省略 category 保留原主导航入口；同一工具不再占用顶栏独立按钮。
 
 `plugins/ncm-converter` 是独立前端工具插件，使用 `fileRoots: ["*"]`，无网络权限。批量串行转换，失败后继续，可重试失败项；关闭页面停止后续项目，当前原生转换完成后结束。支持“完成当前文件后停止”，不承诺页面关闭／重启后的任务恢复。此工具恢复原始编码，不做 MP3 ↔ FLAC 转码。本地 NCM 播放由宿主音频格式支持提供，无需启用转换页面。
 
