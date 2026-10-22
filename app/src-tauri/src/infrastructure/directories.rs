@@ -19,7 +19,10 @@ fn portable_data(executable: &Path) -> std::io::Result<Option<PathBuf>> {
 
 pub(crate) fn initialize() -> std::io::Result<()> {
     #[cfg(windows)]
-    let data = portable_data(&std::env::current_exe()?)?;
+    let data = match crate::performance::root() {
+        Some(root) => Some(root.join("data")),
+        None => portable_data(&std::env::current_exe()?)?,
+    };
     #[cfg(not(windows))]
     let data: Option<PathBuf> = None;
     if let Some(data) = &data {

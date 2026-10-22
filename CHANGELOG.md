@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-22
+
+![NonsPlayer v1.7.0 播放与聚合歌单改进发布头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.7.0/docs/release-assets/header-1.7.0.png)
+
+NonsPlayer 1.7.0 改进**聚合歌单、播放失败恢复与歌词纠错**，并完善启动更新检查与设置工具布局。本次面向 **Windows x64**，提供 MSI、EXE 安装包与免安装便携 ZIP。
+
 ### 播放与歌词纠错
 
 - 全屏播放器菜单的“歌词来源”改为可操作入口，支持搜索 QQ／网易云歌词候选、预览并保存版本，以及调整单曲时间偏移；选择在重启后保留，可恢复自动匹配。

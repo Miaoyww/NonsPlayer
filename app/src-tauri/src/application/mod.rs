@@ -728,6 +728,7 @@ fn set_lyric_endpoints(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    crate::performance::start_clock();
     #[cfg(windows)]
     if std::env::args().any(|arg| arg == "--remove-autostart") {
         if let Err(error) = autostart::cleanup() {
@@ -756,9 +757,13 @@ pub fn run() {
     }
     let builder = tauri::Builder::default();
     #[cfg(desktop)]
+    let builder = if crate::performance::root().is_some() {
+        builder
+    } else {
+        builder.plugin(desktop::single_instance())
+    };
+    #[cfg(desktop)]
     let builder = builder
-        // Claim the instance before other plugins or backend initialization.
-        .plugin(desktop::single_instance())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_autostart::Builder::new()
@@ -783,6 +788,7 @@ pub fn run() {
             if let Some(data) = crate::infrastructure::directories::portable() {
                 for config in &app.config().app.windows {
                     tauri::WebviewWindowBuilder::from_config(app, config)?
+                        .initialization_script(if crate::performance::root().is_some() { "window.__NONS_PERFORMANCE__ = true;" } else { "" })
                         .data_directory(data.join("webview"))
                         .build()?;
                 }
@@ -815,6 +821,11 @@ pub fn run() {
                 std::fs::write(&fallback, include_bytes!("../../icons/128x128.png"))?;
             }
             let store = Arc::new(storage::Store::open(&data.join("nons.sqlite3"))?);
+            if crate::performance::root().is_some() {
+                store.set_setting("anonymousTelemetryEnabled", "false")?;
+                store.set_setting("updateAutoCheck", "false")?;
+                store.set_setting("lyricSources", r#"{"localSource":"local","amll":false,"qq":false}"#)?;
+            }
             let telemetry = telemetry::Telemetry::new(store.clone())?;
             app.manage(telemetry.clone());
             let launch_time = time::OffsetDateTime::now_utc().format(&time::format_description::well_known::Rfc3339)?;
@@ -946,6 +957,7 @@ pub fn run() {
                 if let Err(error) = plugins {
                     crate::infrastructure::diagnostics::warn("plugins.startup.join", error);
                 }
+                crate::performance::startup_ready();
                 telemetry.report(telemetry_app, launch_time).await;
             });
             #[cfg(desktop)]
@@ -1076,6 +1088,7 @@ pub fn run() {
             player_action,
             player_jump,
             player_retry,
+            crate::performance::performance_probe,
             player_seek,
             player_volume,
             player_device,

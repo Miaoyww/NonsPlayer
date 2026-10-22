@@ -157,6 +157,16 @@ impl PlaybackFade {
             .map_err(|e| e.to_string())?;
         gst::Element::link_many([&input, &split, &self.element, &output, &sink])
             .map_err(|e| e.to_string())?;
+        #[cfg(all(feature = "performance-probe", not(test)))]
+        if crate::performance::root().is_some() {
+            output
+                .static_pad("src")
+                .ok_or("音频输出出口不可用")?
+                .add_probe(gst::PadProbeType::BUFFER, |_, _| {
+                    crate::performance::output_buffer();
+                    gst::PadProbeReturn::Ok
+                });
+        }
         let pad = input.static_pad("sink").ok_or("音频输出入口不可用")?;
         let ghost = gst::GhostPad::builder_with_target(&pad)
             .map_err(|e| e.to_string())?

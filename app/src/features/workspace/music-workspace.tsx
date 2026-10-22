@@ -36,6 +36,7 @@ import { settingsSections } from '@/features/settings/settings-sections'
 import { PlaybackRecovery } from '@/features/playback/playback-recovery'
 import { TrackSearchContext } from '@/components/music/track-search-context'
 
+const PerformanceProbe = lazy(() => import('@/features/performance/performance-probe'))
 const LyricsView = lazy(() => import('@/features/lyrics/lyrics-view'))
 const LocalPage = lazy(() => import('@/features/local/local-page'))
 const SearchPage = lazy(() => import('@/features/search/search-page'))
@@ -264,6 +265,11 @@ export function MusicWorkspace({
   return (
     <CollectionActionsProvider onError={onError} onNotice={showNotice}>
       <ErrorNotice key={operationError?.id} error={operationError?.message} />
+      {window.__NONS_PERFORMANCE__ && (
+        <Suspense fallback={null}>
+          <PerformanceProbe openLyrics={onNowPlayingChange} />
+        </Suspense>
+      )}
       <PlaybackRecovery
         fallback={barMode === 'off' && !playerVisible}
         onAccount={() => onNowPlayingChange(false)}
