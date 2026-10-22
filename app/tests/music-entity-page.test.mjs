@@ -23,9 +23,48 @@ test('uniform details retain cursor and rows on failure, reload only their own s
   const pending = []
   const calls = []
   const playback = []
+  const derivations = []
+  const navigation = []
   let table
   const modules = {
     '@/lib/runtime-cache': createRuntimeCache(),
+    '@/features/account/account': {
+      useAccount: (source) => {
+        assert.equal(source, 'qqmusic')
+        return { profile: { reference: { source, id: 'owner' } } }
+      }
+    },
+    '@/features/music/legacy-reference': { collectionReference: (item) => item.reference },
+    '@/features/music/client': {
+      musicClient: {
+        currentAccount: async () => ({ reference: { source: 'qqmusic', id: 'owner' } })
+      }
+    },
+    '@/features/workspace/music-navigation': {
+      useMusicNavigation: () => ({ navigate: (...args) => navigation.push(args) })
+    },
+    './playlist-targets': {
+      derivePlaylist: async (reference) => {
+        derivations.push(reference)
+        return 'local-version'
+      }
+    },
+    './aggregate-library': {
+      useAggregateLibrary: () => ({ reload: async () => {} }),
+      aggregateCollection: (p) => ({ ...p, localId: p.id })
+    },
+    '@base-ui/react/menu': {
+      Menu: {
+        ...Object.fromEntries(
+          ['Root', 'Portal', 'Positioner', 'Popup'].map((name) => [
+            name,
+            ({ children }) => React.createElement('div', {}, children)
+          ])
+        ),
+        Trigger: ({ render, children, ...props }) => React.cloneElement(render, props, children),
+        Item: ({ children, ...props }) => React.createElement('button', props, children)
+      }
+    },
     react: React,
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => true },
@@ -81,7 +120,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     '@/components/music/action-button': {
       ActionButton: ({ children, ...props }) => React.createElement('button', props, children)
     },
-    'lucide-react': { Play: () => null },
+    'lucide-react': { Play: () => null, Ellipsis: () => null, GitBranch: () => null },
     '@/features/library/collection-tabs': { CollectionTabs: ({ children }) => children },
     '@/features/library/library-api': {
       playLibraryCollection: async (collection, key) => {
@@ -99,6 +138,10 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     }
   })
   for (const [name, file] of [
+    [
+      '@/features/aggregate/platform-playlist-menu',
+      '../src/features/aggregate/platform-playlist-menu.tsx'
+    ],
     ['@/features/library/collection-header', '../src/features/library/collection-header.tsx'],
     ['./entities', '../src/features/music/entities.ts']
   ]) {
@@ -148,7 +191,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
             cover: 'cover-fixture.jpg',
             subtitle: '歌单创建者',
             trackCount: 200,
-            creator: null,
+            creator: { source: 'qqmusic', id: 'owner' },
             artists: [],
             liked: false
           },
@@ -159,6 +202,18 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     assert.equal(document.querySelector('img')?.getAttribute('src'), 'cover-fixture.jpg')
     assert.match(document.body.textContent, /歌单创建者/)
     assert.match(document.body.textContent, /200 首音乐/)
+    const menu = document.querySelector('header [aria-label="歌单菜单"]')
+    assert.ok(menu, 'reference-based playlist detail must show the shared menu beside Play')
+    assert.ok(menu.closest('.library-detail-actions'))
+    const derive = [...document.querySelectorAll('header button')].find(
+      (button) => button.textContent === '派生为聚合歌单'
+    )
+    assert.ok(derive)
+    assert.equal(derive.disabled, false)
+    await act(async () => derive.click())
+    assert.equal(derivations[0].id, collection.reference.id)
+    assert.equal(navigation[0][0], 'local-playlist')
+    assert.equal(navigation[0][2].localId, 'local-version')
     assert.equal(document.getElementById('tracks').textContent, 'qqmusic:one')
     await act(async () => document.querySelector('header button').click())
     assert.equal(

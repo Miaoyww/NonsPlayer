@@ -1,3 +1,5 @@
+import { PlatformPlaylistMenu } from '@/features/aggregate/platform-playlist-menu'
+import { useAccount } from '@/features/account/account'
 import { requestCache, presentationKey, invalidateNativeCache } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -67,6 +69,7 @@ function EntityContent(props: EntityPageProps) {
 
 function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
   const reference = collection.reference!
+  const { profile } = useAccount(reference.source)
   const cacheKey = presentationKey('entity-tracks', reference)
   const cached = requestCache.peekFresh<{ tracks: Track[]; total: number | null }>(cacheKey)
   const [tracks, setTracks] = useState<Track[]>(cached?.tracks ?? [])
@@ -168,6 +171,16 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
       <CollectionHeader
         collection={detail}
         description={description}
+        actions={
+          detail.kind === 'playlist' ? (
+            <PlatformPlaylistMenu
+              key={`${reference.source}:${profile?.reference?.id}:${reference.id}`}
+              collection={detail}
+              account={profile?.reference}
+              onError={onError}
+            />
+          ) : undefined
+        }
         total={total || detail.trackCount}
         busy={playing}
         disabled={playing || !isTauri() || !tracks.length}
