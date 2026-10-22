@@ -1,4 +1,5 @@
 mod amll;
+pub(crate) mod correction;
 mod identity;
 pub(crate) mod local_lyrics;
 pub(crate) mod lyric_matching;
@@ -61,6 +62,7 @@ pub struct LyricService {
     refreshing: Mutex<HashSet<String>>,
     retry_after: Mutex<HashMap<String, i64>>,
     disk: Arc<TtmlCache>,
+    correction_requests: tokio::sync::Semaphore,
 }
 
 enum Lookup {
@@ -133,6 +135,7 @@ impl LyricService {
             refreshing: Mutex::new(HashSet::new()),
             retry_after: Mutex::new(HashMap::new()),
             disk,
+            correction_requests: tokio::sync::Semaphore::new(2),
         })
     }
 
@@ -143,6 +146,19 @@ impl LyricService {
         skips: LyricSkips,
         app: tauri::AppHandle,
     ) -> AppResult<Option<Lyrics>> {
+        if let Some(candidate) = self.correction(&track.key)?.candidate {
+            let generation = self.disk.generation();
+            let value = self
+                .candidate_lyrics(&candidate, skips.qrc, refresh)
+                .await?;
+            // Refresh advances the cache generation once. A later setting change invalidates delivery.
+            if self.disk.generation() != generation + u64::from(refresh)
+                || self.correction(&track.key)?.candidate.as_ref() != Some(&candidate)
+            {
+                return Ok(None);
+            }
+            return Ok(value);
+        }
         let separators = if matches!(track.source, TrackSource::Local { .. }) {
             crate::local_library::preferences(&self.store)?.artist_separators
         } else {

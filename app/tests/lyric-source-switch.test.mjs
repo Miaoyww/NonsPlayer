@@ -24,7 +24,7 @@ const streamLyrics = {
   content: 'stream word lyrics with translation'
 }
 
-function harness(track, settle = true, localSource = 'local') {
+async function harness(track, settle = true, localSource = 'local') {
   let sources = { localSource, amll: true, qq: true }
   let present = true
   let player = { queue: [track], index: 0, status: 'playing', revision: 0 }
@@ -61,7 +61,16 @@ function harness(track, settle = true, localSource = 'local') {
       Suspense: 'Suspense'
     },
     'react/jsx-runtime': { jsx, jsxs: jsx },
-    '@/lib/player': { usePlayer: () => player, getPlayer: () => player, errorText: String },
+    './correction': {
+      offsetLyrics: (lines) => lines,
+      automaticLyrics: { candidate: null, offsetMs: 0 }
+    },
+    '@/lib/player': {
+      usePlayer: () => player,
+      getPlayer: () => player,
+      errorText: String,
+      nativeCall: async () => ({ candidate: null, offsetMs: 0 })
+    },
     '@/features/lyrics/load-lyrics': {
       lyricTrackVersion: (track) => JSON.stringify(track),
       loadLyrics: (_track, _refresh, _sources, apply, isCurrent) =>
@@ -116,6 +125,7 @@ function harness(track, settle = true, localSource = 'local') {
   const initial = render()
   if (settle) initial.props.onAnimationComplete?.()
   effects.forEach((fn) => fn())
+  await new Promise(setImmediate)
   return {
     initial,
     setPresent: (value) => {
@@ -148,10 +158,11 @@ function menu(node) {
 }
 
 test('menu refresh bypasses lyric caches, preserves lyrics during loading and rejects late delivery after a switch', async () => {
-  const app = harness(streamed)
+  const app = await harness(streamed)
   app.pending[0](streamLyrics)
   await Promise.resolve()
   menu(app.render()).onRefresh()
+  await new Promise(setImmediate)
   assert.deepEqual(app.requests, [
     { key: streamed.key, refresh: false },
     { key: streamed.key, refresh: true }
@@ -165,16 +176,16 @@ test('menu refresh bypasses lyric caches, preserves lyrics during loading and re
   assert.equal(menu(app.render()).source, undefined)
 })
 
-test('a stale menu refresh cannot start a request for the previous playback instance', () => {
-  const app = harness(local)
+test('a stale menu refresh cannot start a request for the previous playback instance', async () => {
+  const app = await harness(local)
   const oldMenu = menu(app.render())
   app.switchTo(streamed)
   oldMenu.onRefresh()
   assert.equal(app.requests.length, 1)
 })
 
-test('a stale menu cannot refresh the previous lyrics selection', () => {
-  const app = harness(local)
+test('a stale menu cannot refresh the previous lyrics selection', async () => {
+  const app = await harness(local)
   const oldMenu = menu(app.render())
   app.selectSource('online')
   oldMenu.onRefresh()
@@ -182,8 +193,9 @@ test('a stale menu cannot refresh the previous lyrics selection', () => {
 })
 
 test('new refresh results win over an older request for the same song', async () => {
-  const app = harness(streamed)
+  const app = await harness(streamed)
   menu(app.render()).onRefresh()
+  await new Promise(setImmediate)
   const refreshed = { ...streamLyrics, source: 'amll', format: 'ttml' }
   app.pending[1](refreshed)
   await Promise.resolve()
@@ -193,8 +205,8 @@ test('new refresh results win over an older request for the same song', async ()
   assert.equal(menu(app.render()).source, 'AMLL DB')
 })
 
-test('opening a song reserves the same lyrics layout before and after loading starts', () => {
-  const app = harness(streamed)
+test('opening a song reserves the same lyrics layout before and after loading starts', async () => {
+  const app = await harness(streamed)
   const layout = (tree) => {
     if (!tree || typeof tree !== 'object') return
     if (tree.props?.className?.includes('now-playing-layout')) return tree.props.className
@@ -207,7 +219,7 @@ test('opening a song reserves the same lyrics layout before and after loading st
 })
 
 test('cached lyrics wait until entry completes and stop rendering during exit', async () => {
-  const app = harness(streamed, false)
+  const app = await harness(streamed, false)
   app.pending[0](streamLyrics)
   await Promise.resolve()
   const count = (tree) => {
@@ -223,7 +235,7 @@ test('cached lyrics wait until entry completes and stop rendering during exit', 
 })
 
 test('a local lyrics response cannot replace stream lyrics after playback switches, before React effects clean up', async () => {
-  const app = harness(local)
+  const app = await harness(local)
   app.switchTo(streamed)
   app.pending[0](localLyrics)
   await Promise.resolve()
@@ -231,7 +243,7 @@ test('a local lyrics response cannot replace stream lyrics after playback switch
 })
 
 test('local songs online background updates are rejected immediately when playback switches to streaming', async () => {
-  const app = harness(local, true, 'online')
+  const app = await harness(local, true, 'online')
   const lyrics = { ...localLyrics, source: 'qq' }
   app.pending[0](lyrics)
   await Promise.resolve()
@@ -246,7 +258,7 @@ test('local songs online background updates are rejected immediately when playba
 })
 
 test('source selection changes reject online background updates before effect cleanup', async () => {
-  const app = harness(local, true, 'online')
+  const app = await harness(local, true, 'online')
   app.pending[0](streamLyrics)
   await Promise.resolve()
   app.selectSource('local')
@@ -255,7 +267,7 @@ test('source selection changes reject online background updates before effect cl
 })
 
 test('selection changes reject pending lyrics before effect cleanup', async () => {
-  const app = harness(local)
+  const app = await harness(local)
   app.selectSource('online')
   app.pending[0](localLyrics)
   await Promise.resolve()
@@ -263,7 +275,7 @@ test('selection changes reject pending lyrics before effect cleanup', async () =
 })
 
 test('local selection rejects online background updates even with the same song key', async () => {
-  const app = harness(local)
+  const app = await harness(local)
   app.pending[0](localLyrics)
   await Promise.resolve()
   app.events[0]({ payload: { key: local.key, lyrics: { ...streamLyrics, source: 'local' } } })
@@ -272,7 +284,7 @@ test('local selection rejects online background updates even with the same song 
 })
 
 test('stream lyrics responses are likewise rejected after switching to a local source', async () => {
-  const app = harness(streamed)
+  const app = await harness(streamed)
   app.switchTo(local)
   app.pending[0](streamLyrics)
   await Promise.resolve()
@@ -280,7 +292,7 @@ test('stream lyrics responses are likewise rejected after switching to a local s
 })
 
 test('returning to the same song rejects responses from its previous playback instance', async () => {
-  const app = harness(streamed)
+  const app = await harness(streamed)
   app.switchTo(local)
   app.switchTo(streamed)
   app.pending[0](streamLyrics)
@@ -289,7 +301,7 @@ test('returning to the same song rejects responses from its previous playback in
 })
 
 test('the first stream render hides local lyrics even before the new loading effect runs', async () => {
-  const app = harness(local)
+  const app = await harness(local)
   app.pending[0](localLyrics)
   await Promise.resolve()
   const renderedLines = (tree) => {
@@ -303,14 +315,14 @@ test('the first stream render hides local lyrics even before the new loading eff
 })
 
 test('active stream lyrics and translations still apply normally', async () => {
-  const app = harness(streamed)
+  const app = await harness(streamed)
   app.pending[0](streamLyrics)
   await Promise.resolve()
   assert.deepEqual(app.parsed, [streamLyrics])
 })
 
 test('same-song metadata changes reject pending responses before effect cleanup', async () => {
-  const app = harness(streamed)
+  const app = await harness(streamed)
   app.updateMetadata({ ...streamed, title: 'Corrected title' })
   app.pending[0](streamLyrics)
   await Promise.resolve()
@@ -318,7 +330,7 @@ test('same-song metadata changes reject pending responses before effect cleanup'
 })
 
 test('background refresh metadata must match the current song even with the same key', async () => {
-  const app = harness(streamed)
+  const app = await harness(streamed)
   app.pending[0](streamLyrics)
   await Promise.resolve()
   app.events[0]({

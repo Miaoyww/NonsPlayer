@@ -30,6 +30,7 @@ function harness() {
   )
   const modules = {
     react: { useState: (initial) => [initial, (value) => calls.push(['sources', value])] },
+    '@/features/lyrics/correction-dialog': { LyricCorrectionDialog: 'LyricCorrectionDialog' },
     './song-source-dialog': { SongSourceDialog: 'SongSourceDialog' },
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({
@@ -91,7 +92,9 @@ function harness() {
         })
       )
       return {
-        source: nodes.find((node) => node.type === 'GroupLabel')?.props.children[1].props.children,
+        source: nodes
+          .find((node) => node.type === 'Item' && node.props.children?.includes('歌词来源'))
+          ?.props.children.at(-1).props.children,
         item: (label) =>
           nodes.find((node) => node.type === 'Item' && node.props.children?.includes(label))
       }

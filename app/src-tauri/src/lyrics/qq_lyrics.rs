@@ -38,6 +38,51 @@ const LYRIC_ENDPOINTS: LyricEndpoints<'static> = LyricEndpoints {
 
 pub const MINIMUM_SCORE: u32 = crate::lyric_matching::PREFERRED_MINIMUM_SCORE;
 
+pub(super) async fn search_manual(
+    client: &reqwest::Client,
+    query: &str,
+) -> AppResult<Vec<super::correction::Candidate>> {
+    let request = client.post("https://u.y.qq.com/cgi-bin/musicu.fcg")
+        .header("Referer", "https://c.y.qq.com/")
+        .json(&json!({"req_1": {"method": "DoSearchForQQMusicDesktop", "module": "music.search.SearchCgiService",
+            "param": {"num_per_page": "20", "page_num": "1", "query": query, "search_type": 0}}}));
+    Ok(candidates(read_json(request).await?)?
+        .into_iter()
+        .take(20)
+        .map(|c| super::correction::Candidate {
+            source: super::correction::Source::Qq,
+            id: c.id,
+            mid: c.mid,
+            title: c.title,
+            artist: c.artists.join(" / "),
+            album: c.album,
+            duration_ms: (c.duration.max(0.0) * 1000.0) as u64,
+        })
+        .collect())
+}
+
+pub(super) async fn fetch_manual(
+    client: &reqwest::Client,
+    value: &super::correction::Candidate,
+    skip_qrc: bool,
+) -> AppResult<Option<Lyrics>> {
+    fetch_candidate(
+        client,
+        &Candidate {
+            id: value.id,
+            mid: value.mid.clone(),
+            title: value.title.clone(),
+            artists: vec![value.artist.clone()],
+            album: value.album.clone(),
+            duration: value.duration_ms as f64 / 1000.0,
+        },
+        skip_qrc,
+        &LYRIC_ENDPOINTS,
+        Duration::from_secs(6),
+    )
+    .await
+}
+
 #[derive(Debug)]
 struct Candidate {
     id: Option<u64>,

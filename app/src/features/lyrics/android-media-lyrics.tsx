@@ -6,6 +6,7 @@ import { loadLyrics } from './load-lyrics'
 import { parseLyrics } from './parse-lyrics'
 import { useLyricSources } from './use-lyric-sources'
 import { mediaLyricLines } from './media-lyric-lines'
+import { offsetLyrics, type LyricCorrection } from './correction'
 
 // Fetch/parse through the existing lyric pipeline once; native code advances lines in the background.
 // This component renders nothing and has no animation or progress subscription.
@@ -16,16 +17,23 @@ export function AndroidMediaLyrics() {
   const [revision, setRevision] = useState(0)
   useEffect(() => {
     let disposed = false
-    let unlisten: (() => void) | undefined
-    void listen<{ key: string }>('lyrics-updated', ({ payload }) => {
-      if (!disposed && payload.key === track?.key) setRevision((value) => value + 1)
-    }).then((cleanup) => {
-      if (disposed) cleanup()
-      else unlisten = cleanup
-    })
+    const cleanups: (() => void)[] = []
+    const bind = async () => {
+      for (const event of ['lyrics-updated', 'lyric-correction-changed']) {
+        const cleanup = await listen<{ key: string } | string>(event, ({ payload }) => {
+          if (!disposed && (typeof payload === 'string' ? payload : payload.key) === track?.key)
+            setRevision((value) => value + 1)
+        })
+        if (disposed) cleanup()
+        else cleanups.push(cleanup)
+      }
+    }
+    void bind().catch((cause) =>
+      reportCaughtError('app/src/features/lyrics/android-media-lyrics.tsx', cause)
+    )
     return () => {
       disposed = true
-      unlisten?.()
+      cleanups.forEach((cleanup) => cleanup())
     }
   }, [track?.key])
   useEffect(() => {
@@ -34,13 +42,31 @@ export function AndroidMediaLyrics() {
     void nativeCall('android_media_lyrics', { key: track.key, lines: [] }).catch((cause) => {
       reportCaughtError('app/src/features/lyrics/android-media-lyrics.tsx', cause)
     })
-    void loadLyrics(
-      track,
-      false,
-      sources,
-      (value) => (value ? mediaLyricLines(parseLyrics(value, track.durationMs)) : []),
-      () => !disposed
-    )
+    void nativeCall<LyricCorrection>('lyric_correction', { key: track.key })
+      .then((correction) =>
+        disposed
+          ? null
+          : loadLyrics(
+              track,
+              false,
+              sources,
+              (value) =>
+                value
+                  ? mediaLyricLines(
+                      offsetLyrics(
+                        parseLyrics(
+                          value,
+                          track.durationMs,
+                          track.source.kind === 'local' ? track.source.cue : undefined
+                        ),
+                        correction.offsetMs
+                      )
+                    )
+                  : [],
+              () => !disposed,
+              !!correction.candidate
+            )
+      )
       .then((value) => {
         if (!disposed && value)
           return nativeCall('android_media_lyrics', { key: track.key, lines: value.parsed })

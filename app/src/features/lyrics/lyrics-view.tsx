@@ -8,7 +8,8 @@ import { listen } from '@tauri-apps/api/event'
 import { isTauri } from '@tauri-apps/api/core'
 import { motion, useIsPresent, useReducedMotion } from 'motion/react'
 import { AudioLines, Languages } from 'lucide-react'
-import { errorText, getPlayer, usePlayer, type Lyrics, type Track } from '@/lib/player'
+import { errorText, getPlayer, nativeCall, usePlayer, type Lyrics, type Track } from '@/lib/player'
+import { offsetLyrics, automaticLyrics, type LyricCorrection } from './correction'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { CoverContextMenu } from '@/features/playback/cover-context-menu'
@@ -101,6 +102,7 @@ export default function LyricsView({
   )
   const generation = useRef(0)
   const appliedSource = useRef<string | undefined>(undefined)
+  const correction = useRef<LyricCorrection>(automaticLyrics)
   const apply = useCallback(
     (
       value: Lyrics | null,
@@ -109,7 +111,9 @@ export default function LyricsView({
       revision: number,
       cue?: { startMs: number; endMs: number }
     ) => {
-      const parsed = value ? parseLyrics(value, duration, cue) : []
+      const parsed = value
+        ? offsetLyrics(parseLyrics(value, duration, cue), correction.current.offsetMs)
+        : []
       appliedSource.current = value?.source
       setDisplay({
         key,
@@ -140,19 +144,26 @@ export default function LyricsView({
         getLyricSources() === sources &&
         isCurrentPlayback(track.key, state.revision, trackVersion)
       try {
+        const selected = await nativeCall<LyricCorrection>('lyric_correction', { key: track.key })
+        if (!isCurrent()) return
+        correction.current = selected
         await loadLyrics(
           track,
           refresh,
           sources,
-          (value) =>
-            apply(
+          (value) => {
+            if (!value && selected.candidate)
+              throw new Error('已选歌词版本暂不可用，请刷新重试或在歌词来源中重新选择。')
+            return apply(
               value,
               track.durationMs,
               track.key,
               state.revision,
               track.source.kind === 'local' ? track.source.cue : undefined
-            ),
-          isCurrent
+            )
+          },
+          isCurrent,
+          !!selected.candidate
         )
       } catch (cause) {
         reportCaughtError('app/src/features/lyrics/lyrics-view.tsx', cause)
@@ -177,6 +188,7 @@ export default function LyricsView({
     void listen<{ key: string; lyrics: Lyrics; track?: Track }>('lyrics-updated', ({ payload }) => {
       if (
         !disposed &&
+        !correction.current.candidate &&
         getLyricSources() === sources &&
         !(track.source.kind === 'local' && sources.localSource === 'local') &&
         payload.lyrics.source !== 'local' &&
@@ -211,6 +223,26 @@ export default function LyricsView({
       stop?.()
     }
   }, [trackVersion, state.revision, apply, sources, localPreferences])
+
+  useEffect(() => {
+    if (!isTauri()) return
+    let disposed = false
+    let stop: (() => void) | undefined
+    void listen<string>('lyric-correction-changed', ({ payload }) => {
+      if (!disposed && payload === track?.key) void requestLyrics()
+    })
+      .then((cleanup) => {
+        if (disposed) cleanup()
+        else stop = cleanup
+      })
+      .catch((cause) => {
+        if (!disposed) setError(errorText(cause))
+      })
+    return () => {
+      disposed = true
+      stop?.()
+    }
+  }, [requestLyrics, track?.key])
 
   const lyricControls = (
     <div className="lyrics-display-controls" role="group" aria-label="歌词显示">

@@ -30,9 +30,10 @@ export async function loadLyrics<T>(
   refresh: boolean,
   sources: LyricSources,
   parse: (value: Lyrics | null) => T,
-  isCurrent: () => boolean = () => true
+  isCurrent: () => boolean = () => true,
+  manual = false
 ) {
-  if (track.source?.kind === 'local' && sources.localSource === 'local') {
+  if (!manual && track.source?.kind === 'local' && sources.localSource === 'local') {
     for (const skipEmbedded of [false, true]) {
       if (!isCurrent()) return null
       const lyrics = await nativeCall<Lyrics | null>('local_track_lyrics', {
@@ -72,6 +73,7 @@ export async function loadLyrics<T>(
     } catch (cause) {
       reportCaughtError('app/src/features/lyrics/load-lyrics.ts', cause)
 
+      if (manual && !(lyrics?.source === 'qq' && lyrics.format === 'qrc' && !skipQrc)) throw cause
       if (lyrics?.source === 'amll') skipAmll = true
       else if (lyrics?.source === 'qq' && lyrics.format === 'qrc' && !skipQrc) skipQrc = true
       else if (lyrics?.source === 'qq') skipQq = true

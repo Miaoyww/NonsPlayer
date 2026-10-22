@@ -1,7 +1,18 @@
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { Menu } from '@base-ui/react/menu'
 import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
-import { Copy, Ellipsis, FolderPlus, Heart, Info, RefreshCw, Share2, Radio } from 'lucide-react'
+import {
+  Copy,
+  Ellipsis,
+  FolderPlus,
+  Heart,
+  Info,
+  RefreshCw,
+  Share2,
+  Radio,
+  FilePenLine
+} from 'lucide-react'
+import { LyricCorrectionDialog } from '@/features/lyrics/correction-dialog'
 import { useState } from 'react'
 import { SongSourceDialog } from './song-source-dialog'
 import { ActionButton } from '@/components/music/action-button'
@@ -25,6 +36,7 @@ export function NowPlayingMenu({
 }) {
   const actions = useSongActions()
   const [sourcesOpen, setSourcesOpen] = useState(false)
+  const [lyricsOpen, setLyricsOpen] = useState(false)
   const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
   const id = track ? favoriteId(track, profile?.reference) : undefined
   const liked = id !== undefined && likedIds.has(id)
@@ -102,10 +114,13 @@ export function NowPlayingMenu({
                 </Menu.Item>
               )}
               <Menu.Group>
-                <Menu.GroupLabel className="flex items-center justify-between gap-4 px-2.5 py-2 text-xs">
-                  <span className="text-muted-foreground">歌词来源</span>
-                  <span>{source ?? (loading ? '正在获取…' : '暂无歌词')}</span>
-                </Menu.GroupLabel>
+                <Menu.Item disabled={!track || !desktop} onClick={() => setLyricsOpen(true)}>
+                  <FilePenLine aria-hidden="true" />
+                  歌词来源
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {source ?? (loading ? '正在获取…' : '暂无歌词')}
+                  </span>
+                </Menu.Item>
                 <Menu.Item disabled={!track || !desktop || loading} onClick={onRefresh}>
                   <RefreshCw aria-hidden="true" />
                   {loading ? '正在获取歌词…' : '刷新歌词'}
@@ -117,6 +132,9 @@ export function NowPlayingMenu({
       </Menu.Root>
       {sourcesOpen && track && (
         <SongSourceDialog key={track.key} track={track} onClose={() => setSourcesOpen(false)} />
+      )}
+      {lyricsOpen && track && (
+        <LyricCorrectionDialog key={track.key} track={track} onClose={() => setLyricsOpen(false)} />
       )}
     </>
   )

@@ -252,6 +252,7 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
       'local_track_information'
     ],
     bind_local_lyrics: ['track_lyrics', 'local_music'],
+    set_lyric_correction: ['track_lyrics', 'local_track_lyrics'],
     set_lyric_endpoints: ['track_lyrics'],
     set_lyric_sources: ['track_lyrics'],
     set_local_preferences: [
@@ -328,6 +329,11 @@ export async function connectPlayer(): Promise<UnlistenFn> {
     )
     listeners.push(playerStore.subscribeState(() => fm.update()))
     listeners.push(await listen('lyrics-updated', () => invalidateNativeCache(['track_lyrics'])))
+    listeners.push(
+      await listen('lyric-correction-changed', () =>
+        invalidateNativeCache(['track_lyrics', 'local_track_lyrics'])
+      )
+    )
     listeners.push(
       await listen<import('@/features/music/types').EntityRef>(
         'music-collection-updated',
