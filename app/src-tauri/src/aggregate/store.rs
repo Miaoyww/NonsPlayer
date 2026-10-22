@@ -267,13 +267,18 @@ pub(crate) fn write(store: &Store, request: &Write) -> AppResult<String> {
     match request {
         Write::Create { keys, .. } | Write::Add { keys, .. } => {
             let link = linked(&tx, &id)?;
-            for key in keys {
+            // Prepend new members as one ordered batch; conflicts retain their existing position.
+            let first: i64 = tx.query_row("SELECT COALESCE(MIN(position),0) FROM local_playlist_tracks WHERE playlist_id=?1",[&id],|row| row.get(0)).map_err(|e|e.to_string())?;
+            let first = first
+                .checked_sub(keys.len() as i64)
+                .ok_or("歌单位置超出范围")?;
+            for (index, key) in keys.iter().enumerate() {
                 let value:String=tx.query_row("SELECT value FROM tracks WHERE key=?1",[key],|r|r.get(0)).optional().map_err(|e|e.to_string())?.or(tx.query_row("SELECT value FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2",params![id,key],|r|r.get(0)).optional().map_err(|e|e.to_string())?.flatten()).ok_or("歌曲不存在")?;
                 let track: Track = serde_json::from_str(&value).map_err(|e| e.to_string())?;
                 let remote = link
                     .as_ref()
                     .is_some_and(|link| link.reference.source.as_str() == track.source_id());
-                tx.execute("INSERT INTO local_playlist_tracks(playlist_id,key,position,manual,remote,excluded,value) VALUES(?1,?2,COALESCE((SELECT MAX(position)+1 FROM local_playlist_tracks WHERE playlist_id=?1),0),?4,?5,0,?3) ON CONFLICT(playlist_id,key) DO UPDATE SET manual=?4,remote=MAX(remote,?5),excluded=0,value=excluded.value",params![id,key,value,!remote,remote]).map_err(|e|e.to_string())?;
+                tx.execute("INSERT INTO local_playlist_tracks(playlist_id,key,position,manual,remote,excluded,value) VALUES(?1,?2,?6,?4,?5,0,?3) ON CONFLICT(playlist_id,key) DO UPDATE SET manual=?4,remote=MAX(remote,?5),excluded=0,value=excluded.value",params![id,key,value,!remote,remote,first + index as i64]).map_err(|e|e.to_string())?;
             }
         }
         Write::Remove { keys, .. } => {

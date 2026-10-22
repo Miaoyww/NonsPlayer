@@ -708,7 +708,7 @@ mod tests {
         assert!(empty.items.is_empty());
     }
     #[test]
-    fn playlist_writes_preserve_order_deduplicate_and_never_delete_music() {
+    fn playlist_writes_prepend_new_tracks_deduplicate_and_never_delete_music() {
         let dir = crate::test_support::TestDir::new();
         let path = dir.0.join("library.sqlite");
         let store = Store::open(&path).unwrap();
@@ -738,7 +738,7 @@ mod tests {
                 .iter()
                 .map(|t| t.key.as_str())
                 .collect::<Vec<_>>(),
-            vec!["local:b", "local:a"]
+            vec!["local:a", "local:b"]
         );
         remove_playlist_track(&store, id.clone(), "local:b".into()).unwrap();
         assert_eq!(

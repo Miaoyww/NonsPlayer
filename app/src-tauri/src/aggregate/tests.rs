@@ -342,3 +342,77 @@ fn playlists_limit_is_atomic_and_actual_online_sources_do_not_merge() {
     assert!(apply(&store, None, &link(), "超限派生", &[song(2)]).is_err());
     assert_eq!(playlists(&store).unwrap().len(), 200);
 }
+
+#[test]
+fn added_members_prepend_in_batch_order_without_repositioning_duplicates() {
+    let dir = TestDir::new();
+    let path = dir.0.join("db");
+    let store = Store::open(&path).unwrap();
+    let songs = (1..=7).map(song).collect::<Vec<_>>();
+    store.save_tracks(&songs).unwrap();
+    let id = write(
+        &store,
+        &Write::Create {
+            name: "顺序".into(),
+            keys: vec![song(1).key, song(2).key],
+        },
+    )
+    .unwrap();
+    write(
+        &store,
+        &Write::Add {
+            id: id.clone(),
+            keys: vec![song(3).key, song(4).key, song(3).key, song(1).key],
+        },
+    )
+    .unwrap();
+    let expected = vec![song(3).key, song(4).key, song(1).key, song(2).key];
+    assert_eq!(keys(&store, &id), expected);
+    assert!(write(
+        &store,
+        &Write::Add {
+            id: id.clone(),
+            keys: vec![song(5).key, "missing".into()]
+        }
+    )
+    .is_err());
+    assert_eq!(keys(&store, &id), expected);
+    drop(store);
+    let store = Store::open(&path).unwrap();
+    assert_eq!(keys(&store, &id), expected);
+    write(
+        &store,
+        &Write::Add {
+            id: id.clone(),
+            keys: vec![song(5).key],
+        },
+    )
+    .unwrap();
+    assert_eq!(keys(&store, &id)[0], song(5).key);
+    // Linked playlists use the same insertion path after platform uploads.
+    let linked = apply(&store, None, &link(), "派生", &[song(1), song(2)]).unwrap();
+    write(
+        &store,
+        &Write::Add {
+            id: linked.clone(),
+            keys: vec![song(6).key, song(7).key],
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        keys(&store, &linked),
+        vec![song(6).key, song(7).key, song(1).key, song(2).key]
+    );
+    apply(
+        &store,
+        Some(&linked),
+        &link(),
+        "派生",
+        &[song(1), song(2), song(6), song(7)],
+    )
+    .unwrap();
+    assert_eq!(
+        keys(&store, &linked),
+        vec![song(6).key, song(7).key, song(1).key, song(2).key]
+    );
+}
