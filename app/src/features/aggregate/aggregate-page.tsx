@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Trash2, ArrowUpDown, FolderPlus, RotateCcw } from 'lucide-react'
+import { Plus, Trash2, ArrowUpDown, FolderPlus, RotateCcw, Check, ListChecks } from 'lucide-react'
 import { isTauri } from '@tauri-apps/api/core'
 import { MusicPage } from '@/components/music/music-page'
 import { ActionButton } from '@/components/music/action-button'
@@ -125,6 +125,7 @@ export default function AggregatePage({
   const { statuses } = useMusicSources()
   const actions = useSongActions()
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [batch, setBatch] = useState(false)
   const [excluded, setExcluded] = useState(false)
   const [busy, setBusy] = useState(false)
   const [edit, setEdit] = useState<'rename' | 'delete' | 'unlink' | 'order'>()
@@ -146,6 +147,13 @@ export default function AggregatePage({
   useEffect(() => {
     setSelected(new Set())
   }, [id, excluded, revision])
+  useEffect(() => {
+    setBatch(false)
+  }, [id])
+  const toggleBatch = () => {
+    setBatch((value) => !value)
+    setSelected(new Set())
+  }
   async function run(work: () => Promise<unknown>, message?: string) {
     if (busy) return
     setBusy(true)
@@ -198,6 +206,8 @@ export default function AggregatePage({
         key={id}
         playlist={playlist}
         excluded={excluded}
+        batch={batch}
+        onBatch={toggleBatch}
         busy={busy}
         onPlay={() =>
           void run(async () => {
@@ -211,66 +221,69 @@ export default function AggregatePage({
         }}
         onExclusions={() => setExcluded((v) => !v)}
       />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <ActionButton
-          variant="ghost"
-          disabled={!list.items.length}
-          onClick={() => setSelected(new Set(list.items.map((m) => m.track.key)))}
+      {batch && (
+        <div
+          className="mb-4 flex flex-wrap items-center gap-2"
+          role="toolbar"
+          aria-label="批量操作"
         >
-          选择已加载歌曲
-        </ActionButton>
-        <ActionButton variant="ghost" onClick={() => setSelected(new Set())}>
-          取消选择
-        </ActionButton>
-        <span className="text-sm text-muted-foreground">已选 {selected.size} 首</span>
-        {excluded ? (
-          <ActionButton disabled={busy || !selected.size} onClick={() => void mutate('restore')}>
-            <RotateCcw aria-hidden="true" />
-            取消排除
-          </ActionButton>
-        ) : (
-          <>
-            <ActionButton
-              disabled={busy || !selected.size}
-              variant="outline"
-              onClick={() => void mutate('remove')}
-            >
-              <Trash2 aria-hidden="true" />
-              移除
+          <span className="mr-2 inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <ListChecks aria-hidden="true" className="size-4" />
+            已选 {selected.size} 首
+          </span>
+          {excluded ? (
+            <ActionButton disabled={busy || !selected.size} onClick={() => void mutate('restore')}>
+              <RotateCcw aria-hidden="true" />
+              取消排除
             </ActionButton>
-            {playlist.link && (
+          ) : (
+            <>
               <ActionButton
                 disabled={busy || !selected.size}
                 variant="outline"
-                onClick={() => void mutate('add')}
+                onClick={() => void mutate('remove')}
               >
-                <FolderPlus aria-hidden="true" />
-                手动保留
+                <Trash2 aria-hidden="true" />
+                移除
               </ActionButton>
-            )}
-            <ActionButton
-              disabled={busy || !selected.size}
-              variant="outline"
-              onClick={() =>
-                actions.collectGroup(
-                  list.items.filter((m) => selected.has(m.track.key)).map((m) => m.track)
-                )
-              }
-            >
-              <Plus aria-hidden="true" />
-              添加到其他聚合歌单
-            </ActionButton>
-            <ActionButton
-              disabled={busy || !selected.size}
-              variant="outline"
-              onClick={() => setEdit('order')}
-            >
-              <ArrowUpDown aria-hidden="true" />
-              移动到位置
-            </ActionButton>
-          </>
-        )}
-      </div>
+              {playlist.link && (
+                <ActionButton
+                  disabled={busy || !selected.size}
+                  variant="outline"
+                  onClick={() => void mutate('add')}
+                >
+                  <FolderPlus aria-hidden="true" />
+                  手动保留
+                </ActionButton>
+              )}
+              <ActionButton
+                disabled={busy || !selected.size}
+                variant="outline"
+                onClick={() =>
+                  actions.collectGroup(
+                    list.items.filter((m) => selected.has(m.track.key)).map((m) => m.track)
+                  )
+                }
+              >
+                <Plus aria-hidden="true" />
+                添加到其他聚合歌单
+              </ActionButton>
+              <ActionButton
+                disabled={busy || !selected.size}
+                variant="outline"
+                onClick={() => setEdit('order')}
+              >
+                <ArrowUpDown aria-hidden="true" />
+                移动到位置
+              </ActionButton>
+            </>
+          )}
+          <ActionButton variant="outline" className="ml-auto" disabled={busy} onClick={toggleBatch}>
+            <Check aria-hidden="true" />
+            完成
+          </ActionButton>
+        </div>
+      )}
       <TrackList
         tracks={list.items.map((m) => m.track)}
         busy={busy}
@@ -278,6 +291,29 @@ export default function AggregatePage({
         searchable
         hasMore={list.more}
         groupCue={false}
+        selection={
+          batch
+            ? {
+                keys: selected,
+                onToggle: (key, checked) =>
+                  setSelected((old) => {
+                    const next = new Set(old)
+                    if (checked) next.add(key)
+                    else next.delete(key)
+                    return next
+                  }),
+                onToggleAll: (keys, checked) =>
+                  setSelected((old) => {
+                    const next = new Set(old)
+                    for (const key of keys) {
+                      if (checked) next.add(key)
+                      else next.delete(key)
+                    }
+                    return next
+                  })
+              }
+            : undefined
+        }
         onPlay={(_, tracks) => {
           if (excluded) onNotice('请先取消排除，再从歌单播放。')
           else void run(() => playAggregate(id, tracks[_]?.key))
@@ -295,30 +331,12 @@ export default function AggregatePage({
         }}
         extraColumns={[
           {
-            label: '选择 / 保留',
-            render: (track) => {
-              const m = members.get(track.key)!
-              return (
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    aria-label={`选择 ${track.title}`}
-                    checked={selected.has(track.key)}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setSelected((old) => {
-                        const next = new Set(old)
-                        if (checked) next.add(track.key)
-                        else next.delete(track.key)
-                        return next
-                      })
-                    }}
-                  />
-                  <span className="text-xs">{m.manual ? '手动保留' : '来自原歌单'}</span>
-                </label>
-              )
-            }
+            label: '保留状态',
+            render: (track) => (
+              <span className="text-xs">
+                {members.get(track.key)!.manual ? '手动保留' : '来自原歌单'}
+              </span>
+            )
           }
         ]}
       />

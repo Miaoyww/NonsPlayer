@@ -310,7 +310,8 @@ test('aggregate detail reuses the platform header and keeps deletion and refresh
         'ExternalLink',
         'RefreshCw',
         'X',
-        'ListFilter'
+        'ListFilter',
+        'ListChecks'
       ].map((name) => [name, name])
     ),
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
@@ -343,6 +344,7 @@ test('aggregate detail reuses the platform header and keeps deletion and refresh
     busy: false,
     onPlay() {},
     onEdit: (operation) => edits.push(operation),
+    onBatch: () => calls.push(['batch']),
     onExclusions: () => calls.push(['exclude'])
   })
   const flatten = (node) =>
@@ -364,6 +366,8 @@ test('aggregate detail reuses the platform header and keeps deletion and refresh
   assert.equal(trigger.props.children.type, 'Ellipsis')
   const item = (label) =>
     actions.find((node) => node.type === 'Menu.Item' && node.props.children[1] === label)
+  item('批量操作').props.onClick()
+  assert.ok(calls.some((call) => call[0] === 'batch'))
   item('删除本机歌单').props.onClick()
   item('从原歌单更新').props.onClick()
   item('查看原歌单').props.onClick()

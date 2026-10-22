@@ -760,3 +760,31 @@ test('ten thousand songs retain their full playback order when the virtual viewp
     20
   )
 })
+
+test('batch checkboxes replace the leading sequence and select only filtered loaded tracks', async () => {
+  await harness(async ({ tracks, render, search, plays }) => {
+    const toggles = [],
+      all = []
+    const selection = {
+      keys: new Set([tracks[0].key]),
+      onToggle: (...args) => toggles.push(args),
+      onToggleAll: (...args) => all.push(args)
+    }
+    await render({ selection, groupCue: false })
+    const header = document.querySelector('thead th:first-child input')
+    assert.equal(header.type, 'checkbox')
+    assert.equal(header.indeterminate, true)
+    const first = document.querySelector('tbody .track-row td:first-child input')
+    assert.equal(first.checked, true)
+    await act(async () => first.click())
+    assert.deepEqual(toggles.at(-1), [tracks[0].key, false])
+    assert.equal(plays.length, 0)
+    await search(tracks[0].title)
+    await act(async () => header.click())
+    assert.deepEqual(Array.from(all.at(-1)[0]), [tracks[0].key, tracks[2].key])
+    assert.equal(document.querySelectorAll('tbody input:checked').length, 2)
+    await render({ selection: undefined })
+    assert.equal(document.querySelectorAll('input[type="checkbox"]').length, 0)
+    assert.equal(document.querySelector('thead th:first-child').textContent.trim(), '#')
+  })
+})

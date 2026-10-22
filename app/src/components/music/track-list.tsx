@@ -89,6 +89,11 @@ interface Props {
     className?: string
     render: (track: Track, index: number) => ReactNode
   }[]
+  selection?: {
+    keys: ReadonlySet<string>
+    onToggle: (key: string, checked: boolean) => void
+    onToggleAll: (keys: string[], checked: boolean) => void
+  }
   sortable?: boolean
   searchable?: boolean
   hasMore?: boolean
@@ -115,6 +120,7 @@ export const TrackList = memo(function TrackList({
   onRemove,
   removeLabel,
   extraColumns = [],
+  selection,
   sortable = false,
   searchable = false,
   hasMore = false,
@@ -316,7 +322,7 @@ export const TrackList = memo(function TrackList({
     !mobile && (likesColumn ?? tracks.some((track) => onlineReference(track) !== null))
   const sizingSpecs = useMemo(
     () => [
-      ...(!mobile ? [{ id: 'index', label: '序号', size: 48, minSize: 36 }] : []),
+      ...(!mobile || selection ? [{ id: 'index', label: '序号', size: 48, minSize: 36 }] : []),
       { id: 'title', label: '标题', size: 480, minSize: mobile ? 0 : 180 },
       ...(!mobile ? [{ id: 'album', label: '专辑', size: 200, minSize: 100 }] : []),
       { id: 'source', label: '来源', size: mobile ? 80 : 104, minSize: 64 },
@@ -330,11 +336,11 @@ export const TrackList = memo(function TrackList({
       })),
       ...(onAppend ? [{ id: 'append', label: '加入队列', size: 48, minSize: 40 }] : [])
     ],
-    [mobile, showLikes, showDuration, extraColumns, onAppend]
+    [mobile, selection, showLikes, showDuration, extraColumns, onAppend]
   )
   const columnSizing = useTrackColumnSizing(sizingSpecs)
   const columns =
-    (mobile ? 2 : 4) +
+    (mobile ? 2 + Number(!!selection) : 4) +
     Number(showDuration) +
     extraColumns.length +
     Number(showLikes) +
@@ -410,9 +416,32 @@ export const TrackList = memo(function TrackList({
           <caption className="sr-only">歌曲列表</caption>
           <thead className="bg-background text-xs text-muted-foreground">
             <tr className="border-b border-border">
-              {!mobile && (
+              {(!mobile || selection) && (
                 <th className="py-3 text-center" scope="col">
-                  {sortable ? (
+                  {selection ? (
+                    <input
+                      type="checkbox"
+                      aria-label="选择全部已加载歌曲"
+                      title="选择全部已加载歌曲"
+                      disabled={busy || !visibleTracks.length}
+                      checked={
+                        !!visibleTracks.length &&
+                        visibleTracks.every((track) => selection.keys.has(track.key))
+                      }
+                      ref={(element) => {
+                        if (element)
+                          element.indeterminate =
+                            visibleTracks.some((track) => selection.keys.has(track.key)) &&
+                            !visibleTracks.every((track) => selection.keys.has(track.key))
+                      }}
+                      onChange={(event) =>
+                        selection.onToggleAll(
+                          visibleTracks.map((track) => track.key),
+                          event.target.checked
+                        )
+                      }
+                    />
+                  ) : sortable ? (
                     <button
                       type="button"
                       className="track-sequence-header"
@@ -518,7 +547,7 @@ export const TrackList = memo(function TrackList({
             {loading &&
               Array.from({ length: skeletonCount }, (_, index) => (
                 <tr key={`loading-${index}`} className="track-row" aria-hidden="true">
-                  {!mobile && (
+                  {(!mobile || selection) && (
                     <td className="text-center">
                       <Skeleton className="mx-auto h-3 w-3" />
                     </td>
@@ -670,9 +699,24 @@ export const TrackList = memo(function TrackList({
                       />
                     }
                   >
-                    {!mobile && (
+                    {(!mobile || selection) && (
                       <td className="text-center tabular-nums text-muted-foreground">
-                        {current ? <PlayingIndicator /> : offset + row.index + 1}
+                        {selection ? (
+                          <input
+                            type="checkbox"
+                            aria-label={`选择 ${track.title}`}
+                            disabled={busy}
+                            checked={selection.keys.has(track.key)}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={(event) =>
+                              selection.onToggle(track.key, event.target.checked)
+                            }
+                          />
+                        ) : current ? (
+                          <PlayingIndicator />
+                        ) : (
+                          offset + row.index + 1
+                        )}
                       </td>
                     )}
                     <td className="track-identity-cell pr-4">

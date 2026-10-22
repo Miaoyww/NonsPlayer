@@ -7,7 +7,8 @@ import {
   ExternalLink,
   RefreshCw,
   X,
-  ListFilter
+  ListFilter,
+  ListChecks
 } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { ErrorNotice } from '@/components/error-notice'
@@ -23,6 +24,8 @@ export function AggregateHeader({
   onPlay,
   onEdit,
   onExclusions,
+  onBatch,
+  batch = false,
   excluded = false
 }: {
   playlist: AggregatePlaylist
@@ -30,6 +33,8 @@ export function AggregateHeader({
   onPlay: () => void
   onEdit: (operation: 'rename' | 'delete' | 'unlink') => void
   excluded?: boolean
+  onBatch?: () => void
+  batch?: boolean
   onExclusions: () => void
 }) {
   const { navigate } = useMusicNavigation()
@@ -69,6 +74,10 @@ export function AggregateHeader({
               <Menu.Portal>
                 <Menu.Positioner className="z-[70]" side="bottom" align="end" sideOffset={6}>
                   <Menu.Popup className="song-context-menu" aria-label="歌单操作">
+                    <Menu.Item onClick={onBatch}>
+                      <ListChecks aria-hidden="true" />
+                      {batch ? '完成批量操作' : '批量操作'}
+                    </Menu.Item>
                     {!playlist.link && (
                       <Menu.Item onClick={() => onEdit('rename')}>
                         <Pencil aria-hidden="true" />
