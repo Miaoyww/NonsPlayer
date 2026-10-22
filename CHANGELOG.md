@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 移除桌面播放链路中将 PCM 提前供数限制为 30 毫秒的等待，允许音频设备使用自身缓冲，改善短时调度停顿引起的断音与杂音。播放／暂停渐变开启时，设备预缓冲可能使渐变响应变慢；独占模式的实际改善仍待试用确认。
+
 ## [1.7.0] - 2026-10-22
 
 ![NonsPlayer v1.7.0 播放与聚合歌单改进发布头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.7.0/docs/release-assets/header-1.7.0.png)

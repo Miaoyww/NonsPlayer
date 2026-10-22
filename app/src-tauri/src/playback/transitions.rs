@@ -7,10 +7,6 @@ use std::sync::{Arc, Mutex};
 pub const PLAYBACK_FADE_MS: u64 = 200;
 // Let the device/mixer consume the final quiet buffers before suspending it.
 pub const PAUSE_GRACE_MS: u64 = 80;
-#[cfg(not(target_os = "android"))]
-const OUTPUT_LEAD_MS: u64 = 30;
-#[cfg(not(target_os = "android"))]
-const CLOCK_WAIT_MS: u64 = 5;
 
 struct Envelope {
     source: InterpolationControlSource,
@@ -77,12 +73,8 @@ impl PlaybackFade {
                                 .and_then(|segment| segment.to_running_time(pts))
                         })
                 });
-                // Android's OpenSL ES ring buffer owns output pacing. The desktop
-                // 30 ms feeding margin starves it and causes repeated skew correction.
-                #[cfg(not(target_os = "android"))]
-                if let (Some(element), Some(time)) = (weak_element.upgrade(), time) {
-                    pace_output(&element, pad, time);
-                }
+                // Let the audio sink fill and pace its bounded ring buffer. Waiting
+                // here leaves too little queued PCM to survive scheduling stalls.
                 let mut envelope = shared.lock().unwrap_or_else(|e| e.into_inner());
                 if !envelope.enabled {
                     return gst::PadProbeReturn::Ok;
@@ -142,8 +134,8 @@ impl PlaybackFade {
         }) {
             parent.remove(&self.element).map_err(|e| e.to_string())?;
         }
-        // Pacing must not depend on a device clock that waits for its ring buffer
-        // to fill. AudioBaseSink slaves its device clock to this monotonic clock.
+        // Keep the desktop timeline on a monotonic clock. AudioBaseSink slaves
+        // its device clock to it and owns output buffering and pacing.
         let pipeline = playbin
             .downcast_ref::<gst::Pipeline>()
             .ok_or("播放管线不可用")?;
@@ -213,39 +205,6 @@ impl PlaybackFade {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .ramp(time, 1.0);
-    }
-}
-
-// WASAPI2 keeps a fixed 500 ms ring buffer even in low-latency mode. Pace
-// before gain with a small feeding margin. clocksync marks the stream live and
-// blocks preroll in this nested output bin; preserve non-live preroll here.
-#[cfg(not(target_os = "android"))]
-fn pace_output(element: &gst::Element, pad: &gst::Pad, time: gst::ClockTime) {
-    while element.current_state() == gst::State::Playing
-        && !pad.pad_flags().contains(gst::PadFlags::FLUSHING)
-        && !matches!(
-            element.pending_state(),
-            gst::State::Paused | gst::State::Ready | gst::State::Null
-        )
-    {
-        let Some(now) = element.current_running_time() else {
-            break;
-        };
-        let lead = time.saturating_sub(now).mseconds();
-        if lead <= OUTPUT_LEAD_MS {
-            break;
-        }
-        let Some(clock) = element.clock() else {
-            break;
-        };
-        // Bounded waits let state changes and flush interrupt a future timestamp.
-        let deadline = clock.time()
-            + gst::ClockTime::from_mseconds((lead - OUTPUT_LEAD_MS).min(CLOCK_WAIT_MS));
-        let _ = (clock.new_single_shot_id(deadline).wait())
-            .0
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("clock.new_single_shot_id", error);
-            });
     }
 }
 

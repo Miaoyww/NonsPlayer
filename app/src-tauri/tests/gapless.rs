@@ -8,6 +8,15 @@ mod model;
 #[allow(dead_code)]
 mod transitions;
 
+// The output module is included directly, without the Tauri diagnostics service.
+mod infrastructure {
+    pub mod diagnostics {
+        pub fn warn(operation: &str, error: impl std::fmt::Display) {
+            log::warn!("operation={operation} reason={error}");
+        }
+    }
+}
+
 fn wav(samples: &[i16]) -> Vec<u8> {
     let bytes = (samples.len() * 2) as u32;
     let mut out = Vec::new();
@@ -414,7 +423,7 @@ fn check_live_transport(hardware: bool) {
 }
 
 #[test]
-fn paced_output_preserves_preroll_and_restored_position() {
+fn output_preserves_preroll_and_restored_position() {
     gst::init().unwrap();
     let file = std::env::temp_dir().join(format!("nons-fade-preroll-{}.wav", std::process::id()));
     std::fs::write(&file, wav(&vec![10000; 96000 * 5])).unwrap();
@@ -457,4 +466,40 @@ fn paced_output_preserves_preroll_and_restored_position() {
     playbin.set_state(gst::State::Null).unwrap();
     std::fs::remove_file(file).unwrap();
     assert_eq!(first.unwrap(), 2000);
+}
+
+#[test]
+fn output_allows_the_sink_to_prefill_its_buffer() {
+    gst::init().unwrap();
+    let file = std::env::temp_dir().join(format!("nons-output-prefill-{}.wav", std::process::id()));
+    std::fs::write(&file, wav(&vec![10000; 96000 * 4])).unwrap();
+    let playbin = gst::ElementFactory::make("playbin3").build().unwrap();
+    playbin.set_property_from_str("flags", "audio+soft-volume+buffering");
+    // An unsynchronised sink accepts PCM immediately, modelling a device that
+    // needs to refill its ring buffer. Upstream must not impose another clock wait.
+    let sink = gst::ElementFactory::make("fakesink")
+        .property("sync", false)
+        .property("signal-handoffs", true)
+        .build()
+        .unwrap();
+    let (sender, receiver) = std::sync::mpsc::channel();
+    sink.connect("handoff", false, move |values| {
+        let buffer = values[1].get::<gst::Buffer>().unwrap();
+        if buffer.pts().unwrap() >= gst::ClockTime::from_seconds(2) {
+            let _ = sender.send(());
+        }
+        None
+    });
+    playbin.set_property("audio-sink", &sink);
+    let fade = transitions::PlaybackFade::new().unwrap();
+    fade.attach(&playbin).unwrap();
+    playbin.set_property("uri", url::Url::from_file_path(&file).unwrap().to_string());
+    playbin.set_state(gst::State::Playing).unwrap();
+    let prefilled = receiver.recv_timeout(std::time::Duration::from_secs(1));
+    playbin.set_state(gst::State::Null).unwrap();
+    std::fs::remove_file(file).unwrap();
+    assert!(
+        prefilled.is_ok(),
+        "PCM supply must follow sink demand without a 30 ms clock gate"
+    );
 }
