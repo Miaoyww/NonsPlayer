@@ -25,7 +25,7 @@ export default function LyricRenderer({
   retainWhenHidden?: boolean
 }) {
   const { fonts } = useFontSettings()
-  const { autoBlur } = useLyricsSettings()
+  const { autoBlur, fontWeight } = useLyricsSettings()
   const lyricFont = fonts.lyrics || fonts.app
   // AMLL consumes immutable lyric lines; retain the original auxiliary lyrics for restoring them.
   const displayedLines = useMemo(
@@ -52,9 +52,10 @@ export default function LyricRenderer({
   const playing = progress.status === 'playing'
   const pausedPosition = playing ? 0 : progress.positionMs
   const lastFont = useRef<string | undefined>(undefined)
+  const fontSignature = `${lyricFont}:${fontWeight}`
   useEffect(() => {
     const player = renderer?.lyricPlayer
-    if (!enabled || !player || lastFont.current === lyricFont) return
+    if (!enabled || !player || lastFont.current === fontSignature) return
     let disposed = false
     let frame = 0
     // Font metrics affect word masks as well as line positions, including while paused.
@@ -62,7 +63,7 @@ export default function LyricRenderer({
       if (disposed) return
       frame = requestAnimationFrame(() => {
         player.rebuildLyricView()
-        lastFont.current = lyricFont
+        lastFont.current = fontSignature
         setLayoutVersion((version) => version + 1)
       })
     })
@@ -70,7 +71,7 @@ export default function LyricRenderer({
       disposed = true
       cancelAnimationFrame(frame)
     }
-  }, [lyricFont, renderer, enabled])
+  }, [fontSignature, renderer, enabled])
   useEffect(() => {
     const changed = () => setVisible(document.visibilityState !== 'hidden')
     document.addEventListener('visibilitychange', changed)
@@ -104,6 +105,7 @@ export default function LyricRenderer({
     <LyricPlayer
       ref={retainRenderer}
       className="lyric-renderer h-full w-full"
+      style={{ fontWeight }}
       lyricLines={displayedLines}
       disabled
       playing={enabled && playing}

@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button'
 import { defaultBackgroundSpeed, useLyricsSettings } from '@/features/lyrics/use-lyrics-settings'
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
 import { SettingsCard } from '@/features/settings/settings-card'
+import { LyricFontWeightControl } from '@/features/settings/lyric-font-weight-control'
 import { FontPicker } from '@/features/settings/font-picker'
 import { useFontSettings } from '@/features/settings/use-font-settings'
 
 export function LyricsPage() {
   const { fonts, setFont } = useFontSettings()
-  const { backgroundSpeed, setBackgroundSpeed, autoBlur, setAutoBlur } = useLyricsSettings()
+  const { backgroundSpeed, setBackgroundSpeed, autoBlur, setAutoBlur, fontWeight } =
+    useLyricsSettings()
   const { sources, ready, busy, error, setSources } = useLyricSources()
   return (
     <div className="flex flex-col gap-8">
@@ -33,9 +35,15 @@ export function LyricsPage() {
               key={String(active)}
               className={`mb-5 last:mb-0 ${active ? 'text-foreground' : 'text-muted-foreground/60'}`}
             >
-              <p className="text-3xl font-bold leading-tight sm:text-4xl">我是一句歌词</p>
-              <p className="mt-3 text-base font-medium">I'm the lyric</p>
-              <p className="mt-1 text-base font-medium">wo shi yi ju ge ci</p>
+              <p className="text-3xl leading-tight sm:text-4xl" style={{ fontWeight }}>
+                我是一句歌词
+              </p>
+              <p className="mt-3 text-base" style={{ fontWeight }}>
+                I'm the lyric
+              </p>
+              <p className="mt-1 text-base" style={{ fontWeight }}>
+                wo shi yi ju ge ci
+              </p>
             </div>
           ))}
         </div>
@@ -50,6 +58,13 @@ export function LyricsPage() {
             onChange={(family) => setFont('lyrics', family)}
             defaultLabel="跟随应用字体"
           />
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-font-weight"
+          title="歌词字重"
+          description="原文、翻译与发音统一使用所选字重。常规 400、中等 500、粗体 700，支持自定义 100–900 的整数；实际效果取决于字体支持。"
+        >
+          <LyricFontWeightControl />
         </SettingsCard>
         <SettingsCard
           searchId="lyrics-auto-blur"
