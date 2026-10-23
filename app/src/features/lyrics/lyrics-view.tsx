@@ -38,7 +38,8 @@ function isCurrentPlayback(key: string, revision: number, version: string) {
   )
 }
 
-const DeferredLyricRenderer = lazy(() => import('./lyric-renderer'))
+const loadLyricRenderer = () => import('./lyric-renderer')
+const DeferredLyricRenderer = lazy(loadLyricRenderer)
 
 function LyricRenderer(props: {
   lines: LyricLine[]
@@ -68,7 +69,13 @@ export default function LyricsView({
   const isPresent = useIsPresent()
   const mobile = isAndroid()
   const [entered, setEntered] = useState(!!reduced)
-  const rendering = isPresent && (entered || !!reduced)
+  const rendering = isPresent
+  useEffect(() => {
+    // Load alongside the lyrics request, without waiting for data or entry animation.
+    void loadLyricRenderer().catch((cause) => {
+      reportCaughtError('app/src/features/lyrics/lyrics-view.tsx', cause)
+    })
+  }, [])
   const state = usePlayer('error', 'index', 'mediaError', 'queue', 'revision', 'status')
   const track = state.index !== null ? state.queue[state.index] : undefined
   const trackVersion = useMemo(() => lyricTrackVersion(track), [track])
@@ -297,7 +304,7 @@ export default function LyricsView({
       cover={track?.cover}
       playing={state.status === 'playing'}
       hasLyrics={lines.length > 0}
-      active={rendering}
+      active={rendering && (entered || !!reduced)}
       enabled={entered || !!reduced}
     />
   )

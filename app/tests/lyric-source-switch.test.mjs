@@ -34,6 +34,7 @@ async function harness(track, settle = true, localSource = 'local') {
   const pending = []
   const parsed = []
   const requests = []
+  let rendererLoads = 0
   let cursor = 0
   const jsx = (type, props) => ({ type, props })
   const modules = {
@@ -115,8 +116,10 @@ async function harness(track, settle = true, localSource = 'local') {
   )
   runInNewContext(outputText, {
     exports,
-    require: (name) =>
-      name === '@/components/error-notice' ? errorNoticeModule : (modules[name] ?? {})
+    require: (name) => {
+      if (name === './lyric-renderer') rendererLoads++
+      return name === '@/components/error-notice' ? errorNoticeModule : (modules[name] ?? {})
+    }
   })
   const render = () => {
     cursor = 0
@@ -134,6 +137,7 @@ async function harness(track, settle = true, localSource = 'local') {
     parsed,
     pending,
     requests,
+    rendererLoads: () => rendererLoads,
     events,
     render,
     selectSource: (localSource) => {
@@ -218,8 +222,10 @@ test('opening a song reserves the same lyrics layout before and after loading st
   assert.equal(layout(app.initial), layout(app.render()))
 })
 
-test('cached lyrics wait until entry completes and stop rendering during exit', async () => {
+test('lyrics and renderer load during entry and ready lyrics render before animation completes', async () => {
   const app = await harness(streamed, false)
+  assert.equal(app.rendererLoads(), 1, 'renderer module starts loading while lyrics are pending')
+  assert.equal(app.requests.length, 1)
   app.pending[0](streamLyrics)
   await Promise.resolve()
   const count = (tree) => {
@@ -227,7 +233,7 @@ test('cached lyrics wait until entry completes and stop rendering during exit', 
     if (tree.type?.name === 'LyricRenderer') return 1
     return [tree.props?.children].flat().reduce((sum, child) => sum + count(child), 0)
   }
-  assert.equal(count(app.render()), 0, 'no AMLL initialization during entry')
+  assert.equal(count(app.render()), 1, 'ready lyrics render without waiting for entry animation')
   app.initial.props.onAnimationComplete()
   assert.equal(count(app.render()), 1)
   app.setPresent(false)
