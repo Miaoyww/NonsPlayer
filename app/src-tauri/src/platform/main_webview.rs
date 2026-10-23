@@ -112,8 +112,9 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
                         return Ok(());
                     }
                     let since = *hidden_since.get_or_insert_with(Instant::now);
-                    // Resume through SMTC can reactivate a paused FM while the UI sleeps.
-                    if app.state::<Backend>().player.needs_private_fm_frontend()? {
+                    // Browser audio needs its execution endpoint even while paused, so
+                    // native SMTC can resume it. FM also needs its existing queue coordinator.
+                    if app.state::<Backend>().player.needs_playback_frontend()? {
                         if ensure_webview(&app)? {
                             ready = false;
                         }

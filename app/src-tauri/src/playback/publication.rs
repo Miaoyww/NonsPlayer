@@ -6,6 +6,7 @@ use std::sync::Arc;
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerState {
+    pub playback_engine: crate::model::PlaybackEngine,
     pub sequence: u64,
     pub queue_revision: u64,
     pub revision: u64,
@@ -76,6 +77,7 @@ impl Publication {
         let s = &self.snapshot;
         PlayerBootstrap {
             state: PlayerState {
+                playback_engine: s.playback_engine,
                 sequence: self.sequence,
                 queue_revision: self.queue_revision,
                 revision: s.revision,

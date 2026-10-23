@@ -1,6 +1,6 @@
 use crate::{
-    about, audio_runtime, fonts, hitokoto, library, local_folders, local_library, lyrics, model,
-    player, plugins, storage, ttml_cache,
+    about, fonts, hitokoto, library, local_folders, local_library, lyrics, model, player, plugins,
+    storage, ttml_cache,
 };
 
 use crate::platform::main_webview;
@@ -562,8 +562,49 @@ fn player_volume(volume: f64, backend: State<'_, Backend>) -> AppResult<()> {
     backend.player.send(Command::Volume(volume))
 }
 #[tauri::command]
-fn player_device(device_id: Option<String>, backend: State<'_, Backend>) -> AppResult<()> {
-    backend.player.send(Command::Device(device_id))
+async fn player_device(device_id: Option<String>, backend: State<'_, Backend>) -> AppResult<()> {
+    let player = backend.player.clone();
+    tauri::async_runtime::spawn_blocking(move || player.set_device(device_id))
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn set_playback_engine(
+    engine: model::PlaybackEngine,
+    webview: tauri::Webview,
+    backend: State<'_, Backend>,
+) -> AppResult<()> {
+    if webview.label() != "main" {
+        return Err("播放引擎仅允许主窗口控制".into());
+    }
+    let player = backend.player.clone();
+    tauri::async_runtime::spawn_blocking(move || player.set_engine(engine))
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn web_audio_ready(
+    webview: tauri::Webview,
+    backend: State<'_, Backend>,
+) -> AppResult<crate::playback::web_audio::Control> {
+    if webview.label() != "main" {
+        return Err("音频执行端仅允许主窗口连接".into());
+    }
+    let player = backend.player.clone();
+    tauri::async_runtime::spawn_blocking(move || player.web_ready())
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+fn web_audio_feedback(
+    feedback: crate::playback::web_audio::Feedback,
+    webview: tauri::Webview,
+    backend: State<'_, Backend>,
+) -> AppResult<()> {
+    if webview.label() != "main" {
+        return Err("音频执行端仅允许主窗口连接".into());
+    }
+    backend.player.send(Command::WebFeedback(feedback))
 }
 #[tauri::command]
 async fn set_playback_options(
@@ -735,6 +776,19 @@ pub fn run() {
         eprintln!("初始化程序数据目录失败：{error}");
         std::process::exit(1);
     }
+    #[cfg(windows)]
+    for window in &mut context.config_mut().app.windows {
+        if window.label == "main" {
+            // Playback also starts from native SMTC while the page is hidden.
+            window.additional_browser_args = Some(format!(
+                "{} --autoplay-policy=no-user-gesture-required",
+                window
+                    .additional_browser_args
+                    .as_deref()
+                    .unwrap_or("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection")
+            ));
+        }
+    }
     if crate::infrastructure::directories::portable().is_some() {
         // Absolute WebView paths must be supplied through the builder, not WindowConfig.
         for window in &mut context.config_mut().app.windows {
@@ -798,7 +852,6 @@ pub fn run() {
             }));
             std::fs::create_dir_all(&cache_directory)?;
             crate::wasm_runtime::configure_compilation_cache(&cache_directory);
-            audio_runtime::configure(&cache_directory)?;
             let covers = cache_directory.join("covers");
             std::fs::create_dir_all(&covers)?;
             app.asset_protocol_scope().allow_directory(&covers, true)?;
@@ -1079,6 +1132,9 @@ pub fn run() {
             player_volume,
             player_device,
             set_playback_options,
+            set_playback_engine,
+            web_audio_ready,
+            web_audio_feedback,
             output_devices,
             track_lyrics,
             crate::lyrics::correction::lyric_correction,

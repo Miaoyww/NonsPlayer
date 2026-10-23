@@ -2,6 +2,17 @@
 use crate::model::AppResult;
 
 pub fn configure(cache: &std::path::Path) -> AppResult<()> {
+    static CONFIGURED: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
+    let mut configured = CONFIGURED.lock().map_err(|_| "音频运行时配置不可用")?;
+    if *configured {
+        return Ok(());
+    }
+    configure_once(cache)?;
+    *configured = true;
+    Ok(())
+}
+
+fn configure_once(cache: &std::path::Path) -> AppResult<()> {
     #[cfg(windows)]
     {
         let executable = std::env::current_exe().map_err(|e| e.to_string())?;

@@ -57,9 +57,11 @@ const groups: SearchGroup[] = [
     path: '播放设置',
     items: [
       ['output-device', '输出设备', '扬声器 耳机 声卡 系统默认'],
+      ['playback-engine', '播放引擎', 'WebAudio GStreamer 浏览器 audio'],
       ['quality-downgrade', '允许音质降级', '不可用'],
       ['playback-fades', '播放/暂停渐变', '淡入 淡出 过渡'],
-      ['gapless', '无缝播放（Gapless）', '连续 衔接 预加载']
+      ['gapless', '无缝播放（Gapless）', '连续 衔接 预加载'],
+      ['crossfade', '交叉淡入淡出', 'WebAudio 自动切歌 重叠 过渡时长']
     ]
   },
   {

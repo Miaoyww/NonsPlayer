@@ -4,6 +4,7 @@ import { coverOriginal, type CoverInput } from '@/features/music/cover-image'
 import { ScopedMusicQueries } from '@/features/music/scoped-query'
 import { isAndroid } from '@/lib/platform'
 import { createPrivateFm } from '@/features/discovery/private-fm'
+import type { AudioControl } from '@/features/playback/web-audio'
 import { isTauri, convertFileSrc } from '@tauri-apps/api/core'
 import { diagnosticInvoke as invoke } from '@/lib/diagnostics'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
@@ -53,7 +54,9 @@ export interface Track {
   source: TrackSource
 }
 export type PlaybackStatus = 'stopped' | 'loading' | 'playing' | 'paused' | 'buffering' | 'error'
+export type PlaybackEngine = 'webAudio' | 'gstreamer'
 export interface PlayerSnapshot {
+  playbackEngine: PlaybackEngine
   playbackSource?: {
     provider: string
     displayName: string
@@ -63,7 +66,12 @@ export interface PlayerSnapshot {
     title: string
     artist: string
   } | null
-  playbackOptions: { fades: boolean; gapless: boolean }
+  playbackOptions: {
+    fades: boolean
+    gapless: boolean
+    crossfade: boolean
+    crossfadeDurationMs: number
+  }
   privateFmSession: number | null
   privateFmError?: string
   shuffle: boolean
@@ -101,7 +109,8 @@ export interface OutputDevice {
 }
 
 const initialSnapshot: PlayerSnapshot = {
-  playbackOptions: { fades: false, gapless: true },
+  playbackEngine: 'gstreamer',
+  playbackOptions: { fades: false, gapless: true, crossfade: false, crossfadeDurationMs: 3000 },
   privateFmSession: null,
   shuffle: false,
   shuffleOrder: [],
@@ -306,6 +315,20 @@ export async function connectPlayer(): Promise<UnlistenFn> {
       })
   }
   try {
+    if (typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent)) {
+      const { createWebAudio } = await import('@/features/playback/web-audio')
+      const webAudio = createWebAudio(
+        (feedback) => invoke('web_audio_feedback', { feedback }),
+        (cause) => reportCaughtError('app/src/features/playback/web-audio.ts', cause)
+      )
+      listeners.push(() => webAudio.dispose())
+      listeners.push(
+        await listen<AudioControl>('web-audio-control', ({ payload }) => {
+          if (!disposed) webAudio.apply(payload)
+        })
+      )
+      webAudio.apply(await invoke<AudioControl>('web_audio_ready'))
+    }
     listeners.push(
       await listen<PlayerStateEvent>('player-state', ({ payload }) => {
         if (disposed) return

@@ -5,8 +5,8 @@ use crate::model::RepeatMode;
 use crate::{
     media::MediaControls,
     model::{
-        AppResult, OutputDevice, PlaybackOptions, PlaybackStatus, PlayerSnapshot, ResolvedTrack,
-        Track,
+        AppResult, OutputDevice, PlaybackEngine, PlaybackOptions, PlaybackStatus, PlayerSnapshot,
+        ResolvedTrack, Track,
     },
     music::{manager::ResourceTicket, service::MusicService},
     storage::Store,
@@ -24,6 +24,9 @@ use std::{
 use tauri::Emitter;
 
 pub enum Command {
+    Engine(PlaybackEngine, mpsc::Sender<AppResult<()>>),
+    WebReady(mpsc::Sender<AppResult<super::web_audio::Control>>),
+    WebFeedback(super::web_audio::Feedback),
     SourceAttempt {
         generation: u64,
         index: usize,
@@ -84,7 +87,7 @@ pub enum Command {
     Shuffle,
     Seek(u64),
     Volume(f64),
-    Device(Option<String>),
+    Device(Option<String>, mpsc::Sender<AppResult<()>>),
     Options(PlaybackOptions, mpsc::Sender<AppResult<()>>),
     Resolved {
         generation: u64,
@@ -217,6 +220,25 @@ impl Player {
             .map(restore_player)
             .unwrap_or_default();
         restored.playback_options = stored_options(&store, restored.playback_options)?;
+        restored.playback_engine = if cfg!(windows) {
+            store
+                .setting("playbackEngine")?
+                .map(|value| serde_json::from_str(&value).map_err(|e| e.to_string()))
+                .transpose()?
+                .unwrap_or_default()
+        } else {
+            PlaybackEngine::Gstreamer
+        };
+        let device_key = if restored.playback_engine == PlaybackEngine::WebAudio {
+            "webAudioDevice"
+        } else {
+            "gstreamerDevice"
+        };
+        if let Some(value) = store.setting(device_key)? {
+            restored.device_id = serde_json::from_str(&value).map_err(|e| e.to_string())?;
+        } else if restored.playback_engine == PlaybackEngine::WebAudio {
+            restored.device_id = None;
+        }
         let snapshot = Arc::new(RwLock::new(Publication::new(restored)));
         let shared = Arc::clone(&snapshot);
         let history = PlaybackHistory::start(Arc::clone(&store));
@@ -302,18 +324,19 @@ impl Player {
             .map_err(|_| "播放状态不可用".into())
     }
 
-    pub(crate) fn needs_private_fm_frontend(&self) -> AppResult<bool> {
+    pub(crate) fn needs_playback_frontend(&self) -> AppResult<bool> {
         self.snapshot
             .read()
             .map(|state| {
                 let state = &state.snapshot;
-                state.private_fm_session.is_some()
-                    && matches!(
-                        state.status,
-                        PlaybackStatus::Loading
-                            | PlaybackStatus::Playing
-                            | PlaybackStatus::Buffering
-                    )
+                state.playback_engine == PlaybackEngine::WebAudio
+                    || state.private_fm_session.is_some()
+                        && matches!(
+                            state.status,
+                            PlaybackStatus::Loading
+                                | PlaybackStatus::Playing
+                                | PlaybackStatus::Buffering
+                        )
             })
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn("translate_error", error);
@@ -332,6 +355,14 @@ impl Player {
             .map_err(|_| "查询音频设备超时".to_string())?
     }
 
+    pub fn set_device(&self, id: Option<String>) -> AppResult<()> {
+        let (sender, receiver) = mpsc::channel();
+        self.send(Command::Device(id, sender))?;
+        receiver
+            .recv_timeout(Duration::from_secs(5))
+            .map_err(|_| "切换音频设备超时".to_string())?
+    }
+
     pub fn set_options(&self, options: PlaybackOptions) -> AppResult<()> {
         let (sender, receiver) = mpsc::channel();
         self.send(Command::Options(options, sender))?;
@@ -341,6 +372,22 @@ impl Player {
                 crate::infrastructure::diagnostics::warn("translate_error", error);
             })
             .map_err(|_| "保存播放设置超时".to_string())?
+    }
+
+    pub fn set_engine(&self, engine: PlaybackEngine) -> AppResult<()> {
+        let (sender, receiver) = mpsc::channel();
+        self.send(Command::Engine(engine, sender))?;
+        receiver
+            .recv_timeout(Duration::from_secs(30))
+            .map_err(|_| "切换播放引擎超时".to_string())?
+    }
+
+    pub fn web_ready(&self) -> AppResult<super::web_audio::Control> {
+        let (sender, receiver) = mpsc::channel();
+        self.send(Command::WebReady(sender))?;
+        receiver
+            .recv_timeout(Duration::from_secs(3))
+            .map_err(|_| "浏览器播放核心未响应".to_string())?
     }
 
     pub fn shutdown(&self) {
@@ -366,6 +413,8 @@ impl Player {
 }
 
 struct Actor {
+    web_audio: super::web_audio::WebAudio,
+    engine_switch: Option<EngineSwitch>,
     selections: std::collections::BTreeMap<String, crate::music::service::PlaybackSelection>,
     app: tauri::AppHandle,
     store: Arc<Store>,
@@ -374,9 +423,7 @@ struct Actor {
     shared: Arc<RwLock<Publication>>,
     sender: SyncSender<Command>,
     state: PlayerSnapshot,
-    playbin: gst::Element,
-    bus: gst::Bus,
-    monitor: Option<gst::DeviceMonitor>,
+    native: Option<GstreamerEngine>,
     media: Option<MediaControls>,
     desired_playing: bool,
     failed_keys: std::collections::HashSet<String>,
@@ -396,22 +443,61 @@ struct Actor {
     awaiting_first_stream: bool,
     start_gate: crate::audio::StreamStartGate,
     gapless_enabled: Arc<AtomicBool>,
-    fade: super::transitions::PlaybackFade,
     deferred: Option<(Command, u64, Instant)>,
     play_instance_id: String,
     recorded_instance_id: Option<String>,
 }
 
-impl Actor {
+struct EngineSwitch {
+    target: PlaybackEngine,
+    reply: mpsc::Sender<AppResult<()>>,
+    started: Instant,
+    sample_position: bool,
+    native: Option<GstreamerEngine>,
+    device_id: Option<String>,
+    preloaded: Option<(String, Prepared)>,
+}
+
+struct GstreamerEngine {
+    playbin: gst::Element,
+    bus: gst::Bus,
+    monitor: DeviceMonitor,
+    fade: super::transitions::PlaybackFade,
+}
+
+struct DeviceMonitor(Option<gst::DeviceMonitor>);
+impl std::ops::Deref for DeviceMonitor {
+    type Target = Option<gst::DeviceMonitor>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl Drop for DeviceMonitor {
+    fn drop(&mut self) {
+        if let Some(monitor) = &self.0 {
+            monitor.stop();
+        }
+    }
+}
+
+fn runtime_cache(app: &tauri::AppHandle) -> AppResult<std::path::PathBuf> {
+    use tauri::Manager;
+    match crate::infrastructure::directories::portable() {
+        Some(data) => Ok(data.join("cache")),
+        None => app.path().app_cache_dir().map_err(|e| e.to_string()),
+    }
+}
+
+impl GstreamerEngine {
     fn new(
-        app: tauri::AppHandle,
-        store: Arc<Store>,
-        music: Arc<MusicService>,
-        history: Arc<PlaybackHistory>,
-        shared: Arc<RwLock<Publication>>,
-        sender: SyncSender<Command>,
-        hwnd: isize,
+        app: &tauri::AppHandle,
+        state: &mut PlayerSnapshot,
+        prepared: &Arc<Mutex<Option<Prepared>>>,
+        armed: &Arc<Mutex<Option<Prepared>>>,
+        generation: &Arc<AtomicU64>,
+        gapless_enabled: &Arc<AtomicBool>,
     ) -> AppResult<Self> {
+        super::audio_runtime::configure(&runtime_cache(app)?)?;
         gst::init().map_err(|e| format!("GStreamer 初始化失败：{e}"))?;
         super::diagnostics::initialize();
         crate::network::prefer_http_source();
@@ -433,15 +519,7 @@ impl Actor {
             }
             None
         });
-        let monitor = super::output::start_device_monitor()?;
-        let mut state = shared
-            .read()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
-            })
-            .map_err(|_| "播放状态不可用")?
-            .snapshot
-            .clone();
+        let monitor = DeviceMonitor(super::output::start_device_monitor()?);
         if let Some(id) = &state.device_id {
             let device = monitor.iter().flat_map(|m| m.devices()).find(|device| {
                 let identity = format!(
@@ -472,25 +550,15 @@ impl Actor {
             let sink = super::output::create_sink(None)?;
             playbin.set_property("audio-sink", sink);
         }
-        let media = match MediaControls::new(hwnd, sender.clone()) {
-            Ok(m) => Some(m),
-            Err(e) => {
-                log::error!(target: "nons::media", "operation=initialize reason={e}");
-                state.media_error = Some(format!("系统媒体控制初始化失败：{e}"));
-                None
-            }
-        };
-        let prepared = Arc::new(Mutex::new(None::<Prepared>));
-        let armed = Arc::new(Mutex::new(None::<Prepared>));
-        let generation = Arc::new(AtomicU64::new(0));
         let pending = prepared.clone();
         let advancing = armed.clone();
         let current_generation = generation.clone();
-        let gapless_enabled = Arc::new(AtomicBool::new(state.playback_options.gapless));
         let gapless = gapless_enabled.clone();
         let fade = super::transitions::PlaybackFade::new()?;
         fade.attach(&playbin)?;
-        fade.set_enabled(state.playback_options.fades);
+        fade.set_enabled(
+            state.playback_options.fades && state.playback_engine == PlaybackEngine::Gstreamer,
+        );
         playbin.connect("about-to-finish", false, move |values| {
             // Only consume a prepared URI here. This runs on a streaming thread:
             // no HTTP, database work, events, or channel waits are allowed.
@@ -521,6 +589,342 @@ impl Actor {
         });
         playbin.set_property("volume", state.volume.clamp(0.0, 1.0));
         Ok(Self {
+            playbin,
+            bus,
+            monitor,
+            fade,
+        })
+    }
+}
+
+impl Drop for GstreamerEngine {
+    fn drop(&mut self) {
+        let _ = self.playbin.set_state(gst::State::Null);
+    }
+}
+
+impl Actor {
+    fn native(&self) -> &GstreamerEngine {
+        self.native
+            .as_ref()
+            .expect("native commands require the selected GStreamer engine")
+    }
+
+    fn is_web(&self) -> bool {
+        self.state.playback_engine == PlaybackEngine::WebAudio
+    }
+
+    fn prepare_engine(
+        &self,
+        engine: PlaybackEngine,
+    ) -> AppResult<(Option<GstreamerEngine>, Option<String>)> {
+        let mut target_state = self.state.clone();
+        target_state.playback_engine = engine;
+        let current_key = if self.is_web() {
+            "webAudioDevice"
+        } else {
+            "gstreamerDevice"
+        };
+        self.store.set_setting(
+            current_key,
+            &serde_json::to_string(&self.state.device_id).map_err(|e| e.to_string())?,
+        )?;
+        // Device identifiers belong to their engine; each keeps its own preference.
+        target_state.device_id = if engine == PlaybackEngine::WebAudio {
+            self.store
+                .setting("webAudioDevice")?
+                .and_then(|s| serde_json::from_str(&s).ok())
+                .flatten()
+        } else {
+            self.store
+                .setting("gstreamerDevice")?
+                .and_then(|s| serde_json::from_str(&s).ok())
+                .flatten()
+        };
+        let native = if engine == PlaybackEngine::Gstreamer {
+            Some(GstreamerEngine::new(
+                &self.app,
+                &mut target_state,
+                &self.prepared,
+                &self.armed,
+                &self.generation,
+                &self.gapless_enabled,
+            )?)
+        } else {
+            None
+        };
+        Ok((native, target_state.device_id))
+    }
+
+    fn switch_engine(
+        &mut self,
+        engine: PlaybackEngine,
+        native: Option<GstreamerEngine>,
+        device_id: Option<String>,
+    ) -> AppResult<()> {
+        // Browser -> native reaches here only after the browser has acknowledged pause.
+        let position = if self.is_web() {
+            self.state.position_ms
+        } else {
+            self.pending_seek.unwrap_or_else(|| {
+                self.native()
+                    .playbin
+                    .query_position::<gst::ClockTime>()
+                    .map_or(self.state.position_ms, |p| {
+                        crate::audio::track_position(self.state.current(), p.mseconds())
+                    })
+            })
+        };
+        // Persist first so a failed write cannot silently stop the current pipeline.
+        self.store.set_setting(
+            "playbackEngine",
+            &serde_json::to_string(&engine).map_err(|e| e.to_string())?,
+        )?;
+        if let Some(current) = &self.native {
+            if let Err(error) = current.playbin.set_state(gst::State::Null) {
+                let _ = self.store.set_setting(
+                    "playbackEngine",
+                    &serde_json::to_string(&self.state.playback_engine)
+                        .map_err(|e| e.to_string())?,
+                );
+                return Err(error.to_string());
+            }
+        }
+        let active = !matches!(
+            self.state.status,
+            PlaybackStatus::Stopped | PlaybackStatus::Error
+        );
+        self.cancel_jobs();
+        self.native = native;
+        self.state.playback_engine = engine;
+        self.state.device_id = device_id;
+        self.gapless_enabled.store(
+            !self.is_web() && self.state.playback_options.gapless,
+            Ordering::Release,
+        );
+        self.web_audio.configure(&self.state);
+        let instance = self.play_instance_id.clone();
+        let recorded = self.recorded_instance_id.clone();
+        if let Some(index) = self.state.index.filter(|_| active) {
+            self.load_at(index, self.desired_playing, position)?;
+            self.play_instance_id = instance;
+            self.recorded_instance_id = recorded;
+        } else {
+            self.publish();
+        }
+        Ok(())
+    }
+
+    fn web_feedback(&mut self, feedback: super::web_audio::Feedback) -> AppResult<()> {
+        use super::web_audio::FeedbackKind;
+        if !self.is_web() || !self.web_audio.accepts(&feedback) {
+            return Ok(());
+        }
+        if feedback.kind == FeedbackKind::Stopped {
+            if let Some(switch) = self.engine_switch.take() {
+                // The browser may start the successor while native initialization runs.
+                // Its stop acknowledgement identifies which voice actually owned the timeline.
+                if let Some((_, next)) = switch
+                    .preloaded
+                    .filter(|(source, _)| Some(source.as_str()) == feedback.next_source.as_deref())
+                {
+                    self.state.index = Some(next.index);
+                    self.state.revision += 1;
+                    self.state.actual_quality = next.resolved.quality;
+                    self.state.playback_source = next.source;
+                    self.state.duration_ms = crate::audio::track_duration(
+                        self.state.current(),
+                        if feedback.duration_ms > 0 {
+                            feedback.duration_ms
+                        } else {
+                            self.state.current().map_or(0, |t| t.duration_ms)
+                        },
+                    );
+                    self.play_instance_id = uuid::Uuid::new_v4().to_string();
+                    self.recorded_instance_id = None;
+                    self.record_playback_history();
+                }
+                if switch.sample_position {
+                    self.state.position_ms =
+                        crate::audio::track_position(self.state.current(), feedback.position_ms);
+                }
+                let result = self.switch_engine(switch.target, switch.native, switch.device_id);
+                if let Err(error) = &result {
+                    self.desired_playing = false;
+                    self.state.status = PlaybackStatus::Error;
+                    self.state.error = Some(error.clone());
+                    self.publish();
+                }
+                let _ = switch.reply.send(result.clone());
+                result?;
+            }
+            return Ok(());
+        }
+        if self.web_audio.control().source.is_none() || self.current_job.is_some() {
+            return Ok(());
+        }
+        if feedback.kind == FeedbackKind::DeviceDefault {
+            return self.select_device(None);
+        }
+        if feedback.kind == FeedbackKind::Transition {
+            let control = self.web_audio.control();
+            if !self.state.playback_options.crossfade
+                || control.next.as_ref().map(|n| n.source.as_str())
+                    != feedback.next_source.as_deref()
+            {
+                return Ok(());
+            }
+            let next = self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
+            if let Some(next) = next.filter(|p| {
+                self.state.following(false) == Some(p.index)
+                    && p.resource
+                        .as_ref()
+                        .is_none_or(|r| r.check(p.generation).is_ok())
+            }) {
+                self.state.index = Some(next.index);
+                self.state.revision += 1;
+                self.state.position_ms =
+                    crate::audio::track_position(self.state.current(), feedback.position_ms);
+                self.state.duration_ms =
+                    crate::audio::track_duration(self.state.current(), feedback.duration_ms);
+                self.state.actual_quality = next.resolved.quality;
+                self.state.playback_source = next.source;
+                self.state.status = if self.desired_playing {
+                    PlaybackStatus::Playing
+                } else {
+                    PlaybackStatus::Paused
+                };
+                self.state.error = None;
+                self.play_instance_id = uuid::Uuid::new_v4().to_string();
+                self.recorded_instance_id = None;
+                self.web_audio.promote(&self.app, self.state.position_ms)?;
+                if self.desired_playing {
+                    self.record_playback_history();
+                }
+                self.next_attempt = None;
+                self.next_attempts = 0;
+                self.publish();
+            } else {
+                self.web_audio.cancel_preload(&self.app)?;
+            }
+            return Ok(());
+        }
+        if feedback.kind == FeedbackKind::TransitionEnd {
+            self.web_audio.retire()?;
+            return Ok(());
+        }
+        if feedback.kind == FeedbackKind::PreloadError {
+            if self
+                .web_audio
+                .control()
+                .next
+                .as_ref()
+                .map(|n| n.source.as_str())
+                == feedback.next_source.as_deref()
+            {
+                self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
+                self.web_audio.cancel_preload(&self.app)?;
+            }
+            return Ok(());
+        }
+        self.state.position_ms =
+            crate::audio::track_position(self.state.current(), feedback.position_ms);
+        if self.state.position_ms >= 1000 && feedback.kind == FeedbackKind::Playing {
+            self.failed_keys.clear();
+        }
+        if feedback.duration_ms > 0 {
+            self.state.duration_ms =
+                crate::audio::track_duration(self.state.current(), feedback.duration_ms);
+        }
+        let status = match feedback.kind {
+            FeedbackKind::Playing if self.desired_playing => Some(PlaybackStatus::Playing),
+            FeedbackKind::Paused if !self.desired_playing => Some(PlaybackStatus::Paused),
+            FeedbackKind::Buffering if self.desired_playing => Some(PlaybackStatus::Buffering),
+            FeedbackKind::Ended => {
+                if self.desired_playing {
+                    if let Some(index) = self.state.following(false) {
+                        return self.load(index, true);
+                    }
+                }
+                self.desired_playing = false;
+                self.state.status = PlaybackStatus::Stopped;
+                self.state.position_ms = self.state.duration_ms;
+                self.web_audio.stop(&self.app)?;
+                self.publish();
+                return Ok(());
+            }
+            FeedbackKind::Error => {
+                self.web_audio.stop(&self.app)?;
+                self.skip_failed(
+                    feedback
+                        .error
+                        .filter(|e| e.len() <= 256)
+                        .unwrap_or_else(|| "浏览器无法播放此音频，可尝试切换 GStreamer".into()),
+                )?;
+                return Ok(());
+            }
+            _ => None,
+        };
+        if let Some(status) = status {
+            if self.state.status != status {
+                self.state.status = status;
+                if status == PlaybackStatus::Playing {
+                    self.record_playback_history();
+                }
+                self.publish();
+            }
+        }
+        Ok(())
+    }
+
+    fn new(
+        app: tauri::AppHandle,
+        store: Arc<Store>,
+        music: Arc<MusicService>,
+        history: Arc<PlaybackHistory>,
+        shared: Arc<RwLock<Publication>>,
+        sender: SyncSender<Command>,
+        hwnd: isize,
+    ) -> AppResult<Self> {
+        let mut state = shared
+            .read()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("translate_error", error);
+            })
+            .map_err(|_| "播放状态不可用")?
+            .snapshot
+            .clone();
+        let media = match MediaControls::new(hwnd, sender.clone()) {
+            Ok(m) => Some(m),
+            Err(e) => {
+                log::error!(target: "nons::media", "operation=initialize reason={e}");
+                state.media_error = Some(format!("系统媒体控制初始化失败：{e}"));
+                None
+            }
+        };
+        let prepared = Arc::new(Mutex::new(None::<Prepared>));
+        let armed = Arc::new(Mutex::new(None::<Prepared>));
+        let generation = Arc::new(AtomicU64::new(0));
+        let gapless_enabled = Arc::new(AtomicBool::new(
+            state.playback_options.gapless && state.playback_engine == PlaybackEngine::Gstreamer,
+        ));
+        let native = if state.playback_engine == PlaybackEngine::Gstreamer {
+            Some(GstreamerEngine::new(
+                &app,
+                &mut state,
+                &prepared,
+                &armed,
+                &generation,
+                &gapless_enabled,
+            )?)
+        } else {
+            None
+        };
+        let mut web_audio = super::web_audio::WebAudio::new()?;
+        web_audio.configure(&state);
+        Ok(Self {
+            web_audio,
+            engine_switch: None,
             selections: Default::default(),
             app,
             store,
@@ -529,9 +933,7 @@ impl Actor {
             shared,
             sender,
             state,
-            playbin,
-            bus,
-            monitor,
+            native,
             media,
             desired_playing: false,
             failed_keys: Default::default(),
@@ -551,7 +953,6 @@ impl Actor {
             awaiting_first_stream: true,
             start_gate: Default::default(),
             gapless_enabled,
-            fade,
             deferred: None,
             play_instance_id: uuid::Uuid::new_v4().to_string(),
             recorded_instance_id: None,
@@ -573,22 +974,28 @@ impl Actor {
             }
             // Drain a bounded number of messages so control commands stay responsive.
             for _ in 0..32 {
-                let Some(message) = self.bus.pop() else {
+                let Some(message) = self.native.as_ref().and_then(|n| n.bus.pop()) else {
                     break;
                 };
-                self.message(&message);
+                if !self.is_web() {
+                    self.message(&message);
+                }
             }
             self.finish_deferred();
             for _ in 0..8 {
-                let Some(message) = self.monitor.as_ref().and_then(|m| m.bus().pop()) else {
+                let Some(message) = self
+                    .native
+                    .as_ref()
+                    .and_then(|n| n.monitor.as_ref())
+                    .and_then(|m| m.bus().pop())
+                else {
                     break;
                 };
                 if let gst::MessageView::DeviceRemoved(_) = message.view() {
-                    if self
-                        .state
-                        .device_id
-                        .as_ref()
-                        .is_some_and(|id| !self.devices().iter().any(|(info, _)| &info.id == id))
+                    if !self.is_web()
+                        && self.state.device_id.as_ref().is_some_and(|id| {
+                            !self.devices().iter().any(|(info, _)| &info.id == id)
+                        })
                     {
                         if let Err(error) = self.select_device(None) {
                             self.state.error = Some(error);
@@ -613,15 +1020,30 @@ impl Actor {
         let _ = (self.store.save_player(&self.state)).inspect_err(|error| {
             crate::infrastructure::diagnostics::warn("self.store.save_player", error);
         });
-        let _ = (self.playbin.set_state(gst::State::Null)).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("self.playbin.set_state", error);
-        });
-        if let Some(monitor) = &self.monitor {
-            monitor.stop();
-        }
+        self.native.take();
     }
 
     fn command(&mut self, command: Command) -> AppResult<()> {
+        if self.engine_switch.is_some()
+            && !matches!(
+                &command,
+                Command::WebFeedback(_) | Command::WebReady(_) | Command::Shutdown
+            )
+        {
+            let error = "正在切换播放引擎，请稍后重试".to_string();
+            match command {
+                Command::Engine(_, reply)
+                | Command::Options(_, reply)
+                | Command::Device(_, reply) => {
+                    let _ = reply.send(Err(error.clone()));
+                }
+                Command::Devices(reply) => {
+                    let _ = reply.send(Err(error.clone()));
+                }
+                _ => {}
+            }
+            return Err(error);
+        }
         if let Command::Retry { revision, key } = &command {
             if retry_position(&self.state, *revision, key).is_none() {
                 return Ok(());
@@ -632,6 +1054,8 @@ impl Actor {
             Command::Resolved { .. }
                 | Command::SourceAttempt { .. }
                 | Command::CollectionReady { .. }
+                | Command::WebFeedback(_)
+                | Command::WebReady(_)
         ) {
             self.failed_keys.clear();
         }
@@ -666,12 +1090,13 @@ impl Actor {
             if self.deferred.is_some() {
                 return Ok(());
             }
-            if self.state.playback_options.fades
-                && self.playbin.current_state() == gst::State::Playing
+            if !self.is_web()
+                && self.state.playback_options.fades
+                && self.native().playbin.current_state() == gst::State::Playing
             {
-                if let Some(time) = self.playbin.current_running_time() {
+                if let Some(time) = self.native().playbin.current_running_time() {
                     self.desired_playing = false;
-                    let end = self.fade.fade_out(time);
+                    let end = self.native().fade.fade_out(time);
                     self.deferred = Some((command, end.mseconds(), Instant::now()));
                     return Ok(());
                 }
@@ -701,7 +1126,7 @@ impl Actor {
                 | Command::FmQueue(_)
         ) && self.deferred.take().is_some()
         {
-            self.fade.reset();
+            self.native().fade.reset();
         } else if matches!(
             &command,
             Command::PlayNext(_)
@@ -709,7 +1134,7 @@ impl Actor {
                 | Command::Remove(_, _)
                 | Command::Repeat
                 | Command::Shuffle
-                | Command::Device(_)
+                | Command::Device(_, _)
                 | Command::Seek(_)
         ) && self.deferred.take().is_some()
         {
@@ -717,12 +1142,34 @@ impl Actor {
             // they change the timeline, rather than restoring sound under a paused intent.
             self.command_now(Command::Pause)?;
         }
+        if self.is_web()
+            && matches!(
+                &command,
+                Command::PlayNext(_)
+                    | Command::PlayNextNow(_)
+                    | Command::Remove(_, _)
+                    | Command::Repeat
+                    | Command::Shuffle
+                    | Command::Seek(_)
+                    | Command::AppendFm { .. }
+                    | Command::SelectSource { .. }
+            )
+        {
+            if let Some(job) = self.next_job.take() {
+                job.abort();
+            }
+            self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
+            self.web_audio.cancel_preload(&self.app)?;
+            self.next_attempt = None;
+            self.next_attempts = 0;
+        }
         self.command_now(command)
     }
 
     fn finish_deferred(&mut self) {
         let ready = self.deferred.as_ref().is_some_and(|(_, end, started)| {
-            self.playbin
+            self.native()
+                .playbin
                 .current_running_time()
                 .is_some_and(|t| t.mseconds() >= *end + super::transitions::PAUSE_GRACE_MS)
                 || started.elapsed()
@@ -731,7 +1178,7 @@ impl Actor {
         if ready {
             let (command, _, _) = self.deferred.take().unwrap();
             if let Err(error) = self.command_now(command) {
-                self.fade.reset();
+                self.native().fade.reset();
                 self.state.error = Some(error);
                 self.publish();
             }
@@ -752,6 +1199,61 @@ impl Actor {
         }
         let play_now = matches!(&command, Command::PlayNextNow(_));
         match command {
+            Command::Engine(engine, reply) => {
+                if engine == self.state.playback_engine {
+                    let _ = reply.send(Ok(()));
+                } else if engine == PlaybackEngine::WebAudio && !cfg!(windows) {
+                    let _ = reply.send(Err("WebAudio 暂仅支持 Windows".into()));
+                } else if self.is_web() {
+                    let (native, device_id) = match self.prepare_engine(engine) {
+                        Ok(prepared) => prepared,
+                        Err(error) => {
+                            let _ = reply.send(Err(error));
+                            return Ok(());
+                        }
+                    };
+                    let control = self.web_audio.control();
+                    let sample_position = control.source.is_some();
+                    let preloaded = if let Some(next) = control.next {
+                        self.prepared
+                            .lock()
+                            .map_err(|_| "预加载状态不可用")?
+                            .take()
+                            .map(|prepared| (next.source, prepared))
+                    } else {
+                        None
+                    };
+                    self.cancel_jobs();
+                    self.web_audio.deactivate(&self.app)?;
+                    self.engine_switch = Some(EngineSwitch {
+                        target: engine,
+                        reply,
+                        started: Instant::now(),
+                        sample_position,
+                        native,
+                        device_id,
+                        preloaded,
+                    });
+                } else {
+                    let result = self.prepare_engine(engine).and_then(|(native, device_id)| {
+                        self.switch_engine(engine, native, device_id)
+                    });
+                    let _ = reply.send(result.clone());
+                    result?;
+                }
+            }
+            Command::WebReady(reply) => {
+                if self.is_web() {
+                    self.web_audio.intent(
+                        &self.app,
+                        self.desired_playing,
+                        self.state.volume,
+                        Some(self.state.position_ms),
+                    )?;
+                }
+                let _ = reply.send(Ok(self.web_audio.control()));
+            }
+            Command::WebFeedback(feedback) => self.web_feedback(feedback)?,
             Command::Retry { revision, key } => {
                 if let Some((index, position)) = retry_position(&self.state, revision, &key) {
                     let play_instance_id = self.play_instance_id.clone();
@@ -1239,9 +1741,15 @@ impl Actor {
             }
             Command::Pause => {
                 self.desired_playing = false;
-                self.playbin
-                    .set_state(gst::State::Paused)
-                    .map_err(|e| e.to_string())?;
+                if self.is_web() {
+                    self.web_audio
+                        .intent(&self.app, false, self.state.volume, None)?;
+                } else {
+                    self.native()
+                        .playbin
+                        .set_state(gst::State::Paused)
+                        .map_err(|e| e.to_string())?;
+                }
                 self.state.status = PlaybackStatus::Paused;
                 self.publish();
             }
@@ -1262,19 +1770,25 @@ impl Actor {
                         self.load_at(self.state.index.unwrap_or(0), true, position)?;
                     } else {
                         self.desired_playing = true;
+                        if self.is_web() {
+                            self.web_audio
+                                .intent(&self.app, true, self.state.volume, None)?;
+                            return Ok(());
+                        }
                         if reversing {
-                            if let Some(time) = self.playbin.current_running_time() {
-                                self.fade.reverse_pause(time);
+                            if let Some(time) = self.native().playbin.current_running_time() {
+                                self.native().fade.reverse_pause(time);
                             } else {
-                                self.fade.reset();
+                                self.native().fade.reset();
                             }
-                        } else if self.playbin.current_state() != gst::State::Playing {
-                            self.fade.prepare_start();
+                        } else if self.native().playbin.current_state() != gst::State::Playing {
+                            self.native().fade.prepare_start();
                         }
                         if self.pending_seek.is_none()
                             && (!cfg!(target_os = "android") || self.start_gate.ready())
                         {
-                            self.playbin
+                            self.native()
+                                .playbin
                                 .set_state(gst::State::Playing)
                                 .map_err(|e| e.to_string())?;
                         }
@@ -1285,10 +1799,16 @@ impl Actor {
                 let clear = matches!(command, Command::Clear);
                 self.cancel_jobs();
                 self.desired_playing = false;
-                self.playbin
-                    .set_state(gst::State::Null)
-                    .map_err(|e| e.to_string())?;
-                self.fade.reset();
+                if self.is_web() {
+                    self.web_audio.stop(&self.app)?;
+                }
+                if let Some(native) = &self.native {
+                    native
+                        .playbin
+                        .set_state(gst::State::Null)
+                        .map_err(|e| e.to_string())?;
+                    native.fade.reset();
+                }
                 self.decoded_audio = None;
                 if clear {
                     self.selections.clear();
@@ -1317,11 +1837,21 @@ impl Actor {
                 } else {
                     value
                 };
-                self.playbin.set_property("volume", value);
+                if let Some(native) = &self.native {
+                    native.playbin.set_property("volume", value);
+                }
                 self.state.volume = value;
+                if self.is_web() {
+                    self.web_audio
+                        .intent(&self.app, self.desired_playing, value, None)?;
+                }
                 self.publish();
             }
-            Command::Device(id) => self.select_device(id)?,
+            Command::Device(id, reply) => {
+                let result = self.select_device(id);
+                let _ = reply.send(result.clone());
+                result?;
+            }
             Command::Options(options, reply) => {
                 let result = self.apply_options(options);
                 let _ = (reply.send(result.clone())).inspect_err(|error| {
@@ -1340,8 +1870,11 @@ impl Actor {
                     return Ok(());
                 }
                 if next {
-                    if !self.state.playback_options.gapless
-                        || self.state.following(false) != Some(index)
+                    if !(if self.is_web() {
+                        self.state.playback_options.crossfade
+                    } else {
+                        self.state.playback_options.gapless
+                    }) || self.state.following(false) != Some(index)
                         || self
                             .state
                             .queue
@@ -1359,6 +1892,9 @@ impl Actor {
                             .is_some_and(|r| r.check(generation).is_err())
                         {
                             return Ok(());
+                        }
+                        if self.is_web() {
+                            self.web_audio.prepare(&self.app, resolved.clone())?;
                         }
                         *self
                             .prepared
@@ -1385,11 +1921,22 @@ impl Actor {
                     match result {
                         Ok((resolved, resource, source)) => {
                             let _resource = resource;
-                            self.state.actual_quality = resolved.quality;
+                            self.state.actual_quality = resolved.quality.clone();
                             self.state.playback_source = source;
                             self.publish();
+                            if self.is_web() {
+                                self.pending_seek = None;
+                                self.web_audio.load(
+                                    &self.app,
+                                    resolved,
+                                    self.state.position_ms,
+                                    self.desired_playing,
+                                    self.state.volume,
+                                )?;
+                                return Ok(());
+                            }
                             crate::audio::start_stream(
-                                &self.playbin,
+                                &self.native().playbin,
                                 &resolved.uri,
                                 self.state.volume,
                                 if self.desired_playing
@@ -1427,12 +1974,32 @@ impl Actor {
     }
 
     fn apply_options(&mut self, options: PlaybackOptions) -> AppResult<()> {
+        if !(1000..=12000).contains(&options.crossfade_duration_ms) {
+            return Err("交叉淡入淡出时长须在 1–12 秒之间".into());
+        }
+        if options.crossfade && options.gapless {
+            return Err("交叉淡入淡出与无缝播放不能同时开启".into());
+        }
         // Persist before changing live behavior; a failed write preserves both switches.
         self.store.set_setting(
             "playbackOptions",
             &serde_json::to_string(&options).map_err(|e| e.to_string())?,
         )?;
         self.state.playback_options = options;
+        if self.is_web() {
+            self.web_audio.configure(&self.state);
+            if !options.crossfade {
+                if let Some(job) = self.next_job.take() {
+                    job.abort();
+                }
+                self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
+                self.web_audio.cancel_preload(&self.app)?;
+            } else {
+                self.web_audio.emit(&self.app)?;
+            }
+            self.publish();
+            return Ok(());
+        }
         if !options.fades {
             if let Some((command, _, _)) = self.deferred.take() {
                 self.command_now(command)?;
@@ -1471,7 +2038,7 @@ impl Actor {
         if let Some(next) = transitioning {
             self.load(next.index, self.desired_playing)?;
         }
-        self.fade.set_enabled(options.fades);
+        self.native().fade.set_enabled(options.fades);
         self.publish();
         Ok(())
     }
@@ -1508,12 +2075,18 @@ impl Actor {
             .cloned()
             .ok_or("歌曲不在播放队列中")?;
         self.cancel_jobs();
-        self.playbin
-            .set_state(gst::State::Null)
-            .map_err(|e| e.to_string())?;
-        self.fade.reset();
-        if playing {
-            self.fade.prepare_start();
+        if self.is_web() {
+            self.web_audio.stop(&self.app)?;
+        }
+        if let Some(native) = &self.native {
+            native
+                .playbin
+                .set_state(gst::State::Null)
+                .map_err(|e| e.to_string())?;
+            native.fade.reset();
+            if playing {
+                native.fade.prepare_start();
+            }
         }
         self.decoded_audio = None;
         self.state.revision += 1;
@@ -1644,7 +2217,9 @@ impl Actor {
 
     fn seek(&mut self, ms: u64) -> AppResult<()> {
         self.deferred = None;
-        self.fade.reset();
+        if let Some(native) = &self.native {
+            native.fade.reset();
+        }
         if self.state.current().is_none() || self.state.duration_ms == 0 {
             return Err("当前歌曲尚不可定位".into());
         }
@@ -1657,6 +2232,19 @@ impl Actor {
             self.publish();
             return Ok(());
         }
+        if self.is_web() {
+            self.state.position_ms = ms;
+            if self.current_job.is_none() {
+                self.web_audio.intent(
+                    &self.app,
+                    self.desired_playing,
+                    self.state.volume,
+                    Some(ms),
+                )?;
+            }
+            self.publish();
+            return Ok(());
+        }
         if self.state.status == PlaybackStatus::Loading || self.pending_seek.is_some() {
             self.pending_seek = Some(ms);
             self.state.position_ms = ms;
@@ -1664,7 +2252,7 @@ impl Actor {
             return Ok(());
         }
         crate::audio::seek_track(
-            &self.playbin,
+            &self.native().playbin,
             self.state.current().ok_or("没有当前歌曲")?,
             ms,
         )
@@ -1682,7 +2270,7 @@ impl Actor {
         super::diagnostics::message(message);
         match message.view() {
             MessageView::AsyncDone(_) => {
-                super::diagnostics::output(&self.playbin);
+                super::diagnostics::output(&self.native().playbin);
                 let preroll = self.start_gate.complete();
                 let mut resume = cfg!(target_os = "android") && preroll;
                 if let Some(position) = self.pending_seek.take() {
@@ -1690,11 +2278,13 @@ impl Actor {
                     let Some(track) = self.state.current() else {
                         return;
                     };
-                    if let Err(error) = crate::audio::seek_track(&self.playbin, track, position) {
+                    if let Err(error) =
+                        crate::audio::seek_track(&self.native().playbin, track, position)
+                    {
                         self.state.error = Some(format!("恢复播放位置失败：{error}"));
                         self.state.status = PlaybackStatus::Error;
                         self.desired_playing = false;
-                        let _ = self.playbin.set_state(gst::State::Null);
+                        let _ = self.native().playbin.set_state(gst::State::Null);
                         self.publish();
                         return;
                     }
@@ -1704,7 +2294,7 @@ impl Actor {
                     && self.desired_playing
                     && (!cfg!(target_os = "android") || self.start_gate.ready())
                 {
-                    if let Err(error) = self.playbin.set_state(gst::State::Playing) {
+                    if let Err(error) = self.native().playbin.set_state(gst::State::Playing) {
                         self.state.error = Some(error.to_string());
                         self.publish();
                     }
@@ -1743,7 +2333,7 @@ impl Actor {
                 self.publish();
             }
             MessageView::StateChanged(change)
-                if message.src().is_some_and(|s| s == &self.playbin)
+                if message.src().is_some_and(|s| s == &self.native().playbin)
                     && self.current_job.is_none() =>
             {
                 let status = match change.current() {
@@ -1768,13 +2358,13 @@ impl Actor {
                 }
                 if cfg!(target_os = "android") && !self.start_gate.ready() {
                     self.state.status = PlaybackStatus::Buffering;
-                    if let Err(error) = self.playbin.set_state(gst::State::Paused) {
+                    if let Err(error) = self.native().playbin.set_state(gst::State::Paused) {
                         self.state.error = Some(error.to_string());
                     }
                     self.publish();
                     return;
                 }
-                match crate::audio::update_buffering(&self.playbin, value.percent()) {
+                match crate::audio::update_buffering(&self.native().playbin, value.percent()) {
                     Ok(status) => self.state.status = status,
                     Err(error) => self.state.error = Some(error.to_string()),
                 }
@@ -1783,7 +2373,8 @@ impl Actor {
             MessageView::DurationChanged(_) => {
                 self.state.duration_ms = crate::audio::track_duration(
                     self.state.current(),
-                    self.playbin
+                    self.native()
+                        .playbin
                         .query_duration::<gst::ClockTime>()
                         .map_or(self.state.duration_ms, |t| t.mseconds()),
                 );
@@ -1795,10 +2386,14 @@ impl Actor {
                     self.desired_playing = false;
                     self.state.status = PlaybackStatus::Stopped;
                     self.state.position_ms = self.state.duration_ms;
-                    let _ = (self.playbin.set_state(gst::State::Null)).inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("self.playbin.set_state", error);
-                    });
-                    self.fade.reset();
+                    let _ =
+                        (self.native().playbin.set_state(gst::State::Null)).inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn(
+                                "self.native().playbin.set_state",
+                                error,
+                            );
+                        });
+                    self.native().fade.reset();
                     self.decoded_audio = None;
                     self.publish();
                     return;
@@ -1809,14 +2404,18 @@ impl Actor {
                         self.state.status = PlaybackStatus::Error;
                         self.publish();
                     }
-                    self.fade.reset();
+                    self.native().fade.reset();
                 } else {
                     self.desired_playing = false;
                     self.state.status = PlaybackStatus::Stopped;
                     self.state.position_ms = self.state.duration_ms;
-                    let _ = (self.playbin.set_state(gst::State::Null)).inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("self.playbin.set_state", error);
-                    });
+                    let _ =
+                        (self.native().playbin.set_state(gst::State::Null)).inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn(
+                                "self.native().playbin.set_state",
+                                error,
+                            );
+                        });
                     self.decoded_audio = None;
                     self.publish();
                 }
@@ -1824,8 +2423,8 @@ impl Actor {
             MessageView::Error(error) => {
                 if self.desired_playing {
                     self.cancel_jobs();
-                    let _ = self.playbin.set_state(gst::State::Null);
-                    self.fade.reset();
+                    let _ = self.native().playbin.set_state(gst::State::Null);
+                    self.native().fade.reset();
                     if let Err(cause) = self.skip_failed(format!("音频播放失败：{}", error.error()))
                     {
                         self.state.error = Some(cause);
@@ -1839,10 +2438,13 @@ impl Actor {
                 self.desired_playing = false;
                 self.state.status = PlaybackStatus::Error;
                 self.state.error = Some(format!("音频播放失败：{}", error.error()));
-                let _ = (self.playbin.set_state(gst::State::Null)).inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("self.playbin.set_state", error);
+                let _ = (self.native().playbin.set_state(gst::State::Null)).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn(
+                        "self.native().playbin.set_state",
+                        error,
+                    );
                 });
-                self.fade.reset();
+                self.native().fade.reset();
                 self.publish();
             }
             _ => {}
@@ -1860,6 +2462,49 @@ impl Actor {
     }
 
     fn tick(&mut self) {
+        if self
+            .engine_switch
+            .as_ref()
+            .is_some_and(|switch| switch.started.elapsed() > Duration::from_secs(3))
+        {
+            let switch = self.engine_switch.take().unwrap();
+            self.desired_playing = false;
+            self.state.status = PlaybackStatus::Error;
+            self.state.error = Some("浏览器音频未确认停止，未启动另一个引擎，请重试".into());
+            let _ = switch.reply.send(Err(self.state.error.clone().unwrap()));
+            self.publish();
+        }
+        if self.is_web() {
+            if self.state.playback_options.crossfade
+                && self.desired_playing
+                && self.state.status == PlaybackStatus::Playing
+                && !self.collection_request.is_pending()
+                && self.state.duration_ms > 0
+                && self
+                    .state
+                    .duration_ms
+                    .saturating_sub(self.state.position_ms)
+                    <= 30_000
+                && self.next_job.is_none()
+                && self.next_attempts < 3
+                && self
+                    .next_attempt
+                    .is_none_or(|t| t.elapsed() > Duration::from_secs(5))
+                && self.web_audio.ready_to_prepare()
+                && self.prepared.lock().map(|p| p.is_none()).unwrap_or(false)
+            {
+                if let Some(index) = self.state.following(false) {
+                    self.next_attempt = Some(Instant::now());
+                    self.next_attempts += 1;
+                    self.resolve(index, self.state.queue[index].clone(), true);
+                }
+            }
+            self.update_media();
+            if let Ok(mut shared) = self.shared.write() {
+                let _ = self.app.emit("player-progress", shared.tick(&self.state));
+            }
+            return;
+        }
         if self.state.status == PlaybackStatus::Playing && self.state.position_ms >= 1000 {
             self.failed_keys.clear();
         }
@@ -1886,6 +2531,7 @@ impl Actor {
         ) {
             if self.pending_seek.is_none() {
                 self.state.position_ms = self
+                    .native()
                     .playbin
                     .query_position::<gst::ClockTime>()
                     .map_or(self.state.position_ms, |t| {
@@ -1894,7 +2540,8 @@ impl Actor {
             }
             self.state.duration_ms = crate::audio::track_duration(
                 self.state.current(),
-                self.playbin
+                self.native()
+                    .playbin
                     .query_duration::<gst::ClockTime>()
                     .map_or(self.state.duration_ms, |t| t.mseconds()),
             );
@@ -1991,8 +2638,9 @@ impl Actor {
     }
 
     fn devices(&self) -> Vec<(OutputDevice, gst::Device)> {
-        self.monitor
+        self.native
             .iter()
+            .flat_map(|n| n.monitor.iter())
             .flat_map(|monitor| monitor.devices())
             .map(|device| {
                 let identity = format!(
@@ -2028,7 +2676,22 @@ impl Actor {
     }
 
     fn select_device(&mut self, id: Option<String>) -> AppResult<()> {
+        if self.is_web() {
+            self.store.set_setting(
+                "webAudioDevice",
+                &serde_json::to_string(&id).map_err(|e| e.to_string())?,
+            )?;
+            self.state.device_id = id;
+            self.web_audio.configure(&self.state);
+            self.web_audio.emit(&self.app)?;
+            self.publish();
+            return Ok(());
+        }
         let sink = self.output_sink(&id)?;
+        self.store.set_setting(
+            "gstreamerDevice",
+            &serde_json::to_string(&id).map_err(|e| e.to_string())?,
+        )?;
         self.replace_output(sink, id)
     }
 
@@ -2040,17 +2703,21 @@ impl Actor {
             PlaybackStatus::Stopped | PlaybackStatus::Error
         );
         let position = self.pending_seek.unwrap_or_else(|| {
-            self.playbin
+            self.native()
+                .playbin
                 .query_position::<gst::ClockTime>()
                 .map_or(self.state.position_ms, |time| {
                     crate::audio::track_position(self.state.current(), time.mseconds())
                 })
         });
         self.cancel_jobs();
-        self.playbin
+        self.native()
+            .playbin
             .set_state(gst::State::Null)
             .map_err(|e| e.to_string())?;
-        self.fade.set_output(&self.playbin, sink)?;
+        self.native()
+            .fade
+            .set_output(&self.native().playbin, sink)?;
         self.state.device_id = id;
         // Device changes restart the pipeline. The normal resolver and state
         // messages remain the sole source of truth; never promise gapless here.
@@ -2108,10 +2775,14 @@ mod tests {
     #[test]
     fn command_backpressure_and_initialization_failure_have_distinct_errors() {
         let (sender, receiver) = mpsc::sync_channel(1);
+        let directory = tempfile::tempdir().unwrap();
         let player = Player {
             sender,
             snapshot: Arc::new(RwLock::new(Publication::new(PlayerSnapshot::default()))),
             thread: Mutex::new(None),
+            history: PlaybackHistory::start(Arc::new(
+                Store::open(&directory.path().join("player.sqlite3")).unwrap(),
+            )),
         };
         player.send(Command::Pause).unwrap();
         assert_eq!(
@@ -2129,6 +2800,7 @@ mod tests {
             player.send(Command::Pause).unwrap_err(),
             "无法监视音频设备：Failed to start"
         );
+        player.shutdown();
     }
 
     #[test]
@@ -2140,7 +2812,8 @@ mod tests {
             stored_options(&store, PlaybackOptions::default()).unwrap(),
             PlaybackOptions {
                 fades: false,
-                gapless: true
+                gapless: true,
+                ..PlaybackOptions::default()
             }
         );
         assert_eq!(
@@ -2149,7 +2822,11 @@ mod tests {
         );
         for fades in [false, true] {
             for gapless in [false, true] {
-                let options = PlaybackOptions { fades, gapless };
+                let options = PlaybackOptions {
+                    fades,
+                    gapless,
+                    ..PlaybackOptions::default()
+                };
                 store
                     .set_setting("playbackOptions", &serde_json::to_string(&options).unwrap())
                     .unwrap();

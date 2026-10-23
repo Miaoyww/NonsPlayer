@@ -9,3 +9,4 @@ pub(crate) mod output;
 pub(crate) mod player;
 pub(crate) mod publication;
 pub(crate) mod transitions;
+pub(crate) mod web_audio;
