@@ -3,7 +3,7 @@ use crate::{model::AppResult, storage::Store};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use tauri::{Manager, State};
+use tauri::State;
 use tokio::sync::watch;
 
 const ENDPOINT: &str = "https://nons-api.miaoyww.top/v1/event";
@@ -77,7 +77,7 @@ impl Telemetry {
         }
     }
 
-    async fn report_inner(&self, app: tauri::AppHandle, occurred_at: String) -> AppResult<()> {
+    async fn report_inner(&self, _app: tauri::AppHandle, occurred_at: String) -> AppResult<()> {
         let key = option_env!("NONS_TELEMETRY_INGEST_KEY").unwrap_or("");
         let enabled = self.enabled.subscribe();
         if !*enabled.borrow() || key.is_empty() {

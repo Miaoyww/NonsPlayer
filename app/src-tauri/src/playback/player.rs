@@ -220,6 +220,7 @@ impl Player {
         let snapshot = Arc::new(RwLock::new(Publication::new(restored)));
         let shared = Arc::clone(&snapshot);
         let history = PlaybackHistory::start(Arc::clone(&store));
+        let actor_history = Arc::clone(&history);
         let (sender, receiver) = mpsc::sync_channel(64);
         let actor_sender = sender.clone();
         let thread = std::thread::Builder::new()
@@ -229,7 +230,7 @@ impl Player {
                     app.clone(),
                     store,
                     music,
-                    Arc::clone(&history),
+                    actor_history,
                     shared.clone(),
                     actor_sender,
                     hwnd,

@@ -1,5 +1,5 @@
 use crate::{
-    model::{AppResult, Track},
+    model::Track,
     storage::{now_seconds, Store},
 };
 use std::sync::{mpsc, Arc, Mutex};
