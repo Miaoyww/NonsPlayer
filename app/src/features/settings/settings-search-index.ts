@@ -80,6 +80,7 @@ const groups: SearchGroup[] = [
     path: '歌词设置 / 歌词显示',
     items: [
       ['lyrics-font', '歌词字体', '翻译 发音'],
+      ['lyrics-auto-blur', '歌词自动模糊', '模糊 清晰 AMLL blur'],
       ['lyrics-background-speed', '背景流速', '流动 动态 静止 速度']
     ]
   },

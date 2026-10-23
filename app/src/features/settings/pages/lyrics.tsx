@@ -10,7 +10,7 @@ import { useFontSettings } from '@/features/settings/use-font-settings'
 
 export function LyricsPage() {
   const { fonts, setFont } = useFontSettings()
-  const { backgroundSpeed, setBackgroundSpeed } = useLyricsSettings()
+  const { backgroundSpeed, setBackgroundSpeed, autoBlur, setAutoBlur } = useLyricsSettings()
   const { sources, ready, busy, error, setSources } = useLyricSources()
   return (
     <div className="flex flex-col gap-8">
@@ -50,6 +50,13 @@ export function LyricsPage() {
             onChange={(family) => setFont('lyrics', family)}
             defaultLabel="跟随应用字体"
           />
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-auto-blur"
+          title="歌词自动模糊"
+          description="自动模糊远离当前播放位置的歌词，遵循系统减少动态效果设置。"
+        >
+          <Switch aria-label="歌词自动模糊" checked={autoBlur} onCheckedChange={setAutoBlur} />
         </SettingsCard>
         <SettingsCard
           searchId="lyrics-background-speed"

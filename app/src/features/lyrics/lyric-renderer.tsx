@@ -7,6 +7,7 @@ import { useReducedMotion } from 'motion/react'
 import { currentPosition, nativeCall, useProgress } from '@/lib/player'
 import { useFontSettings } from '@/features/settings/use-font-settings'
 import { isAndroid } from '@/lib/platform'
+import { useLyricsSettings } from './use-lyrics-settings'
 
 export default function LyricRenderer({
   lines,
@@ -24,6 +25,7 @@ export default function LyricRenderer({
   retainWhenHidden?: boolean
 }) {
   const { fonts } = useFontSettings()
+  const { autoBlur } = useLyricsSettings()
   const lyricFont = fonts.lyrics || fonts.app
   // AMLL consumes immutable lyric lines; retain the original auxiliary lyrics for restoring them.
   const displayedLines = useMemo(
@@ -95,7 +97,7 @@ export default function LyricRenderer({
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [enabled, playing, pausedPosition, renderer, displayedLines, layoutVersion])
+  }, [enabled, playing, pausedPosition, renderer, displayedLines, layoutVersion, autoBlur, reduced])
   // AMLL's automatic frame loop is disabled; only the visible lyric subtree
   // receives an interpolated clock. React does not render on every frame.
   return retainWhenHidden || visible ? (
@@ -112,7 +114,7 @@ export default function LyricRenderer({
           onError
         )
       }}
-      enableBlur={!reduced}
+      enableBlur={autoBlur && !reduced}
       enableScale={!reduced}
       enableSpring={!reduced}
       alignPosition={0.4}
