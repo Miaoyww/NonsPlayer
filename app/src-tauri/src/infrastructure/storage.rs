@@ -44,6 +44,17 @@ impl Store {
             PRAGMA temp_store=MEMORY;
             CREATE TEMP TABLE runtime_lyrics (key TEXT PRIMARY KEY, value TEXT, expires INTEGER NOT NULL, accessed INTEGER NOT NULL, bytes INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS playback_history (
+                instance_id TEXT PRIMARY KEY,
+                track_key TEXT NOT NULL,
+                source TEXT NOT NULL,
+                title TEXT NOT NULL,
+                artist TEXT NOT NULL,
+                album TEXT NOT NULL,
+                started_at INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS playback_totals (id INTEGER PRIMARY KEY CHECK(id=1), play_count INTEGER NOT NULL);
+            INSERT OR IGNORE INTO playback_totals(id, play_count) VALUES(1, 0);
             CREATE TABLE IF NOT EXISTS local_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS local_entities (kind TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, cover TEXT NOT NULL, subtitle TEXT NOT NULL, PRIMARY KEY(kind,id));
             CREATE TABLE IF NOT EXISTS local_members (key TEXT NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY(key,kind,id));
@@ -61,6 +72,41 @@ impl Store {
         crate::aggregate::migrate(&connection).map_err(|e| e.to_string())?;
         crate::music::collections::store::migrate(&connection).map_err(|e| e.to_string())?;
         Ok(Self(Mutex::new(connection)))
+    }
+
+    pub fn record_playback(
+        &self,
+        instance_id: &str,
+        track: &Track,
+        started_at: i64,
+    ) -> AppResult<bool> {
+        let mut db = self.0.lock().map_err(|_| "曲库锁不可用")?;
+        let tx = db.transaction().map_err(|e| e.to_string())?;
+        let inserted = tx.execute(
+            "INSERT OR IGNORE INTO playback_history(instance_id,track_key,source,title,artist,album,started_at) VALUES(?1,?2,?3,?4,?5,?6,?7)",
+            params![instance_id, track.key, track.source_id(), track.title, track.artist, track.album, started_at],
+        ).map_err(|e| e.to_string())?;
+        if inserted > 0 {
+            tx.execute(
+                "UPDATE playback_totals SET play_count=play_count+1 WHERE id=1",
+                [],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        tx.commit().map_err(|e| e.to_string())?;
+        Ok(inserted > 0)
+    }
+
+    pub fn playback_count(&self) -> AppResult<i64> {
+        self.0
+            .lock()
+            .map_err(|_| "曲库锁不可用")?
+            .query_row(
+                "SELECT play_count FROM playback_totals WHERE id=1",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())
     }
 
     pub fn save_tracks(&self, tracks: &[Track]) -> AppResult<()> {

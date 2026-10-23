@@ -1,5 +1,5 @@
 //! One immutable launch snapshot per process; no account, music or machine identifiers.
-use crate::{model::AppResult, plugins::PluginManager, storage::Store};
+use crate::{model::AppResult, storage::Store};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -35,6 +35,7 @@ struct Launch {
     occurred_at: String,
     adapters: Vec<Adapter>,
     plugins: Vec<Plugin>,
+    play_count: i64,
 }
 
 impl Telemetry {
@@ -82,56 +83,8 @@ impl Telemetry {
         if !*enabled.borrow() || key.is_empty() {
             return Ok(());
         }
-        let backend = app.state::<super::Backend>();
-        let mut adapters = backend
-            .music
-            .adapters
-            .statuses()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
-            })
-            .map_err(|_| "适配器状态不可用")?
-            .into_iter()
-            .filter(|entry| entry.enabled)
-            .map(|entry| Adapter {
-                source: entry.descriptor.source.as_str().to_owned(),
-                display_name: entry.descriptor.display_name,
-            })
-            .collect::<Vec<_>>();
-        // Audio-only providers are adapters too; catalog adapters also expose providers.
-        for entry in backend
-            .music
-            .adapters
-            .resource_provider_statuses()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
-            })
-            .map_err(|_| "音源状态不可用")?
-        {
-            if entry.enabled
-                && !adapters
-                    .iter()
-                    .any(|a| a.source == entry.descriptor.id.as_str())
-            {
-                adapters.push(Adapter {
-                    source: entry.descriptor.id.as_str().to_owned(),
-                    display_name: entry.descriptor.display_name,
-                });
-            }
-        }
-        let plugins = app
-            .state::<Arc<PluginManager>>()
-            .list()?
-            .into_iter()
-            .filter(|entry| entry.enabled)
-            .map(|entry| Plugin {
-                id: entry.manifest.id,
-                name: entry.manifest.name,
-            })
-            .collect::<Vec<_>>();
-        if adapters.len() > 64 || plugins.len() > 64 {
-            return Err("遥测组件数量超过接口上限".into());
-        }
+        let adapters = Vec::new();
+        let plugins = Vec::new();
         let event = Launch {
             event_id: uuid::Uuid::new_v4().to_string(),
             device_id: self.installation_id()?,
@@ -140,6 +93,7 @@ impl Telemetry {
             occurred_at,
             adapters,
             plugins,
+            play_count: self.store.playback_count()?,
         };
         let body = serde_json::to_vec(&event)
             .inspect_err(|error| {

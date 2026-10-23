@@ -1,3 +1,4 @@
+use super::history::PlaybackHistory;
 use super::publication::{PlayerBootstrap, Publication};
 #[cfg(test)]
 use crate::model::RepeatMode;
@@ -186,6 +187,7 @@ pub struct Player {
     sender: SyncSender<Command>,
     snapshot: Arc<RwLock<Publication>>,
     thread: Mutex<Option<std::thread::JoinHandle<()>>>,
+    history: Arc<PlaybackHistory>,
 }
 
 struct Prepared {
@@ -217,6 +219,7 @@ impl Player {
         restored.playback_options = stored_options(&store, restored.playback_options)?;
         let snapshot = Arc::new(RwLock::new(Publication::new(restored)));
         let shared = Arc::clone(&snapshot);
+        let history = PlaybackHistory::start(Arc::clone(&store));
         let (sender, receiver) = mpsc::sync_channel(64);
         let actor_sender = sender.clone();
         let thread = std::thread::Builder::new()
@@ -226,6 +229,7 @@ impl Player {
                     app.clone(),
                     store,
                     music,
+                    Arc::clone(&history),
                     shared.clone(),
                     actor_sender,
                     hwnd,
@@ -258,6 +262,7 @@ impl Player {
             sender,
             snapshot,
             thread: Mutex::new(Some(thread)),
+            history,
         })
     }
 
@@ -355,6 +360,7 @@ impl Player {
                 });
             }
         }
+        self.history.shutdown();
     }
 }
 
@@ -362,6 +368,7 @@ struct Actor {
     selections: std::collections::BTreeMap<String, crate::music::service::PlaybackSelection>,
     app: tauri::AppHandle,
     store: Arc<Store>,
+    history: Arc<PlaybackHistory>,
     music: Arc<MusicService>,
     shared: Arc<RwLock<Publication>>,
     sender: SyncSender<Command>,
@@ -390,6 +397,8 @@ struct Actor {
     gapless_enabled: Arc<AtomicBool>,
     fade: super::transitions::PlaybackFade,
     deferred: Option<(Command, u64, Instant)>,
+    play_instance_id: String,
+    recorded_instance_id: Option<String>,
 }
 
 impl Actor {
@@ -397,6 +406,7 @@ impl Actor {
         app: tauri::AppHandle,
         store: Arc<Store>,
         music: Arc<MusicService>,
+        history: Arc<PlaybackHistory>,
         shared: Arc<RwLock<Publication>>,
         sender: SyncSender<Command>,
         hwnd: isize,
@@ -513,6 +523,7 @@ impl Actor {
             selections: Default::default(),
             app,
             store,
+            history,
             music,
             shared,
             sender,
@@ -541,6 +552,8 @@ impl Actor {
             gapless_enabled,
             fade,
             deferred: None,
+            play_instance_id: uuid::Uuid::new_v4().to_string(),
+            recorded_instance_id: None,
         })
     }
 
@@ -1499,6 +1512,8 @@ impl Actor {
         }
         self.decoded_audio = None;
         self.state.revision += 1;
+        self.play_instance_id = uuid::Uuid::new_v4().to_string();
+        self.recorded_instance_id = None;
         self.state.index = Some(index);
         self.state.position_ms = if track.duration_ms > 0 {
             position.min(track.duration_ms)
@@ -1717,6 +1732,9 @@ impl Actor {
                     self.state.actual_quality = next.resolved.quality;
                     self.state.playback_source = next.source;
                     self.decoded_audio = next.resolved.decoded_audio;
+                    self.play_instance_id = uuid::Uuid::new_v4().to_string();
+                    self.recorded_instance_id = None;
+                    self.record_playback_history();
                 }
                 self.publish();
             }
@@ -1732,6 +1750,9 @@ impl Actor {
                 if let Some(status) = status {
                     if self.state.status != status {
                         self.state.status = status;
+                        if status == PlaybackStatus::Playing {
+                            self.record_playback_history();
+                        }
                         self.publish();
                     }
                 }
@@ -1821,6 +1842,16 @@ impl Actor {
                 self.publish();
             }
             _ => {}
+        }
+    }
+
+    fn record_playback_history(&mut self) {
+        if self.recorded_instance_id.as_deref() == Some(self.play_instance_id.as_str()) {
+            return;
+        }
+        if let Some(track) = self.state.current().cloned() {
+            self.history.record(self.play_instance_id.clone(), track);
+            self.recorded_instance_id = Some(self.play_instance_id.clone());
         }
     }
 
