@@ -16,6 +16,7 @@ const statistics = [
   { label: '累计播放歌曲', value: import.meta.env.VITE_TELEMETRY_PLAY_COUNT, unit: '首' }
 ]
 const generatedAt = import.meta.env.VITE_TELEMETRY_STATS_GENERATED_AT
+const statisticsDate = generatedAt?.slice(0, 10)
 const hasStatistics = statistics.every(({ value }) => /^\d+$/.test(value ?? ''))
 const thanks = [
   ['YesPlayMusic', 'qier222/YesPlayMusic'],
@@ -75,7 +76,7 @@ export function AboutPage({ version }: { version: string }) {
             ))}
           </dl>
           <p className="mt-3 text-xs text-muted-foreground">
-            {hasStatistics && generatedAt ? `统计截至 ${generatedAt}` : '暂无统计数据'}
+            {hasStatistics && statisticsDate ? `统计截至 ${statisticsDate}` : '暂无统计数据'}
           </p>
         </section>
       </div>
