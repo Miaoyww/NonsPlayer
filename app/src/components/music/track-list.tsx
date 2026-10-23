@@ -27,7 +27,7 @@ import { Cover } from '@/components/music/cover'
 import { PlayingIndicator } from '@/components/music/playing-indicator'
 import { useAccount } from '@/features/account/account'
 import { useTrackColumnSizing } from './track-column-sizing'
-import { SongContextMenu } from '@/components/music/song-actions'
+import { SongContextMenu, useSongActions } from '@/components/music/song-actions'
 import { TrackIdentity, TrackSourceLabel } from '@/components/music/track-identity'
 import type { ReactNode } from 'react'
 import { useInterfaceDensity } from '@/features/settings/use-interface-density'
@@ -143,7 +143,7 @@ export const TrackList = memo(function TrackList({
   const findElement = useRef<HTMLDivElement>(null)
   const [findTarget, setFindTarget] = useState<{ index: number; serial: number }>()
   const [selectedKey, setSelectedKey] = useState<string>()
-  const [doubleClickError, setDoubleClickError] = useState<string>()
+  const songActions = useSongActions()
   const doubleClickBusy = useRef(false)
   const [sort, setSort] = useState<SortKey>('default')
   const [descending, setDescending] = useState(false)
@@ -246,15 +246,13 @@ export const TrackList = memo(function TrackList({
       return
     }
     doubleClickBusy.current = true
-    setDoubleClickError(undefined)
-    void playTrackOnDoubleClick(track, { tracks: visibleTracks, index })
-      .catch((cause) => {
-        reportCaughtError('app/src/components/music/track-list.tsx', cause)
-        setDoubleClickError(errorText(cause))
-      })
-      .finally(() => {
-        doubleClickBusy.current = false
-      })
+    songActions.run(
+      () =>
+        playTrackOnDoubleClick(track, { tracks: visibleTracks, index }).finally(() => {
+          doubleClickBusy.current = false
+        }),
+      (message) => (typeof message === 'string' ? message : undefined)
+    )
   }
   const [cardMode] = useInterfaceDensity()
   const { getAccount, likesError, reloadLikes } = useAccount()
@@ -410,7 +408,6 @@ export const TrackList = memo(function TrackList({
           没有匹配的歌曲。
         </p>
       )}
-      {doubleClickError && <ErrorNotice error={doubleClickError} />}
       {(likeError || likesError) && (
         <div className="mb-3 flex items-center gap-2 text-sm text-destructive">
           <ErrorNotice error={likeError ?? likesError} />

@@ -40,7 +40,12 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
   const plays = [],
     removes = [],
     menus = [],
-    doublePlays = []
+    doublePlays = [],
+    notices = [],
+    actionErrors = [],
+    nativeCalls = []
+  let doubleClickSettings = { action: 'play', scope: 'single' }
+  let nativeFailure
   const virtualizer = {
     measure() {},
     measureElement() {},
@@ -63,7 +68,11 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     '@/features/playback/track-double-click': {
       playTrackOnDoubleClick: async (...args) => {
         doublePlays.push(args)
+        return doubleClickPlayback(...args)
       }
+    },
+    './use-track-double-click': {
+      getTrackDoubleClickSettings: () => doubleClickSettings
     },
     './list-find': { useListFind() {} },
     '@/components/ui/skeleton': {
@@ -118,6 +127,17 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
       TrackIdentity: ({ track, cover }) => React.createElement('div', {}, cover, track.title)
     },
     '@/components/music/song-actions': {
+      useSongActions: () => ({
+        run: (operation, notice) => {
+          void Promise.resolve()
+            .then(operation)
+            .then((result) => {
+              const message = typeof notice === 'function' ? notice(result) : notice
+              if (message) notices.push(message)
+            })
+            .catch((cause) => actionErrors.push(cause))
+        }
+      }),
       SongContextMenu: ({ render, children, ...props }) => {
         menus.push(props)
         return React.cloneElement(render, {}, children)
@@ -133,7 +153,14 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
         track.source.kind === 'online' ? track.source.track.reference.source : track.source.kind
     },
     '@/features/settings/use-interface-density': { useInterfaceDensity: () => ['compact'] },
-    '@/lib/player': { errorText: String, formatTime: String },
+    '@/lib/player': {
+      errorText: String,
+      formatTime: String,
+      nativeCall: async (...args) => {
+        nativeCalls.push(args)
+        if (nativeFailure) throw nativeFailure
+      }
+    },
     'lucide-react': Object.fromEntries(
       [
         'Heart',
@@ -169,6 +196,9 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     )
     return exports
   }
+  const doubleClickPlayback = load(
+    '../src/features/playback/track-double-click.ts'
+  ).playTrackOnDoubleClick
   modules['./cue-card.css'] = {}
   modules['./cue-context-menu'] = {
     CueContextMenu: ({ render, children, ...props }) => {
@@ -255,7 +285,26 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
   }
   try {
     await render()
-    await run({ tracks, plays, removes, menus, doublePlays, render, search, dom, navigations })
+    await run({
+      tracks,
+      plays,
+      removes,
+      menus,
+      doublePlays,
+      render,
+      search,
+      dom,
+      navigations,
+      notices,
+      actionErrors,
+      nativeCalls,
+      setDoubleClickSettings: (value) => {
+        doubleClickSettings = value
+      },
+      setNativeFailure: (value) => {
+        nativeFailure = value
+      }
+    })
   } finally {
     await act(async () => root.unmount())
     dom.window.close()
@@ -603,6 +652,46 @@ test('selection keeps titles inert, double-click plays the selected occurrence a
     )
     assert.equal(document.querySelector('.track-title-copy'), null)
   })
+})
+
+test('double-click next reports success through song notices only after adding the track', async () => {
+  await harness(
+    async ({
+      dom,
+      notices,
+      nativeCalls,
+      setDoubleClickSettings,
+      setNativeFailure,
+      actionErrors
+    }) => {
+      const doubleClick = () =>
+        act(async () =>
+          document
+            .querySelector('.track-title')
+            .dispatchEvent(new dom.window.MouseEvent('dblclick', { bubbles: true }))
+        )
+      setDoubleClickSettings({ action: 'next', scope: 'single' })
+      await doubleClick()
+      assert.equal(nativeCalls.at(-1)[0], 'append_queue')
+      assert.equal(nativeCalls.at(-1)[1].play, false)
+      assert.deepEqual(notices, ['已将「Zulu」设为下一首播放。'])
+      await doubleClick()
+      assert.equal(notices.length, 2)
+      setNativeFailure(new Error('添加失败'))
+      await doubleClick()
+      assert.equal(notices.length, 2)
+      assert.equal(actionErrors.at(-1).message, '添加失败')
+      setNativeFailure(undefined)
+      setDoubleClickSettings({ action: 'play', scope: 'single' })
+      await doubleClick()
+      assert.equal(nativeCalls.at(-1)[1].play, true)
+      assert.equal(notices.length, 2)
+      setDoubleClickSettings({ action: 'next', scope: 'queue' })
+      await doubleClick()
+      assert.equal(nativeCalls.at(-1)[0], 'play_queue')
+      assert.equal(notices.length, 2)
+    }
+  )
 })
 
 test('resizing redistributes adjacent columns, clamps minimums and restores default widths', async () => {
