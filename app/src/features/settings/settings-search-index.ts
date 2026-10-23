@@ -27,16 +27,16 @@ const groups: SearchGroup[] = [
   },
   {
     section: 'general',
-    path: '常规设置 / 隐私与统计',
-    items: [['telemetry', '匿名使用统计', '遥测 隐私']]
-  },
-  {
-    section: 'general',
     path: '常规设置 / 窗口与启动',
     items: [
       ['close-behavior', '关闭主面板时', '最小化 托盘 退出'],
       ['autostart', '开机自启', '登录 启动']
     ]
+  },
+  {
+    section: 'general',
+    path: '常规设置 / 隐私与统计',
+    items: [['telemetry', '匿名使用统计', '遥测 隐私']]
   },
   {
     section: 'personalization',

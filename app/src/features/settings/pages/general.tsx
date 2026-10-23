@@ -15,7 +15,7 @@ export function GeneralPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           {isAndroid()
             ? '调整歌曲操作与隐私统计。'
-            : '调整歌曲操作、隐私统计、窗口行为与开机启动。'}
+            : '调整歌曲操作、窗口行为、开机启动与隐私统计。'}
         </p>
       </div>
       <section aria-labelledby="general-song-actions-heading" className="flex flex-col gap-8">
@@ -57,12 +57,6 @@ export function GeneralPage() {
           </ToggleGroup>
         </SettingsCard>
       </section>
-      <section aria-labelledby="general-privacy-heading" className="flex flex-col gap-8">
-        <h3 id="general-privacy-heading" className="text-base font-semibold">
-          隐私与统计
-        </h3>
-        <TelemetrySwitch />
-      </section>
       {!isAndroid() && (
         <section aria-labelledby="general-window-heading" className="flex flex-col gap-8">
           <h3 id="general-window-heading" className="text-base font-semibold">
@@ -72,6 +66,12 @@ export function GeneralPage() {
           <AutostartSwitch />
         </section>
       )}
+      <section aria-labelledby="general-privacy-heading" className="flex flex-col gap-8">
+        <h3 id="general-privacy-heading" className="text-base font-semibold">
+          隐私与统计
+        </h3>
+        <TelemetrySwitch />
+      </section>
     </div>
   )
 }
