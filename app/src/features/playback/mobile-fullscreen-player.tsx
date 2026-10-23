@@ -153,6 +153,7 @@ export function MobileFullscreenPlayer({
             <div className="mobile-timeline-slot">
               {lyricsPage && <div className="mobile-lyric-controls">{lyricControls}</div>}
               <PlaybackTimeline
+                active={present}
                 layout="below"
                 onError={onError}
                 timeRowContent={<QualitySelect />}

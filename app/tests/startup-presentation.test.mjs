@@ -61,7 +61,7 @@ test('unresolved startup source renders the actual library shell instead of the 
     '@/features/settings/use-interface-density': { useInterfaceDensity: () => ['standard'] },
     '@/features/playback/use-playback-bar-mode': { usePlaybackBarMode: () => ['off'] },
     '@/features/playback/shortcuts/use-playback-shortcuts': { usePlaybackShortcuts() {} },
-    'motion/react': { AnimatePresence: 'AnimatePresence' },
+    '@/features/lyrics/fullscreen-player': { FullscreenPlayer: 'FullscreenPlayer' },
     '@/features/library/collection-actions': { CollectionActionsProvider: 'Collections' },
     '@/components/music/song-actions': { SongActionsProvider: 'Songs' },
     '@/components/music/list-find': { ListFindProvider: 'Find' },

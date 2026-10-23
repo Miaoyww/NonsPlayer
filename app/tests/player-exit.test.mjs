@@ -110,7 +110,7 @@ function harness(initialMode = 'collapsible', storage) {
     '@tauri-apps/api/event': {},
     '@/features/local/folder-manager': { FolderManager: 'FolderManager' },
     '@/lib/runtime-cache': {},
-    'motion/react': { AnimatePresence: 'AnimatePresence' },
+    '@/features/lyrics/fullscreen-player': { FullscreenPlayer: 'FullscreenPlayer' },
     '@/features/playback/use-playback-bar-mode': { usePlaybackBarMode: () => [barMode, () => {}] },
     '@/features/settings/use-interface-density': {
       useInterfaceDensity: () => ['standard', () => {}]
@@ -144,7 +144,7 @@ function harness(initialMode = 'collapsible', storage) {
       ...props,
       workspace,
       bar: find(workspace, 'PlaybackBar') ?? find(workspace, 'PersistentPlaybackBar'),
-      exitComplete: find(workspace, 'AnimatePresence').props.onExitComplete
+      exitComplete: find(workspace, 'FullscreenPlayer').props.onExitComplete
     }
   }
   return {
@@ -172,12 +172,7 @@ test('opening fullscreen cannot render the default search page while its module 
   const { render } = harness()
   render().onNowPlayingChange(true)
   const opening = render()
-  const boundary = find(opening.workspace, 'Suspense')
-  assert.ok(
-    boundary.props.fallback.type !== 'MusicPageSkeleton' ||
-      boundary.props.fallback.props.view !== undefined,
-    'the unspecified MusicPageSkeleton displays 搜索音乐 during fullscreen loading'
-  )
+  assert.equal(find(opening.workspace, 'FullscreenPlayer').props.open, true)
 })
 
 test('a delayed exit callback cannot show the bar after reopening fullscreen', () => {

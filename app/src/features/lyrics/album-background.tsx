@@ -10,13 +10,15 @@ export function AlbumBackground({
   playing,
   hasLyrics,
   active = true,
-  enabled = true
+  enabled = true,
+  retainWhenInactive = false
 }: {
   cover?: import('@/features/music/types').CoverInput
   playing: boolean
   hasLyrics: boolean
   active?: boolean
   enabled?: boolean
+  retainWhenInactive?: boolean
 }) {
   const host = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
@@ -28,9 +30,12 @@ export function AlbumBackground({
   const [visible, setVisible] = useState(document.visibilityState !== 'hidden')
   const [ready, setReady] = useState(false)
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement>()
+  const retainedCover = useRef(cover)
+  if (active) retainedCover.current = cover
+  const available = visible && enabled && (active || retainWhenInactive)
   const { source: album, onError } = useCoverImageSource(
-    cover,
-    visible && active && enabled,
+    retainWhenInactive && !active ? retainedCover.current : cover,
+    available,
     'small'
   )
   const albumImage =
@@ -47,13 +52,13 @@ export function AlbumBackground({
   }, [])
   useEffect(() => {
     setReady(false)
-    if (!host.current || !albumImage || !visible || !active || !enabled) return
+    if (!host.current || !albumImage || !available) return
     let disposed = false
     let background: BackgroundRender<MeshGradientRenderer> | undefined
     // Keep shader compilation and canvas creation out of the slide-in animation.
     void import('@applemusic-like-lyrics/core')
       .then(async ({ BackgroundRender, MeshGradientRenderer }) => {
-        if (disposed || !host.current || !activeRef.current) return
+        if (disposed || !host.current || (!activeRef.current && !retainWhenInactive)) return
         background = BackgroundRender.new(MeshGradientRenderer)
         background.pause()
         background.setFPS(30)
@@ -79,7 +84,7 @@ export function AlbumBackground({
       background?.dispose()
       renderer.current = null
     }
-  }, [albumImage, visible, active, enabled])
+  }, [albumImage, available, retainWhenInactive])
   useEffect(() => {
     const background = renderer.current
     if (!background) return

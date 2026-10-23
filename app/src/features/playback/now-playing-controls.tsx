@@ -10,15 +10,17 @@ import { isAndroid } from '@/lib/platform'
 
 export function NowPlayingControls({
   onQueue,
-  onError
+  onError,
+  active = true
 }: {
   onQueue: () => void
   onError: (error: unknown) => void
+  active?: boolean
 }) {
   const { volume, changeVolume, commitVolume } = useVolumeControl(onError)
   return (
     <div className="now-playing-controls flex shrink-0 flex-col" aria-label="正在播放控制">
-      <PlaybackTimeline layout="below" onError={onError} />
+      <PlaybackTimeline layout="below" onError={onError} active={active} />
       <PlaybackTransport withModes onError={onError} />
       {!isAndroid() && (
         <div className="flex items-center gap-3">

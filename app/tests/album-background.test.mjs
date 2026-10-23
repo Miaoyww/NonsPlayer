@@ -269,6 +269,31 @@ test('closing during AMLL import prevents late renderer creation', async (t) => 
   assert.equal(h.ready, false)
 })
 
+test('retained background pauses on close and reuses its canvas and loaded image on reopen', async (t) => {
+  const h = await harness(t)
+  await h.render({ retainWhenInactive: true })
+  await h.finish(() => h.requests[0].resolve(data))
+  await h.event(h.image, 'load')
+  const image = h.image
+  const renderer = h.renderers[0]
+  await h.finish(() => renderer.loading.resolve())
+  await h.render({ active: false })
+  assert.equal(renderer.paused, true)
+  assert.equal(renderer.disposed, false)
+  assert.equal(h.image, image)
+  await h.render({ active: true })
+  assert.equal(h.renderers.length, 1)
+  assert.equal(renderer.paused, false)
+  assert.equal(h.requests.length, 1)
+  await h.render({ active: false })
+  await h.render({ cover: 'https://other.example/next.jpg' })
+  assert.equal(h.requests.length, 1, 'hidden song changes must not create another background')
+  assert.equal(renderer.disposed, false)
+  await h.render({ active: true })
+  assert.equal(h.requests.length, 2)
+  assert.equal(renderer.disposed, true)
+})
+
 test('renderer failure retains the loaded fallback without invalidating a valid image', async (t) => {
   const h = await harness(t)
   await h.finish(() => h.requests[0].resolve(data))

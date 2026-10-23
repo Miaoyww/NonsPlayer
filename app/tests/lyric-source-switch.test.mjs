@@ -27,6 +27,8 @@ const streamLyrics = {
 async function harness(track, settle = true, localSource = 'local') {
   let sources = { localSource, amll: true, qq: true }
   let present = true
+  let open = true
+  let exits = 0
   let player = { queue: [track], index: 0, status: 'playing', revision: 0 }
   const states = []
   const effects = []
@@ -34,10 +36,13 @@ async function harness(track, settle = true, localSource = 'local') {
   const pending = []
   const parsed = []
   const requests = []
+  const localPreferences = {}
+  const cache = { revision: 0 }
   let rendererLoads = 0
   let cursor = 0
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/lib/runtime-cache': { requestCache: cache, RUNTIME_TTL: 600000 },
     '@/lib/platform': { isAndroid: () => false },
     react: {
       useState(initial) {
@@ -91,7 +96,9 @@ async function harness(track, settle = true, localSource = 'local') {
         return [{ words: [], translatedLyric: '', romanLyric: '' }]
       }
     },
-    '@/features/local/use-local-preferences': { useLocalPreferences: () => ({ options: {} }) },
+    '@/features/local/use-local-preferences': {
+      useLocalPreferences: () => ({ options: localPreferences })
+    },
     '@/features/lyrics/use-lyric-sources': {
       useLyricSources: () => ({ sources }),
       getLyricSources: () => sources
@@ -123,11 +130,18 @@ async function harness(track, settle = true, localSource = 'local') {
   })
   const render = () => {
     cursor = 0
-    return exports.default({ onQueue() {}, onNotice() {} })
+    return exports.default({
+      open,
+      onQueue() {},
+      onNotice() {},
+      onExitComplete() {
+        exits++
+      }
+    })
   }
   const initial = render()
-  if (settle) initial.props.onAnimationComplete?.()
-  effects.forEach((fn) => fn())
+  if (settle) initial.props.onAnimationComplete?.('open')
+  let cleanups = effects.map((fn) => fn()).filter((fn) => typeof fn === 'function')
   await new Promise(setImmediate)
   return {
     initial,
@@ -140,6 +154,19 @@ async function harness(track, settle = true, localSource = 'local') {
     rendererLoads: () => rendererLoads,
     events,
     render,
+    exits: () => exits,
+    invalidate: () => {
+      cache.revision++
+    },
+    async transition(value) {
+      cleanups.forEach((fn) => fn())
+      effects.length = 0
+      open = value
+      const tree = render()
+      cleanups = effects.map((fn) => fn()).filter((fn) => typeof fn === 'function')
+      await new Promise(setImmediate)
+      return tree
+    },
     selectSource: (localSource) => {
       sources = { ...sources, localSource }
     },
@@ -234,10 +261,19 @@ test('lyrics and renderer load during entry and ready lyrics render before anima
     return [tree.props?.children].flat().reduce((sum, child) => sum + count(child), 0)
   }
   assert.equal(count(app.render()), 1, 'ready lyrics render without waiting for entry animation')
-  app.initial.props.onAnimationComplete()
+  app.initial.props.onAnimationComplete('open')
   assert.equal(count(app.render()), 1)
   app.setPresent(false)
-  assert.equal(count(app.render()), 0, 'AMLL stops as soon as exit starts')
+  assert.equal(count(app.render()), 1, 'retain the existing AMLL instance while closing')
+  const renderer = (tree) => {
+    if (!tree || typeof tree !== 'object') return
+    if (tree.type?.name === 'LyricRenderer') return tree.props
+    for (const child of [tree.props?.children].flat()) {
+      const found = renderer(child)
+      if (found) return found
+    }
+  }
+  assert.equal(renderer(app.render()).active, false, 'retained lyrics must stop their frame loop')
 })
 
 test('a local lyrics response cannot replace stream lyrics after playback switches, before React effects clean up', async () => {
@@ -333,6 +369,58 @@ test('same-song metadata changes reject pending responses before effect cleanup'
   app.pending[0](streamLyrics)
   await Promise.resolve()
   assert.equal(app.parsed.length, 0)
+})
+
+test('reopening reuses current lyrics without requesting or parsing them again', async () => {
+  const app = await harness(streamed)
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  const closing = await app.transition(false)
+  assert.equal(closing.props.inert, true)
+  closing.props.onAnimationComplete('closed')
+  assert.equal(app.exits(), 1)
+  assert.equal(app.render().props.style.visibility, 'hidden')
+  await app.transition(true)
+  closing.props.onAnimationComplete('closed')
+  assert.equal(app.exits(), 1, 'an old exit completion cannot hide a reopened player')
+  assert.equal(app.render().props.style.visibility, undefined)
+  assert.equal(app.requests.length, 1)
+  assert.deepEqual(app.parsed, [streamLyrics])
+})
+
+test('cache invalidation while closed forces revalidation and preserves existing lyrics while waiting', async () => {
+  const app = await harness(streamed)
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  await app.transition(false)
+  app.invalidate()
+  await app.transition(true)
+  assert.equal(app.requests.length, 2)
+  assert.equal(menu(app.render()).source, '网易云音乐')
+  assert.equal(menu(app.render()).loading, true)
+})
+
+test('closing rejects pending lyrics and switching tracks while closed waits until reopening to query', async () => {
+  const app = await harness(streamed)
+  await app.transition(false)
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  assert.equal(app.parsed.length, 0)
+  app.switchTo(local)
+  await app.transition(false)
+  assert.equal(app.requests.length, 1)
+  await app.transition(true)
+  assert.equal(app.requests.length, 2)
+  assert.equal(app.requests[1].key, local.key)
+})
+
+test('local lyrics are reread on reopening instead of using the retained online fast path', async () => {
+  const app = await harness(local)
+  app.pending[0](localLyrics)
+  await Promise.resolve()
+  await app.transition(false)
+  await app.transition(true)
+  assert.equal(app.requests.length, 2)
 })
 
 test('background refresh metadata must match the current song even with the same key', async () => {

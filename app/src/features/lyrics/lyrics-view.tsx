@@ -27,6 +27,7 @@ import { LyricLoading } from './lyric-loading'
 import { isAndroid } from '@/lib/platform'
 import { MobileFullscreenPlayer } from '@/features/playback/mobile-fullscreen-player'
 import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/playback-notice'
+import { requestCache, RUNTIME_TTL } from '@/lib/runtime-cache'
 
 function isCurrentPlayback(key: string, revision: number, version: string) {
   const active = getPlayer()
@@ -57,16 +58,27 @@ function LyricRenderer(props: {
 }
 
 export default function LyricsView({
+  open = true,
   onQueue,
   notice,
-  onClose
+  onClose,
+  onExitComplete
 }: {
+  open?: boolean
   onQueue: () => void
   notice?: PlaybackNoticeMessage
   onClose: () => void
+  onExitComplete?: () => void
 }) {
   const reduced = useReducedMotion()
-  const isPresent = useIsPresent()
+  const present = useIsPresent()
+  const isPresent = open && present
+  const openRef = useRef(isPresent)
+  openRef.current = isPresent
+  const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    if (open) setHidden(false)
+  }, [open])
   const mobile = isAndroid()
   const [entered, setEntered] = useState(!!reduced)
   const rendering = isPresent
@@ -80,22 +92,26 @@ export default function LyricsView({
   const track = state.index !== null ? state.queue[state.index] : undefined
   const trackVersion = useMemo(() => lyricTrackVersion(track), [track])
   const { sources } = useLyricSources()
+  const { options: localPreferences } = useLocalPreferences()
   const [display, setDisplay] = useState<{
     key: string
     revision: number
     lines: LyricLine[]
     source?: string
     selection: LyricSources
+    version: string
+    preferences: typeof localPreferences
   }>()
   const currentDisplay =
     display?.key === track?.key &&
     display?.revision === state.revision &&
-    display?.selection === sources
+    display?.selection === sources &&
+    display?.version === trackVersion &&
+    display?.preferences === localPreferences
       ? display
       : undefined
   const lines = currentDisplay?.lines ?? []
   const source = currentDisplay?.source
-  const { options: localPreferences } = useLocalPreferences()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
   const playbackError = error
@@ -110,6 +126,17 @@ export default function LyricsView({
   const generation = useRef(0)
   const appliedSource = useRef<string | undefined>(undefined)
   const correction = useRef<LyricCorrection>(automaticLyrics)
+  const reusable = useRef<
+    | {
+        version: string
+        revision: number
+        sources: LyricSources
+        preferences: typeof localPreferences
+        cacheRevision: number
+        updatedAt: number
+      }
+    | undefined
+  >(undefined)
   const apply = useCallback(
     (
       value: Lyrics | null,
@@ -122,25 +149,54 @@ export default function LyricsView({
         ? offsetLyrics(parseLyrics(value, duration, cue), correction.current.offsetMs)
         : []
       appliedSource.current = value?.source
+      reusable.current = value
+        ? {
+            version: trackVersion,
+            revision,
+            sources,
+            preferences: localPreferences,
+            cacheRevision: requestCache.revision,
+            updatedAt: Date.now()
+          }
+        : undefined
       setDisplay({
         key,
         revision,
         selection: sources,
+        version: trackVersion,
+        preferences: localPreferences,
         lines: parsed,
         source: value
           ? { amll: 'AMLL DB', qq: 'QQ 音乐', netease: '网易云音乐', local: '本地' }[value.source]
           : undefined
       })
     },
-    [sources]
+    [sources, trackVersion, localPreferences]
   )
   const requestLyrics = useCallback(
-    async (refresh = false) => {
+    async (refresh = false, reuse = false) => {
+      if (!openRef.current) return
       if (getLyricSources() !== sources) return
       if (track && !isCurrentPlayback(track.key, state.revision, trackVersion)) return
+      const previous = reusable.current
+      if (
+        reuse &&
+        !refresh &&
+        previous &&
+        !(track?.source.kind === 'local' && sources.localSource === 'local') &&
+        previous.version === trackVersion &&
+        previous.revision === state.revision &&
+        previous.sources === sources &&
+        previous.preferences === localPreferences &&
+        previous.cacheRevision === requestCache.revision &&
+        Date.now() - previous.updatedAt < RUNTIME_TTL
+      ) {
+        setLoading(false)
+        return
+      }
       const serial = ++generation.current
+      reusable.current = undefined
       appliedSource.current = undefined
-      if (!refresh) setDisplay(undefined)
       setError(undefined)
       setLoading(false)
       if (!track || !isTauri()) return
@@ -148,6 +204,7 @@ export default function LyricsView({
       // Native playback can switch before React's passive-effect cleanup runs.
       const isCurrent = () =>
         generation.current === serial &&
+        openRef.current &&
         getLyricSources() === sources &&
         isCurrentPlayback(track.key, state.revision, trackVersion)
       try {
@@ -183,11 +240,11 @@ export default function LyricsView({
     [trackVersion, state.revision, apply, sources, localPreferences]
   )
   useEffect(() => {
-    void requestLyrics()
+    if (isPresent) void requestLyrics(false, true)
     return () => {
       generation.current++
     }
-  }, [requestLyrics])
+  }, [requestLyrics, isPresent])
   useEffect(() => {
     if (!isTauri() || !track) return
     let disposed = false
@@ -195,6 +252,7 @@ export default function LyricsView({
     void listen<{ key: string; lyrics: Lyrics; track?: Track }>('lyrics-updated', ({ payload }) => {
       if (
         !disposed &&
+        openRef.current &&
         !correction.current.candidate &&
         getLyricSources() === sources &&
         !(track.source.kind === 'local' && sources.localSource === 'local') &&
@@ -236,7 +294,10 @@ export default function LyricsView({
     let disposed = false
     let stop: (() => void) | undefined
     void listen<string>('lyric-correction-changed', ({ payload }) => {
-      if (!disposed && payload === track?.key) void requestLyrics()
+      if (!disposed && payload === track?.key) {
+        reusable.current = undefined
+        void requestLyrics()
+      }
     })
       .then((cleanup) => {
         if (disposed) cleanup()
@@ -278,14 +339,14 @@ export default function LyricsView({
     </div>
   )
   const renderLyrics = (active = true) =>
-    lines.length && rendering ? (
+    lines.length ? (
       <LyricRenderer
         key={track?.key}
         lines={lines}
         showTranslation={showTranslation}
         showPronunciation={showPronunciation}
-        active={active}
-        retainWhenHidden={mobile}
+        active={active && rendering}
+        retainWhenHidden
         onError={(cause) => setError(errorText(cause))}
       />
     ) : loading || lines.length ? (
@@ -306,6 +367,7 @@ export default function LyricsView({
       hasLyrics={lines.length > 0}
       active={rendering && (entered || !!reduced)}
       enabled={entered || !!reduced}
+      retainWhenInactive
     />
   )
   return (
@@ -315,16 +377,26 @@ export default function LyricsView({
       aria-hidden={!isPresent}
       inert={!isPresent}
       initial={{ y: reduced ? 0 : '100%' }}
-      animate={{ y: 0 }}
-      onAnimationComplete={() => {
-        if (isPresent) setEntered(true)
+      animate={open ? 'open' : 'closed'}
+      variants={{
+        open: { y: 0 },
+        closed: {
+          y: reduced ? 0 : '100%',
+          transition: { type: 'tween', duration: reduced ? 0 : 0.3, ease: [0.4, 0, 1, 1] }
+        }
       }}
-      style={{ willChange: entered && isPresent ? undefined : 'transform' }}
+      onAnimationComplete={(definition) => {
+        if (definition === 'open' && openRef.current) setEntered(true)
+        if (definition === 'closed' && !openRef.current) {
+          setHidden(true)
+          onExitComplete?.()
+        }
+      }}
+      style={{
+        visibility: !open && hidden ? 'hidden' : undefined,
+        willChange: !open && hidden ? undefined : 'transform'
+      }}
       transition={{ type: 'tween', duration: reduced ? 0 : 0.36, ease: [0.22, 1, 0.36, 1] }}
-      exit={{
-        y: reduced ? 0 : '100%',
-        transition: { type: 'tween', duration: reduced ? 0 : 0.3, ease: [0.4, 0, 1, 1] }
-      }}
     >
       {mobile ? (
         <MobileFullscreenPlayer
@@ -375,6 +447,7 @@ export default function LyricsView({
               </div>
               <NowPlayingControls
                 onQueue={onQueue}
+                active={isPresent}
                 onError={(cause) => setError(errorText(cause))}
               />
             </div>

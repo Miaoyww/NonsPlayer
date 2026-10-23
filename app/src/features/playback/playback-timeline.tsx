@@ -7,14 +7,16 @@ export function PlaybackTimeline({
   onError,
   layout = 'below',
   showTimeOnHover = false,
-  timeRowContent
+  timeRowContent,
+  active = true
 }: {
   onError: (error: unknown) => void
   layout?: 'below' | 'inline' | 'edge'
   showTimeOnHover?: boolean
   timeRowContent?: ReactNode
+  active?: boolean
 }) {
-  const progress = useProgress()
+  const progress = useProgress(active)
   const [drag, setDrag] = useState<number | null>(null)
   const [hover, setHover] = useState<number | null>(null)
   const [focused, setFocused] = useState(false)
@@ -25,7 +27,7 @@ export function PlaybackTimeline({
     !isTauri() || !progress.durationMs || ['stopped', 'error', 'loading'].includes(progress.status)
 
   useEffect(() => {
-    if (drag !== null || disabled) return
+    if (!active || drag !== null || disabled) return
     let frame = 0
     function paint(now = performance.now()) {
       const live = getProgress()
@@ -47,7 +49,7 @@ export function PlaybackTimeline({
       cancelAnimationFrame(frame)
       document.removeEventListener('visibilitychange', resume)
     }
-  }, [progress, drag, disabled, layout])
+  }, [progress, drag, disabled, layout, active])
 
   function commit(value: number) {
     void nativeCall('player_seek', { positionMs: value }).catch(onError)

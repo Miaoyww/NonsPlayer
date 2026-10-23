@@ -6,6 +6,7 @@ import ts from 'typescript'
 
 function harness(options = { layout: 'edge', showTimeOnHover: true }) {
   const calls = [],
+    progressEnabled = [],
     values = [],
     exports = {},
     effects = []
@@ -49,7 +50,10 @@ function harness(options = { layout: 'edge', showTimeOnHover: true }) {
     '@tauri-apps/api/core': { isTauri: () => true },
     '@/features/playback/player-slider': { PlayerSlider: 'slider' },
     '@/lib/player': {
-      useProgress: () => progress,
+      useProgress: (enabled) => {
+        progressEnabled.push(enabled)
+        return progress
+      },
       getProgress: () => progress,
       currentPosition: (time = now) =>
         Math.min(
@@ -111,6 +115,7 @@ function harness(options = { layout: 'edge', showTimeOnHover: true }) {
   return {
     render,
     calls,
+    progressEnabled,
     effects,
     get progress() {
       return progress
@@ -143,6 +148,21 @@ test('edge timeline reveals hover and focus time without permanent time labels',
   assert.equal(app.render().tooltip.children.join(''), '0:30 / 3:00')
   app.render().slider.onBlur()
   assert.equal(app.render().tooltip, undefined)
+})
+
+test('retained inactive timelines cancel their frame loop and stop progress subscriptions', () => {
+  const options = { layout: 'below', active: true }
+  const app = harness(options)
+  app.render()
+  const cleanup = app.effects.at(-1)()
+  assert.ok(app.frames.size > 0)
+  cleanup()
+  options.active = false
+  app.render()
+  app.effects.at(-1)()
+  assert.equal(app.frames.size, 0)
+  assert.equal(app.listeners.size, 0)
+  assert.deepEqual(app.progressEnabled, [true, false])
 })
 test('timeline commits pointer and keyboard seeks and cancels abandoned drags', () => {
   const app = harness()

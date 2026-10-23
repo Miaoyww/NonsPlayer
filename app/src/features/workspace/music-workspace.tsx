@@ -11,7 +11,7 @@ import { listen } from '@tauri-apps/api/event'
 import { open } from '@tauri-apps/plugin-dialog'
 import { ErrorNotice } from '@/components/error-notice'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
-import { AnimatePresence } from 'motion/react'
+import { FullscreenPlayer } from '@/features/lyrics/fullscreen-player'
 import { connectPlayer, errorText, nativeCall, usePlayer } from '@/lib/player'
 import { ActionButton } from '@/components/music/action-button'
 import { MusicPage } from '@/components/music/music-page'
@@ -37,7 +37,6 @@ import { PlaybackRecovery } from '@/features/playback/playback-recovery'
 import { TrackSearchContext } from '@/components/music/track-search-context'
 
 const PerformanceProbe = lazy(() => import('@/features/performance/performance-probe'))
-const LyricsView = lazy(() => import('@/features/lyrics/lyrics-view'))
 const LocalPage = lazy(() => import('@/features/local/local-page'))
 const SearchPage = lazy(() => import('@/features/search/search-page'))
 const SettingsPage = lazy(() => import('@/features/settings/settings-page'))
@@ -332,28 +331,13 @@ export function MusicWorkspace({
                 }
               />
             )}
-            <AnimatePresence onExitComplete={onPlayerExitComplete}>
-              {nowPlaying && (
-                <Suspense
-                  key="now-playing"
-                  fallback={
-                    <div
-                      className="now-playing absolute inset-0 z-[5] flex items-center justify-center"
-                      role="status"
-                      aria-label="正在加载播放器"
-                    >
-                      <span>正在加载播放器…</span>
-                    </div>
-                  }
-                >
-                  <LyricsView
-                    onQueue={openQueue}
-                    notice={notice}
-                    onClose={() => onNowPlayingChange(false)}
-                  />
-                </Suspense>
-              )}
-            </AnimatePresence>
+            <FullscreenPlayer
+              open={nowPlaying}
+              onQueue={openQueue}
+              notice={notice}
+              onClose={() => onNowPlayingChange(false)}
+              onExitComplete={onPlayerExitComplete}
+            />
             <TrackSearchContext.Provider
               value={isAndroid() && canSearchList ? listQuery : undefined}
             >
