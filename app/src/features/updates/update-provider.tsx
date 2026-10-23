@@ -4,6 +4,7 @@ import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { Download, RefreshCw } from 'lucide-react'
 import { ReleaseNotes } from './release-notes'
+import { UpdateDownloadProgress } from './update-download-progress'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -152,7 +153,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
             <DialogDescription>{message}</DialogDescription>
           </DialogHeader>
           {status?.phase === 'downloading' && (
-            <progress className="h-2 w-full" aria-label="更新下载进度" value={progress} max={100} />
+            <UpdateDownloadProgress downloaded={status.downloaded} total={status.total} />
           )}
           {status?.notes && <ReleaseNotes notes={status.notes} />}
           <p className="sr-only" role="status">

@@ -30,6 +30,15 @@ test('updates require a download click and separate installation confirmation; p
   let failPreferenceSave = false
   let finishCheck
   const container = ({ children }) => React.createElement('div', {}, children)
+  let now = 0
+  let tick
+  dom.window.setInterval = (callback) => {
+    tick = callback
+    return 1
+  }
+  dom.window.clearInterval = () => {
+    tick = undefined
+  }
   const modules = {
     react: React,
     'react/jsx-runtime': jsx,
@@ -41,6 +50,15 @@ test('updates require a download click and separate installation confirmation; p
       }
     },
     'lucide-react': { Download: () => null, RefreshCw: () => null },
+    '@/components/ui/progress': {
+      Progress: ({ value, children }) =>
+        React.createElement(
+          'div',
+          { role: 'progressbar', 'aria-valuenow': value ?? undefined },
+          children
+        ),
+      ProgressLabel: container
+    },
     '@/components/ui/button': {
       Button: ({ children, ...props }) => React.createElement('button', props, children)
     },
@@ -101,6 +119,23 @@ test('updates require a download click and separate installation confirmation; p
     { exports: notesExports, require: (name) => modules[name] }
   )
   modules['./release-notes'] = notesExports
+  const progressExports = {}
+  runInNewContext(
+    ts.transpileModule(
+      readFileSync(
+        new URL('../src/features/updates/update-download-progress.tsx', import.meta.url),
+        'utf8'
+      ),
+      { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
+    ).outputText,
+    {
+      exports: progressExports,
+      require: (name) => modules[name],
+      window: dom.window,
+      performance: { now: () => now }
+    }
+  )
+  modules['./update-download-progress'] = progressExports
   const exports = {}
   runInNewContext(
     ts.transpileModule(
@@ -181,6 +216,41 @@ test('updates require a download click and separate installation confirmation; p
     assert.equal(document.querySelector('a').getAttribute('target'), '_blank')
     assert.equal(document.querySelectorAll('table td').length, 2)
     assert.deepEqual(calls, [])
+    await React.act(async () => {
+      status = { ...status, phase: 'downloading', downloaded: 1048576, total: 4194304 }
+      listener({ payload: status })
+    })
+    assert.equal(document.querySelector('[role="progressbar"]').getAttribute('aria-valuenow'), '25')
+    assert.match(document.body.textContent, /1.0 MB \/ 4.0 MB/)
+    await React.act(async () => {
+      status = { ...status, downloaded: 2097152 }
+      listener({ payload: status })
+    })
+    await React.act(async () => {
+      now = 1000
+      tick()
+    })
+    assert.match(document.body.textContent, /1.0 MB\/s/)
+    await React.act(async () => {
+      now = 2000
+      tick()
+    })
+    assert.match(document.body.textContent, /0 B\/s/)
+    await React.act(async () => {
+      status = { ...status, downloaded: 0, total: null }
+      listener({ payload: status })
+    })
+    assert.match(document.body.textContent, /0 B \/ 未知/)
+    assert.equal(
+      document.querySelector('[role="progressbar"]').hasAttribute('aria-valuenow'),
+      false
+    )
+    assert.doesNotMatch(document.body.textContent, /B\/s/)
+    await React.act(async () => {
+      status = { ...status, phase: 'available' }
+      listener({ payload: status })
+    })
+    assert.equal(tick, undefined, 'leaving download clears the speed timer')
     await click('下载更新')
     assert.deepEqual(calls, ['update_download'])
     assert.match(document.body.textContent, /重启安装会中断当前播放/)
