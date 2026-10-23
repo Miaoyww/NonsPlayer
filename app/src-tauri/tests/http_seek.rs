@@ -1,4 +1,6 @@
 //! Real HTTP + decode regression: Range support without Accept-Ranges.
+#[path = "support/infrastructure.rs"]
+mod infrastructure;
 #[path = "../src/playback/network.rs"]
 #[allow(dead_code)]
 mod network;

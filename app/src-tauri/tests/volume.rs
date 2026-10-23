@@ -1,4 +1,6 @@
 //! Measure decoded output amplitude across the same NULL/reload used by track changes.
+#[path = "support/infrastructure.rs"]
+mod infrastructure;
 use gstreamer::{self as gst, prelude::*};
 use std::sync::{Arc, Mutex};
 #[path = "../src/playback/audio.rs"]

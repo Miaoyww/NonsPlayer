@@ -1,4 +1,6 @@
 //! Checks decoded PCM, including the seam, rather than listening for a gap.
+#[path = "support/infrastructure.rs"]
+mod infrastructure;
 use gstreamer::{self as gst, prelude::*};
 use std::sync::{atomic::AtomicBool, Arc, Mutex};
 #[path = "../src/model/mod.rs"]
@@ -7,15 +9,6 @@ mod model;
 #[path = "../src/playback/transitions.rs"]
 #[allow(dead_code)]
 mod transitions;
-
-// The output module is included directly, without the Tauri diagnostics service.
-mod infrastructure {
-    pub mod diagnostics {
-        pub fn warn(operation: &str, error: impl std::fmt::Display) {
-            log::warn!("operation={operation} reason={error}");
-        }
-    }
-}
 
 fn wav(samples: &[i16]) -> Vec<u8> {
     let bytes = (samples.len() * 2) as u32;

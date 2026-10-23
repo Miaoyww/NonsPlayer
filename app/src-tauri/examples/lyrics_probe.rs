@@ -2,12 +2,21 @@
 #[path = "support/infrastructure.rs"]
 #[allow(dead_code)]
 mod infrastructure;
+// Standalone probes do not redirect storage into the app performance workspace.
+mod performance {
+    pub fn root() -> Option<std::path::PathBuf> {
+        None
+    }
+}
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;
 mod storage {
     pub use crate::model::MAX_LYRIC_BYTES;
 }
+#[path = "../src/lyrics/identity.rs"]
+#[allow(dead_code)]
+mod identity;
 #[path = "../src/lyrics/lyric_matching.rs"]
 #[allow(dead_code)]
 mod lyric_matching;
@@ -21,6 +30,23 @@ mod netease_lyrics;
 mod qq_lyrics;
 #[path = "../src/lyrics/qrc_decrypt.rs"]
 mod qrc_decrypt;
+// The read-only probe does not construct LyricService or expose manual correction.
+// These DTOs satisfy the manual entry points compiled with the QQ lookup module.
+#[allow(dead_code)]
+mod correction {
+    pub enum Source {
+        Qq,
+    }
+    pub struct Candidate {
+        pub source: Source,
+        pub id: Option<u64>,
+        pub mid: String,
+        pub title: String,
+        pub artist: String,
+        pub album: String,
+        pub duration_ms: u64,
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), String> {

@@ -1,4 +1,6 @@
 //! Exercise the actual bundled source when the connection closes in the song's tail.
+#[path = "support/infrastructure.rs"]
+mod infrastructure;
 #[path = "../src/playback/network.rs"]
 #[allow(dead_code)]
 mod network;

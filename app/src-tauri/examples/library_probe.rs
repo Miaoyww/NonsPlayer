@@ -2,6 +2,12 @@
 #[path = "support/infrastructure.rs"]
 #[allow(dead_code)]
 mod infrastructure;
+// Standalone probes do not redirect storage into the app performance workspace.
+mod performance {
+    pub fn root() -> Option<std::path::PathBuf> {
+        None
+    }
+}
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;
