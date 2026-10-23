@@ -26,7 +26,6 @@ async function harness({ delayed = false } = {}) {
     repeatMode: 'off',
     playbackOptions: { fades: false, gapless: true },
     deviceId: null,
-    audioOutputMode: 'shared',
     actualQuality: null,
     error: null,
     mediaError: null
@@ -139,7 +138,7 @@ test('rapid volume events preserve progress and queue, lyrics and status selecti
   app.player.usePlayer('status')
   app.player.usePlayer('volume')
   app.player.useProgress()
-  app.player.usePlayer('playbackOptions', 'audioOutputMode', 'deviceId')
+  app.player.usePlayer('playbackOptions', 'deviceId')
   for (let now = 20; now <= 200; now += 20) {
     app.time(now)
     const before = app.player.currentPosition()

@@ -1,7 +1,5 @@
 //! Versioned transport snapshots. Queue storage is shared until an edit uses Arc::make_mut.
-use crate::model::{
-    AudioOutputMode, PlaybackOptions, PlaybackStatus, PlayerSnapshot, Progress, RepeatMode, Track,
-};
+use crate::model::{PlaybackOptions, PlaybackStatus, PlayerSnapshot, Progress, RepeatMode, Track};
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -19,7 +17,6 @@ pub struct PlayerState {
     pub status: PlaybackStatus,
     pub volume: f64,
     pub device_id: Option<String>,
-    pub audio_output_mode: AudioOutputMode,
     pub actual_quality: Option<String>,
     pub playback_source: Option<crate::music::manager::PlaybackSource>,
     pub error: Option<String>,
@@ -90,7 +87,6 @@ impl Publication {
                 status: s.status,
                 volume: s.volume,
                 device_id: s.device_id.clone(),
-                audio_output_mode: s.audio_output_mode,
                 actual_quality: s.actual_quality.clone(),
                 playback_source: s.playback_source.clone(),
                 error: s.error.clone(),

@@ -17,14 +17,6 @@ pub enum PlaybackStatus {
     Error,
 }
 
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum AudioOutputMode {
-    #[default]
-    Shared,
-    Exclusive,
-}
-
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PlaybackOptions {
@@ -62,8 +54,6 @@ pub struct PlayerSnapshot {
     pub duration_ms: u64,
     pub volume: f64,
     pub device_id: Option<String>,
-    #[serde(default)]
-    pub audio_output_mode: AudioOutputMode,
     pub actual_quality: Option<String>,
     #[serde(default, skip_deserializing)]
     pub playback_source: Option<nons_music_adapter_sdk::provider::PlaybackSource>,
@@ -91,7 +81,6 @@ impl Default for PlayerSnapshot {
                 0.8
             },
             device_id: None,
-            audio_output_mode: AudioOutputMode::Shared,
             actual_quality: None,
             playback_source: None,
             error: None,

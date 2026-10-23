@@ -1,10 +1,6 @@
-//! Owns platform output selection; exclusive requests must never silently become shared.
-use crate::model::{AppResult, AudioOutputMode};
+//! Owns shared audio output selection.
+use crate::model::AppResult;
 use gstreamer::{self as gst, prelude::*};
-
-#[cfg(windows)]
-#[path = "output/windows.rs"]
-mod windows;
 
 pub fn start_device_monitor() -> AppResult<Option<gst::DeviceMonitor>> {
     // Android's OpenSL ES sink follows system routing and has no device provider.
@@ -23,21 +19,7 @@ pub fn start_device_monitor() -> AppResult<Option<gst::DeviceMonitor>> {
     }
 }
 
-pub fn available_modes() -> Vec<AudioOutputMode> {
-    if cfg!(windows) {
-        vec![AudioOutputMode::Shared, AudioOutputMode::Exclusive]
-    } else {
-        Vec::new()
-    }
-}
-
-pub fn create_sink(device: Option<&gst::Device>, mode: AudioOutputMode) -> AppResult<gst::Element> {
-    if mode == AudioOutputMode::Exclusive {
-        #[cfg(windows)]
-        return windows::create_exclusive_sink(device);
-        #[cfg(not(windows))]
-        return Err("WASAPI 独占模式仅支持 Windows".into());
-    }
+pub fn create_sink(device: Option<&gst::Device>) -> AppResult<gst::Element> {
     let selected = device
         .map(|device| device.create_element(Some("nons-output")))
         .transpose()
@@ -61,50 +43,16 @@ pub fn create_sink(device: Option<&gst::Device>, mode: AudioOutputMode) -> AppRe
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
-    fn old_saved_output_defaults_to_shared_and_modes_round_trip() {
-        let state = crate::model::PlayerSnapshot::default();
-        let mut saved = serde_json::to_value(state).unwrap();
-        saved.as_object_mut().unwrap().remove("audioOutputMode");
+    fn legacy_exclusive_snapshot_restores_without_output_mode() {
+        let mut saved = serde_json::to_value(crate::model::PlayerSnapshot::default()).unwrap();
+        saved["audioOutputMode"] = serde_json::json!("exclusive");
+        saved["positionMs"] = serde_json::json!(12345);
         let restored: crate::model::PlayerSnapshot = serde_json::from_value(saved).unwrap();
-        assert_eq!(restored.audio_output_mode, AudioOutputMode::Shared);
-        for mode in [AudioOutputMode::Shared, AudioOutputMode::Exclusive] {
-            assert_eq!(
-                serde_json::from_str::<AudioOutputMode>(&serde_json::to_string(&mode).unwrap())
-                    .unwrap(),
-                mode
-            );
-        }
-    }
-
-    #[test]
-    #[cfg(windows)]
-    #[ignore = "requires a Windows device advertising exclusive output formats"]
-    fn windows_modes_use_explicit_sinks_without_shared_fallback() {
-        gst::init().unwrap();
-        let shared = create_sink(None, AudioOutputMode::Shared).unwrap();
-        assert_eq!(shared.factory().unwrap().name(), "wasapi2sink");
-        assert!(!shared.property::<bool>("exclusive"));
-        let exclusive = create_sink(None, AudioOutputMode::Exclusive).unwrap();
-        let bin = exclusive.downcast_ref::<gst::Bin>().unwrap();
-        assert_eq!(
-            bin.by_name("nons-exclusive-device")
-                .unwrap()
-                .factory()
-                .unwrap()
-                .name(),
-            "wasapi2sink"
-        );
-        assert!(exclusive.property::<bool>("exclusive"));
-        assert!(exclusive.find_property("volume").is_none());
-    }
-
-    #[test]
-    #[cfg(not(windows))]
-    fn other_platforms_do_not_advertise_or_accept_wasapi() {
-        assert!(available_modes().is_empty());
-        assert!(create_sink(None, AudioOutputMode::Exclusive).is_err());
+        assert_eq!(restored.position_ms, 12345);
+        assert!(serde_json::to_value(restored)
+            .unwrap()
+            .get("audioOutputMode")
+            .is_none());
     }
 }

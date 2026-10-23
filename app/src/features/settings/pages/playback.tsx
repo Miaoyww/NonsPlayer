@@ -3,13 +3,7 @@ import { ErrorNotice } from '@/components/error-notice'
 import { Switch } from '@/components/ui/switch'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import {
-  errorText,
-  nativeCall,
-  usePlayer,
-  type AudioOutputMode,
-  type OutputDevice
-} from '@/lib/player'
+import { errorText, nativeCall, usePlayer, type OutputDevice } from '@/lib/player'
 import { useMusicOptions } from '@/features/playback/music-options'
 import {
   Select,
@@ -22,13 +16,11 @@ import {
 import { SettingsCard } from '@/features/settings/settings-card'
 
 export function PlaybackPage() {
-  const state = usePlayer('audioOutputMode', 'deviceId', 'error', 'playbackOptions')
+  const state = usePlayer('deviceId', 'playbackOptions')
   const { options, busy, error: optionsError, update } = useMusicOptions()
   const [devices, setDevices] = useState<OutputDevice[]>([])
   const [error, setError] = useState<string>()
   const [switching, setSwitching] = useState(false)
-  const [outputModes, setOutputModes] = useState<AudioOutputMode[]>([])
-  const [modeError, setModeError] = useState<string>()
   const [savingTransitions, setSavingTransitions] = useState(false)
   function updateTransitions(patch: Partial<typeof state.playbackOptions>) {
     if (savingTransitions) return
@@ -44,15 +36,6 @@ export function PlaybackPage() {
   useEffect(() => {
     if (!isTauri()) return
     let disposed = false
-    void nativeCall<AudioOutputMode[]>('audio_output_modes')
-      .then((modes) => {
-        if (!disposed) setOutputModes(modes)
-      })
-      .catch((cause) => {
-        reportCaughtError('app/src/features/settings/pages/playback.tsx', cause)
-
-        if (!disposed) setModeError(errorText(cause))
-      })
     void nativeCall<OutputDevice[]>('output_devices')
       .then((value) => {
         if (!disposed) setDevices(value)
@@ -119,54 +102,6 @@ export function PlaybackPage() {
           </SelectContent>
         </Select>
       </SettingsCard>
-      {outputModes.length > 0 && (
-        <SettingsCard
-          title="WASAPI 输出模式"
-          description="共享模式允许其他应用同时发声；独占模式独占所选设备，需要设备允许独占访问。切换会短暂中断播放，并保留歌曲与进度。"
-        >
-          <Select
-            items={outputModes.map((value) => ({
-              value,
-              label: value === 'shared' ? '共享模式' : '独占模式'
-            }))}
-            value={state.audioOutputMode}
-            disabled={!isTauri() || switching}
-            onValueChange={(mode) => {
-              if (!mode || mode === state.audioOutputMode || switching) return
-              setSwitching(true)
-              setModeError(undefined)
-              void nativeCall('set_audio_output_mode', { mode })
-                .catch((cause) => {
-                  reportCaughtError('app/src/features/settings/pages/playback.tsx', cause)
-                  return setModeError(errorText(cause))
-                })
-                .finally(() => setSwitching(false))
-            }}
-          >
-            <SelectTrigger className="w-60" aria-label="WASAPI 输出模式">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              <SelectGroup>
-                {outputModes.map((mode) => (
-                  <SelectItem key={mode} value={mode}>
-                    {mode === 'shared' ? '共享模式' : '独占模式'}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          {switching && (
-            <p role="status" className="text-sm text-muted-foreground">
-              正在切换音频输出…
-            </p>
-          )}
-          {(modeError || (state.audioOutputMode === 'exclusive' && state.error)) && (
-            <ErrorNotice error={modeError ?? state.error} />
-          )}
-        </SettingsCard>
-      )}
-      {outputModes.length === 0 && modeError && <ErrorNotice error={modeError} />}
       <SettingsCard title="允许音质降级" description="所选音质不可用时自动降级。">
         <label className="flex items-center gap-2 text-sm">
           <Switch

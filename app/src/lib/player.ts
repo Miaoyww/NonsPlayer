@@ -53,7 +53,6 @@ export interface Track {
   source: TrackSource
 }
 export type PlaybackStatus = 'stopped' | 'loading' | 'playing' | 'paused' | 'buffering' | 'error'
-export type AudioOutputMode = 'shared' | 'exclusive'
 export interface PlayerSnapshot {
   playbackSource?: {
     provider: string
@@ -78,7 +77,6 @@ export interface PlayerSnapshot {
   durationMs: number
   volume: number
   deviceId: string | null
-  audioOutputMode: AudioOutputMode
   actualQuality: string | null
   error: string | null
   mediaError: string | null
@@ -116,7 +114,6 @@ const initialSnapshot: PlayerSnapshot = {
   durationMs: 0,
   volume: isAndroid() ? 1 : 0.8,
   deviceId: null,
-  audioOutputMode: 'shared',
   actualQuality: null,
   error: null,
   mediaError: null

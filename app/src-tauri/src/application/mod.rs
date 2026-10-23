@@ -566,20 +566,6 @@ fn player_device(device_id: Option<String>, backend: State<'_, Backend>) -> AppR
     backend.player.send(Command::Device(device_id))
 }
 #[tauri::command]
-fn audio_output_modes() -> Vec<model::AudioOutputMode> {
-    crate::playback::output::available_modes()
-}
-#[tauri::command]
-async fn set_audio_output_mode(
-    mode: model::AudioOutputMode,
-    backend: State<'_, Backend>,
-) -> AppResult<()> {
-    let player = backend.player.clone();
-    tauri::async_runtime::spawn_blocking(move || player.set_output_mode(mode))
-        .await
-        .map_err(|e| e.to_string())?
-}
-#[tauri::command]
 async fn set_playback_options(
     options: model::PlaybackOptions,
     backend: State<'_, Backend>,
@@ -1092,8 +1078,6 @@ pub fn run() {
             player_seek,
             player_volume,
             player_device,
-            audio_output_modes,
-            set_audio_output_mode,
             set_playback_options,
             output_devices,
             track_lyrics,

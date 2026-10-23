@@ -52,7 +52,7 @@ test('playback switches wait for native persistence and retain the previous sett
         ),
       errorText: (error) => error.message,
       nativeCall: async (command, args) => {
-        if (command === 'output_devices' || command === 'audio_output_modes') return []
+        if (command === 'output_devices') return []
         calls.push([command, args])
         return new Promise((resolve, reject) => {
           pending = {

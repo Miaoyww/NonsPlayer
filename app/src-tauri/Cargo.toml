@@ -92,7 +92,7 @@ cipher = { version = "0.4", features = ["alloc", "block-padding"] }
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.39.1"
 clipboard-win = { version = "5.4", features = ["monitor"] }
-windows = { version = "0.62", features = ["Foundation", "Media", "Media_Control", "Storage_Streams", "Win32_Foundation", "Win32_System_WinRT", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_Media_Audio"] }
+windows = { version = "0.62", features = ["Foundation", "Media", "Media_Control", "Storage_Streams", "Win32_Foundation", "Win32_System_WinRT", "Win32_System_Com"] }
 keyring = { version = "3.6", features = ["windows-native"] }
 sysproxy = "0.3"
 glob = "0.3"
