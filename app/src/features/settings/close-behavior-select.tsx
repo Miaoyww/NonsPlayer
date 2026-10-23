@@ -60,7 +60,11 @@ export function CloseBehaviorSelect() {
   }
 
   return (
-    <SettingsCard title="关闭主面板时" description="关闭会退出应用；最小化会收起到托盘并继续播放。">
+    <SettingsCard
+      searchId="close-behavior"
+      title="关闭主面板时"
+      description="关闭会退出应用；最小化会收起到托盘并继续播放。"
+    >
       <div className="flex flex-col gap-2">
         <Select
           items={options}

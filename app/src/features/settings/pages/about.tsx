@@ -55,11 +55,11 @@ export function AboutPage({ version }: { version: string }) {
         <img src={appIcon} alt="" className="size-32 rounded-2xl" draggable={false} />
         <h2 className="text-3xl font-bold tracking-tight">Nons</h2>
       </div>
-      <SettingsCard title="版本号" description="当前应用版本。">
+      <SettingsCard searchId="app-version" title="版本号" description="当前应用版本。">
         <span className="text-sm tabular-nums">v{version}</span>
       </SettingsCard>
       {import.meta.env.DEV && (
-        <SettingsCard title="开发者工具" description="打开开发者工具进行调试。">
+        <SettingsCard searchId="devtools" title="开发者工具" description="打开开发者工具进行调试。">
           <Button
             variant="outline"
             size="sm"
@@ -72,10 +72,10 @@ export function AboutPage({ version }: { version: string }) {
         </SettingsCard>
       )}
       <UpdateCard />
-      <SettingsCard title="开源许可" description="本项目基于 GPL-3.0 协议开源。">
+      <SettingsCard searchId="license" title="开源许可" description="本项目基于 GPL-3.0 协议开源。">
         {link(`${repository}/blob/main/LICENSE`, 'GPL-3.0', true)}
       </SettingsCard>
-      <SettingsCard title="GitHub 仓库" description="查看源码或提交 Issue。">
+      <SettingsCard searchId="repository" title="GitHub 仓库" description="查看源码或提交 Issue。">
         {link(repository, 'Miaoyww/Nons')}
       </SettingsCard>
       {error && <ErrorNotice error={error} />}
@@ -84,7 +84,12 @@ export function AboutPage({ version }: { version: string }) {
           特别鸣谢
         </h2>
         {thanks.map(([name, repo]) => (
-          <SettingsCard key={repo} title={name} description="致谢与敬意。">
+          <SettingsCard
+            key={repo}
+            searchId={`thanks-${repo}`}
+            title={name}
+            description="致谢与敬意。"
+          >
             {link(`https://github.com/${repo}`, repo)}
           </SettingsCard>
         ))}

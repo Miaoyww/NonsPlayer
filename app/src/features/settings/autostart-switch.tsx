@@ -70,7 +70,11 @@ export function AutostartSwitch() {
   }
 
   return (
-    <SettingsCard title="开机自启" description="登录系统后自动启动 NonsPlayer。">
+    <SettingsCard
+      searchId="autostart"
+      title="开机自启"
+      description="登录系统后自动启动 NonsPlayer。"
+    >
       <div className="flex flex-col items-end gap-2">
         <Switch
           aria-label="开机自启"

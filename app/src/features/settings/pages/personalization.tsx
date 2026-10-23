@@ -37,7 +37,7 @@ export function PersonalizationPage({
             : '调整界面主题、应用字体、播放栏显示方式与界面密度。'}
         </p>
       </div>
-      <SettingsCard title="界面主题" description="选择浅色、深色或跟随系统。">
+      <SettingsCard searchId="theme" title="界面主题" description="选择浅色、深色或跟随系统。">
         <div role="radiogroup" aria-label="界面主题" className="flex flex-wrap gap-1.5">
           {themes.map(({ value, label, icon: Icon }) => (
             <label key={value} className="relative cursor-pointer">
@@ -57,7 +57,11 @@ export function PersonalizationPage({
           ))}
         </div>
       </SettingsCard>
-      <SettingsCard title="应用字体" description="选择已安装字体，缺失字符使用系统后备字体。">
+      <SettingsCard
+        searchId="app-font"
+        title="应用字体"
+        description="选择已安装字体，缺失字符使用系统后备字体。"
+      >
         <FontPicker
           label="应用字体"
           value={fonts.app}
@@ -67,6 +71,7 @@ export function PersonalizationPage({
       </SettingsCard>
       {!isAndroid() && (
         <SettingsCard
+          searchId="playback-bar"
           title="播放栏"
           description="选择底部播放栏的显示方式。关闭后仍可使用全屏播放器与快捷键。"
         >
@@ -84,6 +89,7 @@ export function PersonalizationPage({
         </SettingsCard>
       )}
       <SettingsCard
+        searchId="interface-density"
         title="界面密度"
         description="统一调整音乐页面的留白、详情封面、标题与歌曲行高。紧凑式显示更多内容，封面、歌名和艺术家仍一起放在左侧。"
       >

@@ -45,6 +45,7 @@ export function TelemetrySwitch() {
   }
   return (
     <SettingsCard
+      searchId="telemetry"
       title="匿名使用统计"
       description="默认开启。每次启动上报随机安装标识、平台、应用版本，以及启用的插件和适配器名称与标识；用于统计启动次数和安装数量。不采集账号、歌曲、文件路径或硬件标识。关闭后停止本次待重试和后续启动上报，已发送的数据会保留。重新开启从下次启动生效。"
     >

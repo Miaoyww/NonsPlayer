@@ -202,6 +202,7 @@ export function UpdateCard() {
   return (
     <div className="space-y-2">
       <SettingsCard
+        searchId="app-updates"
         title="版本更新"
         description={
           supported
@@ -212,6 +213,7 @@ export function UpdateCard() {
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-xs">
             <Switch
+              data-setting-id="update-auto-check"
               aria-label="启动时自动检查"
               checked={status?.autoCheck ?? true}
               disabled={!supported || updates?.busy}
@@ -222,6 +224,7 @@ export function UpdateCard() {
           <Button
             variant="outline"
             size="sm"
+            data-setting-id="update-check"
             disabled={!supported || updates?.busy}
             onClick={updates?.check}
           >

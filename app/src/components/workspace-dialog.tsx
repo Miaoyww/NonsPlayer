@@ -14,6 +14,7 @@ import { version } from '../../package.json'
 export function WorkspaceDialogPopup({
   title,
   description,
+  navigationHeader,
   navigation,
   contentLabel,
   contentKey,
@@ -23,6 +24,7 @@ export function WorkspaceDialogPopup({
 }: {
   title: string
   description: string
+  navigationHeader?: ReactNode
   navigation: ReactNode
   contentLabel: string
   contentKey?: string
@@ -63,6 +65,7 @@ export function WorkspaceDialogPopup({
             <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
               {description}
             </DialogDescription>
+            {navigationHeader && <div className="mt-3">{navigationHeader}</div>}
           </div>
           <div className="mx-3 border-t border-border" role="separator" />
           <nav

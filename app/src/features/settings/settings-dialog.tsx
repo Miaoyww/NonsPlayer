@@ -31,6 +31,8 @@ import {
   SheetClose
 } from '@/components/ui/sheet'
 import { SettingsHome } from './settings-home'
+import { SettingsSearch } from './settings-search'
+import { SettingsSearchDestination, type SettingsSearchTarget } from './settings-search-destination'
 
 export function SettingsDialog({
   onOpenPage,
@@ -40,11 +42,14 @@ export function SettingsDialog({
   openPage.current = onOpenPage
   const [open, setOpen] = useState(false)
   const [pluginId, setPluginId] = useState<string>()
+  const [searchTarget, setSearchTarget] = useState<SettingsSearchTarget>()
+  const searchRequest = useRef(0)
   useEffect(() => {
     if (!isTauri()) return
     let disposed = false
     let stop: (() => void) | undefined
     const openSettings = () => {
+      setSearchTarget(undefined)
       setPluginId(undefined)
       setSection('general')
       setOpen(true)
@@ -75,6 +80,7 @@ export function SettingsDialog({
     const handler = (event: Event) => {
       const id = (event as CustomEvent<string>).detail
       if (typeof id !== 'string') return
+      setSearchTarget(undefined)
       setPluginId(id)
       setSection('plugins')
       if (openPage.current) openPage.current(`plugins/${id}`)
@@ -150,6 +156,7 @@ export function SettingsDialog({
       onOpenChange={(next) => {
         setOpen(next)
         if (next) {
+          setSearchTarget(undefined)
           setPluginId(undefined)
           setSection('general')
         }
@@ -178,13 +185,25 @@ export function SettingsDialog({
         title="设置"
         description="个性化与全局设置"
         className="settings-dialog"
+        navigationHeader={
+          <SettingsSearch
+            onSelect={(item) => {
+              setPluginId(undefined)
+              setSection(item.section)
+              setSearchTarget({ ...item, request: ++searchRequest.current })
+            }}
+          />
+        }
         navigation={
           <>
             <Button
               variant={section === 'general' ? 'secondary' : 'ghost'}
               className="justify-start gap-2.5 rounded-lg px-3"
               aria-current={section === 'general' ? 'page' : undefined}
-              onClick={() => setSection('general')}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('general')
+              }}
             >
               <Settings aria-hidden="true" />
               <span>常规设置</span>
@@ -193,7 +212,10 @@ export function SettingsDialog({
               variant={section === 'personalization' ? 'secondary' : 'ghost'}
               className="justify-start gap-2.5 rounded-lg px-3"
               aria-current={section === 'personalization' ? 'page' : undefined}
-              onClick={() => setSection('personalization')}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('personalization')
+              }}
             >
               <SlidersHorizontal aria-hidden="true" />
               <span>个性化设置</span>
@@ -202,7 +224,10 @@ export function SettingsDialog({
               variant={section === 'playback' ? 'secondary' : 'ghost'}
               className="justify-start gap-2.5 rounded-lg px-3"
               aria-current={section === 'playback' ? 'page' : undefined}
-              onClick={() => setSection('playback')}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('playback')
+              }}
             >
               <Volume2 aria-hidden="true" />
               <span>播放设置</span>
@@ -211,7 +236,10 @@ export function SettingsDialog({
               variant={section === 'shortcuts' ? 'secondary' : 'ghost'}
               className="justify-start gap-2.5 rounded-lg px-3"
               aria-current={section === 'shortcuts' ? 'page' : undefined}
-              onClick={() => setSection('shortcuts')}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('shortcuts')
+              }}
             >
               <Keyboard aria-hidden="true" />
               <span>快捷键设置</span>
@@ -220,7 +248,10 @@ export function SettingsDialog({
               variant={section === 'lyrics' ? 'secondary' : 'ghost'}
               className="justify-start gap-2.5 rounded-lg px-3"
               aria-current={section === 'lyrics' ? 'page' : undefined}
-              onClick={() => setSection('lyrics')}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('lyrics')
+              }}
             >
               <Mic2 aria-hidden="true" />
               <span>歌词设置</span>
@@ -229,7 +260,10 @@ export function SettingsDialog({
               variant={section === 'local-cache' ? 'secondary' : 'ghost'}
               className="justify-start gap-2.5 rounded-lg px-3"
               aria-current={section === 'local-cache' ? 'page' : undefined}
-              onClick={() => setSection('local-cache')}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('local-cache')
+              }}
             >
               <FolderCog aria-hidden="true" />
               <span>本地与缓存</span>
@@ -238,7 +272,10 @@ export function SettingsDialog({
               variant={section === 'adapters' ? 'secondary' : 'ghost'}
               className="justify-start gap-2.5 rounded-lg px-3"
               aria-current={section === 'adapters' ? 'page' : undefined}
-              onClick={() => setSection('adapters')}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('adapters')
+              }}
             >
               <Blocks aria-hidden="true" />
               <span>适配器设置</span>
@@ -247,7 +284,10 @@ export function SettingsDialog({
               variant={section === 'plugins' ? 'secondary' : 'ghost'}
               className="justify-start gap-2.5 rounded-lg px-3"
               aria-current={section === 'plugins' ? 'page' : undefined}
-              onClick={() => setSection('plugins')}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('plugins')
+              }}
             >
               <LayoutGrid aria-hidden="true" />
               <span>插件设置</span>
@@ -256,7 +296,10 @@ export function SettingsDialog({
               variant={section === 'about' ? 'secondary' : 'ghost'}
               className="mt-auto justify-start gap-2.5 rounded-lg px-3"
               aria-current={section === 'about' ? 'page' : undefined}
-              onClick={() => setSection('about')}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('about')
+              }}
             >
               <Info aria-hidden="true" />
               <span>关于</span>
@@ -289,12 +332,16 @@ export function SettingsDialog({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-          <SettingsContent
-            section={section}
-            theme={theme}
-            onThemeChange={setTheme}
-            pluginId={pluginId}
-          />
+          <SettingsSearchDestination
+            target={searchTarget?.section === section ? searchTarget : undefined}
+          >
+            <SettingsContent
+              section={section}
+              theme={theme}
+              onThemeChange={setTheme}
+              pluginId={pluginId}
+            />
+          </SettingsSearchDestination>
         </motion.div>
       </WorkspaceDialogPopup>
     </Dialog>

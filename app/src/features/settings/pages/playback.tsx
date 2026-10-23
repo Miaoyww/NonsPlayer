@@ -59,7 +59,11 @@ export function PlaybackPage() {
         <h2 className="text-xl font-bold">播放设置</h2>
         <p className="mt-2 text-sm text-muted-foreground">设置输出设备、音质与播放过渡。</p>
       </div>
-      <SettingsCard title="输出设备" description="选择播放设备，或跟随系统默认输出。">
+      <SettingsCard
+        searchId="output-device"
+        title="输出设备"
+        description="选择播放设备，或跟随系统默认输出。"
+      >
         <Select
           items={items}
           value={state.deviceId}
@@ -102,7 +106,11 @@ export function PlaybackPage() {
           </SelectContent>
         </Select>
       </SettingsCard>
-      <SettingsCard title="允许音质降级" description="所选音质不可用时自动降级。">
+      <SettingsCard
+        searchId="quality-downgrade"
+        title="允许音质降级"
+        description="所选音质不可用时自动降级。"
+      >
         <label className="flex items-center gap-2 text-sm">
           <Switch
             checked={options.allowDowngrade}
@@ -113,6 +121,7 @@ export function PlaybackPage() {
         </label>
       </SettingsCard>
       <SettingsCard
+        searchId="playback-fades"
         title="播放/暂停渐变"
         description="播放、继续与暂停使用 200 毫秒渐变。快速切换会从当前音量平滑反转；切歌不再等待淡出。"
       >
@@ -126,6 +135,7 @@ export function PlaybackPage() {
         </label>
       </SettingsCard>
       <SettingsCard
+        searchId="gapless"
         title="无缝播放（Gapless）"
         description="预加载下一首并连续衔接，可与播放/暂停渐变同时开启。自动衔接不淡出、不重新渐入；关闭后在歌曲结束时切换。"
       >

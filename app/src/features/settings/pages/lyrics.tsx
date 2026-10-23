@@ -39,7 +39,11 @@ export function LyricsPage() {
             </div>
           ))}
         </div>
-        <SettingsCard title="歌词字体" description="用于歌词、翻译与发音，默认跟随应用字体。">
+        <SettingsCard
+          searchId="lyrics-font"
+          title="歌词字体"
+          description="用于歌词、翻译与发音，默认跟随应用字体。"
+        >
           <FontPicker
             label="歌词字体"
             value={fonts.lyrics}
@@ -47,7 +51,11 @@ export function LyricsPage() {
             defaultLabel="跟随应用字体"
           />
         </SettingsCard>
-        <SettingsCard title="背景流速" description="设为 0 停止流动，遵循系统减少动态效果设置。">
+        <SettingsCard
+          searchId="lyrics-background-speed"
+          title="背景流速"
+          description="设为 0 停止流动，遵循系统减少动态效果设置。"
+        >
           <div className="flex w-60 flex-col gap-2">
             <div className="flex items-center gap-3">
               <Slider
@@ -87,7 +95,11 @@ export function LyricsPage() {
             流媒体歌曲始终在线获取歌词，依次尝试 AMLL DB、QQ 音乐、网易云音乐。
           </p>
         </div>
-        <SettingsCard title="AMLL DB" description="优先获取 TTML 逐字歌词，失败时尝试下一来源。">
+        <SettingsCard
+          searchId="lyrics-amll"
+          title="AMLL DB"
+          description="优先获取 TTML 逐字歌词，失败时尝试下一来源。"
+        >
           <label className="flex items-center gap-2 text-sm">
             <Switch
               checked={sources.amll}
@@ -97,7 +109,11 @@ export function LyricsPage() {
             从 AMLL DB 获取歌词
           </label>
         </SettingsCard>
-        <SettingsCard title="QQ 音乐" description="匹配歌曲信息，未命中时使用网易云音乐。">
+        <SettingsCard
+          searchId="lyrics-qq"
+          title="QQ 音乐"
+          description="匹配歌曲信息，未命中时使用网易云音乐。"
+        >
           <label className="flex items-center gap-2 text-sm">
             <Switch
               checked={sources.qq}

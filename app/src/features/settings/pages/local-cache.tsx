@@ -94,6 +94,7 @@ export function LocalCachePage() {
           本地歌曲
         </h3>
         <SettingsCard
+          searchId="local-lyrics-source"
           title="来源"
           description="本地读取音频内嵌歌词或同目录同名 LRC；在线按歌曲信息匹配。所选来源无歌词时不切换另一来源，流媒体歌曲始终在线取词。"
         >
@@ -119,7 +120,11 @@ export function LocalCachePage() {
           </Select>
         </SettingsCard>
         {sourceError && <ErrorNotice error={sourceError} />}
-        <SettingsCard title="显示本地歌曲封面" description="显示内嵌封面，关闭可减少图片加载。">
+        <SettingsCard
+          searchId="local-covers"
+          title="显示本地歌曲封面"
+          description="显示内嵌封面，关闭可减少图片加载。"
+        >
           <label className="flex items-center gap-2 text-sm">
             <Switch
               checked={showCovers}
@@ -130,6 +135,7 @@ export function LocalCachePage() {
           </label>
         </SettingsCard>
         <SettingsCard
+          searchId="artist-separators"
           title="艺术家分隔符"
           description="设置拆分艺术家名称的分隔符，保存后重新整理艺术家，不修改原始标签。"
         >
@@ -141,7 +147,11 @@ export function LocalCachePage() {
             }}
           />
         </SettingsCard>
-        <SettingsCard title="音乐文件夹" description="管理音乐文件夹，自动扫描变更。">
+        <SettingsCard
+          searchId="music-folders"
+          title="音乐文件夹"
+          description="管理音乐文件夹，自动扫描变更。"
+        >
           <FolderManager />
         </SettingsCard>
       </section>
@@ -149,7 +159,11 @@ export function LocalCachePage() {
         <h3 id="cache-heading" className="text-base font-semibold">
           缓存配置
         </h3>
-        <SettingsCard title="启用本地缓存" description="保存 TTML 歌词，加快加载并支持离线读取。">
+        <SettingsCard
+          searchId="local-cache-enabled"
+          title="启用本地缓存"
+          description="保存 TTML 歌词，加快加载并支持离线读取。"
+        >
           <label className="flex items-center gap-2 text-sm">
             <Switch
               checked={options?.enabled ?? true}
@@ -165,6 +179,7 @@ export function LocalCachePage() {
           </label>
         </SettingsCard>
         <SettingsCard
+          searchId="cache-limit"
           title="缓存大小上限"
           description="范围 1–4096 MB，超出时清理最久未使用的歌词。"
         >
@@ -205,6 +220,7 @@ export function LocalCachePage() {
           </form>
         </SettingsCard>
         <SettingsCard
+          searchId="cache-directory"
           title="缓存目录"
           description={
             options
@@ -235,6 +251,7 @@ export function LocalCachePage() {
           </Button>
         </SettingsCard>
         <SettingsCard
+          searchId="cache-cleanup"
           title="缓存占用与清理"
           description={
             status

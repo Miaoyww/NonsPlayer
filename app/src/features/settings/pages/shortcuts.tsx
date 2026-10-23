@@ -104,10 +104,15 @@ export function ShortcutsPage() {
         <h3 id="app-shortcuts" className="text-base font-semibold">
           应用内快捷键
         </h3>
-        <SettingsCard title="播放/暂停音乐" description="应用内生效，固定不可更改。">
+        <SettingsCard
+          searchId="shortcut-app-toggle"
+          title="播放/暂停音乐"
+          description="应用内生效，固定不可更改。"
+        >
           <Kbd>Space</Kbd>
         </SettingsCard>
         <SettingsCard
+          searchId="shortcut-app-search"
           title="快捷搜索歌曲"
           description="应用内生效，固定不可更改。在歌曲列表中查找已加载歌曲，上下方向键选择，Enter 插入下一首并立即播放；发现页、播放队列及没有歌曲列表的页面聚焦顶部搜索框。Mac 可使用 Command+F。"
         >
@@ -121,7 +126,11 @@ export function ShortcutsPage() {
         <h3 id="global-shortcuts" className="text-base font-semibold">
           全局快捷键
         </h3>
-        <SettingsCard title="启用全局快捷键" description="应用在后台时也可使用。">
+        <SettingsCard
+          searchId="global-shortcuts"
+          title="启用全局快捷键"
+          description="应用在后台时也可使用。"
+        >
           <Switch
             aria-label="启用全局快捷键"
             checked={settings.enabled}
@@ -139,6 +148,7 @@ export function ShortcutsPage() {
             {shortcutActions.map(([action, title]) => (
               <SettingsCard
                 key={action}
+                searchId={`shortcut-global-${action}`}
                 title={title}
                 description={action === 'like' ? '收藏当前网易云歌曲。' : '留空不绑定。'}
               >
