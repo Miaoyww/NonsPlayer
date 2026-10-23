@@ -11,6 +11,12 @@ import { errorText, nativeCall } from '@/lib/player'
 import { SettingsCard } from '@/features/settings/settings-card'
 
 const repository = 'https://github.com/Miaoyww/Nons'
+const statistics = [
+  { label: '累计使用人次', value: import.meta.env.VITE_TELEMETRY_USAGE_COUNT, unit: '人次' },
+  { label: '累计播放歌曲', value: import.meta.env.VITE_TELEMETRY_PLAY_COUNT, unit: '首' }
+]
+const generatedAt = import.meta.env.VITE_TELEMETRY_STATS_GENERATED_AT
+const hasStatistics = statistics.every(({ value }) => /^\d+$/.test(value ?? ''))
 const thanks = [
   ['YesPlayMusic', 'qier222/YesPlayMusic'],
   ['SPlayer', 'SPlayer-Dev/SPlayer'],
@@ -54,6 +60,24 @@ export function AboutPage({ version }: { version: string }) {
       <div className="flex flex-col items-center gap-3 py-6 text-center">
         <img src={appIcon} alt="" className="size-32 rounded-2xl" draggable={false} />
         <h2 className="text-3xl font-bold tracking-tight">Nons</h2>
+        <section aria-label="所有用户累计统计" className="mt-4 w-full max-w-md">
+          <dl className="grid grid-cols-2 divide-x divide-border/70 border-y border-border/60 py-5">
+            {statistics.map(({ label, value, unit }) => (
+              <div key={label} className="flex min-w-0 flex-col-reverse gap-2 px-3">
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="flex items-baseline justify-center gap-1.5">
+                  <span className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
+                    {hasStatistics ? Number(value).toLocaleString('en-US') : '暂无统计数据'}
+                  </span>
+                  {hasStatistics && <span className="text-xs text-muted-foreground">{unit}</span>}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {hasStatistics && generatedAt ? `统计截至 ${generatedAt}` : '暂无统计数据'}
+          </p>
+        </section>
       </div>
       <SettingsCard searchId="app-version" title="版本号" description="当前应用版本。">
         <span className="text-sm tabular-nums">v{version}</span>

@@ -92,6 +92,43 @@ jobs:
       - name: Prepare GStreamer runtime
         run: python scripts/bootstrap-gstreamer.py
 
+      - name: Fetch telemetry statistics snapshot
+        env:
+          NONS_TELEMETRY_STATS_KEY: ${{ secrets.NONS_TELEMETRY_STATS_KEY }}
+        run: |
+          if (-not $env:NONS_TELEMETRY_STATS_KEY) { throw 'Missing NONS_TELEMETRY_STATS_KEY' }
+          $uri = 'https://nons-api.miaoyww.top/v1/summary'
+          $delays = @(0, 2, 5)
+          $response = $null
+          $lastError = $null
+          for ($attempt = 0; $attempt -lt $delays.Count; $attempt++) {
+            if ($delays[$attempt] -gt 0) { Start-Sleep -Seconds $delays[$attempt] }
+            try {
+              $response = Invoke-WebRequest -Uri $uri -Headers @{ 'X-Stats-Key' = $env:NONS_TELEMETRY_STATS_KEY } -TimeoutSec 10 -UseBasicParsing
+              if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) { break }
+              if ($response.StatusCode -ne 429 -and $response.StatusCode -lt 500) { throw "Telemetry summary request failed with HTTP $($response.StatusCode)" }
+              $lastError = "HTTP $($response.StatusCode)"
+            } catch {
+              $lastError = $_.Exception.Message
+              $status = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 }
+              if ($status -and $status -ne 429 -and $status -lt 500) { throw }
+              if ($attempt -eq $delays.Count - 1) { throw "Telemetry summary request failed after retries: $lastError" }
+            }
+          }
+          if (-not $response -or $response.StatusCode -lt 200 -or $response.StatusCode -ge 300) { throw "Telemetry summary request failed after retries: $lastError" }
+          try { $summary = $response.Content | ConvertFrom-Json } catch { throw 'Telemetry summary response is not valid JSON' }
+          $usageText = [string]$summary.usage_count
+          $playsText = [string]$summary.play_count
+          $generated = [string]$summary.generated_at
+          if ($usageText -notmatch '^[0-9]+$' -or $playsText -notmatch '^[0-9]+$' -or [string]::IsNullOrWhiteSpace($generated)) { throw 'Telemetry summary response is invalid' }
+          $usage = [long]$usageText
+          $plays = [long]$playsText
+          @(
+            "VITE_TELEMETRY_USAGE_COUNT=$usage"
+            "VITE_TELEMETRY_PLAY_COUNT=$plays"
+            "VITE_TELEMETRY_STATS_GENERATED_AT=$generated"
+          ) | Set-Content -Encoding utf8 app/.env.production.local
+
       - name: Build installers
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -101,6 +138,7 @@ jobs:
           if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw 'Missing TAURI_SIGNING_PRIVATE_KEY' }
           if (-not $env:NONS_TELEMETRY_INGEST_KEY) { throw 'Missing NONS_TELEMETRY_INGEST_KEY' }
           pnpm --dir app build:release
+          Remove-Item -Force app/.env.production.local
 
       - name: Verify bundled audio runtime
         run: python scripts/smoke-audio-runtime.py app/src-tauri/target/release --skip-audio-output

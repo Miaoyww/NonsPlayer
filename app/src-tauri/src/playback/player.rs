@@ -753,7 +753,11 @@ impl Actor {
         match command {
             Command::Retry { revision, key } => {
                 if let Some((index, position)) = retry_position(&self.state, revision, &key) {
+                    let play_instance_id = self.play_instance_id.clone();
+                    let recorded_instance_id = self.recorded_instance_id.clone();
                     self.load_at(index, true, position)?;
+                    self.play_instance_id = play_instance_id;
+                    self.recorded_instance_id = recorded_instance_id;
                 }
             }
             #[cfg(target_os = "android")]
@@ -1734,7 +1738,6 @@ impl Actor {
                     self.decoded_audio = next.resolved.decoded_audio;
                     self.play_instance_id = uuid::Uuid::new_v4().to_string();
                     self.recorded_instance_id = None;
-                    self.record_playback_history();
                 }
                 self.publish();
             }
