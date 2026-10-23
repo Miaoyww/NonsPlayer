@@ -24,56 +24,6 @@ pub fn now_seconds() -> i64 {
 }
 
 impl Store {
-    pub fn legacy_ttml(&self) -> AppResult<Vec<(String, Lyrics, i64)>> {
-        let db = self
-            .0
-            .lock()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
-            })
-            .map_err(|_| "曲库锁不可用")?;
-        let mut statement = db
-            .prepare("SELECT key,value,expires FROM lyric_cache WHERE value IS NOT NULL")
-            .map_err(|e| e.to_string())?;
-        let rows = statement
-            .query_map([], |r| {
-                Ok((
-                    r.get::<_, String>(0)?,
-                    r.get::<_, String>(1)?,
-                    r.get::<_, i64>(2)?,
-                ))
-            })
-            .map_err(|e| e.to_string())?;
-        Ok(rows
-            .filter_map(|result| {
-                result
-                    .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("lyrics.migrate_row", error)
-                    })
-                    .ok()
-            })
-            .filter_map(|(key, value, expires)| {
-                serde_json::from_str::<Lyrics>(&value)
-                    .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
-                    })
-                    .ok()
-                    .filter(|l| l.format == "ttml")
-                    .map(|l| (key, l, expires))
-            })
-            .collect())
-    }
-    pub fn clear_legacy_lyrics(&self) -> AppResult<()> {
-        self.0
-            .lock()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
-            })
-            .map_err(|_| "曲库锁不可用")?
-            .execute("DELETE FROM lyric_cache", [])
-            .map_err(|e| e.to_string())?;
-        Ok(())
-    }
     pub fn open(path: &Path) -> AppResult<Self> {
         let connection = Connection::open(path).map_err(|e| e.to_string())?;
         Self::initialize(connection)
@@ -91,7 +41,6 @@ impl Store {
             CREATE TABLE IF NOT EXISTS local_origins (key TEXT NOT NULL, origin TEXT NOT NULL, PRIMARY KEY(key,origin));
             INSERT OR IGNORE INTO local_origins(key,origin) SELECT key,'' FROM tracks WHERE source='local' AND key NOT IN (SELECT key FROM local_origins);
             CREATE TABLE IF NOT EXISTS local_file_stats (key TEXT PRIMARY KEY, modified TEXT NOT NULL, bytes INTEGER NOT NULL);
-            CREATE TABLE IF NOT EXISTS lyric_cache (key TEXT PRIMARY KEY, value TEXT, expires INTEGER NOT NULL, accessed INTEGER NOT NULL, bytes INTEGER NOT NULL);
             PRAGMA temp_store=MEMORY;
             CREATE TEMP TABLE runtime_lyrics (key TEXT PRIMARY KEY, value TEXT, expires INTEGER NOT NULL, accessed INTEGER NOT NULL, bytes INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);

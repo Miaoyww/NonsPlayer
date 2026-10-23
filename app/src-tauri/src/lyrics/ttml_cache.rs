@@ -148,14 +148,6 @@ impl TtmlCache {
                 directory: default_directory.to_string_lossy().into_owned(),
             });
         let state = open_state(options)?;
-        // Migrate valid TTML only; legacy LRC/YRC and missing markers cease to
-        // be persisted. Their runtime lifetime is controlled by the service.
-        for (key, value, expires) in store.legacy_ttml()? {
-            if valid_ttml(&value.content) {
-                write(&state, &key, &value, expires.min(now_seconds() + 600))?;
-            }
-        }
-        store.clear_legacy_lyrics()?;
         prune(&state)?;
         Ok(Self {
             state: Mutex::new(state),
