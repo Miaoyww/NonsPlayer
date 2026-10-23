@@ -2,7 +2,10 @@
 use crate::model::AppResult;
 use gstreamer::{self as gst, prelude::*};
 use gstreamer_controller::{prelude::*, InterpolationControlSource, InterpolationMode};
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex, TryLockError,
+};
 
 pub const PLAYBACK_FADE_MS: u64 = 200;
 // Let the device/mixer consume the final quiet buffers before suspending it.
@@ -39,6 +42,7 @@ impl Envelope {
 pub struct PlaybackFade {
     element: gst::Element,
     envelope: Arc<Mutex<Envelope>>,
+    enabled: Arc<AtomicBool>,
 }
 
 impl PlaybackFade {
@@ -57,13 +61,30 @@ impl PlaybackFade {
         }));
         let weak_element = element.downgrade();
         let shared = envelope.clone();
+        let enabled = Arc::new(AtomicBool::new(false));
+        let active = enabled.clone();
         element
             .static_pad("sink")
             .ok_or("播放渐变入口不可用")?
             .add_probe(gst::PadProbeType::BUFFER, move |pad, info| {
+                // The default disabled path must not contend with transport controls
+                // or query segment/controller state for every 5 ms of PCM.
+                if !active.load(Ordering::Acquire) {
+                    return gst::PadProbeReturn::Ok;
+                }
                 let Some(gst::PadProbeData::Buffer(buffer)) = &info.data else {
                     return gst::PadProbeReturn::Ok;
                 };
+                // A descheduled control thread must never hold up audio supply.
+                // Keep its last committed amplification until the next buffer.
+                let mut envelope = match shared.try_lock() {
+                    Ok(envelope) => envelope,
+                    Err(TryLockError::WouldBlock) => return gst::PadProbeReturn::Ok,
+                    Err(TryLockError::Poisoned(error)) => error.into_inner(),
+                };
+                if !envelope.enabled {
+                    return gst::PadProbeReturn::Ok;
+                }
                 let time = buffer.pts().and_then(|pts| {
                     pad.sticky_event::<gst::event::Segment>(0)
                         .and_then(|event| {
@@ -75,10 +96,6 @@ impl PlaybackFade {
                 });
                 // Let the audio sink fill and pace its bounded ring buffer. Waiting
                 // here leaves too little queued PCM to survive scheduling stalls.
-                let mut envelope = shared.lock().unwrap_or_else(|e| e.into_inner());
-                if !envelope.enabled {
-                    return gst::PadProbeReturn::Ok;
-                }
                 let gain = if let Some(time) = time {
                     if envelope.pending_in {
                         envelope.ramp(time, 1.0);
@@ -96,7 +113,11 @@ impl PlaybackFade {
                 }
                 gst::PadProbeReturn::Ok
             });
-        Ok(Self { element, envelope })
+        Ok(Self {
+            element,
+            envelope,
+            enabled,
+        })
     }
 
     pub fn attach(&self, playbin: &gst::Element) -> AppResult<()> {
@@ -175,6 +196,7 @@ impl PlaybackFade {
             envelope.hold(1.0);
             self.element.set_property("amplification", 1.0f32);
         }
+        self.enabled.store(enabled, Ordering::Release);
     }
 
     pub fn reset(&self) {
@@ -215,6 +237,43 @@ pub fn gapless_allowed(enabled: &std::sync::atomic::AtomicBool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn audio_supply_does_not_wait_for_the_control_envelope() {
+        gst::init().unwrap();
+        for enabled in [false, true] {
+            let fade = PlaybackFade::new().unwrap();
+            fade.set_enabled(enabled);
+            let source = gst::ElementFactory::make("audiotestsrc")
+                .property("num-buffers", 8i32)
+                .build()
+                .unwrap();
+            let sink = gst::ElementFactory::make("fakesink")
+                .property("sync", false)
+                .property("signal-handoffs", true)
+                .build()
+                .unwrap();
+            let (sender, receiver) = std::sync::mpsc::channel();
+            sink.connect("handoff", false, move |_| {
+                let _ = sender.send(());
+                None
+            });
+            let pipeline = gst::Pipeline::new();
+            pipeline.add_many([&source, &fade.element, &sink]).unwrap();
+            gst::Element::link_many([&source, &fade.element, &sink]).unwrap();
+            // Simulate a control operation descheduled while it owns the envelope.
+            // Audio must keep the last committed gain and continue supplying PCM.
+            let envelope = fade.envelope.lock().unwrap();
+            pipeline.set_state(gst::State::Playing).unwrap();
+            let supplied = receiver.recv_timeout(std::time::Duration::from_millis(200));
+            drop(envelope);
+            pipeline.set_state(gst::State::Null).unwrap();
+            assert!(
+                supplied.is_ok(),
+                "control lock blocked audio; enabled={enabled}"
+            );
+        }
+    }
 
     #[test]
     fn pause_reverses_from_current_gain_without_a_step() {

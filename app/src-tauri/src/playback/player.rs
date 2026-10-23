@@ -425,6 +425,7 @@ impl Actor {
         hwnd: isize,
     ) -> AppResult<Self> {
         gst::init().map_err(|e| format!("GStreamer 初始化失败：{e}"))?;
+        super::diagnostics::initialize();
         crate::network::prefer_http_source();
         let playbin = gst::ElementFactory::make("playbin3")
             .build()
@@ -1692,8 +1693,10 @@ impl Actor {
 
     fn message(&mut self, message: &gst::MessageRef) {
         use gst::MessageView;
+        super::diagnostics::message(message);
         match message.view() {
             MessageView::AsyncDone(_) => {
+                super::diagnostics::output(&self.playbin);
                 let preroll = self.start_gate.complete();
                 let mut resume = cfg!(target_os = "android") && preroll;
                 if let Some(position) = self.pending_seek.take() {

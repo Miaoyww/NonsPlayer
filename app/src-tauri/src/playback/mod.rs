@@ -1,6 +1,7 @@
 pub(crate) mod audio;
 pub(crate) mod audio_runtime;
 mod collection;
+mod diagnostics;
 pub(crate) mod media;
 pub(crate) mod network;
 pub(crate) mod output;
