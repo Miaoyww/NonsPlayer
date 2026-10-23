@@ -9,7 +9,7 @@ export function LyricFontWeightControl() {
   const [draft, setDraft] = useState(String(fontWeight))
   useEffect(() => setDraft(String(fontWeight)), [fontWeight])
   return (
-    <div className="flex flex-col items-start gap-3 lg:items-end">
+    <div className="flex flex-wrap items-center gap-3">
       <ToggleGroup
         aria-label="歌词字重预设"
         value={[String(fontWeight)]}

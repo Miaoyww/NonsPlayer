@@ -62,7 +62,7 @@ export function LyricsPage() {
         <SettingsCard
           searchId="lyrics-font-weight"
           title="歌词字重"
-          description="原文、翻译与发音统一使用所选字重。常规 400、中等 500、粗体 700，支持自定义 100–900 的整数；实际效果取决于字体支持。"
+          description="用于歌词、翻译与发音。"
         >
           <LyricFontWeightControl />
         </SettingsCard>
