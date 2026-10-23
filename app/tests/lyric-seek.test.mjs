@@ -25,6 +25,9 @@ function lyricControl({ failure, desktop = true, android = false } = {}) {
     '@/features/settings/use-font-settings': {
       useFontSettings: () => ({ fonts: { app: '', lyrics: '' } })
     },
+    './use-lyrics-settings': {
+      useLyricsSettings: () => ({ autoBlur: true, fontWeight: 400 })
+    },
     '@applemusic-like-lyrics/lyric': {},
     '@applemusic-like-lyrics/core/style.css': {},
     '@tauri-apps/api/event': {},
