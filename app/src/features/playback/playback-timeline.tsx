@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { currentPosition, formatTime, getProgress, nativeCall, useProgress } from '@/lib/player'
 import { PlayerSlider } from '@/features/playback/player-slider'
@@ -63,6 +63,13 @@ export function PlaybackTimeline({
     >
       {labelsVisible && <span className="timeline-elapsed">{formatTime(position)}</span>}
       <PlayerSlider
+        style={
+          layout === 'edge'
+            ? ({
+                '--timeline-position': `${(position / Math.max(1, progress.durationMs)) * 100}%`
+              } as CSSProperties)
+            : undefined
+        }
         aria-label="播放进度"
         min={0}
         max={Math.max(1, progress.durationMs)}
@@ -136,7 +143,7 @@ export function PlaybackTimeline({
           className="timeline-tooltip glass-surface"
           aria-hidden="true"
           style={{
-            left: `${Math.max(0, Math.min(100, ((drag ?? hover ?? position) / Math.max(1, progress.durationMs)) * 100))}%`
+            left: `clamp(80px, ${Math.max(0, Math.min(100, ((drag ?? hover ?? position) / Math.max(1, progress.durationMs)) * 100))}%, calc(100% - 80px))`
           }}
         >
           {formatTime(drag ?? hover ?? position)} / {formatTime(progress.durationMs)}

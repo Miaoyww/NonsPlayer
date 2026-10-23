@@ -634,6 +634,7 @@
   width: min(1120px, calc(100% - 64px));
 }
 .persistent-playback-surface {
+  --playback-surface-radius: 20px;
   position: relative;
   isolation: isolate;
   display: grid;
@@ -641,7 +642,7 @@
   align-items: center;
   gap: 24px;
   padding: 16px 20px;
-  border-radius: 20px;
+  border-radius: var(--playback-surface-radius);
 }
 .persistent-track {
   display: flex;
@@ -708,9 +709,9 @@
 }
 .playback-timeline-edge {
   position: absolute;
-  top: -10px;
-  left: 20px;
-  right: 20px;
+  top: -8px;
+  left: 0;
+  right: 0;
   z-index: 2;
   width: auto;
   height: 20px;
@@ -721,6 +722,21 @@
 }
 .playback-timeline-edge .timeline-slider > div {
   min-height: 20px;
+}
+.playback-timeline-edge [data-slot='slider-track'] {
+  border-radius: 0;
+  /* Extend the clipping box below the thin track to preserve the surface's full corner radius. */
+  clip-path: inset(
+    0 0 -40px round var(--playback-surface-radius) var(--playback-surface-radius) 0 0
+  );
+}
+.playback-timeline-edge [data-slot='slider-thumb'] {
+  /* The track's visible top edge starts and ends at the surface's corner radius. */
+  left: clamp(
+    var(--playback-surface-radius),
+    var(--timeline-position),
+    calc(100% - var(--playback-surface-radius))
+  ) !important;
 }
 .timeline-tooltip {
   position: absolute;
