@@ -24,9 +24,9 @@ export function SettingsContent({
 }) {
   switch (section) {
     case 'general':
-      return <GeneralPage theme={theme} onThemeChange={onThemeChange} />
+      return <GeneralPage />
     case 'personalization':
-      return <PersonalizationPage />
+      return <PersonalizationPage theme={theme} onThemeChange={onThemeChange} />
     case 'playback':
       return <PlaybackPage />
     case 'lyrics':

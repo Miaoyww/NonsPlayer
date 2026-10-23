@@ -11,11 +11,11 @@ import {
 } from 'lucide-react'
 
 export const settingsSections = [
-  { id: 'general', label: '常规设置', description: '调整 Nons 的外观。', icon: Settings },
+  { id: 'general', label: '常规设置', description: '调整应用行为与匿名使用统计。', icon: Settings },
   {
     id: 'personalization',
     label: '个性化设置',
-    description: '调整播放栏与界面密度。',
+    description: '调整主题、字体、播放栏与界面密度。',
     icon: SlidersHorizontal
   },
   { id: 'playback', label: '播放设置', description: '调整音质与播放行为。', icon: Volume2 },
