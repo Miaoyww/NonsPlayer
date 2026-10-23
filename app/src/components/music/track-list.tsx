@@ -27,11 +27,13 @@ import { Cover } from '@/components/music/cover'
 import { PlayingIndicator } from '@/components/music/playing-indicator'
 import { useAccount } from '@/features/account/account'
 import { useTrackColumnSizing } from './track-column-sizing'
-import { useSongTitleCopy, SongContextMenu } from '@/components/music/song-actions'
+import { SongContextMenu } from '@/components/music/song-actions'
 import { TrackIdentity, TrackSourceLabel } from '@/components/music/track-identity'
 import type { ReactNode } from 'react'
 import { useInterfaceDensity } from '@/features/settings/use-interface-density'
 import { isAndroid } from '@/lib/platform'
+import { isTauri } from '@tauri-apps/api/core'
+import { playTrackOnDoubleClick } from '@/features/playback/track-double-click'
 
 type SortKey = 'default' | 'title' | 'artist' | 'album' | 'duration'
 
@@ -78,6 +80,8 @@ interface Props {
   currentKey?: string
   busy: boolean
   onPlay: (index: number, tracks: Track[]) => void
+  /** Candidate pickers and authorized plugin files use their own primary action. */
+  doubleClickMode?: 'playback' | 'primary'
   onAppend?: (track: Track) => void
   offset?: number
   currentIndex?: number
@@ -114,6 +118,7 @@ export const TrackList = memo(function TrackList({
   currentKey,
   busy,
   onPlay,
+  doubleClickMode = 'playback',
   onAppend,
   offset = 0,
   currentIndex,
@@ -138,7 +143,8 @@ export const TrackList = memo(function TrackList({
   const findElement = useRef<HTMLDivElement>(null)
   const [findTarget, setFindTarget] = useState<{ index: number; serial: number }>()
   const [selectedKey, setSelectedKey] = useState<string>()
-  const copyTitle = useSongTitleCopy()
+  const [doubleClickError, setDoubleClickError] = useState<string>()
+  const doubleClickBusy = useRef(false)
   const [sort, setSort] = useState<SortKey>('default')
   const [descending, setDescending] = useState(false)
   const [query, setQuery] = useState('')
@@ -231,6 +237,25 @@ export const TrackList = memo(function TrackList({
           cueSheet(entry.track) === cueSheet(entries[index]?.track ?? entry.track))
     )
   const visibleTracks = useMemo(() => entries.map(({ track }) => track), [entries])
+  const doubleClickPlay = (index: number) => {
+    if (busy || !isTauri() || doubleClickBusy.current) return
+    const track = visibleTracks[index]
+    if (!track) return
+    if (doubleClickMode === 'primary') {
+      onPlay(index, visibleTracks)
+      return
+    }
+    doubleClickBusy.current = true
+    setDoubleClickError(undefined)
+    void playTrackOnDoubleClick(track, { tracks: visibleTracks, index })
+      .catch((cause) => {
+        reportCaughtError('app/src/components/music/track-list.tsx', cause)
+        setDoubleClickError(errorText(cause))
+      })
+      .finally(() => {
+        doubleClickBusy.current = false
+      })
+  }
   const [cardMode] = useInterfaceDensity()
   const { getAccount, likesError, reloadLikes } = useAccount()
   const [likeError, setLikeError] = useState<string>()
@@ -385,6 +410,7 @@ export const TrackList = memo(function TrackList({
           没有匹配的歌曲。
         </p>
       )}
+      {doubleClickError && <ErrorNotice error={doubleClickError} />}
       {(likeError || likesError) && (
         <div className="mb-3 flex items-center gap-2 text-sm text-destructive">
           <ErrorNotice error={likeError ?? likesError} />
@@ -687,6 +713,16 @@ export const TrackList = memo(function TrackList({
                         data-index={row.index}
                         data-selected={selectedKey === rowKey}
                         aria-selected={selectedKey === rowKey}
+                        onDoubleClick={(event) => {
+                          const control = (event.target as HTMLElement).closest(
+                            'button, a, input, select, textarea, [role="button"]'
+                          )
+                          if (event.button !== 0 || (control && control !== event.currentTarget))
+                            return
+                          event.preventDefault()
+                          setSelectedKey(rowKey)
+                          doubleClickPlay(playIndex)
+                        }}
                         onClick={(event) => {
                           if (
                             !(event.target as HTMLElement).closest(
@@ -732,9 +768,6 @@ export const TrackList = memo(function TrackList({
                       <TrackIdentity
                         track={track}
                         mode={cardMode}
-                        onTitleCopy={
-                          selectedKey === rowKey ? () => copyTitle(track.title) : undefined
-                        }
                         cover={
                           <button
                             type="button"

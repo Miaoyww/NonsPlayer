@@ -73,11 +73,6 @@ const SongActionsContext = createContext<{
   copy: (text: string) => void
 } | null>(null)
 
-export function useSongTitleCopy() {
-  const actions = useContext(SongActionsContext)
-  return (title: string) => actions?.copy(title)
-}
-
 export function useSongActions() {
   const actions = useContext(SongActionsContext)
   if (!actions) throw new Error('SongActionsProvider is required')

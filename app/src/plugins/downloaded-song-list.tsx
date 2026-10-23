@@ -73,6 +73,7 @@ export function DownloadedSongList({ songs }: { songs: DownloadedSong[] }) {
     <>
       {error && <ErrorNotice error={error} />}
       <TrackList
+        doubleClickMode="primary"
         tracks={tracks}
         busy={busy}
         showDuration={false}

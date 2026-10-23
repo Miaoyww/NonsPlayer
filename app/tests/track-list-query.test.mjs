@@ -40,7 +40,7 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
   const plays = [],
     removes = [],
     menus = [],
-    copies = []
+    doublePlays = []
   const virtualizer = {
     measure() {},
     measureElement() {},
@@ -59,6 +59,12 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     '@/features/music/queries': { readTrackInformation: async () => ({}) },
     '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     '@/lib/platform': { isAndroid: () => android },
+    '@tauri-apps/api/core': { isTauri: () => true },
+    '@/features/playback/track-double-click': {
+      playTrackOnDoubleClick: async (...args) => {
+        doublePlays.push(args)
+      }
+    },
     './list-find': { useListFind() {} },
     '@/components/ui/skeleton': {
       Skeleton: (props) => React.createElement('div', { 'data-slot': 'skeleton', ...props })
@@ -112,7 +118,6 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
       TrackIdentity: ({ track, cover }) => React.createElement('div', {}, cover, track.title)
     },
     '@/components/music/song-actions': {
-      useSongTitleCopy: () => (title) => copies.push(title),
       SongContextMenu: ({ render, children, ...props }) => {
         menus.push(props)
         return React.cloneElement(render, {}, children)
@@ -250,7 +255,7 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
   }
   try {
     await render()
-    await run({ tracks, plays, removes, menus, copies, render, search, dom, navigations })
+    await run({ tracks, plays, removes, menus, doublePlays, render, search, dom, navigations })
   } finally {
     await act(async () => root.unmount())
     dom.window.close()
@@ -570,15 +575,23 @@ test('detail toolbar search filters the actual list without rendering a duplicat
   })
 })
 
-test('selection enables title copying only on the selected occurrence and survives insertion', async () => {
-  await harness(async ({ dom, copies, tracks, render, plays }) => {
+test('selection keeps titles inert, double-click plays the selected occurrence and survives insertion', async () => {
+  await harness(async ({ dom, doublePlays, tracks, render, plays }) => {
     const row = document.querySelectorAll('.track-row')[2]
     assert.equal(document.querySelector('.track-title-copy'), null)
     await act(async () => row.querySelector('.track-title').click())
     assert.equal(row.dataset.selected, 'true')
-    assert.equal(copies.length, 0)
-    await act(async () => row.querySelector('.track-title-copy').click())
-    assert.deepEqual(copies, ['Zulu'])
+    await act(async () => row.querySelector('.track-title').click())
+    assert.equal(document.querySelector('.track-title-copy'), null)
+    assert.equal(doublePlays.length, 0)
+    await act(async () =>
+      row
+        .querySelector('.track-title')
+        .dispatchEvent(new dom.window.MouseEvent('dblclick', { bubbles: true }))
+    )
+    assert.equal(doublePlays.length, 1)
+    assert.equal(doublePlays[0][0], tracks[2])
+    assert.equal(doublePlays[0][1].index, 2)
     assert.equal(plays.length, 0)
     await render({ tracks: [{ ...tracks[1], key: 'new' }, ...tracks] })
     assert.equal(document.querySelectorAll('.track-row')[3], row)

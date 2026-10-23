@@ -19,11 +19,23 @@ type SearchGroup = {
 const groups: SearchGroup[] = [
   {
     section: 'general',
-    path: '常规设置',
+    path: '常规设置 / 歌曲操作',
+    items: [
+      ['track-double-click-action', '双击播放行为', '歌曲 加入下一曲 立即播放'],
+      ['track-double-click-scope', '双击播放范围', '歌曲 播放此队列 当前列表 仅播放这一首 单曲']
+    ]
+  },
+  {
+    section: 'general',
+    path: '常规设置 / 隐私与统计',
+    items: [['telemetry', '匿名使用统计', '遥测 隐私']]
+  },
+  {
+    section: 'general',
+    path: '常规设置 / 窗口与启动',
     items: [
       ['close-behavior', '关闭主面板时', '最小化 托盘 退出'],
-      ['autostart', '开机自启', '登录 启动'],
-      ['telemetry', '匿名使用统计', '遥测 隐私']
+      ['autostart', '开机自启', '登录 启动']
     ]
   },
   {

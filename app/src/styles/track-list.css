@@ -323,22 +323,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.track-title-copy {
-  display: block;
-  width: 100%;
-  text-align: left;
-  cursor: copy;
-  border-radius: 3px;
-}
-.track-title-copy:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.track-title-copy:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-
 .library-song[data-find-highlight='true'] {
   outline: 2px solid var(--primary);
   outline-offset: 2px;

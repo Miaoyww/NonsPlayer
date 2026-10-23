@@ -14,14 +14,12 @@ export function TrackIdentity({
   track,
   cover,
   showSource = false,
-  mode,
-  onTitleCopy
+  mode
 }: {
   track: Track
   cover?: ReactNode
   showSource?: boolean
   mode?: InterfaceDensity
-  onTitleCopy?: () => void
 }) {
   const [preferredMode] = useInterfaceDensity()
   const displayMode = mode ?? preferredMode
@@ -29,24 +27,9 @@ export function TrackIdentity({
     <div className="track-identity flex min-w-0 items-center" data-mode={displayMode}>
       {cover ?? <Cover size="small" cover={track.cover} className="track-identity-cover" />}
       <div className="min-w-0 flex-1">
-        {onTitleCopy ? (
-          <button
-            type="button"
-            className="track-title track-title-copy truncate font-medium"
-            aria-label={`复制歌曲名称 ${track.title}`}
-            title={trackDisplayTitle(track)}
-            onClick={(event) => {
-              event.stopPropagation()
-              onTitleCopy()
-            }}
-          >
-            <TrackTitle track={track} />
-          </button>
-        ) : (
-          <p className="track-title truncate font-medium" title={trackDisplayTitle(track)}>
-            <TrackTitle track={track} />
-          </p>
-        )}
+        <p className="track-title truncate font-medium" title={trackDisplayTitle(track)}>
+          <TrackTitle track={track} />
+        </p>
         <p
           className="track-identity-artist truncate text-xs text-muted-foreground"
           title={track.artist}
