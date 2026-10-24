@@ -46,6 +46,12 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     nativeCalls = []
   let doubleClickSettings = { action: 'play', scope: 'single' }
   let nativeFailure
+  let likesError
+  let likesRetries = 0
+  const floatingErrors = []
+  const reloadLikes = () => {
+    likesRetries++
+  }
   const virtualizer = {
     measure() {},
     measureElement() {},
@@ -55,6 +61,9 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
   }
   const trackSearchContext = React.createContext(undefined)
   const modules = {
+    '@/features/playback/error-notices': {
+      errorNotices: { push: (message, actions) => floatingErrors.push({ message, actions }) }
+    },
     '@/features/local/use-local-preferences': {
       useLocalPreferences: () => ({ options: { artistSeparators: [' / '] } })
     },
@@ -144,7 +153,11 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
       }
     },
     '@/features/account/account': {
-      useAccount: () => ({ getAccount: () => ({ likedIds: new Set(), pendingLikes: new Set() }) })
+      useAccount: () => ({
+        getAccount: () => ({ likedIds: new Set(), pendingLikes: new Set() }),
+        likesError,
+        reloadLikes
+      })
     },
     '@/features/music/source-label': {
       sourceLabel: (source) =>
@@ -288,6 +301,11 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
       notices,
       actionErrors,
       nativeCalls,
+      floatingErrors,
+      getLikesRetries: () => likesRetries,
+      setLikesError: (value) => {
+        likesError = value
+      },
       setDoubleClickSettings: (value) => {
         doubleClickSettings = value
       },
@@ -305,6 +323,24 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     })
   }
 }
+
+test('favorites errors offer a floating retry without inserting content above the table', async () => {
+  await harness(async ({ render, setLikesError, floatingErrors, getLikesRetries }) => {
+    setLikesError('收藏状态加载失败')
+    await render({ externalQuery: '' })
+    assert.equal(document.querySelector('.track-table-container').previousElementSibling, null)
+    assert.equal(document.querySelector('[role="alert"]'), null)
+    assert.equal(floatingErrors.length, 1)
+    assert.equal(floatingErrors[0].message, '收藏状态加载失败')
+    assert.equal(floatingErrors[0].actions[0].label, '重试收藏状态')
+    floatingErrors[0].actions[0].run()
+    assert.equal(getLikesRetries(), 1)
+    await render({ externalQuery: 'missing' })
+    assert.equal(floatingErrors.length, 1)
+    assert.equal(document.querySelectorAll('.track-row').length, 0)
+    assert.equal(document.querySelector('.track-table-container').previousElementSibling, null)
+  })
+})
 
 test('CUE tracks render as ordinary rows with their album name and individual actions', async () => {
   await harness(async ({ tracks, render, search, plays, menus, removes, navigations }) => {
@@ -366,7 +402,8 @@ test('mobile detail filtering removes extra columns and plays the filtered queue
     )
     await render({ externalQuery: 'no-match', searchable: false })
     assert.equal(document.querySelectorAll('.track-row').length, 0)
-    assert.match(document.querySelector('[role="status"]').textContent, /没有匹配/)
+    assert.equal(document.querySelector('[role="status"]'), null)
+    assert.equal(document.querySelector('.track-table-container').previousElementSibling, null)
     await render({ externalQuery: '', searchable: false })
     assert.equal(document.querySelectorAll('.track-row').length, 3)
   }, true)
@@ -404,7 +441,8 @@ test('list search matches aliases, artists and albums and plays the filtered que
       )
     }
     await search('missing')
-    assert.match(document.body.textContent, /没有匹配的歌曲/)
+    assert.equal(document.querySelectorAll('.track-row').length, 0)
+    assert.doesNotMatch(document.body.textContent, /没有匹配的歌曲/)
     await search('')
     assert.equal(document.querySelectorAll('.track-cover').length, 3)
   })
@@ -579,7 +617,8 @@ test('detail toolbar search filters the actual list without rendering a duplicat
       ['b']
     )
     await render({ externalQuery: 'missing' })
-    assert.match(document.body.textContent, /没有匹配的歌曲/)
+    assert.equal(document.querySelectorAll('.track-row').length, 0)
+    assert.equal(document.querySelector('.track-table-container').previousElementSibling, null)
   })
 })
 

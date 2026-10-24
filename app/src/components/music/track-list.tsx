@@ -1,5 +1,5 @@
 import { reportCaughtError } from '@/lib/diagnostics'
-import { ErrorNotice } from '@/components/error-notice'
+import { errorNotices } from '@/features/playback/error-notices'
 import { useListFind } from './list-find'
 import { Skeleton } from '@/components/ui/skeleton'
 import { favoriteId, onlineReference } from '@/features/music/references'
@@ -228,7 +228,9 @@ export const TrackList = memo(function TrackList({
   }
   const [cardMode] = useInterfaceDensity()
   const { getAccount, likesError, reloadLikes } = useAccount()
-  const [likeError, setLikeError] = useState<string>()
+  useEffect(() => {
+    if (likesError) errorNotices.push(likesError, [{ label: '重试收藏状态', run: reloadLikes }])
+  }, [likesError, reloadLikes])
   const body = useRef<HTMLTableSectionElement>(null)
   const [scrollMargin, setScrollMargin] = useState(0)
   const getItemKey = useCallback((index: number) => entries[index].rowKey, [entries])
@@ -366,21 +368,6 @@ export const TrackList = memo(function TrackList({
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-        </div>
-      )}
-      {(searchable || externalQuery !== undefined) && !loading && !entries.length && (
-        <p role="status" className="py-8 text-center text-sm text-muted-foreground">
-          没有匹配的歌曲。
-        </p>
-      )}
-      {(likeError || likesError) && (
-        <div className="mb-3 flex items-center gap-2 text-sm text-destructive">
-          <ErrorNotice error={likeError ?? likesError} />
-          {likesError && (
-            <ActionButton variant="ghost" size="sm" onClick={reloadLikes}>
-              重试收藏状态
-            </ActionButton>
-          )}
         </div>
       )}
       <div
@@ -736,13 +723,12 @@ export const TrackList = memo(function TrackList({
                             }
                             onClick={() => {
                               if (favorite !== undefined) {
-                                setLikeError(undefined)
                                 void toggleLike(favorite).catch((cause) => {
                                   reportCaughtError(
                                     'app/src/components/music/track-list.tsx:654',
                                     cause
                                   )
-                                  return setLikeError(errorText(cause))
+                                  errorNotices.push(errorText(cause))
                                 })
                               }
                             }}
