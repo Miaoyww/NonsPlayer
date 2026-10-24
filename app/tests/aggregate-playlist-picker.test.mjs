@@ -26,76 +26,13 @@ function load(file, modules) {
   return exports
 }
 const tracks = [1, 2, 3, 4].map((number) => ({
-  key: `cue:${number}`,
+  key: `track:${number}`,
   title: `Track ${number}`,
   album: 'Album',
-  source: { kind: 'local', cue: { sheetPath: 'disc.cue' } }
+  source: { kind: 'local' }
 }))
 
-test('CUE parent menu sends the entire ordered group to play, append, collect and removal', async () => {
-  const items = [],
-    calls = [],
-    removed = []
-  const Wrapper = ({ children }) => React.createElement('div', {}, children)
-  const actions = {
-    run: (work) => work(),
-    collectGroup: (value) => calls.push(['collect', value.map((track) => track.key)]),
-    copy: (value) => calls.push(['copy', value])
-  }
-  const { CueContextMenu } = load('../src/features/local/cue-context-menu.tsx', {
-    'react/jsx-runtime': jsx,
-    '@base-ui/react/context-menu': {
-      ContextMenu: {
-        Root: Wrapper,
-        Trigger: Wrapper,
-        Portal: Wrapper,
-        Positioner: Wrapper,
-        Popup: Wrapper,
-        Separator: () => null,
-        Item: ({ children, ...props }) => {
-          items.push({ children, ...props })
-          return React.createElement('span', {}, children)
-        }
-      }
-    },
-    'lucide-react': Object.fromEntries(
-      ['Copy', 'FolderPlus', 'ListPlus', 'Play', 'Trash2'].map((key) => [key, () => null])
-    ),
-    '@tauri-apps/api/core': { isTauri: () => true },
-    '@/lib/player': {
-      nativeCall: async (command, args) => calls.push([command, Array.from(args.keys)])
-    },
-    '@/components/music/song-actions': { useSongActions: () => actions }
-  })
-  renderToStaticMarkup(
-    React.createElement(
-      CueContextMenu,
-      {
-        entries: tracks.map((track, index) => ({ track, index: index + 10 })),
-        busy: false,
-        onPlay: () => calls.push(['play']),
-        onRemove: async (track, index) => removed.push([track.key, index]),
-        render: React.createElement('div')
-      },
-      'parent'
-    )
-  )
-  for (const item of items) await item.onClick()
-  assert.deepEqual(calls, [
-    ['play'],
-    ['append_queue', ['cue:1', 'cue:2', 'cue:3', 'cue:4']],
-    ['collect', ['cue:1', 'cue:2', 'cue:3', 'cue:4']],
-    ['copy', 'disc.cue']
-  ])
-  assert.deepEqual(removed, [
-    ['cue:1', 10],
-    ['cue:2', 11],
-    ['cue:3', 12],
-    ['cue:4', 13]
-  ])
-})
-
-test('aggregate playlist picker atomically adds the complete ordered CUE group', async () => {
+test('aggregate playlist picker atomically adds the selected tracks', async () => {
   const calls = [],
     buttons = []
   let closed = false

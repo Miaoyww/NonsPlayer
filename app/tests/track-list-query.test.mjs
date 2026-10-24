@@ -199,19 +199,9 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
   const doubleClickPlayback = load(
     '../src/features/playback/track-double-click.ts'
   ).playTrackOnDoubleClick
-  modules['./cue-card.css'] = {}
-  modules['./cue-context-menu'] = {
-    CueContextMenu: ({ render, children, ...props }) => {
-      menus.push({ ...props, cueGroup: true })
-      return React.cloneElement(render, {}, children)
-    }
-  }
-  modules['@/features/local/cue-groups'] = load('../src/features/local/cue-groups.ts')
-  modules['./cue-track-card'] = load('../src/features/local/cue-track-card.tsx')
-  modules['./music-links'] = load('../src/components/music/music-links.tsx')
+  modules['@/components/music/music-links'] = load('../src/components/music/music-links.tsx')
   modules['./track-column-sizing'] = load('../src/components/music/track-column-sizing.tsx')
   modules['@/components/music/track-identity'] = load('../src/components/music/track-identity.tsx')
-  modules['@/features/local/cue-card'] = load('../src/features/local/cue-card.tsx')
   const exports = {}
   runInNewContext(
     ts.transpileModule(
@@ -316,75 +306,44 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
   }
 }
 
-test('CUE groups preserve flat playback indices, scoped search and original removal indices', async () => {
-  await harness(async ({ tracks, render, search, plays, menus, removes, dom, navigations }) => {
+test('CUE tracks render as ordinary rows with their album name and individual actions', async () => {
+  await harness(async ({ tracks, render, search, plays, menus, removes, navigations }) => {
     const cue = (number) => ({
       ...tracks[0],
       key: `cue:${number}`,
       title: `Part ${number}`,
+      album: 'Cue Album',
       source: { kind: 'local', cue: { sheetPath: 'disc.cue', trackNumber: number } }
     })
     const supplied = [cue(4), tracks[1], cue(2), cue(1), cue(3)]
-    await render({ tracks: supplied, groupCue: true, onAppend() {} })
-    assert.equal(document.querySelectorAll('.cue-card').length, 1)
-    const parent = document.querySelector('.cue-parent-row')
-    assert.equal(parent.cells[0].textContent, '1')
-    assert.match(parent.cells[2].textContent, /CUE · 4 首/)
-    assert.equal(parent.cells[3].textContent, '本地音乐')
-    const outerCols = [...document.querySelector('.track-list > colgroup').children]
-    const innerCols = [...document.querySelector('.cue-card-header > colgroup').children]
+    const appended = []
+    await render({ tracks: supplied, onAppend: (track) => appended.push(track.key) })
+    const rows = [...document.querySelectorAll('tbody tr[data-index]')]
+    assert.equal(rows.length, 5)
+    assert.equal(document.querySelectorAll('.cue-card, .cue-track-card').length, 0)
     assert.deepEqual(
-      innerCols.map((col) => col.style.width),
-      outerCols.map((col) => col.style.width)
+      rows.filter((row) => row.textContent.includes('Part')).map((row) => row.cells[2].textContent),
+      ['Cue Album', 'Cue Album', 'Cue Album', 'Cue Album']
     )
-    await act(async () => parent.click())
-    assert.equal(document.querySelectorAll('.cue-track-card').length, 4)
-    await act(async () => parent.querySelector('.music-entity-link').click())
-    assert.equal(navigations.at(-1)[0], 'local-artist')
-    assert.equal(document.querySelectorAll('.cue-track-card').length, 4)
-    const before = innerCols[1].style.width
-    await act(async () =>
-      document
-        .querySelector('[aria-label="调整标题列宽"]')
-        .dispatchEvent(
-          new dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
-        )
-    )
-    assert.notEqual(innerCols[1].style.width, before)
-    assert.deepEqual(
-      innerCols.map((col) => col.style.width),
-      outerCols.map((col) => col.style.width)
-    )
-
-    await act(async () => parent.click())
-    assert.equal(document.querySelectorAll('.cue-track-card').length, 0)
-    menus.findLast((menu) => menu.cueGroup).onPlay()
-    assert.deepEqual(
-      Array.from(plays.at(-1)[1], (track) => track.key),
-      ['cue:1', 'cue:2', 'cue:3', 'cue:4']
-    )
-
-    assert.equal(document.querySelectorAll('.track-row').length, 2)
-    await act(async () => document.querySelector('.cue-card-open').click())
-    assert.equal(document.querySelectorAll('.cue-track-card').length, 4)
-    await act(async () => document.querySelectorAll('.cue-track-text')[2].click())
+    await act(async () => rows[2].querySelector('.track-cover').click())
     assert.equal(plays.at(-1)[0], 2)
     assert.deepEqual(
       Array.from(plays.at(-1)[1], (track) => track.key),
-      ['cue:1', 'cue:2', 'cue:3', 'cue:4', 'b']
+      ['cue:4', 'b', 'cue:2', 'cue:1', 'cue:3']
     )
-    const childMenu = menus.findLast((menu) => menu.track.key === 'cue:3')
-    childMenu.onRemove()
-    assert.equal(removes.at(-1)[1], 4)
-    await act(async () =>
-      document.querySelector('.track-row:not(.cue-parent-row) .track-cover').click()
-    )
-    assert.equal(plays.at(-1)[0], 4)
+    await act(async () => rows[2].querySelector('.music-entity-link').click())
+    assert.equal(navigations.at(-1)[0], 'local-album')
+    assert.equal(navigations.at(-1)[2].name, 'Cue Album')
+    assert.equal(navigations.at(-1)[2].localId, 'cue:2')
+    await act(async () => rows[2].querySelector('[aria-label^="下一首播放"]').click())
+    assert.deepEqual(appended, ['cue:2'])
+    const songMenu = menus.find((menu) => menu.track.key === 'cue:2')
+    assert.ok(songMenu)
+    await act(async () => songMenu.onRemove())
+    assert.equal(removes.at(-1)[1], 2)
     await search('Part 2')
-    assert.equal(document.querySelectorAll('.cue-track-card').length, 1)
-    assert.match(document.querySelector('.cue-track-card').textContent, /Part 2/)
-    await render({ tracks: supplied, groupCue: false })
-    assert.equal(document.querySelectorAll('.cue-card').length, 0)
+    assert.equal(document.querySelectorAll('tbody tr[data-index]').length, 1)
+    assert.match(document.querySelector('tbody tr[data-index]').textContent, /Part 2/)
   })
 })
 
@@ -852,7 +811,7 @@ test('ten thousand songs retain their full playback order when the virtual viewp
         key: `song:${i}`,
         title: `Song ${i}`
       }))
-      await render({ tracks: large, groupCue: false })
+      await render({ tracks: large })
       const rows = [...document.querySelectorAll('tr[data-index]')]
       assert.equal(rows.length, 20)
       const last = rows.at(-1)
@@ -878,7 +837,7 @@ test('batch checkboxes replace the leading sequence and select only filtered loa
       onToggle: (...args) => toggles.push(args),
       onToggleAll: (...args) => all.push(args)
     }
-    await render({ selection, groupCue: false })
+    await render({ selection })
     const header = document.querySelector('thead th:first-child input')
     assert.equal(header.type, 'checkbox')
     assert.equal(header.indeterminate, true)

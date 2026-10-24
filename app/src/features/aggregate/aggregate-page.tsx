@@ -270,7 +270,6 @@ export default function AggregatePage({
         currentKey={currentKey}
         searchable={!batch}
         hasMore={list.more}
-        groupCue={false}
         selection={
           batch
             ? {

@@ -1,5 +1,3 @@
-import { CueCard } from '@/features/local/cue-card'
-import { cueGroups, cueSheet } from '@/features/local/cue-groups'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useListFind } from './list-find'
@@ -106,7 +104,6 @@ interface Props {
   renderSource?: (track: Track) => ReactNode
   getRowKey?: (track: Track) => string
   isCurrentTrack?: (track: Track) => boolean
-  groupCue?: boolean
   fitContainer?: boolean
 }
 
@@ -135,7 +132,6 @@ export const TrackList = memo(function TrackList({
   renderSource,
   getRowKey,
   isCurrentTrack,
-  groupCue = false,
   fitContainer = false
 }: Props) {
   const mobile = isAndroid()
@@ -210,32 +206,8 @@ export const TrackList = memo(function TrackList({
         return (descending ? -compare : compare) || a.index - b.index
       })
     }
-    return groupCue ? cueGroups(result).flat() : result
-  }, [
-    tracks,
-    searchQuery,
-    searchable,
-    externalQuery,
-    sortable,
-    sort,
-    descending,
-    getRowKey,
-    groupCue
-  ])
-  const groups = useMemo(
-    () => (groupCue ? cueGroups(entries) : entries.map((entry) => [entry])),
-    [entries, groupCue]
-  )
-  const displayEntries = useMemo(() => groups.map((group) => group[0]), [groups])
-  const [expandedSheets, setExpandedSheets] = useState<Set<string>>(() => new Set())
-  const displayIndex = (index: number) =>
-    displayEntries.findIndex(
-      (entry) =>
-        entry === entries[index] ||
-        (groupCue &&
-          !!cueSheet(entry.track) &&
-          cueSheet(entry.track) === cueSheet(entries[index]?.track ?? entry.track))
-    )
+    return result
+  }, [tracks, searchQuery, searchable, externalQuery, sortable, sort, descending, getRowKey])
   const visibleTracks = useMemo(() => entries.map(({ track }) => track), [entries])
   const doubleClickPlay = (index: number) => {
     if (busy || !isTauri() || doubleClickBusy.current) return
@@ -259,13 +231,9 @@ export const TrackList = memo(function TrackList({
   const [likeError, setLikeError] = useState<string>()
   const body = useRef<HTMLTableSectionElement>(null)
   const [scrollMargin, setScrollMargin] = useState(0)
-  const getItemKey = useCallback(
-    (index: number) =>
-      (groupCue && cueSheet(displayEntries[index].track)) || displayEntries[index].rowKey,
-    [displayEntries, groupCue]
-  )
+  const getItemKey = useCallback((index: number) => entries[index].rowKey, [entries])
   const virtualizer = useVirtualizer({
-    count: displayEntries.length,
+    count: entries.length,
     getScrollElement: () =>
       body.current
         ? scrollParent(body.current.closest<HTMLElement>('.track-table-container')!)
@@ -281,7 +249,7 @@ export const TrackList = memo(function TrackList({
     body.current?.querySelectorAll<HTMLTableRowElement>('tr[data-index]').forEach((row) => {
       virtualizer.measureElement(row)
     })
-  }, [cardMode, expandedSheets, groups, virtualizer])
+  }, [cardMode, virtualizer])
   useLayoutEffect(() => {
     const element = body.current
     const parent = element && scrollParent(element.closest<HTMLElement>('.track-table-container')!)
@@ -299,8 +267,7 @@ export const TrackList = memo(function TrackList({
   useLayoutEffect(() => {
     if (locateRequest === undefined || currentIndex === undefined || currentIndex < 0) return
     const visibleIndex = entries.findIndex((entry) => entry.index === currentIndex)
-    if (visibleIndex >= 0)
-      virtualizer.scrollToIndex(displayIndex(visibleIndex), { align: 'center' })
+    if (visibleIndex >= 0) virtualizer.scrollToIndex(visibleIndex, { align: 'center' })
   }, [locateRequest, scrollMargin, virtualizer])
   useListFind(
     useMemo(
@@ -311,8 +278,6 @@ export const TrackList = memo(function TrackList({
         busy,
         play: (index: number) => onPlay(index, visibleTracks),
         locate: (index: number) => {
-          const sheet = entries[index] && groupCue ? cueSheet(entries[index].track) : undefined
-          if (sheet) setExpandedSheets((old) => new Set(old).add(sheet))
           setSelectedKey(entries[index]?.rowKey)
           setFindTarget({ index, serial: Date.now() })
         },
@@ -328,7 +293,7 @@ export const TrackList = memo(function TrackList({
     )
   )
   useLayoutEffect(() => {
-    if (findTarget) virtualizer.scrollToIndex(displayIndex(findTarget.index), { align: 'center' })
+    if (findTarget) virtualizer.scrollToIndex(findTarget.index, { align: 'center' })
   }, [findTarget, scrollMargin, virtualizer])
   useEffect(() => {
     if (!findTarget) return
@@ -338,7 +303,7 @@ export const TrackList = memo(function TrackList({
     }, 2500)
     const frame = requestAnimationFrame(() => {
       findElement.current
-        ?.querySelector<HTMLElement>(`tr[data-index="${displayIndex(findTarget.index)}"]`)
+        ?.querySelector<HTMLElement>(`tr[data-index="${findTarget.index}"]`)
         ?.focus({ preventScroll: true })
     })
     return () => {
@@ -630,59 +595,9 @@ export const TrackList = memo(function TrackList({
             )}
             {!loading &&
               rows.map((row) => {
-                const entry = displayEntries[row.index]
+                const entry = entries[row.index]
                 const { index, track, rowKey } = entry
                 const playIndex = entries.indexOf(entry)
-                const sheet = groupCue ? cueSheet(track) : undefined
-                if (sheet)
-                  return (
-                    <tr
-                      key={sheet}
-                      ref={virtualizer.measureElement}
-                      data-index={row.index}
-                      tabIndex={-1}
-                    >
-                      <td colSpan={columns} style={{ padding: 0 }}>
-                        <CueCard
-                          entries={groups[row.index]}
-                          columns={columnSizing.columns}
-                          sequence={offset + row.index + 1}
-                          mobile={mobile}
-                          showDuration={showDuration}
-                          showLikes={showLikes}
-                          extraCells={extraColumns.map((column) => column.render(track, index))}
-                          onPlayGroup={() =>
-                            onPlay(
-                              0,
-                              groups[row.index].map(({ track }) => track)
-                            )
-                          }
-                          expanded={expandedSheets.has(sheet)}
-                          onExpandedChange={(expanded) =>
-                            setExpandedSheets((old) => {
-                              const next = new Set(old)
-                              if (expanded) next.add(sheet)
-                              else next.delete(sheet)
-                              return next
-                            })
-                          }
-                          busy={busy}
-                          selectedKey={selectedKey}
-                          isCurrent={({ track, index }) =>
-                            isCurrentTrack
-                              ? isCurrentTrack(track)
-                              : currentIndex === undefined
-                                ? track.key === currentKey
-                                : index === currentIndex
-                          }
-                          onPlay={(entry) => onPlay(entries.indexOf(entry), visibleTracks)}
-                          onAppend={onAppend}
-                          onRemove={onRemove}
-                          removeLabel={removeLabel}
-                        />
-                      </td>
-                    </tr>
-                  )
                 const account = getAccount(onlineReference(track)?.source ?? '')
                 const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } =
                   account

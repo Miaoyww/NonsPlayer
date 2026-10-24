@@ -128,6 +128,7 @@ fn cue_directory_rescan_hides_whole_file_and_restores_it_after_removal() {
     assert!(tracks
         .iter()
         .all(|track| track.cue().is_some() && track.duration_ms == 2_000));
+    assert!(tracks.iter().all(|track| track.album == "专辑"));
     assert!(
         store.track(&base.key).is_ok(),
         "hidden originals retain their identity and origins"
