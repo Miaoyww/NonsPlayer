@@ -6,6 +6,15 @@ use std::{
     time::Duration,
 };
 
+pub(crate) const MAX_COVER_BYTES: u64 = 8 * 1024 * 1024;
+
+fn check_size(bytes: u64) -> AppResult<()> {
+    if bytes > MAX_COVER_BYTES {
+        return Err("封面文件过大".into());
+    }
+    Ok(())
+}
+
 struct CoverEntry {
     access: String,
     data: String,
@@ -103,15 +112,12 @@ async fn load(url: &str, backend: &crate::Backend, access: &str) -> AppResult<St
         .unwrap_or_default()
         .to_owned();
     let mime = image_mime(&content_type).ok_or("封面格式不支持")?;
-    const LIMIT: usize = 4 * 1024 * 1024;
-    if response.content_length().is_some_and(|n| n > LIMIT as u64) {
-        return Err("封面文件过大".into());
+    if let Some(length) = response.content_length() {
+        check_size(length)?;
     }
     let mut bytes = Vec::new();
     while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
-        if bytes.len() + chunk.len() > LIMIT {
-            return Err("封面文件过大".into());
-        }
+        check_size(bytes.len() as u64 + chunk.len() as u64)?;
         bytes.extend_from_slice(&chunk);
     }
     Ok(format!("data:{mime};base64,{}", STANDARD.encode(bytes)))
@@ -140,6 +146,13 @@ fn image_mime(value: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cover_size_accepts_eight_mib_and_rejects_larger_responses() {
+        assert!(check_size(4 * 1024 * 1024 + 1).is_ok());
+        assert!(check_size(8 * 1024 * 1024).is_ok());
+        assert_eq!(check_size(8 * 1024 * 1024 + 1), Err("封面文件过大".into()));
+        assert!(check_size(u64::MAX).is_err());
+    }
     #[test]
     fn accepts_cdn_jpg_alias_and_emits_decodable_data_uri_type() {
         assert_eq!(image_mime("image/jpg"), Some("image/jpeg"));

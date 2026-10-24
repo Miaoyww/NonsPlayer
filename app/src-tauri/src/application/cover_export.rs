@@ -93,10 +93,10 @@ fn read_local(root: &std::path::Path, url: &str) -> AppResult<Vec<u8>> {
     let mut bytes = Vec::new();
     std::fs::File::open(path)
         .map_err(|e| e.to_string())?
-        .take(4 * 1024 * 1024 + 1)
+        .take(crate::infrastructure::covers::MAX_COVER_BYTES + 1)
         .read_to_end(&mut bytes)
         .map_err(|e| e.to_string())?;
-    if bytes.len() > 4 * 1024 * 1024 {
+    if bytes.len() as u64 > crate::infrastructure::covers::MAX_COVER_BYTES {
         return Err("封面文件过大".into());
     }
     Ok(bytes)

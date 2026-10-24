@@ -10,6 +10,12 @@ interface ReadOptions {
   validate?: () => Promise<void>
   refresh?: boolean
 }
+interface PendingRead {
+  readers: number
+  invalidated: boolean
+  refresh: boolean
+  error?: CacheInvalidatedError
+}
 
 export class CacheInvalidatedError extends Error {
   readonly code = 'cacheInvalidated'
@@ -22,7 +28,7 @@ export class CacheInvalidatedError extends Error {
 // allows valid null responses without treating them as a cache miss.
 export class RuntimeCache {
   private cache: LRUCache<string, Entry, Loader>
-  private pending = new Map<string, { readers: number; invalidated: boolean; refresh: boolean }>()
+  private pending = new Map<string, PendingRead>()
   contextRevision = 0
   revision = 0
   constructor(maxBytes = 48 * 1024 * 1024, ttl = RUNTIME_TTL) {
@@ -48,7 +54,7 @@ export class RuntimeCache {
     // cancels an ordinary read that started before it.
     if (options.refresh && !(active?.refresh && !active.invalidated)) this.delete(key)
     const current = this.pending.get(key)
-    const pending =
+    const pending: PendingRead =
       current && !current.invalidated
         ? current
         : { readers: 0, invalidated: false, refresh: Boolean(options.refresh) }
@@ -68,10 +74,9 @@ export class RuntimeCache {
       if (pending.invalidated) throw new CacheInvalidatedError()
       return result.value as T
     } catch (cause) {
-      reportCaughtError('app/src/lib/runtime-cache.ts', cause)
-
-      if (pending.invalidated) throw new CacheInvalidatedError()
-      throw cause
+      const error = pending.invalidated ? (pending.error ??= new CacheInvalidatedError()) : cause
+      reportCaughtError('app/src/lib/runtime-cache.ts', error)
+      throw error
     } finally {
       pending.readers--
       if (!pending.readers && this.pending.get(key) === pending) this.pending.delete(key)

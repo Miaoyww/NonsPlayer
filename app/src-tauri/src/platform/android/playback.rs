@@ -210,7 +210,7 @@ pub(crate) fn artwork(key: String, url: String) {
                 (Ok(path), Ok(root)) if path.starts_with(&root) => {
                     if tokio::fs::metadata(&path)
                         .await
-                        .is_ok_and(|m| m.len() <= 4 * 1024 * 1024)
+                        .is_ok_and(|m| m.len() <= crate::infrastructure::covers::MAX_COVER_BYTES)
                     {
                         use base64::Engine;
                         tokio::fs::read(path)

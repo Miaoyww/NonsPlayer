@@ -7,10 +7,10 @@ const code = ts.transpileModule(
   readFileSync(new URL('../../src/lib/runtime-cache.ts', import.meta.url), 'utf8'),
   { compilerOptions: { module: ts.ModuleKind.CommonJS } }
 ).outputText
-export function createRuntimeCache() {
+export function createRuntimeCache(reportCaughtError = () => {}) {
   const exports = {}
   runInThisContext(`(function(exports, require) { ${code}\n })`)(exports, (name) =>
-    name === 'lru-cache' ? { LRUCache } : { reportCaughtError() {} }
+    name === 'lru-cache' ? { LRUCache } : { reportCaughtError }
   )
   return exports
 }
