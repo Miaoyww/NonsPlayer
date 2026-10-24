@@ -266,7 +266,6 @@ test('SDK keeps configuration navigation local and rejects stale configuration r
       localRoutes = []
     const sdk = load('../src/plugins/sdk.ts', {
       react: React,
-      './collection-tabs': {},
       './scope': scopeModule,
       './types': routing,
       './song-components': {},

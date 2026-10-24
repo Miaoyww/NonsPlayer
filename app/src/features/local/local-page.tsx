@@ -2,7 +2,8 @@ import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton, CollectionGridSkeleton } from '@/components/music/loading'
-import { CollectionTabs } from '@/features/library/collection-tabs'
+import { CollectionContent } from '@/features/library/collection-content'
+import { CollectionHeader } from '@/features/library/collection-header'
 import { TrackArtists } from '@/components/music/music-links'
 import { useCallback, useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -381,132 +382,105 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
   return (
     <MusicPage aria-label="本地音乐" className="local-page">
       {collection ? (
-        <>
-          <header className="library-detail-header">
-            <Cover
-              cover={collection.cover || list.items[0]?.cover}
-              className={`library-detail-cover ${collection.kind === 'artist' ? 'rounded-full' : ''}`}
+        <CollectionContent
+          key={`${collection.kind}:${collection.localId ?? collection.id}`}
+          hasMore={list.more}
+        >
+          <CollectionHeader
+            collection={collection}
+            total={collection.trackCount}
+            busy={playing}
+            disabled={playing || !isTauri() || !list.items.length}
+            onPlay={() => void play()}
+            cover={
+              <Cover
+                cover={collection.cover || list.items[0]?.cover}
+                className={`library-detail-cover ${collection.kind === 'artist' ? 'rounded-full' : 'rounded-xl'}`}
+              />
+            }
+            credits={
+              collection.kind === 'album' && collection.subtitle && list.items[0] ? (
+                <TrackArtists track={{ ...list.items[0], artist: collection.subtitle }} />
+              ) : undefined
+            }
+            actions={
+              collection.kind === 'playlist' && (
+                <>
+                  <ActionButton
+                    variant="ghost"
+                    disabled={!isTauri()}
+                    onClick={() => {
+                      setName(collection.name)
+                      setEditing('rename')
+                    }}
+                  >
+                    <Pencil aria-hidden="true" />
+                    改名
+                  </ActionButton>
+                  <ActionButton
+                    variant="ghost"
+                    disabled={!isTauri()}
+                    onClick={() => setEditing('delete')}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    删除歌单
+                  </ActionButton>
+                </>
+              )
+            }
+          />
+          {list.busy && !list.items.length ? (
+            <TrackListSkeleton online={false} />
+          ) : list.items.length > 0 ? (
+            <TrackList
+              tracks={list.items}
+              key={`${collection.kind}:${collection.localId ?? collection.id}`}
+              searchable
+              sortable
+              hasMore={list.more}
+              busy={!isTauri()}
+              currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
+              onPlay={(index, tracks) => {
+                const start = index >= 1000 ? index : 0
+                void nativeCall('play_queue', {
+                  keys: tracks.slice(start, start + 1000).map((t) => t.key),
+                  index: index - start
+                }).catch(onError)
+              }}
+              onAppend={(track) =>
+                void nativeCall('append_queue', { keys: [track.key] }).catch(onError)
+              }
+              onRemove={
+                collection.kind === 'playlist'
+                  ? async (track) => {
+                      await nativeCall('remove_local_playlist_track', {
+                        id: collection.localId,
+                        key: track.key
+                      })
+                      setRevision((v) => v + 1)
+                    }
+                  : undefined
+              }
+              removeLabel="从歌单移除"
             />
-            <div className="library-detail-info">
-              <h1 className="library-detail-title">{collection.name}</h1>
-              <div className="library-detail-meta">
-                <p>
-                  本地
-                  {collection.kind === 'artist'
-                    ? '艺术家'
-                    : collection.kind === 'album'
-                      ? '专辑'
-                      : '歌单'}
-                  {collection.subtitle && (
-                    <span>
-                      {' '}
-                      ·{' '}
-                      {collection.kind === 'album' && list.items[0] ? (
-                        <TrackArtists track={{ ...list.items[0], artist: collection.subtitle }} />
-                      ) : (
-                        collection.subtitle
-                      )}
-                    </span>
-                  )}
-                </p>
-                <p className="mt-1 text-muted-foreground">
-                  {collection.trackCount > 0 ? `${collection.trackCount} 首音乐` : '歌曲列表'}
-                </p>
-              </div>
-              <div className="library-detail-actions flex flex-wrap gap-2">
-                <ActionButton
-                  variant="secondary"
-                  className="library-detail-play"
-                  disabled={playing || !isTauri() || !list.items.length}
-                  onClick={() => void play()}
-                >
-                  <Play aria-hidden="true" />
-                  {playing ? '正在加载…' : '播放'}
-                </ActionButton>
-                {collection.kind === 'playlist' && (
-                  <>
-                    <ActionButton
-                      variant="ghost"
-                      disabled={!isTauri()}
-                      onClick={() => {
-                        setName(collection.name)
-                        setEditing('rename')
-                      }}
-                    >
-                      <Pencil aria-hidden="true" />
-                      改名
-                    </ActionButton>
-                    <ActionButton
-                      variant="ghost"
-                      disabled={!isTauri()}
-                      onClick={() => setEditing('delete')}
-                    >
-                      <Trash2 aria-hidden="true" />
-                      删除歌单
-                    </ActionButton>
-                  </>
+          ) : (
+            !list.error && (
+              <div className="library-empty">
+                {list.busy ? (
+                  <TrackListSkeleton online={false} />
+                ) : (
+                  '还没有歌曲，在本地歌曲的右键菜单中添加到此歌单。'
                 )}
               </div>
-            </div>
-          </header>
-          <CollectionTabs
-            key={`${collection.kind}:${collection.localId ?? collection.id}`}
-            collection={collection}
-            hasMore={list.more}
-          >
-            {list.busy && !list.items.length ? (
-              <TrackListSkeleton online={false} />
-            ) : list.items.length > 0 ? (
-              <TrackList
-                tracks={list.items}
-                key={`${collection.kind}:${collection.localId ?? collection.id}`}
-                searchable
-                sortable
-                hasMore={list.more}
-                busy={!isTauri()}
-                currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
-                onPlay={(index, tracks) => {
-                  const start = index >= 1000 ? index : 0
-                  void nativeCall('play_queue', {
-                    keys: tracks.slice(start, start + 1000).map((t) => t.key),
-                    index: index - start
-                  }).catch(onError)
-                }}
-                onAppend={(track) =>
-                  void nativeCall('append_queue', { keys: [track.key] }).catch(onError)
-                }
-                onRemove={
-                  collection.kind === 'playlist'
-                    ? async (track) => {
-                        await nativeCall('remove_local_playlist_track', {
-                          id: collection.localId,
-                          key: track.key
-                        })
-                        setRevision((v) => v + 1)
-                      }
-                    : undefined
-                }
-                removeLabel="从歌单移除"
-              />
-            ) : (
-              !list.error && (
-                <div className="library-empty">
-                  {list.busy ? (
-                    <TrackListSkeleton online={false} />
-                  ) : (
-                    '还没有歌曲，在本地歌曲的右键菜单中添加到此歌单。'
-                  )}
-                </div>
-              )
-            )}
-            <InfiniteLoad
-              more={list.more}
-              busy={list.busy}
-              error={list.error}
-              onLoad={list.loadMore}
-            />
-          </CollectionTabs>
-        </>
+            )
+          )}
+          <InfiniteLoad
+            more={list.more}
+            busy={list.busy}
+            error={list.error}
+            onLoad={list.loadMore}
+          />
+        </CollectionContent>
       ) : (
         <>
           <MusicPageHeader title="本地音乐">

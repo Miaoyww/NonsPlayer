@@ -177,7 +177,7 @@ test('likes refresh the loaded playlist in the background without unmounting its
   }
 })
 
-test('playlist detail siblings have distinct keys and tabs reset when switching playlists', async () => {
+test('playlist detail siblings have distinct keys and search state resets when switching playlists', async () => {
   const source = readFileSync(
     new URL('../src/features/library/music-library.tsx', import.meta.url),
     'utf8'
@@ -224,8 +224,8 @@ test('playlist detail siblings have distinct keys and tabs reset when switching 
     '@/features/library/collection-header': {
       CollectionHeader: ({ collection }) => React.createElement('h1', {}, collection.name)
     },
-    '@/features/library/collection-tabs': {
-      CollectionTabs: ({ children }) => {
+    '@/features/library/collection-content': {
+      CollectionContent: ({ children }) => {
         const [value, setValue] = React.useState(0)
         return React.createElement(
           'section',

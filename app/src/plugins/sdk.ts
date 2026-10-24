@@ -11,8 +11,6 @@ import { checkScope, useScope, PluginNavigationScope, type Scope } from './scope
 import type { ConfigSnapshot } from './configuration-types'
 export type { ConfigSnapshot } from './configuration-types'
 import { pluginPath, resolvePluginPath } from './types'
-import { registerCollectionTab, type CollectionTabRegistration } from './collection-tabs'
-export type { PluginCollection, CollectionTabRegistration } from './collection-tabs'
 export { MusicPageHeader } from '@/components/music/music-page'
 export { Button } from '@/components/ui/button'
 export { Progress } from '@/components/ui/progress'
@@ -374,14 +372,12 @@ export function useCoverSource(
 }
 
 export interface PluginClient {
-  registerCollectionTab(tab: CollectionTabRegistration): () => void
   call<T = unknown>(operation: string, args?: unknown): Promise<T>
   openPage(path?: string): void
   openConfiguration(): void
 }
 export function createPluginClient(scope: Scope, navigate: (path: string) => void): PluginClient {
   return {
-    registerCollectionTab: (tab) => registerCollectionTab(scope, tab),
     call: (operation, args = {}) => hostCall(scope, operation, args),
     openPage: (path = '/') => {
       checkScope(scope, 'ui')

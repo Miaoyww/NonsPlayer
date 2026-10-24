@@ -20,7 +20,6 @@ import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { installBridge } from './bridge'
 import { PluginScope, PluginNavigationScope, type Scope } from './scope'
 import { resolvePluginPage, resolvePluginPath, type PluginDescriptor } from './types'
-import type { CollectionTabEntry, PluginCollection } from './collection-tabs'
 
 interface Loaded {
   scope: Scope
@@ -265,25 +264,6 @@ function Contribution({ plugin, name }: { plugin: Loaded; name: string }) {
     <PluginBoundary plugin={plugin}>
       <PluginScope.Provider value={plugin.scope}>
         <View />
-      </PluginScope.Provider>
-    </PluginBoundary>
-  )
-}
-export function PluginCollectionTab({
-  entry,
-  collection
-}: {
-  entry: CollectionTabEntry
-  collection: PluginCollection
-}) {
-  const { loaded } = usePlugins()
-  const plugin = loaded.get(entry.scope.descriptor.manifest.id)
-  if (!plugin || plugin.scope !== entry.scope || !entry.scope.active) return null
-  const View = entry.component
-  return (
-    <PluginBoundary plugin={plugin}>
-      <PluginScope.Provider value={entry.scope}>
-        <View collection={collection} />
       </PluginScope.Provider>
     </PluginBoundary>
   )

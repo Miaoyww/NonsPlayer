@@ -39,7 +39,6 @@ function harness(
   const scopes = load('../src/plugins/scope.tsx', { react })
   const sdk = load('../src/plugins/sdk.ts', {
     react,
-    './collection-tabs': load('../src/plugins/collection-tabs.ts', { './scope': scopes }),
     './scope': scopes,
     './types': {},
     './song-components': {},
@@ -146,30 +145,6 @@ test('HTTP and music facades bind host requests to the plugin instance', async (
     assert.equal(call.generation, 7)
   }
   assert.deepEqual(JSON.parse(calls[0].args), request)
-})
-
-test('detail tab registration is bound to UI permission and plugin lifecycle', () => {
-  const denied = harness([])
-  assert.throws(
-    () =>
-      denied.sdk
-        .createPluginClient(denied.scope, () => {})
-        .registerCollectionTab({ id: 'comments', label: '评论', component() {} }),
-    /ui/
-  )
-  const { scope, sdk } = harness(['ui'])
-  const client = sdk.createPluginClient(scope, () => {})
-  const tab = { id: 'comments', label: '评论', component() {} }
-  const dispose = client.registerCollectionTab(tab)
-  assert.equal(scope.cleanups.size, 1)
-  assert.throws(() => client.registerCollectionTab(tab), /重复/)
-  for (let i = 0; i < 7; i++) client.registerCollectionTab({ ...tab, id: `tab-${i}` })
-  assert.throws(() => client.registerCollectionTab({ ...tab, id: 'overflow' }), /最多/)
-  scope.active = false
-  scope.cleanups.forEach((cleanup) => cleanup())
-  assert.equal(scope.cleanups.size, 0)
-  assert.doesNotThrow(dispose)
-  assert.throws(() => client.registerCollectionTab({ ...tab, id: 'late' }), /禁用/)
 })
 
 test('uniform music client preserves opaque references and separates library and write permissions', async () => {

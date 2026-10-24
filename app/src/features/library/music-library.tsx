@@ -19,7 +19,7 @@ import {
   SongGridSkeleton,
   TextSkeleton
 } from '@/components/music/loading'
-import { CollectionTabs } from '@/features/library/collection-tabs'
+import { CollectionContent } from '@/features/library/collection-content'
 import { MusicPage } from '@/components/music/music-page'
 import { CollectionContextMenu, useCollectionActions } from '@/features/library/collection-actions'
 import { TrackArtists } from '@/components/music/music-links'
@@ -311,7 +311,7 @@ export default function MusicLibrary({
   return (
     <MusicPage aria-label="音乐库">
       {showingDetail ? (
-        <>
+        <CollectionContent key={`${collection.kind}:${collection.id}`} hasMore={detail.more}>
           <CollectionHeader
             key={`header:${collection.kind}:${collection.id}`}
             collection={collection}
@@ -331,53 +331,47 @@ export default function MusicLibrary({
             disabled={playing || !profile || detailBusy || !detail.tracks.length}
             onPlay={() => void playCollection(collection, detail.tracks[0]?.key)}
           />
-          <CollectionTabs
-            key={`${collection.kind}:${collection.id}`}
-            collection={collection}
-            hasMore={detail.more}
-          >
-            {!profile ? (
-              <div className="library-empty">
-                <p>登录对应音乐来源后查看这个收藏。</p>
-                <ActionButton variant="secondary" onClick={() => navigate('accounts')}>
-                  登录账号
-                </ActionButton>
-              </div>
-            ) : detailBusy || detail.tracks.length ? (
-              <TrackList
-                key={`${collection.kind}:${collection.id}`}
-                tracks={detail.tracks}
-                loading={detailBusy && !detail.tracks.length}
-                showLikes
-                sortable
-                searchable
-                hasMore={detail.more}
-                currentKey={currentKey}
-                busy={playing}
-                onPlay={(index, tracks) => playPage(tracks, index)}
-                onAppend={append}
-                removeLabel={collection.kind === 'playlist' ? '从歌单删除' : '从列表删除'}
-                onRemove={
-                  !readOnly &&
-                  collection.kind === 'playlist' &&
-                  collection.creatorId === profile.userId
-                    ? (track) => removeFromPlaylist(collection, track)
-                    : undefined
-                }
-              />
-            ) : (
-              <p className="library-empty">这里还没有歌曲。</p>
-            )}
-            {profile && (
-              <InfiniteLoad
-                more={detail.more}
-                busy={detailBusy}
-                error={detailList.error}
-                onLoad={detailList.loadMore}
-              />
-            )}
-          </CollectionTabs>
-        </>
+          {!profile ? (
+            <div className="library-empty">
+              <p>登录对应音乐来源后查看这个收藏。</p>
+              <ActionButton variant="secondary" onClick={() => navigate('accounts')}>
+                登录账号
+              </ActionButton>
+            </div>
+          ) : detailBusy || detail.tracks.length ? (
+            <TrackList
+              key={`${collection.kind}:${collection.id}`}
+              tracks={detail.tracks}
+              loading={detailBusy && !detail.tracks.length}
+              showLikes
+              sortable
+              searchable
+              hasMore={detail.more}
+              currentKey={currentKey}
+              busy={playing}
+              onPlay={(index, tracks) => playPage(tracks, index)}
+              onAppend={append}
+              removeLabel={collection.kind === 'playlist' ? '从歌单删除' : '从列表删除'}
+              onRemove={
+                !readOnly &&
+                collection.kind === 'playlist' &&
+                collection.creatorId === profile.userId
+                  ? (track) => removeFromPlaylist(collection, track)
+                  : undefined
+              }
+            />
+          ) : (
+            <p className="library-empty">这里还没有歌曲。</p>
+          )}
+          {profile && (
+            <InfiniteLoad
+              more={detail.more}
+              busy={detailBusy}
+              error={detailList.error}
+              onLoad={detailList.loadMore}
+            />
+          )}
+        </CollectionContent>
       ) : (
         <>
           <header className="library-profile">

@@ -3,24 +3,22 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton } from '@/components/music/loading'
 import { tracksForCollection } from '@/features/music/queries'
-import { CollectionTabs } from '@/features/library/collection-tabs'
-import { DetailHeader } from '@/features/library/detail-header'
-import { DetailDescription } from '@/features/library/detail-description'
+import { CollectionContent } from '@/features/library/collection-content'
+import { CollectionHeader } from '@/features/library/collection-header'
 import { MusicPage } from '@/components/music/music-page'
 // Independent album detail, adapted from the playlist detail in music-library.tsx.
 // Layout originally adapted from YesPlayMusic src/views/library.vue.
 // Copyright (c) 2020-2023 qier222, MIT. See notices/YesPlayMusic-LICENSE.txt.
 import { useCallback, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { Play, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { nativeCall, usePlayer, type Track } from '@/lib/player'
 import { playLibraryCollection, type CollectionTracks } from '@/features/library/library-api'
 import { useEntityDetail } from '@/features/library/music-entities'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { usePagedList } from '@/lib/use-paged-list'
 import { ActionButton } from '@/components/music/action-button'
-import { ArtistLinks, formatReleaseDate } from '@/components/music/music-links'
-import { Cover } from '@/components/music/cover'
+import { formatReleaseDate } from '@/components/music/music-links'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
@@ -66,53 +64,32 @@ export default function AlbumPage({
   }
   return (
     <MusicPage aria-label="专辑详情">
-      <DetailHeader>
-        <Cover size="large" cover={album.cover} className="library-detail-cover rounded-xl" />
-        <div className="library-detail-info">
-          <h1 className="library-detail-title">{album.name}</h1>
-          <div className="library-detail-meta">
-            <p className="font-semibold">
-              专辑 · <ArtistLinks artists={album.artists} name={album.subtitle} />
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {list.metadata?.total ?? album.trackCount} 首 · {formatReleaseDate(album.publishedAt)}
-            </p>
-          </div>
-          <DetailDescription description={detail?.description} />
-          <div className="library-detail-actions">
+      <CollectionContent key={`${collection.kind}:${collection.id}`} hasMore={list.more}>
+        <CollectionHeader
+          collection={album}
+          description={detail?.description}
+          total={list.metadata?.total ?? album.trackCount}
+          metadata={<span>{formatReleaseDate(album.publishedAt)}</span>}
+          busy={playing}
+          disabled={playing || !isTauri() || !list.items.length}
+          onPlay={() => void play()}
+        />
+        {error && (
+          <div className="mb-5 flex items-center gap-3 text-sm text-destructive">
+            <ErrorNotice error={error} />
             <ActionButton
-              variant="secondary"
-              className="library-detail-play"
-              disabled={playing || !isTauri() || !list.items.length}
-              onClick={() => void play()}
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                invalidateNativeCache(['music_query'])
+                setRefresh((value) => value + 1)
+              }}
             >
-              <Play aria-hidden="true" />
-              {playing ? '正在加载…' : '播放'}
+              <RefreshCw aria-hidden="true" />
+              重试
             </ActionButton>
           </div>
-        </div>
-      </DetailHeader>
-      {error && (
-        <div className="mb-5 flex items-center gap-3 text-sm text-destructive">
-          <ErrorNotice error={error} />
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              invalidateNativeCache(['music_query'])
-              setRefresh((value) => value + 1)
-            }}
-          >
-            <RefreshCw aria-hidden="true" />
-            重试
-          </ActionButton>
-        </div>
-      )}
-      <CollectionTabs
-        key={`${collection.kind}:${collection.id}`}
-        collection={album}
-        hasMore={list.more}
-      >
+        )}
         {(busy || list.busy) && !list.items.length ? (
           <TrackListSkeleton />
         ) : list.items.length ? (
@@ -140,7 +117,7 @@ export default function AlbumPage({
           <p className="library-empty">这里还没有歌曲。</p>
         )}
         <InfiniteLoad more={list.more} busy={list.busy} error={list.error} onLoad={list.loadMore} />
-      </CollectionTabs>
+      </CollectionContent>
     </MusicPage>
   )
 }

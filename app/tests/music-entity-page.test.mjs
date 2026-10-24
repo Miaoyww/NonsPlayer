@@ -121,7 +121,10 @@ test('uniform details retain cursor and rows on failure, reload only their own s
       ActionButton: ({ children, ...props }) => React.createElement('button', props, children)
     },
     'lucide-react': { Play: () => null, Ellipsis: () => null, GitBranch: () => null },
-    '@/features/library/collection-tabs': { CollectionTabs: ({ children }) => children },
+    '@/features/library/collection-content': { CollectionContent: ({ children }) => children },
+    './collection-content': { CollectionSearch: () => null },
+    './collection-kind': { CollectionKind: () => null },
+    '@/components/music/music-links': { ArtistLinks: () => null },
     '@/features/library/library-api': {
       playLibraryCollection: async (collection, key) => {
         playback.push({ collection, key })
@@ -200,8 +203,8 @@ test('uniform details retain cursor and rows on failure, reload only their own s
       })
     )
     assert.equal(document.querySelector('img')?.getAttribute('src'), 'cover-fixture.jpg')
-    assert.match(document.body.textContent, /歌单创建者/)
-    assert.match(document.body.textContent, /200 首音乐/)
+    assert.match(document.body.textContent, /by 歌单创建者/)
+    assert.match(document.body.textContent, /200 首/)
     const menu = document.querySelector('header [aria-label="歌单菜单"]')
     assert.ok(menu, 'reference-based playlist detail must show the shared menu beside Play')
     assert.ok(menu.closest('.library-detail-actions'))

@@ -16,7 +16,7 @@ import {
   LayoutGrid
 } from 'lucide-react'
 import { CollectionHeader } from '@/features/library/collection-header'
-import { CollectionTabs } from '@/features/library/collection-tabs'
+import { CollectionContent } from '@/features/library/collection-content'
 import { ActionButton } from '@/components/music/action-button'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
@@ -194,16 +194,16 @@ export function MusicPageSkeleton({
   if (view === 'collection' && collection)
     return (
       <MusicPage aria-busy="true">
-        <CollectionHeader
-          collection={collection}
-          total={collection.trackCount}
-          busy={false}
-          disabled
-          onPlay={noOp}
-        />
-        <CollectionTabs collection={collection} hasMore={false}>
+        <CollectionContent>
+          <CollectionHeader
+            collection={collection}
+            total={collection.trackCount}
+            busy={false}
+            disabled
+            onPlay={noOp}
+          />
           <TrackListSkeleton />
-        </CollectionTabs>
+        </CollectionContent>
       </MusicPage>
     )
   if (view === 'discover' && !tracks)

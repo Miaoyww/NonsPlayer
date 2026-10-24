@@ -278,34 +278,6 @@ node scripts/build-plugin.mjs netease-download .local/plugins/netease-download
 - `files.open-directory`：按目录权限校验 `{root}`，打开对应根目录，不接受外部路径。
 - React SDK 复用 `SongIdentity`、`DownloadedSongList`、`Input`、`Icon` 及 Tabs 系列组件。`SongIdentity` 使用宿主 `TrackIdentity`；`DownloadedSongList` 接收 `{song,root,path,completedAt?,size}` 数组，复用虚拟化 `TrackList`，显示专辑、下载时间与文件大小并播放本地文件。缺失文件独立报告，其余文件可正常显示。
 
-## 收藏详情 tab 扩展
-
-歌单、专辑和本地收藏详情默认提供“歌曲”tab，沿用发现页的 Tabs 组件；宿主不提供评论业务。可信插件可在 `activate(client)` 中调用 `client.registerCollectionTab(...)` 插入内容，例如：
-
-```tsx
-import type { PluginClient, PluginCollection } from '@app/plugin-sdk'
-
-function Comments({ collection }: { collection: PluginCollection }) {
-  return <section aria-label="歌单评论">{collection.name} 的插件内容</section>
-}
-
-export function activate(client: PluginClient) {
-  return client.registerCollectionTab({
-    id: 'comments',
-    label: '评论',
-    kinds: ['playlist'],
-    sources: ['netease'],
-    component: Comments
-  })
-}
-```
-
-需要 manifest 声明 `frontend` 和 `ui` 权限，无需新增 manifest contribution 字段。`kinds`／`sources` 省略时匹配全部已接入的收藏详情；网易云艺术家页保留既有歌曲／专辑标签，目前不接入该扩展。每插件最多 8 个 tab，ID 为 1–64 字符的小写字母、数字或连字符且以字母开头，标题最多 40 字符；同一实例内 ID 不可重复，不同插件独立命名空间。组件可使用现有 SDK，并受插件 Scope、错误隔离及加载代次约束。
-
-组件收到 `{ collection }`：`source`、`kind`、`id`、`name`、`subtitle`、`cover` 和 `trackCount`。网易云 ID 为数字，本地 ID 为曲库标识；仅交付 HTTP(S) 封面，不暴露本地封面路径。网络访问与登录凭证仍需分别申请对应权限，宿主不会代为提供评论接口。
-
-注册返回可重复调用的清理函数；插件停用、重载、卸载或激活失败时宿主自动清理。未完成加载的实例不会展示 tab；选中 tab 消失后自动回到“歌曲”。只挂载当前选择的插件内容，切换收藏重置到“歌曲”，组件应清理自身请求、订阅和定时器。
-
 ## 统一音乐客户端（ADR 0006 阶段三）
 
 宿主现已开放来源无关的音乐 DTO 和受控能力。TypeScript 定义位于 `packages/plugin-sdk/music.d.ts`，由 `@app/plugin-sdk` 导出；React 插件调用 `useMusicSource()` 的 `sources/getTrack/query/write`，WASM 后端通过既有 host.call 调用 `music.sources`、`music.read-track`、`music.query`、`music.write`。

@@ -5,6 +5,9 @@ import { Play } from 'lucide-react'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
+import { ArtistLinks } from '@/components/music/music-links'
+import { CollectionKind } from './collection-kind'
+import { CollectionSearch } from './collection-content'
 
 interface Props {
   collection: MusicCollection
@@ -15,6 +18,8 @@ interface Props {
   cover?: ReactNode
   actions?: ReactNode
   kindLabel?: string
+  credits?: ReactNode
+  metadata?: ReactNode
   onPlay: () => void
 }
 
@@ -27,12 +32,19 @@ export function CollectionHeader({
   onPlay,
   cover,
   actions,
-  kindLabel
+  kindLabel,
+  credits,
+  metadata
 }: Props) {
-  const kind =
-    collection.kind === 'playlist' ? '歌单' : collection.kind === 'album' ? '专辑' : '艺人'
+  const author =
+    credits ??
+    (collection.kind === 'album' && (collection.artists?.length || collection.subtitle) ? (
+      <ArtistLinks artists={collection.artists} name={collection.subtitle} />
+    ) : collection.kind === 'playlist' && collection.creatorId !== undefined ? (
+      collection.subtitle.trim()
+    ) : undefined)
   return (
-    <DetailHeader>
+    <DetailHeader className="library-collection-header">
       {cover ?? (
         <Cover
           size="large"
@@ -41,16 +53,14 @@ export function CollectionHeader({
         />
       )}
       <div className="library-detail-info">
+        <CollectionKind collection={collection} label={kindLabel} />
         <h1 className="library-detail-title">{collection.name}</h1>
         <div className="library-detail-meta">
-          <p className="font-semibold">
-            {kindLabel ?? kind}
-            {collection.subtitle && ` · ${collection.subtitle}`}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {collection.kind === 'artist' ? '热门歌曲' : '音乐收藏'}
-            {total > 0 && ` · ${total} 首音乐`}
-          </p>
+          {author && <span>by {author}</span>}
+          <span>
+            {total} 首{collection.kind === 'artist' ? '热门歌曲' : ''}
+          </span>
+          {metadata}
         </div>
         <DetailDescription description={description} />
         <div className="library-detail-actions flex flex-wrap items-center gap-2">
@@ -64,6 +74,7 @@ export function CollectionHeader({
             {busy ? '正在加载…' : '播放'}
           </ActionButton>
           {actions}
+          <CollectionSearch />
         </div>
       </div>
     </DetailHeader>

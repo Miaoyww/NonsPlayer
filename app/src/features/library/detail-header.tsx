@@ -1,6 +1,12 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 
-export function DetailHeader({ children }: { children: ReactNode }) {
+export function DetailHeader({
+  children,
+  className = ''
+}: {
+  children: ReactNode
+  className?: string
+}) {
   const header = useRef<HTMLElement>(null)
   useLayoutEffect(() => {
     const element = header.current
@@ -21,7 +27,7 @@ export function DetailHeader({ children }: { children: ReactNode }) {
     }
   }, [])
   return (
-    <header ref={header} className="library-detail-header">
+    <header ref={header} className={`library-detail-header ${className}`}>
       {children}
     </header>
   )

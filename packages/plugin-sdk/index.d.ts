@@ -142,26 +142,8 @@ export interface DownloadedSong {
 }
 export const DownloadedSongList: ComponentType<{ songs: DownloadedSong[] }>
 
-export interface PluginCollection {
-  source: string
-  kind: 'playlist' | 'album' | 'artist'
-  id: number | string
-  name: string
-  subtitle: string
-  cover: string
-  trackCount: number
-}
-export interface CollectionTabRegistration {
-  id: string
-  label: string
-  kinds?: PluginCollection['kind'][]
-  sources?: PluginCollection['source'][]
-  component: ComponentType<{ collection: PluginCollection }>
-}
-
 /** Passed to activate(client) and song menu handlers; bound to this plugin generation. */
 export interface PluginClient {
-  registerCollectionTab(tab: CollectionTabRegistration): () => void
   call<T = unknown>(operation: string, args?: unknown): Promise<T>
   openPage(path?: string): void
   openConfiguration(): void

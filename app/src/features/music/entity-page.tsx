@@ -7,7 +7,7 @@ import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { MusicPage } from '@/components/music/music-page'
 import { CollectionHeader } from '@/features/library/collection-header'
-import { CollectionTabs } from '@/features/library/collection-tabs'
+import { CollectionContent } from '@/features/library/collection-content'
 import ArtistPage from '@/features/library/artist-page'
 import AlbumPage from '@/features/library/album-page'
 import { playLibraryCollection } from '@/features/library/library-api'
@@ -168,34 +168,34 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
   }, [load, reference, onError])
   return (
     <MusicPage aria-label="音乐详情">
-      <CollectionHeader
-        collection={detail}
-        description={description}
-        actions={
-          detail.kind === 'playlist' ? (
-            <PlatformPlaylistMenu
-              key={`${reference.source}:${profile?.reference?.id}:${reference.id}`}
-              collection={detail}
-              account={profile?.reference}
-              onError={onError}
-            />
-          ) : undefined
-        }
-        total={total || detail.trackCount}
-        busy={playing}
-        disabled={playing || !isTauri() || !tracks.length}
-        onPlay={() => {
-          if (playing) return
-          setPlaying(true)
-          void playLibraryCollection(detail, tracks[0]?.key)
-            .then((truncated) => {
-              if (truncated) onNotice?.('已将前 1000 首歌曲加入播放队列。')
-            })
-            .catch(onError)
-            .finally(() => setPlaying(false))
-        }}
-      />
-      <CollectionTabs collection={detail} hasMore={query.current.more}>
+      <CollectionContent hasMore={query.current.more}>
+        <CollectionHeader
+          collection={detail}
+          description={description}
+          actions={
+            detail.kind === 'playlist' ? (
+              <PlatformPlaylistMenu
+                key={`${reference.source}:${profile?.reference?.id}:${reference.id}`}
+                collection={detail}
+                account={profile?.reference}
+                onError={onError}
+              />
+            ) : undefined
+          }
+          total={total || detail.trackCount}
+          busy={playing}
+          disabled={playing || !isTauri() || !tracks.length}
+          onPlay={() => {
+            if (playing) return
+            setPlaying(true)
+            void playLibraryCollection(detail, tracks[0]?.key)
+              .then((truncated) => {
+                if (truncated) onNotice?.('已将前 1000 首歌曲加入播放队列。')
+              })
+              .catch(onError)
+              .finally(() => setPlaying(false))
+          }}
+        />
         <TrackList
           tracks={tracks}
           hasMore={query.current.more}
@@ -216,15 +216,15 @@ function EntityResults({ collection, onError, onNotice }: EntityPageProps) {
             void nativeCall('append_queue', { keys: [track.key] }).catch(onError)
           }}
         />
-      </CollectionTabs>
-      <InfiniteLoad
-        more={query.current.more}
-        busy={busy}
-        error={error}
-        onLoad={() => {
-          void load()
-        }}
-      />
+        <InfiniteLoad
+          more={query.current.more}
+          busy={busy}
+          error={error}
+          onLoad={() => {
+            void load()
+          }}
+        />
+      </CollectionContent>
     </MusicPage>
   )
 }

@@ -24,6 +24,18 @@
   margin-top: auto;
   padding-top: 8px;
 }
+:where(.music-workspace[data-density='compact']) .library-collection-header .library-detail-meta,
+:where(.music-workspace[data-density='compact'])
+  .library-collection-header
+  .library-detail-description {
+  margin-top: 6px;
+}
+:where(.music-workspace[data-density='compact'])
+  .library-collection-header
+  .library-detail-actions {
+  margin-top: 20px;
+  padding-top: 0;
+}
 :where(.music-workspace[data-density='compact']) .library-heading {
   font-size: clamp(26px, 2.8vw, 34px);
 }

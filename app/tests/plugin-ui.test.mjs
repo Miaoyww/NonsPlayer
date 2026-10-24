@@ -165,7 +165,6 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
       '@tauri-apps/api/event': { listen: async () => () => {} },
       react: React,
       './song-components': songComponents,
-      './collection-tabs': {},
       './scope': scopeModule,
       './types': routing,
       '@/lib/player': {

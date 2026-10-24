@@ -40,6 +40,17 @@ export function AggregateHeader({
         collection={{ ...aggregateCollection(playlist), subtitle: '' }}
         kindLabel="聚合歌单"
         total={playlist.trackCount}
+        metadata={
+          playlist.link && (
+            <span role="status">
+              {sync.progress?.running
+                ? `正在从原歌单读取 ${sync.progress.count} 首…`
+                : playlist.link.lastSuccess
+                  ? `${new Date(playlist.link.lastSuccess * 1000).toLocaleString()} 从原歌单更新`
+                  : '尚未更新'}
+            </span>
+          )
+        }
         busy={busy}
         disabled={busy || !playlist.trackCount}
         onPlay={onPlay}
@@ -122,13 +133,8 @@ export function AggregateHeader({
           </>
         }
       />
-      {playlist.link && (
-        <div className="mb-6 text-xs text-muted-foreground" role="status">
-          {sync.progress?.running
-            ? `正在从原歌单读取 ${sync.progress.count} 首…`
-            : playlist.link.lastSuccess
-              ? `上次从原歌单更新：${new Date(playlist.link.lastSuccess * 1000).toLocaleString()}`
-              : '尚未更新'}
+      {playlist.link && (sync.error || playlist.link.error) && (
+        <div className="mb-4 text-xs" role="status">
           <ErrorNotice error={sync.error ?? playlist.link.error ?? undefined} />
         </div>
       )}

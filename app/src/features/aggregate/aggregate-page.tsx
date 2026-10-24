@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Trash2, ArrowUpDown, Check, ListChecks } from 'lucide-react'
 import { isTauri } from '@tauri-apps/api/core'
 import { MusicPage } from '@/components/music/music-page'
+import { CollectionContent } from '@/features/library/collection-content'
 import { ActionButton } from '@/components/music/action-button'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
@@ -194,125 +195,134 @@ export default function AggregatePage({
   }
   return (
     <MusicPage aria-label="聚合歌单">
-      <AggregateHeader
-        key={id}
-        playlist={playlist}
-        batch={batch}
-        onBatch={toggleBatch}
-        busy={busy}
-        onPlay={() =>
-          void run(async () => {
-            const skipped = await playAggregate(id)
-            onNotice(skipped ? `已开始播放，跳过 ${skipped} 首已退出曲库的歌曲。` : '已开始播放。')
-          })
-        }
-        onEdit={(operation) => {
-          setName(playlist.name)
-          setEdit(operation)
-        }}
-      />
-      {batch && (
-        <div
-          className="mb-4 flex flex-wrap items-center gap-2"
-          role="toolbar"
-          aria-label="批量操作"
-        >
-          <span className="mr-2 inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <ListChecks aria-hidden="true" className="size-4" />
-            已选 {selected.size} 首
-          </span>
-          <ActionButton
-            disabled={
-              busy ||
-              !selected.size ||
-              list.items.some((m) => selected.has(m.track.key) && m.remote)
-            }
-            variant="outline"
-            title={
-              list.items.some((m) => selected.has(m.track.key) && m.remote)
-                ? '原歌单歌曲始终跟随平台，请在原歌单中删除'
-                : undefined
-            }
-            onClick={() => void mutate('remove')}
-          >
-            <Trash2 aria-hidden="true" />
-            移除
-          </ActionButton>
-          <ActionButton
-            disabled={busy || !selected.size}
-            variant="outline"
-            onClick={() =>
-              actions.collectGroup(
-                list.items.filter((m) => selected.has(m.track.key)).map((m) => m.track)
+      <CollectionContent key={id} hasMore={list.more} searchable={!batch}>
+        <AggregateHeader
+          key={id}
+          playlist={playlist}
+          batch={batch}
+          onBatch={toggleBatch}
+          busy={busy}
+          onPlay={() =>
+            void run(async () => {
+              const skipped = await playAggregate(id)
+              onNotice(
+                skipped ? `已开始播放，跳过 ${skipped} 首已退出曲库的歌曲。` : '已开始播放。'
               )
-            }
+            })
+          }
+          onEdit={(operation) => {
+            setName(playlist.name)
+            setEdit(operation)
+          }}
+        />
+        {batch && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-2"
+            role="toolbar"
+            aria-label="批量操作"
           >
-            <Plus aria-hidden="true" />
-            添加到其他聚合歌单
-          </ActionButton>
-          <ActionButton
-            disabled={busy || !selected.size}
-            variant="outline"
-            onClick={() => setEdit('order')}
-          >
-            <ArrowUpDown aria-hidden="true" />
-            移动到位置
-          </ActionButton>
-          <ActionButton variant="outline" className="ml-auto" disabled={busy} onClick={toggleBatch}>
-            <Check aria-hidden="true" />
-            完成
-          </ActionButton>
-        </div>
-      )}
-      <TrackList
-        tracks={list.items.map((m) => m.track)}
-        busy={busy}
-        currentKey={currentKey}
-        searchable={!batch}
-        hasMore={list.more}
-        selection={
-          batch
-            ? {
-                keys: selected,
-                onToggle: (key, checked) =>
-                  setSelected((old) => {
-                    const next = new Set(old)
-                    if (checked) next.add(key)
-                    else next.delete(key)
-                    return next
-                  }),
-                onToggleAll: (keys, checked) =>
-                  setSelected((old) => {
-                    const next = new Set(old)
-                    for (const key of keys) {
+            <span className="mr-2 inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <ListChecks aria-hidden="true" className="size-4" />
+              已选 {selected.size} 首
+            </span>
+            <ActionButton
+              disabled={
+                busy ||
+                !selected.size ||
+                list.items.some((m) => selected.has(m.track.key) && m.remote)
+              }
+              variant="outline"
+              title={
+                list.items.some((m) => selected.has(m.track.key) && m.remote)
+                  ? '原歌单歌曲始终跟随平台，请在原歌单中删除'
+                  : undefined
+              }
+              onClick={() => void mutate('remove')}
+            >
+              <Trash2 aria-hidden="true" />
+              移除
+            </ActionButton>
+            <ActionButton
+              disabled={busy || !selected.size}
+              variant="outline"
+              onClick={() =>
+                actions.collectGroup(
+                  list.items.filter((m) => selected.has(m.track.key)).map((m) => m.track)
+                )
+              }
+            >
+              <Plus aria-hidden="true" />
+              添加到其他聚合歌单
+            </ActionButton>
+            <ActionButton
+              disabled={busy || !selected.size}
+              variant="outline"
+              onClick={() => setEdit('order')}
+            >
+              <ArrowUpDown aria-hidden="true" />
+              移动到位置
+            </ActionButton>
+            <ActionButton
+              variant="outline"
+              className="ml-auto"
+              disabled={busy}
+              onClick={toggleBatch}
+            >
+              <Check aria-hidden="true" />
+              完成
+            </ActionButton>
+          </div>
+        )}
+        <TrackList
+          tracks={list.items.map((m) => m.track)}
+          busy={busy}
+          currentKey={currentKey}
+          searchable={!batch}
+          hasMore={list.more}
+          selection={
+            batch
+              ? {
+                  keys: selected,
+                  onToggle: (key, checked) =>
+                    setSelected((old) => {
+                      const next = new Set(old)
                       if (checked) next.add(key)
                       else next.delete(key)
-                    }
-                    return next
-                  })
-              }
-            : undefined
-        }
-        onPlay={(_, tracks) => {
-          void run(() => playAggregate(id, tracks[_]?.key))
-        }}
-        onRemove={(track) => mutate('remove', [track.key])}
-        canRemove={(track) => !members.get(track.key)?.remote}
-        removeLabel="从聚合歌单移除"
-        renderSource={(track) => {
-          const m = members.get(track.key)!
-          return (
-            <span title={reason(m)}>
-              {sourceName(m)}
-              {reason(m) ? ` · ${reason(m)}` : ''}
-            </span>
-          )
-        }}
-      />
-      <InfiniteLoad more={list.more} busy={list.busy} error={list.error} onLoad={list.loadMore} />
-      {!list.busy && !list.items.length && (
-        <p className="py-8 text-muted-foreground">还没有歌曲，可从歌曲菜单添加。</p>
-      )}
+                      return next
+                    }),
+                  onToggleAll: (keys, checked) =>
+                    setSelected((old) => {
+                      const next = new Set(old)
+                      for (const key of keys) {
+                        if (checked) next.add(key)
+                        else next.delete(key)
+                      }
+                      return next
+                    })
+                }
+              : undefined
+          }
+          onPlay={(_, tracks) => {
+            void run(() => playAggregate(id, tracks[_]?.key))
+          }}
+          onRemove={(track) => mutate('remove', [track.key])}
+          canRemove={(track) => !members.get(track.key)?.remote}
+          removeLabel="从聚合歌单移除"
+          renderSource={(track) => {
+            const m = members.get(track.key)!
+            return (
+              <span title={reason(m)}>
+                {sourceName(m)}
+                {reason(m) ? ` · ${reason(m)}` : ''}
+              </span>
+            )
+          }}
+        />
+        <InfiniteLoad more={list.more} busy={list.busy} error={list.error} onLoad={list.loadMore} />
+        {!list.busy && !list.items.length && (
+          <p className="py-8 text-muted-foreground">还没有歌曲，可从歌曲菜单添加。</p>
+        )}
+      </CollectionContent>
       <Dialog
         open={!!edit}
         onOpenChange={(open) => {
