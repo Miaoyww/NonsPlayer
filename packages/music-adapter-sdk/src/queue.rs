@@ -9,12 +9,9 @@ use serde::{Deserialize, Serialize};
     rename_all_fields = "camelCase"
 )]
 pub enum TrackSource {
-    /// New online entries retain the full uniform metadata and opaque identity.
+    /// Online entries retain the full uniform metadata and opaque identity.
     Online {
         track: Box<crate::identity::MusicTrack>,
-    },
-    Netease {
-        id: u64,
     },
     Local {
         path: String,
@@ -37,7 +34,6 @@ pub struct CueTrack {
 #[serde(rename_all = "camelCase")]
 pub struct MusicCredit {
     pub name: String,
-    pub id: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -50,8 +46,6 @@ pub struct Track {
     pub artist: String,
     #[serde(default)]
     pub artists: Vec<MusicCredit>,
-    #[serde(default)]
-    pub album_id: Option<u64>,
     pub album: String,
     pub duration_ms: u64,
     pub cover: crate::cover::CoverImage,
@@ -72,8 +66,7 @@ impl Track {
             return Err(crate::ErrorCode::InvalidData.into());
         }
         Ok(Self {
-            key: crate::migration::historical_key(&track.reference)
-                .unwrap_or_else(|| track.reference.key()),
+            key: track.reference.key(),
             title: track.title.clone(),
             aliases: track.aliases.clone(),
             artist: track.artist.clone(),
@@ -82,10 +75,8 @@ impl Track {
                 .iter()
                 .map(|credit| MusicCredit {
                     name: credit.name.clone(),
-                    id: None,
                 })
                 .collect(),
-            album_id: None,
             album: track.album.clone(),
             duration_ms: track.duration_ms,
             cover: track.cover.clone(),
@@ -98,7 +89,6 @@ impl Track {
     pub fn source_id(&self) -> &str {
         match &self.source {
             TrackSource::Online { track } => track.reference.source.as_str(),
-            TrackSource::Netease { .. } => "netease",
             TrackSource::Local { .. } => "local",
         }
     }
@@ -109,7 +99,6 @@ impl Track {
                 .chain(track.associations.iter())
                 .find(|reference| reference.source.as_str() == "netease")
                 .and_then(|reference| reference.id.as_str().parse().ok()),
-            TrackSource::Netease { id } => Some(*id),
             TrackSource::Local { netease_id, .. } => *netease_id,
         }
     }

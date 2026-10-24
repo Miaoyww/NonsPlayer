@@ -6,7 +6,7 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
 function harness({
-  source = { kind: 'netease', id: 7 },
+  source = { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id: '7' } } },
   desktop = true,
   loggedIn = true,
   ready = true,
@@ -65,7 +65,7 @@ function harness({
     runInNewContext(outputText, {
       exports,
       require: (name) =>
-        name === '@/features/music/legacy-reference' ? musicReference : (modules[name] ?? {})
+        name === '@/features/music/references' ? musicReference : (modules[name] ?? {})
     })
     return exports
   }

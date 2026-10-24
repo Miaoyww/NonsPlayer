@@ -427,8 +427,8 @@ impl Collections {
         let items = tracks
             .into_iter()
             .map(|track| {
-                nons_music_adapter_sdk::migration::convert_track(track)
-                    .map(|migrated| migrated.track)
+                nons_music_adapter_sdk::metadata::queue_metadata(track)
+                    .map(|metadata| metadata.track)
             })
             .collect::<MusicResult<_>>()?;
         let result = business::BusinessResponse::Tracks(business::TrackPage {

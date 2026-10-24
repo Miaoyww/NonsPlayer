@@ -4,6 +4,6 @@
 
 `ProviderAccounts` 是宿主为受信任原生后端绑定的单来源桥，提供当前会话、受限凭据读取和账号失效通知；不暴露存储或其他来源的账号管理。它与 `AccountAccess` 一样不是普通功能插件的公开权限。实现方每次读取必须复核来源、账号和实例代次，并将持久凭据处理放在有界阻塞任务中。
 
-`legacy` 与 `migration` 保留历史 Track/Lyrics DTO 和纯曲目转换。宿主兼容队列的 `TrackSource::Online` 保存完整统一曲目，`Track::from_music` 用引用元组 key 隔离新平台；网易云继续转换为旧 `netease:<id>`，避免与历史队列重复。本地路径留在宿主兼容类型，新的音乐调用使用不透明 `EntityRef`。队列事务、系统凭据迁移与账号选择由宿主管理。
+`queue` 定义当前播放队列和歌词 DTO，在线项只使用 `TrackSource::Online` 与完整 `MusicTrack`，本地项保留宿主管理的路径与歌词绑定。`Track::from_music` 对所有来源使用统一引用元组 key。`metadata` 负责队列元数据投影与身份验证，不读取或转换历史格式。旧网易云 DTO、旧 key、字符串封面和账号迁移均已移除；旧格式记录允许失效，不提供升级转换。
 
 共享契约没有平台 SDK、播放引擎、Tauri、账号存储或插件管理器依赖。契约版本保持 `1`。详细接口及预算见 [音乐适配器文档](../../docs/music-adapters.md)。

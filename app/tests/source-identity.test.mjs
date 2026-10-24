@@ -14,7 +14,7 @@ test('plugin song menus preserve online references and never classify unknown pl
   ).outputText
   runInNewContext(code, {
     exports,
-    require: (name) => (name === '@/features/music/legacy-reference' ? musicReference : coverImage)
+    require: (name) => (name === '@/features/music/references' ? musicReference : coverImage)
   })
   const reference = { source: 'qqmusic', kind: 'track', id: 'music/雪:1' }
   const track = {

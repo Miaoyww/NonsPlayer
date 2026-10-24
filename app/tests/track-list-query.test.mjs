@@ -185,8 +185,8 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
         exports,
         require: (name) => {
           if (name === '@/components/error-notice') return errorNoticeModule
-          assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
-          return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+          assert.ok(name === '@/features/music/references' || name in modules, name)
+          return name === '@/features/music/references' ? musicReference : modules[name]
         },
         ResizeObserver: class {
           observe() {}
@@ -224,8 +224,8 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
       exports,
       require: (name) => {
         if (name === '@/components/error-notice') return errorNoticeModule
-        assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
-        return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+        assert.ok(name === '@/features/music/references' || name in modules, name)
+        return name === '@/features/music/references' ? musicReference : modules[name]
       },
       ResizeObserver: class {
         observe() {}
@@ -772,7 +772,13 @@ test('loading uses the same table, headers, columns and identity spacing as load
     const props = { sortable: true, onAppend: () => {}, showLikes: true, externalQuery: '' }
     await render({
       ...props,
-      tracks: tracks.map((t) => ({ ...t, source: { kind: 'netease', id: 1 } }))
+      tracks: tracks.map((t) => ({
+        ...t,
+        source: {
+          kind: 'online',
+          track: { reference: { source: 'netease', kind: 'track', id: '1' } }
+        }
+      }))
     })
     const columns = [...document.querySelectorAll('col')].map((c) => c.style.width)
     const headers = document.querySelector('thead').textContent

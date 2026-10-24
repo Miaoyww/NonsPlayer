@@ -494,7 +494,6 @@ pub enum AccountPresentation {
 pub struct AccountOutcome {
     pub presentation: AccountPresentation,
     pub credential: Option<(AccountRecord, OpaqueCredential)>,
-    pub migration: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -30,28 +30,9 @@ pub(crate) fn queue(store: &Store, id: &str) -> AppResult<(Vec<Track>, u32)> {
     }
     Ok((tracks, skipped))
 }
-pub(crate) fn migrate(db: &Connection) -> rusqlite::Result<()> {
-    let columns = db
-        .prepare("PRAGMA table_info(local_playlist_tracks)")?
-        .query_map([], |r| r.get::<_, String>(1))?
-        .collect::<Result<Vec<_>, _>>()?;
-    for (name, definition) in [
-        ("manual", "INTEGER NOT NULL DEFAULT 1"),
-        ("remote", "INTEGER NOT NULL DEFAULT 0"),
-        ("excluded", "INTEGER NOT NULL DEFAULT 0"),
-        ("value", "TEXT"),
-    ] {
-        if !columns.iter().any(|v| v == name) {
-            db.execute_batch(&format!(
-                "ALTER TABLE local_playlist_tracks ADD COLUMN {name} {definition};"
-            ))?;
-        }
-    }
-    db.execute_batch("UPDATE local_playlist_tracks SET value=COALESCE((SELECT value FROM tracks WHERE tracks.key=local_playlist_tracks.key),json_object('key',key,'title','已退出曲库的歌曲','artist','未知艺术家','album','','durationMs',0,'cover','','source',json_object('kind','local','path',''))) WHERE value IS NULL;
-        CREATE INDEX IF NOT EXISTS aggregate_member_order ON local_playlist_tracks(playlist_id,position);
-        CREATE TABLE IF NOT EXISTS aggregate_links(playlist_id INTEGER PRIMARY KEY, source TEXT NOT NULL, account TEXT NOT NULL, entity TEXT NOT NULL, reference TEXT NOT NULL, last_success INTEGER NOT NULL DEFAULT 0, last_attempt INTEGER NOT NULL DEFAULT 0, error TEXT, UNIQUE(source,account,entity));
-        DELETE FROM local_playlist_tracks WHERE excluded=1 AND remote=0;
-        UPDATE local_playlist_tracks SET manual=0,remote=1,excluded=0 WHERE playlist_id IN (SELECT playlist_id FROM aggregate_links) AND (remote=1 OR COALESCE(json_extract(value,'$.source.track.reference.source'),json_extract(value,'$.source.kind'))=(SELECT source FROM aggregate_links WHERE playlist_id=local_playlist_tracks.playlist_id));")
+pub(crate) fn initialize(db: &Connection) -> rusqlite::Result<()> {
+    db.execute_batch("CREATE INDEX IF NOT EXISTS aggregate_member_order ON local_playlist_tracks(playlist_id,position);
+        CREATE TABLE IF NOT EXISTS aggregate_links(playlist_id INTEGER PRIMARY KEY, source TEXT NOT NULL, account TEXT NOT NULL, entity TEXT NOT NULL, reference TEXT NOT NULL, last_success INTEGER NOT NULL DEFAULT 0, last_attempt INTEGER NOT NULL DEFAULT 0, error TEXT, UNIQUE(source,account,entity));")
 }
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -138,7 +119,7 @@ fn summary(db: &Connection, id: String, name: String) -> AppResult<Playlist> {
             |r| r.get(0),
         )
         .map_err(|e| e.to_string())?;
-    let covers=db.prepare("SELECT DISTINCT COALESCE(json_extract(COALESCE(t.value,p.value),'$.cover.original'),json_extract(COALESCE(t.value,p.value),'$.cover')) FROM local_playlist_tracks p LEFT JOIN tracks t ON t.key=p.key WHERE p.playlist_id=?1 AND p.excluded=0 AND COALESCE(json_extract(COALESCE(t.value,p.value),'$.cover.original'),json_extract(COALESCE(t.value,p.value),'$.cover'),'')<>'' ORDER BY p.position LIMIT 4").map_err(|e|e.to_string())?.query_map([&id],|r|r.get(0)).map_err(|e|e.to_string())?.collect::<Result<Vec<_>,_>>().map_err(|e|e.to_string())?;
+    let covers=db.prepare("SELECT DISTINCT json_extract(COALESCE(t.value,p.value),'$.cover.original') FROM local_playlist_tracks p LEFT JOIN tracks t ON t.key=p.key WHERE p.playlist_id=?1 AND p.excluded=0 AND COALESCE(json_extract(COALESCE(t.value,p.value),'$.cover.original'),'')<>'' ORDER BY p.position LIMIT 4").map_err(|e|e.to_string())?.query_map([&id],|r|r.get(0)).map_err(|e|e.to_string())?.collect::<Result<Vec<_>,_>>().map_err(|e|e.to_string())?;
     Ok(Playlist {
         link: linked(db, &id)?,
         id,
@@ -393,7 +374,7 @@ pub(crate) fn apply_checked(
     };
     Store::save_tracks_in(&tx, tracks)?;
     tx.execute(
-        "UPDATE local_playlist_tracks SET manual=0 WHERE playlist_id=?1 AND (remote=1 OR COALESCE(json_extract(value,'$.source.track.reference.source'),json_extract(value,'$.source.kind'))=?2)",
+        "UPDATE local_playlist_tracks SET manual=0 WHERE playlist_id=?1 AND (remote=1 OR json_extract(value,'$.source.track.reference.source')=?2)",
         params![id,link.reference.source.as_str()],
     ).map_err(|e|e.to_string())?;
     tx.execute(

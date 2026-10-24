@@ -2735,7 +2735,6 @@ impl Actor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::TrackSource;
 
     #[test]
     fn retry_is_bound_to_failed_revision_and_keeps_the_current_position() {
@@ -2842,17 +2841,26 @@ mod tests {
     fn snapshot(index: usize, position_ms: u64, mode: RepeatMode) -> PlayerSnapshot {
         PlayerSnapshot {
             queue: (0..3)
-                .map(|id| Track {
-                    key: id.to_string(),
-                    title: id.to_string(),
-                    aliases: vec![],
-                    artist: String::new(),
-                    artists: vec![],
-                    album_id: None,
-                    album: String::new(),
-                    duration_ms: 180_000,
-                    cover: Default::default(),
-                    source: TrackSource::Netease { id },
+                .map(|id| {
+                    Track::from_music(nons_music_adapter_sdk::identity::MusicTrack {
+                        title: id.to_string(),
+                        aliases: vec![],
+                        artist: String::new(),
+                        artists: vec![],
+                        album_reference: None,
+                        album: String::new(),
+                        duration_ms: 180_000,
+                        cover: Default::default(),
+                        reference: nons_music_adapter_sdk::identity::EntityRef {
+                            source: "netease".to_string().try_into().unwrap(),
+                            kind: nons_music_adapter_sdk::identity::EntityKind::Track,
+                            id: (id).to_string().try_into().unwrap(),
+                        },
+                        associations: vec![],
+                        lyric_identifiers: vec![],
+                        unavailable_reason: None,
+                    })
+                    .unwrap()
                 })
                 .collect::<Vec<_>>()
                 .into(),
@@ -2915,7 +2923,7 @@ mod tests {
             if insert {
                 state.insert_next(vec![new_track.clone()]).unwrap();
             } else {
-                state.remove_track(0, "0").unwrap();
+                state.remove_track(0, &new_track.key).unwrap();
             }
             assert_eq!(state.private_fm_session, None);
             let original_len = state.queue.len();

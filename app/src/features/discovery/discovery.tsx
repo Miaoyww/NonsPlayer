@@ -69,6 +69,7 @@ interface Category {
   group: string
 }
 const radar: MusicCollection = {
+  reference: null,
   id: 0,
   kind: 'playlist',
   name: '私人雷达',

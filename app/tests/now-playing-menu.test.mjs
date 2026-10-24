@@ -47,12 +47,12 @@ function harness() {
     'lucide-react': {},
     '@/components/music/action-button': { ActionButton: 'button' },
     '@/components/music/song-actions': {
-      songLink: (track) => `https://music.163.com/#/song?id=${track.source.id}`,
+      songLink: (track) => `https://music.163.com/#/song?id=${track.source.track.reference.id}`,
       songCopyName: (track) => `${track.title} - ${track.artist}`,
       useSongActions: () => ({
         songLink: (track) =>
-          track.source.kind === 'netease'
-            ? `https://music.163.com/#/song?id=${track.source.id}`
+          track.source.kind === 'online'
+            ? `https://music.163.com/#/song?id=${track.source.track.reference.id}`
             : '',
         run: (operation) => operation(),
         copy: (value) => calls.push(['copy', value]),
@@ -70,8 +70,7 @@ function harness() {
   )
   runInNewContext(outputText, {
     exports,
-    require: (name) =>
-      name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+    require: (name) => (name === '@/features/music/references' ? musicReference : modules[name])
   })
   const flatten = (node) =>
     Array.isArray(node)
@@ -105,7 +104,7 @@ const stream = {
   key: 'netease:12',
   title: 'Song',
   artist: 'Artist',
-  source: { kind: 'netease', id: 12 }
+  source: { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id: '12' } } }
 }
 const local = {
   ...stream,

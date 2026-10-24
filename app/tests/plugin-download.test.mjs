@@ -32,8 +32,7 @@ function load(path, modules = {}, globals = {}) {
   modules = {
     ...(path.endsWith('/runtime.ts')
       ? {
-          './account': load('../../plugins/netease-download/frontend/account.ts'),
-          './migration': load('../../plugins/netease-download/frontend/migration.ts')
+          './account': load('../../plugins/netease-download/frontend/account.ts')
         }
       : {}),
     '@/features/music/cover-image': coverImage,
@@ -56,8 +55,8 @@ function load(path, modules = {}, globals = {}) {
     setTimeout: (fn) => setTimeout(fn, 0),
     require: (name) => {
       if (name === '@/components/error-notice') return errorNoticeModule
-      assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
-      return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+      assert.ok(name === '@/features/music/references' || name in modules, name)
+      return name === '@/features/music/references' ? musicReference : modules[name]
     },
     ...globals
   })

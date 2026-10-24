@@ -4,9 +4,9 @@ pub mod adapter;
 pub mod business;
 pub mod cover;
 pub mod identity;
-pub mod legacy;
-pub mod migration;
+pub mod metadata;
 pub mod provider;
+pub mod queue;
 pub mod resource;
 use serde::{Deserialize, Serialize};
 

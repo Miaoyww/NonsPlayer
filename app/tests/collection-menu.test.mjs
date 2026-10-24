@@ -89,7 +89,7 @@ function harness() {
     require: (name) =>
       name === '@/components/error-notice'
         ? errorNoticeModule
-        : name === '@/features/music/legacy-reference'
+        : name === '@/features/music/references'
           ? musicReference
           : modules[name]
   })
@@ -222,7 +222,7 @@ test('song favorite action precedes the divider and unavailable remove actions a
     require: (name) =>
       name === '@/components/error-notice'
         ? errorNoticeModule
-        : name === '@/features/music/legacy-reference'
+        : name === '@/features/music/references'
           ? musicReference
           : modules[name]
   })
@@ -234,7 +234,13 @@ test('song favorite action precedes the divider and unavailable remove actions a
         : []
   }
   const props = {
-    track: { title: 'Song', source: { kind: 'netease', id: 12 } },
+    track: {
+      title: 'Song',
+      source: {
+        kind: 'online',
+        track: { reference: { source: 'netease', kind: 'track', id: '12' } }
+      }
+    },
     render: jsx('div', {}),
     children: null,
     onPlay() {}

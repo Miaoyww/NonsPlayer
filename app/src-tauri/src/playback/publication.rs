@@ -158,18 +158,25 @@ mod tests {
     use super::*;
 
     fn track(id: u64) -> Track {
-        Track {
-            key: format!("netease:{id}"),
+        Track::from_music(nons_music_adapter_sdk::identity::MusicTrack {
             title: format!("歌曲 {id}"),
             aliases: vec![],
             artist: "歌手".into(),
             artists: vec![],
             album: "专辑".into(),
-            album_id: None,
+            album_reference: None,
             duration_ms: 180_000,
             cover: "https://example.com/cover.jpg".into(),
-            source: crate::model::TrackSource::Netease { id },
-        }
+            reference: nons_music_adapter_sdk::identity::EntityRef {
+                source: "netease".to_string().try_into().unwrap(),
+                kind: nons_music_adapter_sdk::identity::EntityKind::Track,
+                id: (id).to_string().try_into().unwrap(),
+            },
+            associations: vec![],
+            lyric_identifiers: vec![],
+            unavailable_reason: None,
+        })
+        .unwrap()
     }
 
     #[test]

@@ -353,6 +353,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
         navigate('local-playlist', '', {
           id: 0,
           localId: id,
+          reference: null,
           kind: 'playlist',
           name: name.trim(),
           cover: '',

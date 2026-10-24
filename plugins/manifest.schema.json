@@ -54,7 +54,6 @@
       "uniqueItems": true,
       "items": {
         "enum": [
-          "clipboard:music-links",
           "storage",
           "music:metadata",
           "music:library",

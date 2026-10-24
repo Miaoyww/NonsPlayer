@@ -265,10 +265,9 @@ fn live_70047_rich_fallback_keeps_translation_in_both_modes() {
 #[test]
 fn exact_ids_fetch_without_search_and_failures_are_retryable() {
     let mut track = tests::track();
-    let mut music =
-        nons_music_adapter_sdk::migration::legacy_track(&serde_json::to_string(&track).unwrap())
-            .unwrap()
-            .track;
+    let mut music = nons_music_adapter_sdk::metadata::queue_metadata(track.clone())
+        .unwrap()
+        .track;
     music.reference.source = "qqmusic".to_string().try_into().unwrap();
     music.reference.id = "001mid".to_string().try_into().unwrap();
     music.lyric_identifiers = vec![nons_music_adapter_sdk::identity::LyricIdentifier {

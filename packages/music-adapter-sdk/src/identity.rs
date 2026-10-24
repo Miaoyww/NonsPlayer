@@ -176,13 +176,13 @@ mod lyric_identifier_tests {
         serde_json::from_value(serde_json::json!({
             "reference":{"source":"qqmusic","kind":"track","id":"001mid"},
             "title":"Song","aliases":[],"artist":"Artist","artists":[],"album":"Album",
-            "albumReference":null,"durationMs":1000,"cover":"","associations":[]
+            "albumReference":null,"durationMs":1000,"cover":crate::cover::CoverImage::default(),"associations":[]
         }))
         .unwrap()
     }
 
     #[test]
-    fn old_metadata_deserializes_without_lyric_ids_and_typed_ids_round_trip() {
+    fn optional_lyric_ids_and_typed_ids_round_trip() {
         let mut value = track();
         assert!(value.lyric_identifiers.is_empty());
         value.lyric_identifiers.push(LyricIdentifier {

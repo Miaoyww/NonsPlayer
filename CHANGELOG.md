@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 数据与接口清理
+
+- 移除历史曲目、队列、封面、账号凭据、下载任务和设置的迁移兼容；在线曲目统一使用完整来源引用与标准 key，封面统一保存语义尺寸对象。
+- 旧格式记录不再转换或保证恢复；账号需重新登录，旧在线内容需重新获取，本地音乐需重新扫描。移除旧剪贴板音乐链接权限识别。
+
 ## [1.8.0] - 2026-10-23
 
 ![NonsPlayer v1.8.0 聚合歌单与 WebAudio 音频引擎发布头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.0/docs/release-assets/header-1.8.0.png)

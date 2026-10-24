@@ -20,7 +20,6 @@ import type { PluginDescriptor } from '@/plugins/types'
 import { PluginConfigurationPage } from '../plugins/configuration-page'
 
 const permissionLabels: Record<string, string> = {
-  'clipboard:music-links': '旧版音乐链接权限（需要升级插件）',
   'clipboard:read': '读取剪贴板文本及监听变化',
   'http:request': '请求已声明的网络域名',
   'http:transfer': '将授权域名的资源传输到授权目录',

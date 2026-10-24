@@ -24,8 +24,8 @@ function load(path, modules) {
   runInNewContext(outputText, {
     exports,
     require(name) {
-      assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
-      return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+      assert.ok(name === '@/features/music/references' || name in modules, name)
+      return name === '@/features/music/references' ? musicReference : modules[name]
     }
   })
   return exports

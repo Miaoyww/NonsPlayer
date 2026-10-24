@@ -81,112 +81,42 @@ fn setup() -> (AccountManager, Arc<Records>, Arc<Secrets>) {
     )
 }
 #[test]
-fn migration_failure_never_deletes_unconfirmed_legacy_or_invents_identity() {
+fn failed_login_does_not_publish_account_and_can_retry_after_restart() {
     for failure in 0..3 {
         let (manager, records, secrets) = setup();
-        secrets.write("netease-session", b"legacy-cookie").unwrap();
-        assert!(manager.records(&source("netease")).unwrap().is_empty());
-        let expected = manager.session(&source("netease"));
-        if failure == 0 {
-            secrets.fail_write.store(true, Ordering::SeqCst);
-        }
-        if failure == 1 {
-            secrets.fail_read.store(true, Ordering::SeqCst);
-        }
-        if failure == 2 {
-            records.fail.store(true, Ordering::SeqCst);
-        }
+        let expected = manager.session(&source("test"));
+        secrets.fail_write.store(failure == 0, Ordering::SeqCst);
+        secrets.fail_read.store(failure == 1, Ordering::SeqCst);
+        records.fail.store(failure == 2, Ordering::SeqCst);
         assert!(manager
-            .accept(
-                &expected,
-                record("netease", "123"),
-                secret(b"legacy-cookie"),
-                true
-            )
+            .accept(&expected, record("test", "123"), secret(b"credential"))
             .is_err());
-        assert_eq!(manager.session(&source("netease")), expected);
-        assert!(secrets
-            .values
-            .lock()
-            .unwrap()
-            .contains_key("netease-session"));
-        assert!(manager.records(&source("netease")).unwrap().is_empty());
+        assert_eq!(manager.session(&source("test")), expected);
+        assert!(manager.records(&source("test")).unwrap().is_empty());
         secrets.fail_write.store(false, Ordering::SeqCst);
         secrets.fail_read.store(false, Ordering::SeqCst);
         records.fail.store(false, Ordering::SeqCst);
-        let restarted = AccountManager::new(records, secrets.clone()).unwrap();
+        let restarted = AccountManager::new(records, secrets).unwrap();
         restarted
             .accept(
-                &restarted.session(&source("netease")),
-                record("netease", "123"),
-                secret(b"legacy-cookie"),
-                true,
+                &restarted.session(&source("test")),
+                record("test", "123"),
+                secret(b"credential"),
             )
             .unwrap();
-        assert!(!secrets
-            .values
-            .lock()
-            .unwrap()
-            .contains_key("netease-session"));
+        assert_eq!(restarted.records(&source("test")).unwrap().len(), 1);
     }
-}
-#[test]
-fn interrupted_migration_preserves_newer_target_and_retries_old_deletion() {
-    let (manager, records, secrets) = setup();
-    secrets.write("netease-session", b"older").unwrap();
-    secrets
-        .write(&key(&record("netease", "123").reference), b"newer")
-        .unwrap();
-    secrets.fail_delete.store(true, Ordering::SeqCst);
-    manager
-        .accept(
-            &manager.session(&source("netease")),
-            record("netease", "123"),
-            secret(b"older"),
-            true,
-        )
-        .unwrap();
-    assert_eq!(
-        manager
-            .provider_credential(&source("netease"))
-            .unwrap()
-            .unwrap()
-            .expose(),
-        b"newer"
-    );
-    assert!(!records
-        .json
-        .lock()
-        .unwrap()
-        .as_ref()
-        .unwrap()
-        .contains("older"));
-    secrets.fail_delete.store(false, Ordering::SeqCst);
-    let restarted = AccountManager::new(records, secrets.clone()).unwrap();
-    assert_eq!(
-        restarted
-            .session(&source("netease"))
-            .account
-            .unwrap()
-            .as_str(),
-        "123"
-    );
-    assert!(!secrets
-        .values
-        .lock()
-        .unwrap()
-        .contains_key("netease-session"));
 }
 #[test]
 fn late_login_and_cross_source_completion_cannot_replace_selected_account() {
     let (manager, _, _) = setup();
     let expected = manager.session(&source("test"));
     manager
-        .accept(&expected, record("test", "A:id"), secret(b"a"), false)
+        .accept(&expected, record("test", "A:id"), secret(b"a"))
         .unwrap();
     assert_eq!(
         manager
-            .accept(&expected, record("test", "B:id"), secret(b"b"), false)
+            .accept(&expected, record("test", "B:id"), secret(b"b"))
             .unwrap_err()
             .code,
         ErrorCode::StaleContext
@@ -194,13 +124,13 @@ fn late_login_and_cross_source_completion_cannot_replace_selected_account() {
     let expected = manager.session(&source("test"));
     assert_eq!(
         manager
-            .accept(&expected, record("other", "id"), secret(b"b"), false)
+            .accept(&expected, record("other", "id"), secret(b"b"))
             .unwrap_err()
             .code,
         ErrorCode::InvalidData
     );
     manager
-        .accept(&expected, record("test", "B:id"), secret(b"b"), false)
+        .accept(&expected, record("test", "B:id"), secret(b"b"))
         .unwrap();
     manager.select(&record("test", "A:id").reference).unwrap();
     assert_eq!(
@@ -221,7 +151,6 @@ fn deletion_tombstone_survives_cleanup_failure_and_restart() {
             &manager.session(&source("test")),
             record("test", "a"),
             secret(b"secret"),
-            false,
         )
         .unwrap();
     secrets.fail_delete.store(true, Ordering::SeqCst);
@@ -289,7 +218,6 @@ fn scoped_access_rejects_cross_source_stale_accounts_and_disabled_instances() {
                 &manager.session(&source(name)),
                 record(name, "A"),
                 secret(name.as_bytes()),
-                false,
             )
             .unwrap();
     }
@@ -334,17 +262,12 @@ fn failed_relogin_metadata_commit_preserves_existing_credential() {
     let (manager, records, _) = setup();
     let expected = manager.session(&source("test"));
     manager
-        .accept(&expected, record("test", "a"), secret(b"original"), false)
+        .accept(&expected, record("test", "a"), secret(b"original"))
         .unwrap();
     let expected = manager.session(&source("test"));
     records.fail.store(true, Ordering::SeqCst);
     assert!(manager
-        .accept(
-            &expected,
-            record("test", "a"),
-            secret(b"replacement"),
-            false
-        )
+        .accept(&expected, record("test", "a"), secret(b"replacement"))
         .is_err());
     assert_eq!(manager.session(&source("test")), expected);
     assert_eq!(
@@ -387,7 +310,6 @@ async fn logout_preserves_credentials_and_can_reselect_after_restart() {
             &manager.session(&source("test")),
             record("test", "a"),
             secret(b"credential"),
-            false,
         )
         .unwrap();
     let result = adapters
@@ -435,7 +357,6 @@ fn logout_is_scoped_atomic_and_rejects_stale_sessions() {
                 &manager.session(&source(provider)),
                 record(provider, "a"),
                 secret(b"credential"),
-                false,
             )
             .unwrap();
     }
@@ -483,7 +404,6 @@ fn refresh_after_instance_revocation_restores_previous_secret_without_publicatio
             &manager.session(&source("test")),
             record("test", "a"),
             secret(b"original"),
-            false,
         )
         .unwrap();
     let (session, adapter_generation) = adapters.stamp(&source("test")).unwrap();
@@ -523,7 +443,6 @@ fn repeated_cleanup_failure_bounds_tombstones_and_keeps_remaining_account_recove
                 &manager.session(&source("test")),
                 record.clone(),
                 secret(b"credential"),
-                false,
             )
             .unwrap();
         let error = manager.remove(&record.reference).unwrap_err();
@@ -553,7 +472,6 @@ fn invalidation_is_scoped_preserves_saved_accounts_and_reports_save_failure() {
             &manager.session(&source),
             record("qqmusic", "opaque-user"),
             secret(b"credential"),
-            false,
         )
         .unwrap();
     let session = manager.session(&source);

@@ -16,7 +16,7 @@ impl Identity {
                 platform: track.reference.source.as_str().into(),
                 identifiers: track.lyric_identifiers.clone(),
             },
-            TrackSource::Netease { .. } | TrackSource::Local { .. } => Self {
+            TrackSource::Local { .. } => Self {
                 platform: "netease".into(),
                 identifiers: vec![],
             },
@@ -92,16 +92,14 @@ fn valid_id(platform: &str, kind: &str, id: &str) -> bool {
 mod tests {
     use super::*;
     fn online(platform: &str, id: &str, ids: serde_json::Value) -> Track {
-        serde_json::from_value(serde_json::json!({
-            "key":"test", "title":"Song", "artist":"Artist", "album":"Album", "durationMs":1000,
-            "cover":"", "source":{"kind":"online","track":{
+        Track::from_music(serde_json::from_value(serde_json::json!({
                 "reference":{"source":platform,"kind":"track","id":id},
                 "title":"Song","aliases":[],"artist":"Artist","artists":[],"album":"Album",
-                "albumReference":null,"durationMs":1000,"cover":"",
+                "albumReference":null,"durationMs":1000,"cover":nons_music_adapter_sdk::cover::CoverImage::default(),
                 "associations":[{"source":"netease","kind":"track","id":"999"}],
                 "lyricIdentifiers":ids
-            }}
         }))
+        .unwrap())
         .unwrap()
     }
     #[test]
@@ -134,7 +132,7 @@ mod tests {
             assert_eq!(value.directory(), Some(directory));
         }
         let track: Track = serde_json::from_value(serde_json::json!({
-            "key":"local:x","title":"Song","artist":"Artist","album":"","durationMs":0,"cover":"",
+            "key":"local:x","title":"Song","artist":"Artist","album":"","durationMs":0,"cover":nons_music_adapter_sdk::cover::CoverImage::default(),
             "source":{"kind":"local","path":"C:/song.flac","neteaseId":42}
         }))
         .unwrap();

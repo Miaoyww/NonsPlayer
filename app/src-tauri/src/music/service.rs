@@ -1,4 +1,4 @@
-//! Playback routing for uniform online identities and compatible Netease/local queues.
+//! Playback routing for uniform online identities and host-owned local tracks.
 use super::manager::{AdapterManager, ResourceTicket};
 use crate::model::{AppResult, ResolvedTrack, Track, TrackSource};
 use std::sync::Arc;
@@ -217,7 +217,7 @@ impl MusicService {
                 .await
                 .map(|resolved| (resolved, None, None));
         }
-        let mut metadata = nons_music_adapter_sdk::migration::convert_track(track.clone())
+        let mut metadata = nons_music_adapter_sdk::metadata::queue_metadata(track.clone())
             .map_err(|e| e.to_string())?
             .track;
         // Some searchable audio services omit duration. Hydrate only the selected

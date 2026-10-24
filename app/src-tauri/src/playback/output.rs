@@ -40,19 +40,3 @@ pub fn create_sink(device: Option<&gst::Device>) -> AppResult<gst::Element> {
     }
     Ok(sink)
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn legacy_exclusive_snapshot_restores_without_output_mode() {
-        let mut saved = serde_json::to_value(crate::model::PlayerSnapshot::default()).unwrap();
-        saved["audioOutputMode"] = serde_json::json!("exclusive");
-        saved["positionMs"] = serde_json::json!(12345);
-        let restored: crate::model::PlayerSnapshot = serde_json::from_value(saved).unwrap();
-        assert_eq!(restored.position_ms, 12345);
-        assert!(serde_json::to_value(restored)
-            .unwrap()
-            .get("audioOutputMode")
-            .is_none());
-    }
-}

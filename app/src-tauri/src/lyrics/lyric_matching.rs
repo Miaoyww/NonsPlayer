@@ -233,7 +233,6 @@ mod tests {
             duration_ms: 342400,
             aliases: vec![],
             artists: vec![],
-            album_id: None,
             cover: Default::default(),
             source: TrackSource::Local {
                 path: String::new(),

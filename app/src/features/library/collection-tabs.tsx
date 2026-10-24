@@ -1,4 +1,4 @@
-import { collectionReference } from '@/features/music/legacy-reference'
+import { collectionReference } from '@/features/music/references'
 import { coverOriginal } from '@/features/music/cover-image'
 import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { Music2, Search } from 'lucide-react'

@@ -137,18 +137,6 @@ impl Store {
         self.0.lock().inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "曲库锁不可用")?.execute("INSERT INTO local_metadata(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key, serde_json::to_string(value).map_err(|e| e.to_string())?]).map_err(|e| e.to_string())?;
         Ok(())
     }
-    pub fn rebuild_local_index(&self) -> AppResult<()> {
-        let mut db = self
-            .0
-            .lock()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
-            })
-            .map_err(|_| "曲库锁不可用")?;
-        let tx = db.transaction().map_err(|e| e.to_string())?;
-        rebuild_index(&tx)?;
-        tx.commit().map_err(|e| e.to_string())
-    }
     pub fn configure_local_preferences(&self, options: &LocalPreferences) -> AppResult<()> {
         let mut db = self
             .0
@@ -409,7 +397,7 @@ fn entity_tracks(
             serde_json::from_str(&value.map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
         track.artists = split_artists(&track.artist, &options.artist_separators)
             .into_iter()
-            .map(|name| MusicCredit { name, id: None })
+            .map(|name| MusicCredit { name })
             .collect();
         items.push(track);
     }
@@ -588,7 +576,6 @@ mod tests {
             aliases: vec![],
             artist: artist.into(),
             artists: vec![],
-            album_id: None,
             album: "同名专辑".into(),
             duration_ms: 1000,
             cover: cover.into(),
@@ -613,7 +600,6 @@ mod tests {
         store
             .save_tracks(&[track("local:first", "A / B", "changed.jpg")])
             .unwrap();
-        store.rebuild_local_index().unwrap();
         drop(store);
         let store = Store::open(&path).unwrap();
         let artist = entity_detail(&store, "artist".into(), "A".into()).unwrap();

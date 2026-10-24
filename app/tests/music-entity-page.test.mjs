@@ -34,7 +34,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
         return { profile: { reference: { source, id: 'owner' } } }
       }
     },
-    '@/features/music/legacy-reference': { collectionReference: (item) => item.reference },
+    '@/features/music/references': { collectionReference: (item) => item.reference },
     '@/features/music/client': {
       musicClient: {
         currentAccount: async () => ({ reference: { source: 'qqmusic', id: 'owner' } })

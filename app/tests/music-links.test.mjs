@@ -41,7 +41,11 @@ test('uniform artist and album navigation preserve source and opaque reference i
 test('each structured artist navigates independently and preserves slash-containing names', () => {
   const app = harness()
   const tree = app.ArtistLinks({
-    artists: [{ id: 9, name: 'AC/DC' }, { id: 10, name: 'B' }, { name: 'Unknown' }]
+    artists: [
+      { reference: { source: 'netease', kind: 'artist', id: '9' }, name: 'AC/DC' },
+      { reference: { source: 'netease', kind: 'artist', id: '10' }, name: 'B' },
+      { name: 'Unknown' }
+    ]
   })
   const entries = tree.props.children
   assert.equal(entries[0].props.children[1].props.children, 'AC/DC')
@@ -50,13 +54,17 @@ test('each structured artist navigates independently and preserves slash-contain
   entries[1].props.children[1].props.onClick({ stopPropagation: () => stopped++ })
   assert.equal(stopped, 1)
   assert.equal(app.navigations[0][0], 'artist')
-  assert.equal(app.navigations[0][2].id, 10)
+  assert.equal(app.navigations[0][2].id, '10')
   assert.equal(entries[2].props.children[1].type, 'span')
 })
 
 test('album navigation retains ID and cover and prevents a parent play action', () => {
   const app = harness()
-  const tree = app.AlbumLink({ id: 20, name: 'Album', cover: 'cover' })
+  const tree = app.AlbumLink({
+    reference: { source: 'netease', kind: 'album', id: '20' },
+    name: 'Album',
+    cover: 'cover'
+  })
   let stopped = false
   tree.props.onClick({
     stopPropagation: () => {
@@ -65,7 +73,7 @@ test('album navigation retains ID and cover and prevents a parent play action', 
   })
   assert.equal(stopped, true)
   assert.equal(app.navigations[0][0], 'album')
-  assert.equal(app.navigations[0][2].id, 20)
+  assert.equal(app.navigations[0][2].id, '20')
   assert.equal(app.navigations[0][2].cover, 'cover')
   assert.equal(app.AlbumLink({ name: 'Local album' }).type, 'span')
 })

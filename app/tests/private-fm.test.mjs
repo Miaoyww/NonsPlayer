@@ -26,7 +26,7 @@ function harness() {
     ).outputText,
     {
       exports,
-      require: (name) => (name === '@/features/music/legacy-reference' ? musicReference : {})
+      require: (name) => (name === '@/features/music/references' ? musicReference : {})
     }
   )
   let state = {
@@ -186,7 +186,7 @@ test('the global player connection replenishes without mounting the discovery pa
     '@/features/playback/player-store': load('../src/features/playback/player-store.ts'),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
     '@/features/discovery/private-fm': load('../src/features/discovery/private-fm.ts', {
-      '@/features/music/legacy-reference': musicReference,
+      '@/features/music/references': musicReference,
       './discovery-api': {
         discoveryTracks: async () => {
           calls.push({

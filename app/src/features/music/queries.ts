@@ -1,7 +1,7 @@
 import { nativeCall } from '@/lib/player'
 import { musicClient } from './client'
 import { sourcePreferences } from './source-preferences'
-import { collectionReference, onlineReference } from './legacy-reference'
+import { collectionReference, onlineReference } from './references'
 import type { MusicReadRequest, MusicResponse } from './types'
 import type { Track } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'

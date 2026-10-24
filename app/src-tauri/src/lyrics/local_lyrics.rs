@@ -124,18 +124,25 @@ mod tests {
 
     #[tokio::test]
     async fn stream_tracks_never_enter_local_file_reader() {
-        let track = Track {
-            key: "netease:1".into(),
+        let track = Track::from_music(nons_music_adapter_sdk::identity::MusicTrack {
             title: "song".into(),
             aliases: Vec::new(),
             artist: String::new(),
             artists: Vec::new(),
-            album_id: None,
+            album_reference: None,
             album: String::new(),
             duration_ms: 0,
             cover: Default::default(),
-            source: TrackSource::Netease { id: 1 },
-        };
+            reference: nons_music_adapter_sdk::identity::EntityRef {
+                source: "netease".to_string().try_into().unwrap(),
+                kind: nons_music_adapter_sdk::identity::EntityKind::Track,
+                id: (1).to_string().try_into().unwrap(),
+            },
+            associations: vec![],
+            lyric_identifiers: vec![],
+            unavailable_reason: None,
+        })
+        .unwrap();
         assert!(get(track, false).await.unwrap().is_none());
     }
 

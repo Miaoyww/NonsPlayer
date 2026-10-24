@@ -227,7 +227,6 @@ impl ExternalAdapter {
                 Ok(AccountOutcome {
                     presentation,
                     credential: None,
-                    migration: false,
                 })
             }
             AccountRequest::PollLogin { key } => {
@@ -285,7 +284,6 @@ impl ExternalAdapter {
                 Ok(AccountOutcome {
                     presentation,
                     credential,
-                    migration: false,
                 })
             }
             AccountRequest::Profile => {
@@ -300,7 +298,6 @@ impl ExternalAdapter {
                 Ok(AccountOutcome {
                     presentation,
                     credential: None,
-                    migration: false,
                 })
             }
             AccountRequest::Logout => Err(ErrorCode::Unsupported.into()),

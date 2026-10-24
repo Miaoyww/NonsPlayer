@@ -170,8 +170,7 @@ export interface PluginMenuSong {
   key: string
   title: string
   aliases?: string[]
-  artists?: { name: string; id?: number | null }[]
-  albumId?: number | null
+  artists?: import('./music').MusicCredit[]
   artist: string
   album: string
   durationMs: number

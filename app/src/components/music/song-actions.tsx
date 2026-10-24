@@ -1,7 +1,7 @@
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { trackShareLink } from '@/features/music/share-links'
-import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
+import { favoriteId, onlineReference } from '@/features/music/references'
 import { readTrackInformation } from '@/features/music/queries'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { TextSkeleton } from '@/components/music/loading'
@@ -205,11 +205,9 @@ export function SongActionsProvider({
             ['专辑 ID', information?.albumReference?.id ?? ''],
             [
               '歌曲 ID',
-              (track.source.kind === 'netease'
-                ? track.source.id
-                : track.source.kind === 'local'
-                  ? track.source.neteaseId
-                  : track.source.track.reference.id
+              (track.source.kind === 'local'
+                ? track.source.neteaseId
+                : track.source.track.reference.id
               )?.toString() ?? ''
             ],
             ['时长', formatTime(track.durationMs)],

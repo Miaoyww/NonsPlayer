@@ -51,13 +51,24 @@ test('share links retain real source and encode opaque IDs without changing URL 
     'https://first.example/album?id=42'
   )
 })
-test('legacy entities still use adapter templates and local associations never become share identities', () => {
+test('entities use source references and local associations never become share identities', () => {
   assert.equal(
-    exports.trackShareLink({ source: { kind: 'netease', id: 42 } }, sources),
+    exports.trackShareLink(
+      {
+        source: {
+          kind: 'online',
+          track: { reference: { source: 'netease', kind: 'track', id: '42' } }
+        }
+      },
+      sources
+    ),
     'https://legacy.example/song/42'
   )
   assert.equal(
-    exports.collectionShareLink({ kind: 'playlist', id: 42 }, sources),
+    exports.collectionShareLink(
+      { reference: { source: 'netease', kind: 'playlist', id: '42' }, kind: 'playlist', id: '42' },
+      sources
+    ),
     'https://legacy.example/list/42'
   )
   assert.equal(exports.trackShareLink({ source: { kind: 'local', neteaseId: 42 } }, sources), '')

@@ -6,8 +6,7 @@ pub(crate) fn failure(error: impl std::fmt::Display) -> MusicError {
     crate::infrastructure::diagnostics::warn("collection.store", error);
     ErrorCode::Internal.into()
 }
-pub(crate) fn migrate(db: &Connection) -> rusqlite::Result<()> {
-    let version: i64 = db.query_row("PRAGMA user_version", [], |row| row.get(0))?;
+pub(crate) fn initialize(db: &Connection) -> rusqlite::Result<()> {
     db.execute_batch("BEGIN;
         CREATE TABLE IF NOT EXISTS music_collection_snapshots (
             id TEXT PRIMARY KEY, identity TEXT NOT NULL, source TEXT NOT NULL, account TEXT NOT NULL,
@@ -20,9 +19,6 @@ pub(crate) fn migrate(db: &Connection) -> rusqlite::Result<()> {
             snapshot TEXT NOT NULL, position INTEGER NOT NULL, key TEXT NOT NULL,
             PRIMARY KEY(snapshot,position), UNIQUE(snapshot,key));
         ")?;
-    if version < 2 {
-        db.execute_batch("PRAGMA user_version=2;")?;
-    }
     db.execute_batch("COMMIT;")
 }
 

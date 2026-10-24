@@ -59,6 +59,7 @@ export function CreateAggregatePlaylist({ onError }: { onError: (cause: unknown)
                   navigate('local-playlist', '', {
                     id,
                     localId: id,
+                    reference: null,
                     kind: 'playlist',
                     name,
                     cover: '',
@@ -177,21 +178,14 @@ export default function AggregatePage({
   const sourceName = (m: AggregateMember) =>
     m.track.source.kind === 'local'
       ? '本地'
-      : m.track.source.kind === 'netease'
-        ? '网易云音乐'
-        : (statuses.find(
-            (s) =>
-              s.descriptor.source ===
-              (m.track.source.kind === 'online' ? m.track.source.track.reference.source : '')
-          )?.descriptor.displayName ?? '在线来源')
+      : (statuses.find(
+          (s) =>
+            s.descriptor.source ===
+            (m.track.source.kind === 'online' ? m.track.source.track.reference.source : '')
+        )?.descriptor.displayName ?? '在线来源')
   const reason = (m: AggregateMember) => {
     if (m.unavailable) return m.unavailable
-    const source =
-      m.track.source.kind === 'netease'
-        ? 'netease'
-        : m.track.source.kind === 'online'
-          ? m.track.source.track.reference.source
-          : null
+    const source = m.track.source.kind === 'online' ? m.track.source.track.reference.source : null
     if (source && !statuses.some((s) => s.enabled && s.descriptor.source === source))
       return '来源不可用'
     if (m.track.source.kind === 'online' && m.track.source.track.unavailableReason)

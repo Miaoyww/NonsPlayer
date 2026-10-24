@@ -10,7 +10,7 @@ import * as jsx from 'react/jsx-runtime'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 
-test('album cards fill missing list dates from visible album details and ignore stale responses', async () => {
+test('album cards show current metadata dates without per-card detail requests', async () => {
   const dom = new JSDOM('<div id="root"></div>')
   const previous = {
     window: globalThis.window,
@@ -32,7 +32,7 @@ test('album cards fill missing list dates from visible album details and ignore 
   }
   const modules = {
     '@/lib/runtime-cache': createRuntimeCache(),
-    '@/features/music/legacy-reference': musicReference,
+    '@/features/music/references': musicReference,
     '@/features/music/entities': { musicCollection: (item) => item },
     '@/features/music/queries': {
       queryMusic: (request, source) =>
@@ -82,7 +82,8 @@ test('album cards fill missing list dates from visible album details and ignore 
   const { AlbumCard } = load('../src/features/library/album-card.tsx')
   const root = createRoot(document.getElementById('root'))
   const album = {
-    id: 142163139,
+    id: '142163139',
+    reference: { source: 'netease', kind: 'album', id: '142163139' },
     kind: 'album',
     name: 'Summer Ghost',
     trackCount: 29,
@@ -92,29 +93,21 @@ test('album cards fill missing list dates from visible album details and ignore 
   }
   const render = (item) =>
     act(async () =>
-      root.render(React.createElement(AlbumCard, { item, busy: false, onOpen() {}, onPlay() {} }))
+      root.render(
+        React.createElement(AlbumCard, {
+          item: { ...item, reference: { ...item.reference, id: String(item.id) } },
+          busy: false,
+          onOpen() {},
+          onPlay() {}
+        })
+      )
     )
-  const visible = () => act(async () => observers.at(-1)?.callback([{ isIntersecting: true }]))
   try {
     await render(album)
-    assert.equal(requests.length, 0, 'offscreen cards must not fetch details')
-    await visible()
-    assert.equal(requests.length, 1, 'missing list date must trigger album detail lookup')
-    assert.equal(requests[0].command, 'music_query')
-    assert.equal(requests[0].args.request.entity.id, String(album.id))
-    await act(async () => requests[0].resolve({ item: { ...album, publishedAt: 1648137600000 } }))
-    assert.match(document.body.textContent, /29 首 · 2022-03-25/)
-    await render({ ...album, id: 2 })
-    const stale = requests.at(-1)
-    await render({ ...album, id: 3 })
-    await act(async () => stale.resolve({ item: { ...album, id: 2, publishedAt: 1648137600000 } }))
-    assert.doesNotMatch(document.body.textContent, /2022-03-25/)
-    await act(async () => requests.at(-1).reject(new Error('offline')))
     assert.match(document.body.textContent, /发行日期未知/)
-    const count = requests.length
-    await render({ ...album, id: 4, publishedAt: 1648137600000 })
-    assert.equal(requests.length, count, 'complete list metadata must not fetch details')
-    assert.match(document.body.textContent, /2022-03-25/)
+    await render({ ...album, publishedAt: 1648137600000 })
+    assert.match(document.body.textContent, /29 首 · 2022-03-25/)
+    assert.equal(requests.length, 0, 'album cards use their current metadata')
   } finally {
     await act(async () => root.unmount())
     dom.window.close()

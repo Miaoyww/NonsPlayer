@@ -1,11 +1,8 @@
-//! Built-in provider and legacy DTO compatibility stay at the platform boundary.
+//! Built-in provider implementation.
 use super::{
     account::SessionContext, adapter::*, identity::*, resource::*, ErrorCode, MusicResult,
 };
-use crate::{
-    model::{Track, TrackSource},
-    platform::Netease,
-};
+use crate::platform::Netease;
 use std::sync::Arc;
 
 pub struct NeteaseAdapter {
@@ -175,11 +172,7 @@ impl MusicAdapter for NeteaseAdapter {
             let client = self.scoped_client(context).await?;
             let result = client.song(numeric_id(reference)?).await;
             let track = self.invalidate_on_error(result, context).await?;
-            super::migration::legacy_track(&serde_json::to_string(&track).map_err(|error| {
-                crate::diagnostics::warn("track.encode", &error);
-                ErrorCode::InvalidData
-            })?)
-            .map(|v| v.track)
+            super::netease_business::track(track)
         })
     }
     fn resolve_playback<'a>(
@@ -218,29 +211,5 @@ pub fn reference(id: u64) -> MusicResult<EntityRef> {
         source: SourceId::try_from("netease".to_owned())?,
         kind: EntityKind::Track,
         id: OpaqueId::try_from(id.to_string())?,
-    })
-}
-pub fn legacy(track: MusicTrack) -> MusicResult<Track> {
-    let id = numeric_id(&track.reference)?;
-    Ok(Track {
-        key: format!("netease:{id}"),
-        title: track.title,
-        aliases: track.aliases,
-        artist: track.artist,
-        artists: track
-            .artists
-            .into_iter()
-            .map(|credit| crate::model::MusicCredit {
-                name: credit.name,
-                id: credit.reference.and_then(|r| r.id.as_str().parse().ok()),
-            })
-            .collect(),
-        album: track.album,
-        album_id: track
-            .album_reference
-            .and_then(|r| r.id.as_str().parse().ok()),
-        duration_ms: track.duration_ms,
-        cover: track.cover,
-        source: TrackSource::Netease { id },
     })
 }

@@ -582,7 +582,7 @@ mod tests {
                             args["reference"],
                             serde_json::json!({"source":"netease","kind":"track","id":"347230"})
                         );
-                        Ok(serde_json::json!({"reference":{"source":"netease","kind":"track","id":"347230"},"artists":[],"title":"Fixture song","artist":"Fixture artist","album":"Fixture album","durationMs":1000,"cover":""}).to_string())
+                        Ok(serde_json::json!({"reference":{"source":"netease","kind":"track","id":"347230"},"artists":[],"title":"Fixture song","artist":"Fixture artist","album":"Fixture album","durationMs":1000,"cover":nons_music_adapter_sdk::cover::CoverImage::default()}).to_string())
                     }
                     "events.emit" => {
                         self.events

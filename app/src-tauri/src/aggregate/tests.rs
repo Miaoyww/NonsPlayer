@@ -5,7 +5,7 @@ use crate::{
     test_support::TestDir,
 };
 fn song(id: u64) -> Track {
-    serde_json::from_value(serde_json::json!({"key":format!("netease:{id}"),"title":format!("歌曲{id}"),"artist":"歌手","album":"专辑","durationMs":1000,"cover":"cover.jpg","source":{"kind":"netease","id":id}})).unwrap()
+    Track::from_music(serde_json::from_value(serde_json::json!({"reference":{"source":"netease","kind":"track","id":id.to_string()},"title":format!("歌曲{id}"),"artist":"歌手","aliases":[],"artists":[],"album":"专辑","durationMs":1000,"cover":{"original":"","small":"","normal":"","large":"","exlarge":""},"associations":[]})).unwrap()).unwrap()
 }
 fn link() -> Link {
     Link {
@@ -28,9 +28,10 @@ fn keys(store: &Store, id: &str) -> Vec<String> {
         .collect()
 }
 #[test]
-fn migrates_existing_ids_order_and_retains_unavailable_local_metadata() {
+fn retained_local_metadata_survives_library_removal_and_restart() {
     let dir = TestDir::new();
     let path = dir.0.join("library.sqlite");
+    let store = Store::open(&path).unwrap();
     let mut a = song(1);
     a.key = "local:a".into();
     a.source = TrackSource::Local {
@@ -38,18 +39,15 @@ fn migrates_existing_ids_order_and_retains_unavailable_local_metadata() {
         netease_id: None,
         cue: None,
     };
-    // A genuine pre-migration schema, not data written through the new API.
-    let db = rusqlite::Connection::open(&path).unwrap();
-    db.execute_batch("CREATE TABLE local_playlists(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL);CREATE TABLE local_playlist_tracks(playlist_id INTEGER,key TEXT,position INTEGER,PRIMARY KEY(playlist_id,key));CREATE TABLE tracks(key TEXT PRIMARY KEY,source TEXT,title TEXT,artist TEXT,value TEXT);INSERT INTO local_playlists(id,name) VALUES(17,'原歌单');INSERT INTO local_playlist_tracks VALUES(17,'local:a',8);").unwrap();
-    db.execute(
-        "INSERT INTO tracks VALUES(?1,'local',?2,?3,?4)",
-        rusqlite::params![a.key, a.title, a.artist, serde_json::to_string(&a).unwrap()],
+    store.save_tracks(&[a.clone()]).unwrap();
+    let id = write(
+        &store,
+        &Write::Create {
+            name: "Playlist".into(),
+            keys: vec![a.key.clone()],
+        },
     )
     .unwrap();
-    drop(db);
-    let store = Store::open(&path).unwrap();
-    assert_eq!(playlist(&store, "17").unwrap().name, "原歌单");
-    assert!(!tracks(&store, "17", 0, false).unwrap().items[0].remote);
     store
         .0
         .lock()
@@ -58,12 +56,12 @@ fn migrates_existing_ids_order_and_retains_unavailable_local_metadata() {
             "DELETE FROM tracks WHERE key='local:a';DELETE FROM local_origins WHERE key='local:a';",
         )
         .unwrap();
-    let rows = tracks(&store, "17", 0, false).unwrap();
+    let rows = tracks(&store, &id, 0, false).unwrap();
     assert_eq!(rows.items[0].track.title, a.title);
     assert!(rows.items[0].unavailable.is_some());
     drop(store);
     let store = Store::open(&path).unwrap();
-    assert_eq!(playlist(&store, "17").unwrap().track_count, 1);
+    assert_eq!(playlist(&store, &id).unwrap().track_count, 1);
 }
 #[test]
 fn sync_always_follows_original_members_and_preserves_only_other_sources() {
@@ -112,19 +110,8 @@ fn sync_always_follows_original_members_and_preserves_only_other_sources() {
         },
     )
     .unwrap();
-    // Simulate flags left by the previous retention/exclusion feature.
-    store
-        .0
-        .lock()
-        .unwrap()
-        .execute(
-            "UPDATE local_playlist_tracks SET manual=1,excluded=1 WHERE playlist_id=?1 AND key=?2",
-            rusqlite::params![id, song(1).key],
-        )
-        .unwrap();
     drop(store);
     let store = Store::open(&path).unwrap();
-    assert!(tracks(&store, &id, 0, true).unwrap().items.is_empty());
     assert_eq!(playlist(&store, &id).unwrap().track_count, 5);
     apply(
         &store,
@@ -310,7 +297,11 @@ fn playlists_limit_is_atomic_and_actual_online_sources_do_not_merge() {
     let dir = TestDir::new();
     let store = Store::open(&dir.0.join("db")).unwrap();
     let mut tracks = vec![song(1)];
-    tracks.push(Track::from_music(serde_json::from_value(serde_json::json!({"reference":{"source":"qqmusic","kind":"track","id":"1"},"title":"歌曲1","aliases":[],"artist":"歌手","artists":[],"album":"专辑","durationMs":1000,"cover":"","associations":[]})).unwrap()).unwrap());
+    let TrackSource::Online { track: mut other } = song(1).source else {
+        unreachable!()
+    };
+    other.reference.source = "qqmusic".to_owned().try_into().unwrap();
+    tracks.push(Track::from_music(*other).unwrap());
     store.save_tracks(&tracks).unwrap();
     let id = write(
         &store,

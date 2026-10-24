@@ -11,7 +11,8 @@ fn error(code: &str) -> Result<String, String> {
 }
 fn track(reference: Value) -> Value {
     json!({"reference":reference,"title":"Fixture","artist":"Artist","album":"Album",
-        "aliases":[],"artists":[],"albumReference":null,"durationMs":1000,"cover":"","associations":[]})
+        "aliases":[],"artists":[],"albumReference":null,"durationMs":1000,
+        "cover":{"original":"","small":"","normal":"","large":"","exlarge":""},"associations":[]})
 }
 impl Guest for Fixture {
     fn initialize() -> Result<(), String> {

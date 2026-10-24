@@ -9,7 +9,7 @@ export interface LocalEntity {
   trackCount: number
 }
 export function localCollection(item: LocalEntity): MusicCollection {
-  return { ...item, id: 0, localId: item.id }
+  return { ...item, id: 0, localId: item.id, reference: null }
 }
 export async function playLocalEntity(kind: string, id: string) {
   if (kind === 'playlist') {

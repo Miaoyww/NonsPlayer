@@ -12,33 +12,9 @@ pub trait CredentialStore: Send + Sync {
     fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>>;
     fn write(&self, key: &str, bytes: &[u8]) -> MusicResult<()>;
     fn delete(&self, key: &str) -> MusicResult<()>;
-    fn read_text(&self, key: &str) -> MusicResult<Option<String>> {
-        self.read(key)?
-            .map(|bytes| {
-                String::from_utf8(bytes)
-                    .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
-                    })
-                    .map_err(|_| ErrorCode::InvalidData.into())
-            })
-            .transpose()
-    }
 }
 pub struct SystemCredentials;
 impl CredentialStore for SystemCredentials {
-    fn read_text(&self, key: &str) -> MusicResult<Option<String>> {
-        match keyring::Entry::new("NonsPlayer", key)
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
-            })
-            .map_err(|_| ErrorCode::Internal)?
-            .get_password()
-        {
-            Ok(value) => Ok(Some(value)),
-            Err(keyring::Error::NoEntry) => Ok(None),
-            Err(_) => Err(ErrorCode::Internal.into()),
-        }
-    }
     fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>> {
         match keyring::Entry::new("NonsPlayer", key)
             .inspect_err(|error| {
@@ -82,7 +58,6 @@ impl CredentialStore for SystemCredentials {
 struct SavedAccounts {
     records: Vec<AccountRecord>,
     selected: Vec<AccountRef>,
-    legacy_migrated: bool,
     pending_deletions: Vec<AccountRef>,
 }
 struct State {
@@ -321,30 +296,22 @@ impl AccountManager {
         self.advance(&mut state, &reference.source);
         Ok(())
     }
-    /// The adapter confirms identity; CAS prevents a late login/migration replacing a new session.
+    /// The adapter confirms identity; CAS prevents a late login replacing a new session.
     pub fn accept(
         &self,
         expected: &SessionContext,
         record: AccountRecord,
         credential: OpaqueCredential,
-        migration: bool,
     ) -> MusicResult<()> {
-        self.accept_guarded(expected, record, credential, migration, None)
+        self.accept_guarded(expected, record, credential, None)
     }
     pub(crate) fn accept_context(
         &self,
         context: &RequestContext,
         record: AccountRecord,
         credential: OpaqueCredential,
-        migration: bool,
     ) -> MusicResult<()> {
-        self.accept_guarded(
-            &context.session,
-            record,
-            credential,
-            migration,
-            Some(context),
-        )
+        self.accept_guarded(&context.session, record, credential, Some(context))
     }
     fn check_context(&self, context: &RequestContext) -> MusicResult<()> {
         let adapters = self
@@ -364,7 +331,6 @@ impl AccountManager {
         expected: &SessionContext,
         record: AccountRecord,
         credential: OpaqueCredential,
-        migration: bool,
         context: Option<&RequestContext>,
     ) -> MusicResult<()> {
         if let Some(context) = context {
@@ -386,9 +352,6 @@ impl AccountManager {
         if Self::session_locked(&state, &expected.source) != *expected {
             return Err(ErrorCode::StaleContext.into());
         }
-        if migration && state.saved.legacy_migrated {
-            return Ok(());
-        }
         if state.saved.pending_deletions.contains(&record.reference) {
             return Err(ErrorCode::Internal.into());
         }
@@ -399,53 +362,32 @@ impl AccountManager {
         }
         let target = key(&record.reference);
         let previous = self.credentials.read(&target)?;
-        let written = !migration || previous.is_none();
-        // Never overwrite a newer target during interrupted legacy migration.
-        if written {
-            self.credentials.write(&target, credential.expose())?;
-        }
+        self.credentials.write(&target, credential.expose())?;
         let verified = self.credentials.read(&target)?.ok_or(ErrorCode::Internal)?;
-        if written && verified != credential.expose() {
+        if verified != credential.expose() {
             return Err(ErrorCode::Internal.into());
         }
         OpaqueCredential::new(verified)?;
         saved.selected.retain(|r| r.source != expected.source);
         saved.selected.push(record.reference.clone());
         saved.records.push(record);
-        // A successful new login also retires a pending legacy cookie.
-        if super::migration::legacy_account_source(&expected.source) {
-            saved.legacy_migrated = true;
-        }
         if let Some(context) = context {
             if let Err(error) = self.check_context(context) {
-                if written {
-                    if let Some(previous) = &previous {
-                        self.credentials.write(&target, previous)?;
-                    }
+                if let Some(previous) = &previous {
+                    self.credentials.write(&target, previous)?;
                 }
                 return Err(error);
             }
         }
         if let Err(error) = self.persist(&saved) {
             // A failed metadata commit must not replace an already selected account's secret.
-            if written {
-                if let Some(previous) = previous {
-                    self.credentials.write(&target, &previous)?;
-                }
+            if let Some(previous) = previous {
+                self.credentials.write(&target, &previous)?;
             }
             return Err(error);
         }
         state.saved = saved;
         self.advance(&mut state, &expected.source);
-        // Cleanup failure is retryable and must not undo a committed login.
-        if state.saved.legacy_migrated {
-            let _ = (self
-                .credentials
-                .delete(super::migration::LEGACY_CREDENTIAL_KEY))
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("self .credentials .delete", error);
-            });
-        }
         Ok(())
     }
     pub fn invalidate(&self, expected: &SessionContext) -> MusicResult<()> {
@@ -466,7 +408,7 @@ impl AccountManager {
         self.advance(&mut state, &expected.source);
         Ok(())
     }
-    /// Trusted legacy provider only; unconfirmed credentials never get an invented account ID.
+    /// Trusted provider bridge reads only the selected account.
     pub(crate) fn provider_credential(
         &self,
         source: &SourceId,
@@ -482,11 +424,7 @@ impl AccountManager {
             if let Some(reference) = state.saved.selected.iter().find(|r| &r.source == source) {
                 self.credentials.read(&key(reference))?
             } else {
-                super::migration::pending_account_credential(
-                    self.credentials.as_ref(),
-                    source,
-                    state.saved.legacy_migrated,
-                )?
+                None
             };
         bytes.map(OpaqueCredential::new).transpose()
     }
@@ -536,9 +474,6 @@ impl AccountManager {
         }
         let mut saved = state.saved.clone();
         saved.selected.retain(|r| &r.source != source);
-        if super::migration::legacy_account_source(source) {
-            saved.legacy_migrated = true;
-        }
         self.persist(&saved)?;
         state.saved = saved;
         self.advance(&mut state, source);
@@ -559,12 +494,6 @@ impl AccountManager {
             failed |= error;
             error
         });
-        if saved.legacy_migrated {
-            failed |= self
-                .credentials
-                .delete(super::migration::LEGACY_CREDENTIAL_KEY)
-                .is_err();
-        }
         self.persist(&saved)?;
         state.saved = saved;
         if failed {

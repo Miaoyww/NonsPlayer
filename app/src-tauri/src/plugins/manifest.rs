@@ -8,7 +8,6 @@ use std::{
 
 pub const API_VERSION: &str = "2.0.0";
 pub const PERMISSIONS: &[&str] = &[
-    "clipboard:music-links",
     "clipboard:read",
     "http:request",
     "http:transfer",

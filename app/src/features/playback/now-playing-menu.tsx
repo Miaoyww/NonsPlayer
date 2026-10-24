@@ -1,6 +1,6 @@
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { Menu } from '@base-ui/react/menu'
-import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
+import { favoriteId, onlineReference } from '@/features/music/references'
 import {
   Copy,
   Ellipsis,

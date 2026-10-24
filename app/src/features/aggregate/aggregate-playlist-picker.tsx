@@ -1,5 +1,5 @@
 import { CreatePlaylist } from '@/features/library/create-playlist'
-import { onlineReference } from '@/features/music/legacy-reference'
+import { onlineReference } from '@/features/music/references'
 import {
   ownedPlaylistTargets,
   addToPlaylist,

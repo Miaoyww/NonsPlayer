@@ -80,10 +80,13 @@ mod tests {
             artist: String::new(),
             artists: vec![],
             album: String::new(),
-            album_id: None,
             duration_ms: 180_000,
             cover: Default::default(),
-            source: TrackSource::Netease { id: 1 },
+            source: TrackSource::Local {
+                path: "test.flac".into(),
+                netease_id: None,
+                cue: None,
+            },
         }
     }
 

@@ -250,7 +250,7 @@ async fn xiaobai_component_live_lemon() {
     use crate::music::provider::{ResourceProvider, ResourceRequest};
     let track: MusicTrack = serde_json::from_value(serde_json::json!({
         "reference":{"source":"qqmusic","kind":"track","id":"000akynZ2Rbro5"},
-        "title":"Lemon","aliases":[],"artist":"米津玄師","artists":[],"album":"Lemon","albumReference":null,"durationMs":256000,"cover":"","associations":[]
+        "title":"Lemon","aliases":[],"artist":"米津玄師","artists":[],"album":"Lemon","albumReference":null,"durationMs":256000,"cover":nons_music_adapter_sdk::cover::CoverImage::default(),"associations":[]
     }))
     .unwrap();
     let mut request = ResourceRequest {

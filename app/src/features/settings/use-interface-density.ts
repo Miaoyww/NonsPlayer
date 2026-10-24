@@ -10,7 +10,7 @@ function isMode(value: unknown): value is InterfaceDensity {
   return value === 'standard' || value === 'compact'
 }
 try {
-  const saved = localStorage.getItem(storageKey) ?? localStorage.getItem('nons-song-card-mode')
+  const saved = localStorage.getItem(storageKey)
   if (isMode(saved)) mode = saved
 } catch (cause) {
   reportCaughtError('app/src/features/settings/use-interface-density.ts', cause)

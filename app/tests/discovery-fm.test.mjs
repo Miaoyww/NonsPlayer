@@ -114,7 +114,10 @@ const track = (id) => ({
   title: `Song ${id}`,
   artist: 'Artist',
   album: 'Album',
-  source: { kind: 'netease', id }
+  source: {
+    kind: 'online',
+    track: { reference: { source: 'netease', kind: 'track', id: String(id) } }
+  }
 })
 const settle = async () => {
   for (let i = 0; i < 6; i++) await Promise.resolve()

@@ -1,4 +1,4 @@
-//! All legacy numeric DTO conversion is confined to the built-in provider boundary.
+//! Platform responses are exposed through the uniform music contract.
 use super::{
     account::*,
     adapter::*,
@@ -7,7 +7,7 @@ use super::{
     netease::{numeric_id, NeteaseAdapter},
     ErrorCode, MusicResult,
 };
-use crate::{model::Track, platform as legacy};
+use crate::{model::Track, platform};
 
 pub fn kind(kind: EntityKind) -> &'static str {
     match kind {
@@ -24,15 +24,13 @@ pub fn reference(kind: EntityKind, id: u64) -> MusicResult<EntityRef> {
         id: OpaqueId::try_from(id.to_string())?,
     })
 }
-pub(super) fn track(mut value: Track) -> MusicResult<MusicTrack> {
-    value.cover = crate::cover::image(&value.cover);
-    super::migration::legacy_track(&serde_json::to_string(&value).map_err(|error| {
-        crate::diagnostics::warn("track.encode", &error);
-        ErrorCode::InvalidData
-    })?)
-    .map(|v| v.track)
+pub(super) fn track(value: Track) -> MusicResult<MusicTrack> {
+    match value.source {
+        crate::model::TrackSource::Online { track } => Ok(*track),
+        crate::model::TrackSource::Local { .. } => Err(ErrorCode::InvalidData.into()),
+    }
 }
-pub(super) fn entity(value: legacy::Collection) -> MusicResult<MusicEntity> {
+pub(super) fn entity(value: platform::Collection) -> MusicResult<MusicEntity> {
     let entity_kind = match value.kind.as_str() {
         "playlist" => EntityKind::Playlist,
         "album" => EntityKind::Album,
@@ -71,7 +69,7 @@ pub(super) fn entity(value: legacy::Collection) -> MusicResult<MusicEntity> {
             .collect::<MusicResult<_>>()?,
     })
 }
-fn record(profile: legacy::AccountProfile) -> MusicResult<AccountRecord> {
+fn record(profile: platform::AccountProfile) -> MusicResult<AccountRecord> {
     Ok(AccountRecord {
         reference: AccountRef {
             source: SourceId::try_from("netease".to_owned())?,
@@ -81,7 +79,7 @@ fn record(profile: legacy::AccountProfile) -> MusicResult<AccountRecord> {
         avatar: profile.avatar_url,
     })
 }
-fn library_summary(result: legacy::LibrarySummary) -> MusicResult<LibrarySummary> {
+fn library_summary(result: platform::LibrarySummary) -> MusicResult<LibrarySummary> {
     Ok(LibrarySummary {
         account: record(result.profile)?,
         liked_playlist: result.liked_playlist.map(entity).transpose()?,
@@ -186,7 +184,7 @@ fn tracks(
     }))
 }
 fn collections(
-    page: legacy::CollectionPage,
+    page: platform::CollectionPage,
     request: &BusinessRequest,
     step: u32,
 ) -> MusicResult<BusinessResponse> {
@@ -492,12 +490,11 @@ pub(super) async fn business(
     Ok(response)
 }
 pub(super) async fn account(
-    client: &legacy::Netease,
+    client: &platform::Netease,
     request: &AccountRequest,
-    context: &RequestContext,
+    _context: &RequestContext,
 ) -> MusicResult<AccountOutcome> {
     let mut credential = None;
-    let mut migration = false;
     let presentation = match request {
         AccountRequest::BeginLogin { .. } => {
             let qr = client.qr_login().await.map_err(error)?;
@@ -528,15 +525,6 @@ pub(super) async fn account(
                 .map_err(error)?
                 .map(record)
                 .transpose()?;
-            if context.session.account.is_none() {
-                if let Some(record) = &profile {
-                    if let Some(cookie) = client.account_credentials().map_err(error)? {
-                        credential =
-                            Some((record.clone(), OpaqueCredential::new(cookie.into_bytes())?));
-                        migration = true;
-                    }
-                }
-            }
             AccountPresentation::Profile(profile)
         }
         AccountRequest::Logout => AccountPresentation::Logout(LogoutReport {
@@ -548,7 +536,6 @@ pub(super) async fn account(
     Ok(AccountOutcome {
         presentation,
         credential,
-        migration,
     })
 }
 
@@ -557,9 +544,9 @@ mod summary_tests {
     use super::*;
     #[test]
     fn netease_summary_publishes_liked_playlist_reference_even_when_preview_fails() {
-        let result: legacy::LibrarySummary = serde_json::from_value(serde_json::json!({
-            "profile": { "userId": 42, "nickname": "测试", "avatarUrl": "" },
-            "likedPlaylist": { "id": 12345, "kind": "playlist", "name": "我喜欢的音乐", "cover": "", "subtitle": "测试", "trackCount": 2901, "creatorId": 42, "liked": true, "playCount": null, "publishedAt": null, "artists": [] },
+        let result: platform::LibrarySummary = serde_json::from_value(serde_json::json!({
+            "profile": { "userId": 42, "nickname": "测试", "avatarUrl": nons_music_adapter_sdk::cover::CoverImage::default() },
+            "likedPlaylist": { "id": 12345, "kind": "playlist", "name": "我喜欢的音乐", "cover": nons_music_adapter_sdk::cover::CoverImage::default(), "subtitle": "测试", "trackCount": 2901, "creatorId": 42, "liked": true, "playCount": null, "publishedAt": null, "artists": [] },
             "likedTracks": [], "likedError": "network"
         })).unwrap();
         let summary = library_summary(result).unwrap();

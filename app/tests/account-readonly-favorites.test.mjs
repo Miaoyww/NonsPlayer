@@ -137,7 +137,7 @@ async function readonlyFavoritesScenario(scenario = 'complete') {
     }
     const account = load('../src/features/account/account-state.tsx', modules)
     modules['@/features/account/account'] = account
-    modules['@/features/music/legacy-reference'] = musicReference
+    modules['@/features/music/references'] = musicReference
     modules['lucide-react'] = { Heart: () => React.createElement('span', {}, 'heart') }
     modules['@/components/ui/button'] = {
       Button: ({ variant, size, children, ...props }) =>
@@ -267,7 +267,7 @@ test('page source selection preserves every platform account and routes favorite
     }
     const account = load('../src/features/account/account-state.tsx', modules)
     modules['@/features/account/account'] = account
-    modules['@/features/music/legacy-reference'] = musicReference
+    modules['@/features/music/references'] = musicReference
     modules['lucide-react'] = { Heart: () => null }
     modules['@/components/ui/button'] = {
       Button: ({ variant, size, children, ...props }) =>
@@ -279,7 +279,10 @@ test('page source selection preserves every platform account and routes favorite
       return React.createElement(CurrentTrackLike, {
         track: {
           source: legacy
-            ? { kind: 'netease', id: 123 }
+            ? {
+                kind: 'online',
+                track: { reference: { source: 'netease', kind: 'track', id: '123' } }
+              }
             : {
                 kind: 'online',
                 track: { reference: { source: 'netease', kind: 'track', id: 'song' } }

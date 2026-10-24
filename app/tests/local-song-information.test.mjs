@@ -88,7 +88,13 @@ function harness() {
               format: 'WAV',
               fileSize: 1048576
             }
-          : { artists: [{ name: 'Singer', id: 42 }], albumId: 99, publishedAt: null }
+          : {
+              artists: [
+                { name: 'Singer', reference: { source: 'netease', kind: 'artist', id: '42' } }
+              ],
+              albumReference: { source: 'netease', kind: 'album', id: '99' },
+              publishedAt: null
+            }
       }
     }
   }
@@ -103,8 +109,8 @@ function harness() {
     navigator: { clipboard: { writeText: async (value) => copied.push(value) } },
     require: (name) => {
       if (name === '@/components/error-notice') return errorNoticeModule
-      assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
-      return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+      assert.ok(name === '@/features/music/references' || name in modules, name)
+      return name === '@/features/music/references' ? musicReference : modules[name]
     }
   })
   function render() {
@@ -166,7 +172,11 @@ test('local information uses file metadata even when linked to NetEase and copie
 })
 test('streaming details retain structured artist and album IDs', async () => {
   const h = harness()
-  h.render().props.value.details({ ...track, key: 'netease:1', source: { kind: 'netease', id: 1 } })
+  h.render().props.value.details({
+    ...track,
+    key: 'netease:1',
+    source: { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id: '1' } } }
+  })
   h.render()
   await settle()
   const tree = h.render()

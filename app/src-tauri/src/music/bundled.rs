@@ -427,7 +427,6 @@ mod tests {
                 &accounts.session(&source),
                 record.clone(),
                 OpaqueCredential::new(b"test-cookie".to_vec()).unwrap(),
-                false,
             )
             .unwrap();
         let (service, client) = service(accounts.clone()).unwrap();

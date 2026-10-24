@@ -6,7 +6,7 @@ export interface CoverImage {
   large: string
   exlarge: string
 }
-/** Strings are compatibility artwork from saved state or local paths. */
+/** Display helpers also accept direct URLs and local paths. */
 export type CoverInput = CoverImage | string
 /** ADR 0006 v1 source-neutral music DTOs; IDs and cursors are opaque strings. */
 export type EntityKind = 'track' | 'playlist' | 'album' | 'artist'
@@ -22,7 +22,7 @@ export interface AccountRef {
 export interface AccountRecord {
   reference: AccountRef
   displayName: string
-  avatar: CoverInput
+  avatar: CoverImage
 }
 export interface MusicCredit {
   name: string
@@ -39,7 +39,7 @@ export interface MusicTrack {
   album: string
   albumReference: EntityRef | null
   durationMs: number
-  cover: CoverInput
+  cover: CoverImage
   associations: EntityRef[]
   /** Typed IDs within reference.source; at most eight. */
   lyricIdentifiers?: { kind: string; id: string }[]
@@ -47,7 +47,7 @@ export interface MusicTrack {
 export interface MusicEntity {
   reference: EntityRef
   name: string
-  cover: CoverInput
+  cover: CoverImage
   subtitle: string
   trackCount: number
   creator: AccountRef | null

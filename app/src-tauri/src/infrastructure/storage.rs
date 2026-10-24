@@ -39,7 +39,6 @@ impl Store {
             CREATE TABLE IF NOT EXISTS tracks (key TEXT PRIMARY KEY, source TEXT NOT NULL, title TEXT NOT NULL, artist TEXT NOT NULL, value TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS tracks_source ON tracks(source);
             CREATE TABLE IF NOT EXISTS local_origins (key TEXT NOT NULL, origin TEXT NOT NULL, PRIMARY KEY(key,origin));
-            INSERT OR IGNORE INTO local_origins(key,origin) SELECT key,'' FROM tracks WHERE source='local' AND key NOT IN (SELECT key FROM local_origins);
             CREATE TABLE IF NOT EXISTS local_file_stats (key TEXT PRIMARY KEY, modified TEXT NOT NULL, bytes INTEGER NOT NULL);
             PRAGMA temp_store=MEMORY;
             CREATE TEMP TABLE runtime_lyrics (key TEXT PRIMARY KEY, value TEXT, expires INTEGER NOT NULL, accessed INTEGER NOT NULL, bytes INTEGER NOT NULL);
@@ -60,7 +59,7 @@ impl Store {
             CREATE TABLE IF NOT EXISTS local_members (key TEXT NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY(key,kind,id));
             CREATE INDEX IF NOT EXISTS local_members_entity ON local_members(kind,id);
             CREATE TABLE IF NOT EXISTS local_playlists (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(playlist_id,key));
+            CREATE TABLE IF NOT EXISTS local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, manual INTEGER NOT NULL DEFAULT 1, remote INTEGER NOT NULL DEFAULT 0, excluded INTEGER NOT NULL DEFAULT 0, value TEXT NOT NULL, PRIMARY KEY(playlist_id,key));
             CREATE INDEX IF NOT EXISTS local_audio_path ON tracks(json_extract(value,'$.source.path')) WHERE source='local';
             CREATE VIEW IF NOT EXISTS visible_local_tracks AS
                 SELECT t.* FROM tracks t WHERE t.source='local' AND (
@@ -69,8 +68,8 @@ impl Store {
                         AND json_extract(c.value,'$.source.path')=json_extract(t.value,'$.source.path')
                         AND json_extract(c.value,'$.source.cue') IS NOT NULL));
             ").map_err(|e| e.to_string())?;
-        crate::aggregate::migrate(&connection).map_err(|e| e.to_string())?;
-        crate::music::collections::store::migrate(&connection).map_err(|e| e.to_string())?;
+        crate::aggregate::initialize(&connection).map_err(|e| e.to_string())?;
+        crate::music::collections::store::initialize(&connection).map_err(|e| e.to_string())?;
         Ok(Self(Mutex::new(connection)))
     }
 
@@ -133,7 +132,7 @@ impl Store {
             for (index, track) in tracks.iter().enumerate() {
                 let source = track.source_id();
                 if matches!(track.source, crate::model::TrackSource::Online { .. }) {
-                    nons_music_adapter_sdk::migration::validate_online_queue_track(track)
+                    nons_music_adapter_sdk::metadata::validate_online_queue_track(track)
                         .map_err(|reason| format!("online_track_validation index={index} source={source} rule={reason}"))?;
                 }
                 insert
@@ -405,14 +404,14 @@ impl Store {
 
 impl crate::music::accounts::AccountRecordStore for Store {
     fn load(&self) -> crate::music::MusicResult<Option<String>> {
-        self.setting("musicAccountsV1")
+        self.setting("musicAccountsV2")
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn("translate_error", error);
             })
             .map_err(|_| crate::music::ErrorCode::Internal.into())
     }
     fn save(&self, json: &str) -> crate::music::MusicResult<()> {
-        self.set_setting("musicAccountsV1", json)
+        self.set_setting("musicAccountsV2", json)
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn("translate_error", error);
             })
@@ -422,6 +421,21 @@ impl crate::music::accounts::AccountRecordStore for Store {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn account_index_uses_current_namespace_without_reading_old_records() {
+        use crate::music::accounts::AccountRecordStore;
+        let store =
+            super::Store::initialize(rusqlite::Connection::open_in_memory().unwrap()).unwrap();
+        store.set_setting("musicAccountsV1", "obsolete").unwrap();
+        assert!(store.load().unwrap().is_none());
+        let current = r#"{"records":[],"selected":[],"pendingDeletions":[]}"#;
+        store.save(current).unwrap();
+        assert_eq!(store.load().unwrap().as_deref(), Some(current));
+        assert_eq!(
+            store.setting("musicAccountsV1").unwrap().as_deref(),
+            Some("obsolete")
+        );
+    }
     use super::*;
     #[test]
     fn absence_and_expired_lyrics_are_distinct() {

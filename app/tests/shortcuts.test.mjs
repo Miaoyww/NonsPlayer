@@ -134,7 +134,14 @@ function playbackHarness() {
     dispatch
   const state = {
     index: 0,
-    queue: [{ source: { kind: 'netease', id: 7 } }],
+    queue: [
+      {
+        source: {
+          kind: 'online',
+          track: { reference: { source: 'netease', kind: 'track', id: '7' } }
+        }
+      }
+    ],
     status: 'playing',
     volume: 0.98
   }
@@ -201,8 +208,7 @@ function playbackHarness() {
     ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText,
     {
       exports,
-      require: (name) =>
-        name === '@/features/music/legacy-reference' ? musicReference : modules[name],
+      require: (name) => (name === '@/features/music/references' ? musicReference : modules[name]),
       window: app.window
     }
   )

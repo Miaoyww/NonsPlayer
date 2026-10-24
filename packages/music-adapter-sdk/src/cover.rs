@@ -23,26 +23,31 @@ pub struct CoverVariants {
     pub exlarge: String,
 }
 
-/// Strings are retained only for old saved metadata and local artwork paths.
+/// Artwork metadata always uses semantic sizes, including host-owned local paths.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum CoverImage {
     Variants(CoverVariants),
-    Legacy(String),
 }
 impl Default for CoverImage {
     fn default() -> Self {
-        Self::Legacy(String::new())
+        Self::from(String::new())
     }
 }
 impl From<String> for CoverImage {
     fn from(value: String) -> Self {
-        Self::Legacy(value)
+        Self::Variants(CoverVariants {
+            original: value.clone(),
+            small: value.clone(),
+            normal: value.clone(),
+            large: value.clone(),
+            exlarge: value,
+        })
     }
 }
 impl From<&str> for CoverImage {
     fn from(value: &str) -> Self {
-        Self::Legacy(value.into())
+        Self::from(value.to_owned())
     }
 }
 impl std::ops::Deref for CoverImage {
@@ -80,7 +85,6 @@ impl CoverImage {
     }
     pub fn url(&self, size: CoverSize) -> &str {
         match self {
-            Self::Legacy(value) => value,
             Self::Variants(value) => match size {
                 CoverSize::Small => &value.small,
                 CoverSize::Normal => &value.normal,
@@ -90,12 +94,22 @@ impl CoverImage {
             },
         }
     }
-    /// Live adapters must return all semantic sizes. Legacy saved strings stay readable.
+    /// Live adapters return either empty artwork or valid URLs for every semantic size.
     pub fn validate_adapter(&self) -> MusicResult<()> {
         match self {
-            Self::Legacy(value) if value.is_empty() => Ok(()),
-            Self::Legacy(_) => Err(ErrorCode::InvalidData.into()),
             Self::Variants(value) => {
+                if [
+                    &value.original,
+                    &value.small,
+                    &value.normal,
+                    &value.large,
+                    &value.exlarge,
+                ]
+                .iter()
+                .all(|url| url.is_empty())
+                {
+                    return Ok(());
+                }
                 for input in [
                     &value.original,
                     &value.small,
@@ -131,15 +145,14 @@ mod tests {
             r#"{"original":"https://cdn.example/raw","small":"https://cdn.example/tiny"}"#
         )
         .is_err());
-        let legacy: CoverImage = serde_json::from_str(r#""https://cdn.example/old""#).unwrap();
-        assert_eq!(legacy.url(CoverSize::Original), "https://cdn.example/old");
-        assert!(legacy.validate_adapter().is_err());
+        assert!(serde_json::from_str::<CoverImage>(r#""https://cdn.example/old""#).is_err());
         assert!(CoverImage::default().validate_adapter().is_ok());
         let local = CoverImage::from("C:/covers/local.png");
         assert_eq!(
-            serde_json::to_string(&local).unwrap(),
-            r#""C:/covers/local.png""#
+            serde_json::to_value(&local).unwrap()["original"],
+            "C:/covers/local.png"
         );
+        assert!(local.validate_adapter().is_err());
     }
 }
 

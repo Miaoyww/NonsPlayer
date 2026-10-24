@@ -87,7 +87,7 @@ impl MusicAdapter for Fixture {
                 BusinessRequest::LibraryCollections { page, .. } => {
                     // The bundled provider accepts library pages of exactly 30.
                     assert_eq!(page.limit, 30);
-                    let mut item:MusicEntity=serde_json::from_value(serde_json::json!({"reference":entity(),"name":"测试歌单","cover":"","subtitle":"","trackCount":0,"creator":account(),"liked":false,"playCount":null,"publishedAt":null,"artists":[]})).unwrap();
+                    let mut item:MusicEntity=serde_json::from_value(serde_json::json!({"reference":entity(),"name":"测试歌单","cover":nons_music_adapter_sdk::cover::CoverImage::default(),"subtitle":"","trackCount":0,"creator":account(),"liked":false,"playCount":null,"publishedAt":null,"artists":[]})).unwrap();
                     if !self.owned.load(Ordering::Acquire) {
                         item.creator = None;
                     }
@@ -116,7 +116,7 @@ impl MusicAdapter for Fixture {
                     }
                     let total = self.total.load(Ordering::Acquire) as usize;
                     let end = (offset + 100).min(total);
-                    let items=(offset..end).map(|i|serde_json::from_value(serde_json::json!({"reference":{"source":"fixture-aggregate","kind":"track","id":format!("曲目{}",if i==100{99}else{i})},"title":format!("歌曲{i}"),"aliases":[],"artist":"Artist","artists":[],"album":"Album","albumReference":null,"durationMs":1000,"cover":"","associations":[]})).unwrap()).collect();
+                    let items=(offset..end).map(|i|serde_json::from_value(serde_json::json!({"reference":{"source":"fixture-aggregate","kind":"track","id":format!("曲目{}",if i==100{99}else{i})},"title":format!("歌曲{i}"),"aliases":[],"artist":"Artist","artists":[],"album":"Album","albumReference":null,"durationMs":1000,"cover":nons_music_adapter_sdk::cover::CoverImage::default(),"associations":[]})).unwrap()).collect();
                     Ok(BusinessResponse::Tracks(TrackPage {
                         page: Page {
                             items,
@@ -151,7 +151,6 @@ fn harness() -> (Arc<MusicService>, Arc<Fixture>, Link, Arc<Job>) {
                 avatar: "".into(),
             },
             OpaqueCredential::new(b"credential".to_vec()).unwrap(),
-            false,
         )
         .unwrap();
     let mut descriptor = nons_adapter_netease::NeteaseAdapter::new(Arc::new(
@@ -251,7 +250,6 @@ async fn source_change_and_ownership_loss_reject_late_results() {
                         avatar: "".into(),
                     },
                     OpaqueCredential::new(b"other".to_vec()).unwrap(),
-                    false,
                 )
                 .unwrap();
         }

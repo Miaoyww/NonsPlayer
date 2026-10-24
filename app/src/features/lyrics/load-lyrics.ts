@@ -16,7 +16,7 @@ export function lyricTrackVersion(track?: Track) {
     track.durationMs,
     source?.kind,
     source?.kind === 'local' ? source.cue : null,
-    source?.kind === 'local' ? source.neteaseId : source?.kind === 'netease' ? source.id : null,
+    source?.kind === 'local' ? source.neteaseId : null,
     online ? [online.reference.source, online.reference.kind, online.reference.id] : null,
     online?.lyricIdentifiers?.map(({ kind, id }) => [kind, id]).sort() ?? [],
     online?.associations?.map(({ source, kind, id }) => [source, kind, id]).sort() ?? []

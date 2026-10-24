@@ -15,10 +15,11 @@ runInNewContext(
 )
 const { parseRecentPlaylists, rememberPlaylist, recentPlaylistKey } = exports
 const playlist = (id) => ({
-  id,
+  id: String(id),
+  reference: { source: 'netease', kind: 'playlist', id: String(id) },
   kind: 'playlist',
   name: `歌单 ${id}`,
-  cover: '',
+  cover: { original: '', small: '', normal: '', large: '', exlarge: '' },
   subtitle: '',
   trackCount: 1
 })
@@ -29,8 +30,8 @@ test('reopening a playlist moves updated metadata to the front and bounds histor
   const reopened = rememberPlaylist(items, updated)
   assert.equal(reopened[0], updated)
   assert.equal(reopened.length, 20)
-  assert.equal(reopened.filter((item) => item.id === 12).length, 1)
-  assert.equal(rememberPlaylist(reopened, playlist(21)).at(-1).id, 19)
+  assert.equal(reopened.filter((item) => item.id === '12').length, 1)
+  assert.equal(rememberPlaylist(reopened, playlist(21)).at(-1).id, '19')
 })
 
 test('restoring ignores damaged, duplicate and non-playlist entries', () => {
@@ -46,7 +47,7 @@ test('restoring ignores damaged, duplicate and non-playlist entries', () => {
   ]
   const restored = parseRecentPlaylists(JSON.stringify(saved))
   assert.equal(restored.length, 20)
-  assert.equal(restored[0].id, 1)
-  assert.equal(restored[1].id, 5)
+  assert.equal(restored[0].id, '1')
+  assert.equal(restored[1].id, '5')
   assert.notEqual(recentPlaylistKey(1), recentPlaylistKey(2))
 })

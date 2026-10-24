@@ -11,7 +11,7 @@ mod performance {
 #[path = "../src/model/mod.rs"]
 #[allow(dead_code)]
 mod model;
-#[path = "../src/netease/mod.rs"]
+#[path = "support/netease.rs"]
 #[allow(dead_code, unused_imports)]
 mod netease;
 

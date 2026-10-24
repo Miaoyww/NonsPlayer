@@ -71,7 +71,7 @@ function targetsHarness({ query, write, native, aggregate, current } = {}) {
         creatorId: entity.creator?.id
       })
     },
-    '@/features/music/legacy-reference': {
+    '@/features/music/references': {
       collectionReference: (item) => item.reference,
       onlineReference: (track) => track.reference ?? null
     },
@@ -395,7 +395,7 @@ test('ordinary playlist menu exposes only derivation for owned playlists and ope
     },
     'lucide-react': { Ellipsis: 'Ellipsis', GitBranch: 'GitBranch' },
     '@/components/music/action-button': { ActionButton: 'Button' },
-    '@/features/music/legacy-reference': { collectionReference: (item) => item.reference },
+    '@/features/music/references': { collectionReference: (item) => item.reference },
     '@/features/music/client': {
       musicClient: { currentAccount: async () => ({ reference: { source: 'netease', id: '42' } }) }
     },

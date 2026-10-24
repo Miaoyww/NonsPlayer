@@ -868,10 +868,6 @@ pub fn run() {
             let telemetry = telemetry::Telemetry::new(store.clone())?;
             app.manage(telemetry.clone());
             let launch_time = time::OffsetDateTime::now_utc().format(&time::format_description::well_known::Rfc3339)?;
-            if store.setting("localIndexVersion")?.as_deref() != Some("1") {
-                store.rebuild_local_index()?;
-                store.set_setting("localIndexVersion", "1")?;
-            }
             let accounts = Arc::new(crate::music::accounts::AccountManager::new(
                 store.clone(),
                 Arc::new(crate::music::accounts::SystemCredentials),

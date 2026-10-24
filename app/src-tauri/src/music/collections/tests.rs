@@ -26,7 +26,7 @@ fn entity() -> EntityRef {
     }
 }
 fn track(index: usize, changed: bool) -> MusicTrack {
-    serde_json::from_value(json!({"reference":{"source":"fixture-cache","kind":"track","id":format!("{}:{index}",if changed {"new"}else{"original"})},"title":format!("Song {index}"),"aliases":[],"artist":"Artist","artists":[],"album":"Album","albumReference":null,"durationMs":1000,"cover":"","associations":[]})).unwrap()
+    serde_json::from_value(json!({"reference":{"source":"fixture-cache","kind":"track","id":format!("{}:{index}",if changed {"new"}else{"original"})},"title":format!("Song {index}"),"aliases":[],"artist":"Artist","artists":[],"album":"Album","albumReference":null,"durationMs":1000,"cover":nons_music_adapter_sdk::cover::CoverImage::default(),"associations":[]})).unwrap()
 }
 impl MusicAdapter for Fixture {
     fn descriptor(&self) -> &SourceDescriptor {
@@ -389,22 +389,23 @@ async fn successful_writes_invalidate_and_failed_writes_keep_snapshot() {
 }
 
 #[test]
-fn additive_migration_is_repeatable_and_retains_legacy_data() {
+fn current_schema_initialization_is_repeatable_and_retains_current_data() {
     let directory = tempfile::tempdir().unwrap();
-    let path = directory.path().join("old.sqlite3");
-    let db = rusqlite::Connection::open(&path).unwrap();
-    db.execute_batch("CREATE TABLE tracks(key TEXT PRIMARY KEY,source TEXT NOT NULL,title TEXT NOT NULL,artist TEXT NOT NULL,value TEXT NOT NULL); CREATE TABLE settings(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE lyric_cache(key TEXT PRIMARY KEY,value TEXT,expires INTEGER NOT NULL,accessed INTEGER NOT NULL,bytes INTEGER NOT NULL); INSERT INTO settings VALUES('player','preserved'); INSERT INTO tracks VALUES('old','netease','Song','Artist','{}'); INSERT INTO lyric_cache VALUES('lyric','preserved',1,1,9); PRAGMA user_version=1;").unwrap();
-    drop(db);
+    let path = directory.path().join("library.sqlite3");
+    {
+        let store = Store::open(&path).unwrap();
+        store.set_setting("current", "preserved").unwrap();
+        store
+            .save_tracks(&[Track::from_music(track(0, false)).unwrap()])
+            .unwrap();
+    }
     for _ in 0..2 {
         let store = Store::open(&path).unwrap();
-        let db = store.0.lock().unwrap();
         assert_eq!(
-            db.query_row("SELECT value FROM settings WHERE key='player'", [], |r| {
-                r.get::<_, String>(0)
-            })
-            .unwrap(),
-            "preserved"
+            store.setting("current").unwrap().as_deref(),
+            Some("preserved")
         );
+        let db = store.0.lock().unwrap();
         assert_eq!(
             db.query_row("SELECT COUNT(*) FROM tracks", [], |r| r.get::<_, i64>(0))
                 .unwrap(),
@@ -415,11 +416,6 @@ fn additive_migration_is_repeatable_and_retains_legacy_data() {
                 .get::<_, i64>(0))
                 .unwrap(),
             0
-        );
-        assert_eq!(
-            db.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
-                .unwrap(),
-            2
         );
     }
 }

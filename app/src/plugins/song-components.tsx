@@ -28,7 +28,13 @@ export function SongIdentity({ song }: { song: PluginMenuSong }) {
               album: song.album,
               albumReference: null,
               durationMs: song.durationMs,
-              cover: song.cover,
+              cover: {
+                original: song.cover,
+                small: song.cover,
+                normal: song.cover,
+                large: song.cover,
+                exlarge: song.cover
+              },
               associations: []
             }
           }

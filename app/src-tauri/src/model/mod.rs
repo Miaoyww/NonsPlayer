@@ -1,8 +1,6 @@
 #[allow(unused_imports)]
-// Standalone probes/tests embed this compatibility module and use a subset.
-pub use nons_music_adapter_sdk::legacy::{
-    Lyrics, MusicCredit, Track, TrackSource, MAX_LYRIC_BYTES,
-};
+// Standalone probes/tests embed this shared playback model and use a subset.
+pub use nons_music_adapter_sdk::queue::{Lyrics, MusicCredit, Track, TrackSource, MAX_LYRIC_BYTES};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -569,12 +567,15 @@ mod tests {
             title: id.to_string(),
             aliases: vec![],
             artists: vec![],
-            album_id: None,
             artist: String::new(),
             album: String::new(),
             duration_ms: 1000,
             cover: Default::default(),
-            source: TrackSource::Netease { id },
+            source: TrackSource::Local {
+                path: "test.flac".into(),
+                netease_id: None,
+                cue: None,
+            },
         }
     }
     #[test]

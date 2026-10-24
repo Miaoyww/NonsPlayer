@@ -2,7 +2,6 @@ import {
   useAggregateReplacement,
   aggregateCollection
 } from '@/features/aggregate/aggregate-library'
-import { reportCaughtError } from '@/lib/diagnostics'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 export type MusicView =
@@ -24,7 +23,7 @@ export type MusicView =
 export interface MusicCollection {
   bypassAggregate?: boolean
 
-  reference?: import('@/features/music/types').EntityRef
+  reference: import('@/features/music/types').EntityRef | null
   localId?: string
   id: number | string
   kind: 'playlist' | 'album' | 'artist'
@@ -59,15 +58,6 @@ export function MusicNavigationProvider({ children }: { children: ReactNode }) {
     entries: [{ view: 'library', query: '' }],
     index: 0
   })
-  useEffect(() => {
-    try {
-      // Remove snapshots written by versions that restored the last workspace.
-      localStorage.removeItem('nons-workspace-history')
-      localStorage.removeItem('nons-now-playing-open')
-    } catch (cause) {
-      reportCaughtError('app/src/features/workspace/music-navigation.tsx', cause)
-    }
-  }, [])
   useEffect(() => {
     // Application history is independent of the WebView's document history.
     // Capture side buttons before card/menu handlers and suppress browser navigation.

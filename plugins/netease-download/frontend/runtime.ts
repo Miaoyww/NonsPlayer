@@ -2,7 +2,6 @@ import type { ConfigSnapshot, PluginClient, PluginMenuSong, PluginTransfer } fro
 import { reportCaughtError } from '@app/plugin-sdk'
 import { audioFormat, filename, LoginRequired, resolveResource, type Quality } from './protocol'
 import { accountCredential, accountScope } from './account'
-import { migrateSong } from './migration'
 
 function songId(song: PluginMenuSong): number {
   if (song.source.kind !== 'online' || song.source.reference.source !== 'netease')
@@ -75,7 +74,6 @@ export async function activate(next: PluginClient) {
   try {
     const saved = await client.call<DownloadTask[] | null>('storage.get', { key: 'tasks' })
     tasks = (Array.isArray(saved) ? saved : []).slice(-32).map((task) => {
-      task = { ...task, song: migrateSong(task.song) }
       if (task.state === 'running' || task.state === 'resolving' || task.state === 'saving')
         return { ...task, state: 'failed', error: '上次下载已中断，请重试', transfer: undefined }
       return { ...task, transfer: undefined }

@@ -9,6 +9,13 @@ const TRACK_LIMIT: usize = 100;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CollectionCredit {
+    pub name: String,
+    pub id: Option<u64>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Collection {
     pub id: u64,
     pub kind: String,
@@ -20,7 +27,7 @@ pub struct Collection {
     pub liked: bool,
     pub play_count: Option<u64>,
     pub published_at: Option<u64>,
-    pub artists: Vec<crate::model::MusicCredit>,
+    pub artists: Vec<CollectionCredit>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -527,7 +534,7 @@ pub(super) fn collection(value: &Value, kind: &str) -> Option<Collection> {
         artists: array(value, "artists")
             .iter()
             .filter_map(|v| {
-                Some(crate::model::MusicCredit {
+                Some(CollectionCredit {
                     name: v.get("name")?.as_str()?.into(),
                     id: v.get("id").and_then(Value::as_u64).filter(|id| *id > 0),
                 })
@@ -772,7 +779,10 @@ mod tests {
         let tracks = ordered_tracks(&[1, 2, 3], &songs);
         assert_eq!(
             tracks.iter().map(|t| t.key.as_str()).collect::<Vec<_>>(),
-            vec!["netease:1", "netease:3"]
+            vec![
+                crate::reference(1).unwrap().key(),
+                crate::reference(3).unwrap().key()
+            ]
         );
     }
     #[test]

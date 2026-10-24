@@ -10,7 +10,7 @@ import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { FindSongGrid } from '@/components/music/list-find'
-import { onlineReference, collectionReference } from '@/features/music/legacy-reference'
+import { onlineReference, collectionReference } from '@/features/music/references'
 import { musicClient } from '@/features/music/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import {

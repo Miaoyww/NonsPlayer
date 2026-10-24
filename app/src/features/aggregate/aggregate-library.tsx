@@ -137,6 +137,7 @@ export function aggregateCollection(p: AggregatePlaylist): MusicCollection {
   return {
     id: p.id,
     localId: p.id,
+    reference: null,
     kind: 'playlist',
     name: p.name,
     cover: p.covers[0] ?? '',

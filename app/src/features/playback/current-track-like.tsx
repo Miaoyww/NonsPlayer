@@ -1,5 +1,5 @@
 import { Heart } from 'lucide-react'
-import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
+import { favoriteId, onlineReference } from '@/features/music/references'
 import { isTauri } from '@tauri-apps/api/core'
 import type { Track } from '@/lib/player'
 import { Button } from '@/components/ui/button'

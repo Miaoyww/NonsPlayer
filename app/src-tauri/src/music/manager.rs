@@ -709,7 +709,6 @@ impl AdapterManager {
         if let Some((record, credential)) = outcome.credential {
             let worker = accounts.clone();
             let mutation_context = context.clone();
-            let migration = outcome.migration;
             let login_entry = entry.clone();
             let login_key = match request {
                 AccountRequest::PollLogin { key } => Some(key.clone()),
@@ -732,7 +731,7 @@ impl AdapterManager {
                     {
                         return Err(ErrorCode::Cancelled.into());
                     }
-                    accounts.accept_context(&mutation_context, record, credential, migration)
+                    accounts.accept_context(&mutation_context, record, credential)
                 })
                 .await?;
         } else if matches!(outcome.presentation, AccountPresentation::Profile(None))
@@ -1035,7 +1034,6 @@ mod tests {
                             image: "data:image/png;base64,dGVzdA==".into(),
                         },
                         credential: None,
-                        migration: false,
                     });
                 }
                 if !matches!(request, AccountRequest::PollLogin { .. }) {
@@ -1059,7 +1057,6 @@ mod tests {
                         },
                         OpaqueCredential::new(b"test-secret".to_vec())?,
                     )),
-                    migration: false,
                 })
             })
         }

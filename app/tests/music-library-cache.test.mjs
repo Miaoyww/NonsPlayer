@@ -74,7 +74,7 @@ function harness() {
     '@/features/music/client': { musicClient: client },
     '@/features/music/queries': { clearContinuations() {} },
     '@/features/music/entities': {},
-    '@/features/music/legacy-reference': musicReference,
+    '@/features/music/references': musicReference,
     '@/features/account/account': {},
     '@/lib/player': player,
     '@/lib/runtime-cache': cache

@@ -18,7 +18,7 @@ import { errorText, nativeCall, usePlayer, type Track } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import { musicClient } from './client'
 
-// Reference-based details never enter the numeric Netease compatibility routes.
+// Details use the full source and entity reference.
 interface EntityPageProps {
   collection: MusicCollection
   onError: (cause: unknown) => void

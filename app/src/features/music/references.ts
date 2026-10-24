@@ -1,10 +1,7 @@
 import type { Track } from '@/lib/player'
 import type { EntityRef } from './types'
-// Historical queue data is interpreted once at the boundary, never in plugin DTOs.
 export function onlineReference(track: Track): EntityRef | null {
   if (track.source.kind === 'online') return track.source.track.reference
-  if (track.source.kind === 'netease')
-    return { source: 'netease', kind: 'track', id: String(track.source.id) }
   return null
 }
 export function favoriteId(
@@ -24,13 +21,5 @@ export function collectionReference(
 export function optionalCollectionReference(
   value: import('@/features/workspace/music-navigation').MusicCollection
 ): EntityRef | null {
-  if (value.reference) return value.reference
-  if (
-    value.localId ||
-    typeof value.id !== 'number' ||
-    !Number.isSafeInteger(value.id) ||
-    value.id <= 0
-  )
-    return null
-  return { source: 'netease', kind: value.kind, id: String(value.id) }
+  return value.reference
 }

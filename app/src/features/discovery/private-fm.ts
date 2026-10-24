@@ -1,7 +1,7 @@
 import { reportCaughtError } from '@/lib/diagnostics'
 import type { PlayerSnapshot } from '@/lib/player'
 import { discoveryTracks } from './discovery-api'
-import { onlineReference } from '@/features/music/legacy-reference'
+import { onlineReference } from '@/features/music/references'
 
 // Lives with the global player connection so navigation cannot stop FM.
 export function createPrivateFm(

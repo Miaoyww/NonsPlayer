@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
-function harness(responses, kind = 'netease') {
+function harness(responses, kind = 'online') {
   const calls = []
   const commands = []
   const exports = {}
@@ -77,7 +77,7 @@ test('invalid embedded lyrics can try the sidecar but never online lyrics', asyn
 })
 
 test('local selection never changes streaming lyrics routing or their translation', async () => {
-  for (const kind of ['netease', 'online']) {
+  for (const kind of ['online']) {
     const app = harness(
       [{ source: 'netease', format: 'yrc', content: 'words', translation: 'translation' }],
       kind

@@ -4,7 +4,7 @@ import { nativeCall, type Track } from '@/lib/player'
 import { accountProfile, type AccountProfile } from '@/features/account/account'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import { musicClient } from '@/features/music/client'
-import { collectionReference } from '@/features/music/legacy-reference'
+import { collectionReference } from '@/features/music/references'
 import {
   clearContinuations,
   queryMusic,

@@ -118,7 +118,6 @@ pub fn performance_probe(
                     },
                     aliases: vec![],
                     artists: vec![],
-                    album_id: None,
                 })
                 .collect();
             backend.store.save_tracks(&tracks)?;

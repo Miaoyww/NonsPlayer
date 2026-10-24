@@ -19,7 +19,7 @@ function harness() {
     '@/lib/player': { nativeCall: async () => scope },
     './client': { musicClient: client },
     './source-preferences': { sourcePreferences: { get: async () => ({ current: 'qqmusic' }) } },
-    './legacy-reference': {}
+    './references': {}
   }
   runInNewContext(
     ts.transpileModule(

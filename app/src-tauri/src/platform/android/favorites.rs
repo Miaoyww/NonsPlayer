@@ -57,7 +57,7 @@ impl Favorites {
         let reference = track
             .filter(|t| !matches!(t.source, TrackSource::Local { .. }))
             .and_then(|t| {
-                nons_music_adapter_sdk::migration::convert_track(t)
+                nons_music_adapter_sdk::metadata::queue_metadata(t)
                     .inspect_err(|error| {
                         crate::infrastructure::diagnostics::warn("optional_result", error);
                     })

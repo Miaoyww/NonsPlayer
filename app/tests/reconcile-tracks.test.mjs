@@ -20,7 +20,10 @@ const track = (key) => ({
   album: 'album',
   cover: '',
   durationMs: 1000,
-  source: { kind: 'netease', id: Number(key) }
+  source: {
+    kind: 'online',
+    track: { reference: { source: 'netease', kind: 'track', id: String(key) } }
+  }
 })
 
 test('identical server snapshots preserve the array and track identities', () => {

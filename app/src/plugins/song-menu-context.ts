@@ -1,7 +1,7 @@
 import { coverOriginal } from '@/features/music/cover-image'
 import type { Track } from '@/lib/player'
 import type { PluginManifest } from './types'
-import { onlineReference } from '@/features/music/legacy-reference'
+import { onlineReference } from '@/features/music/references'
 
 export function songMenuContributions(manifest: PluginManifest, track: Track) {
   return (manifest.contributes.contextMenus ?? []).filter(
@@ -14,8 +14,10 @@ export function publicMenuSong(track: Track) {
     key: track.key,
     title: track.title,
     aliases: track.aliases,
-    artists: track.artists,
-    albumId: track.albumId,
+    artists:
+      track.source.kind === 'online'
+        ? track.source.track.artists
+        : track.artists?.map((artist) => ({ ...artist, reference: artist.reference ?? null })),
     artist: track.artist,
     album: track.album,
     durationMs: track.durationMs,

@@ -46,7 +46,7 @@ const summary = (userId) => ({
     userId: String(userId),
     reference: { source: 'qqmusic', id: String(userId) },
     nickname: 'Saved',
-    avatarUrl: ''
+    avatarUrl: { original: '', small: '', normal: '', large: '', exlarge: '' }
   },
   likedPlaylist: null,
   likedTracks: [],
@@ -59,7 +59,7 @@ const collections = (name) => ({
       kind: 'playlist',
       id: '10',
       name,
-      cover: '',
+      cover: { original: '', small: '', normal: '', large: '', exlarge: '' },
       subtitle: '',
       trackCount: 5
     }

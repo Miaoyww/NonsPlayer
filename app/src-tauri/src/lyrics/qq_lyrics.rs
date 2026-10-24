@@ -651,7 +651,6 @@ fn select_candidate(best: Option<(Candidate, u32)>) -> Option<(Candidate, u32)> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::TrackSource;
     #[test]
     fn qrc_wrapper_keeps_literal_quotes_angles_and_auxiliary_attributes() {
         let content =
@@ -747,18 +746,25 @@ mod tests {
         assert_eq!(lrc.format, "lrc");
     }
     pub(super) fn track() -> Track {
-        Track {
-            key: "ncm:1".into(),
+        Track::from_music(nons_music_adapter_sdk::identity::MusicTrack {
             title: "晴天".into(),
             aliases: vec![],
             artists: vec![],
-            album_id: None,
+            album_reference: None,
             artist: "周杰伦 / 杨瑞代".into(),
             album: "叶惠美".into(),
             duration_ms: 269000,
             cover: Default::default(),
-            source: TrackSource::Netease { id: 1 },
-        }
+            reference: nons_music_adapter_sdk::identity::EntityRef {
+                source: "netease".to_string().try_into().unwrap(),
+                kind: nons_music_adapter_sdk::identity::EntityKind::Track,
+                id: (1).to_string().try_into().unwrap(),
+            },
+            associations: vec![],
+            lyric_identifiers: vec![],
+            unavailable_reason: None,
+        })
+        .unwrap()
     }
     pub(super) fn candidate() -> Candidate {
         Candidate {

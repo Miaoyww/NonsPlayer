@@ -1,7 +1,7 @@
 import { queryMusic, queryPage, currentSource } from '@/features/music/queries'
 import { musicClient } from '@/features/music/client'
 import { musicCollection } from '@/features/music/entities'
-import { onlineReference } from '@/features/music/legacy-reference'
+import { onlineReference } from '@/features/music/references'
 import type { Track } from '@/lib/player'
 import type { CollectionPage } from '@/features/library/library-api'
 

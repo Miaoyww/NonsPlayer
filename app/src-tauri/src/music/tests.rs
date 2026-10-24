@@ -1,4 +1,4 @@
-use super::{account::*, adapter::*, identity::*, migration::*, resource::*, *};
+use super::{account::*, adapter::*, identity::*, resource::*, *};
 use serde_json::json;
 use std::{
     collections::BTreeSet,
@@ -19,142 +19,84 @@ fn track_ref(provider: &str, value: &str) -> EntityRef {
     }
 }
 
-#[test]
-fn uniform_tracks_survive_real_storage_and_mixed_queue_restore() {
-    use crate::model::{PlayerSnapshot, Track, TrackSource};
-    let music = |provider: &str, value: &str| MusicTrack {
-        unavailable_reason: (provider == "qqmusic").then_some(ErrorCode::NotFound),
+fn online_track(provider: &str, value: &str) -> crate::model::Track {
+    crate::model::Track::from_music(MusicTrack {
+        unavailable_reason: None,
         reference: track_ref(provider, value),
-        title: "Same song".into(),
+        title: "Song".into(),
         aliases: vec![],
         artist: "Singer".into(),
-        artists: vec![MusicCredit {
-            name: "Singer".into(),
-            reference: Some(EntityRef {
-                source: source(provider),
-                kind: EntityKind::Artist,
-                id: id("artist/雪"),
-            }),
-        }],
+        artists: vec![],
         album: "Album".into(),
-        album_reference: Some(EntityRef {
-            source: source(provider),
-            kind: EntityKind::Album,
-            id: id("album:雪"),
-        }),
+        album_reference: None,
         duration_ms: 1000,
         cover: Default::default(),
-        associations: vec![track_ref("netease", "123")],
+        associations: vec![],
         lyric_identifiers: vec![],
-    };
-    let a = Track::from_music(music("qqmusic", "same/雪:1")).unwrap();
-    let b = Track::from_music(music("other", "same/雪:1")).unwrap();
+    })
+    .unwrap()
+}
+
+#[test]
+fn uniform_tracks_survive_storage_and_mixed_queue_restore() {
+    use crate::model::{PlayerSnapshot, TrackSource};
+    let a = online_track("qqmusic", "same/雪:1");
+    let b = online_track("netease", "123");
     assert_ne!(a.key, b.key);
-    assert_eq!(a.source_id(), "qqmusic");
-    let old: Track =
-        serde_json::from_value(legacy(json!({"kind":"netease","id":1}), "netease:1")).unwrap();
-    let local: Track = serde_json::from_value(legacy(
-        json!({"kind":"local","path":"music.wav","neteaseId":null}),
-        "local:old",
-    ))
-    .unwrap();
+    assert_eq!(b.key, track_ref("netease", "123").key());
+    let mut local = online_track("other", "local-template");
+    local.key = "local:stable".into();
+    local.source = TrackSource::Local {
+        path: "music.wav".into(),
+        netease_id: None,
+        cue: None,
+    };
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("library.sqlite3");
     let store = crate::storage::Store::open(&path).unwrap();
-    let queue = vec![old.clone(), a.clone(), local, b.clone()];
+    let queue = vec![a.clone(), local, b.clone()];
     store.save_tracks(&queue).unwrap();
-    let saved = PlayerSnapshot {
-        queue: queue.into(),
-        index: Some(1),
-        position_ms: 400,
-        ..Default::default()
-    };
-    store.save_player(&saved).unwrap();
+    store
+        .save_player(&PlayerSnapshot {
+            queue: queue.into(),
+            index: Some(1),
+            position_ms: 400,
+            ..Default::default()
+        })
+        .unwrap();
     drop(store);
     let restored = crate::storage::Store::open(&path).unwrap();
-    let track = restored.track(&a.key).unwrap();
-    assert_eq!(track.source_id(), "qqmusic");
-    let uniform = legacy_track(&serde_json::to_string(&track).unwrap())
-        .unwrap()
-        .track;
-    assert_eq!(uniform, music("qqmusic", "same/雪:1"));
+    assert_eq!(restored.track(&a.key).unwrap().source_id(), "qqmusic");
     let snapshot: PlayerSnapshot =
         serde_json::from_str(&restored.setting("player").unwrap().unwrap()).unwrap();
-    assert_eq!(snapshot.queue.len(), 4);
+    assert_eq!(snapshot.queue.len(), 3);
     assert_eq!(snapshot.index, Some(1));
     assert_eq!(snapshot.position_ms, 400);
     assert!(matches!(
-        snapshot.queue[0].source,
-        TrackSource::Netease { id: 1 }
-    ));
-    assert!(matches!(
-        snapshot.queue[2].source,
+        snapshot.queue[1].source,
         TrackSource::Local { .. }
     ));
-    let db = restored.0.lock().unwrap();
-    let stored_source: String = db
-        .query_row("SELECT source FROM tracks WHERE key=?1", [&a.key], |row| {
-            row.get(0)
-        })
-        .unwrap();
-    assert_eq!(stored_source, "qqmusic");
-    drop(db);
+    assert_eq!(snapshot.queue[2].key, b.key);
     let mut invalid = a;
-    invalid.key = b.key;
+    invalid.key = "netease:123".into();
     assert!(restored.save_tracks(&[invalid]).is_err());
 }
 
 #[test]
-fn queue_bridge_preserves_netease_legacy_keys_and_rejects_local_uniform_entries() {
-    use crate::model::{Track, TrackSource};
-    let mut music =
-        legacy_track(&legacy(json!({"kind":"netease","id":1}), "netease:1").to_string())
-            .unwrap()
-            .track;
-    let track = Track::from_music(music.clone()).unwrap();
-    assert_eq!(track.key, "netease:1");
-    let TrackSource::Online { track: canonical } = &track.source else {
-        panic!("new queue entries must use the uniform DTO")
-    };
-    assert_eq!(canonical.reference.id.as_str(), "1");
-    assert_eq!(
-        canonical.artists[0].reference.as_ref().unwrap().id.as_str(),
-        "12"
-    );
-    assert_eq!(
-        canonical.album_reference.as_ref().unwrap().id.as_str(),
-        "20"
-    );
-    assert_eq!(track.artists[0].id, None);
-    assert_eq!(track.album_id, None);
+fn online_queue_requires_canonical_key_and_rejects_old_serialized_shapes() {
     let folder = tempfile::tempdir().unwrap();
     let store = crate::storage::Store::open(&folder.path().join("library.sqlite3")).unwrap();
-    let mut canonical_key = track.clone();
-    canonical_key.key = music.reference.key();
-    store
-        .save_tracks(&[canonical_key])
-        .expect("相同元数据改用标准引用编码后应能保存");
-    store
-        .save_tracks(&[track.clone()])
-        .expect("网易云统一曲目必须能经音乐库／搜索的队列转换路径保存");
-    assert_eq!(store.track(&track.key).unwrap().key, "netease:1");
-    assert_eq!(
-        nons_music_adapter_sdk::migration::convert_track(track.clone())
-            .unwrap()
-            .track,
-        music
-    );
+    let track = online_track("netease", "1");
+    store.save_tracks(&[track.clone()]).unwrap();
     let mut wrong = track;
-    wrong.key = "netease:2".into();
+    wrong.key = "netease:1".into();
     assert!(store
         .save_tracks(&[wrong])
         .unwrap_err()
         .contains("rule=queue.key"));
-    music.reference.source = source("local");
-    music.artists.clear();
-    music.album_reference = None;
-    assert!(Track::from_music(music).is_err());
+    assert!(serde_json::from_value::<crate::model::Track>(json!({"key":"netease:1","title":"Song","artist":"Singer","album":"Album","durationMs":1000,"cover":{},"source":{"kind":"netease","id":1}})).is_err());
 }
+
 fn context() -> RequestContext {
     RequestContext {
         session: SessionContext {
@@ -167,10 +109,6 @@ fn context() -> RequestContext {
         cancellation: Cancellation::default(),
     }
 }
-fn legacy(source: serde_json::Value, key: &str) -> serde_json::Value {
-    json!({"key":key,"source":source,"title":"Song","artist":"Singer","album":"Album","durationMs":1000,"cover":"", "artists":[{"name":"Singer","id":12}],"albumId":20})
-}
-
 #[test]
 fn identities_preserve_opaque_ids_and_do_not_collide() {
     let a = track_ref("netease", "a:b/雪 #01");
@@ -345,101 +283,6 @@ fn credentials_and_transport_debug_are_redacted_and_preview_is_explicit() {
         resource.metadata.require_full(0).unwrap_err().code,
         ErrorCode::PermissionDenied
     );
-}
-
-#[test]
-fn legacy_track_migration_preserves_large_ids_and_local_identity() {
-    let remote = legacy(
-        json!({"kind":"netease","id":u64::MAX}),
-        "netease:18446744073709551615",
-    );
-    let migrated = legacy_track(&remote.to_string()).unwrap();
-    assert_eq!(migrated.track.reference.id.as_str(), u64::MAX.to_string());
-    assert_eq!(
-        migrated.track.artists[0].reference.as_ref().unwrap().kind,
-        EntityKind::Artist
-    );
-    migrated.track.validate(&migrated.track.reference).unwrap();
-    assert!(migrated.local_binding.is_none());
-    let mut local = legacy(
-        json!({"kind":"local","path":"C:\\Music\\Song.ncm","neteaseId":123}),
-        "local:stable-hash",
-    );
-    local["cover"] = json!("C:\\Music\\cover.img");
-    let migrated = legacy_track(&local.to_string()).unwrap();
-    assert_eq!(migrated.track.reference, track_ref("local", "stable-hash"));
-    assert_eq!(
-        migrated.track.associations,
-        vec![track_ref("netease", "123")]
-    );
-    assert!(migrated.track.artists[0].reference.is_none());
-    assert!(migrated.track.album_reference.is_none());
-    let binding = migrated.local_binding.unwrap();
-    assert_eq!(binding.path, "C:\\Music\\Song.ncm");
-    assert_eq!(binding.cover, "C:\\Music\\cover.img");
-    let public = serde_json::to_string(&migrated.track).unwrap();
-    assert!(!public.contains("Music\\\\"));
-    let mut wrong = migrated.track.clone();
-    wrong.reference = track_ref("other", "stable-hash");
-    assert!(wrong.validate(&migrated.track.reference).is_err());
-}
-
-#[test]
-fn legacy_queue_conversion_preserves_order_duplicates_and_settings() {
-    let a = legacy(json!({"kind":"netease","id":1}), "netease:1");
-    let b = legacy(
-        json!({"kind":"local","path":"/music/b.flac","neteaseId":1}),
-        "local:b",
-    );
-    let legacy = json!({"queue":[a.clone(),b,a], "index":1,"shuffle":true,"shuffleOrder":[1,2,0], "repeatMode":"one", "revision":88,"status":"playing","positionMs":300,"durationMs":1000,"volume":0.4,"deviceId":"device-1","actualQuality":"lossless","error":null,"mediaError":null,"privateFmSession":99});
-    let first = legacy_queue(&legacy.to_string()).unwrap();
-    let second = legacy_queue(&legacy.to_string()).unwrap();
-    let serialized = serde_json::to_value(&first.queue).unwrap();
-    assert_eq!(serialized, serde_json::to_value(&second.queue).unwrap());
-    assert_eq!(first.queue.index, Some(1));
-    assert_eq!(first.queue.shuffle_order, vec![1, 2, 0]);
-    assert_eq!(first.queue.repeat_mode, QueueRepeatMode::Off);
-    assert_eq!(first.queue.tracks[0], first.queue.tracks[2]);
-    assert_eq!(first.queue.volume, 0.4);
-    assert_eq!(
-        first.tracks[1].local_binding.as_ref().unwrap().path,
-        "/music/b.flac"
-    );
-    for forbidden in [
-        "path",
-        "privateFmSession",
-        "positionMs",
-        "actualQuality",
-        "revision",
-    ] {
-        assert!(serialized.get(forbidden).is_none());
-    }
-    let mut invalid = legacy;
-    invalid["index"] = json!(99);
-    assert!(legacy_queue(&invalid.to_string()).is_err());
-}
-
-#[test]
-fn failed_legacy_conversion_does_not_invent_account_or_track_ids() {
-    let profile =
-        r#"{"userId":123,"nickname":"Listener","avatarUrl":"https://example.com/avatar"}"#;
-    assert_eq!(
-        legacy_account(profile).unwrap().reference.id.as_str(),
-        "123"
-    );
-    assert!(legacy_account(r#"{"userId":0,"nickname":"x","avatarUrl":""}"#).is_err());
-    assert!(legacy_account("{}").is_err());
-    assert!(
-        legacy_track(&legacy(json!({"kind":"netease","id":0}), "netease:0").to_string()).is_err()
-    );
-    assert!(legacy_track(
-        &legacy(
-            json!({"kind":"local","path":"x","neteaseId":null}),
-            "invalid"
-        )
-        .to_string()
-    )
-    .is_err());
 }
 
 #[test]

@@ -293,7 +293,6 @@ pub(super) fn read_track(
     let mut track = Track {
         aliases: Vec::new(),
         artists: Vec::new(),
-        album_id: None,
         key: key.clone(),
         title: tag
             .and_then(|t| t.title())

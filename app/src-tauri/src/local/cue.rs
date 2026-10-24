@@ -1,7 +1,7 @@
 //! CUE describes virtual tracks; the referenced audio is never modified.
 use crate::model::{AppResult, Track, TrackSource};
 use cue_lib::{core::DataType, probe::CuesheetProbe};
-use nons_music_adapter_sdk::legacy::CueTrack;
+use nons_music_adapter_sdk::queue::CueTrack;
 use sha2::{Digest, Sha256};
 use std::{io::Read, path::Path};
 

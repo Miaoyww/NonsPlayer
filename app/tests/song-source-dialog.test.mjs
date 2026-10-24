@@ -23,7 +23,7 @@ test('song source selection keeps queue identity, sends explicit alternate keys,
     key: 'netease:1',
     title: 'Song',
     artist: 'Artist',
-    source: { kind: 'netease', id: 1 }
+    source: { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id: '1' } } }
   }
   const alternate = {
     ...track,

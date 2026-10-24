@@ -455,7 +455,6 @@ mod tests {
                 artist: String::new(),
                 artists: vec![],
                 album: String::new(),
-                album_id: None,
                 duration_ms: 0,
                 cover: String::new().into(),
                 source: crate::model::TrackSource::Local {

@@ -1,6 +1,6 @@
 import { musicClient } from '@/features/music/client'
 import { musicCollection } from '@/features/music/entities'
-import { collectionReference, onlineReference } from '@/features/music/legacy-reference'
+import { collectionReference, onlineReference } from '@/features/music/references'
 import { nativeCall, type Track } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import type { AccountRef } from '@/features/music/types'

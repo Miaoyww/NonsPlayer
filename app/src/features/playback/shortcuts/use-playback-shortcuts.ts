@@ -1,4 +1,4 @@
-import { favoriteId, onlineReference } from '@/features/music/legacy-reference'
+import { favoriteId, onlineReference } from '@/features/music/references'
 import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { useAccount } from '@/features/account/account'

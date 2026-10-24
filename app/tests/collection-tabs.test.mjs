@@ -20,8 +20,8 @@ function load(path, modules) {
     {
       exports,
       require: (name) => {
-        assert.ok(name === '@/features/music/legacy-reference' || name in modules, name)
-        return name === '@/features/music/legacy-reference' ? musicReference : modules[name]
+        assert.ok(name === '@/features/music/references' || name in modules, name)
+        return name === '@/features/music/references' ? musicReference : modules[name]
       }
     }
   )
@@ -143,7 +143,8 @@ test('collection tabs default to songs, match loaded scopes and return to songs 
   })
   const root = createRoot(document.getElementById('root'))
   const collection = {
-    id: 42,
+    id: '42',
+    reference: { source: 'netease', kind: 'playlist', id: '42' },
     kind: 'playlist',
     name: '歌单',
     subtitle: '作者',
@@ -192,7 +193,7 @@ test('collection tabs default to songs, match loaded scopes and return to songs 
     assert.match(document.body.textContent, /歌曲搜索：Beta/)
     await click('评论')
     assert.equal(mounts, 1)
-    assert.equal(received.id, 42)
+    assert.equal(received.id, '42')
     assert.equal(received.source, 'netease')
     assert.equal(received.cover, '', 'local cover paths are omitted')
     assert.equal(document.querySelector('input'), null)

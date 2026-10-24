@@ -558,13 +558,6 @@ impl PluginManager {
         {
             return Err("插件权限或版本已改变，请重新安装并授权".into());
         }
-        if manifest
-            .permissions
-            .iter()
-            .any(|p| p == "clipboard:music-links")
-        {
-            return Err("旧剪贴板链接接口已移除，请安装新版插件并重新确认文本读取权限".into());
-        }
         if !self.database.enabled(id, &manifest.authorization())? {
             return Err("插件权限范围已改变，请重新确认授权".into());
         }

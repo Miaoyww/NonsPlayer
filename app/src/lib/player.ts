@@ -29,7 +29,6 @@ import {
 
 export type TrackSource =
   | { kind: 'online'; track: import('@/features/music/types').MusicTrack }
-  | { kind: 'netease'; id: number }
   | {
       kind: 'local'
       path: string
@@ -38,7 +37,6 @@ export type TrackSource =
     }
 export interface MusicCredit {
   name: string
-  id?: number | null
   reference?: import('@/features/music/types').EntityRef | null
 }
 export interface Track {
@@ -48,7 +46,6 @@ export interface Track {
   artist: string
   album: string
   artists?: MusicCredit[]
-  albumId?: number | null
   durationMs: number
   cover: CoverInput
   source: TrackSource

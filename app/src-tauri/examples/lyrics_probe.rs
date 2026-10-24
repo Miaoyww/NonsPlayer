@@ -20,7 +20,7 @@ mod identity;
 #[path = "../src/lyrics/lyric_matching.rs"]
 #[allow(dead_code)]
 mod lyric_matching;
-#[path = "../src/netease/mod.rs"]
+#[path = "support/netease.rs"]
 #[allow(dead_code, unused_imports)]
 mod netease;
 #[path = "../src/lyrics/netease_lyrics.rs"]
@@ -68,7 +68,6 @@ async fn main() -> Result<(), String> {
             duration_ms: tagged.properties().duration().as_millis() as u64,
             aliases: vec![],
             artists: vec![],
-            album_id: None,
             cover: Default::default(),
             source: model::TrackSource::Local {
                 path,
@@ -85,7 +84,6 @@ async fn main() -> Result<(), String> {
             duration_ms: 128000,
             aliases: vec![],
             artists: vec![],
-            album_id: None,
             cover: Default::default(),
             source: model::TrackSource::Local {
                 path: String::new(),

@@ -116,7 +116,7 @@ test('aggregate playlist picker atomically adds the complete ordered CUE group',
             Array.from({ length: count }, (_, index) => ({ index, start: index * 64, size: 64 }))
         })
       },
-      '@/features/music/legacy-reference': {},
+      '@/features/music/references': {},
       '@/features/music/use-music-sources': {
         useMusicSources: () => ({ statuses: [], revision: 0 })
       },

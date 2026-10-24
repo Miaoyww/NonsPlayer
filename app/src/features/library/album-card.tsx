@@ -1,12 +1,9 @@
-import { Skeleton } from '@/components/ui/skeleton'
 import { CollectionContextMenu } from '@/features/library/collection-actions'
 import { Play } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { formatReleaseDate } from '@/components/music/music-links'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
-import { useEffect, useRef, useState } from 'react'
-import { useEntityDetail } from '@/features/library/music-entities'
 
 export function AlbumCard({
   item,
@@ -21,26 +18,6 @@ export function AlbumCard({
   onOpen: (item: MusicCollection) => void
   onPlay: (item: MusicCollection) => void
 }) {
-  const host = useRef<HTMLParagraphElement>(null)
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    if (item.publishedAt || !host.current) return
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setVisible(true)
-        observer.disconnect()
-      }
-    })
-    observer.observe(host.current)
-    return () => observer.disconnect()
-  }, [item.id, item.publishedAt])
-  const { detail, busy: dateBusy } = useEntityDetail(
-    item,
-    0,
-    visible && !item.publishedAt && !item.reference
-  )
-  const publishedAt =
-    item.publishedAt || (detail?.item.id === item.id ? detail.item.publishedAt : undefined)
   return (
     <CollectionContextMenu
       item={item}
@@ -74,15 +51,8 @@ export function AlbumCard({
       >
         {item.name}
       </button>
-      <div ref={host} className="library-cover-subtitle">
-        {item.trackCount} 首 ·{' '}
-        {publishedAt ? (
-          formatReleaseDate(publishedAt)
-        ) : dateBusy ? (
-          <Skeleton className="inline-block h-3 w-20 align-middle" />
-        ) : (
-          '发行日期未知'
-        )}
+      <div className="library-cover-subtitle">
+        {item.trackCount} 首 · {formatReleaseDate(item.publishedAt)}
       </div>
       {sourceName && <p className="library-cover-subtitle">{sourceName}</p>}
     </CollectionContextMenu>

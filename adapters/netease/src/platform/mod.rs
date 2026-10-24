@@ -6,7 +6,7 @@ mod search;
 #[allow(unused_imports)] // Standalone probes do not use the Tauri command return type.
 pub use discovery::PlaylistCategory;
 
-use crate::model::{AppResult, Lyrics, Track, TrackSource};
+use crate::model::{AppResult, Lyrics, Track};
 use base64::Engine;
 use ncm_api_rs::{
     request::{ApiClient, ApiResponse},
@@ -600,7 +600,7 @@ fn song_aliases(song: &Value) -> Vec<String> {
 }
 
 fn track_from_json(song: &Value) -> Option<Track> {
-    let id = song.get("id")?.as_u64()?;
+    let id = song.get("id")?.as_u64().filter(|id| *id > 0)?;
     let artists = song.get("ar").or_else(|| song.get("artists"))?.as_array()?;
     let artist = artists
         .iter()
@@ -608,23 +608,30 @@ fn track_from_json(song: &Value) -> Option<Track> {
         .collect::<Vec<_>>()
         .join(" / ");
     let album = song.get("al").or_else(|| song.get("album"));
-    Some(Track {
-        key: format!("netease:{id}"),
+    use crate::identity::{EntityKind, LyricIdentifier, MusicCredit, MusicTrack};
+    let reference = crate::reference(id).ok()?;
+    Track::from_music(MusicTrack {
+        reference: reference.clone(),
         title: song.get("name")?.as_str()?.into(),
         aliases: song_aliases(song),
         artists: artists
             .iter()
             .filter_map(|v| {
-                Some(crate::model::MusicCredit {
+                Some(MusicCredit {
                     name: v.get("name")?.as_str()?.into(),
-                    id: v.get("id").and_then(Value::as_u64).filter(|id| *id > 0),
+                    reference: v
+                        .get("id")
+                        .and_then(Value::as_u64)
+                        .filter(|id| *id > 0)
+                        .and_then(|id| crate::entity_reference(EntityKind::Artist, id).ok()),
                 })
             })
             .collect(),
-        album_id: album
+        album_reference: album
             .and_then(|v| v.get("id"))
             .and_then(Value::as_u64)
-            .filter(|id| *id > 0),
+            .filter(|id| *id > 0)
+            .and_then(|id| crate::entity_reference(EntityKind::Album, id).ok()),
         artist: if artist.is_empty() {
             "未知艺术家".into()
         } else {
@@ -647,8 +654,14 @@ fn track_from_json(song: &Value) -> Option<Track> {
                 .and_then(Value::as_str)
                 .unwrap_or(""),
         ),
-        source: TrackSource::Netease { id },
+        associations: vec![],
+        lyric_identifiers: vec![LyricIdentifier {
+            kind: "song-id".into(),
+            id: reference.id,
+        }],
+        unavailable_reason: None,
     })
+    .ok()
 }
 
 // The patched pinned client also bounds the body before JSON decoding.
@@ -730,7 +743,7 @@ fn music_error(error: ncm_api_rs::error::NcmError) -> nons_music_adapter_sdk::Mu
 mod tests {
     use super::{
         account_profile, checked, music_checked, qr_key, song_aliases, song_information_from_json,
-        ApiResponse, Track,
+        ApiResponse,
     };
     use serde_json::json;
 
@@ -885,13 +898,20 @@ mod tests {
 
     #[test]
     fn song_navigation_keeps_structured_ids_without_splitting_artist_names() {
+        assert!(super::track_from_json(&json!({"id":0,"name":"Invalid","ar":[]})).is_none());
         let track = super::track_from_json(&json!({"id":1,"name":"Song",
             "ar":[{"id":9,"name":"AC/DC"},{"id":10,"name":"B"}],"al":{"id":20,"name":"Album"}}))
         .unwrap();
         assert_eq!(track.artists.len(), 2);
         assert_eq!(track.artists[0].name, "AC/DC");
-        assert_eq!(track.artists[1].id, Some(10));
-        assert_eq!(track.album_id, Some(20));
+        let crate::model::TrackSource::Online { track } = track.source else {
+            panic!("online track required")
+        };
+        assert_eq!(
+            track.artists[1].reference.as_ref().unwrap().id.as_str(),
+            "10"
+        );
+        assert_eq!(track.album_reference.as_ref().unwrap().id.as_str(), "20");
     }
 
     #[test]
@@ -915,12 +935,6 @@ mod tests {
         let song = json!({"name":"Причал", "tns":["码头", " "], "transNames":["码头"], "alia":["别名", "Причал"], "alias":["别名", "其他"]});
         assert_eq!(song_aliases(&song), vec!["码头", "别名", "其他"]);
         assert!(song_aliases(&json!({"name":"Song"})).is_empty());
-    }
-
-    #[test]
-    fn stored_tracks_without_aliases_remain_readable() {
-        let track: Track = serde_json::from_value(json!({"key":"netease:1", "title":"Song", "artist":"Artist", "album":"Album", "durationMs":1000, "cover":"", "source":{"kind":"netease", "id":1}})).unwrap();
-        assert!(track.aliases.is_empty());
     }
 
     #[test]

@@ -15,7 +15,7 @@ const streamed = {
   key: 'ncm:disney',
   title: 'Mad at Disney',
   durationMs: 136000,
-  source: { kind: 'netease', id: 1 }
+  source: { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id: '1' } } }
 }
 const localLyrics = { source: 'local', format: 'lrc', content: 'local line lyrics' }
 const streamLyrics = {
