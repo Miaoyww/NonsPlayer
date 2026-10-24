@@ -17,7 +17,7 @@ const profile = (id) => ({
   avatarUrl: ''
 })
 const descriptor = { source: 'netease', capabilities: ['account', 'favorites', 'userLibrary'] }
-function harness(snapshot = null) {
+function harness(snapshot = null, storage = new Map()) {
   const slots = [],
     requests = [],
     effects = [],
@@ -29,7 +29,7 @@ function harness(snapshot = null) {
     useContext: () => new Map(),
     useState(initial) {
       const index = cursor++
-      if (!(index in slots)) slots[index] = initial
+      if (!(index in slots)) slots[index] = typeof initial === 'function' ? initial() : initial
       return [
         slots[index],
         (value) => {
@@ -118,7 +118,11 @@ function harness(snapshot = null) {
     readFileSync(new URL('../src/features/account/account-state.tsx', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
   )
-  runInNewContext(outputText, { exports, require: (name) => modules[name] })
+  const localStorage = {
+    getItem: (key) => storage.get(key) ?? null,
+    setItem: (key, value) => storage.set(key, value)
+  }
+  runInNewContext(outputText, { exports, require: (name) => modules[name], localStorage })
   function render() {
     cursor = 0
     const tree = exports.AccountProvider({ children: null })
@@ -130,12 +134,13 @@ function harness(snapshot = null) {
     requests,
     render,
     libraryRefreshes,
+    storage,
     emit: (event, payload) => events.get(event)?.({ payload })
   }
 }
 const settle = () => new Promise((resolve) => setImmediate(resolve))
-async function loggedIn() {
-  const app = harness()
+async function loggedIn(storage) {
+  const app = harness(null, storage)
   app.render()
   await settle()
   app.requests[0].resolve({ userId: 1 })
@@ -181,16 +186,13 @@ test('failed writes preserve the liked state and release the button', async () =
   assert.deepEqual(app.libraryRefreshes, [])
 })
 
-test('switching account discards old write responses', async () => {
+test('switching account preserves global likes and applies a successful pending write', async () => {
   const app = await loggedIn()
   const old = app.render().toggleLike('123')
   app.render().setProfile(profile(2))
-  app.render()
-  app.requests[3].resolve(['456'])
-  await settle()
   app.requests[2].resolve()
   await old
-  assert.deepEqual([...app.render().likedIds], ['456'])
+  assert.deepEqual([...app.render().likedIds], [])
 })
 
 test('switching account discards old liked list responses', async () => {
@@ -209,7 +211,7 @@ test('switching account discards old liked list responses', async () => {
   assert.deepEqual([...app.render().likedIds], ['456'])
 })
 
-test('backend account changes discard pending likes and reload the selected account', async () => {
+test('backend account changes preserve global likes instead of loading account favorites', async () => {
   const app = await loggedIn()
   const oldWrite = app.render().toggleLike('123')
   app.emit('music-account-changed', 'netease')
@@ -219,15 +221,31 @@ test('backend account changes discard pending likes and reload the selected acco
   profile.resolve({ userId: 2 })
   await settle()
   app.render()
-  const likes = app.requests.findLast((request) => request.command === 'music_query')
-  likes.resolve(['456'])
   app.requests.find((request) => request.command === 'music_write').resolve()
   await oldWrite
   await settle()
   const state = app.render()
   assert.equal(state.profile.userId, '2')
-  assert.deepEqual([...state.likedIds], ['456'])
-  assert.deepEqual(app.libraryRefreshes, [])
+  assert.deepEqual([...state.likedIds], [])
+  assert.equal(app.requests.filter((request) => request.command === 'music_query').length, 1)
+  assert.deepEqual(app.libraryRefreshes, ['invalidate'])
+})
+
+test('global likes persist across provider recreation and account changes', async () => {
+  const storage = new Map()
+  const first = await loggedIn(storage)
+  assert.deepEqual([...first.render().likedIds], ['123'])
+  first.render().setProfile(profile(2))
+  assert.deepEqual([...first.render().likedIds], ['123'])
+
+  const restarted = harness({ userId: 2 }, storage)
+  restarted.render()
+  await settle()
+  const validation = restarted.requests.find((request) => request.command === 'music_account')
+  validation.resolve({ userId: 2 })
+  await settle()
+  assert.deepEqual([...restarted.render().likedIds], ['123'])
+  assert.equal(restarted.requests.filter((request) => request.command === 'music_query').length, 0)
 })
 
 test('saved current account appears before remote validation and network failure preserves its display', async () => {

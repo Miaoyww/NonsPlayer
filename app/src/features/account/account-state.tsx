@@ -65,6 +65,30 @@ interface AccountState {
   toggleLike: (id: string) => Promise<void>
 }
 const AccountContext = createContext<ReadonlyMap<string, AccountState>>(new Map())
+const likesStorageKey = (source: string) => `nons:music:favorites:v1:${source}`
+function readGlobalLikes(source: string): Set<string> | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(likesStorageKey(source))
+    if (raw === null || raw === undefined) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (
+      !Array.isArray(parsed) ||
+      parsed.length > 100_000 ||
+      parsed.some((id) => typeof id !== 'string')
+    )
+      return null
+    return new Set(parsed)
+  } catch {
+    return null
+  }
+}
+function persistGlobalLikes(source: string, likedIds: ReadonlySet<string>) {
+  try {
+    globalThis.localStorage?.setItem(likesStorageKey(source), JSON.stringify([...likedIds]))
+  } catch (cause) {
+    reportCaughtError('app/src/features/account/account-state.tsx', cause)
+  }
+}
 
 export function AccountProvider({ children }: { children: ReactNode }) {
   const { statuses } = useMusicSources()
@@ -107,12 +131,15 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
   const [loading, setLoading] = useState(isTauri())
   const [error, setError] = useState<string>()
   const [refresh, setRefresh] = useState(0)
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
+  const [storedLikes] = useState(() => readGlobalLikes(source))
+  const globalLikesReady = useRef(storedLikes !== null)
+  const [likedIds, setLikedIds] = useState<Set<string>>(storedLikes ?? new Set())
   const [pendingLikes, setPendingLikes] = useState<Set<string>>(new Set())
-  const [likesReady, setLikesReady] = useState(false)
+  const [likesReady, setLikesReady] = useState(storedLikes !== null)
   const [likesError, setLikesError] = useState<string>()
   const [likesRevision, setLikesRevision] = useState(0)
   const [likesRefresh, setLikesRefresh] = useState(0)
+  const forceLikesRefresh = useRef(false)
   const generation = useRef(0),
     likesGeneration = useRef(0),
     pending = useRef(new Set<string>())
@@ -121,8 +148,6 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
     generation.current++
     likesGeneration.current++
     updateProfile(value)
-    setLikesReady(false)
-    setLikedIds(new Set())
     setLoading(false)
     setError(undefined)
   }, [])
@@ -179,12 +204,18 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
   }, [source])
   useEffect(() => {
     const serial = ++likesGeneration.current
-    pending.current = new Set()
-    setPendingLikes(new Set())
-    setLikedIds(new Set())
-    setLikesReady(false)
     setLikesError(undefined)
-    if (!reference || !canReadLikes || !isTauri()) return
+    if (!reference || !canReadLikes || !isTauri()) {
+      setLikesReady(globalLikesReady.current)
+      return
+    }
+    const forceRefresh = forceLikesRefresh.current
+    forceLikesRefresh.current = false
+    if (globalLikesReady.current && !forceRefresh) {
+      setLikesReady(true)
+      return
+    }
+    setLikesReady(false)
     void (async () => {
       if (canToggleLike) {
         const result = await musicClient.query(reference.source, { operation: 'favorites' })
@@ -236,6 +267,7 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
     })()
       .then((items) => {
         if (serial !== likesGeneration.current) return
+        globalLikesReady.current = true
         setLikedIds(new Set(items.map((value) => value.id)))
         setLikesReady(true)
       })
@@ -248,7 +280,13 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
       likesGeneration.current++
     }
   }, [reference, canReadLikes, canToggleLike, hasFavoritesRead, likesRefresh])
-  const reloadLikes = useCallback(() => setLikesRefresh((value) => value + 1), [])
+  useEffect(() => {
+    if (globalLikesReady.current) persistGlobalLikes(source, likedIds)
+  }, [source, likedIds])
+  const reloadLikes = useCallback(() => {
+    forceLikesRefresh.current = true
+    setLikesRefresh((value) => value + 1)
+  }, [])
   useEffect(() => {
     if (!isTauri()) return
     let disposed = false,
@@ -270,8 +308,7 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
   }, [source, reloadLikes])
   async function toggleLike(id: string) {
     if (!profile || !likesReady || !canToggleLike || pending.current.has(id)) return
-    const serial = likesGeneration.current,
-      liked = !likedIds.has(id)
+    const liked = !likedIds.has(id)
     pending.current.add(id)
     setPendingLikes(new Set(pending.current))
     try {
@@ -280,7 +317,6 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
         track: { source: profile.reference.source, kind: 'track', id },
         liked
       })
-      if (serial !== likesGeneration.current) return
       setLikedIds((values) => {
         const next = new Set(values)
         if (liked) next.add(id)
@@ -290,10 +326,8 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
       invalidateMusicLibrary()
       setLikesRevision((value) => value + 1)
     } finally {
-      if (serial === likesGeneration.current) {
-        pending.current.delete(id)
-        setPendingLikes(new Set(pending.current))
-      }
+      pending.current.delete(id)
+      setPendingLikes(new Set(pending.current))
     }
   }
   return (

@@ -193,16 +193,16 @@ for (const changedMetadata of [false, true])
       assert.deepEqual(failures, [], `startup requests were rejected: ${failures.join(', ')}`)
       assert.equal(snapshot.likesReady, true)
       assert.deepEqual(queries.sort(), ['favorites', 'libraryCollections', 'librarySummary'])
-      // A real account change still clears old favorites and reads the new library.
+      // Account changes refresh the profile without replacing app-global favorites.
       record.reference.id = 'another-listener'
       await emit('music-account-changed', 'netease')
       assert.equal(snapshot.profile.reference.id, 'another-listener')
-      assert.equal(snapshot.likesReady, false)
+      assert.equal(snapshot.likesReady, true)
       assert.equal(accountResets, 4)
       await act(async () => finishProfile({ type: 'profile', data: structuredClone(record) }))
       await act(async () => jobs.splice(0).forEach((finish) => finish()))
       assert.equal(snapshot.likesReady, true)
-      assert.equal(queries.length, 6)
+      assert.equal(queries.length, 5)
     } finally {
       await act(async () => root.unmount())
       dom.window.close()
