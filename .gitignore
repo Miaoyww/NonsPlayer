@@ -1,7 +1,12 @@
 # AIs
 .agents/
+.codex/
 AGENTS.md
 CONTEXT.md
+.mcp.json
+
+#CodeGraph
+.codegraph/
 
 # Logs
 logs
