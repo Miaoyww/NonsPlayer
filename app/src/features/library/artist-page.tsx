@@ -10,19 +10,21 @@ import { DetailDescription } from '@/features/library/detail-description'
 import { MusicPage } from '@/components/music/music-page'
 import { useCallback, useRef, useState, type KeyboardEvent } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { Play, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { nativeCall, usePlayer, type Track } from '@/lib/player'
 import { playLibraryCollection } from '@/features/library/library-api'
 import { useEntityDetail } from '@/features/library/music-entities'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { usePagedList } from '@/lib/use-paged-list'
 import { ActionButton } from '@/components/music/action-button'
+import { PlayButton } from '@/components/music/play-button'
 import { AlbumCard } from '@/features/library/album-card'
 import { Cover } from '@/components/music/cover'
 import { formatReleaseDate } from '@/components/music/music-links'
 import { useMusicNavigation, type MusicCollection } from '@/features/workspace/music-navigation'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
+import { CollectionContent, CollectionSearch } from '@/features/library/collection-content'
 
 export default function ArtistPage({
   collection,
@@ -111,7 +113,6 @@ export default function ArtistPage({
         <div className="library-detail-info">
           <h1 className="library-detail-title">{artist.name}</h1>
           <div className="library-detail-meta">
-            <p className="font-semibold">歌手</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {artist.trackCount} 首歌曲
               {detail?.albumCount != null && ` · ${detail.albumCount} 张专辑`}
@@ -119,8 +120,7 @@ export default function ArtistPage({
           </div>
           <DetailDescription description={detail?.description} />
           <div className="library-detail-actions">
-            <ActionButton
-              variant="secondary"
+            <PlayButton
               className="library-detail-play"
               disabled={playing || !songs.items.length || !isTauri()}
               onClick={() => {
@@ -129,10 +129,7 @@ export default function ArtistPage({
                   index: 0
                 }).catch(onError)
               }}
-            >
-              <Play aria-hidden="true" />
-              播放
-            </ActionButton>
+            ></PlayButton>
           </div>
         </div>
       </DetailHeader>
@@ -191,105 +188,107 @@ export default function ArtistPage({
           />
         )}
       </section>
-      <div className="library-tabs-row">
-        <div className="library-tabs" role="tablist" aria-label="歌手作品">
-          {(['songs', 'albums'] as const).map((value, index) => (
-            <button
-              type="button"
-              key={value}
-              ref={(element) => {
-                tabButtons.current[index] = element
-              }}
-              role="tab"
-              id={`artist-tab-${value}`}
-              aria-controls={`artist-panel-${value}`}
-              aria-selected={tab === value}
-              tabIndex={tab === value ? 0 : -1}
-              className="library-tab"
-              data-active={tab === value}
-              onKeyDown={(event) => tabKey(event, index)}
-              onClick={() => setTab(value)}
-            >
-              {value === 'songs' ? '歌曲' : '专辑'}
-            </button>
-          ))}
+      <CollectionContent hasMore={songs.more}>
+        <div className="artist-list-toolbar">
+          <div className="library-tabs" role="tablist" aria-label="歌手作品">
+            {(['songs', 'albums'] as const).map((value, index) => (
+              <button
+                type="button"
+                key={value}
+                ref={(element) => {
+                  tabButtons.current[index] = element
+                }}
+                role="tab"
+                id={`artist-tab-${value}`}
+                aria-controls={`artist-panel-${value}`}
+                aria-selected={tab === value}
+                tabIndex={tab === value ? 0 : -1}
+                className="library-tab"
+                data-active={tab === value}
+                onKeyDown={(event) => tabKey(event, index)}
+                onClick={() => setTab(value)}
+              >
+                {value === 'songs' ? '歌曲' : '专辑'}
+              </button>
+            ))}
+          </div>
+          <CollectionSearch />
         </div>
-      </div>
-      <div
-        role="tabpanel"
-        id="artist-panel-songs"
-        aria-labelledby="artist-tab-songs"
-        hidden={tab !== 'songs'}
-        tabIndex={0}
-      >
-        {songs.items.length ? (
-          <TrackList
-            key={`${collection.kind}:${collection.id}`}
-            tracks={songs.items}
-            sortable
-            searchable
-            hasMore={songs.more}
-            currentKey={currentKey}
-            busy={playing}
-            onPlay={(index, tracks) => {
-              void nativeCall('play_queue', {
-                keys: tracks.map((track) => track.key),
-                index
-              }).catch(onError)
-            }}
-            onAppend={(track) => {
-              void nativeCall('append_queue', { keys: [track.key] })
-                .then(() => onNotice(`已将「${track.title}」设为下一首播放。`))
-                .catch(onError)
-            }}
-          />
-        ) : songs.busy ? (
-          <TrackListSkeleton />
-        ) : (
-          <p className="library-empty">这里还没有歌曲。</p>
-        )}
-        {tab === 'songs' && (
-          <InfiniteLoad
-            more={songs.more}
-            busy={songs.busy}
-            error={songs.error}
-            onLoad={songs.loadMore}
-          />
-        )}
-      </div>
-      <div
-        role="tabpanel"
-        id="artist-panel-albums"
-        aria-labelledby="artist-tab-albums"
-        hidden={tab !== 'albums'}
-        tabIndex={0}
-      >
-        <div className="discover-playlist-grid">
-          {albums.items.map((album) => (
-            <AlbumCard
-              key={album.id}
-              item={album}
+        <div
+          role="tabpanel"
+          id="artist-panel-songs"
+          aria-labelledby="artist-tab-songs"
+          hidden={tab !== 'songs'}
+          tabIndex={0}
+        >
+          {songs.items.length ? (
+            <TrackList
+              key={`${collection.kind}:${collection.id}`}
+              tracks={songs.items}
+              sortable
+              hasMore={songs.more}
+              currentKey={currentKey}
               busy={playing}
-              onOpen={openAlbum}
-              onPlay={(item) => void play(item)}
+              onPlay={(index, tracks) => {
+                void nativeCall('play_queue', {
+                  keys: tracks.map((track) => track.key),
+                  index
+                }).catch(onError)
+              }}
+              onAppend={(track) => {
+                void nativeCall('append_queue', { keys: [track.key] })
+                  .then(() => onNotice(`已将「${track.title}」设为下一首播放。`))
+                  .catch(onError)
+              }}
             />
-          ))}
-        </div>
-        {!albums.items.length &&
-          (albums.busy ? (
-            <CollectionGridSkeleton />
+          ) : songs.busy ? (
+            <TrackListSkeleton />
           ) : (
-            <p className="library-empty">这里还没有专辑。</p>
-          ))}
-        {tab === 'albums' && (
-          <InfiniteLoad
-            more={albums.more}
-            busy={albums.busy}
-            error={albums.error}
-            onLoad={albums.loadMore}
-          />
-        )}
-      </div>
+            <p className="library-empty">这里还没有歌曲。</p>
+          )}
+          {tab === 'songs' && (
+            <InfiniteLoad
+              more={songs.more}
+              busy={songs.busy}
+              error={songs.error}
+              onLoad={songs.loadMore}
+            />
+          )}
+        </div>
+        <div
+          role="tabpanel"
+          id="artist-panel-albums"
+          aria-labelledby="artist-tab-albums"
+          hidden={tab !== 'albums'}
+          tabIndex={0}
+        >
+          <div className="discover-playlist-grid">
+            {albums.items.map((album) => (
+              <AlbumCard
+                key={album.id}
+                item={album}
+                busy={playing}
+                onOpen={openAlbum}
+                onPlay={(item) => void play(item)}
+              />
+            ))}
+          </div>
+          {!albums.items.length &&
+            (albums.busy ? (
+              <CollectionGridSkeleton />
+            ) : (
+              <p className="library-empty">这里还没有专辑。</p>
+            ))}
+          {tab === 'albums' && (
+            <InfiniteLoad
+              more={albums.more}
+              busy={albums.busy}
+              error={albums.error}
+              onLoad={albums.loadMore}
+            />
+          )}
+        </div>
+      </CollectionContent>
     </MusicPage>
   )
 }

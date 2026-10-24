@@ -127,6 +127,13 @@
   gap: 16px;
   margin: 54px 0 24px;
 }
+.artist-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 54px 0 24px;
+}
 .library-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -534,6 +541,15 @@
 }
 .artist-page .library-detail-cover {
   border-radius: 50%;
+}
+.artist-page .library-detail-play {
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+.artist-page .library-detail-play:hover:not(:disabled) {
+  color: var(--primary-foreground);
+  background: var(--primary);
+  filter: brightness(1.08);
 }
 .artist-releases {
   margin-block: 48px 40px;
