@@ -14,6 +14,7 @@ pub(super) struct Query<'a> {
     refresh: bool,
     current: Mutex<(&'static str, &'static str, String)>,
     finished: AtomicBool,
+    invalid_metadata: AtomicBool,
 }
 
 impl<'a> Query<'a> {
@@ -33,6 +34,7 @@ impl<'a> Query<'a> {
             refresh,
             current: Mutex::new(("request_validate", "page_request_invalid", String::new())),
             finished: AtomicBool::new(false),
+            invalid_metadata: AtomicBool::new(false),
         }
     }
 
@@ -48,6 +50,19 @@ impl<'a> Query<'a> {
         if let Ok(mut current) = self.current.lock() {
             current.2 = details.to_string();
         }
+    }
+
+    pub(super) fn invalid_metadata(&self, rule: &'static str, row_index: usize) {
+        self.stage("track_metadata", "cached_track_metadata_invalid");
+        self.details(format_args!(
+            "row_index={row_index} rule={}",
+            crate::infrastructure::diagnostics::field(rule)
+        ));
+        self.invalid_metadata.store(true, Ordering::Relaxed);
+    }
+
+    pub(super) fn needs_revalidation(&self) -> bool {
+        self.invalid_metadata.load(Ordering::Relaxed)
     }
 
     fn log(&self, code: &str, success: bool, level: log::Level) {

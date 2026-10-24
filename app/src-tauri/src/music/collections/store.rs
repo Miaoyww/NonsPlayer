@@ -23,6 +23,18 @@ pub(crate) fn initialize(db: &Connection) -> rusqlite::Result<()> {
 }
 
 impl Collections {
+    pub(super) async fn invalidate_snapshot(&self, snapshot: String) -> MusicResult<()> {
+        self.database(move |db| {
+            db.execute(
+                "UPDATE music_collection_snapshots SET active=0 WHERE id=?1",
+                [snapshot],
+            )
+            .map_err(failure)?;
+            Ok(())
+        })
+        .await
+    }
+
     pub(super) async fn database<T: Send + 'static>(
         &self,
         work: impl FnOnce(&mut Connection) -> MusicResult<T> + Send + 'static,

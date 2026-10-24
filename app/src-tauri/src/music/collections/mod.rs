@@ -238,6 +238,35 @@ impl Collections {
         let diagnostic = diagnostics::Query::new(entity, page, refresh, "collection_query");
         let result = self.query_inner(entity, page, refresh, &diagnostic).await;
         diagnostic.finish(&result);
+        if result
+            .as_ref()
+            .err()
+            .is_some_and(|error| error.code == ErrorCode::InvalidData)
+            && diagnostic.needs_revalidation()
+            && !refresh
+        {
+            if page.cursor.is_some() {
+                // A new snapshot cannot continue an already delivered prefix.
+                let cursor: SnapshotCursor =
+                    serde_json::from_str(page.cursor.as_ref().unwrap().as_str())
+                        .map_err(|_| MusicError::from(ErrorCode::InvalidData))?;
+                let (key, _) = self.context(entity)?;
+                let state = self.state(&key)?;
+                let next = self.epochs.fetch_add(1, Ordering::AcqRel);
+                let _ = state.epoch.compare_exchange(
+                    cursor.epoch,
+                    next,
+                    Ordering::AcqRel,
+                    Ordering::Acquire,
+                );
+                self.invalidate_snapshot(cursor.snapshot).await?;
+                return Err(ErrorCode::StaleContext.into());
+            }
+            let retry = diagnostics::Query::new(entity, page, true, "collection_revalidate");
+            let result = self.query_inner(entity, page, true, &retry).await;
+            retry.finish(&result);
+            return result;
+        }
         result
     }
 
@@ -517,11 +546,18 @@ impl Collections {
             .into_iter()
             .enumerate()
             .map(|(index, track)| {
-                nons_music_adapter_sdk::metadata::queue_metadata(track)
-                    .inspect_err(|_| {
-                        diagnostic.details(format_args!("row_index={}", offset + index))
-                    })
-                    .map(|metadata| metadata.track)
+                nons_music_adapter_sdk::metadata::validate_online_queue_track(&track).map_err(
+                    |rule| {
+                        diagnostic.invalid_metadata(rule, offset + index);
+                        MusicError::from(ErrorCode::InvalidData)
+                    },
+                )?;
+                let nons_music_adapter_sdk::queue::TrackSource::Online { track: music } =
+                    track.source
+                else {
+                    unreachable!("validated online queue track")
+                };
+                Ok(*music)
             })
             .collect::<MusicResult<_>>()?;
         let result = business::BusinessResponse::Tracks(business::TrackPage {

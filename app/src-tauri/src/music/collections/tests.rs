@@ -293,6 +293,124 @@ async fn cached_three_hundred_are_available_before_only_missing_pages_are_fetche
 }
 
 #[tokio::test]
+async fn invalid_cached_metadata_refetches_the_playlist_without_converting_old_keys() {
+    use crate::infrastructure::diagnostics::test_log;
+    let h = harness(10);
+    browse(&h, 1).await;
+    h.fixture.calls.lock().unwrap().clear();
+    h.store.0.lock().unwrap().execute_batch(
+        "UPDATE tracks SET key='fixture-cache:old-key',value=json_set(value,'$.key','fixture-cache:old-key') WHERE key=(SELECT key FROM music_collection_tracks WHERE position=0 LIMIT 1);
+         UPDATE music_collection_tracks SET key='fixture-cache:old-key' WHERE position=0;"
+    ).unwrap();
+    test_log::start();
+    let response = h
+        .music
+        .query(
+            &source(),
+            &business::BusinessRequest::Tracks {
+                entity: entity(),
+                page: PageRequest {
+                    cursor: None,
+                    limit: 100,
+                },
+            },
+            false,
+        )
+        .await
+        .unwrap();
+    let logs = test_log::take().join("\n");
+    assert!(logs.contains("stage=track_metadata"), "{logs}");
+    assert!(logs.contains("rule=queue.key"), "{logs}");
+    let business::BusinessResponse::Tracks(page) = response else {
+        panic!()
+    };
+    assert_eq!(page.page.items.len(), 10);
+    assert_eq!(*h.fixture.calls.lock().unwrap(), vec![0]);
+    let cached = h.music.cached_collection(&entity()).await.unwrap().unwrap();
+    nons_music_adapter_sdk::metadata::validate_online_queue_track(&cached.tracks[0]).unwrap();
+}
+
+#[tokio::test]
+async fn invalid_cached_metadata_refresh_failure_is_bounded_and_retryable() {
+    let h = harness(10);
+    browse(&h, 1).await;
+    h.fixture.calls.lock().unwrap().clear();
+    h.store
+        .0
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE tracks SET value=json_set(value,'$.key','fixture-cache:old-key')",
+            [],
+        )
+        .unwrap();
+    h.fixture.fail.store(true, Ordering::Release);
+    let request = business::BusinessRequest::Tracks {
+        entity: entity(),
+        page: PageRequest {
+            cursor: None,
+            limit: 100,
+        },
+    };
+    let error = h.music.query(&source(), &request, false).await.unwrap_err();
+    assert_eq!(error.code, ErrorCode::Network);
+    assert_eq!(*h.fixture.calls.lock().unwrap(), vec![0]);
+    h.fixture.fail.store(false, Ordering::Release);
+    let business::BusinessResponse::Tracks(page) =
+        h.music.query(&source(), &request, false).await.unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(page.page.items.len(), 10);
+    assert_eq!(*h.fixture.calls.lock().unwrap(), vec![0, 0]);
+}
+
+#[tokio::test]
+async fn invalid_cached_metadata_on_continuation_requires_a_fresh_prefix() {
+    let h = harness(150);
+    let cursor = browse(&h, 1).await;
+    browse(&h, 2).await;
+    h.fixture.calls.lock().unwrap().clear();
+    h.store.0.lock().unwrap().execute(
+        "UPDATE tracks SET value=json_set(value,'$.key','fixture-cache:old-key') WHERE key=(SELECT key FROM music_collection_tracks WHERE position=100 LIMIT 1)", []
+    ).unwrap();
+    let error = h
+        .music
+        .query(
+            &source(),
+            &business::BusinessRequest::Tracks {
+                entity: entity(),
+                page: PageRequest {
+                    cursor: cursor.clone(),
+                    limit: 100,
+                },
+            },
+            false,
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::StaleContext);
+    assert!(h.fixture.calls.lock().unwrap().is_empty());
+    let cache = h.music.collections.as_ref().unwrap();
+    assert!(cache.cached(&entity()).await.unwrap().is_none());
+    browse(&h, 2).await;
+    assert_eq!(*h.fixture.calls.lock().unwrap(), vec![0, 100]);
+    let old = h
+        .music
+        .query(
+            &source(),
+            &business::BusinessRequest::Tracks {
+                entity: entity(),
+                page: PageRequest { cursor, limit: 100 },
+            },
+            false,
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(old.code, ErrorCode::StaleContext);
+}
+
+#[tokio::test]
 async fn browsing_and_playback_share_inflight_page_and_persist_empty_progress() {
     let h = harness(350);
     h.fixture.empty.store(true, Ordering::Release);
