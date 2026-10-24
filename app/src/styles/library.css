@@ -542,6 +542,20 @@
 .artist-page .library-detail-cover {
   border-radius: 50%;
 }
+.artist-page .library-detail-info {
+  align-self: flex-end;
+  min-height: 0;
+}
+.artist-page .library-detail-meta {
+  margin-top: 10px;
+}
+.artist-page .library-detail-description {
+  margin-top: 12px;
+}
+.artist-page .library-detail-actions {
+  margin-top: 16px;
+  padding-top: 0;
+}
 .artist-page .library-detail-play {
   color: white;
   background: var(--library-primary);
