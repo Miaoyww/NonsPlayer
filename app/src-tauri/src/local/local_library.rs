@@ -157,10 +157,38 @@ impl Store {
         tx.commit().map_err(|e| e.to_string())
     }
 }
+const LOCAL_INDEX_VERSION: &str = "2";
+
+pub fn initialize_index(db: &Connection) -> AppResult<()> {
+    let version: Option<String> = db
+        .query_row(
+            "SELECT value FROM settings WHERE key='localIndexVersion'",
+            [],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+    if version.as_deref() == Some(LOCAL_INDEX_VERSION) {
+        return Ok(());
+    }
+    let tx = db.unchecked_transaction().map_err(|e| e.to_string())?;
+    tx.execute(
+        "DELETE FROM local_entities WHERE kind IN ('artist','album')",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+    rebuild_index(&tx)?;
+    tx.execute("INSERT INTO settings(key,value) VALUES('localIndexVersion',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [LOCAL_INDEX_VERSION]).map_err(|e| e.to_string())?;
+    tx.commit().map_err(|e| e.to_string())
+}
+
 fn rebuild_index(tx: &Connection) -> AppResult<()> {
     let options = options_from_db(tx)?;
-    tx.execute("DELETE FROM local_members", [])
-        .map_err(|e| e.to_string())?;
+    tx.execute(
+        "DELETE FROM local_members WHERE kind IN ('artist','album')",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
     {
         let mut stmt = tx
             .prepare("SELECT value FROM tracks WHERE source='local' ORDER BY rowid")
@@ -173,45 +201,114 @@ fn rebuild_index(tx: &Connection) -> AppResult<()> {
             index_track(tx, &track, &options)?;
         }
     }
+    refresh_albums(tx)
+}
+
+pub fn index_track(db: &Connection, track: &Track, options: &LocalPreferences) -> AppResult<()> {
+    db.execute(
+        "DELETE FROM local_members WHERE key=?1 AND kind IN ('artist','album')",
+        [&track.key],
+    )
+    .map_err(|e| e.to_string())?;
+    for name in split_artists(&track.artist, &options.artist_separators) {
+        // The first known cover remains the artist's avatar across scans and restarts.
+        db.execute("INSERT OR IGNORE INTO local_entities(kind,id,name,cover,subtitle) VALUES('artist',?1,?1,?2,'')", params![name,track.cover.to_string()]).map_err(|e| e.to_string())?;
+        db.execute(
+            "INSERT INTO local_members(key,kind,id) VALUES(?1,'artist',?2)",
+            params![track.key, name],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    db.execute(
+        "INSERT INTO local_members(key,kind,id) VALUES(?1,'album',?2)",
+        params![track.key, track.album],
+    )
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
-pub fn index_track(db: &Connection, track: &Track, options: &LocalPreferences) -> AppResult<()> {
-    db.execute("DELETE FROM local_members WHERE key=?1", [&track.key])
-        .map_err(|e| e.to_string())?;
-    let metadata: Option<String> = db
-        .query_row(
-            "SELECT value FROM local_metadata WHERE key=?1",
-            [&track.key],
-            |r| r.get(0),
-        )
-        .optional()
-        .map_err(|e| e.to_string())?;
-    let album_artist = metadata
-        .and_then(|s| {
-            serde_json::from_str::<LocalInformation>(&s)
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn_error(
-                        "local.index.decode_metadata",
-                        error,
-                    );
+
+fn normalized_path(track: &Track) -> String {
+    match &track.source {
+        TrackSource::Local { path, .. } => path.trim_start_matches(r"\\?\").replace('\\', "/"),
+        _ => track.key.clone(),
+    }
+}
+
+pub fn refresh_albums(db: &Connection) -> AppResult<()> {
+    let options = options_from_db(db)?;
+    let mut albums = std::collections::BTreeMap::<String, Vec<(Track, LocalInformation)>>::new();
+    {
+        let mut stmt = db.prepare("SELECT t.value,m.value FROM visible_local_tracks t LEFT JOIN local_metadata m ON m.key=t.key WHERE t.source='local'").map_err(|e| e.to_string())?;
+        let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
+        while let Some(row) = rows.next().map_err(|e| e.to_string())? {
+            let track: Track =
+                serde_json::from_str(&row.get::<_, String>(0).map_err(|e| e.to_string())?)
+                    .map_err(|e| e.to_string())?;
+            let metadata = row
+                .get::<_, Option<String>>(1)
+                .map_err(|e| e.to_string())?
+                .and_then(|value| {
+                    serde_json::from_str::<LocalInformation>(&value)
+                        .inspect_err(|error| {
+                            crate::infrastructure::diagnostics::warn_error(
+                                "local.index.decode_metadata",
+                                error,
+                            )
+                        })
+                        .ok()
                 })
-                .ok()
-        })
-        .and_then(|m| m.album_artist)
-        .unwrap_or_else(|| track.artist.clone());
-    let album_id =
-        serde_json::to_string(&(&track.album, &album_artist)).map_err(|e| e.to_string())?;
-    let mut entities = split_artists(&track.artist, &options.artist_separators)
-        .into_iter()
-        .map(|name| ("artist", name.clone(), name, String::new()))
-        .collect::<Vec<_>>();
-    entities.push(("album", album_id, track.album.clone(), album_artist));
-    for (kind, id, name, subtitle) in entities {
-        // The first known cover remains the artist's avatar across scans and restarts.
-        db.execute("INSERT OR IGNORE INTO local_entities(kind,id,name,cover,subtitle) VALUES(?1,?2,?3,?4,?5)", params![kind,id,name,track.cover.to_string(),subtitle]).map_err(|e| e.to_string())?;
+                .unwrap_or_default();
+            albums
+                .entry(track.album.clone())
+                .or_default()
+                .push((track, metadata));
+        }
+    }
+    db.execute("DELETE FROM local_entities WHERE kind='album'", [])
+        .map_err(|e| e.to_string())?;
+    for (id, mut members) in albums {
+        members.sort_by_cached_key(|(track, metadata)| {
+            (
+                metadata.disc_number.unwrap_or(0),
+                metadata.track_number.unwrap_or(0),
+                normalized_path(track),
+                track.key.clone(),
+            )
+        });
+        let has_album_artists = members.iter().any(|(_, metadata)| {
+            metadata
+                .album_artist
+                .as_ref()
+                .is_some_and(|name| !name.trim().is_empty())
+        });
+        let mut artists = Vec::new();
+        for (track, metadata) in &members {
+            let value = if has_album_artists {
+                let Some(value) = metadata
+                    .album_artist
+                    .as_deref()
+                    .filter(|name| !name.trim().is_empty())
+                else {
+                    continue;
+                };
+                value
+            } else {
+                &track.artist
+            };
+            for artist in split_artists(value, &options.artist_separators) {
+                if !artists.contains(&artist) {
+                    artists.push(artist);
+                }
+            }
+        }
+        let tracks = members
+            .into_iter()
+            .map(|(track, _)| track)
+            .collect::<Vec<_>>();
+        let cover = super::cover_art::album_cover(db, &tracks)?.unwrap_or_default();
         db.execute(
-            "INSERT INTO local_members(key,kind,id) VALUES(?1,?2,?3)",
-            params![track.key, kind, id],
+            "INSERT INTO local_entities(kind,id,name,cover,subtitle) VALUES('album',?1,?1,?2,?3)",
+            params![id, cover, artists.join(" / ")],
         )
         .map_err(|e| e.to_string())?;
     }
@@ -302,7 +399,16 @@ fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> App
 }
 
 fn resolve_entity_id(db: &Connection, kind: &str, id: String) -> AppResult<String> {
-    if kind == "album" && id.starts_with("local:") {
+    if kind == "album"
+        && id.starts_with("local:")
+        && !db
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM local_entities WHERE kind='album' AND id=?1)",
+                [&id],
+                |row| row.get::<_, bool>(0),
+            )
+            .map_err(|e| e.to_string())?
+    {
         db.query_row(
             "SELECT id FROM local_members WHERE key=?1 AND kind='album'",
             [&id],
@@ -631,7 +737,7 @@ mod tests {
         );
     }
     #[test]
-    fn album_artist_disambiguates_names_and_track_links_resolve_the_album() {
+    fn album_title_merges_artists_and_track_links_resolve_the_album() {
         let dir = crate::test_support::TestDir::new();
         let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
         for (key, artist, album_artist, number) in [
@@ -651,8 +757,11 @@ mod tests {
                 .unwrap();
             store.save_tracks(&[track(key, artist, "cover")]).unwrap();
         }
+        store.refresh_local_albums().unwrap();
         let albums = entity_page(&store, "album".into(), "同名".into(), 0).unwrap();
-        assert_eq!(albums.items.len(), 2);
+        assert_eq!(albums.items.len(), 1);
+        assert_eq!(albums.items[0].id, "同名专辑");
+        assert_eq!(albums.items[0].subtitle, "Band / Other");
         let songs = entity_tracks(&store, "album".into(), "local:b".into(), "".into(), 0).unwrap();
         assert_eq!(
             songs
@@ -660,9 +769,193 @@ mod tests {
                 .iter()
                 .map(|t| t.key.as_str())
                 .collect::<Vec<_>>(),
-            vec!["local:a", "local:b"]
+            vec!["local:a", "local:c", "local:b"]
         );
     }
+    #[test]
+    fn album_titles_remain_raw_and_missing_album_artists_fall_back_to_singers() {
+        let dir = crate::test_support::TestDir::new();
+        let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
+        let mut tracks = vec![track("local:z", "B / A", ""), track("local:a", "A / C", "")];
+        for (index, album) in [" Album", "Album", "album", "Album ", "local:literal"]
+            .into_iter()
+            .enumerate()
+        {
+            let mut song = track(&format!("local:{index}"), "Singer", "");
+            song.album = album.into();
+            tracks.push(song);
+        }
+        store.save_tracks(&tracks).unwrap();
+        store.refresh_local_albums().unwrap();
+        let album = entity_detail(&store, "album".into(), "同名专辑".into()).unwrap();
+        assert_eq!(album.track_count, 2);
+        assert_eq!(album.subtitle, "A / C / B");
+        assert_eq!(
+            entity_page(&store, "album".into(), "".into(), 0)
+                .unwrap()
+                .items
+                .len(),
+            6
+        );
+        assert_eq!(
+            entity_detail(&store, "album".into(), "local:literal".into())
+                .unwrap()
+                .id,
+            "local:literal"
+        );
+    }
+
+    #[test]
+    fn index_version_rebuild_removes_compound_ids_and_preserves_music_history_and_playlists() {
+        let dir = crate::test_support::TestDir::new();
+        let path = dir.0.join("library.sqlite");
+        let store = Store::open(&path).unwrap();
+        let song = track("local:a", "A", "");
+        store.save_tracks(std::slice::from_ref(&song)).unwrap();
+        store.record_playback("instance", &song, 10).unwrap();
+        let playlist = create_playlist(&store, "保留歌单".into()).unwrap();
+        add_playlist_track(&store, playlist.clone(), song.key.clone()).unwrap();
+        {
+            let db = store.0.lock().unwrap();
+            db.execute(
+                "UPDATE settings SET value='1' WHERE key='localIndexVersion'",
+                [],
+            )
+            .unwrap();
+            db.execute("INSERT INTO local_entities(kind,id,name,cover,subtitle) VALUES('album','[旧专辑,旧艺术家]','旧专辑','','')", []).unwrap();
+            db.execute("INSERT INTO local_members(key,kind,id) VALUES('local:a','album','[旧专辑,旧艺术家]')", []).unwrap();
+        }
+        drop(store);
+        let store = Store::open(&path).unwrap();
+        assert_eq!(
+            entity_page(&store, "album".into(), "".into(), 0)
+                .unwrap()
+                .items
+                .len(),
+            1
+        );
+        assert_eq!(
+            entity_detail(&store, "album".into(), "同名专辑".into())
+                .unwrap()
+                .track_count,
+            1
+        );
+        assert!(store.track("local:a").is_ok());
+        assert_eq!(store.playback_count().unwrap(), 1);
+        assert_eq!(
+            entity_tracks(&store, "playlist".into(), playlist, "".into(), 0)
+                .unwrap()
+                .items[0]
+                .key,
+            "local:a"
+        );
+        let db = store.0.lock().unwrap();
+        assert_eq!(
+            db.query_row(
+                "SELECT COUNT(*) FROM local_members WHERE id='[旧专辑,旧艺术家]'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+            0
+        );
+    }
+
+    #[test]
+    fn album_cover_uses_stable_member_order_after_reimport() {
+        let dir = crate::test_support::TestDir::new();
+        let covers = dir.0.join("covers");
+        std::fs::create_dir_all(&covers).unwrap();
+        let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
+        let mut used = 0;
+        let mut tracks = Vec::new();
+        for (key, number, red) in [("local:b", 2, 20), ("local:a", 1, 10)] {
+            let mut bytes = std::io::Cursor::new(Vec::new());
+            image::DynamicImage::ImageRgb8(image::RgbImage::from_pixel(
+                1,
+                1,
+                image::Rgb([red, 0, 0]),
+            ))
+            .write_to(&mut bytes, image::ImageFormat::Png)
+            .unwrap();
+            let cover =
+                super::super::cover_art::asset(bytes.get_ref(), &covers, &mut used).unwrap();
+            let song = track(key, "A", &cover);
+            store
+                .save_local_information(
+                    key,
+                    &LocalInformation {
+                        track_number: Some(number),
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            store
+                .0
+                .lock()
+                .unwrap()
+                .execute(
+                    "INSERT INTO local_cover_state(key,signature,embedded) VALUES(?1,'',?2)",
+                    params![key, serde_json::to_string(&vec![cover]).unwrap()],
+                )
+                .unwrap();
+            tracks.push(song);
+        }
+        store.save_tracks(&tracks).unwrap();
+        store.refresh_local_albums().unwrap();
+        let expected = tracks[1].cover.to_string();
+        assert_eq!(
+            entity_detail(&store, "album".into(), "同名专辑".into())
+                .unwrap()
+                .cover,
+            expected
+        );
+        tracks.reverse();
+        store.save_tracks(&tracks).unwrap();
+        store.refresh_local_albums().unwrap();
+        assert_eq!(
+            entity_detail(&store, "album".into(), "同名专辑".into())
+                .unwrap()
+                .cover,
+            expected
+        );
+    }
+
+    #[test]
+    fn album_members_keep_disc_track_title_key_order() {
+        let dir = crate::test_support::TestDir::new();
+        let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
+        for (key, disc, number, title) in [
+            ("local:d", 2, 1, "A"),
+            ("local:c", 1, 2, "A"),
+            ("local:b", 1, 1, "B"),
+            ("local:a", 1, 1, "A"),
+        ] {
+            store
+                .save_local_information(
+                    key,
+                    &LocalInformation {
+                        disc_number: Some(disc),
+                        track_number: Some(number),
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            let mut song = track(key, "A", "");
+            song.title = title.into();
+            store.save_tracks(&[song]).unwrap();
+        }
+        store.refresh_local_albums().unwrap();
+        let page = entity_tracks(&store, "album".into(), "同名专辑".into(), "".into(), 0).unwrap();
+        assert_eq!(
+            page.items
+                .iter()
+                .map(|song| song.key.as_str())
+                .collect::<Vec<_>>(),
+            vec!["local:a", "local:b", "local:c", "local:d"]
+        );
+    }
+
     #[test]
     fn music_search_includes_albums_and_pagination_does_not_drop_a_song() {
         let dir = crate::test_support::TestDir::new();

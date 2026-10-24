@@ -1,13 +1,15 @@
 use crate::{
     model::{AppResult, Track, TrackSource},
-    storage::{Store, MAX_LYRIC_BYTES},
+    storage::Store,
 };
 use lofty::prelude::*;
 use sha2::{Digest, Sha256};
 use std::{
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
+
+pub(super) static COVER_WRITES: Mutex<()> = Mutex::new(());
 
 pub const AUDIO_EXTENSIONS: &[&str] = &[
     "mp3", "flac", "wav", "m4a", "aac", "ogg", "opus", "aiff", "aif", "ape", "wv", "ncm",
@@ -22,15 +24,19 @@ pub struct ImportReport {
 }
 
 pub fn import(
-    paths: Vec<String>,
+    mut paths: Vec<String>,
     store: Arc<Store>,
     cover_dir: PathBuf,
     fallback: String,
     origin: Option<String>,
 ) -> AppResult<ImportReport> {
+    let _writes = COVER_WRITES.lock().map_err(|_| "封面写入锁不可用")?;
+    prepare_covers(&cover_dir, &fallback)?;
+    let _validation = super::cover_art::ValidationSession::new();
     if paths.len() > 1000 {
         return Err("单次选择的路径过多".into());
     }
+    paths.sort_by_cached_key(|path| super::cover_art::normalized(Path::new(path)));
     let mut report = ImportReport {
         imported: 0,
         skipped: 0,
@@ -40,30 +46,14 @@ pub fn import(
     let mut seen = std::collections::HashSet::new();
     let mut complete = true;
     let mut covered = std::collections::HashSet::new();
-    let mut cover_bytes: u64 = std::fs::read_dir(&cover_dir)
-        .map_err(|e| e.to_string())?
-        .filter_map(|result| {
-            result
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("local.scan_cover_directory", error)
-                })
-                .ok()
-        })
-        .filter_map(|e| {
-            e.metadata()
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn_error(
-                        "local.cover_budget.read_metadata",
-                        error,
-                    );
-                })
-                .ok()
-        })
-        .map(|m| m.len())
-        .sum();
+    let mut cover_bytes = super::cover_art::usage(&cover_dir);
     // Process sheets first so traversal order cannot briefly expose the whole album.
     for root in &paths {
-        for entry in walkdir::WalkDir::new(root).follow_links(false).max_open(8) {
+        for entry in walkdir::WalkDir::new(root)
+            .follow_links(false)
+            .max_open(8)
+            .sort_by_file_name()
+        {
             let Ok(entry) = entry else { continue };
             if !entry.file_type().is_file() || !super::cue::is_cue(entry.path()) {
                 continue;
@@ -110,7 +100,11 @@ pub fn import(
     }
     for root in paths {
         // walkdir does not follow symlinks; max_open bounds file handles.
-        for entry in walkdir::WalkDir::new(root).follow_links(false).max_open(8) {
+        for entry in walkdir::WalkDir::new(root)
+            .follow_links(false)
+            .max_open(8)
+            .sort_by_file_name()
+        {
             let entry = match entry {
                 Ok(e) => e,
                 Err(error) => {
@@ -174,10 +168,25 @@ pub fn import(
             store.reconcile_origin(&origin, &seen)?;
         }
     }
+    store.refresh_local_albums()?;
     Ok(report)
 }
 
-fn import_sheet(
+pub(super) fn prepare_covers(covers: &Path, fallback: &str) -> AppResult<()> {
+    use std::io::Write;
+    std::fs::create_dir_all(covers).map_err(|e| e.to_string())?;
+    if !fallback.is_empty() && !super::cover_art::valid(Path::new(fallback)) {
+        let mut temporary = tempfile::NamedTempFile::new_in(covers).map_err(|e| e.to_string())?;
+        temporary
+            .write_all(include_bytes!("../../icons/128x128.png"))
+            .map_err(|e| e.to_string())?;
+        temporary.flush().map_err(|e| e.to_string())?;
+        temporary.persist(fallback).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+pub(super) fn import_sheet(
     path: &Path,
     covers: &Path,
     fallback: &str,
@@ -193,27 +202,37 @@ fn import_sheet(
         return Err("CUE 引用的音频格式不受支持".into());
     }
     let base = read_track(&audio, covers, fallback, store, cover_bytes)?;
+    let information = store.local_information(&base.key)?;
     let album_artist = sheet
         .performer
         .clone()
-        .unwrap_or_else(|| base.artist.clone());
+        .filter(|name| !name.trim().is_empty())
+        .or_else(|| information.album_artist.clone());
     let mut tracks = super::cue::expand(sheet, path, &base)?;
-    if base.cover.to_string() == fallback {
-        match super::cue_cover::find(path, covers, cover_bytes) {
-            Ok(Some(cover)) => {
-                for track in &mut tracks {
-                    track.cover = cover.clone().into();
-                }
-            }
-            Ok(None) => {}
-            Err(error) => crate::infrastructure::diagnostics::warn("local.cue_cover", error),
-        }
+    let embedded = store
+        .local_cover_state(&base.key)?
+        .unwrap_or_default()
+        .embedded;
+    let directory = path.parent().ok_or("CUE 目录不可用")?;
+    let cover = embedded
+        .first()
+        .cloned()
+        .or_else(|| super::cover_art::external(directory, covers, cover_bytes))
+        .unwrap_or_else(|| fallback.to_owned());
+    for track in &mut tracks {
+        track.cover = cover.clone().into();
+        store.save_local_cover_state(
+            &track.key,
+            &super::cover_state::CoverState {
+                signature: super::cover_art::signature(directory),
+                embedded: embedded.clone(),
+            },
+        )?;
     }
-    let information = store.local_information(&base.key)?;
     for track in &mut tracks {
         let mut metadata = information.clone();
         metadata.track_number = track.cue().map(|cue| cue.track_number);
-        metadata.album_artist = Some(album_artist.clone());
+        metadata.album_artist = album_artist.clone();
         // A binding made for a virtual track must survive rescans, unlike the whole-file binding.
         if let TrackSource::Local { netease_id, .. } = &mut track.source {
             *netease_id = store
@@ -253,42 +272,54 @@ pub(super) fn read_track(
     let key = format!("local:{:x}", Sha256::digest(path.as_bytes()));
     let metadata = std::fs::metadata(&path).map_err(|e| e.to_string())?;
     let modified = format!("{:?}", metadata.modified().map_err(|e| e.to_string())?);
+    let directory = Path::new(&path).parent().ok_or("音乐目录不可用")?;
+    let signature = super::cover_art::signature(directory);
     if store.file_unchanged(&key, &modified, metadata.len())?
         && store.has_local_information(&key)?
     {
         if let Ok(track) = (store.track(&key)).inspect_err(|error| {
             crate::infrastructure::diagnostics::warn("local.import.read_cached_track", error);
         }) {
-            return Ok(track);
+            if let Some(state) = store.local_cover_state(&key)? {
+                if state.signature == signature
+                    && (track.cover.is_empty() || super::cover_art::valid(Path::new(&*track.cover)))
+                    && state
+                        .embedded
+                        .iter()
+                        .all(|cover| super::cover_art::valid(Path::new(cover)))
+                {
+                    return Ok(track);
+                }
+            }
         }
     }
     let (tagged, ncm_info, ncm_image) = super::encoded_audio::read_tags(&path)?;
     let tag = tagged.primary_tag().or_else(|| tagged.first_tag());
-    let mut cover = fallback.to_string();
-    if let Some(picture) = tag
-        .and_then(|t| t.pictures().first())
-        .filter(|p| p.data().len() <= MAX_LYRIC_BYTES)
-    {
-        let name = format!("{:x}.img", Sha256::digest(picture.data()));
-        let dest = cover_dir.join(name);
-        if dest.exists() || *cover_bytes + picture.data().len() as u64 <= 32 * 1024 * 1024 {
-            if !dest.exists() {
-                std::fs::write(&dest, picture.data()).map_err(|e| e.to_string())?;
-                *cover_bytes += picture.data().len() as u64;
+    let mut embedded = Vec::new();
+    for picture in tag.into_iter().flat_map(|tag| tag.pictures()) {
+        if let Some(cover) = super::cover_art::asset(picture.data(), cover_dir, cover_bytes) {
+            if !embedded.contains(&cover) {
+                embedded.push(cover);
             }
-            cover = dest.to_string_lossy().to_string();
         }
     }
-    if !ncm_image.is_empty() && cover == fallback {
-        let dest = cover_dir.join(format!("{:x}.img", Sha256::digest(&ncm_image)));
-        if dest.exists() || *cover_bytes + ncm_image.len() as u64 <= 32 * 1024 * 1024 {
-            if !dest.exists() {
-                std::fs::write(&dest, &ncm_image).map_err(|e| e.to_string())?;
-                *cover_bytes += ncm_image.len() as u64;
-            }
-            cover = dest.to_string_lossy().into_owned();
+    if let Some(cover) = super::cover_art::asset(&ncm_image, cover_dir, cover_bytes) {
+        if !embedded.contains(&cover) {
+            embedded.push(cover);
         }
     }
+    let cover = embedded
+        .first()
+        .cloned()
+        .or_else(|| super::cover_art::external(directory, cover_dir, cover_bytes))
+        .unwrap_or_else(|| fallback.to_owned());
+    store.save_local_cover_state(
+        &key,
+        &super::cover_state::CoverState {
+            signature,
+            embedded,
+        },
+    )?;
     // Re-importing a file must preserve a user's explicit lyric binding.
     let netease_id = store
         .track(&key)

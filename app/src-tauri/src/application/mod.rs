@@ -1116,6 +1116,7 @@ pub fn run() {
             remove_music_folder,
             rescan_music_folders,
             runtime_cover,
+            crate::local::cover_repair::local_cover_repair,
             cover_export::cover_export,
             runtime_cover_access,
             runtime_cover_invalidate,

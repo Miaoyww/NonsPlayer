@@ -68,6 +68,8 @@ impl Store {
                         AND json_extract(c.value,'$.source.path')=json_extract(t.value,'$.source.path')
                         AND json_extract(c.value,'$.source.cue') IS NOT NULL));
             ").map_err(|e| e.to_string())?;
+        connection.execute_batch("CREATE TABLE IF NOT EXISTS local_cover_state (key TEXT PRIMARY KEY, signature TEXT NOT NULL, embedded TEXT NOT NULL)").map_err(|e| e.to_string())?;
+        crate::local_library::initialize_index(&connection)?;
         crate::aggregate::initialize(&connection).map_err(|e| e.to_string())?;
         crate::music::collections::store::initialize(&connection).map_err(|e| e.to_string())?;
         Ok(Self(Mutex::new(connection)))
@@ -152,6 +154,13 @@ impl Store {
         Ok(())
     }
 
+    pub fn refresh_local_albums(&self) -> AppResult<()> {
+        let mut db = self.0.lock().map_err(|_| "曲库锁不可用")?;
+        let tx = db.transaction().map_err(|e| e.to_string())?;
+        crate::local_library::refresh_albums(&tx)?;
+        tx.commit().map_err(|e| e.to_string())
+    }
+
     pub fn mark_origin(&self, tracks: &[Track], origin: &str) -> AppResult<()> {
         let mut db = self
             .0
@@ -233,7 +242,20 @@ impl Store {
             }
         }
         tx.execute("UPDATE local_playlist_tracks SET value=(SELECT value FROM tracks WHERE tracks.key=local_playlist_tracks.key) WHERE key IN (SELECT key FROM tracks WHERE source='local')", []).map_err(|e|e.to_string())?;
-        tx.execute("DELETE FROM tracks WHERE source='local' AND key NOT IN (SELECT key FROM local_origins)", []).map_err(|e| e.to_string())?;
+        let removed = tx.execute("DELETE FROM tracks WHERE source='local' AND key NOT IN (SELECT key FROM local_origins)", []).map_err(|e| e.to_string())?;
+        tx.execute(
+            "DELETE FROM local_members WHERE key NOT IN (SELECT key FROM tracks)",
+            [],
+        )
+        .map_err(|e| e.to_string())?;
+        tx.execute(
+            "DELETE FROM local_cover_state WHERE key NOT IN (SELECT key FROM tracks)",
+            [],
+        )
+        .map_err(|e| e.to_string())?;
+        if removed > 0 {
+            crate::local_library::refresh_albums(&tx)?;
+        }
         tx.execute(
             "DELETE FROM local_file_stats WHERE key NOT IN (SELECT key FROM tracks)",
             [],

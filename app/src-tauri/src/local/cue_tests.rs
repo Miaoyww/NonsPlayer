@@ -39,7 +39,6 @@ fn cue_cover_falls_back_in_order_and_refreshes_without_audio_changes() {
             .save(music.join(name))
             .unwrap();
     };
-    image("folder.png", 20);
     image("COVER.PNG", 80);
     let store = Arc::new(Store::open(&dir.0.join("library.sqlite")).unwrap());
     let scan = || {
@@ -64,6 +63,7 @@ fn cue_cover_falls_back_in_order_and_refreshes_without_audio_changes() {
     image("COVER.PNG", 120);
     let updated = scan()[0].cover.to_string();
     assert_ne!(cover, updated);
+    image("folder.png", 20);
     std::fs::write(music.join("COVER.PNG"), "corrupt").unwrap();
     let fallback = scan()[0].cover.to_string();
     assert_eq!(
@@ -75,7 +75,7 @@ fn cue_cover_falls_back_in_order_and_refreshes_without_audio_changes() {
     assert!(scan()
         .iter()
         .all(|track| track.cover.to_string().is_empty()));
-    // A cached audio cover represents the embedded tag and takes priority on later scans.
+    // A dangling cached path must not be treated as a valid embedded cover.
     let mut base = store
         .track(&format!(
             "local:{:x}",
@@ -94,7 +94,7 @@ fn cue_cover_falls_back_in_order_and_refreshes_without_audio_changes() {
     store.save_tracks(&[base]).unwrap();
     assert!(scan()
         .iter()
-        .all(|track| track.cover.to_string() == "embedded.img"));
+        .all(|track| track.cover.to_string().is_empty()));
 }
 
 #[test]

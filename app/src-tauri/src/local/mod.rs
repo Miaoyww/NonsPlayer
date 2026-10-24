@@ -1,5 +1,7 @@
+pub(crate) mod cover_art;
+pub(crate) mod cover_repair;
+mod cover_state;
 pub(crate) mod cue;
-mod cue_cover;
 pub(crate) mod encoded_audio;
 pub(crate) mod library;
 pub(crate) mod local_folders;
