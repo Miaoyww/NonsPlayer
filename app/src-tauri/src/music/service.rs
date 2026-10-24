@@ -34,6 +34,10 @@ impl MusicService {
             (&self.collections, request)
         {
             if entity.source != *source {
+                log::error!(target: "nons::music", "operation=tracks stage=request_source code=InvalidData reason=entity_source_mismatch source={} entity_source={} entity_kind={:?} entity_id={}",
+                    crate::infrastructure::diagnostics::field(source.as_str()),
+                    crate::infrastructure::diagnostics::field(entity.source.as_str()), entity.kind,
+                    crate::infrastructure::diagnostics::field(entity.id.as_str()));
                 return Err(super::ErrorCode::InvalidData.into());
             }
             if entity.kind == super::identity::EntityKind::Playlist {

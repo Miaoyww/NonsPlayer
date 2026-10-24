@@ -14,6 +14,7 @@ use std::{
     time::Duration,
 };
 
+mod diagnostics;
 #[cfg(test)]
 mod probe;
 pub(crate) mod store;
@@ -234,8 +235,23 @@ impl Collections {
         page: &PageRequest,
         refresh: bool,
     ) -> MusicResult<business::BusinessResponse> {
+        let diagnostic = diagnostics::Query::new(entity, page, refresh, "collection_query");
+        let result = self.query_inner(entity, page, refresh, &diagnostic).await;
+        diagnostic.finish(&result);
+        result
+    }
+
+    async fn query_inner(
+        self: &Arc<Self>,
+        entity: &identity::EntityRef,
+        page: &PageRequest,
+        refresh: bool,
+        diagnostic: &diagnostics::Query<'_>,
+    ) -> MusicResult<business::BusinessResponse> {
         page.validate()?;
+        diagnostic.stage("context", "collection_authorization_or_scope_failed");
         let (key, scope) = self.context(entity)?;
+        diagnostic.stage("coordinator", "collection_coordinator_unavailable");
         let state = self.state(&key)?;
         let epoch = if refresh {
             let next = self.epochs.fetch_add(1, Ordering::AcqRel);
@@ -251,6 +267,7 @@ impl Collections {
             epoch,
             page.clone(),
             refresh,
+            diagnostic,
         ));
         let deadline = tokio::time::sleep(Duration::from_secs(12));
         tokio::pin!(deadline);
@@ -258,9 +275,12 @@ impl Collections {
         loop {
             tokio::select! {
                 biased;
-                _=&mut deadline => return Err(ErrorCode::DeadlineExceeded.into()),
-                _=checks.tick()=>self.check(&key,&scope,&state,epoch)?,
-                result=&mut work=> { self.check(&key,&scope,&state,epoch)?; return result; }
+                _=&mut deadline => {
+                    diagnostic.details(format_args!("timeout_ms=12000"));
+                    return Err(ErrorCode::DeadlineExceeded.into());
+                },
+                _=checks.tick()=>self.check(&key,&scope,&state,epoch).inspect_err(|_| diagnostic.stage("context_check", "collection_context_changed"))?,
+                result=&mut work=> { self.check(&key,&scope,&state,epoch).inspect_err(|_| diagnostic.stage("context_check", "collection_context_changed"))?; return result; }
             }
         }
     }
@@ -273,7 +293,9 @@ impl Collections {
         epoch: u64,
         page: PageRequest,
         refresh: bool,
+        diagnostic: &diagnostics::Query<'_>,
     ) -> MusicResult<business::BusinessResponse> {
+        diagnostic.stage("cursor_decode", "snapshot_cursor_malformed");
         let cursor = page
             .cursor
             .as_ref()
@@ -289,12 +311,24 @@ impl Collections {
                 || cursor.epoch != epoch
                 || cursor.offset > 100_000
         }) {
+            diagnostic.stage("cursor_scope", "snapshot_cursor_context_mismatch");
+            let cursor = cursor.as_ref().unwrap();
+            diagnostic.details(format_args!(
+                "identity_matches={} scope_matches={} run_matches={} epoch_matches={} offset={}",
+                cursor.identity == key.identity,
+                cursor.scope == scope,
+                cursor.run == self.run,
+                cursor.epoch == epoch,
+                cursor.offset
+            ));
             return Err(ErrorCode::StaleContext.into());
         }
         if refresh && cursor.is_some() {
+            diagnostic.stage("cursor_refresh", "refresh_with_cursor");
             return Err(ErrorCode::InvalidData.into());
         }
         let offset = cursor.as_ref().map_or(0, |cursor| cursor.offset);
+        diagnostic.stage("snapshot_read", "snapshot_lookup_failed");
         if !refresh {
             let cached = if let Some(cursor) = &cursor {
                 self.snapshot(key.identity.clone(), Some(cursor.snapshot.clone()))
@@ -307,39 +341,59 @@ impl Collections {
                     .as_ref()
                     .is_some_and(|cursor| cursor.progress > cached.pages || offset > cached.loaded)
                 {
+                    diagnostic.stage("cursor_bounds", "cursor_exceeds_snapshot_progress");
+                    diagnostic.details(format_args!(
+                        "offset={offset} loaded={} progress={} pages={}",
+                        cached.loaded,
+                        cursor.as_ref().unwrap().progress,
+                        cached.pages
+                    ));
                     return Err(ErrorCode::InvalidData.into());
                 }
                 if offset < cached.loaded || cached.complete {
                     return self
-                        .response(key, scope, state, epoch, page, offset, cached)
+                        .response(key, scope, state, epoch, page, offset, cached, diagnostic)
                         .await;
                 }
             }
         }
+        diagnostic.stage("snapshot_gate", "waiting_for_snapshot_writer");
         let _gate = state.gate.lock().await;
+        diagnostic.stage("context_check", "collection_context_changed");
         self.check(&key, &scope, &state, epoch)?;
         let mut snapshot = if refresh {
             Some(
-                self.refresh_locked(&key, &scope, &state, epoch, 100)
+                self.refresh_locked(&key, &scope, &state, epoch, 100, diagnostic)
                     .await?,
             )
         } else if let Some(cursor) = &cursor {
+            diagnostic.stage("snapshot_read", "cursor_snapshot_missing_or_unreadable");
             let found = self
                 .snapshot(key.identity.clone(), Some(cursor.snapshot.clone()))
                 .await?
                 .ok_or(ErrorCode::StaleContext)?;
             if cursor.progress > found.pages || offset > found.loaded {
+                diagnostic.stage("cursor_bounds", "cursor_exceeds_snapshot_progress");
+                diagnostic.details(format_args!(
+                    "offset={offset} loaded={} progress={} pages={}",
+                    found.loaded, cursor.progress, found.pages
+                ));
                 return Err(ErrorCode::InvalidData.into());
             }
             Some(found)
         } else {
+            diagnostic.stage("snapshot_read", "active_snapshot_lookup_failed");
             self.active(&key, &scope).await?
         };
         if snapshot.is_none() {
-            snapshot = Some(self.fetch(&key, &scope, &state, epoch, None, true).await?);
+            snapshot = Some(
+                self.fetch(&key, &scope, &state, epoch, None, true, diagnostic)
+                    .await?,
+            );
         }
         let mut snapshot = snapshot.unwrap();
         if offset >= snapshot.loaded && !snapshot.complete {
+            diagnostic.stage("snapshot_read", "active_snapshot_lookup_failed");
             let active = self.active(&key, &scope).await?;
             if self.stale(&snapshot)
                 || snapshot.run != self.run
@@ -348,13 +402,14 @@ impl Collections {
                     .as_ref()
                     .is_none_or(|active| active.id != snapshot.id)
             {
+                diagnostic.stage("snapshot_tracks", "previous_snapshot_tracks_read_failed");
                 let previous = self.tracks(snapshot.id.clone(), 0, snapshot.loaded).await?;
                 snapshot = if let Some(mut active) = active.filter(|active| {
                     !self.stale(active) && active.run == self.run && active.scope == scope
                 }) {
                     while active.loaded < offset + usize::from(page.limit) && !active.complete {
                         active = self
-                            .fetch(&key, &scope, &state, epoch, Some(active), true)
+                            .fetch(&key, &scope, &state, epoch, Some(active), true, diagnostic)
                             .await?;
                     }
                     active
@@ -365,25 +420,45 @@ impl Collections {
                         &state,
                         epoch,
                         offset + usize::from(page.limit),
+                        diagnostic,
                     )
                     .await?
                 };
+                diagnostic.stage("snapshot_prefix", "snapshot_prefix_read_failed");
                 let current = self.tracks(snapshot.id.clone(), 0, previous.len()).await?;
                 if previous
                     .iter()
                     .map(|t| &t.key)
                     .ne(current.iter().map(|t| &t.key))
                 {
+                    diagnostic.stage("snapshot_prefix", "snapshot_prefix_changed");
                     return Err(ErrorCode::StaleContext.into());
                 }
             } else {
                 snapshot = self
-                    .fetch(&key, &scope, &state, epoch, Some(snapshot), true)
+                    .fetch(
+                        &key,
+                        &scope,
+                        &state,
+                        epoch,
+                        Some(snapshot),
+                        true,
+                        diagnostic,
+                    )
                     .await?;
             }
         }
-        self.response(key, scope, state.clone(), epoch, page, offset, snapshot)
-            .await
+        self.response(
+            key,
+            scope,
+            state.clone(),
+            epoch,
+            page,
+            offset,
+            snapshot,
+            diagnostic,
+        )
+        .await
     }
 
     async fn response(
@@ -395,7 +470,9 @@ impl Collections {
         page: PageRequest,
         offset: usize,
         snapshot: Snapshot,
+        diagnostic: &diagnostics::Query<'_>,
     ) -> MusicResult<business::BusinessResponse> {
+        diagnostic.stage("snapshot_tracks", "snapshot_tracks_read_failed");
         let tracks = self
             .tracks(snapshot.id.clone(), offset, usize::from(page.limit))
             .await?;
@@ -405,9 +482,20 @@ impl Collections {
                 .saturating_sub(offset)
                 .min(usize::from(page.limit))
         {
+            diagnostic.stage("snapshot_tracks", "snapshot_track_count_mismatch");
+            diagnostic.details(format_args!(
+                "offset={offset} loaded={} expected={} actual={}",
+                snapshot.loaded,
+                snapshot
+                    .loaded
+                    .saturating_sub(offset)
+                    .min(usize::from(page.limit)),
+                tracks.len()
+            ));
             return Err(ErrorCode::InvalidData.into());
         }
         let end = offset + tracks.len();
+        diagnostic.stage("cursor_encode", "snapshot_cursor_encode_failed");
         let next_cursor = if end < snapshot.loaded || !snapshot.complete {
             Some(Cursor::try_from(
                 serde_json::to_string(&SnapshotCursor {
@@ -424,10 +512,15 @@ impl Collections {
         } else {
             None
         };
+        diagnostic.stage("track_metadata", "cached_track_metadata_invalid");
         let items = tracks
             .into_iter()
-            .map(|track| {
+            .enumerate()
+            .map(|(index, track)| {
                 nons_music_adapter_sdk::metadata::queue_metadata(track)
+                    .inspect_err(|_| {
+                        diagnostic.details(format_args!("row_index={}", offset + index))
+                    })
                     .map(|metadata| metadata.track)
             })
             .collect::<MusicResult<_>>()?;
@@ -440,14 +533,18 @@ impl Collections {
             entity: key.entity.clone(),
             page,
         };
+        diagnostic.stage("response_validate", "collection_response_contract_invalid");
         result.validate(&request, &key.entity.source)?;
+        diagnostic.stage("descriptor", "source_descriptor_unavailable");
         let descriptor = self
             .adapters
             .descriptors()?
             .into_iter()
             .find(|descriptor| descriptor.source == key.entity.source)
             .ok_or(ErrorCode::SourceUnavailable)?;
+        diagnostic.stage("cover_validate", "collection_cover_host_invalid");
         result.validate_cover_hosts(&descriptor.cover_hosts)?;
+        diagnostic.stage("context_check", "collection_context_changed");
         self.check(&key, &scope, &state, epoch)?;
         if self.stale(&snapshot) {
             self.background(key, scope, state.clone(), snapshot.loaded.max(100));
@@ -463,14 +560,22 @@ impl Collections {
         epoch: u64,
         previous: Option<Snapshot>,
         publish: bool,
+        diagnostic: &diagnostics::Query<'_>,
     ) -> MusicResult<Snapshot> {
+        diagnostic.stage("context_check", "collection_context_changed");
         self.check(key, scope, state, epoch)?;
         if previous
             .as_ref()
             .is_some_and(|snapshot| snapshot.pages >= 1000)
         {
+            diagnostic.stage("page_budget", "snapshot_page_limit_exceeded");
+            diagnostic.details(format_args!(
+                "pages={} maximum=1000",
+                previous.as_ref().unwrap().pages
+            ));
             return Err(ErrorCode::InvalidData.into());
         }
+        diagnostic.stage("provider_cursor", "stored_provider_cursor_invalid");
         let cursor = previous
             .as_ref()
             .and_then(|snapshot| snapshot.cursor.clone())
@@ -483,15 +588,26 @@ impl Collections {
                 limit: 100,
             },
         };
+        diagnostic.stage("adapter_query", "adapter_tracks_request_failed");
+        diagnostic.details(format_args!(
+            "pages={} loaded={} provider_cursor_present={}",
+            previous.as_ref().map_or(0, |snapshot| snapshot.pages),
+            previous.as_ref().map_or(0, |snapshot| snapshot.loaded),
+            cursor.is_some()
+        ));
         let business::BusinessResponse::Tracks(page) =
             self.adapters.business(&key.entity.source, &request).await?
         else {
+            diagnostic.stage("adapter_response", "unexpected_response_type");
             return Err(ErrorCode::InvalidData.into());
         };
         if page.page.next_cursor.is_some() && page.page.next_cursor == cursor {
+            diagnostic.stage("adapter_cursor", "provider_cursor_did_not_advance");
             return Err(ErrorCode::InvalidData.into());
         }
+        diagnostic.stage("context_check", "collection_context_changed");
         self.check(key, scope, state, epoch)?;
+        diagnostic.stage("snapshot_append", "snapshot_append_failed");
         self.append(
             key.clone(),
             scope.to_owned(),
@@ -511,13 +627,17 @@ impl Collections {
         state: &Arc<KeyState>,
         epoch: u64,
         target: usize,
+        diagnostic: &diagnostics::Query<'_>,
     ) -> MusicResult<Snapshot> {
-        let mut snapshot = self.fetch(key, scope, state, epoch, None, false).await?;
+        let mut snapshot = self
+            .fetch(key, scope, state, epoch, None, false, diagnostic)
+            .await?;
         while snapshot.loaded < target && !snapshot.complete {
             snapshot = self
-                .fetch(key, scope, state, epoch, Some(snapshot), false)
+                .fetch(key, scope, state, epoch, Some(snapshot), false, diagnostic)
                 .await?;
         }
+        diagnostic.stage("snapshot_promote", "snapshot_publish_failed");
         self.promote(
             key.clone(),
             scope.to_owned(),
@@ -541,22 +661,37 @@ impl Collections {
         state.attempted.store(now, Ordering::Release);
         let this = self.clone();
         tauri::async_runtime::spawn(async move {
+            let reference = key.entity.clone();
+            let diagnostic = diagnostics::Query::new(
+                &reference,
+                &PageRequest {
+                    cursor: None,
+                    limit: 100,
+                },
+                true,
+                "collection_refresh",
+            );
             let epoch = state.epoch.load(Ordering::Acquire);
             let result = tokio::time::timeout(Duration::from_secs(12), async {
+                diagnostic.stage("snapshot_gate", "waiting_for_snapshot_writer");
                 let _gate = state.gate.lock().await;
+                diagnostic.stage("context_check", "collection_context_changed");
                 this.check(&key, &scope, &state, epoch)?;
                 // Another reader may already have replaced the stale snapshot.
+                diagnostic.stage("snapshot_read", "active_snapshot_lookup_failed");
                 if let Some(active) = this.active(&key, &scope).await? {
                     if !this.stale(&active) {
                         return Ok(());
                     }
                 }
-                this.refresh_locked(&key, &scope, &state, epoch, target)
+                this.refresh_locked(&key, &scope, &state, epoch, target, &diagnostic)
                     .await
                     .map(|_| ())
             })
             .await;
-            if !matches!(result, Ok(Ok(()))) {
+            let result = result.unwrap_or_else(|_| Err(ErrorCode::DeadlineExceeded.into()));
+            diagnostic.finish(&result);
+            if result.is_err() {
                 crate::infrastructure::diagnostics::warn(
                     "collection.refresh",
                     "background refresh failed; retained previous snapshot",

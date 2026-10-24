@@ -191,6 +191,84 @@ async fn cached_thousand_track_queue_uses_no_adapter_calls() {
 }
 
 #[tokio::test]
+async fn query_diagnostics_identify_cursor_and_snapshot_failures() {
+    use crate::infrastructure::diagnostics::test_log;
+    let h = harness(10);
+    browse(&h, 1).await;
+    let cache = h.music.collections.as_ref().unwrap();
+    let request = |cursor| PageRequest { cursor, limit: 100 };
+    for (cursor, refresh, stage, reason) in [
+        (
+            Some(Cursor::try_from("not-json token=SECRET".to_owned()).unwrap()),
+            false,
+            "cursor_decode",
+            "snapshot_cursor_malformed",
+        ),
+        (
+            Some(Cursor::try_from("{}".to_owned()).unwrap()),
+            false,
+            "cursor_decode",
+            "snapshot_cursor_malformed",
+        ),
+    ] {
+        test_log::start();
+        let error = cache
+            .query(&entity(), &request(cursor), refresh)
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::InvalidData);
+        let logs = test_log::take().join("\n");
+        assert!(logs.contains("operation=tracks"), "{logs}");
+        assert!(logs.contains("route=collection_query"), "{logs}");
+        assert!(logs.contains("request="), "{logs}");
+        assert!(logs.contains(&format!("stage={stage}")), "{logs}");
+        assert!(logs.contains(&format!("reason={reason}")), "{logs}");
+        assert!(logs.contains("source=fixture-cache"), "{logs}");
+        assert!(
+            !logs.contains("SECRET") && !logs.contains("not-json"),
+            "{logs}"
+        );
+    }
+    cache.query(&entity(), &request(None), false).await.unwrap();
+    test_log::start();
+    let error = h
+        .music
+        .query(
+            &SourceId::try_from("different-source".to_owned()).unwrap(),
+            &business::BusinessRequest::Tracks {
+                entity: entity(),
+                page: request(None),
+            },
+            false,
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::InvalidData);
+    let logs = test_log::take().join("\n");
+    assert!(logs.contains("stage=request_source"), "{logs}");
+    assert!(logs.contains("reason=entity_source_mismatch"), "{logs}");
+    h.store
+        .0
+        .lock()
+        .unwrap()
+        .execute("DELETE FROM tracks", [])
+        .unwrap();
+    test_log::start();
+    let error = cache
+        .query(&entity(), &request(None), false)
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::InvalidData);
+    let logs = test_log::take().join("\n");
+    assert!(logs.contains("stage=snapshot_tracks"), "{logs}");
+    assert!(
+        logs.contains("reason=snapshot_track_count_mismatch"),
+        "{logs}"
+    );
+    assert!(logs.contains("expected=10 actual=0"), "{logs}");
+}
+
+#[tokio::test]
 async fn cached_three_hundred_are_available_before_only_missing_pages_are_fetched() {
     let h = harness(1500);
     browse(&h, 3).await;
