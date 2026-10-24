@@ -434,6 +434,15 @@ export async function business(request) {
       }
     }
   }
+  if (request.operation === 'favoritesPage') {
+    const state = pageState(request.page, JSON.stringify(['playlist', 'liked']))
+    const result = await playlist('liked', state)
+    const page = (await result.response()).data
+    return {
+      type: 'favoritesPage',
+      data: { items: page.items.map((item) => item.reference), nextCursor: page.nextCursor }
+    }
+  }
   if (request.operation === 'libraryCollections') {
     const auth = await session()
     if (!auth) fail('unauthenticated')

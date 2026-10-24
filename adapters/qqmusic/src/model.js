@@ -22,7 +22,7 @@ export function checkReference(value, kind) {
   return value.id
 }
 export function artwork(mid, type = 'album') {
-  if (!/^[a-zA-Z0-9]+$/.test(text(mid))) return ''
+  if (!/^[a-zA-Z0-9]+$/.test(text(mid))) return image('')
   const prefix = type === 'artist' ? 'T001' : 'T002'
   const url = (size) => `https://y.gtimg.cn/music/photo_new/${prefix}R${size}x${size}M000${mid}.jpg`
   return {
@@ -36,7 +36,6 @@ export function artwork(mid, type = 'album') {
 // When upstream has no resize contract, retain the same original for every semantic size.
 export function image(value) {
   const url = text(value)
-  if (!url) return ''
   return { original: url, small: url, normal: url, large: url, exlarge: url }
 }
 export function credits(singers = []) {

@@ -8,7 +8,7 @@
       { "id": "qq", "label": "QQ 扫码" },
       { "id": "wechat", "label": "微信扫码" }
     ],
-    "capabilities": ["search", "browse", "account", "userLibrary"],
+    "capabilities": ["search", "browse", "account", "userLibrary", "favoritesRead"],
     "coverHosts": ["y.gtimg.cn", "*.qpic.cn", "*.qlogo.cn", "*.qq.com"],
     "shareLinkTemplates": {}
   },

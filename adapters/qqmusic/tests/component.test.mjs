@@ -137,38 +137,53 @@ async function component({
                         }
                       ]
                     }
-                  : method === 'GetPlaylistByUin'
+                  : method === 'CgiGetDiss' && value.req_0.param.dirid === 201
                     ? {
-                        v_playlist: createdPlaylists
+                        songlist: playlistSongs.slice(
+                          value.req_0.param.song_begin,
+                          value.req_0.param.song_begin + value.req_0.param.song_num
+                        ),
+                        total_song_num: playlistSongs.length,
+                        dirinfo: { dissname: '我喜欢' }
                       }
-                    : method === 'CgiGetDiss'
+                    : method === 'GetPlaylistByUin'
                       ? {
-                          songlist: playlistSongs.slice(
-                            value.req_0.param.song_begin,
-                            value.req_0.param.song_begin + value.req_0.param.song_num
-                          ),
-                          total_song_num: playlistSongs.length,
-                          desc: 'Private'
+                          v_playlist: createdPlaylists
                         }
-                      : method === 'Login'
+                      : method === 'CgiGetDiss'
                         ? {
-                            musicid: 42,
-                            str_musicid: '42',
-                            musickey: 'fixture-sensitive-key',
-                            encryptUin: 'fixture-encrypted-id',
-                            nick: '测试账号'
+                            songlist: playlistSongs.slice(
+                              value.req_0.param.song_begin,
+                              value.req_0.param.song_begin + value.req_0.param.song_num
+                            ),
+                            total_song_num: playlistSongs.length,
+                            desc: 'Private'
                           }
-                        : method === 'GetLoginUserInfo'
-                          ? { info: { nick: '测试账号', logo: 'https://thirdqq.qlogo.cn/avatar' } }
-                          : method === 'GetSession'
+                        : method === 'Login'
+                          ? {
+                              musicid: 42,
+                              str_musicid: '42',
+                              musickey: 'fixture-sensitive-key',
+                              encryptUin: 'fixture-encrypted-id',
+                              nick: '测试账号'
+                            }
+                          : method === 'GetLoginUserInfo'
                             ? {
-                                session: { uid: 'bootstrap-user', sid: 'bootstrap-secret', vkey: 1 }
+                                info: { nick: '测试账号', logo: 'https://thirdqq.qlogo.cn/avatar' }
                               }
-                            : {
-                                qrcodeID: 'fixture-qr',
-                                qrcode: png.toString('base64'),
-                                expiresIn: 180
-                              }
+                            : method === 'GetSession'
+                              ? {
+                                  session: {
+                                    uid: 'bootstrap-user',
+                                    sid: 'bootstrap-secret',
+                                    vkey: 1
+                                  }
+                                }
+                              : {
+                                  qrcodeID: 'fixture-qr',
+                                  qrcode: png.toString('base64'),
+                                  expiresIn: 180
+                                }
             }
           }
         } else
@@ -185,16 +200,25 @@ async function component({
                         file: { ...songDetail.file, size_flac: flacSize }
                       }
                     }
-                  : value.request.method === 'uniform_get_Dissinfo'
+                  : value.request.method === 'CgiGetDiss' && value.request.param.dirid === 201
                     ? {
-                        dirinfo: { dissname: 'Public playlist' },
                         songlist: playlistSongs.slice(
                           value.request.param.song_begin,
                           value.request.param.song_begin + value.request.param.song_num
                         ),
-                        total_song_num: playlistSongs.length
+                        total_song_num: playlistSongs.length,
+                        dirinfo: { dissname: '我喜欢' }
                       }
-                    : { body: { item_song: [fixtureTrack] }, meta: { sum: 1 } }
+                    : value.request.method === 'uniform_get_Dissinfo'
+                      ? {
+                          dirinfo: { dissname: 'Public playlist' },
+                          songlist: playlistSongs.slice(
+                            value.request.param.song_begin,
+                            value.request.param.song_begin + value.request.param.song_num
+                          ),
+                          total_song_num: playlistSongs.length
+                        }
+                      : { body: { item_song: [fixtureTrack] }, meta: { sum: 1 } }
             }
           }
       }
@@ -691,7 +715,7 @@ test('playlist repairs missing MID by numeric song ID and retains unavailable so
   }
 })
 
-test('readonly favorites enumerate every page without advertising favorite writes', async () => {
+test('readonly favorites enumerate the liked playlist through favorites paging without write capability', async () => {
   const credential = await credentialFixture()
   const fixture = await component({
     credential,
@@ -702,19 +726,18 @@ test('readonly favorites enumerate every page without advertising favorite write
   })
   try {
     const descriptor = fixture.call('music.descriptor', null).data
-    assert.ok(!descriptor.capabilities.includes('favoritesRead'))
+    assert.ok(descriptor.capabilities.includes('favoritesRead'))
     assert.ok(!descriptor.capabilities.includes('favorites'))
     let cursor = null
     const ids = []
     do {
       const result = fixture.call('music.business', {
-        operation: 'tracks',
-        entity: { source: 'qqmusic', kind: 'playlist', id: 'liked' },
+        operation: 'favoritesPage',
         page: { limit: 25, cursor }
       })
       assert.equal(result.status, 'ok', JSON.stringify(result))
-      assert.equal(result.data.type, 'tracks')
-      ids.push(...result.data.data.items.map((item) => item.reference.id))
+      assert.equal(result.data.type, 'favoritesPage')
+      ids.push(...result.data.data.items.map((item) => item.id))
       cursor = result.data.data.nextCursor
     } while (cursor)
     assert.deepEqual(

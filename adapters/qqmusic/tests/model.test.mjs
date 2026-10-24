@@ -79,3 +79,14 @@ test('WeChat real string music ID takes precedence over placeholder numeric ID',
   assert.equal(record.displayName, '测试账号')
   assert.ok(!JSON.stringify(record).includes('secret'))
 })
+
+test('missing QQ artwork still serializes as the semantic cover DTO', () => {
+  const record = accountRecord({ info: {} }, { musicid: 42 })
+  assert.deepEqual(record.avatar, {
+    original: '',
+    small: '',
+    normal: '',
+    large: '',
+    exlarge: ''
+  })
+})
