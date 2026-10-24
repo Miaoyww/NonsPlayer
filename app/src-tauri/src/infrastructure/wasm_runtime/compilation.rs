@@ -70,7 +70,7 @@ fn compile_with_cache(
     let _guard = COMPILE
         .lock()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("wasm.compile.lock", error);
         })
         .map_err(|_| "WASM 编译锁不可用")?;
     let pool = POOL.get_or_init(|| {

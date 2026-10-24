@@ -53,7 +53,7 @@ impl Telemetry {
             .mutation
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("telemetry.installation_id.lock", error);
             })
             .map_err(|_| "遥测设置锁不可用")?;
         if let Some(id) = self.store.setting("anonymousInstallationId")? {
@@ -97,7 +97,7 @@ impl Telemetry {
         };
         let body = serde_json::to_vec(&event)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("telemetry.report.serialize", error);
             })
             .map_err(|_| "遥测序列化失败")?;
         if body.len() > 65536 {
@@ -108,7 +108,7 @@ impl Telemetry {
             .redirect(reqwest::redirect::Policy::none())
             .build()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("telemetry.http.build", error);
             })
             .map_err(|_| "遥测网络初始化失败")?;
         transmit(&client, ENDPOINT, key, body, enabled, &[0, 15, 60, 300]).await
@@ -182,7 +182,7 @@ pub fn set_telemetry_enabled(
         .mutation
         .lock()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("telemetry.set_enabled.lock", error);
         })
         .map_err(|_| "遥测设置锁不可用")?;
     telemetry

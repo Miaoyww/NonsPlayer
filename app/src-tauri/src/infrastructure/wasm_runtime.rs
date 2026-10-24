@@ -379,7 +379,7 @@ impl Runtime {
         )
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("wasm.instantiate.timeout", error);
         })
         .map_err(|_| "WASM 实例化超时")?
         .map_err(|e| e.to_string())?;
@@ -396,7 +396,7 @@ impl Runtime {
         )
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("wasm.initialize.timeout", error);
         })
         .map_err(|_| "插件初始化超时")?
         .map_err(|e| e.to_string())??;
@@ -429,7 +429,7 @@ impl Runtime {
                 return Err(format!("插件执行失败: {error:#}"));
             }
             Err(error) => {
-                crate::infrastructure::diagnostics::warn("error_fallback", error);
+                crate::infrastructure::diagnostics::warn("wasm.invoke.timeout", error);
                 self.faulted = true;
                 return Err("插件执行超时".into());
             }

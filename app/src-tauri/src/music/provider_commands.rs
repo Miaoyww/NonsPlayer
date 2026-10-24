@@ -30,7 +30,7 @@ pub(crate) async fn resource_provider_set_enabled(
     tauri::async_runtime::spawn_blocking(move || settings.set_resource_enabled(id, enabled))
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("music.resource_enabled_task_join", error);
         })
         .map_err(|_| "音源设置任务失败")??;
     use tauri::Emitter;
@@ -71,7 +71,7 @@ pub(crate) async fn resource_search(
     for track in &mut tracks {
         if track.duration_ms == 0 {
             if let Ok(existing) = (backend.store.track(&track.key)).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_success", error);
+                crate::infrastructure::diagnostics::warn("music.search_stored_metadata", error);
             }) {
                 if existing.source_id() == track.source_id() && existing.duration_ms > 0 {
                     *track = existing;
@@ -138,7 +138,7 @@ pub(crate) async fn player_select_source(
     response
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("music.select_source_reply", error);
         })
         .map_err(|_| "音源切换任务已结束")?
 }

@@ -44,7 +44,10 @@ impl LocalFolders {
             .and_then(|s| {
                 serde_json::from_str(&s)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn_error(
+                            "local.folders.load_options.decode",
+                            error,
+                        );
                     })
                     .ok()
             })
@@ -85,14 +88,20 @@ impl LocalFolders {
                 .watcher
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "local.folders.initialize.watcher_lock",
+                        error,
+                    );
                 })
                 .map_err(|_| "目录监听锁不可用")?;
             let mut status = service
                 .status
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "local.folders.initialize.status_lock",
+                        error,
+                    );
                 })
                 .map_err(|_| "目录状态锁不可用")?;
             for path in status.paths.clone() {
@@ -121,7 +130,10 @@ impl LocalFolders {
                             .app
                             .emit("local-library-updated", serde_json::json!({"error":error})))
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("service .app .emit", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "local.folders.scan_error.emit",
+                                error,
+                            );
                         });
                     }
                 }
@@ -135,7 +147,7 @@ impl LocalFolders {
             .status
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("local.folders.list.status_lock", error);
             })
             .map_err(|_| "目录状态锁不可用")?;
         status
@@ -165,14 +177,17 @@ impl LocalFolders {
             serde_json::json!({"scanning": scanning}),
         ))
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("self.app.emit", error);
+            crate::infrastructure::diagnostics::warn("local.folders.changed.emit", error);
         });
     }
     pub fn add(&self, path: String) -> AppResult<()> {
         let path = Path::new(&path)
             .canonicalize()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn_error(
+                    "local.folders.add.canonicalize",
+                    error,
+                );
             })
             .map_err(|_| "音乐文件夹不存在或无法访问")?;
         if !path.is_dir() {
@@ -186,21 +201,21 @@ impl LocalFolders {
             .scans
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("local.folders.add.scans_lock", error);
             })
             .map_err(|_| "目录扫描锁不可用")?;
         let mut watcher = self
             .watcher
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("local.folders.add.watcher_lock", error);
             })
             .map_err(|_| "目录监听锁不可用")?;
         let mut status = self
             .status
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("local.folders.add.status_lock", error);
             })
             .map_err(|_| "目录状态锁不可用")?;
         if status.paths.iter().any(|p| same_path(p, &path)) {
@@ -219,7 +234,7 @@ impl LocalFolders {
             &serde_json::to_string(&next).map_err(|e| e.to_string())?,
         ) {
             let _ = (watcher.unwatch(Path::new(&path))).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("watcher.unwatch", error);
+                crate::infrastructure::diagnostics::warn("local.folders.add.rollback_watch", error);
             });
             return Err(error);
         }
@@ -235,21 +250,24 @@ impl LocalFolders {
             .scans
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("local.folders.remove.scans_lock", error);
             })
             .map_err(|_| "目录扫描锁不可用")?;
         let mut watcher = self
             .watcher
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "local.folders.remove.watcher_lock",
+                    error,
+                );
             })
             .map_err(|_| "目录监听锁不可用")?;
         let mut status = self
             .status
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("local.folders.remove.status_lock", error);
             })
             .map_err(|_| "目录状态锁不可用")?;
         if !status.paths.contains(&path) {
@@ -267,7 +285,7 @@ impl LocalFolders {
         )?;
         self.store.reconcile_origin(&path, &HashSet::new())?;
         let _ = (watcher.unwatch(Path::new(&path))).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("watcher.unwatch", error);
+            crate::infrastructure::diagnostics::warn("local.folders.remove.unwatch", error);
         });
         status.paths = next;
         status.errors.remove(&path);
@@ -284,14 +302,17 @@ impl LocalFolders {
             .scans
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("local.folders.scan.scans_lock", error);
             })
             .map_err(|_| "目录扫描锁不可用")?;
         let paths = self
             .status
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "local.folders.scan.read_status_lock",
+                    error,
+                );
             })
             .map_err(|_| "目录状态锁不可用")?
             .paths
@@ -300,7 +321,10 @@ impl LocalFolders {
             self.status
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "local.folders.scan.start_status_lock",
+                        error,
+                    );
                 })
                 .map_err(|_| "目录状态锁不可用")?
                 .scanning
@@ -317,7 +341,10 @@ impl LocalFolders {
                 .status
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "local.folders.scan.finish_status_lock",
+                        error,
+                    );
                 })
                 .map_err(|_| "目录状态锁不可用")?;
             status.scanning.remove(&path);

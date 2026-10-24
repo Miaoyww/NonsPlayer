@@ -31,7 +31,7 @@ impl<R: Read + Seek> Decoder<R> {
         let info = reader
             .get_info()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_result", error);
+                crate::infrastructure::diagnostics::warn("local.ncm.read_metadata", error);
             })
             .ok();
         let image = reader.get_image().map_err(|e| e.to_string())?;
@@ -40,7 +40,10 @@ impl<R: Read + Seek> Decoder<R> {
         reader
             .read_exact(&mut head)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn_error(
+                    "local.ncm.read_audio_header",
+                    error,
+                );
             })
             .map_err(|_| "NCM 音频正文不完整")?;
         let format = if &head == b"fLaC" {
@@ -138,7 +141,7 @@ pub fn write_tags<R: Read + Seek>(file: &mut File, decoder: &Decoder<R>) -> AppR
     if !decoder.image.is_empty() && tag.pictures().is_empty() {
         if let Ok(mut picture) = (Picture::from_reader(&mut std::io::Cursor::new(&decoder.image)))
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_success", error);
+                crate::infrastructure::diagnostics::warn_error("local.ncm.decode_cover", error);
             })
         {
             picture.set_pic_type(PictureType::CoverFront);
@@ -159,7 +162,7 @@ pub fn prepare(path: &str) -> AppResult<Arc<tempfile::NamedTempFile>> {
         .get_or_init(Default::default)
         .lock()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("local.ncm.prepare.leases_lock", error);
         })
         .map_err(|_| "音频解析锁不可用")?;
     entries.retain(|(_, file)| file.strong_count() > 0);

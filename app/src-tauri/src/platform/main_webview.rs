@@ -243,7 +243,7 @@ pub(crate) fn main_sleep_shortcuts(bindings: Vec<SleepShortcut>, app: AppHandle)
         .0
         .lock()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("platform.shortcuts.configure.lock", error);
         })
         .map_err(|_| "快捷键配置不可用")? = bindings;
     Ok(())
@@ -276,7 +276,7 @@ pub(crate) fn background_shortcut(
             .0
             .send(Request::Shortcut(binding.action.clone())))
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("app .state::<MainWebview>", error);
+            crate::infrastructure::diagnostics::warn("webview.main.read_state", error);
         });
     }
 }

@@ -38,7 +38,10 @@ impl Transfers {
             .tasks
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.transfers.call.lock_tasks",
+                    error,
+                );
             })
             .map_err(|_| "传输管理器不可用")?;
         if operation != "transfers.start" {
@@ -58,7 +61,10 @@ impl Transfers {
                     .snapshot
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "plugins.transfers.pause.lock_snapshot",
+                            error,
+                        );
                     })
                     .map_err(|_| "传输状态不可用")?;
                 if matches!(snapshot.state.as_str(), "running" | "paused") {
@@ -71,7 +77,10 @@ impl Transfers {
                 task.snapshot
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "plugins.transfers.snapshot.lock",
+                            error,
+                        );
                     })
                     .map_err(|_| "传输状态不可用")?
                     .clone(),
@@ -175,7 +184,10 @@ impl Transfers {
             )
             .await;
             if let Ok(mut state) = (snapshot.lock()).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_success", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.transfers.complete.lock_snapshot",
+                    error,
+                );
             }) {
                 state.state = if result.is_ok() {
                     "completed"
@@ -245,7 +257,10 @@ async fn run(
     )
     .await
     .inspect_err(|error| {
-        crate::infrastructure::diagnostics::warn("translate_error", error);
+        crate::infrastructure::diagnostics::warn(
+            "plugins.transfers.download.create_file.worker_join",
+            error,
+        );
     })
     .map_err(|_| "创建文件失败")??;
     let handle = opened["handle"].as_u64().ok_or("文件句柄无效")?;
@@ -261,25 +276,36 @@ async fn run(
         )
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn(
+                "plugins.transfers.download.connect_timeout",
+                error,
+            );
         })
         .map_err(|_| "连接资源超时")?
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn_error(
+                "plugins.transfers.download.http_send",
+                error,
+            );
         })
         .map_err(|_| "连接资源失败")?;
         context.http.check_target(&response)?;
         if !response.status().is_success() {
+            log::warn!(target: "nons::plugins", "operation=plugins.transfers.download stage=http_status plugin={} generation={} status={}", context.id, context.generation, response.status().as_u16());
             return Err("资源服务器拒绝传输或返回重定向".into());
         }
         let total = response.content_length();
         if total.is_some_and(|n| n > max) {
+            log::warn!(target: "nons::plugins", "operation=plugins.transfers.download stage=content_length plugin={} generation={} declared_bytes={} limit_bytes={max}", context.id, context.generation, total.unwrap_or_default());
             return Err("资源超过传输大小上限".into());
         }
         snapshot
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.transfers.download.set_total.lock_snapshot",
+                    error,
+                );
             })
             .map_err(|_| "传输状态不可用")?
             .total = total;
@@ -293,11 +319,17 @@ async fn run(
             let chunk = tokio::time::timeout(Duration::from_secs(30), response.chunk())
                 .await
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.transfers.download.read_chunk_timeout",
+                        error,
+                    );
                 })
                 .map_err(|_| "传输停滞超过 30 秒")?
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn_error(
+                        "plugins.transfers.download.read_chunk",
+                        error,
+                    );
                 })
                 .map_err(|_| "读取资源失败")?;
             network_time += started.elapsed();
@@ -309,6 +341,7 @@ async fn run(
             };
             bytes += chunk.len() as u64;
             if bytes > max {
+                log::warn!(target: "nons::plugins", "operation=plugins.transfers.download stage=body_limit plugin={} generation={} received_bytes={bytes} limit_bytes={max}", context.id, context.generation);
                 return Err("资源超过传输大小上限".into());
             }
             for block in chunk.chunks(32768) {
@@ -325,14 +358,20 @@ async fn run(
                 })
                 .await
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.transfers.download.write_file.worker_join",
+                        error,
+                    );
                 })
                 .map_err(|_| "文件写入失败")??;
             }
             snapshot
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.transfers.download.set_progress.lock_snapshot",
+                        error,
+                    );
                 })
                 .map_err(|_| "传输状态不可用")?
                 .bytes = bytes;
@@ -349,7 +388,10 @@ async fn run(
         })
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn(
+                "plugins.transfers.download.sync_file.worker_join",
+                error,
+            );
         })
         .map_err(|_| "文件保存失败")??;
         Ok(())

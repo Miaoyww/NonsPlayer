@@ -499,3 +499,156 @@ async fn search_preserves_platform_and_binds_cursor_to_query_and_instance() {
         ErrorCode::InvalidData
     );
 }
+
+#[tokio::test]
+async fn resolver_logs_correlate_failed_official_and_successful_fallback() {
+    use crate::infrastructure::diagnostics::test_log;
+    let manager = make_manager(ErrorCode::InvalidData, audio(false, false, false));
+    test_log::start();
+    let (_, source) = manager
+        .resolve_with_providers(&request(), None, 7)
+        .await
+        .unwrap();
+    assert_eq!(source.provider, "audio-test");
+    let records: Vec<_> = test_log::take()
+        .into_iter()
+        .filter(|line| line.contains("operation=resource_resolve "))
+        .collect();
+    assert_eq!(records.len(), 2, "{records:?}");
+    let request_field = |line: &str| {
+        line.split_whitespace()
+            .find(|field| field.starts_with("request="))
+            .unwrap()
+            .to_owned()
+    };
+    assert_eq!(request_field(&records[0]), request_field(&records[1]));
+    for field in [
+        "attempt=1",
+        "provider_try=1",
+        "source=catalog",
+        "provider=catalog",
+        "stage=provider_resolve",
+        "code=InvalidData",
+        "track_id=opaque%2Fsong",
+        "elapsed_ms=",
+    ] {
+        assert!(records[0].contains(field), "{}", records[0]);
+    }
+    for field in [
+        "attempt=2",
+        "provider=audio-test",
+        "stage=complete",
+        "code=ok",
+    ] {
+        assert!(records[1].contains(field), "{}", records[1]);
+    }
+}
+
+struct DiagnosticAudio {
+    descriptor: ResourceProviderDescriptor,
+    failure: &'static str,
+    calls: AtomicU64,
+}
+impl ResourceProvider for DiagnosticAudio {
+    fn descriptor(&self) -> &ResourceProviderDescriptor {
+        &self.descriptor
+    }
+    fn resolve<'a>(
+        &'a self,
+        _: &'a ResourceRequest,
+        _: &'a RequestContext,
+    ) -> AdapterFuture<'a, PlaybackResource> {
+        Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::Relaxed);
+            if self.failure == "provider" {
+                return Err(ErrorCode::InvalidData.into());
+            }
+            Ok(PlaybackResource {
+                metadata: ResourceMetadata {
+                    actual_quality: if self.failure == "metadata" {
+                        "".into()
+                    } else {
+                        "320k".into()
+                    },
+                    extent: PlaybackExtent::Full,
+                    expires_at_ms: None,
+                },
+                access: ResourceAccess::Http(HttpAccess {
+                    url: if self.failure == "access" {
+                        "https://user:SECRET@example.com/audio?token=SECRET".into()
+                    } else {
+                        "https://example.com/audio".into()
+                    },
+                    headers: vec![],
+                }),
+            })
+        })
+    }
+}
+
+#[tokio::test]
+async fn resolver_logs_actual_request_provider_metadata_and_access_failure_stages() {
+    use crate::infrastructure::diagnostics::test_log;
+    for (failure, stage, reason, calls) in [
+        (
+            "request",
+            "request_validate",
+            "preferred_quality_must_contain_1_to_128_bytes",
+            0,
+        ),
+        ("provider", "provider_resolve", "provider_request_failed", 1),
+        (
+            "metadata",
+            "resource_metadata",
+            "actual_quality_must_contain_1_to_128_bytes",
+            1,
+        ),
+        (
+            "access",
+            "resource_access",
+            "audio_url_contains_userinfo",
+            1,
+        ),
+    ] {
+        let manager = AdapterManager::default();
+        let provider = Arc::new(DiagnosticAudio {
+            descriptor: audio(false, false, false).descriptor.clone(),
+            failure,
+            calls: AtomicU64::new(0),
+        });
+        manager
+            .register_resource_provider(provider.clone())
+            .unwrap();
+        let mut value = request();
+        if failure == "request" {
+            value.preferred_quality.clear();
+        }
+        test_log::start();
+        let error = manager
+            .resolve_with_providers(&value, Some("audio-test"), 7)
+            .await
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::InvalidData);
+        assert_eq!(provider.calls.load(Ordering::Relaxed), calls);
+        let records = test_log::take();
+        let events: Vec<_> = records
+            .iter()
+            .filter(|line| line.contains("operation=resource_resolve "))
+            .collect();
+        assert_eq!(events.len(), 1, "{records:?}");
+        for field in [
+            format!("stage={stage}"),
+            format!("reason={reason}"),
+            "code=InvalidData".into(),
+            "attempt=1".into(),
+            "provider_try=1".into(),
+            "provider=audio-test".into(),
+            "track_id=opaque%2Fsong".into(),
+        ] {
+            assert!(events[0].contains(&field), "{}", events[0]);
+        }
+        assert!(records.iter().all(|line| !line.contains("SECRET")
+            && !line.contains("https://")
+            && !line.contains("account=")));
+    }
+}

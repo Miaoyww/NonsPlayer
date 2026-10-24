@@ -32,7 +32,7 @@ pub fn configure_source(source: &gst::Element) {
             return;
         }
         if let Ok(proxy) = (sysproxy::Sysproxy::get_system_proxy()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("playback.proxy.system_read", error);
         }) {
             if proxy.enable && !proxy.host.is_empty() {
                 let location = source
@@ -43,7 +43,10 @@ pub fn configure_source(source: &gst::Element) {
                     .and_then(|s| {
                         url::Url::parse(s)
                             .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("optional_result", error);
+                                crate::infrastructure::diagnostics::warn(
+                                    "playback.proxy.source_url",
+                                    error,
+                                );
                             })
                             .ok()
                     })

@@ -59,7 +59,10 @@ impl Entry {
             use sha2::{Digest, Sha256};
             let identity = serde_json::to_vec(&(service, key))
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "credentials.identity.serialize",
+                        error,
+                    );
                 })
                 .map_err(|_| Error::Unavailable)?;
             return Ok(Self::File(
@@ -90,7 +93,7 @@ impl Entry {
                 .map_err(|error| map_system("credentials.decode", error)),
             Self::File(_) => String::from_utf8(self.get_secret()?)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("credentials.decode_utf8", error);
                 })
                 .map_err(|_| Error::Unavailable),
         }
@@ -106,23 +109,26 @@ impl Entry {
                 let mut file =
                     tempfile::NamedTempFile::new_in(path.parent().ok_or(Error::Unavailable)?)
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "credentials.file.create",
+                                error,
+                            );
                         })
                         .map_err(|_| Error::Unavailable)?;
                 file.write_all(bytes)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn("credentials.file.write", error);
                     })
                     .map_err(|_| Error::Unavailable)?;
                 file.as_file()
                     .sync_all()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn("credentials.file.sync", error);
                     })
                     .map_err(|_| Error::Unavailable)?;
                 file.persist(path)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn("credentials.file.persist", error);
                     })
                     .map_err(|_| Error::Unavailable)?;
                 Ok(())

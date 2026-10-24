@@ -14,7 +14,7 @@ pub(crate) async fn lookup(
     tokio::time::timeout(Duration::from_secs(6), lookup_inner(api, track, separators))
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn_error("lyrics.netease.search.timeout", error);
         })
         .map_err(|_| "网易云歌词搜索超时".to_string())?
 }
@@ -33,7 +33,7 @@ async fn lookup_inner(
         let candidates = match api.search(&query, 0).await {
             Ok(value) => value,
             Err(error) => {
-                crate::infrastructure::diagnostics::warn("error_fallback", error);
+                crate::infrastructure::diagnostics::warn("lyrics.netease.search.request", error);
                 failed = true;
                 continue;
             }

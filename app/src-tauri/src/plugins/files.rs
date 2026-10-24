@@ -75,7 +75,10 @@ impl Files {
         let root =
             Dir::open_ambient_dir(&self.data, ambient_authority()).map_err(|e| e.to_string())?;
         if let Ok(meta) = (std::fs::symlink_metadata(&path)).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn(
+                "plugins.files.data_directory.symlink_metadata",
+                error,
+            );
         }) {
             if super::manifest::is_link(&meta) {
                 return Err("专属数据目录不允许链接".into());
@@ -104,7 +107,7 @@ impl Files {
         self.state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.files.grant.lock", error);
             })
             .map_err(|_| "插件文件管理器不可用")?
             .roots
@@ -123,7 +126,7 @@ impl Files {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.files.revoke.lock", error);
             })
             .map_err(|_| "插件文件管理器不可用")?;
         self.database.revoke(plugin, root)?;
@@ -137,7 +140,10 @@ impl Files {
     }
     pub fn close_instance(self: &Arc<Self>, plugin: &str, generation: u64) {
         if let Ok(mut state) = (self.state.try_lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn(
+                "plugins.files.close_instance.try_lock",
+                error,
+            );
         }) {
             state
                 .handles
@@ -150,7 +156,10 @@ impl Files {
             let plugin = plugin.to_string();
             tauri::async_runtime::spawn_blocking(move || {
                 if let Ok(mut state) = (files.state.lock()).inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_success", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.files.close_instance.worker_lock",
+                        error,
+                    );
                 }) {
                     state
                         .handles
@@ -186,7 +195,10 @@ impl Files {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.files.write_transfer.lock",
+                    error,
+                );
             })
             .map_err(|_| "插件文件管理器不可用")?;
         if !active.load(std::sync::atomic::Ordering::SeqCst) {
@@ -200,7 +212,10 @@ impl Files {
         h.file
             .write_all(data)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.files.write_transfer.write_all",
+                    error,
+                );
             })
             .map_err(|_| "写入文件失败：请检查磁盘空间".to_string())
     }
@@ -215,7 +230,7 @@ impl Files {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.files.sync_transfer.lock", error);
             })
             .map_err(|_| "插件文件管理器不可用")?;
         if !active.load(std::sync::atomic::Ordering::SeqCst) {
@@ -229,7 +244,10 @@ impl Files {
             .file
             .sync_all()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.files.sync_transfer.sync_all",
+                    error,
+                );
             })
             .map_err(|_| "保存文件失败".to_string())
     }
@@ -283,7 +301,10 @@ impl Files {
                 normalized["to"] = json!(to
                     .strip_prefix(base)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "plugins.files.absolute_access.relative_destination",
+                            error,
+                        );
                     })
                     .map_err(|_| "目标须在相同文件系统根内")?
                     .to_string_lossy()
@@ -295,7 +316,10 @@ impl Files {
                 .state
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.files.absolute_access.lock",
+                        error,
+                    );
                 })
                 .map_err(|_| "文件管理器不可用")?;
             if !state.roots.contains_key(&(plugin.into(), root_id.clone())) {
@@ -341,7 +365,7 @@ impl Files {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.files.audio_input.lock", error);
             })
             .map_err(|_| "插件文件管理器不可用")?;
         let root = state
@@ -376,7 +400,10 @@ impl Files {
                 .get_or_init(|| tokio::sync::Semaphore::new(2))
                 .try_acquire()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.files.decode_audio.admission",
+                        error,
+                    );
                 })
                 .map_err(|_| "转换任务繁忙，请稍后重试")?;
             return super::audio_files::decode(self, plugin, generation, args, active);
@@ -385,7 +412,7 @@ impl Files {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.files.call.lock", error);
             })
             .map_err(|_| "插件文件管理器不可用")?;
         if !active.load(std::sync::atomic::Ordering::SeqCst) {
@@ -432,7 +459,10 @@ impl Files {
                     let data = STANDARD
                         .decode(text(args, "data")?)
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "plugins.files.write.decode_base64",
+                                error,
+                            );
                         })
                         .map_err(|_| "文件数据必须为 base64")?;
                     if data.len() > BLOCK {
@@ -589,7 +619,10 @@ impl Files {
                 root.dir
                     .hard_link(path, &root.dir, to)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "plugins.files.publish.hard_link",
+                            error,
+                        );
                     })
                     .map_err(|_| "保存失败：目标已存在或目录不支持原子发布")?;
                 root.dir.remove_file(path).map_err(|e| e.to_string())?;

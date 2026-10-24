@@ -44,7 +44,7 @@ pub(crate) async fn public_addresses(host: &str, port: u16) -> AppResult<Vec<Soc
     let addresses: Vec<_> = tokio::net::lookup_host((host, port))
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("http.dns.resolve", error);
         })
         .map_err(|_| "网络目标解析失败")?
         .take(33)
@@ -113,7 +113,7 @@ pub(crate) fn checked_url(hosts: &[String], input: &str) -> AppResult<url::Url> 
     }
     let url = url::Url::parse(input)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("http.url.parse", error);
         })
         .map_err(|_| "HTTP URL 无效")?;
     if !matches!(url.scheme(), "http" | "https")
@@ -226,12 +226,12 @@ impl Http {
             }
             let name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("http.binary.header_name", error);
                 })
                 .map_err(|_| "HTTP 请求头无效")?;
             let value = reqwest::header::HeaderValue::from_str(value)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("http.binary.header_value", error);
                 })
                 .map_err(|_| "HTTP 请求头无效")?;
             builder = builder.header(name, value);
@@ -256,7 +256,10 @@ impl Http {
                     let value = value
                         .to_str()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "http.binary.response_header",
+                                error,
+                            );
                         })
                         .map_err(|_| "HTTP 响应头不是文本")?;
                     count += name.as_str().len() + value.len();
@@ -288,7 +291,7 @@ impl Http {
                 })
             });
         tokio::select! {
-            result = operation => result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "HTTP 请求超时")?,
+            result = operation => result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("http.binary.timeout", error); }).map_err(|_| "HTTP 请求超时")?,
             _ = async { while active.load(Ordering::Acquire) { tokio::time::sleep(Duration::from_millis(20)).await; } } => Err("调用上下文已失效".into()),
         }
     }
@@ -300,7 +303,7 @@ impl Http {
     ) -> AppResult<Value> {
         let request: Request = serde_json::from_value(args.clone())
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("http.request.decode", error);
             })
             .map_err(|_| "HTTP 请求参数无效")?;
         let url = checked_url(hosts, &request.url)?;
@@ -337,12 +340,12 @@ impl Http {
             }
             let name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("http.request.header_name", error);
                 })
                 .map_err(|_| "HTTP 请求头无效")?;
             let value = reqwest::header::HeaderValue::from_str(value)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("http.request.header_value", error);
                 })
                 .map_err(|_| "HTTP 请求头无效")?;
             builder = builder.header(name, value);
@@ -368,7 +371,10 @@ impl Http {
                     value
                         .to_str()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("optional_result", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "http.response.cookie_header",
+                                error,
+                            );
                         })
                         .ok()
                         .map(str::to_string)
@@ -380,7 +386,10 @@ impl Http {
                 let value = value
                     .to_str()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "http.response.header_text",
+                            error,
+                        );
                     })
                     .map_err(|_| "HTTP 响应头不是文本")?;
                 header_bytes += name.as_str().len() + value.len();
@@ -413,13 +422,13 @@ impl Http {
             }
             let body = String::from_utf8(bytes)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("http.response.decode_utf8", error);
                 })
                 .map_err(|_| "HTTP 响应不是 UTF-8 文本")?;
             Ok(json!({"status":status,"headers":headers,"body":body,"cookies":cookies}))
         });
         tokio::select! {
-            result = operation => result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "HTTP 请求超时")?,
+            result = operation => result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("http.request.timeout", error); }).map_err(|_| "HTTP 请求超时")?,
             _ = async {
                 while active.load(std::sync::atomic::Ordering::SeqCst) {
                     tokio::time::sleep(Duration::from_millis(20)).await;

@@ -25,7 +25,10 @@ impl SongService {
         let source: SourceId =
             serde_json::from_value(args.get("source").ok_or("缺少账号来源")?.clone())
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.accounts.read_credentials.parse_source",
+                        error,
+                    );
                 })
                 .map_err(|_| "账号来源无效")?;
         let stamp = self
@@ -138,7 +141,7 @@ impl SongService {
         })
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("plugins.music.read_track.timeout", error);
         })
         .map_err(|_| "歌曲信息查询超时")??;
         if generation != self.generation.load(Ordering::SeqCst)

@@ -131,7 +131,10 @@ pub(crate) fn initialize(sender: SyncSender<Command>) -> AppResult<()> {
                     reply,
                 })
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "android.media_command.enqueue",
+                        error,
+                    );
                 })
                 .map_err(|_| "播放核心忙碌或已退出".to_owned())
         });
@@ -140,12 +143,18 @@ pub(crate) fn initialize(sender: SyncSender<Command>) -> AppResult<()> {
                 Ok(()) => tokio::time::timeout(std::time::Duration::from_secs(5), receive)
                     .await
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "android.media_command.reply_timeout",
+                            error,
+                        );
                     })
                     .map_err(|_| "媒体命令超时".to_owned())
                     .and_then(|r| {
                         r.inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "android.media_command.reply_closed",
+                                error,
+                            );
                         })
                         .map_err(|_| "播放核心已退出".to_owned())
                     })
@@ -198,7 +207,7 @@ pub(crate) fn artwork(key: String, url: String) {
             crate::infrastructure::covers::fetch(url.clone(), &backend)
                 .await
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn("android.artwork.fetch_remote", error);
                 })
                 .ok()
         } else {
@@ -216,7 +225,10 @@ pub(crate) fn artwork(key: String, url: String) {
                         tokio::fs::read(path)
                             .await
                             .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("optional_result", error);
+                                crate::infrastructure::diagnostics::warn(
+                                    "android.artwork.read_local",
+                                    error,
+                                );
                             })
                             .ok()
                             .map(|b| {

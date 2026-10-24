@@ -39,7 +39,18 @@ fn bounded_message(args: std::fmt::Arguments<'_>) -> String {
 #[track_caller]
 pub(crate) fn warn(operation: &str, error: impl std::fmt::Display) {
     let at = std::panic::Location::caller();
-    log::warn!(target: "nons::recovery", "operation={operation} at={}:{} reason={error}", at.file(), at.line());
+    let stage = operation.rsplit('.').next().unwrap_or(operation);
+    log::warn!(target: "nons::recovery", "operation={operation} stage={stage} at={}:{} error_type={} reason={error}", at.file(), at.line(), std::any::type_name_of_val(&error));
+}
+
+/// A bounded scalar that cannot introduce fields or consume the rest of a record.
+pub(crate) fn field(value: &str) -> String {
+    let clean = redact(value);
+    let mut end = clean.len().min(128);
+    while !clean.is_char_boundary(end) {
+        end -= 1;
+    }
+    url::form_urlencoded::byte_serialize(clean[..end].as_bytes()).collect()
 }
 
 #[track_caller]
@@ -291,26 +302,44 @@ pub(crate) fn diagnostic_report(entry: FrontendEntry) -> Result<(), String> {
 }
 
 #[cfg(test)]
+pub(crate) mod test_log {
+    struct Capture;
+    thread_local! {
+        static RECORDS: std::cell::RefCell<Option<Vec<String>>> = const { std::cell::RefCell::new(None) };
+    }
+    impl log::Log for Capture {
+        fn enabled(&self, _: &log::Metadata<'_>) -> bool {
+            true
+        }
+        fn log(&self, record: &log::Record<'_>) {
+            RECORDS.with(|records| {
+                if let Some(records) = records.borrow_mut().as_mut() {
+                    records.push(super::bounded_message(*record.args()));
+                }
+            });
+        }
+        fn flush(&self) {}
+    }
+    pub(crate) fn start() {
+        static INIT: std::sync::Once = std::sync::Once::new();
+        INIT.call_once(|| {
+            static LOGGER: Capture = Capture;
+            log::set_logger(&LOGGER).unwrap();
+            log::set_max_level(log::LevelFilter::Info);
+        });
+        RECORDS.with(|records| *records.borrow_mut() = Some(Vec::new()));
+    }
+    pub(crate) fn take() -> Vec<String> {
+        RECORDS.with(|records| records.borrow_mut().take().unwrap_or_default())
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn recovered_errors_keep_display_causes_without_debug_payloads() {
-        struct Capture;
-        thread_local! {
-            static RECORDS: std::cell::RefCell<Vec<String>> = const { std::cell::RefCell::new(Vec::new()) };
-        }
-        impl log::Log for Capture {
-            fn enabled(&self, _: &log::Metadata<'_>) -> bool {
-                true
-            }
-            fn log(&self, record: &log::Record<'_>) {
-                RECORDS.with(|records| records.borrow_mut().push(bounded_message(*record.args())));
-            }
-            fn flush(&self) {}
-        }
-        static LOGGER: Capture = Capture;
-        log::set_logger(&LOGGER).unwrap();
-        log::set_max_level(log::LevelFilter::Info);
+        test_log::start();
 
         // These are the same values passed by credential and file IO recovery sites.
         warn(
@@ -338,8 +367,8 @@ mod tests {
             "http.send",
             &Transport(std::io::Error::other("connection refused")),
         );
-        RECORDS.with(|records| {
-            let records = records.borrow();
+        {
+            let records = test_log::take();
             assert!(records[0].contains("operation=credentials.read"));
             assert!(records[0].contains("credential store denied access"));
             assert!(records[0].contains("diagnostics.rs:"));
@@ -347,7 +376,7 @@ mod tests {
             assert!(!records[1].contains("255"));
             assert!(records[2].contains("caused_by=connection refused"));
             assert!(!records[2].contains("SECRET"));
-        });
+        }
     }
 
     #[test]
@@ -407,5 +436,15 @@ mod tests {
         let reason = bounded_message(format_args!("reason={error}"));
         assert!(!reason.contains("SECRET"));
         assert!(reason.contains("expected a boolean"));
+    }
+
+    #[test]
+    fn diagnostic_fields_cannot_inject_or_truncate_later_context() {
+        let id = field("track[opaque]\ncode=ok token=SECRET");
+        assert!(!id.contains("SECRET"));
+        let record = redact(&format!("track_id={id} stage=metadata code=InvalidData"));
+        assert!(record.contains("stage=metadata code=InvalidData"));
+        assert!(!id.contains([' ', '\n', '[', '{']));
+        assert!(field(&"字".repeat(10000)).len() <= 384);
     }
 }

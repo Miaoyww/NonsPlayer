@@ -11,7 +11,10 @@ pub(crate) async fn resolve(track: Track) -> AppResult<ResolvedTrack> {
                 .clone()
                 .try_acquire_owned()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "local.playback.decode_admission",
+                        error,
+                    );
                 })
                 .map_err(|_| "音频解析繁忙，请稍后重试")?;
             Some(

@@ -166,7 +166,10 @@ pub fn checked_file(root: &Path, relative: &str) -> AppResult<PathBuf> {
         current.push(part);
         let meta = std::fs::symlink_metadata(&current)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.manifest.resolve_asset.symlink_metadata",
+                    error,
+                );
             })
             .map_err(|_| "插件文件不存在")?;
         if is_link(&meta) {
@@ -252,7 +255,10 @@ impl Manifest {
         if let Some(repository) = &self.repository {
             let url = url::Url::parse(repository)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.manifest.validate.repository_url",
+                        error,
+                    );
                 })
                 .map_err(|_| "插件代码仓库链接无效")?;
             if !(repository.starts_with("https://") || repository.starts_with("http://"))
@@ -270,7 +276,10 @@ impl Manifest {
         }
         Version::parse(&self.version)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.manifest.validate.version",
+                    error,
+                );
             })
             .map_err(|_| "插件版本必须是 SemVer")?;
         for (range, version) in [
@@ -280,7 +289,10 @@ impl Manifest {
         ] {
             if !VersionReq::parse(range)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.manifest.validate.engine_range",
+                        error,
+                    );
                 })
                 .map_err(|_| "版本范围无效")?
                 .matches(&Version::parse(version).map_err(|e| e.to_string())?)

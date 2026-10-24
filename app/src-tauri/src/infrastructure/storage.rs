@@ -113,7 +113,7 @@ impl Store {
             .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.save_tracks.lock", error);
             })
             .map_err(|_| "曲库锁不可用")?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
@@ -157,7 +157,7 @@ impl Store {
             .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.mark_origin.lock", error);
             })
             .map_err(|_| "曲库锁不可用")?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
@@ -174,7 +174,7 @@ impl Store {
         self.0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.origin_count.lock", error);
             })
             .map_err(|_| "曲库锁不可用")?
             .query_row(
@@ -188,7 +188,7 @@ impl Store {
         self.0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.file_unchanged.lock", error);
             })
             .map_err(|_| "曲库锁不可用")?
             .query_row(
@@ -200,7 +200,7 @@ impl Store {
             .map_err(|e| e.to_string())
     }
     pub fn save_file_stat(&self, key: &str, modified: &str, bytes: u64) -> AppResult<()> {
-        self.0.lock().inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "曲库锁不可用")?.execute("INSERT INTO local_file_stats(key,modified,bytes) VALUES(?1,?2,?3) ON CONFLICT(key) DO UPDATE SET modified=excluded.modified,bytes=excluded.bytes", params![key, modified, bytes as i64]).map_err(|e| e.to_string())?;
+        self.0.lock().inspect_err(|error| { crate::infrastructure::diagnostics::warn("storage.save_file_stat.lock", error); }).map_err(|_| "曲库锁不可用")?.execute("INSERT INTO local_file_stats(key,modified,bytes) VALUES(?1,?2,?3) ON CONFLICT(key) DO UPDATE SET modified=excluded.modified,bytes=excluded.bytes", params![key, modified, bytes as i64]).map_err(|e| e.to_string())?;
         Ok(())
     }
     pub fn reconcile_origin(
@@ -212,7 +212,7 @@ impl Store {
             .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.reconcile_origin.lock", error);
             })
             .map_err(|_| "曲库锁不可用")?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
@@ -247,7 +247,7 @@ impl Store {
             .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.track.lock", error);
             })
             .map_err(|_| "曲库锁不可用")?;
         let value: String = db
@@ -255,7 +255,7 @@ impl Store {
                 row.get(0)
             })
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.track.query", error);
             })
             .map_err(|_| "歌曲不存在，请刷新曲库")?;
         serde_json::from_str(&value).map_err(|e| e.to_string())
@@ -266,7 +266,7 @@ impl Store {
             .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.local_tracks.lock", error);
             })
             .map_err(|_| "曲库锁不可用")?;
         let mut statement = db.prepare_cached("SELECT value FROM visible_local_tracks WHERE source='local' AND (instr(lower(title),lower(?1))>0 OR instr(lower(artist),lower(?1))>0) ORDER BY title,key LIMIT 100 OFFSET ?2").map_err(|e| e.to_string())?;
@@ -283,7 +283,7 @@ impl Store {
         self.0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.setting.lock", error);
             })
             .map_err(|_| "配置锁不可用")?
             .query_row("SELECT value FROM settings WHERE key=?1", [key], |row| {
@@ -294,7 +294,7 @@ impl Store {
     }
 
     pub fn set_setting(&self, key: &str, value: &str) -> AppResult<()> {
-        self.0.lock().inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "配置锁不可用")?.execute("INSERT INTO settings(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key, value]).map_err(|e| e.to_string())?;
+        self.0.lock().inspect_err(|error| { crate::infrastructure::diagnostics::warn("storage.set_setting.lock", error); }).map_err(|_| "配置锁不可用")?.execute("INSERT INTO settings(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key, value]).map_err(|e| e.to_string())?;
         Ok(())
     }
 
@@ -310,7 +310,7 @@ impl Store {
             .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.cached_lyrics.lock", error);
             })
             .map_err(|_| "歌词缓存锁不可用")?;
         let row: Option<(Option<String>, i64)> = db
@@ -352,7 +352,7 @@ impl Store {
             .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.cache_lyrics.lock", error);
             })
             .map_err(|_| "歌词缓存锁不可用")?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
@@ -381,7 +381,7 @@ impl Store {
         self.0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.invalidate_lyrics.lock", error);
             })
             .map_err(|_| "歌词缓存锁不可用")?
             .execute("DELETE FROM runtime_lyrics WHERE key=?1", [key])
@@ -393,7 +393,10 @@ impl Store {
         self.0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "storage.clear_runtime_lyrics.lock",
+                    error,
+                );
             })
             .map_err(|_| "歌词缓存锁不可用")?
             .execute("DELETE FROM runtime_lyrics", [])
@@ -406,14 +409,14 @@ impl crate::music::accounts::AccountRecordStore for Store {
     fn load(&self) -> crate::music::MusicResult<Option<String>> {
         self.setting("musicAccountsV2")
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.accounts.load", error);
             })
             .map_err(|_| crate::music::ErrorCode::Internal.into())
     }
     fn save(&self, json: &str) -> crate::music::MusicResult<()> {
         self.set_setting("musicAccountsV2", json)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("storage.accounts.save", error);
             })
             .map_err(|_| crate::music::ErrorCode::Internal.into())
     }

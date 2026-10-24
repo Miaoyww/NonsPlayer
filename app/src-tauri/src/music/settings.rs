@@ -17,7 +17,7 @@ impl AdapterSettings {
             .mutation
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.resource_enabled_lock", error);
             })
             .map_err(|_| "适配器设置锁不可用")?;
         if !self
@@ -66,7 +66,7 @@ impl AdapterSettings {
             .mutation
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.restore_enabled_lock", error);
             })
             .map_err(|_| "适配器设置锁不可用")?;
         let enabled = self.store.setting(&Self::key(source))?.as_deref() != Some("false");
@@ -82,7 +82,7 @@ impl AdapterSettings {
             .mutation
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.set_enabled_lock", error);
             })
             .map_err(|_| "适配器设置锁不可用")?;
         if !self.list()?.iter().any(|s| s.descriptor.source == source) {
@@ -100,7 +100,7 @@ impl AdapterSettings {
             .mutation
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.reload_lock", error);
             })
             .map_err(|_| "适配器设置锁不可用")?;
         self.adapters.stamp(&source).map_err(|e| e.to_string())?;
@@ -127,7 +127,7 @@ pub async fn adapter_set_enabled(
     tauri::async_runtime::spawn_blocking(move || settings.set_enabled(source, enabled))
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("adapter.set_enabled_task_join", error);
         })
         .map_err(|_| "适配器设置任务失败")??;
     notify(&app, &changed);
@@ -145,7 +145,7 @@ pub async fn adapter_reload(
     tauri::async_runtime::spawn_blocking(move || settings.reload(source))
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("adapter.reload_task_join", error);
         })
         .map_err(|_| "适配器设置任务失败")??;
     notify(&app, &changed);

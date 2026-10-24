@@ -98,7 +98,10 @@ impl AdapterManager {
             .login_challenges
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "music.cancel_login_challenges_lock",
+                    error,
+                );
             })
             .map_err(|_| ErrorCode::Internal)?
             .remove(key);
@@ -111,14 +114,14 @@ impl AdapterManager {
             .entries
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.status_entries_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         let loading = self
             .loading
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.status_loading_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         let mut statuses: Vec<_> = entries
@@ -146,7 +149,7 @@ impl AdapterManager {
         self.loading
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.begin_loading_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .insert(
@@ -162,7 +165,7 @@ impl AdapterManager {
     }
     pub(crate) fn loading_failed(&self, source: &SourceId, reason: &str) {
         if let Ok(mut loading) = (self.loading.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("music.loading_failed_lock", error);
         }) {
             if let Some(status) = loading.get_mut(source) {
                 status.loading = false;
@@ -181,7 +184,7 @@ impl AdapterManager {
             .providers
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.register_providers_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .contains_key(&source)
@@ -195,7 +198,7 @@ impl AdapterManager {
             .entries
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.register_entries_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         if entries.contains_key(&source) {
@@ -218,7 +221,7 @@ impl AdapterManager {
         self.loading
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.register_loading_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .remove(&source);
@@ -238,7 +241,10 @@ impl AdapterManager {
                 .login_challenges
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "music.disable_challenges_lock",
+                        error,
+                    );
                 })
                 .map_err(|_| ErrorCode::Internal)?
                 .clear();
@@ -254,7 +260,7 @@ impl AdapterManager {
             .login_challenges
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.reload_challenges_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .clear();
@@ -264,7 +270,7 @@ impl AdapterManager {
         self.entries
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.adapter_entry_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .get(source)
@@ -314,7 +320,7 @@ impl AdapterManager {
         let entry = self.entry(source)?;
         serde_json::to_string(&(session, generation, entry.revision.load(Ordering::Acquire)))
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.cache_identity_encode", error);
             })
             .map_err(|_| ErrorCode::Internal.into())
     }
@@ -347,7 +353,7 @@ impl AdapterManager {
             .entries
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.cover_entries_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         let mut owners = entries
@@ -365,7 +371,7 @@ impl AdapterManager {
             .providers
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.cover_providers_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .values()
@@ -384,7 +390,7 @@ impl AdapterManager {
         owners.sort();
         serde_json::to_string(&owners)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.cover_scope_encode", error);
             })
             .map_err(|_| ErrorCode::InvalidData.into())
     }
@@ -393,7 +399,7 @@ impl AdapterManager {
             .entries
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.descriptors_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .values()
@@ -451,7 +457,7 @@ impl AdapterManager {
             .reads
             .try_acquire()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.business_read_admission", error);
             })
             .map_err(|_| ErrorCode::RateLimited)?;
         let revision = entry.revision.load(Ordering::Acquire);
@@ -516,7 +522,7 @@ impl AdapterManager {
         let entry = self.entry(source)?;
         if serde_json::to_vec(request)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.account_request_encode", error);
             })
             .map_err(|_| ErrorCode::InvalidData)?
             .len()
@@ -529,17 +535,17 @@ impl AdapterManager {
             .account_waiters
             .try_acquire()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.account_waiter_admission", error);
             })
             .map_err(|_| ErrorCode::RateLimited)?;
         let _permit = tokio::time::timeout_at(deadline.into(), entry.accounts.acquire())
             .await
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.account_admission_timeout", error);
             })
             .map_err(|_| ErrorCode::DeadlineExceeded)?
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.account_admission_closed", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         let mut context = Self::context(&entry, Duration::from_secs(12));
@@ -559,7 +565,10 @@ impl AdapterManager {
                 .login_challenges
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "music.login_challenge_insert_lock",
+                        error,
+                    );
                 })
                 .map_err(|_| ErrorCode::Internal)?;
             challenges.retain(|key, (_, _, expires)| {
@@ -593,7 +602,10 @@ impl AdapterManager {
                 .login_challenges
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "music.login_challenge_check_lock",
+                        error,
+                    );
                 })
                 .map_err(|_| ErrorCode::Internal)?;
             challenges.retain(|key, (_, _, expires)| {
@@ -637,7 +649,10 @@ impl AdapterManager {
             .await?;
         if serde_json::to_vec(&outcome.presentation)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "music.account_presentation_encode",
+                    error,
+                );
             })
             .map_err(|_| ErrorCode::InvalidData)?
             .len()
@@ -683,7 +698,10 @@ impl AdapterManager {
                 .login_challenges
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "music.login_challenge_remove_lock",
+                        error,
+                    );
                 })
                 .map_err(|_| ErrorCode::Internal)?;
             challenges.retain(|key, (_, _, expires)| {
@@ -722,7 +740,10 @@ impl AdapterManager {
                         .login_challenges
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "music.login_publication_check_lock",
+                                error,
+                            );
                         })
                         .map_err(|_| ErrorCode::Internal)?;
                     if login_key
@@ -754,7 +775,10 @@ impl AdapterManager {
                     .login_challenges
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "music.login_publication_cleanup_lock",
+                            error,
+                        );
                     })
                     .map_err(|_| ErrorCode::Internal)?
                     .remove(key);
@@ -793,7 +817,7 @@ impl AdapterManager {
             .reads
             .try_acquire()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.track_read_admission", error);
             })
             .map_err(|_| ErrorCode::RateLimited)?;
         let track = self
@@ -851,7 +875,7 @@ impl AdapterManager {
             .playback
             .try_acquire()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.playback_admission", error);
             })
             .map_err(|_| ErrorCode::RateLimited)?;
         let resource = self
@@ -877,7 +901,7 @@ impl AdapterManager {
             .resources
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.playback_registry_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         resources.retain(|_, v| v.strong_count() > 0);
@@ -920,7 +944,7 @@ fn cursor_scope(
     use sha2::{Digest, Sha256};
     let mut value = serde_json::to_value(request)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("music.cursor_request_encode", error);
         })
         .map_err(|_| ErrorCode::InvalidData)?;
     if let Some(page) = value.get_mut("page") {
@@ -934,7 +958,7 @@ fn cursor_scope(
         context.adapter_generation,
     ))
     .inspect_err(|error| {
-        crate::infrastructure::diagnostics::warn("translate_error", error);
+        crate::infrastructure::diagnostics::warn("music.cursor_scope_encode", error);
     })
     .map_err(|_| ErrorCode::InvalidData)?;
     Ok(format!("{:x}", Sha256::digest(bytes)))
@@ -945,14 +969,14 @@ fn decode_cursor(
 ) -> MusicResult<super::business::BusinessRequest> {
     let mut value = serde_json::to_value(request)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("music.cursor_restore_request_encode", error);
         })
         .map_err(|_| ErrorCode::InvalidData)?;
     if let Some(page) = value.get_mut("page") {
         if let Some(cursor) = page["cursor"].as_str() {
             let (binding, raw): (String, String) = serde_json::from_str(cursor)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("music.cursor_envelope_decode", error);
                 })
                 .map_err(|_| ErrorCode::InvalidData)?;
             if binding != scope {
@@ -963,7 +987,7 @@ fn decode_cursor(
     }
     serde_json::from_value(value)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("music.cursor_request_decode", error);
         })
         .map_err(|_| ErrorCode::InvalidData.into())
 }
@@ -972,7 +996,7 @@ fn encode_cursor(cursor: &mut Option<Cursor>, scope: &str) -> MusicResult<()> {
         *cursor = Some(Cursor::try_from(
             serde_json::to_string(&(scope, raw.as_str()))
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("music.cursor_envelope_encode", error);
                 })
                 .map_err(|_| ErrorCode::InvalidData)?,
         )?);
@@ -987,7 +1011,7 @@ fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
     }
     let url = url::Url::parse(&http.url)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("music.audio_url_parse", error);
         })
         .map_err(|_| ErrorCode::InvalidData)?;
     if !matches!(url.scheme(), "https" | "http")

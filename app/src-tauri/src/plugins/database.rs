@@ -17,7 +17,7 @@ impl Database {
         self.0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.database.lock", error);
             })
             .map_err(|_| "插件存储不可用".into())
     }
@@ -202,7 +202,7 @@ impl Database {
         }
         serde_json::from_str::<serde_json::Value>(value)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.storage.set.parse_value", error);
             })
             .map_err(|_| "存储值必须为 JSON")?;
         let mut db = self.lock()?;

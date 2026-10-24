@@ -14,7 +14,7 @@ pub fn call(
     let _guard = OPERATIONS
         .lock()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("plugins.secrets.call.lock", error);
         })
         .map_err(|_| "凭据库不可用")?;
     if !active.load(std::sync::atomic::Ordering::SeqCst) {
@@ -29,14 +29,17 @@ pub fn call(
     }
     let entry = keyring::Entry::new("NonsPlayer.plugins", &format!("{plugin}:{key}"))
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("plugins.secrets.call.open_entry", error);
         })
         .map_err(|_| "系统凭据库不可用")?;
     match operation {
         "secrets.get" => match entry.get_password() {
             Ok(value) => Ok(Value::String(value)),
             Err(keyring::Error::NoEntry) => Ok(Value::Null),
-            Err(_) => Err("读取系统凭据失败".into()),
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn("plugins.secrets.get.read_entry", error);
+                Err("读取系统凭据失败".into())
+            }
         },
         "secrets.set" => {
             let value = args
@@ -54,7 +57,10 @@ pub fn call(
             entry
                 .set_password(value)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.secrets.set.write_entry",
+                        error,
+                    );
                 })
                 .map_err(|_| "保存系统凭据失败")?;
             Ok(Value::Null)
@@ -62,7 +68,13 @@ pub fn call(
         "secrets.delete" => {
             match entry.delete_credential() {
                 Ok(()) | Err(keyring::Error::NoEntry) => (),
-                Err(_) => return Err("删除系统凭据失败".into()),
+                Err(error) => {
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.secrets.delete.remove_entry",
+                        error,
+                    );
+                    return Err("删除系统凭据失败".into());
+                }
             }
             database.secret_key(plugin, key, false)?;
             Ok(Value::Null)
@@ -75,18 +87,24 @@ pub fn clear(plugin: &str, database: &super::database::Database) -> AppResult<()
     let _guard = OPERATIONS
         .lock()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("plugins.secrets.clear.lock", error);
         })
         .map_err(|_| "凭据库不可用")?;
     for key in database.secret_keys(plugin)? {
         let entry = keyring::Entry::new("NonsPlayer.plugins", &format!("{plugin}:{key}"))
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.secrets.clear.open_entry", error);
             })
             .map_err(|_| "凭据库不可用")?;
         match entry.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => (),
-            Err(_) => return Err("清理插件凭据失败".into()),
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.secrets.clear.remove_entry",
+                    error,
+                );
+                return Err("清理插件凭据失败".into());
+            }
         }
         database.secret_key(plugin, &key, false)?;
     }

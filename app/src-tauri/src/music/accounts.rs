@@ -18,7 +18,7 @@ impl CredentialStore for SystemCredentials {
     fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>> {
         match keyring::Entry::new("NonsPlayer", key)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("credentials.read_entry", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .get_secret()
@@ -31,19 +31,19 @@ impl CredentialStore for SystemCredentials {
     fn write(&self, key: &str, bytes: &[u8]) -> MusicResult<()> {
         keyring::Entry::new("NonsPlayer", key)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("credentials.write_entry", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .set_secret(bytes)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("credentials.write_secret", error);
             })
             .map_err(|_| ErrorCode::Internal.into())
     }
     fn delete(&self, key: &str) -> MusicResult<()> {
         match keyring::Entry::new("NonsPlayer", key)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("credentials.delete_entry", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .delete_credential()
@@ -92,7 +92,7 @@ impl AccountManager {
                 }
                 serde_json::from_str(&v)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn("accounts.restore_decode", error);
                     })
                     .map_err(|_| ErrorCode::InvalidData)
             })
@@ -167,7 +167,7 @@ impl AccountManager {
             .clone()
             .try_acquire_owned()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.io_admission", error);
             })
             .map_err(|_| ErrorCode::RateLimited)?;
         let manager = self.clone();
@@ -177,7 +177,7 @@ impl AccountManager {
         })
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("accounts.io_task_join", error);
         })
         .map_err(|_| ErrorCode::Internal)?
     }
@@ -191,7 +191,7 @@ impl AccountManager {
         self.store.save(
             &serde_json::to_string(saved)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("accounts.persist_encode", error);
                 })
                 .map_err(|_| ErrorCode::Internal)?,
         )
@@ -241,7 +241,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.records_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .saved
@@ -256,7 +256,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.current_record_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         Ok(state
@@ -274,7 +274,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.select_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         if !state
@@ -318,7 +318,7 @@ impl AccountManager {
             .adapters
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.context_adapter_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .upgrade()
@@ -346,7 +346,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.accept_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, &expected.source) != *expected {
@@ -395,7 +395,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.invalidate_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, &expected.source) != *expected {
@@ -417,7 +417,10 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "accounts.provider_credential_lock",
+                    error,
+                );
             })
             .map_err(|_| ErrorCode::Internal)?;
         let bytes =
@@ -433,7 +436,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.remove_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         if !state
@@ -466,7 +469,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.clear_expected_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, source) != *expected {
@@ -484,7 +487,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.cleanup_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         let mut saved = state.saved.clone();
@@ -507,7 +510,7 @@ impl AccountManager {
             .adapters
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.authorize_adapter_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .upgrade()
@@ -527,7 +530,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.read_bound_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, &reference.source) != context.session {
@@ -552,7 +555,7 @@ impl AccountManager {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("accounts.replace_bound_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?;
         if Self::session_locked(&state, &reference.source) != context.session {

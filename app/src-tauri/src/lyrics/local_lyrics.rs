@@ -22,14 +22,20 @@ fn embedded(path: &Path) -> Option<String> {
     let tagged = if crate::encoded_audio::is_encoded(path) {
         crate::encoded_audio::read_tags(&path.to_string_lossy())
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_result", error);
+                crate::infrastructure::diagnostics::warn(
+                    "lyrics.local.embedded.read_ncm_tags",
+                    error,
+                );
             })
             .ok()?
             .0
     } else {
         Probe::open(path)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_result", error);
+                crate::infrastructure::diagnostics::warn_error(
+                    "lyrics.local.embedded.open_audio",
+                    error,
+                );
             })
             .ok()?
             .options(
@@ -39,7 +45,10 @@ fn embedded(path: &Path) -> Option<String> {
             )
             .read()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_result", error);
+                crate::infrastructure::diagnostics::warn_error(
+                    "lyrics.local.embedded.read_tags",
+                    error,
+                );
             })
             .ok()?
     };
@@ -70,13 +79,19 @@ fn decode(bytes: Vec<u8>) -> AppResult<String> {
             .collect();
         String::from_utf16(&units)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn_error(
+                    "lyrics.local.sidecar.decode_utf16",
+                    error,
+                );
             })
             .map_err(|_| "本地歌词 UTF-16 编码无效")?
     } else {
         String::from_utf8(bytes)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn_error(
+                    "lyrics.local.sidecar.decode_utf8",
+                    error,
+                );
             })
             .map_err(|_| "本地歌词不是有效的 UTF-8 或带 BOM 的 UTF-16")?
     };

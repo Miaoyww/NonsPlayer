@@ -2,6 +2,7 @@
 use super::*;
 use crate::music::provider::*;
 use serde::Serialize;
+mod diagnostics;
 #[cfg(test)]
 mod tests;
 
@@ -430,8 +431,28 @@ impl AdapterManager {
         generation: u64,
         notify: &(dyn Fn(PlaybackSource) + Send + Sync),
     ) -> MusicResult<(Arc<ResourceTicket>, PlaybackSource)> {
+        let request_id = diagnostics::next_request_id();
         let platform = &request.track.reference.source;
-        request.track.validate(&request.track.reference)?;
+        request
+            .track
+            .validate(&request.track.reference)
+            .inspect_err(|error| {
+                let diagnostic = diagnostics::Attempt::new(
+                    request_id,
+                    0,
+                    "unselected",
+                    &request.track.reference,
+                );
+                diagnostic.stage(
+                    "track_validate",
+                    request
+                        .track
+                        .validate_with_reason(&request.track.reference)
+                        .err()
+                        .unwrap_or("track_metadata_invalid"),
+                );
+                diagnostic.finish::<()>(&Err(error.clone()));
+            })?;
         let deadline = Instant::now() + Duration::from_secs(24);
         let origin = match self.entry(platform) {
             Ok(entry) => {
@@ -504,8 +525,16 @@ impl AdapterManager {
                     .find(|p| p.adapter.descriptor().id.as_str() == id)
                     .ok_or(ErrorCode::SourceUnavailable)?
                     .clone();
-                self.resolve_provider(entry, request, origin.clone(), deadline, generation)
-                    .await
+                self.resolve_provider(
+                    entry,
+                    request,
+                    origin.clone(),
+                    deadline,
+                    generation,
+                    request_id,
+                    attempt + 1,
+                )
+                .await
             } else {
                 let entry = &origin.as_ref().ok_or(ErrorCode::SourceUnavailable)?.0;
                 self.resolve_provider(
@@ -514,6 +543,8 @@ impl AdapterManager {
                     origin.clone(),
                     deadline,
                     generation,
+                    request_id,
+                    attempt + 1,
                 )
                 .await
             };
@@ -546,28 +577,41 @@ impl AdapterManager {
         origin: Option<(Arc<Entry>, RequestContext)>,
         deadline: Instant,
         generation: u64,
+        request_id: u64,
+        attempt: usize,
     ) -> MusicResult<Arc<ResourceTicket>> {
+        let diagnostic = diagnostics::Attempt::new(
+            request_id,
+            attempt,
+            entry.adapter.descriptor().id.as_str(),
+            &request.track.reference,
+        );
         let context = RequestContext {
             session: entry.session(),
             adapter_generation: entry.generation.load(Ordering::Acquire),
             deadline: deadline.min(Instant::now() + Duration::from_secs(12)),
             cancellation: Default::default(),
         };
-        self.run_provider(
-            &entry,
-            &context,
-            origin.as_ref(),
-            retry::rate_limited(|| {
-                self.resolve_provider_inner(
-                    entry.clone(),
-                    context.clone(),
-                    request,
-                    origin.clone(),
-                    generation,
-                )
-            }),
-        )
-        .await
+        let result = self
+            .run_provider(
+                &entry,
+                &context,
+                origin.as_ref(),
+                retry::rate_limited(|| {
+                    diagnostic.start_try();
+                    self.resolve_provider_inner(
+                        entry.clone(),
+                        context.clone(),
+                        request,
+                        origin.clone(),
+                        generation,
+                        &diagnostic,
+                    )
+                }),
+            )
+            .await;
+        diagnostic.finish(&result);
+        result
     }
     async fn resolve_provider_inner(
         &self,
@@ -576,16 +620,28 @@ impl AdapterManager {
         request: &ResourceRequest,
         origin: Option<(Arc<Entry>, RequestContext)>,
         generation: u64,
+        diagnostic: &diagnostics::Attempt<'_>,
     ) -> MusicResult<Arc<ResourceTicket>> {
+        diagnostic.stage("context", "provider_or_origin_context_invalid");
         entry.check(&context)?;
         if let Some((owner, scope)) = &origin {
             owner.check(scope)?;
         }
-        request.validate(entry.adapter.descriptor())?;
+        diagnostic.stage("request_validate", "resource_request_invalid");
+        request
+            .validate(entry.adapter.descriptor())
+            .inspect_err(|_| {
+                diagnostic.stage(
+                    "request_validate",
+                    diagnostics::request_reason(request, entry.adapter.descriptor()),
+                );
+            })?;
+        diagnostic.stage("playback_admission", "provider_playback_budget_exhausted");
         let _permit = entry
             .playback
             .try_acquire()
             .map_err(|_| ErrorCode::RateLimited)?;
+        diagnostic.stage("provider_resolve", "provider_request_failed");
         let resource = self
             .run_provider(
                 &entry,
@@ -594,17 +650,34 @@ impl AdapterManager {
                 entry.adapter.resolve(request, &context),
             )
             .await?;
-        resource.metadata.require_full(now_ms())?;
-        validate_access(&resource.access)?;
+        diagnostic.stage("resource_metadata", "resource_metadata_invalid");
+        resource
+            .metadata
+            .require_full(now_ms())
+            .inspect_err(|error| {
+                diagnostic.stage(
+                    "resource_metadata",
+                    diagnostics::metadata_reason(error.code),
+                );
+            })?;
+        diagnostic.stage("resource_access", "resource_access_invalid");
+        validate_access(&resource.access).inspect_err(|_| {
+            diagnostic.stage(
+                "resource_access",
+                diagnostics::access_reason(&resource.access),
+            );
+        })?;
         let ttl = resource
             .metadata
             .expires_at_ms
             .map(|expiry| expiry.saturating_sub(now_ms()))
             .unwrap_or(60_000)
             .min(60_000);
+        diagnostic.stage("resource_expiry", "resource_expired_before_registration");
         if ttl == 0 {
             return Err(ErrorCode::DeadlineExceeded.into());
         }
+        diagnostic.stage("resource_registry", "resource_registry_unavailable_or_full");
         let mut resources = self.resources.lock().map_err(|_| ErrorCode::Internal)?;
         resources.retain(|_, v| v.strong_count() > 0);
         if resources.len() >= 16 {
@@ -628,6 +701,7 @@ impl AdapterManager {
             },
             resource,
         });
+        diagnostic.stage("resource_handoff", "resource_invalid_before_handoff");
         ticket.check(generation)?;
         resources.insert(ticket.lease.handle.as_str().into(), Arc::downgrade(&ticket));
         Ok(ticket)

@@ -49,7 +49,7 @@ fn read_context(context: &ClipboardContext) -> AppResult<String> {
     let text = context
         .get_text()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("plugins.clipboard.read_text", error);
         })
         .map_err(|_| "剪贴板中没有可读取的文本")?;
     if text.len() > MAX_TEXT {
@@ -97,7 +97,10 @@ pub fn start(manager: &Arc<PluginManager>) -> AppResult<Shutdown> {
     receiver
         .recv_timeout(Duration::from_secs(2))
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn(
+                "plugins.clipboard.watch.initialize_timeout",
+                error,
+            );
         })
         .map_err(|_| "剪贴板监听初始化超时")?
 }

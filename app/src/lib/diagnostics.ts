@@ -170,8 +170,10 @@ export async function diagnosticInvoke<T>(
       })
     return result
   } catch (cause) {
-    if (cause && typeof cause === 'object') reportedErrors.add(cause)
-    const fields = errorFields(cause)
+    // Native string rejections need one identity across cache and component recovery.
+    const error = typeof cause === 'string' ? new Error(cause) : cause
+    if (error && typeof error === 'object') reportedErrors.add(error)
+    const fields = errorFields(error)
     reportDiagnostic({
       level: expectedCodes.has(fields.code) ? 'info' : 'error',
       command,
@@ -180,7 +182,7 @@ export async function diagnosticInvoke<T>(
       elapsedMs: Math.round(performance.now() - started),
       ...fields
     })
-    throw cause
+    throw error
   }
 }
 

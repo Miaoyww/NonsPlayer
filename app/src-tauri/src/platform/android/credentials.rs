@@ -44,7 +44,10 @@ impl Entry {
                 }),
             )
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "android.credentials.native_call",
+                    format_args!("action={operation} cause={error}"),
+                );
             })
             .map_err(|_| Error::Unavailable)
     }
@@ -53,14 +56,20 @@ impl Entry {
         STANDARD
             .decode(value)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "android.credentials.read.decode_base64",
+                    error,
+                );
             })
             .map_err(|_| Error::Unavailable)
     }
     pub fn get_password(&self) -> Result<String, Error> {
         String::from_utf8(self.get_secret()?)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "android.credentials.read.decode_utf8",
+                    error,
+                );
             })
             .map_err(|_| Error::Unavailable)
     }

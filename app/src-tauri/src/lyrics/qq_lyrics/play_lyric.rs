@@ -37,7 +37,7 @@ pub(super) async fn fetch(
     })
     .await
     .inspect_err(|error| {
-        crate::infrastructure::diagnostics::warn("translate_error", error);
+        crate::infrastructure::diagnostics::warn_error("lyrics.qq.play_lyric.timeout", error);
     })
     .map_err(|_| "QQ 补充歌词查询超时".to_string())?
 }
@@ -69,7 +69,10 @@ fn decode(value: Value) -> AppResult<Option<Lyrics>> {
             .and_then(|s| {
                 decode_qrc_field(s)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "lyrics.qq.play_lyric.decode_auxiliary",
+                            error,
+                        );
                     })
                     .ok()
             })

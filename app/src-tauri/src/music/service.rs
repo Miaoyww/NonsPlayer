@@ -225,7 +225,7 @@ impl MusicService {
         if metadata.duration_ms == 0 {
             if let Ok(enriched) =
                 (self.adapters.read_track(&metadata.reference).await).inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_success", error);
+                    log::warn!(target: "nons::music", "operation=playback_hydrate stage=read_track source={} code={:?} reason={} track_id={}", metadata.reference.source.as_str(), error.code, error, crate::infrastructure::diagnostics::field(metadata.reference.id.as_str()));
                 })
             {
                 metadata = enriched;

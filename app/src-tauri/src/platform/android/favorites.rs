@@ -49,7 +49,10 @@ impl Favorites {
             .player
             .snapshot()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_result", error);
+                crate::infrastructure::diagnostics::warn(
+                    "android.favorites.refresh.player_snapshot",
+                    error,
+                );
             })
             .ok()
             .and_then(|s| s.current().cloned());
@@ -59,7 +62,10 @@ impl Favorites {
             .and_then(|t| {
                 nons_music_adapter_sdk::metadata::queue_metadata(t)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "android.favorites.refresh.queue_metadata",
+                            error,
+                        );
                     })
                     .ok()
             })
@@ -72,7 +78,10 @@ impl Favorites {
                     .adapters
                     .cache_identity(&r.source)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "android.favorites.refresh.read_scope",
+                            error,
+                        );
                     })
                     .ok()
             })
@@ -112,7 +121,10 @@ impl Favorites {
             .business(&reference.source, &BusinessRequest::Favorites)
             .await)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_success", error);
+                crate::infrastructure::diagnostics::warn(
+                    "android.favorites.refresh.query_favorites",
+                    error,
+                );
             })
         {
             if backend
@@ -120,7 +132,10 @@ impl Favorites {
                 .adapters
                 .cache_identity(&reference.source)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "android.favorites.refresh.recheck_scope",
+                        error,
+                    );
                 })
                 .ok()
                 .as_deref()
@@ -129,7 +144,10 @@ impl Favorites {
                     .player
                     .snapshot()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "android.favorites.refresh.recheck_player",
+                            error,
+                        );
                     })
                     .ok()
                     .and_then(|s| s.current().map(|t| t.key.clone()))
@@ -164,7 +182,10 @@ impl Favorites {
                 .adapters
                 .cache_identity(&reference.source)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "android.favorites.write.recheck_scope",
+                        error,
+                    );
                 })
                 .ok()
                 .as_deref()
@@ -203,7 +224,10 @@ impl Favorites {
                     .adapters
                     .stamp(&reference.source)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "android.favorites.write.recheck_stamp",
+                            error,
+                        );
                     })
                     .ok()
                     .as_ref()

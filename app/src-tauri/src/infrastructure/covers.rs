@@ -10,6 +10,7 @@ pub(crate) const MAX_COVER_BYTES: u64 = 8 * 1024 * 1024;
 
 fn check_size(bytes: u64) -> AppResult<()> {
     if bytes > MAX_COVER_BYTES {
+        log::warn!(target: "nons::covers", "operation=covers.read stage=size_check code=coverTooLarge observed_bytes={bytes} limit_bytes={MAX_COVER_BYTES}");
         return Err("封面文件过大".into());
     }
     Ok(())
@@ -74,7 +75,7 @@ pub(crate) async fn fetch(url: String, backend: &crate::Backend) -> AppResult<St
 async fn load(url: &str, backend: &crate::Backend, access: &str) -> AppResult<String> {
     let parsed = url::Url::parse(url)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("covers.url.parse", error);
         })
         .map_err(|_| "封面地址无效")?;
     let _permit = backend
@@ -96,8 +97,12 @@ async fn load(url: &str, backend: &crate::Backend, access: &str) -> AppResult<St
         .get(parsed)
         .send()
         .await
+        .inspect_err(|error| crate::infrastructure::diagnostics::warn_error("covers.http.send", error))
         .map_err(|e| e.to_string())?
         .error_for_status()
+        .inspect_err(|error| {
+            log::warn!(target: "nons::covers", "operation=covers.read stage=http_status code=httpError status={}", error.status().map_or(0, |s| s.as_u16()));
+        })
         .map_err(|e| e.to_string())?;
     let content_type = response
         .headers()
@@ -105,7 +110,7 @@ async fn load(url: &str, backend: &crate::Backend, access: &str) -> AppResult<St
         .and_then(|h| {
             h.to_str()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn("covers.response.content_type", error);
                 })
                 .ok()
         })
@@ -116,7 +121,14 @@ async fn load(url: &str, backend: &crate::Backend, access: &str) -> AppResult<St
         check_size(length)?;
     }
     let mut bytes = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn_error("covers.http.read_chunk", error)
+        })
+        .map_err(|e| e.to_string())?
+    {
         check_size(bytes.len() as u64 + chunk.len() as u64)?;
         bytes.extend_from_slice(&chunk);
     }

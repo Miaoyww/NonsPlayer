@@ -27,7 +27,10 @@ impl SourceSettings {
         let state = match store.setting(KEY)? {
             Some(value) => serde_json::from_str::<SourcePreferences>(&value)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "music.source_preferences_decode",
+                        error,
+                    );
                 })
                 .map_err(|_| "音乐来源配置损坏")?,
             None => SourcePreferences {
@@ -65,7 +68,7 @@ impl SourceSettings {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.source_preferences_lock", error);
             })
             .map_err(|_| "音乐来源配置锁不可用")?
             .clone())
@@ -85,7 +88,7 @@ impl SourceSettings {
             .intent
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.source_intent_lock", error);
             })
             .map_err(|_| "来源操作锁不可用")?;
         *intent = intent.checked_add(1).ok_or("来源操作代次已耗尽")?;
@@ -124,7 +127,7 @@ impl SourceSettings {
             .intent
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.source_update_intent_lock", error);
             })
             .map_err(|_| "来源操作锁不可用")?;
         if expected_intent.is_some_and(|expected| expected != *intent) {
@@ -135,7 +138,7 @@ impl SourceSettings {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("music.source_update_state_lock", error);
             })
             .map_err(|_| "音乐来源配置锁不可用")?;
         if state.revision != revision {
@@ -201,7 +204,7 @@ pub async fn music_use_source(
     let next = tauri::async_runtime::spawn_blocking(move || settings.use_source(current, intent))
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("music.use_source_task_join", error);
         })
         .map_err(|_| "来源切换任务失败")??;
     let _ = (app.emit("music-source-preferences-changed", &next)).inspect_err(|error| {
@@ -232,7 +235,7 @@ pub async fn music_set_source_preferences(
     })
     .await
     .inspect_err(|error| {
-        crate::infrastructure::diagnostics::warn("translate_error", error);
+        crate::infrastructure::diagnostics::warn("music.source_preferences_task_join", error);
     })
     .map_err(|_| "音乐来源配置任务失败")??;
     let _ = (app.emit("music-source-preferences-changed", &next)).inspect_err(|error| {

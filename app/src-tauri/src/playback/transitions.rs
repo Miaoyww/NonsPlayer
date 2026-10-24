@@ -149,7 +149,7 @@ impl PlaybackFade {
         if let Some(parent) = self.element.parent().and_then(|p| {
             p.downcast::<gst::Bin>()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn("playback.fade.parent_bin", error);
                 })
                 .ok()
         }) {

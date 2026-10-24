@@ -6,7 +6,7 @@ use crate::{
     media::MediaControls,
     model::{
         AppResult, OutputDevice, PlaybackEngine, PlaybackOptions, PlaybackStatus, PlayerSnapshot,
-        ResolvedTrack, Track,
+        ResolvedTrack, Track, TrackSource,
     },
     music::{manager::ResourceTicket, service::MusicService},
     storage::Store,
@@ -213,7 +213,10 @@ impl Player {
             .and_then(|s| {
                 serde_json::from_str::<PlayerSnapshot>(&s)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "playback.restore.decode_snapshot",
+                            error,
+                        );
                     })
                     .ok()
             })
@@ -261,7 +264,10 @@ impl Player {
                     Ok(mut actor) => actor.run(receiver),
                     Err(error) => {
                         if let Ok(mut state) = (shared.write()).inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("optional_success", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "playback.start.failure_state_lock",
+                                error,
+                            );
                         }) {
                             let mut failed = state.snapshot.clone();
                             failed.status = PlaybackStatus::Error;
@@ -296,7 +302,10 @@ impl Player {
                 .snapshot
                 .read()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "playback.send.failure_state_read",
+                        error,
+                    );
                 })
                 .ok()
                 .and_then(|state| state.snapshot.error.clone())
@@ -309,7 +318,7 @@ impl Player {
             .read()
             .map(|s| s.snapshot.clone())
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("playback.snapshot.read", error);
             })
             .map_err(|_| "播放状态不可用".into())
     }
@@ -319,7 +328,7 @@ impl Player {
             .read()
             .map(|s| s.bootstrap())
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("playback.bootstrap.read", error);
             })
             .map_err(|_| "播放状态不可用".into())
     }
@@ -339,7 +348,7 @@ impl Player {
                         )
             })
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("playback.frontend.state_read", error);
             })
             .map_err(|_| "播放状态不可用".into())
     }
@@ -350,7 +359,7 @@ impl Player {
         receiver
             .recv_timeout(Duration::from_secs(3))
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("playback.devices.reply_timeout", error);
             })
             .map_err(|_| "查询音频设备超时".to_string())?
     }
@@ -369,7 +378,7 @@ impl Player {
         receiver
             .recv_timeout(Duration::from_secs(3))
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("playback.options.reply_timeout", error);
             })
             .map_err(|_| "保存播放设置超时".to_string())?
     }
@@ -392,10 +401,10 @@ impl Player {
 
     pub fn shutdown(&self) {
         let _ = (self.sender.send(Command::Shutdown)).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("self.sender.send", error);
+            crate::infrastructure::diagnostics::warn("playback.shutdown.enqueue", error);
         });
         if let Ok(mut thread) = (self.thread.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("playback.shutdown.thread_lock", error);
         }) {
             if let Some(thread) = thread.take() {
                 let _ = (thread.join()).inspect_err(|error| {
@@ -504,7 +513,10 @@ impl GstreamerEngine {
         let playbin = gst::ElementFactory::make("playbin3")
             .build()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "playback.gstreamer.create_playbin",
+                    error,
+                );
             })
             .map_err(|_| "GStreamer 缺少 playbin3 插件，请检查运行时")?;
         let bus = playbin.bus().ok_or("音频消息总线不可用")?;
@@ -513,7 +525,7 @@ impl GstreamerEngine {
         playbin.set_property_from_str("flags", "audio+soft-volume+buffering");
         playbin.connect("source-setup", false, |values| {
             if let Ok(source) = (values[1].get::<gst::Element>()).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_success", error);
+                crate::infrastructure::diagnostics::warn("playback.gstreamer.source_setup", error);
             }) {
                 crate::network::configure_source(&source);
             }
@@ -533,7 +545,10 @@ impl GstreamerEngine {
             });
             if let Some(device) = device {
                 if let Ok(sink) = (super::output::create_sink(Some(&device))).inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_success", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "playback.output.selected_sink",
+                        error,
+                    );
                 }) {
                     playbin.set_property("audio-sink", sink);
                 } else {
@@ -563,7 +578,7 @@ impl GstreamerEngine {
             // Only consume a prepared URI here. This runs on a streaming thread:
             // no HTTP, database work, events, or channel waits are allowed.
             if let Ok(mut slot) = (pending.lock()).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_success", error);
+                crate::infrastructure::diagnostics::warn("playback.gapless.prepared_lock", error);
             }) {
                 if !super::transitions::gapless_allowed(&gapless) {
                     return None;
@@ -578,7 +593,10 @@ impl GstreamerEngine {
                         .get::<gst::Element>()
                         .expect("GStreamer signal instance");
                     if let Ok(mut slot) = (advancing.lock()).inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_success", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "playback.gapless.armed_lock",
+                            error,
+                        );
                     }) {
                         element.set_property("uri", &next.resolved.uri);
                         *slot = Some(next);
@@ -889,7 +907,7 @@ impl Actor {
         let mut state = shared
             .read()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("playback.actor.restore_lock", error);
             })
             .map_err(|_| "播放状态不可用")?
             .snapshot
@@ -1018,7 +1036,7 @@ impl Actor {
         }
         self.cancel_jobs();
         let _ = (self.store.save_player(&self.state)).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("self.store.save_player", error);
+            crate::infrastructure::diagnostics::warn("playback.persist.snapshot", error);
         });
         self.native.take();
     }
@@ -1395,7 +1413,10 @@ impl Actor {
                     .adapters
                     .cache_identity(&entity.source)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "playback.collection.context",
+                            error,
+                        );
                     })
                     .ok()
                     .as_ref()
@@ -1506,14 +1527,20 @@ impl Actor {
                         .prepared
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "playback.fm.prepared_lock",
+                                error,
+                            );
                         })
                         .map_err(|_| "预加载状态不可用")?;
                     let mut armed = self
                         .armed
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "playback.fm.armed_lock",
+                                error,
+                            );
                         })
                         .map_err(|_| "预加载状态不可用")?;
                     let Some(trim) = self.state.append_private_fm(session, queue_len, tracks)?
@@ -1585,14 +1612,20 @@ impl Actor {
                         .prepared
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "playback.provider.prepared_lock",
+                                error,
+                            );
                         })
                         .map_err(|_| "预加载状态不可用")?;
                     *prepared = None;
                     self.armed
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "playback.provider.armed_lock",
+                                error,
+                            );
                         })
                         .map_err(|_| "预加载状态不可用")?
                         .take()
@@ -1618,14 +1651,20 @@ impl Actor {
                         .prepared
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "playback.selection.prepared_lock",
+                                error,
+                            );
                         })
                         .map_err(|_| "预加载状态不可用")?;
                     *prepared = None;
                     self.armed
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "playback.selection.armed_lock",
+                                error,
+                            );
                         })
                         .map_err(|_| "预加载状态不可用")?
                         .take()
@@ -1697,14 +1736,20 @@ impl Actor {
                         .prepared
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "playback.remove.prepared_lock",
+                                error,
+                            );
                         })
                         .map_err(|_| "预加载状态不可用")?;
                     *prepared = None;
                     self.armed
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "playback.remove.armed_lock",
+                                error,
+                            );
                         })
                         .map_err(|_| "预加载状态不可用")?
                         .take()
@@ -1884,9 +1929,7 @@ impl Actor {
                         return Ok(());
                     }
                     self.next_job = None;
-                    if let Ok((resolved, resource, source)) = (*result).inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_success", error);
-                    }) {
+                    if let Ok((resolved, resource, source)) = *result {
                         if resource
                             .as_ref()
                             .is_some_and(|r| r.check(generation).is_err())
@@ -1900,7 +1943,10 @@ impl Actor {
                             .prepared
                             .lock()
                             .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("translate_error", error);
+                                crate::infrastructure::diagnostics::warn(
+                                    "playback.preload.publish_lock",
+                                    error,
+                                );
                             })
                             .map_err(|_| "预加载状态不可用")? = Some(Prepared {
                             generation,
@@ -2010,7 +2056,10 @@ impl Actor {
                 .prepared
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "playback.options.prepared_lock",
+                        error,
+                    );
                 })
                 .map_err(|_| "预加载状态不可用")?;
             self.gapless_enabled
@@ -2020,7 +2069,10 @@ impl Actor {
                 self.armed
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "playback.options.armed_lock",
+                            error,
+                        );
                     })
                     .map_err(|_| "预加载状态不可用")?
                     .take()
@@ -2117,12 +2169,13 @@ impl Actor {
         let generation = self.generation.load(Ordering::Acquire);
         let music = self.music.clone();
         let selection = self.selections.get(&track.key).cloned();
+        let attempt = if next { self.next_attempts } else { 1 };
         let sender = self.sender.clone();
         let quality = self
             .store
             .setting("quality")
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_result", error);
+                crate::infrastructure::diagnostics::warn("playback.resolve.quality_setting", error);
             })
             .ok()
             .flatten()
@@ -2131,13 +2184,31 @@ impl Actor {
             .store
             .setting("allowDowngrade")
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_result", error);
+                crate::infrastructure::diagnostics::warn(
+                    "playback.resolve.downgrade_setting",
+                    error,
+                );
             })
             .ok()
             .flatten()
             .as_deref()
             != Some("false");
         let task = tauri::async_runtime::spawn(async move {
+            let started = Instant::now();
+            let source_id = crate::infrastructure::diagnostics::field(track.source_id());
+            let track_id = match &track.source {
+                TrackSource::Online { track } => {
+                    crate::infrastructure::diagnostics::field(track.reference.id.as_str())
+                }
+                TrackSource::Local { .. } => "local".into(),
+            };
+            let provider = crate::infrastructure::diagnostics::field(
+                selection
+                    .as_ref()
+                    .and_then(|s| s.provider.as_deref())
+                    .unwrap_or("automatic"),
+            );
+            log::info!(target: "nons::playback", "operation=playback_resolve stage=start generation={generation} index={index} next={next} attempt={attempt} source={source_id} provider={provider} track_id={track_id} quality={} allow_downgrade={downgrade}", crate::infrastructure::diagnostics::field(&quality));
             let key = track.key.clone();
             let progress_sender = sender.clone();
             let progress_key = key.clone();
@@ -2159,6 +2230,14 @@ impl Actor {
                     track, &quality, downgrade, generation, selection, &notify,
                 )
                 .await;
+            match &result {
+                Ok(_) => {
+                    log::info!(target: "nons::playback", "operation=playback_resolve stage=complete generation={generation} index={index} next={next} attempt={attempt} elapsed_ms={} source={source_id} provider={provider} track_id={track_id} code=ok", started.elapsed().as_millis())
+                }
+                Err(error) => {
+                    log::warn!(target: "nons::playback", "operation=playback_resolve stage=failed generation={generation} index={index} next={next} attempt={attempt} elapsed_ms={} source={source_id} provider={provider} track_id={track_id} reason={error}", started.elapsed().as_millis())
+                }
+            }
             // Bounded channel delivery is performed off the audio thread.
             let _ = tauri::async_runtime::spawn_blocking(move || {
                 let _ = (sender.send(Command::Resolved {
@@ -2195,12 +2274,12 @@ impl Actor {
             job.abort();
         }
         if let Ok(mut slot) = (self.prepared.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("playback.cancel.prepared_lock", error);
         }) {
             *slot = None;
         }
         if let Ok(mut slot) = (self.armed.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("playback.cancel.armed_lock", error);
         }) {
             *slot = None;
         }
@@ -2257,7 +2336,7 @@ impl Actor {
             ms,
         )
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("playback.seek.engine", error);
         })
         .map_err(|_| "当前资源不支持定位")?;
         self.state.position_ms = ms;
@@ -2310,7 +2389,7 @@ impl Actor {
                     .armed
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn("playback.eos.armed_lock", error);
                     })
                     .ok()
                     .and_then(|mut slot| slot.take());
@@ -2510,7 +2589,7 @@ impl Actor {
         }
 
         if let Ok(mut prepared) = (self.prepared.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("playback.tick.prepared_lock", error);
         }) {
             if prepared.as_ref().is_some_and(|p| {
                 p.resource
@@ -2547,11 +2626,14 @@ impl Actor {
             );
             self.update_media();
             if let Ok(mut shared) = (self.shared.write()).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_success", error);
+                crate::infrastructure::diagnostics::warn("playback.tick.progress_lock", error);
             }) {
                 let _ = (self.app.emit("player-progress", shared.tick(&self.state))).inspect_err(
                     |error| {
-                        crate::infrastructure::diagnostics::warn("self.app.emit", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "playback.progress.emit_tick",
+                            error,
+                        );
                     },
                 );
             }
@@ -2593,20 +2675,20 @@ impl Actor {
     fn publish(&mut self) {
         self.update_media();
         if let Ok(mut shared) = (self.shared.write()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("playback.publish.state_lock", error);
         }) {
             let (state, queue, progress) = shared.update(&self.state);
             if let Some(queue) = queue {
                 let _ = (self.app.emit("player-queue", queue)).inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("self.app.emit", error);
+                    crate::infrastructure::diagnostics::warn("playback.queue.emit", error);
                 });
             }
             let _ = (self.app.emit("player-state", state)).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("self.app.emit", error);
+                crate::infrastructure::diagnostics::warn("playback.state.emit", error);
             });
             if let Some(progress) = progress {
                 let _ = (self.app.emit("player-progress", progress)).inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("self.app.emit", error);
+                    crate::infrastructure::diagnostics::warn("playback.progress.emit", error);
                 });
             }
         }

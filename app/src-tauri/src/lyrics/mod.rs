@@ -114,7 +114,7 @@ impl LyricService {
         self.retry_after
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.sources.set.retry_lock", error);
             })
             .map_err(|_| "歌词状态不可用")?
             .clear();
@@ -250,7 +250,7 @@ impl LyricService {
                 .retry_after
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("lyrics.refresh.retry_lock", error);
                 })
                 .map_err(|_| "歌词状态不可用")?;
             retries.remove(&amll_key);
@@ -264,7 +264,7 @@ impl LyricService {
                 self.disk
                     .get(&amll_key)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn("lyrics.amll.cache_read", error);
                     })
                     .ok()
                     .flatten()
@@ -275,7 +275,10 @@ impl LyricService {
                             .refreshing
                             .lock()
                             .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("translate_error", error);
+                                crate::infrastructure::diagnostics::warn(
+                                    "lyrics.amll.refresh.pending_lock",
+                                    error,
+                                );
                             })
                             .map_err(|_| "歌词状态不可用")?;
                         if refreshing.insert(amll_key.clone()) {
@@ -288,7 +291,7 @@ impl LyricService {
                                 if let Ok(Some(lyrics)) = (this.update_amll(&request).await)
                                     .inspect_err(|error| {
                                         crate::infrastructure::diagnostics::warn(
-                                            "optional_success",
+                                            "lyrics.amll.refresh.fetch",
                                             error,
                                         );
                                     })
@@ -298,7 +301,7 @@ impl LyricService {
                                 if let Ok(mut pending) =
                                     (this.refreshing.lock()).inspect_err(|error| {
                                         crate::infrastructure::diagnostics::warn(
-                                            "optional_success",
+                                            "lyrics.amll.refresh.complete_lock",
                                             error,
                                         );
                                     })
@@ -323,7 +326,7 @@ impl LyricService {
             self.get_qq(&track, qq_key, skips.qrc, &separators, app.clone())
                 .await
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn("lyrics.qq.lookup", error);
                 })
                 .ok()
                 .flatten()
@@ -377,7 +380,10 @@ impl LyricService {
                         generation,
                     ))
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("self.disk.cache_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "lyrics.netease.cache.store",
+                            error,
+                        );
                     });
                     if generation != self.disk.generation() {
                         return Ok(None);
@@ -403,7 +409,7 @@ impl LyricService {
             )
             .await
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_result", error);
+                crate::infrastructure::diagnostics::warn("lyrics.netease.search.timeout", error);
             })
             .ok()
             .and_then(|result| {
@@ -439,7 +445,10 @@ impl LyricService {
                     .refreshing
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "lyrics.netease.search.refresh.pending_lock",
+                            error,
+                        );
                     })
                     .map_err(|_| "歌词状态不可用")?;
                 if refreshing.insert(key.into()) {
@@ -453,13 +462,19 @@ impl LyricService {
                             .update_searched_netease(&track, &key, &separators)
                             .await)
                             .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("optional_success", error);
+                                crate::infrastructure::diagnostics::warn(
+                                    "lyrics.netease.search.refresh.fetch",
+                                    error,
+                                );
                             })
                         {
                             this.emit_update(&track, generation, lyrics, &app);
                         }
                         if let Ok(mut pending) = (this.refreshing.lock()).inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("optional_success", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "lyrics.netease.search.refresh.complete_lock",
+                                error,
+                            );
                         }) {
                             pending.remove(&key);
                         }
@@ -482,7 +497,7 @@ impl LyricService {
             .retry_after
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.netease.search.retry_lock", error);
             })
             .map_err(|_| "歌词状态不可用")?
             .get(key)
@@ -499,7 +514,10 @@ impl LyricService {
                     generation,
                 ))
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("self.disk.cache_result", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "lyrics.netease.search.cache.store",
+                        error,
+                    );
                 });
                 if generation != self.disk.generation() {
                     return Ok(None);
@@ -507,12 +525,15 @@ impl LyricService {
                 Ok(value)
             }
             Err(error) => {
-                crate::infrastructure::diagnostics::warn("error_fallback", error);
+                crate::infrastructure::diagnostics::warn("lyrics.netease.search.fetch", error);
                 let mut retries = self
                     .retry_after
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "lyrics.netease.search.backoff_lock",
+                            error,
+                        );
                     })
                     .map_err(|_| "歌词状态不可用")?;
                 retries.retain(|_, t| *t > now_seconds());
@@ -541,7 +562,10 @@ impl LyricService {
                     .refreshing
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "lyrics.qq.refresh.pending_lock",
+                            error,
+                        );
                     })
                     .map_err(|_| "歌词状态不可用")?;
                 if refreshing.insert(key.into()) {
@@ -555,13 +579,19 @@ impl LyricService {
                             .update_qq(&track, &cache_key, skip_qrc, &separators)
                             .await)
                             .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("optional_success", error);
+                                crate::infrastructure::diagnostics::warn(
+                                    "lyrics.qq.refresh.fetch",
+                                    error,
+                                );
                             })
                         {
                             this.emit_update(&track, generation, lyrics, &app);
                         }
                         if let Ok(mut pending) = (this.refreshing.lock()).inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("optional_success", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "lyrics.qq.refresh.complete_lock",
+                                error,
+                            );
                         }) {
                             pending.remove(&cache_key);
                         }
@@ -585,7 +615,7 @@ impl LyricService {
             .retry_after
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.qq.retry_lock", error);
             })
             .map_err(|_| "歌词状态不可用")?
             .get(key)
@@ -602,7 +632,7 @@ impl LyricService {
                     generation,
                 ))
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("self.disk.cache_result", error);
+                    crate::infrastructure::diagnostics::warn("lyrics.qq.cache.store", error);
                 });
                 if generation != self.disk.generation() {
                     return Ok(None);
@@ -610,12 +640,12 @@ impl LyricService {
                 Ok(value)
             }
             Err(error) => {
-                crate::infrastructure::diagnostics::warn("error_fallback", error);
+                crate::infrastructure::diagnostics::warn("lyrics.qq.fetch", error);
                 let mut retries = self
                     .retry_after
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn("lyrics.qq.backoff_lock", error);
                     })
                     .map_err(|_| "歌词状态不可用")?;
                 retries.retain(|_, t| *t > now_seconds());
@@ -634,7 +664,7 @@ impl LyricService {
             .retry_after
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.amll.retry_lock", error);
             })
             .map_err(|_| "歌词状态不可用")?
             .get(&key)
@@ -648,7 +678,7 @@ impl LyricService {
                     .disk
                     .cache_result(&key, Some(&lyrics), FOUND_TTL, generation))
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("self .disk .cache_result", error);
+                    crate::infrastructure::diagnostics::warn("lyrics.amll.cache.store", error);
                 });
                 if generation != self.disk.generation() {
                     return Ok(None);
@@ -658,7 +688,10 @@ impl LyricService {
             Lookup::Missing => {
                 let _ = (self.disk.cache_result(&key, None, MISS_TTL, generation)).inspect_err(
                     |error| {
-                        crate::infrastructure::diagnostics::warn("self.disk.cache_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "lyrics.amll.cache.store_absence",
+                            error,
+                        );
                     },
                 );
                 Ok(None)
@@ -668,7 +701,7 @@ impl LyricService {
                     .retry_after
                     .lock()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn("lyrics.amll.backoff_lock", error);
                     })
                     .map_err(|_| "歌词状态不可用")?;
                 retries.retain(|_, t| *t > now_seconds());

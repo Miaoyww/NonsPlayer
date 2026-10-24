@@ -68,7 +68,7 @@ impl Sockets {
         }
         let mut url = url::Url::parse(&input)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("websocket.url.parse", error);
             })
             .map_err(|_| "WebSocket 地址无效")?;
         if url.scheme() != "wss" {
@@ -88,7 +88,7 @@ impl Sockets {
             .next
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |id| id.checked_add(1))
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("websocket.handle.allocate", error);
             })
             .map_err(|_| "WebSocket 句柄耗尽")?;
         let socket = tokio::time::timeout(Duration::from_millis(timeout_ms as u64), async {
@@ -97,13 +97,13 @@ impl Sockets {
             let tcp = tokio::net::TcpStream::connect(addresses.as_slice())
                 .await
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("websocket.tcp.connect", error);
                 })
                 .map_err(|_| "WebSocket 连接失败")?;
             if !public_ip(
                 tcp.peer_addr()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn("websocket.peer.verify", error);
                     })
                     .map_err(|_| "WebSocket 目标不可验证")?
                     .ip(),
@@ -113,7 +113,7 @@ impl Sockets {
             let mut request = input
                 .into_client_request()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("websocket.handshake.request", error);
                 })
                 .map_err(|_| "WebSocket 握手参数无效")?;
             if !protocol.is_empty() {
@@ -122,7 +122,10 @@ impl Sockets {
                     protocol
                         .parse()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "websocket.protocol.parse",
+                                error,
+                            );
                         })
                         .map_err(|_| "WebSocket 子协议无效")?,
                 );
@@ -136,7 +139,7 @@ impl Sockets {
                 tokio_tungstenite::client_async_tls_with_config(request, tcp, Some(config), None)
                     .await
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn("websocket.tls.handshake", error);
                     })
                     .map_err(|_| "WebSocket TLS 或握手失败")?;
             if !protocol.is_empty()
@@ -146,7 +149,10 @@ impl Sockets {
                     .and_then(|v| {
                         v.to_str()
                             .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("optional_result", error);
+                                crate::infrastructure::diagnostics::warn(
+                                    "websocket.protocol.response",
+                                    error,
+                                );
                             })
                             .ok()
                     })
@@ -158,7 +164,7 @@ impl Sockets {
         })
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("websocket.connect.timeout", error);
         })
         .map_err(|_| "WebSocket 连接超时")??;
         let (commands, mut command_rx) = mpsc::channel(16);
@@ -207,7 +213,7 @@ impl Sockets {
             .commands
             .try_send(Command::Send(bytes))
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("websocket.send.enqueue", error);
             })
             .map_err(|_| "WebSocket 已关闭或发送队列已满".into())
     }

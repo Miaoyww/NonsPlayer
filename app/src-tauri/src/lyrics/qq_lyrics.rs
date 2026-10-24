@@ -106,7 +106,7 @@ pub async fn lookup(
     )
     .await
     .inspect_err(|error| {
-        crate::infrastructure::diagnostics::warn("translate_error", error);
+        crate::infrastructure::diagnostics::warn_error("lyrics.qq.search.timeout", error);
     })
     .map_err(|_| "QQ 歌词查询超时".to_string())?
 }
@@ -141,7 +141,7 @@ async fn lookup_inner(
         let response = match read_json(request).await.and_then(candidates) {
             Ok(value) => value,
             Err(error) => {
-                crate::infrastructure::diagnostics::warn("error_fallback", error);
+                crate::infrastructure::diagnostics::warn("lyrics.qq.search.request", error);
                 failed = true;
                 continue;
             }
@@ -290,7 +290,7 @@ async fn fetch_candidate(
         .await)
             .inspect_err(|error| {
                 failed = true;
-                crate::infrastructure::diagnostics::warn("optional_success", error);
+                crate::infrastructure::diagnostics::warn_error("lyrics.qq.qrc.timeout", error);
             })
         {
             if lyrics.translation.is_some() {
@@ -316,7 +316,7 @@ async fn fetch_candidate(
         .await
         .inspect_err(|error| {
             failed = true;
-            crate::infrastructure::diagnostics::warn("optional_result", error);
+            crate::infrastructure::diagnostics::warn_error("lyrics.qq.play_lyric.timeout", error);
         })
         .ok()
         .and_then(|result| {
@@ -486,7 +486,7 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
         match reader
             .read_event()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn_error("lyrics.qq.qrc.parse_xml", error);
             })
             .map_err(|_| "QQ QRC 响应 XML 无效")?
         {
@@ -503,7 +503,10 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
                     let text = e
                         .decode()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn_error(
+                                "lyrics.qq.qrc.decode_cdata",
+                                error,
+                            );
                         })
                         .map_err(|_| "QQ QRC 字段编码无效")?;
                     match field {
@@ -518,7 +521,10 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
                     let text = e
                         .xml_content()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("translate_error", error);
+                            crate::infrastructure::diagnostics::warn_error(
+                                "lyrics.qq.qrc.decode_text",
+                                error,
+                            );
                         })
                         .map_err(|_| "QQ QRC 字段编码无效")?;
                     match field {
@@ -549,7 +555,10 @@ fn decode_qrc_response(response: &str) -> AppResult<Option<Lyrics>> {
             .then(|| {
                 decode_qrc_field(text)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "lyrics.qq.qrc.decode_auxiliary",
+                            error,
+                        );
                     })
                     .ok()
             })
@@ -604,12 +613,15 @@ fn decode_lyrics(value: Value) -> AppResult<Option<Lyrics>> {
         let bytes = STANDARD
             .decode(text)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn_error(
+                    "lyrics.qq.lrc.decode_base64",
+                    error,
+                );
             })
             .map_err(|_| "QQ 歌词编码无效")?;
         let text = String::from_utf8(bytes)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn_error("lyrics.qq.lrc.decode_utf8", error);
             })
             .map_err(|_| "QQ 歌词编码无效")?;
         Ok((!text.trim().is_empty()).then_some(text))

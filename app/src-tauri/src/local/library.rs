@@ -52,7 +52,10 @@ pub fn import(
         .filter_map(|e| {
             e.metadata()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn_error(
+                        "local.cover_budget.read_metadata",
+                        error,
+                    );
                 })
                 .ok()
         })
@@ -111,7 +114,10 @@ pub fn import(
             let entry = match entry {
                 Ok(e) => e,
                 Err(error) => {
-                    crate::infrastructure::diagnostics::warn("error_fallback", error);
+                    crate::infrastructure::diagnostics::warn_error(
+                        "local.scan.walk_directory",
+                        &error,
+                    );
                     report.skipped += 1;
                     complete = false;
                     continue;
@@ -121,7 +127,10 @@ pub fn import(
                 continue;
             }
             if let Ok(path) = (entry.path().canonicalize()).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("optional_success", error);
+                crate::infrastructure::diagnostics::warn_error(
+                    "local.scan.canonicalize_audio",
+                    error,
+                );
             }) {
                 let path = path
                     .to_string_lossy()
@@ -234,7 +243,7 @@ pub(super) fn read_track(
     let path = path
         .canonicalize()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn_error("local.import.canonicalize", error);
         })
         .map_err(|_| "文件路径不可用")?;
     let path = path
@@ -248,7 +257,7 @@ pub(super) fn read_track(
         && store.has_local_information(&key)?
     {
         if let Ok(track) = (store.track(&key)).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("local.import.read_cached_track", error);
         }) {
             return Ok(track);
         }
@@ -284,7 +293,7 @@ pub(super) fn read_track(
     let netease_id = store
         .track(&key)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_result", error);
+            crate::infrastructure::diagnostics::warn("local.import.restore_lyric_binding", error);
         })
         .ok()
         .and_then(|t| t.netease_id())

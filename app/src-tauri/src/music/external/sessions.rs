@@ -40,7 +40,7 @@ impl Sessions {
     }
     pub fn cancel(&self, key: &str) {
         if let Ok(mut slots) = (self.slots.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("adapter.login_cancel_lock", error);
         }) {
             if let Some(slot) = slots.remove(key) {
                 slot.close();
@@ -49,7 +49,7 @@ impl Sessions {
     }
     pub fn revoke(&self) {
         if let Ok(mut slots) = (self.slots.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("adapter.login_revoke_lock", error);
         }) {
             for slot in slots.values() {
                 slot.close();
@@ -61,7 +61,7 @@ impl Sessions {
         self.slots
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.login_lookup_lock", error);
             })
             .map_err(|_| ErrorCode::Internal)?
             .get(key)
@@ -120,7 +120,7 @@ impl Sessions {
                     let arguments = value.to_string();
                     tokio::select! {
                         result = runtime.call("runtime:event", &arguments) => {
-                            match result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("optional_result", error); }).ok().and_then(|reply| serde_json::from_str::<Reply<serde_json::Value>>(&reply).inspect_err(|error| { crate::infrastructure::diagnostics::warn("optional_result", error); }).ok()) {
+                            match result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("adapter.login_event_call", error); }).ok().and_then(|reply| serde_json::from_str::<Reply<serde_json::Value>>(&reply).inspect_err(|error| { crate::infrastructure::diagnostics::warn("adapter.login_event_reply_decode", error); }).ok()) {
                                 Some(Reply::Ok(_)) => {},
                                 Some(Reply::Error(error)) => {
                                     crate::infrastructure::diagnostics::warn("login.runtime_event", error);
@@ -158,7 +158,7 @@ impl ExternalAdapter {
                     .clone()
                     .try_acquire_owned()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn("adapter.login_admission", error);
                     })
                     .map_err(|_| ErrorCode::RateLimited)?;
                 let host = host::Context::new(services, context.clone(), true);
@@ -184,7 +184,10 @@ impl ExternalAdapter {
                     })?;
                 match serde_json::from_str::<Reply<()>>(&preparation)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "adapter.login_prepare_reply_decode",
+                            error,
+                        );
                     })
                     .map_err(|_| ErrorCode::InvalidData)?
                 {
@@ -200,7 +203,10 @@ impl ExternalAdapter {
                     })?;
                 let presentation = match serde_json::from_str::<Reply<AccountPresentation>>(&reply)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "adapter.login_start_reply_decode",
+                            error,
+                        );
                     })
                     .map_err(|_| ErrorCode::InvalidData)?
                 {
@@ -238,7 +244,10 @@ impl ExternalAdapter {
                 slot.host
                     .renew(context.clone())
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "adapter.login_context_renew",
+                            error,
+                        );
                     })
                     .map_err(|_| ErrorCode::StaleContext)?;
                 let mut runtime = slot.runtime.lock().await;
@@ -251,7 +260,10 @@ impl ExternalAdapter {
                     })?;
                 let presentation = match serde_json::from_str::<Reply<AccountPresentation>>(&reply)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("translate_error", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "adapter.login_poll_reply_decode",
+                            error,
+                        );
                     })
                     .map_err(|_| ErrorCode::InvalidData)?
                 {

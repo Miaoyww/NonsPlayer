@@ -14,7 +14,10 @@ pub async fn pick(context: &super::capability::Context, args: &Value) -> AppResu
     let extensions: Vec<String> = if let Some(value) = args.get("extensions") {
         serde_json::from_value(value.clone())
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.audio.pick.parse_extensions",
+                    error,
+                );
             })
             .map_err(|_| "音频筛选扩展名无效")?
     } else {

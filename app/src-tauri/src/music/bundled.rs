@@ -30,20 +30,20 @@ pub(crate) fn prepare_components(
     log::info!(target: "nons::adapter", "load_components_start directory={}", directory.display());
     let packages = std::fs::read_dir(directory)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("adapter.discovery_directory", error);
         })
         .map_err(|_| "随包适配器目录不可读")?;
     let mut prepared = Vec::new();
     for package in packages {
         let package = package
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.discovery_entry", error);
             })
             .map_err(|_| "随包适配器目录项不可读")?;
         if !package
             .file_type()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.discovery_type", error);
             })
             .map_err(|_| "随包适配器类型不可读")?
             .is_dir()
@@ -55,13 +55,13 @@ pub(crate) fn prepare_components(
         let mut bytes = Vec::new();
         std::fs::File::open(directory.join("manifest.json"))
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.manifest_open", error);
             })
             .map_err(|_| "随包适配器描述缺失")?
             .take(16385)
             .read_to_end(&mut bytes)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.manifest_read", error);
             })
             .map_err(|_| "随包适配器描述不可读")?;
         if bytes.len() > 16384 {
@@ -69,7 +69,7 @@ pub(crate) fn prepare_components(
         }
         let package: ComponentPackage = serde_json::from_slice(&bytes)
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("adapter.manifest_decode", error);
             })
             .map_err(|_| "随包适配器描述无效")?;
         match (&package.descriptor, &package.resource_provider) {

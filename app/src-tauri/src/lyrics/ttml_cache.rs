@@ -137,7 +137,10 @@ impl TtmlCache {
             .and_then(|s| {
                 serde_json::from_str::<CacheOptions>(&s)
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn_error(
+                            "lyrics.cache.load_options.decode",
+                            error,
+                        );
                     })
                     .ok()
             })
@@ -159,7 +162,7 @@ impl TtmlCache {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.cache.status.lock", error);
             })
             .map_err(|_| "缓存锁不可用")?;
         let (used_bytes, entries) = state
@@ -181,7 +184,7 @@ impl TtmlCache {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.cache.get.lock", error);
             })
             .map_err(|_| "缓存锁不可用")?;
         if !state.options.enabled {
@@ -229,7 +232,7 @@ impl TtmlCache {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.cache.set_setting.lock", error);
             })
             .map_err(|_| "缓存锁不可用")?;
         self.store.set_setting(name, value)?;
@@ -247,7 +250,7 @@ impl TtmlCache {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.cache.store.lock", error);
             })
             .map_err(|_| "缓存锁不可用")?;
         if state.generation != generation {
@@ -266,7 +269,7 @@ impl TtmlCache {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.cache.refresh.lock", error);
             })
             .map_err(|_| "缓存锁不可用")?;
         state.generation += 1;
@@ -274,7 +277,10 @@ impl TtmlCache {
             self.store.invalidate_lyrics(key)?;
             // A broken disk index must not prevent refreshing online sources.
             let _ = (remove(&state, key)).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("remove", error);
+                crate::infrastructure::diagnostics::warn(
+                    "lyrics.cache.refresh.remove_entry",
+                    error,
+                );
             });
         }
         Ok(())
@@ -284,7 +290,7 @@ impl TtmlCache {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.cache.clear.lock", error);
             })
             .map_err(|_| "缓存锁不可用")?;
         state.generation += 1;
@@ -314,7 +320,7 @@ impl TtmlCache {
             .state
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("lyrics.cache.configure.lock", error);
             })
             .map_err(|_| "缓存锁不可用")?;
         let mut next = open_state(options)?;
@@ -353,7 +359,10 @@ impl TtmlCache {
             let previous = std::mem::replace(&mut *state, next);
             for (key, _, _) in &rows {
                 let _ = (remove(&previous, key)).inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("remove", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "lyrics.cache.configure.remove_previous_entry",
+                        error,
+                    );
                 });
             }
         } else {
@@ -373,13 +382,13 @@ fn read_content(path: &Path) -> Option<String> {
     let mut content = String::new();
     std::fs::File::open(path)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_result", error);
+            crate::infrastructure::diagnostics::warn_error("lyrics.cache.read_content.open", error);
         })
         .ok()?
         .take((MAX_LYRIC_BYTES + 1) as u64)
         .read_to_string(&mut content)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_result", error);
+            crate::infrastructure::diagnostics::warn_error("lyrics.cache.read_content.read", error);
         })
         .ok()?;
     valid_ttml(&content).then_some(content)

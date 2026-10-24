@@ -69,7 +69,7 @@ impl Updates {
             .inner
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("updates.snapshot.lock", error);
             })
             .map_err(|_| "更新状态锁不可用")?
             .snapshot
@@ -77,7 +77,7 @@ impl Updates {
     }
     pub fn cleanup(&self) {
         if let Ok(mut inner) = (self.inner.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("updates.cleanup.lock", error);
         }) {
             inner.package.take();
         }
@@ -91,7 +91,7 @@ impl Updates {
             .inner
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("updates.change.lock", error);
             })
             .map_err(|_| "更新状态锁不可用")?;
         change(&mut inner);
@@ -113,7 +113,7 @@ impl Updates {
             inner.snapshot.error = Some(error.into());
         }))
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("self.change", error);
+            crate::infrastructure::diagnostics::warn("updates.publish_state", error);
         });
     }
     pub async fn check(&self, app: &tauri::AppHandle) -> AppResult<Snapshot> {
@@ -121,7 +121,7 @@ impl Updates {
             .operation
             .try_lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("updates.check.admission", error);
             })
             .map_err(|_| "正在处理更新，请稍后重试")?;
         if !self.snapshot()?.supported {
@@ -150,7 +150,7 @@ impl Updates {
                 inner.update = update;
             }),
             Err(error) => {
-                crate::infrastructure::diagnostics::warn("error_fallback", error);
+                crate::infrastructure::diagnostics::warn("updates.check.fallback_exhausted", error);
                 let message = "检查更新失败：下载镜像和 GitHub 均不可用，请稍后重试。";
                 self.fail(app, message);
                 Err(message.into())
@@ -168,7 +168,7 @@ impl Updates {
             .operation
             .try_lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("updates.download.admission", error);
             })
             .map_err(|_| "正在处理更新，请稍后重试")?;
         let (mut update, source) = {
@@ -176,7 +176,7 @@ impl Updates {
                 .inner
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("updates.download.state_lock", error);
                 })
                 .map_err(|_| "更新状态锁不可用")?;
             if inner.snapshot.portable {
@@ -198,7 +198,10 @@ impl Updates {
             let bytes = match self.download_from(app, &mut update).await {
                 Ok(bytes) => bytes,
                 Err(error) if source == "r2" => {
-                    crate::infrastructure::diagnostics::warn("error_fallback", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "updates.download.mirror_fallback",
+                        error,
+                    );
                     let fallback = fetch(app, GITHUB).await?.ok_or("GitHub 未提供该更新")?;
                     if update.version != fallback.version {
                         return Err("GitHub 与镜像的版本不一致，请重新检查更新".into());
@@ -226,7 +229,10 @@ impl Updates {
                 })
                 .await
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "updates.download.persist_join",
+                        error,
+                    );
                 })
                 .map_err(|_| "更新文件写入任务失败")??;
             self.change(app, |inner| {
@@ -269,7 +275,7 @@ impl Updates {
                         inner.snapshot.total = total;
                     }))
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("self.change", error);
+                        crate::infrastructure::diagnostics::warn("updates.publish_state", error);
                     });
                     last = Instant::now();
                 }
@@ -279,7 +285,7 @@ impl Updates {
         let bytes = tokio::select! {
             biased;
             _ = limit.notified() => return Err("更新包超过 512MiB 上限".into()),
-            result = download => result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "更新下载或签名验证失败")?
+            result = download => result.inspect_err(|error| { crate::infrastructure::diagnostics::warn("updates.download.verify", error); }).map_err(|_| "更新下载或签名验证失败")?
         };
         if bytes.len() as u64 > MAX_BYTES {
             return Err("更新包超过 512MiB 上限".into());
@@ -297,7 +303,7 @@ async fn fetch(app: &tauri::AppHandle, endpoint: &str) -> AppResult<Option<Updat
         .endpoints(vec![endpoint
             .parse()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("updates.endpoint.parse", error);
             })
             .map_err(|_| "更新地址无效")?])
         .map_err(|e| e.to_string())?

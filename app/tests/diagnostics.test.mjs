@@ -4,7 +4,11 @@ import { test } from 'node:test'
 import { runInThisContext } from 'node:vm'
 import ts from 'typescript'
 
-function harness(failLog = false, holdLogs = false) {
+function harness(
+  failLog = false,
+  holdLogs = false,
+  ipcFailure = { code: 'internal', message: 'database table missing', stage: 'save_queue_tracks' }
+) {
   const calls = [],
     consoleLogs = [],
     completions = [],
@@ -29,7 +33,7 @@ function harness(failLog = false, holdLogs = false) {
           if (holdLogs) await new Promise((resolve) => completions.push(resolve))
           return
         }
-        throw { code: 'internal', message: 'database table missing', stage: 'save_queue_tracks' }
+        throw ipcFailure
       }
     }),
     Object.fromEntries(
@@ -39,6 +43,19 @@ function harness(failLog = false, holdLogs = false) {
   )
   return { ...exports, calls, consoleLogs, handlers, completions }
 }
+
+test('native string failures keep one diagnostic identity through recovery boundaries', async () => {
+  const app = harness(false, false, '封面文件过大')
+  await assert.rejects(app.diagnosticInvoke('runtime_cover'), (error) => {
+    assert.ok(error instanceof Error)
+    assert.equal(error.message, '封面文件过大')
+    app.reportCaughtError('cache.get', error)
+    app.reportCaughtError('cover.load', error)
+    return true
+  })
+  assert.equal(app.calls.filter((call) => call.command === 'diagnostic_report').length, 1)
+  assert.match(app.calls.at(-1).args.entry.message, /封面文件过大/)
+})
 
 test('caught errors keep the original cause, deduplicate recovery boundaries and classify expected retries', async () => {
   const app = harness()

@@ -378,9 +378,12 @@ pub fn decrypt(hex_text: &str) -> AppResult<String> {
         return Err("QRC 密文过大".into());
     }
     let hex_text: String = hex_text.chars().filter(|c| !c.is_whitespace()).collect();
-    let mut data = hex::decode(hex_text)
+    let mut data = hex::decode(&hex_text)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn(
+                "lyrics.qq.qrc.decode_hex",
+                format_args!("encoded_bytes={} error={error}", hex_text.len()),
+            );
         })
         .map_err(|_| "QRC 密文无效")?;
     if data.is_empty() || data.len() % 8 != 0 {
@@ -397,7 +400,13 @@ pub fn decrypt(hex_text: &str) -> AppResult<String> {
         .take(MAX_LYRIC_BYTES as u64 + 1)
         .read_to_end(&mut decoded)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn(
+                "lyrics.qq.qrc.decompress",
+                format_args!(
+                    "compressed_bytes={} limit_bytes={MAX_LYRIC_BYTES} error={error}",
+                    data.len()
+                ),
+            );
         })
         .map_err(|_| "QRC 解压失败")?;
     if decoded.len() > MAX_LYRIC_BYTES {
@@ -405,7 +414,7 @@ pub fn decrypt(hex_text: &str) -> AppResult<String> {
     }
     let text = String::from_utf8(decoded)
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn_error("lyrics.qq.qrc.decode_utf8", error);
         })
         .map_err(|_| "QRC 编码无效")?;
     Ok(text.trim_start_matches('\u{feff}').to_owned())

@@ -39,7 +39,7 @@ pub fn preferences(store: &Store) -> AppResult<LocalPreferences> {
             .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("local.preferences.read.db_lock", error);
             })
             .map_err(|_| "曲库锁不可用")?;
         options_from_db(&db)
@@ -123,7 +123,7 @@ impl Store {
         self.0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("local.metadata.exists.db_lock", error);
             })
             .map_err(|_| "曲库锁不可用")?
             .query_row(
@@ -134,7 +134,7 @@ impl Store {
             .map_err(|e| e.to_string())
     }
     pub fn save_local_information(&self, key: &str, value: &LocalInformation) -> AppResult<()> {
-        self.0.lock().inspect_err(|error| { crate::infrastructure::diagnostics::warn("translate_error", error); }).map_err(|_| "曲库锁不可用")?.execute("INSERT INTO local_metadata(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key, serde_json::to_string(value).map_err(|e| e.to_string())?]).map_err(|e| e.to_string())?;
+        self.0.lock().inspect_err(|error| { crate::infrastructure::diagnostics::warn("local.metadata.save.db_lock", error); }).map_err(|_| "曲库锁不可用")?.execute("INSERT INTO local_metadata(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key, serde_json::to_string(value).map_err(|e| e.to_string())?]).map_err(|e| e.to_string())?;
         Ok(())
     }
     pub fn configure_local_preferences(&self, options: &LocalPreferences) -> AppResult<()> {
@@ -142,7 +142,10 @@ impl Store {
             .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "local.preferences.configure.db_lock",
+                    error,
+                );
             })
             .map_err(|_| "曲库锁不可用")?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
@@ -187,7 +190,10 @@ pub fn index_track(db: &Connection, track: &Track, options: &LocalPreferences) -
         .and_then(|s| {
             serde_json::from_str::<LocalInformation>(&s)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn_error(
+                        "local.index.decode_metadata",
+                        error,
+                    );
                 })
                 .ok()
         })
@@ -271,7 +277,7 @@ fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> App
         .0
         .lock()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("local.entities.list.db_lock", error);
         })
         .map_err(|_| "曲库锁不可用")?;
     let sql = "SELECT e.id,e.kind,e.name,e.cover,e.subtitle,COUNT(t.key) FROM local_entities e JOIN local_members m ON m.kind=e.kind AND m.id=e.id JOIN visible_local_tracks t ON t.key=m.key AND t.source='local' WHERE e.kind=?1 AND instr(lower(e.name),lower(?2))>0 GROUP BY e.kind,e.id ORDER BY e.name,e.id LIMIT 31 OFFSET ?3";
@@ -327,7 +333,7 @@ fn entity_detail(store: &Store, kind: String, id: String) -> AppResult<LocalEnti
         .0
         .lock()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("local.entities.detail.db_lock", error);
         })
         .map_err(|_| "曲库锁不可用")?;
     let id = resolve_entity_id(&db, &kind, id)?;
@@ -376,7 +382,7 @@ fn entity_tracks(
         .0
         .lock()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("local.entities.tracks.db_lock", error);
         })
         .map_err(|_| "曲库锁不可用")?;
     let id = resolve_entity_id(&db, &kind, id)?;
@@ -462,7 +468,7 @@ pub async fn set_local_preferences(
         serde_json::json!({"scanning":false}),
     ))
     .inspect_err(|error| {
-        crate::infrastructure::diagnostics::warn("app.emit", error);
+        crate::infrastructure::diagnostics::warn("local.preferences.changed.emit", error);
     });
     Ok(())
 }
@@ -562,7 +568,7 @@ fn emit_library_change(app: &tauri::AppHandle) {
         serde_json::json!({"scanning":false}),
     ))
     .inspect_err(|error| {
-        crate::infrastructure::diagnostics::warn("app.emit", error);
+        crate::infrastructure::diagnostics::warn("local.library.changed.emit", error);
     });
 }
 

@@ -222,12 +222,18 @@ impl PluginManager {
                         .app
                         .emit("plugin-config-changed", serde_json::json!({"pluginId":id})))
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("manager .app .emit", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "plugins.clipboard.emit_changed",
+                            error,
+                        );
                     });
                     let target = manager
                         .lock()
                         .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn("optional_result", error);
+                            crate::infrastructure::diagnostics::warn(
+                                "plugins.config_changed.lookup_runtime",
+                                error,
+                            );
                         })
                         .ok()
                         .and_then(|r| {
@@ -238,15 +244,18 @@ impl PluginManager {
                     if let Some(generation) = target {
                         if let Ok(snapshot) =
                             (manager.configurations.snapshot(&id)).inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn("optional_success", error);
+                                crate::infrastructure::diagnostics::warn(
+                                    "plugins.config_changed.read_snapshot",
+                                    error,
+                                );
                             })
                         {
                             if let Ok(args) = (serde_json::to_string(
                                 &serde_json::json!({"revision":snapshot.revision,"pendingReload":snapshot.pending_reload}),
-                            )).inspect_err(|error| { crate::infrastructure::diagnostics::warn("optional_success", error); }) {
+                            )).inspect_err(|error| { crate::infrastructure::diagnostics::warn("plugins.config_changed.serialize_event", error); }) {
                                 let _ = (manager
                                     .invoke(&id, generation, "event:config-changed", &args)
-                                    .await).inspect_err(|error| { crate::infrastructure::diagnostics::warn("manager .invoke", error); });
+                                    .await).inspect_err(|error| { crate::infrastructure::diagnostics::warn("plugins.config_changed.invoke", error); });
                             }
                         }
                     }
@@ -281,7 +290,7 @@ impl PluginManager {
         self.records
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.registry.lock", error);
             })
             .map_err(|_| "插件注册表不可用".into())
     }
@@ -368,7 +377,7 @@ impl PluginManager {
     }
     pub async fn startup(self: &Arc<Self>) {
         if let Ok(plugins) = (self.list()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("plugins.startup.list", error);
         }) {
             for plugin in plugins {
                 if plugin.enabled {
@@ -417,7 +426,7 @@ impl PluginManager {
             .engine
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.engine.lock", error);
             })
             .map_err(|_| "WASM Engine 不可用")?;
         if engine.is_none() {
@@ -654,12 +663,13 @@ impl PluginManager {
         args: &str,
     ) -> AppResult<String> {
         let context = self.scoped(id, generation)?;
+        let started = std::time::Instant::now();
         let _permit = context
             .requests
             .clone()
             .try_acquire_owned()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.invoke.admission", error);
             })
             .map_err(|_| "插件调用过于频繁")?;
         let runtime = self
@@ -680,7 +690,7 @@ impl PluginManager {
         })
         .await
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("plugins.invoke.queue_timeout", error);
         })
         .map_err(|_| "插件调用队列超时".to_string())
         .and_then(|r| r);
@@ -689,7 +699,10 @@ impl PluginManager {
                 context.check(None)?;
                 Ok(value)
             }
-            Err(error) => Err(error),
+            Err(error) => {
+                log::warn!(target: "nons::plugins", "operation=plugins.invoke stage=backend_call plugin={} generation={} method={} elapsed_ms={} reason={}", id, generation, crate::infrastructure::diagnostics::redact(method), started.elapsed().as_millis(), error);
+                Err(error)
+            }
         }
     }
     pub fn fault(self: &Arc<Self>, id: &str, generation: u64, error: &str) -> AppResult<()> {
@@ -733,7 +746,10 @@ impl PluginManager {
             .watcher
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.clipboard.sync_watcher.lock",
+                    error,
+                );
             })
             .map_err(|_| "剪贴板监听不可用")?;
         if self.has_clipboard_subscribers() && watcher.is_none() {
@@ -750,7 +766,7 @@ impl PluginManager {
                 .engine
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn("plugins.engine.release.lock", error);
                 })
                 .map_err(|_| "WASM Engine 不可用")? = None;
         }
@@ -800,7 +816,7 @@ impl PluginManager {
                 )
                 .await)
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("self .invoke", error);
+                    crate::infrastructure::diagnostics::warn("plugins.event.invoke", error);
                 });
         }
     }
@@ -815,7 +831,7 @@ impl PluginManager {
         let decoded = percent_encoding::percent_decode_str(uri.path())
             .decode_utf8()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn("plugins.asset.decode_path", error);
             })
             .map_err(|_| "插件资源编码无效")?;
         let path = decoded.trim_start_matches('/');
@@ -826,7 +842,10 @@ impl PluginManager {
             .and_then(|v| {
                 v.parse::<u64>()
                     .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("optional_result", error);
+                        crate::infrastructure::diagnostics::warn(
+                            "plugins.asset.parse_generation",
+                            error,
+                        );
                     })
                     .ok()
             })
@@ -875,7 +894,7 @@ impl PluginManager {
     pub fn stop(&self) {
         self.stopped.store(true, Ordering::SeqCst);
         if let Ok(records) = (self.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("plugins.stop.registry_lock", error);
         }) {
             for record in records.values() {
                 record.context.active.store(false, Ordering::SeqCst);
@@ -884,14 +903,14 @@ impl PluginManager {
             }
         }
         if let Ok(mut watcher) = (self.watcher.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("plugins.stop.watcher_lock", error);
         }) {
             if let Some(watcher) = watcher.take() {
                 watcher.stop();
             }
         }
         if let Ok(mut engine) = (self.engine.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("plugins.stop.engine_lock", error);
         }) {
             *engine = None;
         }
@@ -958,15 +977,18 @@ pub async fn plugin_host_call(
     manager: State<'_, Arc<PluginManager>>,
 ) -> AppResult<String> {
     let context = manager.scoped(&id, generation)?;
+    let started = std::time::Instant::now();
     let _permit = context
         .requests
         .clone()
         .try_acquire_owned()
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("translate_error", error);
+            crate::infrastructure::diagnostics::warn("plugins.host_call.admission", error);
         })
         .map_err(|_| "插件调用过于频繁")?;
-    context.call(&operation, &args).await
+    context.call(&operation, &args).await.inspect_err(|error| {
+        log::warn!(target: "nons::plugins", "operation=plugins.host_call stage=capability_call plugin={} generation={} capability={} elapsed_ms={} reason={}", id, generation, crate::infrastructure::diagnostics::redact(&operation), started.elapsed().as_millis(), error);
+    })
 }
 #[tauri::command]
 pub fn plugin_ready(
@@ -996,7 +1018,7 @@ pub fn protocol(
         .and_then(|v| {
             v.to_str()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("optional_result", error);
+                    crate::infrastructure::diagnostics::warn("plugins.asset.parse_origin", error);
                 })
                 .ok()
         })

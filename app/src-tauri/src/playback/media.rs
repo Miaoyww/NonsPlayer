@@ -256,19 +256,16 @@ mod tests {
 impl Drop for MediaControls {
     fn drop(&mut self) {
         let _ = (self.controls.RemoveButtonPressed(self.button_token)).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("self.controls.RemoveButtonPressed", error);
+            crate::infrastructure::diagnostics::warn("smtc.shutdown.unsubscribe_buttons", error);
         });
         let _ = (self
             .controls
             .RemovePlaybackPositionChangeRequested(self.seek_token))
         .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn(
-                "self .controls .RemovePlaybackPositionChangeRequested",
-                error,
-            );
+            crate::infrastructure::diagnostics::warn("smtc.shutdown.unsubscribe_seek", error);
         });
         let _ = (self.controls.SetIsEnabled(false)).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("self.controls.SetIsEnabled", error);
+            crate::infrastructure::diagnostics::warn("smtc.shutdown.disable", error);
         });
         // Controls are released after Drop; balancing COM while references remain
         // would be premature. The owning thread exits immediately afterwards.

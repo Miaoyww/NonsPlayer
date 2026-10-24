@@ -299,7 +299,10 @@ impl Configurations {
             .entries
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.configuration.register.lock",
+                    error,
+                );
             })
             .map_err(|_| "配置管理器不可用")?;
         entries.remove(id);
@@ -319,7 +322,10 @@ impl Configurations {
             .entries
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.configuration.definition.lock",
+                    error,
+                );
             })
             .map_err(|_| "配置管理器不可用")?
             .get(id)
@@ -333,7 +339,10 @@ impl Configurations {
             .entries
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.configuration.snapshot.lock",
+                    error,
+                );
             })
             .map_err(|_| "配置管理器不可用")?;
         let entry = entries.get(id).ok_or("插件未声明配置")?;
@@ -360,7 +369,10 @@ impl Configurations {
             .entries
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("translate_error", error);
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.configuration.loaded.lock",
+                    error,
+                );
             })
             .map_err(|_| "配置管理器不可用")?
             .get_mut(id)
@@ -371,7 +383,7 @@ impl Configurations {
     }
     pub fn unloaded(&self, id: &str) {
         if let Ok(mut entries) = (self.entries.lock()).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("optional_success", error);
+            crate::infrastructure::diagnostics::warn("plugins.configuration.unloaded.lock", error);
         }) {
             if let Some(entry) = entries.get_mut(id) {
                 entry.baseline = None;
@@ -390,7 +402,10 @@ impl Configurations {
                 .entries
                 .lock()
                 .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("translate_error", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.configuration.change.lock",
+                        error,
+                    );
                 })
                 .map_err(|_| "配置管理器不可用")?;
             let compiled = &entries.get(id).ok_or("插件未声明配置")?.compiled;
