@@ -543,13 +543,13 @@
   border-radius: 50%;
 }
 .artist-page .library-detail-play {
-  color: var(--primary-foreground);
-  background: var(--primary);
+  color: white;
+  background: var(--library-primary);
 }
 .artist-page .library-detail-play:hover:not(:disabled) {
-  color: var(--primary-foreground);
-  background: var(--primary);
-  filter: brightness(1.08);
+  color: white;
+  background: var(--library-primary);
+  filter: brightness(0.95);
 }
 .artist-releases {
   margin-block: 48px 40px;
