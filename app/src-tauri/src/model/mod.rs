@@ -16,27 +16,9 @@ pub enum PlaybackStatus {
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum PlaybackEngine {
-    WebAudio,
-    Gstreamer,
-}
-
-impl Default for PlaybackEngine {
-    fn default() -> Self {
-        if cfg!(windows) {
-            Self::WebAudio
-        } else {
-            Self::Gstreamer
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PlaybackOptions {
     pub fades: bool,
-    pub gapless: bool,
     pub crossfade: bool,
     pub crossfade_duration_ms: u32,
 }
@@ -45,7 +27,6 @@ impl Default for PlaybackOptions {
     fn default() -> Self {
         Self {
             fades: false,
-            gapless: true,
             crossfade: false,
             crossfade_duration_ms: 3000,
         }
@@ -55,8 +36,6 @@ impl Default for PlaybackOptions {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerSnapshot {
-    #[serde(default)]
-    pub playback_engine: PlaybackEngine,
     #[serde(default)]
     pub playback_options: PlaybackOptions,
     #[serde(default)]
@@ -85,7 +64,6 @@ pub struct PlayerSnapshot {
 impl Default for PlayerSnapshot {
     fn default() -> Self {
         Self {
-            playback_engine: PlaybackEngine::default(),
             playback_options: PlaybackOptions::default(),
             shuffle: false,
             shuffle_order: Arc::default(),
@@ -359,13 +337,6 @@ pub struct Progress {
     pub position_ms: u64,
     pub duration_ms: u64,
     pub status: PlaybackStatus,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OutputDevice {
-    pub id: String,
-    pub name: String,
 }
 
 #[derive(Clone)]

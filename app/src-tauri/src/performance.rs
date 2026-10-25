@@ -41,8 +41,8 @@ fn micros() -> u64 {
     ORIGIN.get_or_init(Instant::now).elapsed().as_micros() as u64
 }
 #[cfg(feature = "performance-probe")]
-pub fn output_buffer() {
-    // No allocation, lock, file IO or IPC on the audio thread.
+pub fn browser_playing() {
+    // Timestamp the accepted browser playing feedback, including IPC delivery.
     if ARMED.swap(false, Ordering::AcqRel) {
         FIRST_OUTPUT.store(micros(), Ordering::Release);
     }
@@ -138,7 +138,7 @@ pub fn performance_probe(
             Ok(if output == 0 {
                 Value::Null
             } else {
-                json!({"firstOutputBufferMs": output.saturating_sub(REQUEST.load(Ordering::Acquire)) as f64 / 1000.0})
+                json!({"firstBrowserPlayingMs": output.saturating_sub(REQUEST.load(Ordering::Acquire)) as f64 / 1000.0})
             })
         }
         "hide" => {

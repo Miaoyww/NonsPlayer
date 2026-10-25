@@ -54,7 +54,7 @@ export default function PerformanceProbe({ openLyrics }: { openLyrics: (open: bo
             throw new Error('播放探测未就绪')
           await pause(50)
         }
-        let audio = await probe<{ firstOutputBufferMs: number } | null>('audio')
+        let audio = await probe<{ firstBrowserPlayingMs: number } | null>('audio')
         while (!audio) {
           if (performance.now() - started > 20000) throw new Error('未捕获输出 PCM')
           await pause(50)

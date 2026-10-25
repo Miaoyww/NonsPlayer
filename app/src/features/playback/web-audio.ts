@@ -6,7 +6,6 @@ export interface AudioSource {
   endMs: number | null
 }
 export interface AudioControl {
-  enabled: boolean
   serial: number
   source: string | null
   seekId: number
@@ -288,10 +287,7 @@ export function createWebAudio(
       },
       error: () => {
         if (active === voice)
-          report(
-            'error',
-            `浏览器不支持此音频或资源读取失败（${audio.error?.code ?? 0}），可尝试切换 GStreamer`
-          )
+          report('error', `浏览器不支持此音频或资源读取失败（${audio.error?.code ?? 0}）`)
         else if (nextVoice === voice) {
           nextVoice = undefined
           destroy(voice)
@@ -354,7 +350,7 @@ export function createWebAudio(
           ? Math.min(target, audio.duration)
           : target
       } catch {
-        report('error', '浏览器无法定位此音频，可尝试切换 GStreamer')
+        report('error', '浏览器无法定位此音频')
         return
       }
     }
@@ -375,7 +371,7 @@ export function createWebAudio(
       })()
         .catch(() => {
           if (active === voice && control?.playing && control.serial === command.serial)
-            report('error', '浏览器无法开始播放，可尝试切换 GStreamer')
+            report('error', '浏览器无法开始播放')
         })
         .finally(() => {
           voice.playPending = false
@@ -424,13 +420,7 @@ export function createWebAudio(
       sequence = 0
       if (!next.source) {
         release()
-        if (!next.enabled) {
-          output = undefined
-          releaseBrowserOutput()
-          device = ''
-        } else {
-          void output?.suspend().catch(onError)
-        }
+        void output?.suspend().catch(onError)
         report('stopped', undefined, previousPosition, previousSource, previousDuration)
         return
       }

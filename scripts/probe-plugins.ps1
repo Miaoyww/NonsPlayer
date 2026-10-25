@@ -11,10 +11,6 @@ if (-not $SkipBuild) {
     try { $env:CARGO_TARGET_DIR = $nonsPluginTarget; & pnpm tauri build --debug --no-bundle --features plugin-probe; if ($LASTEXITCODE -ne 0) { throw 'Plugin probe build failed.' } }
     finally { $env:CARGO_TARGET_DIR = $nonsPluginPreviousTarget; Pop-Location }
 }
-$nonsPluginGst = Join-Path $nonsPluginRoot '.local/gstreamer'
-$env:PATH = (Join-Path $nonsPluginGst 'bin') + ';' + $env:PATH
-$env:GST_PLUGIN_PATH = Join-Path $nonsPluginGst 'lib/gstreamer-1.0'
-$env:GST_PLUGIN_SCANNER = Join-Path $nonsPluginGst 'libexec/gstreamer-1.0/gst-plugin-scanner.exe'
 $nonsPluginStdout = [IO.Path]::GetTempFileName()
 $nonsPluginStderr = [IO.Path]::GetTempFileName()
 $nonsPluginProcess = $null

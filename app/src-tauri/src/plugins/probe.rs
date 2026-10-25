@@ -280,9 +280,6 @@ pub async fn plugin_probe_report(
             .is_err());
         window.eval(r#"(()=>{const start=Date.now();const poll=()=>{if(document.querySelector('[data-probe-window]')){window.__TAURI_INTERNALS__.invoke('plugin_probe_report',{phase:'window-rendered',success:true});return;}if(Date.now()-start>8000){window.__TAURI_INTERNALS__.invoke('plugin_probe_report',{phase:'window-rendered',success:false});return;}setTimeout(poll,40);};poll();})();"#).map_err(|error| error.to_string())?;
     } else if phase == "window-rendered" {
-        manager
-            .player
-            .set_engine(crate::model::PlaybackEngine::Gstreamer)?;
         app.get_window("main")
             .ok_or("主窗口缺失")?
             .hide()

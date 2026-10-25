@@ -15,8 +15,7 @@ val tauriProperties = Properties().apply {
 }
 
 android {
-    sourceSets["main"].java.srcDirs("../../../android/kotlin", "../../../../../.local/android/java")
-    sourceSets["main"].jniLibs.srcDir("../../../../../.local/android/audio/libs")
+    sourceSets["main"].java.srcDirs("../../../android/kotlin")
     compileSdk = 37
     namespace = "com.miaoyww.nons"
     signingConfigs {

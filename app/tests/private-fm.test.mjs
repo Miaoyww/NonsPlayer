@@ -174,7 +174,7 @@ test('the global player connection replenishes without mounting the discovery pa
     calls = []
   const state = {
     revision: 1,
-    playbackOptions: { fades: false, gapless: true },
+    playbackOptions: { fades: false, crossfade: false, crossfadeDurationMs: 3000 },
     privateFmSession: 7,
     queue: [1, 2, 3].map(track),
     index: 0,

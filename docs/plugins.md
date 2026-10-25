@@ -22,7 +22,7 @@ Nons 在现有播放器上增量提供 `Manifest + WASM Backend + React Frontend
 
 ## 构建与安装
 
-一次性准备：项目仍要求 Rust 1.95、Node/pnpm、Python 和原 GStreamer 开发运行时。另安装：
+一次性准备：项目仍要求 Rust 1.95、Node/pnpm、Python。另安装：
 
 ```powershell
 cargo install cargo-component --version 0.21.1 --locked
@@ -205,9 +205,9 @@ view 导出命名 React Component，并在 views 中关联导出与 `main.overla
 - IPC／事件／存储单值最多 64KiB；事件最多 32 次／秒；存储每插件 1MiB；安装最多 1024 文件、64MiB 解压总量，WASM 入口 16MiB，UI／资源单文件 8MiB。
 - SDK、元数据和资源都校验加载代次。trap／超时／资源耗尽撤销该实例，普通 Guest 业务错误保留实例。原播放队列及音频线程不承担插件执行。
 - `plugin://` 服务只允许活跃插件的前端入口、assets 和合成 Host 模块；规范化路径、拒绝链接／junction、限制类型与大小、设置 MIME、no-store 和有限 CORS。不开放通用 filesystem scope。
-- React 前端是受信任代码，与主 UI 共享 WebView。主窗口连续隐藏或最小化 30 秒后，非私人 FM 自动续播状态下会释放整个 WebView：前端任务（含前端插件的下载、计时器与临时状态）随之停止，插件 WASM 后端保留；重新打开时重新加载前端并发送 ready，剪贴板订阅在释放期间暂停。需要恢复的插件业务应通过 SDK 持久化状态。SDK 身份、存储、事件和路径约束不等于防恶意 JS 沙箱；它仍可能直接操作 DOM、调用其他可见宿主接口或自行创建副作用。单个模块的 JS／浏览器 ESM 缓存无法强制回收，主线程循环也不能由 WASM fuel 终止。只安装可信前端。
+- React 前端是受信任代码，与主 UI 共享并常驻主 WebView，以支持 WebAudio 和系统媒体控制；前端插件的下载、计时器与页面状态也会继续运行。SDK 身份、存储、事件和路径约束不等于防恶意 JS 沙箱；它仍可能直接操作 DOM、调用其他可见宿主接口或自行创建副作用。单个模块的 JS／浏览器 ESM 缓存无法强制回收，主线程循环也不能由 WASM fuel 终止。只安装可信前端。
 - Store 上限仅覆盖 guest 线性内存等资源，不代表 Wasmtime JIT、Host、WebView 或全进程内存上限。当前没有独立 WASM worker 进程、签名或权限撤销后的 JS 强制终止；频繁 reload 的 ESM 模块记录可能留在 WebView，必要时重启应用。
-- Windows 已验收；macOS/Linux 原生构建、播放与剪贴板观察尚需对应环境验证，Linux 当前为 X11 后端。Release 的 GStreamer 裁剪和打包仍沿用既有未完成状态。
+- Windows 已验收；macOS/Linux 原生构建、播放与剪贴板观察尚需对应环境验证，Linux 当前为 X11 后端。音频统一使用系统 WebView。
 
 ## Windows 子进程与独立窗口
 
@@ -254,8 +254,6 @@ await windows.update('floating', { ignoreCursorEvents: true })
 
 窗口仅访问当前插件的声明和加载代次，不接受任意 URL；每插件最多 4 个窗口、全局 16 个。主窗口隐藏或其 WebView 释放后，独立窗口继续运行并可订阅播放状态；停用、重载、实例故障、卸载和退出时关闭。隐藏窗口的插件应停止动画与非必要刷新。当前公开播放接口仍不包含歌词时间轴，独立窗口能力本身不提供桌面歌词插件。
 
-设置 → 常规 → 窗口与启动的“后台释放 WebView”默认开启：主窗口隐藏或最小化 30 秒后，在播放不需要主前端时释放主 WebView；关闭后保留主 WebView，切换立即生效并持久保存。释放的是主 WebView，独立插件窗口继续由各自生命周期管理。
-
 ## 验证
 
 准备测试 Component，再运行既有检查：
@@ -280,7 +278,7 @@ cd ..
 
 该脚本在独立的 `target/plugin-probe` 目录构建，隐藏窗口，使用独立临时插件数据库和空队列，读取现有网易云服务，自动验证 ESM 协议、React singleton、灵动岛、权限、停用及临时页面／导航。输入为合成剪贴板文本，不覆盖用户剪贴板；操作系统真实复制通知仍需手动验收。结束时清理本次探测的临时数据。该 feature 专供探测，正常构建不启用它。
 
-本机 Windows x64、Rust 1.95、GStreamer 1.28.7 的检查结果记录在 `docs/implementation.md`。开发构建体积和单次端到端时间不能代表 Release 内存／响应预算；没有据此宣称插件平台“极轻”或“极快”。
+本机 Windows x64、Rust 1.95 的检查结果记录在 `docs/implementation.md`。开发构建体积和单次端到端时间不能代表 Release 内存／响应预算；没有据此宣称插件平台“极轻”或“极快”。
 配置编辑页面、配置 API 和目录授权见 [插件配置开发](plugin-configuration.md)。
 
 ## 歌曲菜单与独立下载插件

@@ -51,9 +51,7 @@ export interface Track {
   source: TrackSource
 }
 export type PlaybackStatus = 'stopped' | 'loading' | 'playing' | 'paused' | 'buffering' | 'error'
-export type PlaybackEngine = 'webAudio' | 'gstreamer'
 export interface PlayerSnapshot {
-  playbackEngine: PlaybackEngine
   playbackSource?: {
     provider: string
     displayName: string
@@ -65,7 +63,6 @@ export interface PlayerSnapshot {
   } | null
   playbackOptions: {
     fades: boolean
-    gapless: boolean
     crossfade: boolean
     crossfadeDurationMs: number
   }
@@ -106,8 +103,7 @@ export interface OutputDevice {
 }
 
 const initialSnapshot: PlayerSnapshot = {
-  playbackEngine: 'gstreamer',
-  playbackOptions: { fades: false, gapless: true, crossfade: false, crossfadeDurationMs: 3000 },
+  playbackOptions: { fades: false, crossfade: false, crossfadeDurationMs: 3000 },
   privateFmSession: null,
   shuffle: false,
   shuffleOrder: [],
@@ -321,11 +317,7 @@ export async function connectPlayer(options: { observerOnly?: boolean } = {}): P
       })
   }
   try {
-    if (
-      !options.observerOnly &&
-      typeof navigator !== 'undefined' &&
-      /Windows/i.test(navigator.userAgent)
-    ) {
+    if (!options.observerOnly && typeof navigator !== 'undefined') {
       const { createWebAudio } = await import('@/features/playback/web-audio')
       const webAudio = createWebAudio(
         (feedback) => invoke('web_audio_feedback', { feedback }),

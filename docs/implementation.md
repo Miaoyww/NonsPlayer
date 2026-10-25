@@ -42,17 +42,12 @@ Windows x64：需要 Rust 1.95、MSVC 工具链、Node/pnpm、Python，以及 Ta
 ```powershell
 cd app
 pnpm install --frozen-lockfile
-cd ..
-python scripts/bootstrap-gstreamer.py
-cd app
 pnpm tauri dev
 ```
 
-依赖脚本从官方 PyPI 获取固定版本 1.28.7 的 GStreamer wheel，校验 SHA256 后只解压到忽略目录 `.local/gstreamer`，用现有 MSVC 工具生成 Rust 链接所需 import libraries。不会运行安装程序，也不会永久更改系统环境。此完整开发运行时（包含插件依赖包）约 303.1 MiB，包含开发工具及额外插件，不能当作最终安装包体积。
+`native.ps1 -Task check|test|clippy` 执行原生检查；`-Task build` 与 `pnpm tauri build` 共用打包入口。Cargo.lock 暂将 kstring 固定到 2.0.2；更新依赖时遵守 manifest 的 Rust 1.95 最低版本。
 
-`native.ps1 -Task check|test|clippy` 为当前进程设置原生依赖路径。Windows x64 发布打包已接入私有音频运行时，`-Task build` 与 `pnpm tauri build` 共用打包入口。Cargo.lock 暂将 kstring 固定到 2.0.2；更新依赖时遵守 manifest 的 Rust 1.95 最低版本。
-
-`pnpm tauri dev` 自动为子进程配置项目内 GStreamer 链接库、DLL 和插件路径，并启动 Vite。`pnpm dev` 只启动 WebUI 预览，无需与桌面命令同时运行。也可以在仓库根目录使用 `native.ps1 -Task dev`。
+`pnpm tauri dev` 启动桌面应用与 Vite。`pnpm dev` 只启动 WebUI 预览。所有平台统一使用 WebAudio，不需准备应用私有音频 SDK。
 
 ## 托盘与关闭主面板
 
@@ -78,18 +73,9 @@ Prettier 使用仓库根目录的配置，覆盖应用、插件、共享包、�
 
 ## Windows 发布打包
 
-在 `app` 目录执行 `pnpm tauri build`。首次构建先运行 `python scripts/bootstrap-gstreamer.py`，已引导的旧工作区也需重跑以补齐 `gstreamer_plugins_libs`。构建脚本使用已有 MSVC `dumpbin` 递归收集 DLL 依赖，生成 `.local/gstreamer-bundle/root`；Windows 专用 Tauri 配置将核心 DLL 放在安装目录的 EXE 旁，音频插件与扫描器位于 `runtime/`。同一布局也复制到 Cargo 输出目录，因此 `target/release/Nons.exe` 可直接启动；分发便携版时必须携带整个运行时，不能只复制 EXE。
+在 `app` 目录执行 `pnpm tauri build`，生成 MSI 与 NSIS 安装包。Windows 资源映射包含随包插件，不包含私有音频运行时。便携 ZIP 由 `scripts/release.py` 从同次构建的主程序与资源生成；目标系统需具备 WebView2 Runtime。
 
-当前选择 24 个播放、解析、音频解码与 Windows 输出插件；其间接依赖仍包含 FFmpeg 的共用库。遗漏核心文件或非系统间接 DLL 时构建立即失败，不生成缺件安装包。应用在 GStreamer 初始化前选择私有插件目录与扫描器，覆盖继承的 SDK 路径；扫描器使用 EXE 旁的 DLL，插件注册缓存独立位于应用缓存目录。这是原生插件元数据缓存，非歌曲或歌词资源缓存；更换运行时后由 GStreamer 按插件路径与文件时间重新扫描。
-
-验收命令：
-
-```powershell
-python -m unittest discover -s scripts/tests
-python scripts/smoke-audio-runtime.py app/src-tauri/target/release
-```
-
-Windows x64、GStreamer 1.28.7：裁剪内容实测约 34.0 MiB（文件字节总和，非安装包或内存占用），59 个原生文件；清空 SDK 路径后验证 14 个音频工厂、WAV/FLAC/MP3/AAC/Vorbis/Opus 解码与静音输出。Release NSIS 构建通过，安装包约 17.60 MiB，安装脚本已核对包含全部运行时文件；尚未在无 SDK 的另一台机器上安装验收。macOS/Linux 沿用平台 GStreamer SDK，本次未验证其发布打包。
+构建脚本回归：`python -m unittest discover -s scripts/tests`。各平台实际格式与输出行为需通过系统 WebView 验收。
 
 ## 模块
 
@@ -98,7 +84,7 @@ Windows x64、GStreamer 1.28.7：裁剪内容实测约 34.0 MiB（文件字节�
 Rust 后端位于 `app/src-tauri/src/`，`lib.rs` 声明模块并导出启动入口，`application/` 负责 Tauri 组装与 IPC；播放、本地曲库、歌词、网易云、发现、平台服务、基础设施、共享模型和插件各有独立目录。以下路径均相对该后端目录。
 
 - `model/mod.rs` 定义歌曲、本地/网易云资源和播放状态；当前没有多来源插件框架。
-- `playback/player.rs` 单线程拥有 GStreamer playbin3、设备监视和 SMTC；有界命令队列、可取消资源解析、仅一首下一曲预加载。流线程回调只消费已准备 URI。
+- `playback/player.rs` 的 Actor 管理有界命令队列、资源解析、下一曲预加载与系统媒体状态；`playback/web_audio.rs` 提供流式音频桥接，前端 WebAudio 执行播放并反馈状态。
 - `adapters/netease` 独立原生源码包拥有固定提交的 ncm-api-rs，默认随应用编译链接，不运行额外 API 服务。宿主 `netease/mod.rs` 仅作 DTO/歌词与探测兼容导入；登录、业务与资源解析由统一服务路由。凭据由宿主 AccountManager 与系统钥匙串保存，普通登录 IPC 不返回凭据。
 - `infrastructure/storage.rs` 使用 SQLite，列表分页；`local/library.rs` 使用 Lofty 读取元数据，批量入库。
 - `lyrics/mod.rs` 管理歌词来源、超时与缓存；AMLL 负责前端解析和显示。

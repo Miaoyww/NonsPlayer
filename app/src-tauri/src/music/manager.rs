@@ -67,7 +67,7 @@ impl std::fmt::Debug for ResourceTicket {
     }
 }
 impl ResourceTicket {
-    /// Lightweight atomic checks are safe at the gapless handoff; no network/IO.
+    /// Lightweight atomic checks validate prepared resources without network/IO.
     pub fn check(&self, playback_generation: u64) -> MusicResult<()> {
         if let Some(provider) = &self.provider {
             return provider.check(&self.lease, playback_generation);

@@ -74,14 +74,8 @@ def build_portable(root, tag, output):
             if Path(relative).is_absolute() or ".." in Path(relative).parts or relative in files:
                 raise ValueError(f"Invalid or duplicate portable resource path: {relative}")
             files[relative] = path
-    if "runtime/manifest.json" not in files:
-        raise ValueError("Missing portable resource: runtime/manifest.json")
-    manifest = read_json(files["runtime/manifest.json"])
-    required = ["runtime/gst-plugin-scanner.exe", "bundled-plugins/netease-island.zip"]
-    required += [f"runtime/gstreamer-1.0/gst{plugin}.dll" for plugin in manifest["plugins"]]
-    for relative in [*manifest["files"], *required]:
-        if relative not in files:
-            raise ValueError(f"Missing portable resource: {relative}")
+    if "bundled-plugins/netease-island.zip" not in files:
+        raise ValueError("Missing portable resource: bundled-plugins/netease-island.zip")
     if not executable.is_file():
         raise ValueError(f"Missing portable executable: {executable}")
     output.mkdir(parents=True, exist_ok=True)
@@ -91,11 +85,10 @@ def build_portable(root, tag, output):
         f"请完整解压整个目录，再运行 {executable.name}；不要在压缩包内直接启动或单独移动 EXE。\n"
         "需要 Microsoft Edge WebView2 Runtime；缺失时请先从微软官方网站安装：\n"
         "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
-        "包含私有音频运行时和随包插件，无需另行安装 GStreamer。\n"
+        "包含随包插件，音频播放使用系统 WebView。\n"
         "设置、账号、曲库、插件、缓存和 WebView 数据保存到程序目录的 data 文件夹，与安装版独立。\n\n"
         "请放在可写目录并保留 portable.flag；移动整个目录可携带数据，旧用户数据不会自动迁移。\n"
         "账号与插件凭据以文件保存于 data/credentials，请妥善保管整个目录。\n"
-        "音频运行时随附文件沿用安装包的资源映射，上游提供的许可文件会一并打包。\n"
     )
     with zipfile.ZipFile(target, "x", compression=zipfile.ZIP_DEFLATED) as archive:
         for relative, source in sorted(files.items()):

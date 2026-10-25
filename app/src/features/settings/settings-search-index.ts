@@ -30,7 +30,6 @@ const groups: SearchGroup[] = [
     path: '常规设置 / 窗口与启动',
     items: [
       ['close-behavior', '关闭主面板时', '最小化 托盘 退出'],
-      ['background-webview-release', '后台释放 WebView', '后台 内存 休眠 插件 窗口'],
       ['autostart', '开机自启', '登录 启动']
     ]
   },
@@ -58,10 +57,8 @@ const groups: SearchGroup[] = [
     path: '播放设置',
     items: [
       ['output-device', '输出设备', '扬声器 耳机 声卡 系统默认'],
-      ['playback-engine', '播放引擎', 'WebAudio GStreamer 浏览器 audio'],
       ['quality-downgrade', '允许音质降级', '不可用'],
       ['playback-fades', '播放/暂停渐变', '淡入 淡出 过渡'],
-      ['gapless', '无缝播放（Gapless）', '连续 衔接 预加载'],
       ['crossfade', '交叉淡入淡出', 'WebAudio 自动切歌 重叠 过渡时长']
     ]
   },
@@ -147,12 +144,7 @@ const groups: SearchGroup[] = [
   }
 ]
 
-const desktopOnly = new Set([
-  'close-behavior',
-  'autostart',
-  'playback-bar',
-  'background-webview-release'
-])
+const desktopOnly = new Set(['close-behavior', 'autostart', 'playback-bar'])
 
 export function getSettingsSearchItems(): SettingsSearchItem[] {
   const items = groups

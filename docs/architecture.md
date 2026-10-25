@@ -21,10 +21,8 @@
 - 歌词格式解析统一复用 AMLL 的 `@applemusic-like-lyrics/lyric`，`core` 负责渲染。独立译文和音译使用对应的 LRC/QRC/YRC 解析器，优先保留内嵌辅助文本，否则按起始时间相差不超过 500 毫秒进行一对一配对，先采纳时间差最小的配对，精确时间优先；同时间按原始行序对应，每条原文与辅助行最多使用一次。`//` 占位参与配对后显示为空，防止制作人员行借用下一句；超出容差留空。相同时间分组与优先队列控制候选规模，不构造全量两两配对矩阵。
 - 新鲜缓存立即显示，过期命中立即显示并后台更新。确认缺失约 24 小时后复查，网络错误不能记为永久缺失；缓存有容量上限并支持手动刷新。
 - 播放核心首阶段包含 Windows SMTC，完整同步封面、Title、Artist、Album、Position、StartTime、EndTime。
-- 音频需要无缝播放、多格式与输出设备选择，支持本地音乐；GStreamer 是优先验证的候选，尚未确定采用。
-- 接受随安装包携带经裁剪的必要音频原生依赖，先验证 GStreamer 能力与分发成本再决定是否采用。
-- 首阶段无缝验收覆盖本地和网易云、同采样率同声道的连续曲目，包含无损和带有效延迟信息的有损文件；检查输出边界是否引入额外空隙或重复样本。跨参数衔接单列验证，网络断供及元数据缺失时明确能力边界；淡入淡出作为独立功能。
-- 播放设置提供播放/暂停渐变与无缝播放独立开关，默认分别关闭和开启，沿用 `playbackOptions.fades` / `gapless` 保存。播放/继续渐入与暂停渐出时长 200 毫秒，复用 GStreamer Controller 线性插值和播放缓冲后的 `audioamplify` 输出节点，以 running time 跨歌曲时间线执行；用户音量独立由 StreamVolume 控制。输出 PCM 由音频 sink 的有界缓冲与时钟调度，不在渐变节点额外限制提前量，保留预滚。此前 30 毫秒限制已在短时供数停顿对照中确认会导致断音，试用修复优先恢复供数；设备预缓冲可能使播放/暂停渐变延迟，硬件回环的渐出响应目标尚未恢复。暂停在渐出结束并保留 80 毫秒设备排空余量后执行，快速继续从当前增益反转，重复暂停不延长等待。停止、清空、手动切歌不等待淡出；移除旧 800 毫秒曲目首尾包络，自动切歌不淡出或重新渐入。无缝播放关闭后跳过预加载与 `about-to-finish` 交接，在 EOS 后切换；Crossfade 与整曲响度均衡后续独立实施。
+- 所有平台使用 WebAudio：浏览器媒体元素负责解码，共享 AudioContext 与独立增益节点负责输出、200 毫秒播放／暂停渐变和交叉淡入淡出。格式与设备选择取决于系统 WebView，不附带应用私有解码运行时。Linux WebKitGTK 自身的系统 GStreamer 依赖仍保留。
+- 播放／暂停渐变与交叉淡入淡出默认关闭，交叉淡入淡出默认时长 3 秒、可选 1–12 秒，仅自动切歌生效；不保证采样级无缝衔接，不提供无缝播放或引擎切换开关。
 - 维护 CHANGELOG，为发布 Release Notes 提供依据。
 - 1.8.0 之后不再保留历史曲目、队列、账号凭据、封面、插件任务及设置的迁移兼容；旧格式记录允许失效，不新增转换或旧键回读。当前在线曲目使用统一引用及标准 key，本地路径与歌词关联仍按现行功能保存。
 
@@ -51,21 +49,21 @@
 - 音乐适配器属于插件，由独立适配器管理器管理；功能插件沿用现有插件管理器。账号获取、登录与刷新由适配器实现，账号管理器统一保存不透明凭证，职责及安全边界见 ADR 0006。
 - 多来源采用“当前来源／补充来源”表达使用角色，适配器保持平行独立，能力范围与角色分开；宿主协调补充搜索，曲目保留真实来源。命名、职责与后续实现边界见 [ADR 0007](adr/0007-current-and-supplementary-sources.md)。
 - 明确登录或选择平台账号成功后切换当前来源，账号恢复与刷新不触发切换；聚合搜索逐项显示来源并隔离各来源失败，曲目平台与播放音源分别表达。两完整平台适配器加单音源的目标、暂缓本地聚合歌单及实现边界见 [ADR 0008](adr/0008-account-driven-source-and-search.md)。
-- 当前所选音频引擎的位置和状态为权威信息；系统媒体控制、WebUI 与歌词消费同一播放状态，各入口控制进入同一有界播放命令队列。元数据/队列更新与轻量位置更新分离。Windows 默认使用 WebAudio（浏览器 `audio` 元素），可在播放设置切换 GStreamer 并保存选择；其他平台继续使用 GStreamer。切换立即恢复当前歌曲、进度和播放／暂停意图；从浏览器切出须先确认停止，避免双引擎同时输出。WebAudio 将浏览器 `audio` 接入共享 AudioContext，以独立增益实现 200 毫秒播放／暂停渐变、输出延迟补偿与自动切歌交叉淡入淡出；设备选择按 WebView 能力开放，失败或断开后恢复系统默认。交叉淡入淡出默认关闭、3 秒（可选 1–12 秒），仅自动切歌生效，与无缝播放互斥；双播放器重叠不视为采样级无缝播放。格式支持取决于 WebView，不额外引入解码器。GStreamer 仅在选中时配置运行时并创建管线、渐变和设备监听，切出时停止并释放实例，不调用进程级 deinit；原生库仍随程序链接和分发。
+- 浏览器反馈的位置和状态为播放状态依据；Rust Actor 管理队列、资源、错误处理和系统媒体控制，所有入口进入同一有界命令队列。主 WebView 在后台和暂停时保留，确保继续播放与系统控制可用。设备选择按 WebView 能力开放，失败或断开后恢复系统默认。最多保留两个音频元素与两首受控资源用于交叉淡入淡出。
 - 插件 SDK 与宿主能力的归属遵循 [插件职责边界](adr/0005-plugin-capability-boundary.md)。
 
 ## 已接受的实现方向
 
 - 网易云平台 SDK 归属网易云适配器实现，复用现有 Rust 客户端，避免额外部署 API 服务；宿主通用业务通过统一适配器接口访问，随包分发不赋予专用调用路径。
-- 音频引擎提供播放位置和状态的权威信息；WebUI、歌词和系统媒体控制消费同一播放状态。播放控制从各入口进入同一流程。
-- 在全面实现前验证 GStreamer 的无缝能力、格式、设备切换及分发成本。
+- WebAudio 浏览器反馈提供播放位置和状态；Rust 播放 Actor 管理队列、资源与系统媒体控制，WebUI、歌词和系统媒体控制消费同一播放状态。播放控制从各入口进入同一流程。
+- 各平台独立验收 WebView 的格式、设备选择、后台播放和锁屏控制。
 
 ## 当前待决定
 
 1. Windows 10 最低版本，macOS/Linux 后续具体支持范围。
 2. 歌词来源的实际命中率、超时预算与网络环境实测。
 3. 具体性能预算、测试设备与测量方法。
-4. GStreamer 能力和分发成本的验证结果及正式选型。
+4. 各平台 WebView 的格式和后台播放兼容性。
 5. 跨采样率、位深、声道的衔接策略与资源不足时的行为。
 6. 系统媒体控制各平台范围、信息缺失策略与时间线语义。
 7. 具体音频格式、缓存配额及淘汰、持久化恢复、曲库导入等详细策略。
@@ -76,7 +74,4 @@
 - [AMLL React 与歌词解析](https://github.com/amll-dev/applemusic-like-lyrics)
 - [AMLL TTML DB 接入说明](https://github.com/amll-dev/amll-ttml-db#接入到其他项目)：网易云曲目可按 ID 获取 `ncm-lyrics/[ID].ttml`，无需按歌名遍历全库；全库元数据索引也可用于检索。Context7 未检索到该库的匹配索引，此项直接核对官方仓库 README。
 - [Auris 无缝播放说明](https://aurisplayer.com/blog/gapless-playback-guide.html)：说明预缓冲、持续输出与编码延迟补偿；实际能力以音频引擎验证为准。
-- [GStreamer playbin](https://gstreamer.freedesktop.org/documentation/playback/playbin.html)：提供网络缓冲、解码器选择、自定义音频 sink 及 `about-to-finish`；该回调在 streaming thread 执行，下一首在线资源应提前准备。
-- [GStreamer 无缝设计](https://github.com/GStreamer/gstreamer/blob/main/subprojects/gst-docs/markdown/additional/design/playback-gapless.md)：过晚准备会缓冲不足，过早可能遇到资源过期与队列变化。
-- [GStreamer Windows 部署](https://gstreamer.freedesktop.org/documentation/deploying/windows.html) 与 [macOS 部署](https://gstreamer.freedesktop.org/documentation/deploying/mac-osx.html)：Rust 绑定仍依赖原生运行时和插件；最终分发体积需实测，部署细节需按采用版本验证。
 - [SMTC 时间线](https://learn.microsoft.com/en-us/uwp/api/windows.media.systemmediatransportcontrolstimelineproperties)：Position、StartTime、EndTime 描述媒体内部时间线，还包含 MinSeekTime、MaxSeekTime。

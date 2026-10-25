@@ -11,8 +11,7 @@
       }
     },
     "resources": {
-      "bundled-plugins/": "bundled-plugins/",
-      "../../.local/gstreamer-bundle/root/": ""
+      "bundled-plugins/": "bundled-plugins/"
     }
   }
 }

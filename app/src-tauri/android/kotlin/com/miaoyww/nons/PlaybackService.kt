@@ -21,7 +21,7 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.datasource.DataSourceBitmapLoader
 
-/** Media3 owns the session/notification; GStreamer remains the only audio engine. */
+/** Media3 owns the session/notification; the Rust actor coordinates WebAudio playback. */
 @UnstableApi
 class PlaybackService : MediaSessionService() {
     var player: NativeMediaPlayer? = null

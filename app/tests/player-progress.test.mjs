@@ -24,7 +24,7 @@ async function harness({ delayed = false } = {}) {
     privateFmSession: null,
     shuffle: false,
     repeatMode: 'off',
-    playbackOptions: { fades: false, gapless: true },
+    playbackOptions: { fades: false, crossfade: false, crossfadeDurationMs: 3000 },
     deviceId: null,
     actualQuality: null,
     error: null,
@@ -142,7 +142,10 @@ test('rapid volume events preserve progress and queue, lyrics and status selecti
   for (let now = 20; now <= 200; now += 20) {
     app.time(now)
     const before = app.player.currentPosition()
-    app.state({ volume: now / 200, playbackOptions: { fades: false, gapless: true } })
+    app.state({
+      volume: now / 200,
+      playbackOptions: { fades: false, crossfade: false, crossfadeDurationMs: 3000 }
+    })
     assert.equal(app.player.currentPosition(), before)
   }
   assert.deepEqual(

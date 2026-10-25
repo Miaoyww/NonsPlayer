@@ -41,7 +41,6 @@ class AudioStub extends EventTarget {
   }
 }
 const command = (serial, patch = {}) => ({
-  enabled: true,
   serial,
   source: 'http://127.0.0.1:1234/token',
   seekId: 1,

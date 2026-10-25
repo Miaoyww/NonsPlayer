@@ -1,4 +1,4 @@
-"""Install a project-local Android command-line SDK and ARM64 GStreamer SDK.
+"""Install a project-local Android command-line SDK.
 
 The JDK is supplied by JAVA_HOME. No Android Studio or machine-wide settings
 are installed. SDK license acceptance is interactive unless --accept-licenses is supplied.
@@ -8,9 +8,7 @@ import argparse
 import hashlib
 import os
 from pathlib import Path
-import re
 import subprocess
-import tarfile
 import time
 import urllib.error
 import urllib.request
@@ -21,9 +19,6 @@ BASE = ROOT / ".local" / "android"
 SDK = BASE / "sdk"
 TOOLS = "commandlinetools-win-15859902_latest.zip"
 TOOLS_SHA = "90ae805d20434428bffcb699c290860f19bb5f66a67e6b330067e3de801fb04a"
-GST_VERSION = "1.28.7"
-GST_ARCHIVE = f"gstreamer-1.0-android-universal-{GST_VERSION}.tar.xz"
-GST_URL = f"https://gstreamer.freedesktop.org/data/pkg/android/{GST_VERSION}/{GST_ARCHIVE}"
 NDK = "27.2.12479018"
 
 
@@ -65,27 +60,6 @@ def download(url, destination, digest):
     partial.replace(destination)
 
 
-def fetch_checksum(url):
-    for attempt in range(4):
-        try:
-            with urllib.request.urlopen(url, timeout=60) as response:
-                content = response.read(4097)
-            fields = content.decode("ascii").split()
-            if len(content) > 4096 or not fields or not re.fullmatch(r"[0-9a-fA-F]{64}", fields[0]):
-                raise ValueError("Invalid GStreamer SHA256 checksum response")
-            return fields[0].lower()
-        except urllib.error.HTTPError as error:
-            error.close()
-            if error.code not in {408, 429, 500, 502, 503, 504} or attempt == 3:
-                raise
-        except (urllib.error.URLError, TimeoutError, ConnectionError):
-            if attempt == 3:
-                raise
-        delay = 2 ** (attempt + 1)
-        print(f"Retrying GStreamer checksum request in {delay}s ({attempt + 2}/4)", flush=True)
-        time.sleep(delay)
-
-
 def install_sdk(manager, accept_licenses=False):
     if not os.environ.get("JAVA_HOME"):
         raise RuntimeError("Set JAVA_HOME to a JDK before running sdkmanager")
@@ -108,16 +82,6 @@ def main():
             package.extractall(BASE / "tools-staging")
         manager.parent.parent.parent.mkdir(parents=True, exist_ok=True)
         (BASE / "tools-staging" / "cmdline-tools").rename(manager.parent.parent)
-    gst = BASE / "gstreamer"
-    if not (gst / "arm64" / "lib" / "libgstreamer-1.0.a").is_file():
-        digest = fetch_checksum(GST_URL + ".sha256sum")
-        archive = BASE / GST_ARCHIVE
-        download(GST_URL, archive, digest)
-        gst.mkdir(parents=True, exist_ok=True)
-        print("Extracting ARM64 GStreamer SDK", flush=True)
-        with tarfile.open(archive) as package:
-            members = [member for member in package.getmembers() if member.name.lstrip("./").startswith("arm64/")]
-            package.extractall(gst, members=members, filter="data")
     if not options.download_only:
         install_sdk(manager, options.accept_licenses)
     print(f"ANDROID_HOME={SDK}\nNDK_HOME={SDK / 'ndk' / NDK}", flush=True)

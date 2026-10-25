@@ -28,14 +28,6 @@ try {
         & pnpm --dir app tauri android init --ci
         exit $LASTEXITCODE
     }
-    & python scripts/build-android-audio.py
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    $nonsAudio = Join-Path $nonsAndroid 'audio/libs/arm64-v8a'
-    foreach ($nonsDependency in @('GLIB_2_0', 'GOBJECT_2_0', 'GIO_2_0', 'GSTREAMER_1_0', 'GSTREAMER_BASE_1_0', 'GSTREAMER_CONTROLLER_1_0')) {
-        Set-Item "Env:SYSTEM_DEPS_${nonsDependency}_NO_PKG_CONFIG" '1'
-        Set-Item "Env:SYSTEM_DEPS_${nonsDependency}_LIB" 'gstreamer_android'
-        Set-Item "Env:SYSTEM_DEPS_${nonsDependency}_SEARCH_NATIVE" $nonsAudio
-    }
     if ($Task -eq 'check') {
         $nonsClang = Join-Path $env:NDK_HOME 'toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android24-clang.cmd'
         $env:CC_aarch64_linux_android = $nonsClang

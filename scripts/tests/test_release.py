@@ -24,7 +24,7 @@ class ReleaseTests(unittest.TestCase):
             "bundle": {"resources": {"bundled-plugins/": "bundled-plugins/"}},
         })
         self.write_json(self.native / "tauri.windows.conf.json", {
-            "bundle": {"resources": {"../../.local/gstreamer-bundle/root/": ""}},
+            "bundle": {"resources": {"bundled-plugins/": "bundled-plugins/"}},
         })
         (self.native / "Cargo.toml").write_text('[package]\nname = "nons"\nversion = "1.0.0"\n')
         (self.native / "Cargo.lock").write_text('[[package]]\nname = "nons"\nversion = "1.0.0"\n')
@@ -53,24 +53,14 @@ class ReleaseTests(unittest.TestCase):
         executable.write_bytes(b"executable fixture")
         executable.with_suffix(".pdb").write_bytes(b"debug symbols")
         (folder / ".gitkeep").touch()
-        runtime = self.root / ".local/gstreamer-bundle/root"
-        paths = ["gstreamer-1.0-0.dll", "runtime/gst-plugin-scanner.exe",
-                 "runtime/gstreamer-1.0/gstplayback.dll", "runtime/licenses/gstreamer/LICENSE"]
-        for relative in paths:
-            path = runtime / relative
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(b"runtime fixture")
-        self.write_json(runtime / "runtime/manifest.json", {"plugins": ["playback"], "files": paths})
         return release.build_portable(self.root, "v1.0.0", self.native / "target/release/bundle/portable")
 
-    def test_portable_contains_executable_resources_and_licenses_only(self):
+    def test_portable_contains_only_executable_mapped_resources_and_instructions(self):
         portable = self.assets()
         with zipfile.ZipFile(portable) as archive:
             prefix = "Nons_1.0.0_windows_x64_portable/"
             names = archive.namelist()
-            for relative in ["Nons.exe", "gstreamer-1.0-0.dll", "runtime/manifest.json",
-                             "runtime/gst-plugin-scanner.exe", "runtime/gstreamer-1.0/gstplayback.dll",
-                             "runtime/licenses/gstreamer/LICENSE", "bundled-plugins/netease-island.zip", "README.txt", "portable.flag"]:
+            for relative in ["Nons.exe", "bundled-plugins/netease-island.zip", "README.txt", "portable.flag"]:
                 self.assertIn(prefix + relative, names)
             self.assertFalse(any(name.endswith((".pdb", ".msi", ".gitkeep")) for name in names))
             self.assertIn("WebView2", archive.read(prefix + "README.txt").decode())
@@ -80,10 +70,10 @@ class ReleaseTests(unittest.TestCase):
             archive.extractall(extracted)
             self.assertEqual((extracted / prefix / "Nons.exe").read_bytes(), b"executable fixture")
 
-    def test_portable_missing_runtime_fails_before_writing_archive(self):
+    def test_portable_missing_plugin_fails_before_writing_archive(self):
         portable = self.assets()
         portable.unlink()
-        (self.root / ".local/gstreamer-bundle/root/runtime/gst-plugin-scanner.exe").unlink()
+        (self.native / "bundled-plugins/netease-island.zip").unlink()
         with self.assertRaisesRegex(ValueError, "Missing portable resource"):
             release.build_portable(self.root, "v1.0.0", portable.parent)
         self.assertFalse(portable.exists())

@@ -17,9 +17,6 @@ New-Item -ItemType Directory -Path $nonsBinary | Out-Null
 Copy-Item -LiteralPath $nonsExe -Destination (Join-Path $nonsBinary 'Nons.exe')
 # A --no-bundle build does not stage Tauri resources. Copy only current resources;
 # never inherit retired adapters or stale plugins from the Cargo output directory.
-foreach ($nonsItem in (Get-ChildItem -LiteralPath (Join-Path $nonsRepo '.local/gstreamer-bundle/root'))) {
-    Copy-Item -LiteralPath $nonsItem.FullName -Destination $nonsBinary -Recurse
-}
 foreach ($nonsResource in @('bundled-adapters', 'bundled-plugins')) {
     Copy-Item -LiteralPath (Join-Path $nonsRepo ('app/src-tauri/' + $nonsResource)) -Destination (Join-Path $nonsBinary $nonsResource) -Recurse
 }
@@ -34,7 +31,7 @@ $nonsMetadata = [ordered]@{
     ramBytes = $nonsHardware.TotalPhysicalMemory; gpu = @(Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name })
     soundDevices = @(Get-CimInstance Win32_SoundDevice | ForEach-Object { $_.Name })
     powerScheme = (& powercfg /getactivescheme | Out-String).Trim()
-    gstreamerVersion = (Get-Content -LiteralPath (Join-Path $nonsRepo '.local/gstreamer/VERSION') -Raw).Trim()
+    playbackEngine = 'WebAudio'
     runs = $Runs; sampleSeconds = $SampleSeconds; audioRuns = $AudioRuns; sampleIntervalMs = 1000
     workload = 'Release performance-probe; new isolated profile per run; 48kHz stereo 16bit silent WAV; local LRC; no online audio'
 }

@@ -22,13 +22,13 @@ class PerformanceReportTests(unittest.TestCase):
             (root / "metadata.json").write_text(json.dumps(meta))
             run = root / "run-01"; run.mkdir()
             (run / "launch.json").write_text('{"launchEpochMs": 1000}')
-            events = [{"event": "first_screen", "epochMs": 1500, "value": {}}, {"event": "play_ready", "value": {"count": 1, "firstOutputBufferMs": 40}}, {"event": "play_ready", "value": {"count": 1000, "frontendReadyMs": 80}}, {"event": "phase_start", "epochMs": 2000, "value": {"phase": "background"}}, {"event": "phase_end", "epochMs": 5000, "value": {"phase": "background"}}, {"event": "finished", "value": {"success": True}}]
+            events = [{"event": "first_screen", "epochMs": 1500, "value": {}}, {"event": "play_ready", "value": {"count": 1, "firstBrowserPlayingMs": 40}}, {"event": "play_ready", "value": {"count": 1000, "frontendReadyMs": 80}}, {"event": "phase_start", "epochMs": 2000, "value": {"phase": "background"}}, {"event": "phase_end", "epochMs": 5000, "value": {"phase": "background"}}, {"event": "finished", "value": {"success": True}}]
             (run / "events.jsonl").write_text("\n".join(map(json.dumps, events)))
             samples = [{"epochMs": epoch, "processes": [{"pid": pid, "cpuSeconds": cpu, "privateBytes": 2**20, "workingSetBytes": 2**21} for pid in [1, 2]]} for epoch, cpu in [(2000, 1), (3000, 1.5), (4000, 2)]]
             (run / "samples.jsonl").write_text("\n".join(map(json.dumps, samples)))
             result = report.summarize(root)
             self.assertEqual(result["firstScreenMs"]["p50"], 500)
-            self.assertEqual(result["warmLocalOutputBufferMs"]["p50"], 40)
+            self.assertEqual(result["warmLocalBrowserPlayingMs"]["p50"], 40)
             self.assertEqual(result["queueReadyMs"]["1000"]["p50"], 80)
             data = result["phases"]["background"]
             self.assertEqual(data["privateMiB"]["p50"], 2)
@@ -48,14 +48,14 @@ class PerformanceReportTests(unittest.TestCase):
     def test_comparison_checks_environment_and_computes_deltas(self):
         with tempfile.TemporaryDirectory() as folder:
             before, after = Path(folder) / "before", Path(folder) / "after"
-            metadata = {key: "same" for key in ["osVersion", "cpu", "logicalProcessors", "ramBytes", "gpu", "soundDevices", "powerScheme", "gstreamerVersion", "sampleSeconds", "sampleIntervalMs", "audioRuns", "runs", "workload"]}
+            metadata = {key: "same" for key in ["osVersion", "cpu", "logicalProcessors", "ramBytes", "gpu", "soundDevices", "powerScheme", "playbackEngine", "sampleSeconds", "sampleIntervalMs", "audioRuns", "runs", "workload"]}
             environment = {"viewport": [1200, 800], "dpr": 1, "userAgent": "fixture"}
             for root, value in [(before, 100), (after, 120)]:
                 run = root / "run-01"; run.mkdir(parents=True)
                 (root / "metadata.json").write_text(json.dumps(metadata))
                 (run / "events.jsonl").write_text(json.dumps({"event": "first_screen", "value": environment}))
                 stat = {"n": 5, "p50": value, "p95": value, "max": value}
-                (root / "summary.json").write_text(json.dumps({"firstScreenMs": stat, "warmLocalOutputBufferMs": stat, "queueReadyMs": {}, "phases": {}}))
+                (root / "summary.json").write_text(json.dumps({"firstScreenMs": stat, "warmLocalBrowserPlayingMs": stat, "queueReadyMs": {}, "phases": {}}))
             report.compare(after, before)
             self.assertIn("+20.00%", (after / "comparison.md").read_text(encoding="utf-8"))
             metadata["sampleSeconds"] = "changed"

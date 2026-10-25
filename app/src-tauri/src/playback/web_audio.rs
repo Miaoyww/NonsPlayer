@@ -16,7 +16,6 @@ use tauri::Emitter;
 #[derive(Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Control {
-    pub enabled: bool,
     pub serial: u64,
     pub source: Option<String>,
     pub seek_id: u64,
@@ -142,7 +141,6 @@ impl WebAudio {
     }
 
     pub fn configure(&mut self, state: &crate::model::PlayerSnapshot) {
-        self.control.enabled = state.playback_engine == crate::model::PlaybackEngine::WebAudio;
         self.control.fades = state.playback_options.fades;
         self.control.crossfade_ms = if state.playback_options.crossfade {
             state.playback_options.crossfade_duration_ms
@@ -235,11 +233,6 @@ impl WebAudio {
             let _ = self.clear_secondary();
         }
         self.retired_until.is_none() && self.control.next.is_none()
-    }
-
-    pub fn deactivate(&mut self, app: &tauri::AppHandle) -> AppResult<()> {
-        self.control.enabled = false;
-        self.stop(app)
     }
 
     pub fn stop(&mut self, app: &tauri::AppHandle) -> AppResult<()> {

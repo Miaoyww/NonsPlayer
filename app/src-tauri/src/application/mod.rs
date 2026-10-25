@@ -1,12 +1,12 @@
 use crate::{
-    about, fonts, hitokoto, library, local_folders, local_library, lyrics, model, player, plugins,
+    fonts, hitokoto, library, local_folders, local_library, lyrics, model, player, plugins,
     storage, ttml_cache,
 };
 
 use crate::platform::main_webview;
 #[cfg(desktop)]
-use crate::platform::{autostart, desktop};
-use model::{AppResult, Lyrics, OutputDevice, Track, TrackSource};
+use crate::platform::{about, autostart, desktop};
+use model::{AppResult, Lyrics, Track, TrackSource};
 use player::{Command, Player};
 use std::{path::PathBuf, sync::Arc};
 use tauri::{Manager, State};
@@ -572,20 +572,6 @@ async fn player_device(device_id: Option<String>, backend: State<'_, Backend>) -
         .map_err(|e| e.to_string())?
 }
 #[tauri::command]
-async fn set_playback_engine(
-    engine: model::PlaybackEngine,
-    webview: tauri::Webview,
-    backend: State<'_, Backend>,
-) -> AppResult<()> {
-    if webview.label() != "main" {
-        return Err("播放引擎仅允许主窗口控制".into());
-    }
-    let player = backend.player.clone();
-    tauri::async_runtime::spawn_blocking(move || player.set_engine(engine))
-        .await
-        .map_err(|e| e.to_string())?
-}
-#[tauri::command]
 async fn web_audio_ready(
     webview: tauri::Webview,
     backend: State<'_, Backend>,
@@ -619,14 +605,6 @@ async fn set_playback_options(
         .await
         .map_err(|e| e.to_string())?
 }
-#[tauri::command]
-async fn output_devices(backend: State<'_, Backend>) -> AppResult<Vec<OutputDevice>> {
-    let player = backend.player.clone();
-    tauri::async_runtime::spawn_blocking(move || player.devices())
-        .await
-        .map_err(|e| e.to_string())?
-}
-
 #[tauri::command]
 #[allow(clippy::too_many_arguments)] // Flat IPC arguments retain the existing source-skip contract.
 async fn track_lyrics(
@@ -1055,9 +1033,7 @@ pub fn run() {
             main_webview::main_webview_ready,
             main_webview::main_sleep_shortcuts,
             #[cfg(desktop)]
-            main_webview::background_webview_release_enabled,
             #[cfg(desktop)]
-            main_webview::set_background_webview_release,
             about::open_devtools,
             discovery_hitokoto,
             #[cfg(feature = "plugin-probe")]
@@ -1136,10 +1112,8 @@ pub fn run() {
             player_volume,
             player_device,
             set_playback_options,
-            set_playback_engine,
             web_audio_ready,
             web_audio_feedback,
-            output_devices,
             track_lyrics,
             crate::lyrics::correction::lyric_correction,
             crate::lyrics::correction::lyric_candidates,

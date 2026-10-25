@@ -613,18 +613,24 @@ mod native {
             .unwrap();
             assert_eq!(output(&tasks, id, "stdout"), b"hello");
             assert_eq!(output(&tasks, id, "stderr"), b"error");
-            assert_eq!(
-                call(
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+            loop {
+                let state = call(
                     &tasks,
                     "test",
                     1,
                     &AtomicBool::new(true),
                     "process.get",
-                    &json!({"id":id})
+                    &json!({"id":id}),
                 )
-                .unwrap()["exitCode"],
-                0
-            );
+                .unwrap();
+                if let Some(code) = state["exitCode"].as_i64() {
+                    assert_eq!(code, 0);
+                    break;
+                }
+                assert!(std::time::Instant::now() < deadline, "process did not exit");
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
         }
 
         #[test]

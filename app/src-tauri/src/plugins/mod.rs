@@ -748,6 +748,7 @@ impl PluginManager {
         self.lock()?.get_mut(id).ok_or("插件未安装")?.ready = true;
         self.sync_watcher()
     }
+    #[cfg(feature = "plugin-probe")]
     pub(crate) fn frontend_detached(self: &Arc<Self>) -> AppResult<()> {
         for record in self.lock()?.values_mut() {
             record.ready = false;
