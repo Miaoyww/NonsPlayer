@@ -184,6 +184,7 @@ pub fn initialize_index(db: &Connection) -> AppResult<()> {
 
 fn rebuild_index(tx: &Connection) -> AppResult<()> {
     let options = options_from_db(tx)?;
+    let mut invalid_keys = Vec::new();
     tx.execute(
         "DELETE FROM local_members WHERE kind IN ('artist','album')",
         [],
@@ -191,17 +192,45 @@ fn rebuild_index(tx: &Connection) -> AppResult<()> {
     .map_err(|e| e.to_string())?;
     {
         let mut stmt = tx
-            .prepare("SELECT value FROM tracks WHERE source='local' ORDER BY rowid")
+            .prepare("SELECT key,value FROM tracks WHERE source='local' ORDER BY rowid")
             .map_err(|e| e.to_string())?;
         let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
         while let Some(row) = rows.next().map_err(|e| e.to_string())? {
-            let track: Track =
-                serde_json::from_str(&row.get::<_, String>(0).map_err(|e| e.to_string())?)
-                    .map_err(|e| e.to_string())?;
-            index_track(tx, &track, &options)?;
+            let key = row.get::<_, String>(0).map_err(|e| e.to_string())?;
+            let value = row.get::<_, String>(1).map_err(|e| e.to_string())?;
+            match serde_json::from_str::<Track>(&value) {
+                Ok(track) => index_track(tx, &track, &options)?,
+                Err(error) => {
+                    crate::infrastructure::diagnostics::warn(
+                        "local.index.drop_invalid_track",
+                        format!("key={key}: {error}"),
+                    );
+                    invalid_keys.push(key);
+                }
+            }
         }
     }
+    for key in invalid_keys {
+        discard_invalid_local_track(tx, &key)?;
+    }
     refresh_albums(tx)
+}
+
+fn discard_invalid_local_track(tx: &Connection, key: &str) -> AppResult<()> {
+    for table in [
+        "local_members",
+        "local_origins",
+        "local_file_stats",
+        "local_metadata",
+        "local_cover_state",
+        "local_playlist_tracks",
+    ] {
+        tx.execute(&format!("DELETE FROM {table} WHERE key=?1"), [key])
+            .map_err(|e| e.to_string())?;
+    }
+    tx.execute("DELETE FROM tracks WHERE key=?1 AND source='local'", [key])
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 pub fn index_track(db: &Connection, track: &Track, options: &LocalPreferences) -> AppResult<()> {
@@ -858,6 +887,66 @@ mod tests {
             )
             .unwrap(),
             0
+        );
+    }
+
+    #[test]
+    fn index_version_rebuild_discards_legacy_cover_tracks_instead_of_failing_startup() {
+        let dir = crate::test_support::TestDir::new();
+        let path = dir.0.join("library.sqlite");
+        let store = Store::open(&path).unwrap();
+        store.save_tracks(&[track("local:valid", "A", "")]).unwrap();
+        {
+            let db = store.0.lock().unwrap();
+            let legacy = serde_json::json!({
+                "key": "local:legacy",
+                "title": "旧格式歌曲",
+                "aliases": [],
+                "artist": "A",
+                "artists": [],
+                "album": "旧专辑",
+                "durationMs": 1000,
+                "cover": "old-cover.jpg",
+                "source": {
+                    "kind": "local",
+                    "path": "C:/music/legacy.mp3",
+                    "neteaseId": null
+                }
+            });
+            db.execute(
+                "INSERT INTO tracks(key,source,title,artist,value) VALUES(?1,'local',?2,?3,?4)",
+                rusqlite::params!["local:legacy", "旧格式歌曲", "A", legacy.to_string()],
+            )
+            .unwrap();
+            db.execute(
+                "UPDATE settings SET value='1' WHERE key='localIndexVersion'",
+                [],
+            )
+            .unwrap();
+        }
+        drop(store);
+
+        let store = Store::open(&path).unwrap();
+        assert!(store.track("local:valid").is_ok());
+        assert!(store.track("local:legacy").is_err());
+        let db = store.0.lock().unwrap();
+        assert_eq!(
+            db.query_row(
+                "SELECT COUNT(*) FROM tracks WHERE key='local:legacy'",
+                [],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+            0
+        );
+        assert_eq!(
+            db.query_row(
+                "SELECT value FROM settings WHERE key='localIndexVersion'",
+                [],
+                |row| row.get::<_, String>(0)
+            )
+            .unwrap(),
+            "2"
         );
     }
 

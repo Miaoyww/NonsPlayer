@@ -15,6 +15,10 @@
 - Windows 插件支持声明独立窗口，可设置透明、置顶、鼠标穿透和位置尺寸；主界面释放后继续运行，停用插件时关闭。
 - 后台保留主 WebView，确保 WebAudio 播放与系统媒体控制可持续使用。
 
+### 稳定性修复
+
+- 启动时遇到无法读取的旧本地曲目记录会清理失效记录并继续进入界面，避免本地索引重建失败导致应用立即退出。
+
 ## [1.8.1] - 2026-10-24
 
 ![NonsPlayer v1.8.1 音乐库与本地音乐维护更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.1/docs/release-assets/header-1.8.1.png)
