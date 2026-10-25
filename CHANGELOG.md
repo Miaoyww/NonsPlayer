@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-10-25
+
+![NonsPlayer v1.8.2 启动稳定性与播放体验更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.2/docs/release-assets/header-1.8.2.png)
+
+NonsPlayer 1.8.2 改进 WebAudio 播放、插件窗口与进程能力，并修复旧数据导致的启动闪退问题。本次面向 **Windows x64**，提供 MSI、EXE 安装包与免安装便携 ZIP。
+
 ### 播放
 
 - 所有平台统一使用 WebAudio，移除 GStreamer 引擎、引擎切换与无缝播放开关；保留播放／暂停渐变、交叉淡入淡出及系统媒体控制。音频格式与输出设备支持取决于系统 WebView。
@@ -19,6 +25,14 @@
 
 - 启动时遇到无法读取的旧本地曲目记录会清理失效记录并继续进入界面，避免本地索引重建失败导致应用立即退出。
 - 启动时遇到损坏的本地偏好、封面状态、账号记录、音乐来源或播放设置会记录诊断并回退到可用默认状态，避免持久化旧数据阻塞启动。
+
+### 安装与使用提示
+
+- Windows x64 安装版可通过内置更新获取新版；便携版请完整解压 `Nons_1.8.2_windows_x64_portable.zip` 后运行 `Nons.exe`，系统需已有 Microsoft Edge WebView2 Runtime。
+
+### 已知限制与发布验收
+
+- 本次仅发布 Windows x64。macOS/Linux 安装与基本播放及 Android 正式发布尚未完成验收。
 
 ## [1.8.1] - 2026-10-24
 
