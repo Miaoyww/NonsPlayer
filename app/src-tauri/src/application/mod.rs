@@ -1054,6 +1054,10 @@ pub fn run() {
             desktop::set_close_behavior,
             main_webview::main_webview_ready,
             main_webview::main_sleep_shortcuts,
+            #[cfg(desktop)]
+            main_webview::background_webview_release_enabled,
+            #[cfg(desktop)]
+            main_webview::set_background_webview_release,
             about::open_devtools,
             discovery_hitokoto,
             #[cfg(feature = "plugin-probe")]

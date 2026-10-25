@@ -4,8 +4,9 @@ use crate::{application::Backend, model::AppResult, plugins::PluginManager};
 use serde::{Deserialize, Serialize};
 use std::{
     sync::{
+        atomic::{AtomicBool, Ordering},
         mpsc::{self, Sender},
-        Mutex,
+        Arc, Mutex,
     },
     time::{Duration, Instant},
 };
@@ -18,10 +19,34 @@ enum Request {
     Open { show: bool, settings: bool },
     Ready(tokio::sync::oneshot::Sender<ReadyState>),
     Shortcut(String),
+    ReleasePolicyChanged,
     Stop,
 }
 
-pub(crate) struct MainWebview(Sender<Request>);
+pub(crate) struct MainWebview(Sender<Request>, Arc<AtomicBool>);
+
+fn read_release_enabled(store: &crate::storage::Store) -> AppResult<bool> {
+    Ok(store.setting("backgroundWebviewRelease")?.as_deref() != Some("false"))
+}
+
+#[tauri::command]
+pub(crate) fn background_webview_release_enabled(
+    state: tauri::State<'_, MainWebview>,
+) -> bool {
+    state.1.load(Ordering::SeqCst)
+}
+
+#[tauri::command]
+pub(crate) fn set_background_webview_release(
+    enabled: bool,
+    backend: tauri::State<'_, Backend>,
+    state: tauri::State<'_, MainWebview>,
+) -> AppResult<bool> {
+    backend.store.set_setting("backgroundWebviewRelease", if enabled { "true" } else { "false" })?;
+    state.1.store(enabled, Ordering::SeqCst);
+    state.0.send(Request::ReleasePolicyChanged).map_err(|e| e.to_string())?;
+    Ok(enabled)
+}
 
 #[derive(Clone, Deserialize)]
 pub(crate) struct SleepShortcut {
@@ -42,7 +67,8 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
         configure_browser_shortcuts(&webview)?;
     }
     let (sender, receiver) = mpsc::channel();
-    app.manage(MainWebview(sender));
+    let release_enabled = Arc::new(AtomicBool::new(read_release_enabled(&app.state::<Backend>().store)?));
+    app.manage(MainWebview(sender, release_enabled.clone()));
     app.manage(SleepShortcuts::default());
     let app = app.handle().clone();
     std::thread::Builder::new()
@@ -99,6 +125,9 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
                                 background_control(&app, &action)?;
                             }
                         }
+                        Ok(Request::ReleasePolicyChanged) => {
+                            hidden_since = None;
+                        }
                         Err(mpsc::RecvTimeoutError::Timeout) => {}
                     }
                     let window = app.get_window("main").ok_or("主窗口不可用")?;
@@ -114,7 +143,8 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
                     let since = *hidden_since.get_or_insert_with(Instant::now);
                     // Browser audio needs its execution endpoint even while paused, so
                     // native SMTC can resume it. FM also needs its existing queue coordinator.
-                    if app.state::<Backend>().player.needs_playback_frontend()? {
+                    if !release_enabled.load(Ordering::SeqCst)
+                        || app.state::<Backend>().player.needs_playback_frontend()? {
                         if ensure_webview(&app)? {
                             ready = false;
                         }
@@ -294,4 +324,23 @@ fn background_control(app: &AppHandle, action: &str) -> AppResult<()> {
         _ => return Ok(()),
     };
     player.send(command)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn background_release_defaults_on_and_survives_restart() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("settings.sqlite3");
+        let store = crate::storage::Store::open(&path).unwrap();
+        assert!(read_release_enabled(&store).unwrap());
+        store.set_setting("backgroundWebviewRelease", "false").unwrap();
+        drop(store);
+        let store = crate::storage::Store::open(&path).unwrap();
+        assert!(!read_release_enabled(&store).unwrap());
+        store.set_setting("backgroundWebviewRelease", "true").unwrap();
+        assert!(read_release_enabled(&store).unwrap());
+    }
 }

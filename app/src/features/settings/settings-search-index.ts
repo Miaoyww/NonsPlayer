@@ -30,6 +30,7 @@ const groups: SearchGroup[] = [
     path: '常规设置 / 窗口与启动',
     items: [
       ['close-behavior', '关闭主面板时', '最小化 托盘 退出'],
+      ['background-webview-release', '后台释放 WebView', '后台 内存 休眠 插件 窗口'],
       ['autostart', '开机自启', '登录 启动']
     ]
   },
@@ -146,7 +147,7 @@ const groups: SearchGroup[] = [
   }
 ]
 
-const desktopOnly = new Set(['close-behavior', 'autostart', 'playback-bar'])
+const desktopOnly = new Set(['close-behavior', 'autostart', 'playback-bar', 'background-webview-release'])
 
 export function getSettingsSearchItems(): SettingsSearchItem[] {
   const items = groups
