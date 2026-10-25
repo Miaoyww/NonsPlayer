@@ -29,9 +29,15 @@ pub fn options_from_db(db: &Connection) -> AppResult<LocalPreferences> {
         )
         .optional()
         .map_err(|e| e.to_string())?;
-    value
-        .map(|v| serde_json::from_str(&v).map_err(|e| e.to_string()))
-        .unwrap_or_else(|| Ok(LocalPreferences::default()))
+    Ok(value
+        .map(|v| {
+            serde_json::from_str(&v)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("local.preferences.decode", error);
+                })
+                .unwrap_or_default()
+        })
+        .unwrap_or_default())
 }
 pub fn preferences(store: &Store) -> AppResult<LocalPreferences> {
     {
@@ -947,6 +953,50 @@ mod tests {
             )
             .unwrap(),
             "2"
+        );
+    }
+
+    #[test]
+    fn invalid_saved_local_preferences_fall_back_to_defaults() {
+        let dir = crate::test_support::TestDir::new();
+        let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
+        store.set_setting("localPreferences", "{invalid").unwrap();
+        let db = store.0.lock().unwrap();
+        assert_eq!(
+            options_from_db(&db).unwrap().artist_separators,
+            LocalPreferences::default().artist_separators
+        );
+    }
+
+    #[test]
+    fn invalid_embedded_cover_state_is_discarded_during_album_refresh() {
+        let dir = crate::test_support::TestDir::new();
+        let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
+        let cover = dir.0.join("covers").join("missing.png");
+        let song = track("local:broken-cover-state", "A", &cover.to_string_lossy());
+        store.save_tracks(&[song]).unwrap();
+        store
+            .0
+            .lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO local_cover_state(key,signature,embedded) VALUES(?1,'','{invalid')",
+                ["local:broken-cover-state"],
+            )
+            .unwrap();
+        store.refresh_local_albums().unwrap();
+        assert_eq!(
+            store
+                .0
+                .lock()
+                .unwrap()
+                .query_row(
+                    "SELECT COUNT(*) FROM local_cover_state WHERE key=?1",
+                    ["local:broken-cover-state"],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            0
         );
     }
 

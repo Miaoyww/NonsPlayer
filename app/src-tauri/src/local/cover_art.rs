@@ -336,10 +336,18 @@ pub(super) fn album_cover(db: &Connection, tracks: &[Track]) -> AppResult<Option
             .optional()
             .map_err(|e| e.to_string())?;
         if let Some(value) = value {
-            let paths: Vec<String> = serde_json::from_str(&value).map_err(|e| e.to_string())?;
-            for path in paths {
-                if Path::new(&path).parent() == Some(covers) && valid(Path::new(&path)) {
-                    return Ok(Some(path));
+            match serde_json::from_str::<Vec<String>>(&value) {
+                Ok(paths) => {
+                    for path in paths {
+                        if Path::new(&path).parent() == Some(covers) && valid(Path::new(&path)) {
+                            return Ok(Some(path));
+                        }
+                    }
+                }
+                Err(error) => {
+                    crate::infrastructure::diagnostics::warn("local.cover_state.decode", error);
+                    db.execute("DELETE FROM local_cover_state WHERE key=?1", [&track.key])
+                        .map_err(|e| e.to_string())?;
                 }
             }
         }

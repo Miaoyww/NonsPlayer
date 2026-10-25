@@ -84,20 +84,21 @@ impl AccountManager {
         store: Arc<dyn AccountRecordStore>,
         credentials: Arc<dyn CredentialStore>,
     ) -> MusicResult<Self> {
-        let saved: SavedAccounts = store
-            .load()?
-            .map(|v| {
-                if v.len() > 2 * 1024 * 1024 {
-                    return Err(ErrorCode::InvalidData);
-                }
-                serde_json::from_str(&v)
-                    .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("accounts.restore_decode", error);
-                    })
-                    .map_err(|_| ErrorCode::InvalidData)
-            })
-            .transpose()?
-            .unwrap_or_default();
+        let mut saved: SavedAccounts = match store.load()? {
+            None => SavedAccounts::default(),
+            Some(value) if value.len() > 2 * 1024 * 1024 => {
+                crate::infrastructure::diagnostics::warn(
+                    "accounts.restore_size",
+                    format!("bytes={}", value.len()),
+                );
+                SavedAccounts::default()
+            }
+            Some(value) => serde_json::from_str(&value)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("accounts.restore_decode", error);
+                })
+                .unwrap_or_default(),
+        };
         if saved.records.len() > 100
             || saved.selected.len() > 100
             || saved.pending_deletions.len() > 100
@@ -124,7 +125,11 @@ impl AccountManager {
                 .iter()
                 .any(|r| !saved.records.iter().any(|a| &a.reference == r))
         {
-            return Err(ErrorCode::InvalidData.into());
+            crate::infrastructure::diagnostics::warn(
+                "accounts.restore_shape",
+                "saved account records are invalid",
+            );
+            saved = SavedAccounts::default();
         }
         let published = saved
             .selected

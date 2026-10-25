@@ -24,6 +24,11 @@ pub struct SourceSettings {
 
 impl SourceSettings {
     pub fn new(store: Arc<Store>, adapters: Arc<AdapterManager>) -> AppResult<Self> {
+        let default_state = || SourcePreferences {
+            current: super::bundled::default_source(),
+            supplementary: vec![],
+            revision: 0,
+        };
         let state = match store.setting(KEY)? {
             Some(value) => serde_json::from_str::<SourcePreferences>(&value)
                 .inspect_err(|error| {
@@ -32,14 +37,15 @@ impl SourceSettings {
                         error,
                     );
                 })
-                .map_err(|_| "音乐来源配置损坏")?,
-            None => SourcePreferences {
-                current: super::bundled::default_source(),
-                supplementary: vec![],
-                revision: 0,
-            },
+                .unwrap_or_else(|_| default_state()),
+            None => default_state(),
         };
-        Self::validate_shape(&state.current, &state.supplementary)?;
+        let state = if let Err(error) = Self::validate_shape(&state.current, &state.supplementary) {
+            crate::infrastructure::diagnostics::warn("music.source_preferences_shape", error);
+            default_state()
+        } else {
+            state
+        };
         // Retain missing/disabled saved sources so startup never silently changes the workspace.
         Ok(Self {
             store,
@@ -299,6 +305,16 @@ mod tests {
         assert!(settings.update(source("netease"), vec![], 7).is_err());
         assert_eq!(settings.get().unwrap(), next);
     }
+    #[test]
+    fn invalid_saved_json_falls_back_to_default_source() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Arc::new(Store::open(&directory.path().join("settings.sqlite3")).unwrap());
+        store.set_setting(KEY, "{invalid").unwrap();
+        let settings = settings(store);
+        assert_eq!(settings.get().unwrap().current, source("netease"));
+        assert!(settings.get().unwrap().supplementary.is_empty());
+    }
+
     #[test]
     fn invalid_roles_and_disk_failure_do_not_publish() {
         let directory = tempfile::tempdir().unwrap();

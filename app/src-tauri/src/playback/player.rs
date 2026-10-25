@@ -176,10 +176,14 @@ fn restore_player(mut state: PlayerSnapshot) -> PlayerSnapshot {
 }
 
 fn stored_options(store: &Store, fallback: PlaybackOptions) -> AppResult<PlaybackOptions> {
-    store
-        .setting("playbackOptions")?
-        .map(|value| serde_json::from_str(&value).map_err(|e| e.to_string()))
-        .unwrap_or(Ok(fallback))
+    Ok(match store.setting("playbackOptions")? {
+        Some(value) => serde_json::from_str(&value)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("playback.restore.decode_options", error);
+            })
+            .unwrap_or(fallback),
+        None => fallback,
+    })
 }
 
 pub struct Player {
@@ -1718,6 +1722,19 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn invalid_saved_playback_options_fall_back_to_snapshot_options() {
+        let directory = crate::test_support::TestDir::new();
+        let store = Store::open(&directory.0.join("options.sqlite3")).unwrap();
+        store.set_setting("playbackOptions", "{invalid").unwrap();
+        let fallback = PlaybackOptions {
+            fades: true,
+            crossfade: true,
+            crossfade_duration_ms: 5000,
+        };
+        assert_eq!(stored_options(&store, fallback).unwrap(), fallback);
     }
 
     fn snapshot(index: usize, position_ms: u64, mode: RepeatMode) -> PlayerSnapshot {

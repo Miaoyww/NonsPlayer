@@ -18,9 +18,17 @@ impl Store {
         .optional()
         .map_err(|e| e.to_string())?
         .map(|(signature, embedded)| {
+            let embedded = serde_json::from_str(&embedded)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn(
+                        "local.cover_state.read_decode",
+                        error,
+                    );
+                })
+                .unwrap_or_default();
             Ok(CoverState {
                 signature,
-                embedded: serde_json::from_str(&embedded).map_err(|e| e.to_string())?,
+                embedded,
             })
         })
         .transpose()

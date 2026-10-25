@@ -80,6 +80,15 @@ fn setup() -> (AccountManager, Arc<Records>, Arc<Secrets>) {
         secrets,
     )
 }
+
+#[test]
+fn invalid_saved_json_falls_back_to_empty_runtime_state() {
+    let records = Arc::new(Records::default());
+    *records.json.lock().unwrap() = Some("{invalid".into());
+    let manager = AccountManager::new(records, Arc::new(Secrets::default())).unwrap();
+    assert!(manager.records(&source("test")).unwrap().is_empty());
+    assert!(manager.session(&source("test")).account.is_none());
+}
 #[test]
 fn failed_login_does_not_publish_account_and_can_retry_after_restart() {
     for failure in 0..3 {
