@@ -30,6 +30,8 @@ const permissionLabels: Record<string, string> = {
   'music:write': '敏感权限：更改当前账号的收藏、歌单和推荐',
   'player:read': '读取播放状态',
   'player:control': '控制播放',
+  'process:spawn': '敏感权限：启动任意程序并管理其输入输出',
+  'window:manage': '创建和管理插件独立窗口（含置顶、透明和鼠标穿透）',
   storage: '保存独立插件数据',
   ui: '运行受信任的界面代码',
   config: '管理独立插件配置',
@@ -394,6 +396,7 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                         key={p}
                         className={
                           p === 'account:credentials' ||
+                          p === 'process:spawn' ||
                           p === 'music:write' ||
                           (p === 'files:selected' && plugin.manifest.fileRoots?.includes('*')) ||
                           (['http:request', 'http:transfer'].includes(p) &&
@@ -416,6 +419,14 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                       </li>
                     ))}
                   </ul>
+                  {plugin.manifest.permissions.includes('process:spawn') && (
+                    <p
+                      role="alert"
+                      className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
+                    >
+                      此插件可启动任意程序。程序拥有当前系统用户的文件和网络访问能力，不受插件目录和域名授权限制。停用插件或退出应用时结束其进程树。请仅授权你信任的插件。
+                    </p>
+                  )}
                   {plugin.manifest.permissions.includes('account:credentials') && (
                     <p
                       role="alert"

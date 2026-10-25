@@ -24,6 +24,9 @@ pub struct Context {
     pub file_roots: Vec<String>,
     pub http: Arc<super::http::Http>,
     pub transfers: Arc<super::transfers::Transfers>,
+    pub processes: Arc<super::processes::Processes>,
+    pub windows: Arc<super::windows::Windows>,
+    pub window_exports: std::collections::BTreeMap<String, String>,
     pub active: Arc<AtomicBool>,
     pub database: Arc<Database>,
     pub configurations: Arc<super::configuration::Configurations>,
@@ -73,6 +76,14 @@ impl Context {
             })
             .map_err(|_| "插件参数必须为 JSON")?;
         let result = match operation {
+            op if op.starts_with("process.") => {
+                self.check(Some("process:spawn"))?;
+                self.processes.call(self, operation, &args).await?
+            }
+            op if op.starts_with("windows.") => {
+                self.check(Some("window:manage"))?;
+                self.windows.call(self, operation, &args).await?
+            }
             "diagnostic.report" => {
                 self.check(None)?;
                 super::diagnostics::report(&self.id, &self.diagnostic_budget, args)?;

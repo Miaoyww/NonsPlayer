@@ -68,7 +68,9 @@
           "http:request",
           "http:transfer",
           "secrets",
-          "account:credentials"
+          "account:credentials",
+          "process:spawn",
+          "window:manage"
         ]
       }
     },
@@ -199,6 +201,23 @@
         },
         "shortcuts": {
           "type": "array"
+        },
+        "windows": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "export"],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "export": {
+                "$ref": "#/$defs/export"
+              }
+            }
+          }
         }
       }
     },

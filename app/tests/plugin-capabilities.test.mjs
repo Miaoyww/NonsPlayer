@@ -58,6 +58,67 @@ function harness(
   return { scope, sdk }
 }
 
+test('native capabilities require explicit permission and retain generation scope', async () => {
+  const denied = harness([]).sdk
+  assert.throws(() => denied.usePluginProcesses(), /process:spawn/)
+  assert.throws(() => denied.usePluginWindows(), /window:manage/)
+  const calls = []
+  const { scope, sdk } = harness(['process:spawn', 'window:manage'], {
+    nativeCall: async (command, request) => {
+      calls.push({ command, ...request, args: JSON.parse(request.args) })
+      return 'null'
+    }
+  })
+  const processes = sdk.usePluginProcesses()
+  await processes.spawn({ program: 'C:\\Tools\\worker.exe', args: ['value with spaces'] })
+  await processes.write(12, 'aGVsbG8=')
+  await processes.read(12, 'stderr', 100, 1024)
+  const windows = sdk.usePluginWindows()
+  await windows.open('lyrics', { transparent: true, alwaysOnTop: true })
+  await windows.hide('lyrics')
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)), [
+    {
+      command: 'plugin_host_call',
+      id: 'sample',
+      generation: 7,
+      operation: 'process.spawn',
+      args: { program: 'C:\\Tools\\worker.exe', args: ['value with spaces'] }
+    },
+    {
+      command: 'plugin_host_call',
+      id: 'sample',
+      generation: 7,
+      operation: 'process.write',
+      args: { id: 12, data: 'aGVsbG8=' }
+    },
+    {
+      command: 'plugin_host_call',
+      id: 'sample',
+      generation: 7,
+      operation: 'process.read',
+      args: { id: 12, stream: 'stderr', cursor: 100, maxBytes: 1024 }
+    },
+    {
+      command: 'plugin_host_call',
+      id: 'sample',
+      generation: 7,
+      operation: 'windows.open',
+      args: { transparent: true, alwaysOnTop: true, id: 'lyrics' }
+    },
+    {
+      command: 'plugin_host_call',
+      id: 'sample',
+      generation: 7,
+      operation: 'windows.hide',
+      args: { id: 'lyrics' }
+    }
+  ])
+  scope.active = false
+  await assert.rejects(processes.terminate(12))
+  await assert.rejects(windows.show('lyrics'))
+  assert.equal(calls.length, 5)
+})
+
 test('clipboard subscription filters identity and generation and cleans up without replay', async () => {
   let listener,
     disposed = 0

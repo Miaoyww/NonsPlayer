@@ -6,7 +6,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-pub const API_VERSION: &str = "2.0.0";
+pub const API_VERSION: &str = "2.1.0";
 pub const PERMISSIONS: &[&str] = &[
     "clipboard:read",
     "http:request",
@@ -23,6 +23,8 @@ pub const PERMISSIONS: &[&str] = &[
     "config",
     "files:data",
     "files:selected",
+    "process:spawn",
+    "window:manage",
 ];
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -56,6 +58,8 @@ pub struct Engines {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Contributions {
     #[serde(default)]
+    pub windows: Vec<PluginWindow>,
+    #[serde(default)]
     pub views: Vec<View>,
     #[serde(default)]
     pub pages: Vec<Page>,
@@ -71,6 +75,12 @@ pub struct Contributions {
     pub settings: Vec<serde_json::Value>,
     #[serde(default)]
     pub shortcuts: Vec<serde_json::Value>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PluginWindow {
+    pub id: String,
+    pub export: String,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -204,6 +214,9 @@ impl Manifest {
             serde_json::json!({"version":self.version,"permissions":permissions,"httpHosts":hosts});
         if !self.file_roots.is_empty() {
             authorization["fileRoots"] = serde_json::json!(self.file_roots);
+        }
+        if !self.contributes.windows.is_empty() {
+            authorization["windows"] = serde_json::json!(self.contributes.windows);
         }
         authorization.to_string()
     }
@@ -343,10 +356,16 @@ impl Manifest {
         if (!c.views.is_empty()
             || !c.pages.is_empty()
             || !c.navigation.is_empty()
-            || !c.context_menus.is_empty())
+            || !c.context_menus.is_empty()
+            || !c.windows.is_empty())
             && (self.frontend.is_none() || !self.permissions.iter().any(|p| p == "ui"))
         {
             return Err("UI 扩展缺少 frontend 或 ui 权限".into());
+        }
+        if c.windows.len() > 4
+            || (!c.windows.is_empty() && !self.permissions.iter().any(|p| p == "window:manage"))
+        {
+            return Err("插件窗口最多 4 个，且须声明 window:manage".into());
         }
         let mut ids = HashSet::new();
         for (id, export) in c
@@ -354,6 +373,7 @@ impl Manifest {
             .iter()
             .map(|v| (&v.id, &v.export))
             .chain(c.pages.iter().map(|p| (&p.id, &p.export)))
+            .chain(c.windows.iter().map(|p| (&p.id, &p.export)))
             .chain(c.context_menus.iter().map(|m| (&m.id, &m.export)))
         {
             if !valid_id(id)
@@ -409,6 +429,30 @@ impl Manifest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn windows_require_explicit_permission_and_authorization_covers_exports() {
+        let mut manifest: Manifest = serde_json::from_str(include_str!(
+            "../../../../plugins/netease-island/manifest.json"
+        ))
+        .unwrap();
+        let old = manifest.authorization();
+        manifest.contributes.windows.push(PluginWindow {
+            id: "desktop-lyrics".into(),
+            export: "DesktopLyrics".into(),
+        });
+        assert!(manifest.validate().is_err());
+        manifest.permissions.push("window:manage".into());
+        manifest.validate().unwrap();
+        assert_ne!(old, manifest.authorization());
+        let authorized = manifest.authorization();
+        manifest.contributes.windows[0].export = "OtherWindow".into();
+        assert_ne!(authorized, manifest.authorization());
+        manifest
+            .contributes
+            .windows
+            .push(manifest.contributes.windows[0].clone());
+        assert!(manifest.validate().is_err());
+    }
     #[test]
     fn validates_tool_and_rejects_unsupported_file_scope() {
         let mut manifest: Manifest = serde_json::from_str(include_str!(

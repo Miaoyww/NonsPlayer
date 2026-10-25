@@ -294,10 +294,12 @@ export function retryPrivateFm() {
   privateFm?.retry()
 }
 
-export async function connectPlayer(): Promise<UnlistenFn> {
+export async function connectPlayer(options: { observerOnly?: boolean } = {}): Promise<UnlistenFn> {
   if (!isTauri()) return () => {}
-  const fm = createPrivateFm(getPlayer, nativeCall, playerStore.privateFmError)
-  privateFm = fm
+  const fm = options.observerOnly
+    ? undefined
+    : createPrivateFm(getPlayer, nativeCall, playerStore.privateFmError)
+  if (fm) privateFm = fm
   const listeners: UnlistenFn[] = []
   let disposed = false
   let syncing: Promise<void> | undefined
@@ -319,7 +321,11 @@ export async function connectPlayer(): Promise<UnlistenFn> {
       })
   }
   try {
-    if (typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent)) {
+    if (
+      !options.observerOnly &&
+      typeof navigator !== 'undefined' &&
+      /Windows/i.test(navigator.userAgent)
+    ) {
       const { createWebAudio } = await import('@/features/playback/web-audio')
       const webAudio = createWebAudio(
         (feedback) => invoke('web_audio_feedback', { feedback }),
@@ -351,7 +357,7 @@ export async function connectPlayer(): Promise<UnlistenFn> {
         if (!disposed) playerStore.progress(payload)
       })
     )
-    listeners.push(playerStore.subscribeState(() => fm.update()))
+    if (fm) listeners.push(playerStore.subscribeState(() => fm.update()))
     listeners.push(await listen('lyrics-updated', () => invalidateNativeCache(['track_lyrics'])))
     listeners.push(
       await listen('lyric-correction-changed', () =>
@@ -377,7 +383,7 @@ export async function connectPlayer(): Promise<UnlistenFn> {
     recover()
     return () => {
       disposed = true
-      fm.dispose()
+      fm?.dispose()
       if (privateFm === fm) privateFm = undefined
       listeners.forEach((unlisten) => unlisten())
     }
@@ -385,7 +391,7 @@ export async function connectPlayer(): Promise<UnlistenFn> {
     reportCaughtError('app/src/lib/player.ts', error)
 
     disposed = true
-    fm.dispose()
+    fm?.dispose()
     if (privateFm === fm) privateFm = undefined
     listeners.forEach((unlisten) => unlisten())
     throw error

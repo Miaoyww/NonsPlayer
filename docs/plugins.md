@@ -209,6 +209,53 @@ view 导出命名 React Component，并在 views 中关联导出与 `main.overla
 - Store 上限仅覆盖 guest 线性内存等资源，不代表 Wasmtime JIT、Host、WebView 或全进程内存上限。当前没有独立 WASM worker 进程、签名或权限撤销后的 JS 强制终止；频繁 reload 的 ESM 模块记录可能留在 WebView，必要时重启应用。
 - Windows 已验收；macOS/Linux 原生构建、播放与剪贴板观察尚需对应环境验证，Linux 当前为 X11 后端。Release 的 GStreamer 裁剪和打包仍沿用既有未完成状态。
 
+## Windows 子进程与独立窗口
+
+插件 API / UI API 2.1.0 提供 `process:spawn` 与 `window:manage`。两项能力仅支持 Windows，其他平台明确返回不支持；权限扩大后须重新授权。它们不取消 WASM 执行预算，也不改变前端可信代码的边界。
+
+`process:spawn` 为敏感权限：可启动当前系统用户能运行的任意程序，程序的文件与网络访问不受插件目录、HTTP 域名授权限制。通过 `usePluginProcesses()` 或 `client.call` / WASM `host.call` 使用：
+
+| 操作                  | 参数与结果                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `process.spawn`       | `{program,args?,cwd?}` → `{id,pid}`；程序与工作目录为绝对路径，参数最多 128 项；不自动调用 Shell，继承宿主环境，不显示控制台                                       |
+| `process.get`         | `{id}` → `{id,pid,state,exitCode}`；状态为 `running/exited/terminated`                                                                                             |
+| `process.read`        | `{id,stream:"stdout"或"stderr",cursor?,maxBytes?}` → `{data,cursor,nextCursor,total,dropped,eof,error}`；data 为 base64，默认及最多读取 16KiB，后续传回 nextCursor |
+| `process.write`       | `{id,data}` → `{queuedBytes}`；base64 输入最多 16KiB，仅确认入队，不保证程序已消费                                                                                 |
+| `process.close-stdin` | `{id}`；排空已排队输入后关闭标准输入                                                                                                                               |
+| `process.terminate`   | `{id}`；终止进程树，保留输出和状态                                                                                                                                 |
+| `process.dispose`     | `{id}`；终止进程树并释放记录                                                                                                                                       |
+
+每插件最多 4 条进程记录、全局 16 条，已退出记录需 dispose。stdout/stderr 各保留最新 256KiB，持续排空；省略 cursor 从最早保留位置读取，dropped 为累计丢弃字节数，实际 cursor 大于请求值表示旧输出已淘汰。标准输入最多排队 8 块，满时拒绝写入。Windows Job Object 在进程恢复执行前接管进程树；停用、卸载、重载、实例故障及应用退出均终止所属进程树。进程 ID 绑定插件与加载代次，主 WebView 释放不会终止进程。
+
+独立窗口需同时声明 `ui`、`window:manage`、frontend 和 `contributes.windows`，每项为 `{id,export}`，最多 4 项；窗口声明进入授权指纹。窗口只加载声明的 React 组件，不执行模块的 `activate`，不加载其他插件，不创建第二套音频播放端。窗口本身不使用工作区的 MusicPage shell。
+
+```json
+{
+  "permissions": ["ui", "window:manage", "player:read"],
+  "contributes": {
+    "windows": [{ "id": "floating", "export": "FloatingView" }]
+  }
+}
+```
+
+```tsx
+const windows = usePluginWindows()
+await windows.open('floating', {
+  width: 800,
+  height: 120,
+  transparent: true,
+  decorations: false,
+  alwaysOnTop: true
+})
+await windows.update('floating', { ignoreCursorEvents: true })
+```
+
+同名窗口重复 open 显示既有窗口。`windows.open` 接收 `{id,title?,width?,height?,x?,y?,transparent?,decorations?,alwaysOnTop?,ignoreCursorEvents?}`，返回 `{id,label}`；尺寸与位置以逻辑像素指定，width/height、x/y 分别成对传入。`windows.update` 支持相同选项，但 transparent/decorations 只能创建时指定。`windows.show/hide/close/start-dragging` 接收 `{id}`。SDK 对应 `open/update/show/hide/close/startDragging`，open/update 将选项作为第二个参数。
+
+窗口仅访问当前插件的声明和加载代次，不接受任意 URL；每插件最多 4 个窗口、全局 16 个。主窗口隐藏或其 WebView 释放后，独立窗口继续运行并可订阅播放状态；停用、重载、实例故障、卸载和退出时关闭。隐藏窗口的插件应停止动画与非必要刷新。当前公开播放接口仍不包含歌词时间轴，独立窗口能力本身不提供桌面歌词插件。
+
+设置 → 常规 → 窗口与启动的“后台释放 WebView”默认开启：主窗口隐藏或最小化 30 秒后，在播放不需要主前端时释放主 WebView；关闭后保留主 WebView，切换立即生效并持久保存。释放的是主 WebView，独立插件窗口继续由各自生命周期管理。
+
 ## 验证
 
 准备测试 Component，再运行既有检查：

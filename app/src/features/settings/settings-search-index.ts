@@ -147,7 +147,12 @@ const groups: SearchGroup[] = [
   }
 ]
 
-const desktopOnly = new Set(['close-behavior', 'autostart', 'playback-bar', 'background-webview-release'])
+const desktopOnly = new Set([
+  'close-behavior',
+  'autostart',
+  'playback-bar',
+  'background-webview-release'
+])
 
 export function getSettingsSearchItems(): SettingsSearchItem[] {
   const items = groups

@@ -1,4 +1,7 @@
 import type { ComponentType, ReactNode, ComponentProps } from 'react'
+export type * from './native'
+export function usePluginProcesses(): import('./native').PluginProcesses
+export function usePluginWindows(): import('./native').PluginWindows
 export type PluginSong = import('./music').MusicTrack
 /** Records a recovered failure in the console and bounded, redacted local log. */
 export function reportCaughtError(operation: string, cause: unknown): void

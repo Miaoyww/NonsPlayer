@@ -120,7 +120,8 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                   return
                 for (const contribution of [
                   ...descriptor.manifest.contributes.views,
-                  ...descriptor.manifest.contributes.pages
+                  ...descriptor.manifest.contributes.pages,
+                  ...(descriptor.manifest.contributes.windows ?? [])
                 ]) {
                   if (!isComponent(module[contribution.export]))
                     throw new Error(`插件未导出 ${contribution.export}`)

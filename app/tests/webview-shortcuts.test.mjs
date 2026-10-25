@@ -13,6 +13,7 @@ function session(development = false) {
   runInNewContext(source, {
     window,
     isAndroid: () => false,
+    isPluginWindow: () => false,
     initializeFontSettings() {},
     installDiagnostics() {},
     installPluginBridge() {}

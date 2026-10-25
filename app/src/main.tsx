@@ -6,12 +6,19 @@ import { initializeFontSettings } from '@/features/settings/font-settings'
 import { installPluginBridge } from '@/plugins/host'
 import { isAndroid } from '@/lib/platform'
 import { installDiagnostics } from '@/lib/diagnostics'
+import PluginWindowHost, { isPluginWindow } from '@/plugins/window-host'
 
 if (isAndroid()) document.documentElement.dataset.platform = 'android'
 
 installDiagnostics()
 initializeFontSettings()
 installPluginBridge()
+const pluginWindow = isPluginWindow()
+if (pluginWindow) {
+  document.documentElement.dataset.pluginWindow = 'true'
+  document.documentElement.style.background = 'transparent'
+  document.body.style.background = 'transparent'
+}
 
 // Release WebViews are application surfaces, not browser windows.
 if (!import.meta.env.DEV) {
@@ -54,7 +61,5 @@ window.addEventListener(
 )
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <React.StrictMode>{pluginWindow ? <PluginWindowHost /> : <App />}</React.StrictMode>
 )

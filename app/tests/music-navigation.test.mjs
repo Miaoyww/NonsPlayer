@@ -5,7 +5,7 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 
-function harness(storage, replacement = () => undefined) {
+function harness(storage, replacement = () => undefined, standalone = false) {
   const dom = new JSDOM('<button id="card">歌单卡片</button>')
   const { window } = dom
   const slots = [],
@@ -52,7 +52,14 @@ function harness(storage, replacement = () => undefined) {
     require: (name) =>
       name === '@/features/aggregate/aggregate-library'
         ? {
-            useAggregateReplacement: () => replacement,
+            useAggregateReplacement: () => {
+              assert.equal(
+                standalone,
+                false,
+                'standalone windows do not require the aggregate library'
+              )
+              return replacement
+            },
             aggregateCollection: (p) => ({
               id: p.id,
               localId: p.id,
@@ -69,7 +76,11 @@ function harness(storage, replacement = () => undefined) {
   })
   function render() {
     cursor = 0
-    const state = exports.MusicNavigationProvider({ children: null }).props.value
+    let node = (
+      standalone ? exports.MusicNavigationStateProvider : exports.MusicNavigationProvider
+    )({ children: null })
+    while (typeof node.type === 'function') node = node.type(node.props)
+    const state = node.props.value
     effects.splice(0).forEach((fn) => fn())
     return state
   }
@@ -87,6 +98,15 @@ function harness(storage, replacement = () => undefined) {
   }
   return { render, mouse, unmount, close }
 }
+
+test('standalone window navigation works without account or aggregate providers', () => {
+  const app = harness(undefined, undefined, true)
+  app.render().navigate('search', 'window query')
+  assert.equal(app.render().page.query, 'window query')
+  app.render().back()
+  assert.equal(app.render().page.view, 'library')
+  app.close()
+})
 test('opaque entity references distinguish cross-source history and remain intact when going back', () => {
   const app = harness()
   const first = {

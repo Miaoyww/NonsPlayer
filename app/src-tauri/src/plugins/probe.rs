@@ -102,7 +102,7 @@ pub async fn plugin_probe_report(
         println!("PLUGIN_PROBE permission checks, stale generation, disabled resources and UI cleanup: passed");
         let source = directory().join("probe-source");
         std::fs::create_dir_all(&source).map_err(|e| e.to_string())?;
-        std::fs::write(source.join("manifest.json"), serde_json::json!({"id":"probe-page","name":"Probe Page","version":"1.0.0","frontend":"ui.mjs","permissions":["ui","storage"],"engines":{"app":"^1.0.0","pluginApi":"^1.0.0","uiApi":"^1.0.0"},"contributes":{"pages":[{"id":"root","path":"/","export":"Page"}],"navigation":[{"id":"entry","label":"Probe Page","page":"root"}]}}).to_string()).map_err(|e| e.to_string())?;
+        std::fs::write(source.join("manifest.json"), serde_json::json!({"id":"probe-page","name":"Probe Page","version":"1.0.0","frontend":"ui.mjs","permissions":["ui","storage"],"engines":{"app":"^1.0.0","pluginApi":"^2.0.0","uiApi":"^2.0.0"},"contributes":{"pages":[{"id":"root","path":"/","export":"Page"}],"navigation":[{"id":"entry","label":"Probe Page","page":"root"}]}}).to_string()).map_err(|e| e.to_string())?;
         std::fs::write(source.join("ui.mjs"), r#"import{createElement as h,useState}from'./_host/react.mjs';import{usePluginRoute,usePluginNavigate}from'./_host/sdk.mjs';export function Page(){const{pathname}=usePluginRoute();const navigate=usePluginNavigate();const[count,setCount]=useState(0);return h('div',{'data-probe-page':true},h('span',{'data-probe-state':true},`${count}:${pathname}`),h('button',{'data-probe-increment':true,onClick:()=>setCount(v=>v+1)},'Increment'),h('button',{'data-probe-child':true,onClick:()=>navigate('/child')},'Child'));}"#).map_err(|e| e.to_string())?;
         manager.inner().install(source).await?;
         manager.inner().action("probe-page", "enable", true).await?;
@@ -220,6 +220,144 @@ pub async fn plugin_probe_report(
         println!(
             "PLUGIN_PROBE uninstall removes storage, page and navigation contributions: passed"
         );
+        let source = directory().join("probe-window-source");
+        std::fs::create_dir_all(&source).map_err(|error| error.to_string())?;
+        std::fs::write(
+            source.join("manifest.json"),
+            serde_json::json!({
+                "id":"probe-window", "name":"Probe Window", "version":"1.0.0", "frontend":"ui.mjs",
+                "permissions":["ui","window:manage","player:read"],
+                "engines":{"app":"^1.0.0","pluginApi":"^2.0.0","uiApi":"^2.0.0"},
+                "contributes":{"windows":[{"id":"lyrics","export":"Lyrics"}]}
+            })
+            .to_string(),
+        )
+        .map_err(|error| error.to_string())?;
+        std::fs::write(source.join("ui.mjs"), r#"import{createElement as h,useState}from'./_host/react.mjs';import{usePlayer}from'./_host/sdk.mjs';export function Lyrics(){const state=usePlayer();const[count,setCount]=useState(0);return h('div',{'data-probe-window':true},h('span',{'data-probe-volume':true},String(state.volume)),h('button',{'data-probe-tick':true,onClick:()=>setCount(v=>v+1)},String(count)));}"#).map_err(|error| error.to_string())?;
+        manager.inner().install(source).await?;
+        manager
+            .inner()
+            .action("probe-window", "enable", true)
+            .await?;
+        let descriptor = manager
+            .list()?
+            .into_iter()
+            .find(|plugin| plugin.manifest.id == "probe-window")
+            .ok_or("窗口插件缺失")?;
+        let context = manager.scoped("probe-window", descriptor.generation)?;
+        let mut denied = context.clone();
+        denied.permissions.remove("window:manage");
+        assert!(denied
+            .call("windows.open", r#"{"id":"lyrics"}"#)
+            .await
+            .is_err());
+        assert!(context
+            .call("windows.open", r#"{"id":"undeclared"}"#)
+            .await
+            .is_err());
+        let value: serde_json::Value = serde_json::from_str(&context.call("windows.open", r#"{"id":"lyrics","width":400,"height":100,"transparent":true,"decorations":false,"alwaysOnTop":true}"#).await?).map_err(|error| error.to_string())?;
+        let window = app
+            .get_webview_window(value["label"].as_str().ok_or("窗口标签缺失")?)
+            .ok_or("插件窗口未创建")?;
+        assert!(window
+            .is_always_on_top()
+            .map_err(|error| error.to_string())?);
+        context.call("windows.update", r#"{"id":"lyrics","width":420,"height":120,"x":20,"y":20,"ignoreCursorEvents":true}"#).await?;
+        context
+            .call(
+                "windows.update",
+                r#"{"id":"lyrics","ignoreCursorEvents":false}"#,
+            )
+            .await?;
+        context.call("windows.hide", r#"{"id":"lyrics"}"#).await?;
+        assert!(!window.is_visible().map_err(|error| error.to_string())?);
+        context.call("windows.show", r#"{"id":"lyrics"}"#).await?;
+        let mut other = context.clone();
+        other.id = "other-plugin".into();
+        assert!(other
+            .call("windows.close", r#"{"id":"lyrics"}"#)
+            .await
+            .is_err());
+        window.eval(r#"(()=>{const start=Date.now();const poll=()=>{if(document.querySelector('[data-probe-window]')){window.__TAURI_INTERNALS__.invoke('plugin_probe_report',{phase:'window-rendered',success:true});return;}if(Date.now()-start>8000){window.__TAURI_INTERNALS__.invoke('plugin_probe_report',{phase:'window-rendered',success:false});return;}setTimeout(poll,40);};poll();})();"#).map_err(|error| error.to_string())?;
+    } else if phase == "window-rendered" {
+        manager
+            .player
+            .set_engine(crate::model::PlaybackEngine::Gstreamer)?;
+        app.get_window("main")
+            .ok_or("主窗口缺失")?
+            .hide()
+            .map_err(|error| error.to_string())?;
+        app.get_webview("main")
+            .ok_or("主 WebView 缺失")?
+            .close()
+            .map_err(|error| error.to_string())?;
+        manager.inner().frontend_detached()?;
+        let deadline = Instant::now();
+        while app.get_webview("main").is_some() {
+            if deadline.elapsed() > Duration::from_secs(3) {
+                return Err("主 WebView 未释放".into());
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        manager.player.send(crate::player::Command::Volume(0.42))?;
+        let window = app
+            .webview_windows()
+            .into_iter()
+            .find(|(label, _)| label.starts_with("plugin-window-probe-window-"))
+            .map(|(_, window)| window)
+            .ok_or("独立窗口缺失")?;
+        window.eval(r#"(()=>{const start=Date.now();let clicked=false;const poll=()=>{const button=document.querySelector('[data-probe-tick]');if(button&&!clicked){clicked=true;button.click();}if(document.querySelector('[data-probe-volume]')?.textContent==='0.42'&&button?.textContent==='1'){window.__TAURI_INTERNALS__.invoke('plugin_probe_report',{phase:'window-independent',success:true});return;}if(Date.now()-start>5000){window.__TAURI_INTERNALS__.invoke('plugin_probe_report',{phase:'window-independent',success:false});return;}setTimeout(poll,40);};poll();})();"#).map_err(|error| error.to_string())?;
+    } else if phase == "window-independent" {
+        assert!(app.get_webview("main").is_none());
+        println!("PLUGIN_PROBE independent window SDK playback subscription and React updates after main WebView release: passed");
+        let descriptor = manager
+            .list()?
+            .into_iter()
+            .find(|plugin| plugin.manifest.id == "probe-window")
+            .ok_or("窗口插件缺失")?;
+        let context = manager.scoped("probe-window", descriptor.generation)?;
+        let prefix = format!(
+            "plugin-window-probe-window-{}-lyrics-",
+            descriptor.generation
+        );
+        let label = app
+            .webview_windows()
+            .keys()
+            .find(|label| label.starts_with(&prefix))
+            .cloned()
+            .ok_or("插件窗口未找到")?;
+        context.call("windows.close", r#"{"id":"lyrics"}"#).await?;
+        let deadline = Instant::now();
+        while app.get_webview_window(&label).is_some() {
+            if deadline.elapsed() > Duration::from_secs(3) {
+                return Err("插件窗口未关闭".into());
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        let opened: serde_json::Value =
+            serde_json::from_str(&context.call("windows.open", r#"{"id":"lyrics"}"#).await?)
+                .map_err(|error| error.to_string())?;
+        let label = opened["label"].as_str().ok_or("窗口标签缺失")?;
+        manager
+            .inner()
+            .action("probe-window", "disable", false)
+            .await?;
+        let deadline = Instant::now();
+        while app.get_webview_window(label).is_some() {
+            if deadline.elapsed() > Duration::from_secs(3) {
+                return Err("停用后插件窗口未关闭".into());
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert!(context
+            .call("windows.open", r#"{"id":"lyrics"}"#)
+            .await
+            .is_err());
+        manager
+            .inner()
+            .action("probe-window", "uninstall", false)
+            .await?;
+        println!("PLUGIN_PROBE independent plugin window rendering, geometry, visibility, permissions and disable cleanup: passed");
         app.state::<Probe>().success.store(true, Ordering::SeqCst);
         app.exit(0);
     }

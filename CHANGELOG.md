@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 插件与窗口
+
+- Windows 插件可在明确授权后启动任意程序，管理标准输入输出、退出状态及进程树；停用插件或退出应用时结束所属进程树。
+- Windows 插件支持声明独立窗口，可设置透明、置顶、鼠标穿透和位置尺寸；主界面释放后继续运行，停用插件时关闭。
+- 设置 → 常规 → 窗口与启动增加“后台释放 WebView”开关，默认开启；关闭后保留后台主界面及其前端插件。
+
 ## [1.8.1] - 2026-10-24
 
 ![NonsPlayer v1.8.1 音乐库与本地音乐维护更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.1/docs/release-assets/header-1.8.1.png)

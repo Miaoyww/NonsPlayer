@@ -9,6 +9,8 @@ import { useCoverSource as useHostCoverSource } from '@/components/music/use-cov
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { checkScope, useScope, PluginNavigationScope, type Scope } from './scope'
 import type { ConfigSnapshot } from './configuration-types'
+import type { PluginProcesses, PluginWindows } from '../../../packages/plugin-sdk/native'
+export type * from '../../../packages/plugin-sdk/native'
 export type { ConfigSnapshot } from './configuration-types'
 import { pluginPath, resolvePluginPath } from './types'
 export { MusicPageHeader } from '@/components/music/music-page'
@@ -33,6 +35,38 @@ export function useSongPlayback() {
   return useCallback(
     (reference: import('@/features/music/types').EntityRef, mode: 'now' | 'next') =>
       hostCall<void>(scope, 'music.play-track', { reference, mode }),
+    [scope]
+  )
+}
+
+export function usePluginProcesses(): PluginProcesses {
+  const scope = useScope('process:spawn')
+  return useMemo<PluginProcesses>(
+    () => ({
+      spawn: (options) => hostCall(scope, 'process.spawn', options),
+      get: (id) => hostCall(scope, 'process.get', { id }),
+      read: (id, stream, cursor, maxBytes) =>
+        hostCall(scope, 'process.read', { id, stream, cursor, maxBytes }),
+      write: (id, data) => hostCall(scope, 'process.write', { id, data }),
+      closeStdin: (id) => hostCall(scope, 'process.close-stdin', { id }),
+      terminate: (id) => hostCall(scope, 'process.terminate', { id }),
+      dispose: (id) => hostCall(scope, 'process.dispose', { id })
+    }),
+    [scope]
+  )
+}
+
+export function usePluginWindows(): PluginWindows {
+  const scope = useScope('window:manage')
+  return useMemo<PluginWindows>(
+    () => ({
+      open: (id, options) => hostCall(scope, 'windows.open', { ...options, id }),
+      update: (id, options) => hostCall(scope, 'windows.update', { ...options, id }),
+      show: (id) => hostCall(scope, 'windows.show', { id }),
+      hide: (id) => hostCall(scope, 'windows.hide', { id }),
+      close: (id) => hostCall(scope, 'windows.close', { id }),
+      startDragging: (id) => hostCall(scope, 'windows.start-dragging', { id })
+    }),
     [scope]
   )
 }

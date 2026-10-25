@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "plugin-windows",
+  "description": "Plugin windows subscribe to host events; window operations use the scoped plugin host.",
+  "platforms": ["windows"],
+  "windows": ["plugin-window-*"],
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten"]
+}

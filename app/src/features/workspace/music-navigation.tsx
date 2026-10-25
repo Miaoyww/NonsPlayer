@@ -54,6 +54,20 @@ const NavigationContext = createContext<{
 type NavigationHistory = { entries: Page[]; index: number }
 export function MusicNavigationProvider({ children }: { children: ReactNode }) {
   const replacement = useAggregateReplacement()
+  return (
+    <MusicNavigationStateProvider replacement={replacement}>
+      {children}
+    </MusicNavigationStateProvider>
+  )
+}
+
+export function MusicNavigationStateProvider({
+  children,
+  replacement
+}: {
+  children: ReactNode
+  replacement?: ReturnType<typeof useAggregateReplacement>
+}) {
   const [history, setHistory] = useState<NavigationHistory>({
     entries: [{ view: 'library', query: '' }],
     index: 0
@@ -80,7 +94,7 @@ export function MusicNavigationProvider({ children }: { children: ReactNode }) {
   }, [])
   function navigate(view: MusicView, query = '', collection?: MusicCollection) {
     if (collection && view === 'collection') {
-      const aggregate = replacement(collection)
+      const aggregate = replacement?.(collection)
       if (aggregate) {
         view = 'local-playlist'
         collection = aggregateCollection(aggregate)

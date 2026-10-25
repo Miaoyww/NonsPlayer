@@ -15,10 +15,12 @@ pub mod manifest;
 mod music;
 #[cfg(feature = "plugin-probe")]
 pub mod probe;
+mod processes;
 mod runtime;
 mod secrets;
 pub(crate) mod settings;
 mod transfers;
+mod windows;
 
 use crate::{model::AppResult, player::Player};
 use capability::Context;
@@ -66,6 +68,8 @@ pub struct PluginManager {
     songs: Arc<SongService>,
     http: Arc<http::Http>,
     transfers: Arc<transfers::Transfers>,
+    processes: Arc<processes::Processes>,
+    windows: Arc<windows::Windows>,
     player: Arc<Player>,
     app: tauri::AppHandle,
     records: Mutex<BTreeMap<String, Record>>,
@@ -103,6 +107,8 @@ impl PluginManager {
             songs: Arc::new(SongService::new(music)),
             http: Arc::new(http::Http::new()?),
             transfers: Arc::new(transfers::Transfers::default()),
+            processes: Arc::new(processes::Processes::default()),
+            windows: Arc::new(windows::Windows::default()),
             player,
             app,
             records: Default::default(),
@@ -303,6 +309,14 @@ impl PluginManager {
             file_roots: manifest.file_roots.clone(),
             http: self.http.clone(),
             transfers: self.transfers.clone(),
+            processes: self.processes.clone(),
+            windows: self.windows.clone(),
+            window_exports: manifest
+                .contributes
+                .windows
+                .iter()
+                .map(|w| (w.id.clone(), w.export.clone()))
+                .collect(),
             active: Arc::new(AtomicBool::new(false)),
             database: self.database.clone(),
             configurations: self.configurations.clone(),
@@ -588,6 +602,8 @@ impl PluginManager {
                     context.active.store(false, Ordering::SeqCst);
                     self.configurations.unloaded(id);
                     self.files.close_instance(id, generation);
+                    self.processes.revoke(id, generation);
+                    self.windows.revoke(id, generation);
                     self.lock()?
                         .get_mut(id)
                         .ok_or("插件未安装")?
@@ -617,6 +633,8 @@ impl PluginManager {
             let record = records.get_mut(id).ok_or("插件未安装")?;
             record.context.active.store(false, Ordering::SeqCst);
             self.files.close_instance(id, record.descriptor.generation);
+            self.processes.revoke(id, record.descriptor.generation);
+            self.windows.revoke(id, record.descriptor.generation);
             self.configurations.unloaded(id);
             record.descriptor.loaded = false;
             record.ready = false;
@@ -713,6 +731,8 @@ impl PluginManager {
         {
             record.context.active.store(false, Ordering::SeqCst);
             self.files.close_instance(id, generation);
+            self.processes.revoke(id, generation);
+            self.windows.revoke(id, generation);
             self.configurations.unloaded(id);
             record.descriptor.loaded = false;
             record.descriptor.error = Some(error.chars().take(512).collect());
@@ -900,6 +920,10 @@ impl PluginManager {
                 record.context.active.store(false, Ordering::SeqCst);
                 self.files
                     .close_instance(&record.descriptor.manifest.id, record.descriptor.generation);
+                self.processes
+                    .revoke(&record.context.id, record.context.generation);
+                self.windows
+                    .revoke(&record.context.id, record.context.generation);
             }
         }
         if let Ok(mut watcher) = (self.watcher.lock()).inspect_err(|error| {
@@ -921,7 +945,7 @@ fn host_module(module: &str) -> AppResult<(Vec<u8>, &'static str)> {
     let (object, exports) = match module {
         "react.mjs" => ("react", "Children,Fragment,Profiler,StrictMode,Suspense,Component,PureComponent,createContext,createElement,cloneElement,isValidElement,forwardRef,memo,lazy,startTransition,useActionState,useCallback,useContext,useDebugValue,useDeferredValue,useEffect,useId,useImperativeHandle,useInsertionEffect,useLayoutEffect,useMemo,useOptimistic,useReducer,useRef,useState,useSyncExternalStore,useTransition,use,act,cache,version"),
         "jsx-runtime.mjs" => ("jsx", "Fragment,jsx,jsxs"),
-        "sdk.mjs" => ("sdk", "reportCaughtError,usePluginClipboard,usePluginHttp,useMusicSource,usePluginBackend,usePluginEvent,usePluginStorage,usePluginConfig,usePluginFiles,usePluginNavigate,usePluginRoute,usePlayer,useTheme,useCoverSource,useSongPlayback,SongArtists,SongLikeButton,SongIdentity,DownloadedSongList,MusicPageHeader,Button,Progress,Input,Icon,Tabs,TabsList,TabsTab,TabsPanel,TabsPanels"),
+        "sdk.mjs" => ("sdk", "reportCaughtError,usePluginClipboard,usePluginHttp,useMusicSource,usePluginBackend,usePluginEvent,usePluginStorage,usePluginConfig,usePluginFiles,usePluginProcesses,usePluginWindows,usePluginNavigate,usePluginRoute,usePlayer,useTheme,useCoverSource,useSongPlayback,SongArtists,SongLikeButton,SongIdentity,DownloadedSongList,MusicPageHeader,Button,Progress,Input,Icon,Tabs,TabsList,TabsTab,TabsPanel,TabsPanels"),
         _ => return Err("未知宿主桥接模块".into()),
     };
     Ok((format!("const host=globalThis.__NONS_PLUGIN_HOST__.{object};export default host;export const {{{exports}}}=host;").into_bytes(), "text/javascript"))
