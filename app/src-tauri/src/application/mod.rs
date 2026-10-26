@@ -761,14 +761,23 @@ pub fn run() {
     #[cfg(windows)]
     for window in &mut context.config_mut().app.windows {
         if window.label == "main" {
+            let args = window
+                .additional_browser_args
+                .as_deref()
+                .unwrap_or("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection");
+            // Native SMTC owns system controls; Chromium must not publish a second session.
+            let args = if args.contains("--disable-features=") {
+                args.replacen(
+                    "--disable-features=",
+                    "--disable-features=HardwareMediaKeyHandling,",
+                    1,
+                )
+            } else {
+                format!("{args} --disable-features=HardwareMediaKeyHandling")
+            };
             // Playback also starts from native SMTC while the page is hidden.
-            window.additional_browser_args = Some(format!(
-                "{} --autoplay-policy=no-user-gesture-required",
-                window
-                    .additional_browser_args
-                    .as_deref()
-                    .unwrap_or("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection")
-            ));
+            window.additional_browser_args =
+                Some(format!("{args} --autoplay-policy=no-user-gesture-required"));
         }
     }
     if crate::infrastructure::directories::portable().is_some() {
