@@ -36,7 +36,7 @@ git push origin v1.0.0
 - 检查格式，运行前端测试、脚本测试与原生库／集成测试；构建灵动岛与测试 Component。
 - QQ 音乐适配器构建前，分别按锁文件安装 `adapters/qqmusic`、`adapters/gdstudio` 与 `packages/wasm-crypto` 的 npm 开发依赖，并将 WAC 0.12.0 安装到 `.local/tools`；Rust 密码组件使用 `wasm32-unknown-unknown` 目标。
 - 通过应用打包入口生成 MSI 和 NSIS EXE，音频使用系统 WebView。
-- 从同一次构建的主程序与 Windows 资源映射生成 `Nons_<版本>_windows_x64_portable.zip`，包含随包插件与使用说明，沿用安装包的许可文件打包策略；不包含构建缓存和调试符号。完整解压后运行 `Nons.exe`，无需安装应用，但系统必须已有 Microsoft Edge WebView2 Runtime。
+- 从同一次构建的主程序与 Windows 资源映射生成 `Nons_<版本>_windows_x64_portable.zip`，包含随包插件、使用说明与匹配的 `Nons.pdb` 调试符号，沿用安装包的许可文件打包策略，不包含构建缓存。安装包同样携带匹配符号，请保留以支持错误日志中的函数名与代码行号。完整解压后运行 `Nons.exe`，无需安装应用，但系统必须已有 Microsoft Edge WebView2 Runtime。
 - 前端播放测试覆盖 WebAudio 的媒体控制、进度反馈、设备选择及交叉淡入淡出；实际格式与物理输出仍需在各目标平台的系统 WebView 验收。
 - 仅收集当前版本的 MSI、EXE、便携 ZIP 和匹配源码 Manifest 的灵动岛 ZIP，生成 `SHA256SUMS.txt`；Artifact 保留 14 天，发布任务下载后再次校验哈希。缺少便携 ZIP 时阻止发布。
 - 新 Release 先创建为草稿，上传所有附件后公开；重跑时更新说明并覆盖同名附件，已有公开 Release 保持公开。
