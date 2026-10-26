@@ -912,6 +912,14 @@ impl PluginManager {
     pub async fn account_changed(&self) {
         self.songs.clear().await;
     }
+    pub(crate) async fn music_cache_status(
+        &self,
+    ) -> AppResult<crate::infrastructure::other_cache::Usage> {
+        self.songs.cache_status().await
+    }
+    pub(crate) async fn clear_music_cache(&self) {
+        self.songs.clear().await;
+    }
     pub fn stop(&self) {
         self.stopped.store(true, Ordering::SeqCst);
         if let Ok(records) = (self.lock()).inspect_err(|error| {

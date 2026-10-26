@@ -1098,6 +1098,8 @@ pub fn run() {
             local_cache_status,
             set_local_cache_options,
             clear_local_cache,
+            crate::infrastructure::other_cache::other_cache_status,
+            crate::infrastructure::other_cache::clear_other_cache,
             local_options,
             set_local_options,
             music_folders,

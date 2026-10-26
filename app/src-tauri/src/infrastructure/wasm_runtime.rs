@@ -7,6 +7,9 @@ use wasmtime::{
 mod compilation;
 pub(crate) use compilation::compile as compile_component;
 pub(crate) use compilation::configure_cache as configure_compilation_cache;
+pub(crate) use compilation::{
+    cache_status as compilation_cache_status, clear_cache as clear_compilation_cache,
+};
 
 wasmtime::component::bindgen!({
     path: "../../plugins/wit",

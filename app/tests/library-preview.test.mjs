@@ -103,5 +103,17 @@ test('storage failures preserve an in-memory preview without blocking the caller
     throw Error('denied')
   }
   assert.doesNotThrow(() => app.clearLibraryPreviews())
+  assert.throws(() => app.clearLibraryPreviews(true), /denied/)
   assert.equal(app.peekLibraryPreview(owner(1)), undefined)
+})
+
+test('preview usage reports only its own storage and disappears after clearing', () => {
+  const app = harness(null)
+  assert.deepEqual({ ...app.libraryPreviewCacheStatus() }, { usedBytes: 0, entries: 0 })
+  app.saveLibraryPreview(owner(1), { summary: summary(1) })
+  const usage = app.libraryPreviewCacheStatus()
+  assert.equal(usage.entries, 1)
+  assert.ok(usage.usedBytes >= app.storage.raw.length * 2)
+  app.clearLibraryPreviews(true)
+  assert.deepEqual({ ...app.libraryPreviewCacheStatus() }, { usedBytes: 0, entries: 0 })
 })

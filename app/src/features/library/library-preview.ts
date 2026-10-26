@@ -121,13 +121,25 @@ export function saveLibraryPreview(
     /* Quota/storage failure does not block rendering. */
   }
 }
-export function clearLibraryPreviews() {
+export function libraryPreviewCacheStatus() {
+  try {
+    const raw = localStorage.getItem(key)
+    return { usedBytes: raw ? (key.length + raw.length) * 2 : 0, entries: raw ? 1 : 0 }
+  } catch (cause) {
+    reportCaughtError('app/src/features/library/library-preview.ts', cause)
+    return {
+      usedBytes: entries?.length ? JSON.stringify(entries).length * 2 : 0,
+      entries: entries?.length ? 1 : 0
+    }
+  }
+}
+export function clearLibraryPreviews(strict = false) {
   entries = []
   try {
     localStorage.removeItem(key)
   } catch (cause) {
     reportCaughtError('app/src/features/library/library-preview.ts', cause)
-
+    if (strict) throw cause
     /* Storage may be unavailable. */
   }
 }

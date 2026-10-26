@@ -178,4 +178,19 @@ impl SongService {
         self.invalidate();
         self.cache.lock().await.clear();
     }
+    pub async fn cache_status(&self) -> AppResult<crate::infrastructure::other_cache::Usage> {
+        let generation = self.generation.load(Ordering::SeqCst);
+        let cache = self.cache.lock().await;
+        let mut usage = crate::infrastructure::other_cache::Usage::default();
+        for (reference, (stamp, entry_generation, time, track)) in cache.iter() {
+            if *entry_generation != generation || time.elapsed() >= Duration::from_secs(600) {
+                continue;
+            }
+            usage.entries += 1;
+            usage.used_bytes += serde_json::to_vec(&(reference, stamp, track))
+                .map_err(|error| error.to_string())?
+                .len() as u64;
+        }
+        Ok(usage)
+    }
 }

@@ -27,6 +27,36 @@ fn artifacts(directory: &Path) -> Vec<PathBuf> {
 }
 
 #[test]
+fn clearing_compiled_files_preserves_loaded_components_and_rebuilds_on_next_load() {
+    let directory = tempfile::tempdir().unwrap();
+    let cache = CodeCache::new(directory.path().join("compiled")).unwrap();
+    let engine = cached_engine(&cache, true);
+    let component = compile_with_cache(&engine, EMPTY_COMPONENT, Some(&cache))
+        .unwrap()
+        .component;
+    assert!(cache.status().unwrap().entries > 0);
+    assert!(cache.status().unwrap().used_bytes > 0);
+    let unrelated = directory.path().join("song.flac");
+    std::fs::write(&unrelated, "music").unwrap();
+    {
+        let _guard = COMPILE.lock().unwrap();
+        cache.clear().unwrap();
+    }
+    assert_eq!(cache.status().unwrap().used_bytes, 0);
+    // The already compiled in-memory component still instantiates without a disk artifact.
+    let linker = wasmtime::component::Linker::<()>::new(&engine);
+    let mut store = wasmtime::Store::new(&engine, ());
+    linker.instantiate(&mut store, &component).unwrap();
+    assert_eq!(
+        compile_with_cache(&engine, EMPTY_COMPONENT, Some(&cache))
+            .unwrap()
+            .cache,
+        "miss"
+    );
+    assert_eq!(std::fs::read_to_string(unrelated).unwrap(), "music");
+}
+
+#[test]
 fn compiled_code_survives_cache_and_engine_recreation() {
     let directory = tempfile::tempdir().unwrap();
     {

@@ -17,19 +17,52 @@ static COMPILE: Mutex<()> = Mutex::new(());
 
 pub(super) struct CodeCache {
     cache: Cache,
+    directory: PathBuf,
 }
 impl CodeCache {
     pub(super) fn new(directory: PathBuf) -> AppResult<Self> {
         std::fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
-        let directory = directory.canonicalize().map_err(|e| e.to_string())?;
+        let canonical = directory.canonicalize().map_err(|e| e.to_string())?;
         let mut config = CacheConfig::new();
         config
-            .with_directory(&directory)
+            .with_directory(&canonical)
             .with_files_total_size_soft_limit(SOFT_LIMIT_BYTES);
         Ok(Self {
             cache: Cache::new(config).map_err(|e| e.to_string())?,
+            directory,
         })
     }
+    fn status(&self) -> AppResult<crate::infrastructure::other_cache::Usage> {
+        let files = crate::infrastructure::other_cache::resource_files(&self.directory, true)?;
+        crate::infrastructure::other_cache::file_usage(&files)
+    }
+    fn clear(&self) -> AppResult<()> {
+        for file in crate::infrastructure::other_cache::resource_files(&self.directory, true)? {
+            crate::infrastructure::other_cache::checked_resource(&self.directory, &file)?;
+            match std::fs::remove_file(file) {
+                Ok(()) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error.to_string()),
+            }
+        }
+        Ok(())
+    }
+}
+
+pub(crate) fn cache_status() -> AppResult<crate::infrastructure::other_cache::Usage> {
+    let _guard = COMPILE.lock().map_err(|_| "WASM 编译锁不可用")?;
+    CACHE
+        .get()
+        .and_then(Option::as_ref)
+        .map_or_else(|| Ok(Default::default()), CodeCache::status)
+}
+
+pub(crate) fn clear_cache() -> AppResult<()> {
+    let _guard = COMPILE.lock().map_err(|_| "WASM 编译锁不可用")?;
+    CACHE
+        .get()
+        .and_then(Option::as_ref)
+        .map_or(Ok(()), CodeCache::clear)
 }
 
 pub(crate) fn configure_cache(application_cache: &Path) {

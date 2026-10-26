@@ -88,6 +88,16 @@ export class RuntimeCache {
   peekFresh<T>(key: string): T | undefined {
     return this.cache.peek(key, { allowStale: false })?.value as T | undefined
   }
+  stats(matches: (key: string) => boolean = () => true) {
+    let usedBytes = 0
+    let entries = 0
+    for (const key of this.cache.keys()) {
+      if (!matches(key)) continue
+      usedBytes += this.cache.info(key)?.size ?? 0
+      entries++
+    }
+    return { usedBytes, entries }
+  }
   set<T>(key: string, value: T) {
     this.cache.set(key, { value }, { noUpdateTTL: this.cache.has(key) })
   }
@@ -165,6 +175,7 @@ export function invalidateAggregateCache(id?: string) {
 
 export const requestCache = new RuntimeCache()
 export const coverCache = new RuntimeCache(48 * 1024 * 1024)
+export const isOtherQueryCacheKey = (key: string) => !key.startsWith('track_lyrics:')
 export const cachedCommands = new Set([
   'aggregate_playlists',
   'aggregate_playlist',

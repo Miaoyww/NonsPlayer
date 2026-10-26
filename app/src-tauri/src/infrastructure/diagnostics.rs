@@ -12,6 +12,22 @@ mod files;
 mod trace_transport;
 
 const MAX_RECORD_BYTES: usize = 64 * 1024;
+static SESSION_LOG: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock::new();
+
+pub(crate) fn cache_status(
+    directory: &std::path::Path,
+) -> crate::model::AppResult<super::other_cache::Usage> {
+    log::logger().flush();
+    files::cache_status(directory)
+}
+
+pub(crate) fn clear_cache(directory: &std::path::Path) -> crate::model::AppResult<()> {
+    log::logger().flush();
+    files::clear_cache(
+        directory,
+        SESSION_LOG.get().map(std::path::PathBuf::as_path),
+    )
+}
 
 /// Capture anyhow errors before the runtime creates worker threads.
 pub(crate) fn enable_backtraces() {
@@ -212,6 +228,7 @@ pub(crate) fn initialize<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     trace_transport::install();
     match destination {
         Ok((directory, name)) => {
+            let _ = SESSION_LOG.set(directory.join(format!("{name}.log")));
             log::info!(target: "nons::diagnostics", "session_log={}", directory.join(format!("{name}.log")).display());
             if let Err(error) = files::prune(&directory, std::time::SystemTime::now()) {
                 warn("diagnostics.prune", error);

@@ -105,13 +105,29 @@ const groups: SearchGroup[] = [
   },
   {
     section: 'local-cache',
-    path: '本地与缓存 / 缓存配置',
+    path: '本地与缓存 / 歌词缓存',
     items: [
-      ['local-cache-enabled', '启用本地缓存', '歌词 离线 TTML'],
-      ['cache-limit', '缓存大小上限', '容量 MB 清理'],
-      ['cache-directory', '缓存目录', '路径 更改 迁移'],
-      ['cache-cleanup', '缓存占用与清理', '清空 删除 刷新 容量']
+      ['local-cache-enabled', '保存歌词缓存', '歌词 离线 TTML'],
+      ['cache-limit', '歌词缓存大小上限', '容量 MB 清理'],
+      ['cache-directory', '歌词缓存目录', '路径 更改 迁移'],
+      ['cache-cleanup', '歌词缓存占用与清理', '清空 删除 刷新 容量']
     ]
+  },
+  {
+    section: 'local-cache',
+    path: '本地与缓存 / 其它缓存',
+    items: [
+      ['other-cache-covers', '在线封面', '图片 缓存 占用 清理'],
+      ['other-cache-queries', '查询与展示结果', '缓存 音乐库 预览 占用 清理'],
+      ['other-cache-collections', '在线歌单曲目列表', '缓存 track 本地 占用 清理'],
+      ['other-cache-metadata', '歌曲信息', '缓存 插件 元数据 占用 清理'],
+      ['other-cache-compiled', '插件编译缓存', 'WASM 适配器 占用 清理']
+    ]
+  },
+  {
+    section: 'local-cache',
+    path: '本地与缓存 / 日志',
+    items: [['other-cache-logs', '运行日志', '日志 文件 占用 清理']]
   },
   {
     section: 'about',

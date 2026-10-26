@@ -23,6 +23,47 @@ pub(crate) fn initialize(db: &Connection) -> rusqlite::Result<()> {
 }
 
 impl Collections {
+    pub(crate) async fn cache_status(
+        &self,
+    ) -> MusicResult<crate::infrastructure::other_cache::Usage> {
+        self.database(|db| {
+            db.query_row(
+                "SELECT COUNT(*),COALESCE(SUM(bytes),0) FROM music_collection_snapshots",
+                [],
+                |row| {
+                    Ok(crate::infrastructure::other_cache::Usage {
+                        entries: row.get::<_, i64>(0)?.max(0) as u64,
+                        used_bytes: row.get::<_, i64>(1)?.max(0) as u64,
+                    })
+                },
+            )
+            .map_err(failure)
+        })
+        .await
+    }
+
+    pub(crate) async fn clear_cache(self: &Arc<Self>) -> MusicResult<()> {
+        let this = self.clone();
+        self.database(move |db| {
+            // Keep coordinators alive so existing cursors cannot acquire a fresh identity.
+            let states = this.states.lock().map_err(failure)?;
+            for state in states.values() {
+                state.epoch.store(
+                    this.epochs.fetch_add(1, Ordering::AcqRel),
+                    Ordering::Release,
+                );
+            }
+            let tx = db.transaction().map_err(failure)?;
+            tx.execute("DELETE FROM music_collection_tracks", [])
+                .map_err(failure)?;
+            tx.execute("DELETE FROM music_collection_snapshots", [])
+                .map_err(failure)?;
+            tx.commit().map_err(failure)?;
+            Ok(())
+        })
+        .await
+    }
+
     pub(super) async fn invalidate_snapshot(&self, snapshot: String) -> MusicResult<()> {
         self.database(move |db| {
             db.execute(

@@ -7,6 +7,54 @@ use std::{
 };
 use time::OffsetDateTime;
 
+static OWNED: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(r"^(?:[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]+(?:-[0-9]+)?(?:_[0-9_-]+)?|nons(?:_[0-9_-]+)?)\.log(?:\.bak)?$").unwrap()
+});
+
+fn owned_files(directory: &Path) -> crate::model::AppResult<Vec<std::path::PathBuf>> {
+    Ok(
+        crate::infrastructure::other_cache::resource_files(directory, false)?
+            .into_iter()
+            .filter(|path| {
+                path.file_name()
+                    .is_some_and(|name| OWNED.is_match(&name.to_string_lossy()))
+            })
+            .collect(),
+    )
+}
+
+pub(super) fn cache_status(
+    directory: &Path,
+) -> crate::model::AppResult<crate::infrastructure::other_cache::Usage> {
+    crate::infrastructure::other_cache::file_usage(&owned_files(directory)?)
+}
+
+pub(super) fn clear_cache(directory: &Path, active: Option<&Path>) -> crate::model::AppResult<()> {
+    let active = match active.map(Path::canonicalize).transpose() {
+        Ok(active) => active,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.to_string()),
+    };
+    for file in owned_files(directory)? {
+        crate::infrastructure::other_cache::checked_resource(directory, &file)?;
+        let result = if active.as_ref().is_some_and(|active| active == &file) {
+            // Keep the logger's open file handle valid and ready for the next append.
+            fs::OpenOptions::new()
+                .write(true)
+                .open(&file)
+                .and_then(|file| file.set_len(0))
+        } else {
+            fs::remove_file(&file)
+        };
+        match result {
+            Ok(()) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn timestamp(now: OffsetDateTime) -> String {
     format!(
         "{} {:02}:{:02}:{:02}.{:03} {}",
@@ -48,9 +96,6 @@ pub(super) fn reserve(directory: &Path, now: OffsetDateTime, pid: u32) -> io::Re
 }
 
 pub(super) fn prune(directory: &Path, now: SystemTime) -> io::Result<()> {
-    static OWNED: LazyLock<regex::Regex> = LazyLock::new(|| {
-        regex::Regex::new(r"^(?:[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]+(?:-[0-9]+)?(?:_[0-9_-]+)?|nons(?:_[0-9_-]+)?)\.log(?:\.bak)?$").unwrap()
-    });
     let mut first_error = None;
     for entry in fs::read_dir(directory)? {
         let result = (|| -> io::Result<()> {
@@ -79,6 +124,36 @@ pub(super) fn prune(directory: &Path, now: SystemTime) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn clear_logs_removes_owned_history_and_current_session_can_keep_appending() {
+        use std::io::Write;
+        let directory = tempfile::tempdir().unwrap();
+        let active = directory.path().join("2026-10-26_12-00-00-123.log");
+        let history = directory.path().join("2026-10-25_12-00-00-123.log");
+        let rotation = directory
+            .path()
+            .join("2026-10-26_12-00-00-123_2026-10-26_12-05-00.log");
+        let unrelated = directory.path().join("notes.log");
+        let mut writer = fs::OpenOptions::new()
+            .create_new(true)
+            .append(true)
+            .open(&active)
+            .unwrap();
+        writer.write_all(b"old current").unwrap();
+        fs::write(&history, "history").unwrap();
+        fs::write(&rotation, "rotation").unwrap();
+        fs::write(&unrelated, "notes").unwrap();
+        assert_eq!(cache_status(directory.path()).unwrap().entries, 3);
+        clear_cache(directory.path(), Some(&active)).unwrap();
+        assert!(!history.exists());
+        assert!(!rotation.exists());
+        assert_eq!(fs::read(&active).unwrap().len(), 0);
+        writer.write_all(b"new event").unwrap();
+        writer.flush().unwrap();
+        assert_eq!(fs::read_to_string(&active).unwrap(), "new event");
+        assert_eq!(fs::read_to_string(&unrelated).unwrap(), "notes");
+        assert_eq!(cache_status(directory.path()).unwrap().used_bytes, 9);
+    }
     #[test]
     fn every_launch_reserves_a_separate_local_time_file() {
         let dir = tempfile::tempdir().unwrap();

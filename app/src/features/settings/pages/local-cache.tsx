@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { SettingsCard } from '@/features/settings/settings-card'
 import { FolderManager } from '@/features/local/folder-manager'
 import { ArtistSeparatorsDialog } from '@/features/local/artist-separators-dialog'
+import { OtherCacheSettings } from '@/features/settings/other-cache-settings'
 
 interface CacheOptions {
   enabled: boolean
@@ -87,7 +88,7 @@ export function LocalCachePage() {
     <div className="flex flex-col gap-8">
       <div>
         <h2 className="text-xl font-bold">本地与缓存</h2>
-        <p className="mt-2 text-sm text-muted-foreground">管理本地音乐与歌词缓存。</p>
+        <p className="mt-2 text-sm text-muted-foreground">管理本地音乐、缓存与日志。</p>
       </div>
       <section aria-labelledby="local-heading" className="flex flex-col gap-8">
         <h3 id="local-heading" className="text-base font-semibold">
@@ -157,11 +158,11 @@ export function LocalCachePage() {
       </section>
       <section aria-labelledby="cache-heading" className="flex flex-col gap-8">
         <h3 id="cache-heading" className="text-base font-semibold">
-          缓存配置
+          歌词缓存
         </h3>
         <SettingsCard
           searchId="local-cache-enabled"
-          title="启用本地缓存"
+          title="保存歌词缓存"
           description="保存 TTML 歌词，加快加载并支持离线读取。"
         >
           <label className="flex items-center gap-2 text-sm">
@@ -180,7 +181,7 @@ export function LocalCachePage() {
         </SettingsCard>
         <SettingsCard
           searchId="cache-limit"
-          title="缓存大小上限"
+          title="歌词缓存大小上限"
           description="范围 1–4096 MB，超出时清理最久未使用的歌词。"
         >
           <form
@@ -194,7 +195,7 @@ export function LocalCachePage() {
               }
               void perform(
                 () => nativeCall('set_local_cache_options', { options: { ...options, maxMb } }),
-                '缓存上限已保存。'
+                '歌词缓存上限已保存。'
               )
             }}
           >
@@ -203,7 +204,7 @@ export function LocalCachePage() {
               min={1}
               max={4096}
               step={1}
-              aria-label="缓存大小上限（MB）"
+              aria-label="歌词缓存大小上限（MB）"
               className="music-input w-24"
               disabled={disabled}
               value={limit}
@@ -221,7 +222,7 @@ export function LocalCachePage() {
         </SettingsCard>
         <SettingsCard
           searchId="cache-directory"
-          title="缓存目录"
+          title="歌词缓存目录"
           description={
             options
               ? `${options.directory}${options.directory.endsWith('/') || options.directory.endsWith('\\') ? '' : '/'}nons-cache-v1`
@@ -238,7 +239,7 @@ export function LocalCachePage() {
                 const directory = await open({
                   directory: true,
                   multiple: false,
-                  title: '选择缓存目录'
+                  title: '选择歌词缓存目录'
                 })
                 if (typeof directory === 'string')
                   await nativeCall('set_local_cache_options', {
@@ -252,7 +253,7 @@ export function LocalCachePage() {
         </SettingsCard>
         <SettingsCard
           searchId="cache-cleanup"
-          title="缓存占用与清理"
+          title="歌词缓存占用与清理"
           description={
             status
               ? `TTML 歌词占用 ${(status.usedBytes / 1024 / 1024).toFixed(2)} MB · ${status.entries} 份歌词`
@@ -265,8 +266,8 @@ export function LocalCachePage() {
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="刷新缓存占用"
-              title="刷新缓存占用"
+              aria-label="刷新歌词缓存占用"
+              title="刷新歌词缓存占用"
               disabled={busy || !desktop}
               onClick={() => void perform(async () => {})}
             >
@@ -280,7 +281,7 @@ export function LocalCachePage() {
                 void perform(() => nativeCall('clear_local_cache'), 'TTML 缓存已清空。')
               }
             >
-              清空缓存
+              清空歌词缓存
             </Button>
           </div>
         </SettingsCard>
@@ -296,6 +297,7 @@ export function LocalCachePage() {
           {notice}
         </p>
       )}
+      <OtherCacheSettings />
     </div>
   )
 }

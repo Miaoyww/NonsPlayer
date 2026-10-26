@@ -175,6 +175,65 @@ async fn browse(h: &Harness, pages: usize) -> Option<Cursor> {
 }
 
 #[tokio::test]
+async fn clearing_playlist_cache_preserves_tracks_and_rejects_old_cursors_and_loads() {
+    let h = harness(200);
+    let cursor = browse(&h, 1).await.unwrap();
+    let collections = h.music.collections.as_ref().unwrap();
+    assert_eq!(collections.cache_status().await.unwrap().entries, 1);
+    assert!(collections.cache_status().await.unwrap().used_bytes > 0);
+    h.fixture.blocked.store(true, Ordering::Release);
+    let music = h.music.clone();
+    let request = business::BusinessRequest::Tracks {
+        entity: entity(),
+        page: PageRequest {
+            cursor: Some(cursor.clone()),
+            limit: 100,
+        },
+    };
+    // Consume the notification left by the first page before observing continuation.
+    h.fixture.entered.notified().await;
+    let continuation = tokio::spawn(async move { music.query(&source(), &request, false).await });
+    h.fixture.entered.notified().await;
+    collections.clear_cache().await.unwrap();
+    let result = tokio::time::timeout(Duration::from_secs(1), continuation)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(result.unwrap_err().code, ErrorCode::StaleContext);
+    assert_eq!(collections.cache_status().await.unwrap().entries, 0);
+    assert_eq!(collections.cache_status().await.unwrap().used_bytes, 0);
+    assert_eq!(
+        h.store
+            .0
+            .lock()
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM tracks", [], |row| row
+                .get::<_, i64>(0))
+            .unwrap(),
+        100
+    );
+    h.fixture.blocked.store(false, Ordering::Release);
+    let error = h
+        .music
+        .query(
+            &source(),
+            &business::BusinessRequest::Tracks {
+                entity: entity(),
+                page: PageRequest {
+                    cursor: Some(cursor),
+                    limit: 100,
+                },
+            },
+            false,
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, ErrorCode::StaleContext);
+    browse(&h, 1).await;
+    assert_eq!(collections.cache_status().await.unwrap().entries, 1);
+}
+
+#[tokio::test]
 async fn cached_thousand_track_queue_uses_no_adapter_calls() {
     let h = harness(1500);
     browse(&h, 10).await;
