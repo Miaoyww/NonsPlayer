@@ -128,7 +128,7 @@ fn sync_always_follows_original_members_and_preserves_only_other_sources() {
             .iter()
             .map(|m| m.track.key.clone())
             .collect::<Vec<_>>(),
-        vec![song(3).key, song(1).key, extra.key.clone(), song(4).key]
+        vec![song(4).key, song(3).key, song(1).key, extra.key.clone()]
     );
     assert_eq!(playlist(&store, &id).unwrap().name, "远端改名");
     apply(&store, Some(&id), &l, "空的原歌单", &[]).unwrap();
@@ -405,5 +405,66 @@ fn added_members_prepend_in_batch_order_without_repositioning_duplicates() {
     assert_eq!(
         keys(&store, &linked),
         vec![song(6).key, song(7).key, song(1).key, song(2).key]
+    );
+}
+
+#[test]
+fn synced_members_prepend_in_source_order_and_keep_existing_local_order() {
+    let dir = TestDir::new();
+    let path = dir.0.join("db");
+    let store = Store::open(&path).unwrap();
+    let id = apply(
+        &store,
+        None,
+        &link(),
+        "同步顺序",
+        &[song(1), song(2), song(3)],
+    )
+    .unwrap();
+    assert_eq!(
+        keys(&store, &id),
+        vec![song(1).key, song(2).key, song(3).key]
+    );
+    write(
+        &store,
+        &Write::Reorder {
+            id: id.clone(),
+            keys: vec![song(3).key, song(1).key, song(2).key],
+        },
+    )
+    .unwrap();
+    let incoming = [song(1), song(4), song(2), song(5), song(4), song(3)];
+    apply(&store, Some(&id), &link(), "同步顺序", &incoming).unwrap();
+    let expected = vec![
+        song(4).key,
+        song(5).key,
+        song(3).key,
+        song(1).key,
+        song(2).key,
+    ];
+    assert_eq!(keys(&store, &id), expected);
+    apply(&store, Some(&id), &link(), "同步顺序", &incoming).unwrap();
+    assert_eq!(keys(&store, &id), expected);
+    drop(store);
+    let store = Store::open(&path).unwrap();
+    assert_eq!(keys(&store, &id), expected);
+    apply(
+        &store,
+        Some(&id),
+        &link(),
+        "同步顺序",
+        &[song(6), song(1), song(4), song(2), song(5), song(3)],
+    )
+    .unwrap();
+    assert_eq!(
+        keys(&store, &id),
+        vec![
+            song(6).key,
+            song(4).key,
+            song(5).key,
+            song(3).key,
+            song(1).key,
+            song(2).key
+        ]
     );
 }

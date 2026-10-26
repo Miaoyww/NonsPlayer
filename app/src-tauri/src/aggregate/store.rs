@@ -220,6 +220,19 @@ pub(crate) fn create(db: &Connection, value: &str) -> AppResult<String> {
     .map_err(|e| e.to_string())?;
     Ok(db.last_insert_rowid().to_string())
 }
+fn prepend_position(db: &Connection, id: &str, count: usize) -> AppResult<i64> {
+    let first: i64 = db
+        .query_row(
+            "SELECT COALESCE(MIN(position),0) FROM local_playlist_tracks WHERE playlist_id=?1",
+            [id],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    first
+        .checked_sub(count as i64)
+        .ok_or_else(|| "歌单位置超出范围".into())
+}
+
 pub(crate) fn write(store: &Store, request: &Write) -> AppResult<String> {
     let mut db = store.0.lock().map_err(|_| "曲库锁不可用")?;
     let tx = db.transaction().map_err(|e| e.to_string())?;
@@ -249,10 +262,7 @@ pub(crate) fn write(store: &Store, request: &Write) -> AppResult<String> {
         Write::Create { keys, .. } | Write::Add { keys, .. } => {
             let link = linked(&tx, &id)?;
             // Prepend new members as one ordered batch; conflicts retain their existing position.
-            let first: i64 = tx.query_row("SELECT COALESCE(MIN(position),0) FROM local_playlist_tracks WHERE playlist_id=?1",[&id],|row| row.get(0)).map_err(|e|e.to_string())?;
-            let first = first
-                .checked_sub(keys.len() as i64)
-                .ok_or("歌单位置超出范围")?;
+            let first = prepend_position(&tx, &id, keys.len())?;
             for (index, key) in keys.iter().enumerate() {
                 let value:String=tx.query_row("SELECT value FROM tracks WHERE key=?1",[key],|r|r.get(0)).optional().map_err(|e|e.to_string())?.or(tx.query_row("SELECT value FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2",params![id,key],|r|r.get(0)).optional().map_err(|e|e.to_string())?.flatten()).ok_or("歌曲不存在")?;
                 let track: Track = serde_json::from_str(&value).map_err(|e| e.to_string())?;
@@ -382,11 +392,13 @@ pub(crate) fn apply_checked(
         [&id],
     )
     .map_err(|e| e.to_string())?;
+    // New members keep source order at the top; existing members keep their local positions.
+    let first = prepend_position(&tx, &id, tracks.len())?;
     for (index, track) in tracks.iter().enumerate() {
         if index % 100 == 0 {
             validate()?;
         }
-        tx.execute("INSERT INTO local_playlist_tracks(playlist_id,key,position,manual,remote,excluded,value) VALUES(?1,?2,COALESCE((SELECT MAX(position)+1 FROM local_playlist_tracks WHERE playlist_id=?1),0),0,1,0,?3) ON CONFLICT(playlist_id,key) DO UPDATE SET manual=0,remote=1,excluded=0,value=excluded.value",params![id,track.key,serde_json::to_string(track).map_err(|e|e.to_string())?]).map_err(|e|e.to_string())?;
+        tx.execute("INSERT INTO local_playlist_tracks(playlist_id,key,position,manual,remote,excluded,value) VALUES(?1,?2,?4,0,1,0,?3) ON CONFLICT(playlist_id,key) DO UPDATE SET manual=0,remote=1,excluded=0,value=excluded.value",params![id,track.key,serde_json::to_string(track).map_err(|e|e.to_string())?,first + index as i64]).map_err(|e|e.to_string())?;
     }
     tx.execute("DELETE FROM local_playlist_tracks WHERE playlist_id=?1 AND remote=0 AND manual=0 AND excluded=0",[&id]).map_err(|e|e.to_string())?;
     capacity(&tx, &id)?;
