@@ -135,10 +135,17 @@ async function readonlyFavoritesScenario(scenario = 'complete') {
         }
       }
     }
+    modules['@/features/music/client'].musicClient.refresh = (source, request) => {
+      assert.ok(!request.page?.cursor, 'forcing a continuation would invalidate its host epoch')
+      return modules['@/features/music/client'].musicClient.query(source, request)
+    }
     const account = load('../src/features/account/account-state.tsx', modules)
     modules['@/features/account/account'] = account
     modules['@/features/music/references'] = musicReference
-    modules['lucide-react'] = { Heart: () => React.createElement('span', {}, 'heart') }
+    modules['lucide-react'] = {
+      Heart: () => React.createElement('span', {}, 'heart'),
+      Ellipsis: () => React.createElement('span', {}, 'unknown')
+    }
     modules['@/components/ui/button'] = {
       Button: ({ variant, size, children, ...props }) =>
         React.createElement('button', props, children)
@@ -165,7 +172,8 @@ async function readonlyFavoritesScenario(scenario = 'complete') {
     await render()
     if (['failure', 'repeat'].includes(scenario)) {
       assert.equal(snapshot.likesReady, false)
-      assert.equal(snapshot.likedIds.size, 0)
+      assert.equal(snapshot.favoriteStatus('SongMID'), 'liked')
+      assert.equal(snapshot.favoriteStatus('OtherMID'), 'unknown')
       assert.match(snapshot.likesError, scenario === 'failure' ? /page unavailable/ : /重复游标/)
       return
     }
@@ -181,7 +189,8 @@ async function readonlyFavoritesScenario(scenario = 'complete') {
           }
         })
       )
-      assert.equal(snapshot.likedIds.size, 0)
+      assert.equal(snapshot.favoriteStatus('SongMID'), 'liked')
+      assert.equal(snapshot.favoriteStatus('OldMID'), 'unknown')
       assert.equal(snapshot.profile, null)
       assert.equal(snapshot.likesReady, false)
       return
@@ -197,6 +206,12 @@ async function readonlyFavoritesScenario(scenario = 'complete') {
     assert.equal(currentReads, 1)
     assert.equal(queried.length, count)
     assert.ok(queried.some((request) => request.page?.cursor === 'opaque-next'))
+    if (scenario === 'complete') {
+      await act(async () => snapshot.reloadLikes())
+      assert.equal(snapshot.likesReady, true)
+      assert.deepEqual([...snapshot.likedIds].sort(), ['OtherMID', 'SongMID'])
+      assert.equal(queried.length, count + 3, 'a revalidation reads summary and both pages once')
+    }
   })
 }
 
@@ -204,9 +219,9 @@ test('readonly favorites load all pages, display the current red heart, forbid w
   readonlyFavoritesScenario())
 test('a failed preview does not prevent reading the explicit liked playlist', () =>
   readonlyFavoritesScenario('preview-failure'))
-test('a failed liked-playlist page does not publish a partial favorites set', () =>
+test('a failed liked-playlist page retains confirmed positives without declaring missing IDs unliked', () =>
   readonlyFavoritesScenario('failure'))
-test('repeated liked-playlist cursors fail without publishing a partial set', () =>
+test('repeated liked-playlist cursors fail without declaring unseen songs unliked', () =>
   readonlyFavoritesScenario('repeat'))
 test('account changes discard a late liked-playlist page', () =>
   readonlyFavoritesScenario('switch'))
@@ -268,7 +283,7 @@ test('page source selection preserves every platform account and routes favorite
     const account = load('../src/features/account/account-state.tsx', modules)
     modules['@/features/account/account'] = account
     modules['@/features/music/references'] = musicReference
-    modules['lucide-react'] = { Heart: () => null }
+    modules['lucide-react'] = { Heart: () => null, Ellipsis: () => null }
     modules['@/components/ui/button'] = {
       Button: ({ variant, size, children, ...props }) =>
         React.createElement('button', props, children)

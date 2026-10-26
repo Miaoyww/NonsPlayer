@@ -37,9 +37,20 @@ export function NowPlayingMenu({
   const actions = useSongActions()
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const [lyricsOpen, setLyricsOpen] = useState(false)
-  const { profile, likedIds, likesReady, pendingLikes, toggleLike } = useAccount()
+  const {
+    profile,
+    favoriteStatus,
+    likesRefreshing,
+    likesStale,
+    likesError,
+    reloadLikes,
+    pendingLikes,
+    toggleLike,
+    canToggleLike
+  } = useAccount(track ? onlineReference(track)?.source : undefined)
   const id = track ? favoriteId(track, profile?.reference) : undefined
-  const liked = id !== undefined && likedIds.has(id)
+  const status = id === undefined ? 'unknown' : favoriteStatus(id)
+  const liked = status === 'liked'
   const { statuses } = useMusicSources()
   const reference = track ? onlineReference(track) : null
   const canCollect =
@@ -68,13 +79,42 @@ export function NowPlayingMenu({
             <Menu.Popup className="song-context-menu" aria-label="歌曲菜单">
               {showLike && id !== undefined && (
                 <Menu.Item
-                  disabled={!desktop || !profile || !likesReady || pendingLikes.has(id)}
+                  disabled={
+                    !desktop ||
+                    !profile ||
+                    status === 'unknown' ||
+                    pendingLikes.has(id) ||
+                    canToggleLike === false
+                  }
+                  title={
+                    status === 'unknown' && likesRefreshing
+                      ? '正在读取收藏状态'
+                      : likesError
+                        ? `${status === 'unknown' ? '收藏状态待确认；' : ''}收藏状态读取失败：${likesError}；可重新读取。`
+                        : status === 'unknown'
+                          ? '收藏状态待确认，可重新读取。'
+                          : likesStale
+                            ? '收藏状态可能已过期'
+                            : undefined
+                  }
                   onClick={() => actions.run(() => toggleLike(id))}
                 >
-                  <Heart aria-hidden="true" />
-                  {liked ? '取消收藏歌曲' : '收藏歌曲'}
+                  {status === 'unknown' ? (
+                    <Ellipsis aria-hidden="true" />
+                  ) : (
+                    <Heart aria-hidden="true" />
+                  )}
+                  {status === 'unknown' ? '收藏状态待确认' : liked ? '取消收藏歌曲' : '收藏歌曲'}
                 </Menu.Item>
               )}
+              {showLike &&
+                id !== undefined &&
+                (status === 'unknown' || likesStale || likesError) && (
+                  <Menu.Item disabled={!desktop || likesRefreshing} onClick={reloadLikes}>
+                    <RefreshCw aria-hidden="true" />
+                    {likesRefreshing ? '正在读取收藏状态…' : '重新读取收藏状态'}
+                  </Menu.Item>
+                )}
               {track && (track.source.kind === 'local' || canCollect) && (
                 <Menu.Item disabled={!desktop} onClick={() => actions.collect(track)}>
                   <FolderPlus aria-hidden="true" />

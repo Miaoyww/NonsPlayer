@@ -7,7 +7,16 @@ import { Input } from '@/components/ui/input'
 import { TrackAlbum } from '@/components/music/music-links'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { scrollParent } from '@/components/music/infinite-load'
-import { Heart, ListPlus, Play, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import {
+  Ellipsis,
+  Heart,
+  ListPlus,
+  Play,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
+} from 'lucide-react'
 import {
   memo,
   useCallback,
@@ -586,9 +595,18 @@ export const TrackList = memo(function TrackList({
                 const { index, track, rowKey } = entry
                 const playIndex = entries.indexOf(entry)
                 const account = getAccount(onlineReference(track)?.source ?? '')
-                const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } =
-                  account
+                const {
+                  profile,
+                  favoriteStatus,
+                  likesRefreshing,
+                  likesStale,
+                  likesError,
+                  pendingLikes,
+                  toggleLike,
+                  canToggleLike
+                } = account
                 const favorite = favoriteId(track, profile?.reference)
+                const favoriteState = favorite === undefined ? 'unknown' : favoriteStatus(favorite)
                 const current = isCurrentTrack
                   ? isCurrentTrack(track)
                   : currentIndex === undefined
@@ -704,22 +722,37 @@ export const TrackList = memo(function TrackList({
                             variant="ghost"
                             size="icon-sm"
                             className="track-like"
-                            data-liked={likedIds.has(favorite)}
-                            aria-pressed={likedIds.has(favorite)}
+                            data-liked={favoriteState === 'liked'}
+                            aria-pressed={
+                              favoriteState === 'unknown' ? undefined : favoriteState === 'liked'
+                            }
+                            aria-busy={pendingLikes.has(favorite) || likesRefreshing}
                             disabled={
                               busy ||
                               !profile ||
-                              !likesReady ||
+                              favoriteState === 'unknown' ||
                               pendingLikes.has(favorite) ||
                               canToggleLike === false
                             }
-                            aria-label={`${likedIds.has(favorite) ? '取消喜欢' : '喜欢'} ${track.title}`}
+                            aria-label={
+                              favoriteState === 'unknown'
+                                ? `收藏状态待确认 ${track.title}`
+                                : `${favoriteState === 'liked' ? '取消喜欢' : '喜欢'} ${track.title}`
+                            }
                             title={
                               !profile
                                 ? '登录后收藏歌曲'
-                                : canToggleLike === false
-                                  ? '收藏状态（此来源仅支持读取）'
-                                  : '喜欢 / 取消喜欢'
+                                : favoriteState === 'unknown' && likesRefreshing
+                                  ? '正在读取收藏状态'
+                                  : likesError
+                                    ? `${favoriteState === 'unknown' ? '收藏状态待确认；' : ''}收藏状态读取失败：${likesError}；可在歌曲菜单重新读取。`
+                                    : favoriteState === 'unknown'
+                                      ? '收藏状态待确认，可在歌曲菜单重新读取。'
+                                      : likesStale
+                                        ? '收藏状态可能已过期，可在歌曲菜单重新读取。'
+                                        : canToggleLike === false
+                                          ? '收藏状态（此来源仅支持读取）'
+                                          : '喜欢 / 取消喜欢'
                             }
                             onClick={() => {
                               if (favorite !== undefined) {
@@ -733,7 +766,11 @@ export const TrackList = memo(function TrackList({
                               }
                             }}
                           >
-                            <Heart aria-hidden="true" />
+                            {favoriteState === 'unknown' ? (
+                              <Ellipsis aria-hidden="true" />
+                            ) : (
+                              <Heart aria-hidden="true" />
+                            )}
                           </ActionButton>
                         )}
                       </td>

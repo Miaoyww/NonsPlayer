@@ -207,6 +207,7 @@ test('song favorite action precedes the divider and unavailable remove actions a
       useAccount: () => ({
         profile: { userId: '7', reference: { source: 'netease', id: '7' } },
         likedIds: new Set(['12']),
+        favoriteStatus: (id) => (id === '12' ? 'liked' : 'unliked'),
         likesReady: true,
         pendingLikes: new Set()
       })

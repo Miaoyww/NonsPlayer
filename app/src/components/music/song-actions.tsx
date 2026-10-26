@@ -11,12 +11,14 @@ import { ContextMenu } from '@base-ui/react/context-menu'
 import {
   ChevronRight,
   Copy,
+  Ellipsis,
   FolderPlus,
   Heart,
   Info,
   ListPlus,
   LocateFixed,
   Play,
+  RefreshCw,
   Share2,
   Trash2
 } from 'lucide-react'
@@ -359,11 +361,20 @@ export function SongContextMenu({
   onLocate?: () => void
 }) {
   const actions = useSongActions()
-  const { profile, likedIds, likesReady, pendingLikes, toggleLike, canToggleLike } = useAccount(
-    onlineReference(track)?.source
-  )
+  const {
+    profile,
+    favoriteStatus,
+    likesRefreshing,
+    likesStale,
+    likesError,
+    reloadLikes,
+    pendingLikes,
+    toggleLike,
+    canToggleLike
+  } = useAccount(onlineReference(track)?.source)
   const id = favoriteId(track, profile?.reference)
-  const liked = id !== undefined && likedIds.has(id)
+  const status = id === undefined ? 'unknown' : favoriteStatus(id)
+  const liked = status === 'liked'
   const unavailable = busy || !isTauri()
   return (
     <ContextMenu.Root>
@@ -398,19 +409,38 @@ export function SongContextMenu({
                 下一首播放
               </ContextMenu.Item>
             )}
-            {!unavailable &&
-              canToggleLike !== false &&
-              id !== undefined &&
-              profile &&
-              likesReady &&
-              !pendingLikes.has(id) && (
-                <ContextMenu.Item
-                  onClick={() => {
-                    if (id !== undefined) actions.run(() => toggleLike(id))
-                  }}
-                >
+            {!unavailable && canToggleLike !== false && id !== undefined && profile && (
+              <ContextMenu.Item
+                disabled={status === 'unknown' || pendingLikes.has(id)}
+                title={
+                  status === 'unknown' && likesRefreshing
+                    ? '正在读取收藏状态'
+                    : likesError
+                      ? `${status === 'unknown' ? '收藏状态待确认；' : ''}收藏状态读取失败：${likesError}；可重新读取。`
+                      : status === 'unknown'
+                        ? '收藏状态待确认，可重新读取。'
+                        : likesStale
+                          ? '收藏状态可能已过期'
+                          : undefined
+                }
+                onClick={() => {
+                  if (id !== undefined) actions.run(() => toggleLike(id))
+                }}
+              >
+                {status === 'unknown' ? (
+                  <Ellipsis aria-hidden="true" />
+                ) : (
                   <Heart aria-hidden="true" />
-                  {liked ? '取消收藏' : '收藏'}
+                )}
+                {status === 'unknown' ? '收藏状态待确认' : liked ? '取消收藏' : '收藏'}
+              </ContextMenu.Item>
+            )}
+            {!unavailable &&
+              id !== undefined &&
+              (status === 'unknown' || likesStale || likesError) && (
+                <ContextMenu.Item disabled={likesRefreshing} onClick={reloadLikes}>
+                  <RefreshCw aria-hidden="true" />
+                  {likesRefreshing ? '正在读取收藏状态…' : '重新读取收藏状态'}
                 </ContextMenu.Item>
               )}
             <PluginSongMenuItems track={track} run={(work, notice) => actions.run(work, notice)} />

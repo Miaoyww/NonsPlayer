@@ -145,6 +145,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
         useAccount: () => ({
           profile: { reference: { source: 'netease', id: 'user' } },
           likedIds: new Set(),
+          favoriteStatus: () => 'unliked',
           likesReady: true,
           pendingLikes: new Set(),
           toggleLike: async (id) => {

@@ -57,6 +57,10 @@ interface AccountState {
   setProfile: (profile: AccountProfile | null) => void
   likedIds: ReadonlySet<string>
   likesReady: boolean
+  likesRefreshing: boolean
+  likesStale: boolean
+  favoriteStatus: (id: string) => 'liked' | 'unliked' | 'unknown'
+  confirmLikedTracks: (tracks: readonly import('@/lib/player').Track[]) => void
   canToggleLike: boolean
   likesError?: string
   likesRevision: number
@@ -65,26 +69,35 @@ interface AccountState {
   toggleLike: (id: string) => Promise<void>
 }
 const AccountContext = createContext<ReadonlyMap<string, AccountState>>(new Map())
-const likesStorageKey = (source: string) => `nons:music:favorites:v1:${source}`
-function readGlobalLikes(source: string): Set<string> | null {
+const LIKES_TTL = 10 * 60 * 1000
+const LIKES_RETRY = 30 * 1000
+const likesStorageKey = (source: string) => `nons:music:favorites:v2:${source}`
+function readGlobalLikes(source: string): { ids: Set<string>; updatedAt: number } | null {
   try {
     const raw = globalThis.localStorage?.getItem(likesStorageKey(source))
-    if (raw === null || raw === undefined) return null
-    const parsed: unknown = JSON.parse(raw)
+    if (raw === null || raw === undefined || raw.length > 4 * 1024 * 1024) return null
+    const parsed = JSON.parse(raw) as { ids?: unknown; updatedAt?: unknown }
     if (
-      !Array.isArray(parsed) ||
-      parsed.length > 100_000 ||
-      parsed.some((id) => typeof id !== 'string')
+      !parsed ||
+      !Array.isArray(parsed.ids) ||
+      parsed.ids.length > 100_000 ||
+      parsed.ids.some((id) => typeof id !== 'string' || id.length > 2048) ||
+      typeof parsed.updatedAt !== 'number' ||
+      !Number.isFinite(parsed.updatedAt) ||
+      parsed.updatedAt <= 0 ||
+      parsed.updatedAt > Date.now()
     )
       return null
-    return new Set(parsed)
+    return { ids: new Set(parsed.ids), updatedAt: parsed.updatedAt }
   } catch {
     return null
   }
 }
-function persistGlobalLikes(source: string, likedIds: ReadonlySet<string>) {
+function persistGlobalLikes(source: string, likedIds: ReadonlySet<string>, updatedAt: number) {
   try {
-    globalThis.localStorage?.setItem(likesStorageKey(source), JSON.stringify([...likedIds]))
+    const value = JSON.stringify({ ids: [...likedIds], updatedAt })
+    if (likedIds.size <= 100_000 && value.length <= 4 * 1024 * 1024)
+      globalThis.localStorage?.setItem(likesStorageKey(source), value)
   } catch (cause) {
     reportCaughtError('app/src/features/account/account-state.tsx', cause)
   }
@@ -133,9 +146,21 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
   const [refresh, setRefresh] = useState(0)
   const [storedLikes] = useState(() => readGlobalLikes(source))
   const globalLikesReady = useRef(storedLikes !== null)
-  const [likedIds, setLikedIds] = useState<Set<string>>(storedLikes ?? new Set())
+  const [likedIds, setLikedIds] = useState<Set<string>>(storedLikes?.ids ?? new Set())
+  const liked = useRef(likedIds)
+  const knownUnliked = useRef(new Set<string>())
+  const lastSuccess = useRef(storedLikes?.updatedAt ?? 0)
+  const lastAttempt = useRef(0)
+  const lastReadFailed = useRef(false)
+  const activeRead = useRef(false)
+  const refreshQueued = useRef(false)
+  const favoriteEvents = useRef(0)
+  const editRevision = useRef(0)
+  const edits = useRef(new Map<string, { revision: number; liked: boolean }>())
   const [pendingLikes, setPendingLikes] = useState<Set<string>>(new Set())
   const [likesReady, setLikesReady] = useState(storedLikes !== null)
+  const [likesRefreshing, setLikesRefreshing] = useState(false)
+  const [likesStale, setLikesStale] = useState(true)
   const [likesError, setLikesError] = useState<string>()
   const [likesRevision, setLikesRevision] = useState(0)
   const [likesRefresh, setLikesRefresh] = useState(0)
@@ -143,6 +168,31 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
   const generation = useRef(0),
     likesGeneration = useRef(0),
     pending = useRef(new Set<string>())
+  const publishLikes = useCallback((next: Set<string>) => {
+    liked.current = next
+    setLikedIds(next)
+  }, [])
+  const confirmLikedTracks = useCallback(
+    (tracks: readonly import('@/lib/player').Track[]) => {
+      const next = new Set(liked.current)
+      for (const track of tracks) {
+        if (track.source.kind !== 'online') continue
+        const ref = track.source.track.reference
+        if (
+          ref.source !== source ||
+          ref.kind !== 'track' ||
+          edits.current.has(ref.id) ||
+          knownUnliked.current.has(ref.id)
+        )
+          continue
+        if (next.size < 100_000) next.add(ref.id)
+      }
+      if (next.size === liked.current.size) return
+      publishLikes(next)
+      if (globalLikesReady.current) persistGlobalLikes(source, next, lastSuccess.current)
+    },
+    [source, publishLikes]
+  )
   const setProfile = useCallback((value: AccountProfile | null) => {
     invalidateNativeCache(undefined, 'context')
     generation.current++
@@ -206,28 +256,53 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
     const serial = ++likesGeneration.current
     setLikesError(undefined)
     if (!reference || !canReadLikes || !isTauri()) {
+      activeRead.current = false
+      setLikesRefreshing(false)
       setLikesReady(globalLikesReady.current)
       return
     }
-    const forceRefresh = forceLikesRefresh.current
+    const forceRefresh = forceLikesRefresh.current || globalLikesReady.current
     forceLikesRefresh.current = false
-    if (globalLikesReady.current && !forceRefresh) {
-      setLikesReady(true)
-      return
+    const revision = editRevision.current
+    const eventRevision = favoriteEvents.current
+    const currentRead = () =>
+      serial === likesGeneration.current && eventRevision === favoriteEvents.current
+    refreshQueued.current = false
+    activeRead.current = true
+    lastAttempt.current = Date.now()
+    setLikesRefreshing(true)
+    setLikesStale(true)
+    const query = (request: import('@/features/music/types').MusicReadRequest) =>
+      forceRefresh && (!('page' in request) || !request.page.cursor)
+        ? musicClient.refresh(reference.source, request)
+        : musicClient.query(reference.source, request)
+    const confirmPage = (items: readonly import('@/features/music/types').EntityRef[]) => {
+      if (!currentRead()) return
+      const next = new Set(liked.current)
+      for (const item of items) {
+        const edit = edits.current.get(item.id)
+        if ((!edit || edit.revision <= revision || edit.liked) && next.size < 100_000)
+          next.add(item.id)
+      }
+      if (next.size !== liked.current.size) publishLikes(next)
     }
-    setLikesReady(false)
     void (async () => {
       if (canToggleLike) {
-        const result = await musicClient.query(reference.source, { operation: 'favorites' })
+        const result = await query({ operation: 'favorites' })
         if (result.type !== 'favorites') throw new Error('收藏状态响应无效')
+        if (
+          result.data.length > 100_000 ||
+          result.data.some((item) => item.source !== source || item.kind !== 'track')
+        )
+          throw new Error('收藏歌曲引用无效或超过数量上限')
         return result.data
       }
       let playlist: import('@/features/music/types').EntityRef | undefined
       if (!hasFavoritesRead) {
-        const result = await musicClient.query(reference.source, {
+        const result = await query({
           operation: 'librarySummary'
         })
-        if (serial !== likesGeneration.current) return []
+        if (!currentRead()) return []
         if (result.type !== 'summary') throw new Error('音乐库摘要响应无效')
         if (result.data.likedError && !result.data.likedPlaylist)
           throw new Error('无法读取喜欢的音乐歌单')
@@ -242,13 +317,13 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
       let pages = 0
       do {
         if (++pages > 4000) throw new Error('收藏状态超过分页上限')
-        const result = await musicClient.query(reference.source, {
+        const result = await query({
           ...(playlist
             ? { operation: 'tracks' as const, entity: playlist }
             : { operation: 'favoritesPage' as const }),
           page: { cursor, limit: 100 }
         })
-        if (serial !== likesGeneration.current) return []
+        if (!currentRead()) return []
         if (result.type !== 'favoritesPage' && result.type !== 'tracks')
           throw new Error('收藏状态响应无效')
         const references =
@@ -261,68 +336,136 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
         cursor = result.data.nextCursor
         if (items.length > 100_000 || (cursor && seen.has(cursor)))
           throw new Error('收藏状态超过数量上限或返回重复游标')
+        confirmPage(references)
         if (cursor) seen.add(cursor)
       } while (cursor)
       return items
     })()
       .then((items) => {
-        if (serial !== likesGeneration.current) return
+        if (!currentRead()) return
+        const next = new Set(items.map((value) => value.id))
+        for (const [id, edit] of edits.current) {
+          if (edit.revision > revision) {
+            if (edit.liked) next.add(id)
+            else next.delete(id)
+          } else if (!pending.current.has(id)) edits.current.delete(id)
+        }
+        for (const id of pending.current) {
+          if (liked.current.has(id)) next.add(id)
+          else next.delete(id)
+        }
         globalLikesReady.current = true
-        setLikedIds(new Set(items.map((value) => value.id)))
+        for (const id of knownUnliked.current) {
+          if (next.has(id)) knownUnliked.current.delete(id)
+        }
+        lastSuccess.current = Date.now()
+        lastReadFailed.current = false
+        publishLikes(next)
         setLikesReady(true)
+        setLikesStale(false)
+        persistGlobalLikes(source, next, lastSuccess.current)
       })
       .catch((cause) => {
         reportCaughtError('app/src/features/account/account-state.tsx', cause)
 
-        if (serial === likesGeneration.current) setLikesError(errorText(cause))
+        if (currentRead()) {
+          lastReadFailed.current = true
+          setLikesError(errorText(cause))
+          setLikesStale(true)
+        }
+      })
+      .finally(() => {
+        if (serial === likesGeneration.current) {
+          activeRead.current = false
+          setLikesRefreshing(false)
+          if (refreshQueued.current) {
+            refreshQueued.current = false
+            forceLikesRefresh.current = true
+            setLikesRefresh((value) => value + 1)
+          }
+        }
       })
     return () => {
       likesGeneration.current++
+      activeRead.current = false
     }
   }, [reference, canReadLikes, canToggleLike, hasFavoritesRead, likesRefresh])
-  useEffect(() => {
-    if (globalLikesReady.current) persistGlobalLikes(source, likedIds)
-  }, [source, likedIds])
   const reloadLikes = useCallback(() => {
+    if (activeRead.current) return
     forceLikesRefresh.current = true
     setLikesRefresh((value) => value + 1)
   }, [])
   useEffect(() => {
-    if (!isTauri()) return
-    let disposed = false,
-      stop: (() => void) | undefined
-    void listen<string>('media-favorite-changed', ({ payload }) => {
-      if (disposed || payload !== source) return
-      invalidateNativeCache()
-      invalidateMusicLibrary()
-      setLikesRevision((value) => value + 1)
+    if (!reference || !canReadLikes || !isTauri() || !globalThis.window) return
+    const revalidate = () => {
+      if (document.visibilityState === 'hidden' || activeRead.current) return
+      const now = Date.now()
+      const deadline = lastReadFailed.current
+        ? lastAttempt.current + LIKES_RETRY
+        : lastSuccess.current + LIKES_TTL
+      if (now < deadline) return
       reloadLikes()
-    }).then((value) => {
-      if (disposed) value()
-      else stop = value
-    })
+    }
+    window.addEventListener('focus', revalidate)
+    document.addEventListener('visibilitychange', revalidate)
+    const timer = window.setInterval(revalidate, LIKES_RETRY)
+    return () => {
+      window.removeEventListener('focus', revalidate)
+      document.removeEventListener('visibilitychange', revalidate)
+      window.clearInterval(timer)
+    }
+  }, [reference, canReadLikes, reloadLikes])
+  useEffect(() => {
+    if (!isTauri()) return
+    let disposed = false
+    const stops: (() => void)[] = []
+    for (const event of ['media-favorite-changed', 'music-changed'])
+      void listen<string>(event, ({ payload }) => {
+        if (disposed || payload !== source) return
+        invalidateNativeCache()
+        invalidateMusicLibrary()
+        setLikesRevision((value) => value + 1)
+        favoriteEvents.current++
+        setLikesStale(true)
+        if (activeRead.current) refreshQueued.current = true
+        else reloadLikes()
+      }).then((value) => {
+        if (disposed) value()
+        else stops.push(value)
+      })
     return () => {
       disposed = true
-      stop?.()
+      stops.forEach((stop) => stop())
     }
   }, [source, reloadLikes])
   async function toggleLike(id: string) {
-    if (!profile || !likesReady || !canToggleLike || pending.current.has(id)) return
-    const liked = !likedIds.has(id)
+    if (
+      !profile ||
+      (!globalLikesReady.current && !liked.current.has(id) && !knownUnliked.current.has(id)) ||
+      !canToggleLike ||
+      pending.current.has(id)
+    )
+      return
+    const nextLiked = !liked.current.has(id)
     pending.current.add(id)
     setPendingLikes(new Set(pending.current))
     try {
       await musicClient.write(profile.reference.source, {
         operation: 'setFavorite',
         track: { source: profile.reference.source, kind: 'track', id },
-        liked
+        liked: nextLiked
       })
-      setLikedIds((values) => {
-        const next = new Set(values)
-        if (liked) next.add(id)
-        else next.delete(id)
-        return next
-      })
+      edits.current.set(id, { revision: ++editRevision.current, liked: nextLiked })
+      const next = new Set(liked.current)
+      if (nextLiked) {
+        next.add(id)
+        knownUnliked.current.delete(id)
+      } else {
+        next.delete(id)
+        knownUnliked.current.add(id)
+      }
+      publishLikes(next)
+      if (globalLikesReady.current) persistGlobalLikes(source, next, lastSuccess.current)
       invalidateMusicLibrary()
       setLikesRevision((value) => value + 1)
     } finally {
@@ -344,6 +487,15 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
               setProfile,
               likedIds,
               likesReady,
+              likesRefreshing,
+              likesStale,
+              favoriteStatus: (id: string) =>
+                likedIds.has(id)
+                  ? 'liked'
+                  : likesReady || knownUnliked.current.has(id)
+                    ? 'unliked'
+                    : 'unknown',
+              confirmLikedTracks,
               canToggleLike,
               likesError,
               likesRevision,
@@ -365,6 +517,10 @@ const unavailableAccount: AccountState = {
   setProfile() {},
   likedIds: new Set(),
   likesReady: false,
+  likesRefreshing: false,
+  likesStale: true,
+  favoriteStatus: () => 'unknown',
+  confirmLikedTracks() {},
   canToggleLike: false,
   likesRevision: 0,
   pendingLikes: new Set(),

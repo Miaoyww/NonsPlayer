@@ -36,9 +36,21 @@ test('likes refresh the loaded playlist in the background without unmounting its
   }
   modules['@/lib/runtime-cache'] = createRuntimeCache()
   const profile = { userId: '1', reference: { source: 'netease', id: '1' } }
-  const collection = { kind: 'playlist', id: 1, name: '我喜欢的音乐', liked: true, creatorId: '1' }
+  const collection = {
+    kind: 'playlist',
+    id: 1,
+    name: '我喜欢的音乐',
+    liked: true,
+    creatorId: '1',
+    reference: { source: 'netease', kind: 'playlist', id: '1' }
+  }
   const summary = { profile, likedPlaylist: collection, likedTracks: [] }
-  const account = { profile, likesRevision: 0 }
+  const confirmed = []
+  const account = {
+    profile,
+    likesRevision: 0,
+    confirmLikedTracks: (tracks) => confirmed.push(tracks.map((track) => track.key))
+  }
   const requests = []
   let mounts = 0
   Object.assign(modules, {
@@ -138,6 +150,10 @@ test('likes refresh the loaded playlist in the background without unmounting its
     await act(async () => requests[0].resolve(page([a, b])))
     await act(async () => document.getElementById('more').click())
     await act(async () => requests[1].resolve(page([c])))
+    assert.ok(
+      confirmed.some((keys) => keys.join(',') === 'a,b,c'),
+      'own liked-playlist pages publish positive evidence'
+    )
     const list = document.getElementById('songs')
     const rowA = document.querySelector('[data-key="a"]')
     const rowC = document.querySelector('[data-key="c"]')
@@ -338,7 +354,7 @@ test('library home limits the featured preview to twelve without changing the fa
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => true },
     '@/lib/player': { usePlayer: () => ({ index: null, queue: [] }) },
-    '@/features/account/account': { useAccount: () => ({ profile }) },
+    '@/features/account/account': { useAccount: () => ({ profile, confirmLikedTracks() {} }) },
     '@/features/library/collection-actions': {
       useCollectionActions: () => ({ revision: 0 }),
       CollectionContextMenu: placeholder

@@ -27,9 +27,16 @@ export function usePlaybackShortcuts(onError: (cause: unknown) => void) {
       return
     } else if (!current) return
     else if (name === 'like') {
-      const id = favoriteId(current, account.profile?.reference)
-      if (!id || !account.profile || !account.likesReady || account.likedIds.has(id)) return
-      operation = account.toggleLike(id)
+      const currentAccount = account.getAccount(onlineReference(current)?.source ?? '')
+      const id = favoriteId(current, currentAccount.profile?.reference)
+      if (
+        !id ||
+        !currentAccount.profile ||
+        currentAccount.canToggleLike === false ||
+        currentAccount.favoriteStatus(id) !== 'unliked'
+      )
+        return
+      operation = currentAccount.toggleLike(id)
     } else
       operation = nativeCall('player_action', {
         action: name
@@ -38,10 +45,13 @@ export function usePlaybackShortcuts(onError: (cause: unknown) => void) {
   }
   useEffect(() => {
     if (!resumedShortcut || state.index === null) return
-    if (resumedShortcut === 'like' && (!account.profile || !account.likesReady)) return
+    if (resumedShortcut === 'like') {
+      const id = track ? favoriteId(track, account.profile?.reference) : undefined
+      if (!account.profile || id === undefined || account.favoriteStatus(id) === 'unknown') return
+    }
     action.current(resumedShortcut)
     setResumedShortcut(undefined)
-  }, [resumedShortcut, state.index, account.profile, account.likesReady])
+  }, [resumedShortcut, state.index, track, account.profile, account.favoriteStatus])
   useEffect(() => {
     setShortcutDispatcher((name) => action.current(name))
     void initializeShortcuts().catch(onError)

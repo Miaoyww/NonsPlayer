@@ -22,6 +22,8 @@ function harness({
     profile: loggedIn ? { userId: '1', reference: { source: 'netease', id: '1' } } : null,
     likedIds: new Set(liked ? ['7'] : []),
     likesReady: ready,
+    favoriteStatus: (id) =>
+      !account.likesReady ? 'unknown' : account.likedIds.has(id) ? 'liked' : 'unliked',
     pendingLikes: new Set(pending ? ['7'] : []),
     toggleLike: async (id) => {
       calls.push(id)
@@ -132,6 +134,29 @@ test('failed playback like reaches the visible error handler and keeps the liked
   await Promise.resolve()
   assert.deepEqual(app.errors, [failure])
   assert.equal(app.render().props['aria-pressed'], true)
+})
+
+test('unknown favorites are not announced as unliked and failed refresh retains the known heart', () => {
+  const unknown = harness({ ready: false })
+  assert.equal(unknown.render().props['aria-pressed'], undefined)
+  assert.equal(unknown.render().props['aria-label'], '收藏状态待确认')
+  assert.equal(unknown.render().props.disabled, true)
+  unknown.account.likesRefreshing = true
+  unknown.account.likesStale = true
+  assert.equal(unknown.render().props.title, '正在读取收藏状态')
+  unknown.account.likesRefreshing = false
+  unknown.account.likesError = 'offline'
+  assert.match(unknown.render().props.title, /待确认.*读取失败.*重新读取/)
+  assert.doesNotMatch(unknown.render().props.title, /过期/)
+  const known = harness({ liked: true })
+  known.account.likesRefreshing = true
+  assert.equal(known.render().props['aria-pressed'], true)
+  assert.equal(known.render().props['aria-busy'], true)
+  known.account.likesRefreshing = false
+  known.account.likesStale = true
+  known.account.likesError = 'network unavailable'
+  assert.equal(known.render().props['aria-pressed'], true)
+  assert.match(known.render().props.title, /读取失败.*重新读取/)
 })
 
 test('persistent player puts the shared favorite directly after quality and uses the same like state', async () => {

@@ -7,10 +7,14 @@ import ts from 'typescript'
 
 function harness() {
   const calls = []
+  const requestedSources = []
   const account = {
     profile: { reference: { source: 'netease', id: '1' } },
     likesReady: true,
     likedIds: new Set(['12']),
+    favoriteStatus: (id) =>
+      !account.likesReady ? 'unknown' : account.likedIds.has(id) ? 'liked' : 'unliked',
+    reloadLikes: () => calls.push(['reloadLikes']),
     pendingLikes: new Set(),
     toggleLike: (id) => calls.push(['like', id])
   }
@@ -60,7 +64,12 @@ function harness() {
         collect: (track) => calls.push(['collect', track.key])
       })
     },
-    '@/features/account/account': { useAccount: () => account },
+    '@/features/account/account': {
+      useAccount: (source) => {
+        requestedSources.push(source)
+        return account
+      }
+    },
     '@tauri-apps/api/core': { isTauri: () => true }
   }
   const exports = {}
@@ -80,6 +89,7 @@ function harness() {
         : []
   return {
     calls,
+    requestedSources,
     account,
     render(track, options = {}) {
       const nodes = flatten(
@@ -158,4 +168,33 @@ test('favorite respects account readiness and pending writes; lyric refresh cann
   assert.equal(loading.item('正在获取歌词…').props.disabled, true)
   assert.equal(app.render(stream).source, '暂无歌词')
   assert.equal(app.render(stream).item('刷新歌词').props.disabled, false)
+})
+
+test('song menu reads the track source and exposes unknown and stale favorite recovery', () => {
+  const app = harness()
+  const qq = {
+    ...stream,
+    source: { kind: 'online', track: { reference: { source: 'qqmusic', kind: 'track', id: '12' } } }
+  }
+  app.account.profile.reference.source = 'qqmusic'
+  app.account.likesReady = false
+  let menu = app.render(qq)
+  assert.equal(app.requestedSources.at(-1), 'qqmusic')
+  assert.equal(menu.item('收藏状态待确认').props.disabled, true)
+  assert.equal(menu.item('收藏歌曲'), undefined)
+  app.account.likesRefreshing = true
+  app.account.likesStale = true
+  assert.equal(app.render(qq).item('收藏状态待确认').props.title, '正在读取收藏状态')
+  app.account.likesRefreshing = false
+  app.account.likesError = 'offline'
+  assert.match(app.render(qq).item('收藏状态待确认').props.title, /待确认.*读取失败.*重新读取/)
+  menu.item('重新读取收藏状态').props.onClick()
+  assert.deepEqual(app.calls, [['reloadLikes']])
+  app.account.likesReady = true
+  app.account.likesStale = true
+  app.account.likesError = 'network unavailable'
+  menu = app.render(qq)
+  assert.equal(menu.item('取消收藏歌曲').props.disabled, false)
+  assert.match(menu.item('取消收藏歌曲').props.title, /读取失败/)
+  assert.ok(menu.item('重新读取收藏状态'))
 })

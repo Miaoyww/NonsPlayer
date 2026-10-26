@@ -66,7 +66,9 @@ test('homepage allows a newer song selection while the previous collection is pr
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => true },
     '@/lib/player': { usePlayer: () => ({ index: null, queue: [] }), errorText: String },
-    '@/features/account/account': { useAccount: () => ({ profile: summary.profile }) },
+    '@/features/account/account': {
+      useAccount: () => ({ profile: summary.profile, confirmLikedTracks() {} })
+    },
     '@/features/library/collection-actions': {
       useCollectionActions: () => ({ revision: 0 }),
       CollectionContextMenu: placeholder

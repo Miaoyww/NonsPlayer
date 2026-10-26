@@ -149,6 +149,9 @@ function playbackHarness() {
     profile: { reference: { source: 'netease', id: '1' } },
     likesReady: true,
     likedIds: new Set(),
+    favoriteStatus: (id) =>
+      !account.likesReady ? 'unknown' : account.likedIds.has(id) ? 'liked' : 'unliked',
+    getAccount: () => account,
     toggleLike: async (id) => {
       likes.push(id)
     }
@@ -268,6 +271,34 @@ test('all six playback actions reuse playback commands, clamp volume and favorit
   app.dispatch('previous')
   app.dispatch('next')
   assert.equal(app.calls.length, count)
+})
+
+test('favorite shortcuts use the live track source and never write an unknown favorite', () => {
+  const app = playbackHarness()
+  app.account.likesReady = false
+  app.dispatch('like')
+  assert.deepEqual(app.likes, [])
+  const lookups = []
+  app.account.getAccount = (source) => {
+    lookups.push(source)
+    return {
+      profile: { reference: { source: 'qqmusic', id: 'qq-user' } },
+      favoriteStatus: () => 'unliked',
+      toggleLike: async (id) => app.likes.push(id)
+    }
+  }
+  // Dispatch can race a React render after the native player changes tracks.
+  app.state.queue = [
+    {
+      source: {
+        kind: 'online',
+        track: { reference: { source: 'qqmusic', kind: 'track', id: 'qq-track' } }
+      }
+    }
+  ]
+  app.dispatch('like')
+  assert.deepEqual(lookups, ['qqmusic'])
+  assert.deepEqual(app.likes, ['qq-track'])
 })
 
 test('Space after clicking a button controls playback and prevents button handlers on both keydown and keyup', () => {

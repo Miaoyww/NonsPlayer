@@ -130,7 +130,8 @@ export default function MusicLibrary({
     loading: accountLoading,
     error: accountError,
     likesRevision,
-    reloadLikes
+    reloadLikes,
+    confirmLikedTracks
   } = useAccount()
   const account = profile?.reference
   const { revision: collectionRevision } = useCollectionActions()
@@ -251,6 +252,33 @@ export default function MusicLibrary({
     more: detailList.more
   }
   const detailBusy = detailList.busy
+  useEffect(() => {
+    if (!summary || summary.likedError || !account) return
+    confirmLikedTracks(summary.likedTracks)
+    const expected = summary.likedPlaylist?.reference
+    const actual = collection?.reference
+    if (
+      showingDetail &&
+      !detailBusy &&
+      !detailList.error &&
+      expected &&
+      actual &&
+      expected.source === account.source &&
+      expected.source === actual.source &&
+      expected.kind === actual.kind &&
+      expected.id === actual.id
+    )
+      confirmLikedTracks(detailList.items)
+  }, [
+    summary,
+    account,
+    collection,
+    showingDetail,
+    detailBusy,
+    detailList.error,
+    detailList.items,
+    confirmLikedTracks
+  ])
 
   function openCollection(item: MusicCollection) {
     navigate('collection', '', item)

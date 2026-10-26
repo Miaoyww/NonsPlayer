@@ -156,6 +156,8 @@ for (const changedMetadata of [false, true])
       './player': { errorText: String },
       '@/lib/runtime-cache': cache
     })
+    modules['@/features/music/client'].musicClient.refresh =
+      modules['@/features/music/client'].musicClient.query
     const account = load('../src/features/account/account-state.tsx', modules)
     modules['@/features/account/account'] = account
     const { default: MusicLibrary } = load('../src/features/library/music-library.tsx', modules)
@@ -193,7 +195,7 @@ for (const changedMetadata of [false, true])
       assert.deepEqual(failures, [], `startup requests were rejected: ${failures.join(', ')}`)
       assert.equal(snapshot.likesReady, true)
       assert.deepEqual(queries.sort(), ['favorites', 'libraryCollections', 'librarySummary'])
-      // Account changes refresh the profile without replacing app-global favorites.
+      // Account changes retain the shared display while profile and favorites are revalidated.
       record.reference.id = 'another-listener'
       await emit('music-account-changed', 'netease')
       assert.equal(snapshot.profile.reference.id, 'another-listener')
@@ -202,7 +204,7 @@ for (const changedMetadata of [false, true])
       await act(async () => finishProfile({ type: 'profile', data: structuredClone(record) }))
       await act(async () => jobs.splice(0).forEach((finish) => finish()))
       assert.equal(snapshot.likesReady, true)
-      assert.equal(queries.length, 5)
+      assert.equal(queries.length, 6)
     } finally {
       await act(async () => root.unmount())
       dom.window.close()

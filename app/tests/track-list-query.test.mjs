@@ -37,6 +37,12 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     { key: 'a', title: 'Zulu', artist: 'Alpha', album: 'Second', durationMs: 3000 }
   ].map((track) => ({ ...track, source: { kind: 'local' }, cover: '' }))
   const navigations = []
+  const favoriteAccount = {
+    profile: undefined,
+    pendingLikes: new Set(),
+    favoriteStatus: () => 'unknown',
+    toggleLike() {}
+  }
   const plays = [],
     removes = [],
     menus = [],
@@ -154,7 +160,7 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     },
     '@/features/account/account': {
       useAccount: () => ({
-        getAccount: () => ({ likedIds: new Set(), pendingLikes: new Set() }),
+        getAccount: () => favoriteAccount,
         likesError,
         reloadLikes
       })
@@ -176,6 +182,7 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     },
     'lucide-react': Object.fromEntries(
       [
+        'Ellipsis',
         'Heart',
         'ListPlus',
         'Play',
@@ -290,6 +297,7 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     await render()
     await run({
       tracks,
+      favoriteAccount,
       plays,
       removes,
       menus,
@@ -339,6 +347,37 @@ test('favorites errors offer a floating retry without inserting content above th
     assert.equal(floatingErrors.length, 1)
     assert.equal(document.querySelectorAll('.track-row').length, 0)
     assert.equal(document.querySelector('.track-table-container').previousElementSibling, null)
+  })
+})
+
+test('list favorites distinguish unknown from unliked and retain a known heart after refresh errors', async () => {
+  await harness(async ({ tracks, favoriteAccount, render }) => {
+    const online = {
+      ...tracks[0],
+      source: {
+        kind: 'online',
+        track: { reference: { source: 'netease', kind: 'track', id: 'favorite' } }
+      }
+    }
+    favoriteAccount.profile = { reference: { source: 'netease', id: 'listener' } }
+    await render({ tracks: [online] })
+    let button = document.querySelector('.track-like')
+    assert.equal(button.getAttribute('aria-pressed'), null)
+    assert.match(button.getAttribute('aria-label'), /收藏状态待确认/)
+    assert.equal(button.disabled, true)
+    favoriteAccount.likesRefreshing = true
+    favoriteAccount.likesStale = true
+    await render({ tracks: [online] })
+    assert.equal(document.querySelector('.track-like').title, '正在读取收藏状态')
+    favoriteAccount.likesRefreshing = false
+    favoriteAccount.favoriteStatus = () => 'liked'
+    favoriteAccount.likesStale = true
+    favoriteAccount.likesError = 'offline'
+    await render({ tracks: [online] })
+    button = document.querySelector('.track-like')
+    assert.equal(button.getAttribute('aria-pressed'), 'true')
+    assert.match(button.title, /读取失败.*重新读取/)
+    assert.equal(button.disabled, false)
   })
 })
 

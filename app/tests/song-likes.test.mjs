@@ -23,6 +23,8 @@ function harness(snapshot = null, storage = new Map()) {
     effects = [],
     libraryRefreshes = []
   const events = new Map()
+  const browserEvents = new Map()
+  let now = 1_800_000_000_000
   let cursor = 0
   const react = {
     createContext: () => ({ Provider: 'provider' }),
@@ -114,6 +116,8 @@ function harness(snapshot = null, storage = new Map()) {
     }
   }
   const exports = {}
+  modules['@/features/music/client'].musicClient.refresh =
+    modules['@/features/music/client'].musicClient.query
   const { outputText } = ts.transpileModule(
     readFileSync(new URL('../src/features/account/account-state.tsx', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
@@ -122,7 +126,25 @@ function harness(snapshot = null, storage = new Map()) {
     getItem: (key) => storage.get(key) ?? null,
     setItem: (key, value) => storage.set(key, value)
   }
-  runInNewContext(outputText, { exports, require: (name) => modules[name], localStorage })
+  const document = {
+    visibilityState: 'visible',
+    addEventListener: (name, fn) => browserEvents.set(name, fn),
+    removeEventListener: (name) => browserEvents.delete(name)
+  }
+  const window = {
+    addEventListener: (name, fn) => browserEvents.set(name, fn),
+    removeEventListener: (name) => browserEvents.delete(name),
+    setInterval: () => 1,
+    clearInterval() {}
+  }
+  runInNewContext(outputText, {
+    exports,
+    require: (name) => modules[name],
+    localStorage,
+    window,
+    document,
+    Date: { now: () => now }
+  })
   function render() {
     cursor = 0
     const tree = exports.AccountProvider({ children: null })
@@ -135,6 +157,14 @@ function harness(snapshot = null, storage = new Map()) {
     render,
     libraryRefreshes,
     storage,
+    focus: () => browserEvents.get('focus')?.(),
+    visible: (visible) => {
+      document.visibilityState = visible ? 'visible' : 'hidden'
+      browserEvents.get('visibilitychange')?.()
+    },
+    advance: (ms) => {
+      now += ms
+    },
     emit: (event, payload) => events.get(event)?.({ payload })
   }
 }
@@ -211,7 +241,7 @@ test('switching account discards old liked list responses', async () => {
   assert.deepEqual([...app.render().likedIds], ['456'])
 })
 
-test('backend account changes preserve global likes instead of loading account favorites', async () => {
+test('backend account changes keep global likes visible while revalidating', async () => {
   const app = await loggedIn()
   const oldWrite = app.render().toggleLike('123')
   app.emit('music-account-changed', 'netease')
@@ -227,7 +257,7 @@ test('backend account changes preserve global likes instead of loading account f
   const state = app.render()
   assert.equal(state.profile.userId, '2')
   assert.deepEqual([...state.likedIds], [])
-  assert.equal(app.requests.filter((request) => request.command === 'music_query').length, 1)
+  assert.equal(app.requests.filter((request) => request.command === 'music_query').length, 2)
   assert.deepEqual(app.libraryRefreshes, ['invalidate'])
 })
 
@@ -245,7 +275,7 @@ test('global likes persist across provider recreation and account changes', asyn
   validation.resolve({ userId: 2 })
   await settle()
   assert.deepEqual([...restarted.render().likedIds], ['123'])
-  assert.equal(restarted.requests.filter((request) => request.command === 'music_query').length, 0)
+  assert.equal(restarted.requests.filter((request) => request.command === 'music_query').length, 1)
 })
 
 test('saved current account appears before remote validation and network failure preserves its display', async () => {
@@ -262,4 +292,153 @@ test('saved current account appears before remote validation and network failure
   await settle()
   assert.equal(app.render().profile.userId, '7')
   assert.match(app.render().error, /offline/)
+})
+
+test('stored likes display immediately and are corrected by one background read', async () => {
+  const storage = new Map([
+    [
+      'nons:music:favorites:v2:netease',
+      JSON.stringify({ ids: ['old'], updatedAt: 1_799_999_999_000 })
+    ]
+  ])
+  const app = harness({ userId: 1 }, storage)
+  assert.equal(app.render().favoriteStatus('old'), 'liked')
+  await settle()
+  app.render()
+  const requests = app.requests.filter((request) => request.command === 'music_query')
+  assert.equal(requests.length, 1)
+  assert.equal(app.render().likesRefreshing, true)
+  requests[0].resolve(['new'])
+  await settle()
+  const state = app.render()
+  assert.equal(state.favoriteStatus('new'), 'liked')
+  assert.equal(state.favoriteStatus('old'), 'unliked')
+  assert.equal(state.likesStale, false)
+})
+
+test('focus revalidates expired likes once and keeps the last good snapshot on failure', async () => {
+  const app = await loggedIn()
+  app.render()
+  app.advance(10 * 60 * 1000 - 1)
+  app.focus()
+  app.render()
+  assert.equal(app.requests.length, 2)
+  app.advance(2)
+  app.focus()
+  app.render()
+  app.focus()
+  app.render()
+  assert.equal(app.requests.length, 3)
+  app.requests[2].reject(new Error('offline'))
+  await settle()
+  const state = app.render()
+  assert.equal(state.favoriteStatus('123'), 'liked')
+  assert.equal(state.likesReady, true)
+  assert.equal(state.likesStale, true)
+  assert.match(state.likesError, /offline/)
+  app.focus()
+  app.render()
+  assert.equal(app.requests.length, 3, 'failure backoff suppresses focus bursts')
+})
+
+test('a successful mutation wins over a refresh that started before it', async () => {
+  const app = await loggedIn()
+  app.render().reloadLikes()
+  app.render()
+  const write = app.render().toggleLike('123')
+  app.requests[3].resolve()
+  await write
+  assert.equal(app.render().favoriteStatus('123'), 'unliked')
+  app.requests[2].resolve([123])
+  await settle()
+  assert.equal(app.render().favoriteStatus('123'), 'unliked')
+})
+
+test('confirmed own-playlist members add only positive evidence and cannot undo a local unlike', async () => {
+  const app = await loggedIn()
+  const track = (id) => ({
+    source: { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id } } }
+  })
+  app.render().confirmLikedTracks([track('new')])
+  assert.equal(app.render().favoriteStatus('new'), 'liked')
+  const write = app.render().toggleLike('123')
+  app.requests[2].resolve()
+  await write
+  app.render().confirmLikedTracks([track('123')])
+  assert.equal(app.render().favoriteStatus('123'), 'unliked')
+  app.render().reloadLikes()
+  app.render()
+  app.requests[3].resolve(['new'])
+  await settle()
+  app.render().confirmLikedTracks([track('123')])
+  assert.equal(
+    app.render().favoriteStatus('123'),
+    'unliked',
+    'an old playlist page cannot undo a confirmed unlike after revalidation'
+  )
+})
+
+test('platform playlist writes refresh the shared favorite state through music-changed', async () => {
+  const app = await loggedIn()
+  app.emit('music-changed', 'qqmusic')
+  app.render()
+  assert.equal(app.requests.length, 2)
+  app.emit('music-changed', 'netease')
+  app.render()
+  assert.equal(app.render().favoriteStatus('123'), 'liked')
+  app.requests[2].resolve(['new'])
+  await settle()
+  assert.equal(app.render().favoriteStatus('new'), 'liked')
+  assert.equal(app.render().favoriteStatus('123'), 'unliked')
+})
+
+test('hidden windows wait until visible before revalidating an expired snapshot', async () => {
+  const app = await loggedIn()
+  app.render()
+  app.visible(false)
+  app.advance(10 * 60 * 1000 + 1)
+  app.focus()
+  app.render()
+  assert.equal(app.requests.length, 2)
+  app.visible(true)
+  app.render()
+  assert.equal(app.requests.length, 3)
+  app.requests[2].resolve([123])
+  await settle()
+  assert.equal(app.render().likesStale, false)
+})
+
+test('a failed read in the same millisecond as a success still uses the failure backoff', async () => {
+  const app = await loggedIn()
+  app.render().reloadLikes()
+  app.render()
+  app.requests[2].reject(new Error('offline'))
+  await settle()
+  app.render()
+  app.advance(30_001)
+  app.focus()
+  app.render()
+  assert.equal(app.requests.length, 4)
+  app.requests[3].resolve([123])
+  await settle()
+  assert.equal(app.render().likesStale, false)
+})
+
+test('write event bursts queue one replacement read and cannot publish an obsolete response', async () => {
+  const app = await loggedIn()
+  app.render().reloadLikes()
+  app.render()
+  for (let index = 0; index < 5; index++) {
+    app.emit('music-changed', 'netease')
+    app.render()
+  }
+  assert.equal(app.requests.length, 3, 'an in-flight read is not restarted for every event')
+  app.requests[2].resolve(['obsolete'])
+  await settle()
+  app.render()
+  assert.equal(app.requests.length, 4)
+  assert.equal(app.render().favoriteStatus('obsolete'), 'unliked')
+  app.requests[3].resolve(['latest'])
+  await settle()
+  assert.equal(app.render().favoriteStatus('latest'), 'liked')
 })
