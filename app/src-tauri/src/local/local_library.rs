@@ -3,6 +3,7 @@ use crate::{
     storage::Store,
     Backend,
 };
+use anyhow::Context;
 use lofty::prelude::*;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -204,12 +205,14 @@ fn rebuild_index(tx: &Connection) -> AppResult<()> {
         while let Some(row) = rows.next().map_err(|e| e.to_string())? {
             let key = row.get::<_, String>(0).map_err(|e| e.to_string())?;
             let value = row.get::<_, String>(1).map_err(|e| e.to_string())?;
-            match serde_json::from_str::<Track>(&value) {
+            match serde_json::from_str::<Track>(&value)
+                .with_context(|| format!("本地曲目索引解码失败 key={key}"))
+            {
                 Ok(track) => index_track(tx, &track, &options)?,
                 Err(error) => {
-                    crate::infrastructure::diagnostics::warn(
+                    crate::infrastructure::diagnostics::report_error(
                         "local.index.drop_invalid_track",
-                        format!("key={key}: {error}"),
+                        &error,
                     );
                     invalid_keys.push(key);
                 }
@@ -932,7 +935,18 @@ mod tests {
         }
         drop(store);
 
+        crate::infrastructure::diagnostics::test_log::start();
         let store = Store::open(&path).unwrap();
+        let records = crate::infrastructure::diagnostics::test_log::take();
+        let record = records
+            .iter()
+            .find(|record| record.contains("local.index.drop_invalid_track"))
+            .expect("discarding an invalid track must preserve its decoding failure");
+        assert!(record.contains("本地曲目索引解码失败 key=local:legacy"));
+        assert!(record.contains("CoverImage"));
+        assert!(record.contains("backtrace="));
+        assert!(record.contains("local_library"));
+        assert!(!record.contains("disabled backtrace"));
         assert!(store.track("local:valid").is_ok());
         assert!(store.track("local:legacy").is_err());
         let db = store.0.lock().unwrap();

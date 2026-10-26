@@ -1,12 +1,17 @@
 use crate::model::AppResult;
+use anyhow::Context;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use moka::future::Cache;
 use std::{
-    sync::{Arc, OnceLock},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc, OnceLock,
+    },
     time::Duration,
 };
 
 pub(crate) const MAX_COVER_BYTES: u64 = 8 * 1024 * 1024;
+static NEXT_REQUEST: AtomicU64 = AtomicU64::new(1);
 
 fn check_size(bytes: u64) -> AppResult<()> {
     if bytes > MAX_COVER_BYTES {
@@ -35,7 +40,10 @@ fn cache() -> &'static Cache<String, Arc<CoverEntry>> {
     })
 }
 
+#[tracing::instrument(target = "nons::covers", skip_all, fields(request = tracing::field::Empty))]
 pub(crate) async fn fetch(url: String, backend: &crate::Backend) -> AppResult<String> {
+    let request = NEXT_REQUEST.fetch_add(1, Ordering::Relaxed);
+    tracing::Span::current().record("request", request);
     let access = backend
         .music
         .adapters
@@ -50,15 +58,21 @@ pub(crate) async fn fetch(url: String, backend: &crate::Backend) -> AppResult<St
     }
     let result = cache()
         .try_get_with(url.clone(), async {
-            load(&url, backend, &access).await.map(|data| {
-                Arc::new(CoverEntry {
-                    access: access.clone(),
-                    data,
+            load(&url, backend, &access)
+                .await
+                .with_context(|| format!("runtime_cover request={request}"))
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::report_error("covers.load", error);
                 })
-            })
+                .map(|data| {
+                    Arc::new(CoverEntry {
+                        access: access.clone(),
+                        data,
+                    })
+                })
         })
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("{e:#}"))?;
     if result.access != access
         || backend
             .music
@@ -72,64 +86,49 @@ pub(crate) async fn fetch(url: String, backend: &crate::Backend) -> AppResult<St
     Ok(result.data.clone())
 }
 
-async fn load(url: &str, backend: &crate::Backend, access: &str) -> AppResult<String> {
-    let parsed = url::Url::parse(url)
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("covers.url.parse", error);
-        })
-        .map_err(|_| "封面地址无效")?;
+#[tracing::instrument(target = "nons::covers", skip_all)]
+async fn load(url: &str, backend: &crate::Backend, access: &str) -> anyhow::Result<String> {
+    let parsed = url::Url::parse(url).context("covers.url.parse")?;
     let _permit = backend
         .cover_requests
         .acquire()
         .await
-        .map_err(|e| e.to_string())?;
+        .context("covers.acquire")?;
     if backend
         .music
         .adapters
         .cover_access(url)
-        .map_err(|e| e.to_string())?
+        .map_err(|e| anyhow::anyhow!("{e}"))?
         != access
     {
-        return Err("封面来源状态已变化".into());
+        anyhow::bail!("封面来源状态已变化");
     }
-    let mut response = backend
-        .cover_client
+    download(parsed, &backend.cover_client).await
+}
+
+#[tracing::instrument(target = "nons::covers", skip_all)]
+async fn download(parsed: url::Url, client: &reqwest::Client) -> anyhow::Result<String> {
+    let mut response = client
         .get(parsed)
         .send()
         .await
-        .inspect_err(|error| crate::infrastructure::diagnostics::warn_error("covers.http.send", error))
-        .map_err(|e| e.to_string())?
+        .context("covers.http.send")?
         .error_for_status()
-        .inspect_err(|error| {
-            log::warn!(target: "nons::covers", "operation=covers.read stage=http_status code=httpError status={}", error.status().map_or(0, |s| s.as_u16()));
-        })
-        .map_err(|e| e.to_string())?;
+        .context("covers.http.status")?;
     let content_type = response
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|h| {
-            h.to_str()
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("covers.response.content_type", error);
-                })
-                .ok()
-        })
-        .unwrap_or_default()
+        .context("covers.response.content_type missing")?
+        .to_str()
+        .context("covers.response.content_type invalid")?
         .to_owned();
-    let mime = image_mime(&content_type).ok_or("封面格式不支持")?;
+    let mime = image_mime(&content_type).context("封面格式不支持")?;
     if let Some(length) = response.content_length() {
-        check_size(length)?;
+        check_size(length).map_err(anyhow::Error::msg)?;
     }
     let mut bytes = Vec::new();
-    while let Some(chunk) = response
-        .chunk()
-        .await
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn_error("covers.http.read_chunk", error)
-        })
-        .map_err(|e| e.to_string())?
-    {
-        check_size(bytes.len() as u64 + chunk.len() as u64)?;
+    while let Some(chunk) = response.chunk().await.context("covers.http.read_chunk")? {
+        check_size(bytes.len() as u64 + chunk.len() as u64).map_err(anyhow::Error::msg)?;
         bytes.extend_from_slice(&chunk);
     }
     Ok(format!("data:{mime};base64,{}", STANDARD.encode(bytes)))
@@ -158,6 +157,31 @@ fn image_mime(value: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn failed_cover_transport_preserves_timeout_cause_and_stack() {
+        crate::infrastructure::diagnostics::test_log::start();
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .timeout(Duration::from_millis(30))
+            .build()
+            .unwrap();
+        let error = download(
+            url::Url::parse(&format!("http://{address}/cover.png")).unwrap(),
+            &client,
+        )
+        .await
+        .unwrap_err();
+        assert!(error.downcast_ref::<reqwest::Error>().unwrap().is_timeout());
+        crate::infrastructure::diagnostics::report_error("covers.load", &error);
+        let output = crate::infrastructure::diagnostics::test_log::take().join("\n");
+        assert!(output.contains("covers.http.send"), "{output}");
+        assert!(output.contains("operation timed out"), "{output}");
+        assert!(output.contains("backtrace_kind="), "{output}");
+        assert!(output.contains("covers.rs:"), "{output}");
+        assert!(!output.contains(&address.to_string()), "{output}");
+    }
     #[test]
     fn cover_size_accepts_eight_mib_and_rejects_larger_responses() {
         assert!(check_size(4 * 1024 * 1024 + 1).is_ok());

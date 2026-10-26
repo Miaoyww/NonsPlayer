@@ -55,6 +55,55 @@ test('native string failures keep one diagnostic identity through recovery bound
   })
   assert.equal(app.calls.filter((call) => call.command === 'diagnostic_report').length, 1)
   assert.match(app.calls.at(-1).args.entry.message, /封面文件过大/)
+  assert.equal(app.calls.at(-1).args.entry.stackKind, 'observation')
+  assert.match(app.calls.at(-1).args.entry.stack, /diagnosticInvoke/)
+})
+
+test('serialized diagnostics preserve original frames and causes while removing URL secrets', () => {
+  const app = harness()
+  const inner = new Error('socket closed')
+  inner.stack =
+    'Error: socket closed\n    at connect (https://u:SECRET@example.com/assets/net.js?token=SECRET:41:8)'
+  const error = new Error('cover request failed', { cause: inner })
+  error.stack =
+    'Error: cover request failed\n    at loadCover (http://tauri.localhost/assets/app.js:120:9)\n    at render (http://tauri.localhost/assets/app.js:250:3)'
+  app.reportCaughtError('cover.load', error)
+  const serialized = JSON.stringify(app.calls.at(-1).args.entry)
+  const report = JSON.parse(serialized)
+  assert.equal(report.stackKind, 'origin')
+  assert.match(report.message, /cover request failed.*caused_by=socket closed/)
+  assert.ok(!report.message.includes('at loadCover'))
+  assert.match(report.stack, /loadCover \(source:\/assets\/app.js:120:9\)/)
+  assert.match(report.stack, /render \(source:\/assets\/app.js:250:3\)/)
+  assert.match(report.stack, /connect \(source:\/assets\/net.js:41:8\)/)
+  assert.ok(!serialized.includes('SECRET'))
+  assert.ok(report.stack.split('\n').length >= 5)
+})
+
+test('browser errors without error objects disclose missing origin and preserve source location', () => {
+  const app = harness()
+  app.installDiagnostics()
+  app.handlers.get('error')({
+    message: 'ResizeObserver loop completed with undelivered notifications.',
+    filename: 'https://u:SECRET@example.com/assets/app.js?token=SECRET',
+    lineno: 54,
+    colno: 12
+  })
+  const report = app.calls.at(-1).args.entry
+  assert.equal(report.stackKind, 'observation')
+  assert.match(report.stack, /Original stack unavailable/)
+  assert.equal(report.location, 'source:/assets/app.js:54:12')
+  assert.ok(!JSON.stringify(report).includes('SECRET'))
+})
+
+test('diagnostic stack size is bounded by UTF-8 bytes and clearly indicates truncation', () => {
+  const app = harness()
+  const error = new Error('large stack')
+  error.stack = `Error: large stack\n${'    at 调用 (http://tauri.localhost/assets/app.js:2:4)\n'.repeat(1000)}`
+  app.reportCaughtError('large', error)
+  const report = app.calls.at(-1).args.entry
+  assert.ok(Buffer.byteLength(report.stack, 'utf8') <= 32 * 1024)
+  assert.match(report.stack, /stack truncated/)
 })
 
 test('caught errors keep the original cause, deduplicate recovery boundaries and classify expected retries', async () => {

@@ -8,39 +8,72 @@ use std::sync::{
 use std::time::{Duration, Instant};
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
 mod files;
+#[path = "diagnostics/tracing.rs"]
+mod trace_transport;
 
-// Stop formatting when the bound is reached, before a Debug representation or a
-// long error can allocate a second copy of an entire response in the log sink.
-fn bounded_message(args: std::fmt::Arguments<'_>) -> String {
-    struct Bounded(String);
+const MAX_RECORD_BYTES: usize = 64 * 1024;
+
+/// Capture anyhow errors before the runtime creates worker threads.
+pub(crate) fn enable_backtraces() {
+    std::env::set_var("RUST_LIB_BACKTRACE", "1");
+}
+
+fn format_record(record: &log::Record<'_>) -> String {
+    use std::fmt::Write;
+    let legacy = record.level() <= log::Level::Warn
+        && record.target() != "nons::trace"
+        && record.target() != "nons::webview";
+    let raw = bounded_format(
+        *record.args(),
+        if legacy { 16 * 1024 } else { MAX_RECORD_BYTES },
+    );
+    let mut output = raw.lines().map(redact).collect::<Vec<_>>().join("\n");
+    // Legacy log callers have no captured error object. Keep their physical reporting
+    // stack explicitly separate from an anyhow error's creation stack.
+    if legacy {
+        let stack = std::backtrace::Backtrace::force_capture();
+        let stack = bounded_format(format_args!("{stack}"), 32 * 1024);
+        let _ = write!(output, "\nbacktrace_kind=observation\n{stack}");
+    }
+    output
+}
+
+fn bounded_format(args: std::fmt::Arguments<'_>, limit: usize) -> String {
+    use std::fmt::Write;
+    struct Bounded(String, usize);
     impl std::fmt::Write for Bounded {
-        fn write_str(&mut self, text: &str) -> std::fmt::Result {
-            let remaining = 4096usize.saturating_sub(self.0.len());
-            let mut end = remaining.min(text.len());
-            while !text.is_char_boundary(end) {
-                end -= 1;
+        fn write_str(&mut self, value: &str) -> std::fmt::Result {
+            let mut length = value.len().min(self.1.saturating_sub(self.0.len()));
+            while !value.is_char_boundary(length) {
+                length -= 1;
             }
-            self.0.push_str(&text[..end]);
-            if end < text.len() {
+            self.0.push_str(&value[..length]);
+            if length < value.len() {
                 Err(std::fmt::Error)
             } else {
                 Ok(())
             }
         }
     }
-    let mut output = Bounded(String::with_capacity(256));
-    // A formatting error here signals intentional truncation.
-    let _ = std::fmt::write(&mut output, args);
-    redact(&output.0)
+    let mut raw = Bounded(String::new(), limit);
+    if raw.write_fmt(args).is_err() {
+        raw.0.push_str("\n[truncated]");
+    }
+    raw.0
+}
+
+// Stop formatting when the bound is reached, before a Debug representation or a
+// long error can allocate a second copy of an entire response in the log sink.
+fn bounded_message(args: std::fmt::Arguments<'_>) -> String {
+    redact(&bounded_format(args, 4096 - 16))
 }
 
 /// Record a recovered or translated failure before its original cause is lost.
 /// Display avoids serializing error internals such as credential bytes.
 #[track_caller]
 pub(crate) fn warn(operation: &str, error: impl std::fmt::Display) {
-    let at = std::panic::Location::caller();
-    let stage = operation.rsplit('.').next().unwrap_or(operation);
-    log::warn!(target: "nons::recovery", "operation={operation} stage={stage} at={}:{} error_type={} reason={error}", at.file(), at.line(), std::any::type_name_of_val(&error));
+    let error = anyhow::Error::msg(bounded_message(format_args!("{error}")));
+    report(operation, &error, true);
 }
 
 /// A bounded scalar that cannot introduce fields or consume the rest of a record.
@@ -55,28 +88,73 @@ pub(crate) fn field(value: &str) -> String {
 
 #[track_caller]
 pub(crate) fn warn_error(operation: &str, error: &(dyn std::error::Error + 'static)) {
-    struct Chain<'a>(&'a (dyn std::error::Error + 'static));
-    impl std::fmt::Display for Chain<'_> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", self.0)?;
-            let mut cause = self.0.source();
-            for _ in 0..4 {
-                let Some(error) = cause else {
-                    break;
-                };
-                write!(f, "; caused_by={error}")?;
-                cause = error.source();
-            }
-            Ok(())
+    let stack = std::backtrace::Backtrace::force_capture();
+    report_parts(operation, error, &stack, "observation");
+}
+
+#[track_caller]
+pub(crate) fn report_error(operation: &str, error: &anyhow::Error) {
+    report(operation, error, false);
+}
+
+#[track_caller]
+fn report(operation: &str, error: &anyhow::Error, observation: bool) {
+    let fallback;
+    let (stack, kind) = if error.backtrace().status() == std::backtrace::BacktraceStatus::Captured {
+        (
+            error.backtrace(),
+            if observation { "observation" } else { "origin" },
+        )
+    } else {
+        fallback = std::backtrace::Backtrace::force_capture();
+        (&fallback, "observation")
+    };
+    report_parts(operation, error.as_ref(), stack, kind);
+}
+
+#[track_caller]
+fn report_parts(
+    operation: &str,
+    error: &(dyn std::error::Error + 'static),
+    stack: &std::backtrace::Backtrace,
+    kind: &str,
+) {
+    let at = std::panic::Location::caller();
+    let stage = operation.rsplit('.').next().unwrap_or(operation);
+    let reason = bounded_message(format_args!("{error}"));
+    let root = anyhow::Chain::new(error).last().unwrap_or(error);
+    let root = bounded_message(format_args!("{root}"));
+    let mut causes = String::new();
+    for cause in anyhow::Chain::new(error).skip(1).take(32) {
+        let line = format!("caused_by={}\n", bounded_message(format_args!("{cause}")));
+        if causes.len() + line.len() > 8192 {
+            causes.push_str("[causes truncated; see root_cause]\n");
+            break;
         }
+        causes.push_str(&line);
     }
-    warn(operation, Chain(error));
+    let stack = bounded_format(format_args!("{stack}"), 32 * 1024);
+    let spans = bounded_format(
+        format_args!("{}", tracing_error::SpanTrace::capture()),
+        8192,
+    );
+    ::tracing::warn!(target: "nons::recovery", operation=%operation, stage=%stage, at=%format_args!("{}:{}", at.file(), at.line()), backtrace_kind=%kind, reason=%format_args!("\n{reason}\n"), root_cause=%format_args!("\n{root}\n"), backtrace=%format_args!("\n{stack}\n"), span_trace=%format_args!("\n{spans}\n"), causes=%format_args!("\n{causes}"));
+}
+
+pub(crate) fn panic(info: &std::panic::PanicHookInfo<'_>) {
+    let stack = std::backtrace::Backtrace::force_capture();
+    ::tracing::error!(target: "nons::panic", reason=%info, backtrace_kind="panic_hook", backtrace=%format_args!("\n{stack}"));
+    log::logger().flush();
 }
 
 pub(crate) fn redact(value: &str) -> String {
     static URL: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r#"(?i)https?://[^\s"'<>]+"#).unwrap());
-    static PAYLOAD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[\[{].*$").unwrap());
+    // JSON payloads are distinct from tracing's `span{request=...}` context and
+    // Rust generic/array type names in symbolized stack frames.
+    static PAYLOAD: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r#"(?:\{\s*"|\[\s*(?:"|-?\d|true\b|false\b|null\b|\{|\[)).*$"#).unwrap()
+    });
     static SCALAR: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r#"((?:invalid (?:type|value): string|unknown variant|unknown field) )"(?:\\.|[^"\\])*(?:"|$)"#).unwrap()
     });
@@ -131,6 +209,7 @@ pub(crate) fn initialize<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             log::error!(target: "nons::diagnostics", "file_logging_unavailable reason={}", error);
         }
     }
+    trace_transport::install();
     match destination {
         Ok((directory, name)) => {
             log::info!(target: "nons::diagnostics", "session_log={}", directory.join(format!("{name}.log")).display());
@@ -159,13 +238,13 @@ fn plugin<R: tauri::Runtime>(file: Option<TargetKind>) -> tauri::plugin::TauriPl
         .level(log::LevelFilter::Info)
         // Dependency HTTP debug output may contain headers. Only application diagnostics enter this sink.
         .filter(|metadata| metadata.target().starts_with("nons"))
-        .format(|out, message, record| {
+        .format(|out, _message, record| {
             out.finish(format_args!(
                 "{} {} {} {}",
                 files::timestamp(tauri_plugin_log::TimezoneStrategy::UseLocal.get_now()),
                 record.level(),
                 record.target(),
-                bounded_message(*message)
+                format_record(record)
             ))
         })
         .build()
@@ -198,7 +277,9 @@ impl From<ErrorCode> for CommandError {
 }
 pub(crate) fn internal_error(stage: &'static str, reason: &str) -> CommandError {
     let message = redact(reason);
-    log::error!(target: "nons::storage", "stage={stage} reason={message}");
+    let error = anyhow::anyhow!("{message}").context(stage);
+    let stack = std::backtrace::Backtrace::force_capture();
+    ::tracing::error!(target: "nons::storage", stage, reason=%format_args!("{error:#}"), backtrace_kind="observation", backtrace=%format_args!("\n{stack}"));
     CommandError {
         error: ErrorCode::Internal.into(),
         message,
@@ -210,6 +291,7 @@ pub(crate) async fn observe<T>(
     operation: &str,
     future: impl std::future::Future<Output = MusicResult<T>>,
 ) -> MusicResult<T> {
+    use tracing::Instrument;
     struct Request<'a> {
         id: u64,
         source: &'a str,
@@ -231,7 +313,8 @@ pub(crate) async fn observe<T>(
         start: Instant::now(),
         finished: false,
     };
-    let result = future.await;
+    let span = ::tracing::info_span!(target: "nons::music", "music_request", request=request.id, source=%field(source), operation=%field(operation));
+    let result = future.instrument(span).await;
     let level = match &result {
         Ok(_) => log::Level::Info,
         Err(error) if matches!(error.code, ErrorCode::Cancelled | ErrorCode::StaleContext) => {
@@ -260,6 +343,9 @@ pub(crate) struct FrontendEntry {
     stage: Option<String>,
     elapsed_ms: Option<u64>,
     message: Option<String>,
+    stack: Option<String>,
+    stack_kind: Option<String>,
+    location: Option<String>,
 }
 #[tauri::command]
 pub(crate) fn diagnostic_report(entry: FrontendEntry) -> Result<(), String> {
@@ -277,6 +363,8 @@ pub(crate) fn diagnostic_report(entry: FrontendEntry) -> Result<(), String> {
         entry.code.as_ref(),
         entry.stage.as_ref(),
         entry.message.as_ref(),
+        entry.stack_kind.as_ref(),
+        entry.location.as_ref(),
     ]
     .into_iter()
     .flatten()
@@ -284,6 +372,13 @@ pub(crate) fn diagnostic_report(entry: FrontendEntry) -> Result<(), String> {
         if value.len() > 8192 {
             return Err("invalidData".into());
         }
+    }
+    if entry
+        .stack
+        .as_ref()
+        .is_some_and(|stack| stack.len() > 32 * 1024)
+    {
+        return Err("invalidData".into());
     }
     {
         let mut budget = BUDGET.lock().map_err(|_| "internal")?;
@@ -297,7 +392,15 @@ pub(crate) fn diagnostic_report(entry: FrontendEntry) -> Result<(), String> {
         }
         *count += 1;
     }
-    log::log!(target: "nons::webview", level, "command={} source={} operation={} elapsed_ms={} code={} stage={} reason={}", redact(&entry.command), redact(entry.source.as_deref().unwrap_or("-")), redact(entry.operation.as_deref().unwrap_or("-")), entry.elapsed_ms.unwrap_or(0), redact(entry.code.as_deref().unwrap_or("-")), redact(entry.stage.as_deref().unwrap_or("-")), redact(entry.message.as_deref().unwrap_or("-")));
+    let stack = entry
+        .stack
+        .as_deref()
+        .unwrap_or("original stack unavailable")
+        .lines()
+        .map(redact)
+        .collect::<Vec<_>>()
+        .join("\n");
+    log::log!(target: "nons::webview", level, "command={} source={} operation={} elapsed_ms={} code={} stage={} reason={} location={}\nstack_kind={}\n{}", redact(&entry.command), redact(entry.source.as_deref().unwrap_or("-")), redact(entry.operation.as_deref().unwrap_or("-")), entry.elapsed_ms.unwrap_or(0), redact(entry.code.as_deref().unwrap_or("-")), redact(entry.stage.as_deref().unwrap_or("-")), redact(entry.message.as_deref().unwrap_or("-")), redact(entry.location.as_deref().unwrap_or("-")), redact(entry.stack_kind.as_deref().unwrap_or("unavailable")), stack);
     Ok(())
 }
 
@@ -314,7 +417,7 @@ pub(crate) mod test_log {
         fn log(&self, record: &log::Record<'_>) {
             RECORDS.with(|records| {
                 if let Some(records) = records.borrow_mut().as_mut() {
-                    records.push(super::bounded_message(*record.args()));
+                    records.push(super::format_record(record));
                 }
             });
         }
@@ -328,6 +431,7 @@ pub(crate) mod test_log {
             log::set_max_level(log::LevelFilter::Info);
         });
         RECORDS.with(|records| *records.borrow_mut() = Some(Vec::new()));
+        super::trace_transport::install();
     }
     pub(crate) fn take() -> Vec<String> {
         RECORDS.with(|records| records.borrow_mut().take().unwrap_or_default())
@@ -337,6 +441,94 @@ pub(crate) mod test_log {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[inline(never)]
+    fn contextual_failure() -> anyhow::Result<()> {
+        use anyhow::Context;
+        Err(std::io::Error::new(
+            std::io::ErrorKind::TimedOut,
+            "operation timed out",
+        ))
+        .context("covers.http.send")
+    }
+
+    #[test]
+    fn contextual_errors_write_causes_physical_frames_and_async_spans_to_the_sink() {
+        test_log::start();
+        let span = ::tracing::info_span!(target: "nons::covers", "runtime_cover", request = 73);
+        let _entered = span.enter();
+        let error = contextual_failure().unwrap_err();
+        report_error("covers.load", &error);
+        let records = test_log::take();
+        let output = records.join("\n");
+        assert!(output.contains("covers.http.send"), "{output}");
+        assert!(output.contains("operation timed out"), "{output}");
+        assert!(output.contains("backtrace_kind="), "{output}");
+        assert!(output.contains("diagnostics.rs:"), "{output}");
+        assert!(output.contains("runtime_cover"), "{output}");
+        assert!(output.contains("request=73"), "{output}");
+        assert!(
+            output
+                .lines()
+                .filter(|line| line.trim_start().starts_with("at "))
+                .count()
+                >= 2,
+            "{output}"
+        );
+        if let Ok(path) = std::env::var("NONS_DIAGNOSTIC_TEST_OUTPUT") {
+            std::fs::write(path, &output).unwrap();
+        }
+    }
+
+    #[test]
+    fn frontend_stack_survives_native_serialization_without_losing_frames_or_location() {
+        test_log::start();
+        let entry: FrontendEntry = serde_json::from_value(serde_json::json!({
+            "level":"error", "command":"window.error", "message":"ResizeObserver loop completed with undelivered notifications.",
+            "stackKind":"observation", "location":"source:/assets/index.js:10:20",
+            "stack":"Original stack unavailable\n    at observe (source:/assets/index.js:10:20)\n    at dispatch (source:/assets/index.js:30:40)"
+        })).unwrap();
+        diagnostic_report(entry).unwrap();
+        let output = test_log::take().join("\n");
+        assert!(output.contains("stack_kind=observation"), "{output}");
+        assert!(
+            output.contains("location=source:/assets/index.js:10:20"),
+            "{output}"
+        );
+        assert!(
+            output.contains("\n    at observe (source:/assets/index.js:10:20)"),
+            "{output}"
+        );
+        assert!(
+            output.contains("\n    at dispatch (source:/assets/index.js:30:40)"),
+            "{output}"
+        );
+        assert!(!output.contains("backtrace_kind="), "{output}");
+    }
+
+    #[test]
+    fn legacy_warn_and_error_records_capture_the_reporting_stack() {
+        test_log::start();
+        log::error!(target: "nons::test", "legacy failure");
+        let output = test_log::take().join("\n");
+        assert!(output.contains("backtrace_kind=observation"), "{output}");
+        assert!(output.contains("diagnostics.rs:"), "{output}");
+    }
+
+    #[test]
+    fn long_context_cannot_hide_the_root_cause_or_physical_stack() {
+        test_log::start();
+        let error = contextual_failure()
+            .unwrap_err()
+            .context("outer context ".repeat(1000));
+        report_error("covers.load", &error);
+        let output = test_log::take().join("\n");
+        assert!(output.contains("root_cause="), "{output}");
+        assert!(output.contains("operation timed out"), "{output}");
+        assert!(output.contains("backtrace_kind="), "{output}");
+        assert!(output.contains("diagnostics.rs:"), "{output}");
+        assert!(output.len() < MAX_RECORD_BYTES, "{}", output.len());
+    }
     #[test]
     fn recovered_errors_keep_display_causes_without_debug_payloads() {
         test_log::start();

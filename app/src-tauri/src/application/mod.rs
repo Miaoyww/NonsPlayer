@@ -736,6 +736,7 @@ fn set_lyric_endpoints(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    crate::infrastructure::diagnostics::enable_backtraces();
     crate::performance::start_clock();
     #[cfg(windows)]
     if std::env::args().any(|arg| arg == "--remove-autostart") {
@@ -828,8 +829,7 @@ pub fn run() {
             std::fs::create_dir_all(&data)?;
             log::info!(target: "nons::lifecycle", "application_started version={} logs={}", env!("CARGO_PKG_VERSION"), match crate::infrastructure::directories::portable() { Some(data) => data.join("logs"), None => app.path().app_log_dir()? }.display());
             std::panic::set_hook(Box::new(move |info| {
-                log::error!(target: "nons::panic", "{}", info);
-                log::logger().flush();
+                crate::infrastructure::diagnostics::panic(info);
             }));
             std::fs::create_dir_all(&cache_directory)?;
             crate::wasm_runtime::configure_compilation_cache(&cache_directory);

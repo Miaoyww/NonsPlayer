@@ -7,6 +7,7 @@ use crate::{
     model::{AppResult, Lyrics, Track},
     storage::MAX_LYRIC_BYTES,
 };
+use anyhow::{Context, Result};
 use base64::{engine::general_purpose::STANDARD, Engine};
 use quick_xml::{events::Event, Reader};
 use regex::Regex;
@@ -46,7 +47,11 @@ pub(super) async fn search_manual(
         .header("Referer", "https://c.y.qq.com/")
         .json(&json!({"req_1": {"method": "DoSearchForQQMusicDesktop", "module": "music.search.SearchCgiService",
             "param": {"num_per_page": "20", "page_num": "1", "query": query, "search_type": 0}}}));
-    Ok(candidates(read_json(request).await?)?
+    let matches = read_json(request)
+        .await
+        .and_then(candidates)
+        .map_err(|error| report_request_error("lyrics.qq.search.manual", error))?;
+    Ok(matches
         .into_iter()
         .take(20)
         .map(|c| super::correction::Candidate {
@@ -141,7 +146,10 @@ async fn lookup_inner(
         let response = match read_json(request).await.and_then(candidates) {
             Ok(value) => value,
             Err(error) => {
-                crate::infrastructure::diagnostics::warn("lyrics.qq.search.request", error);
+                crate::infrastructure::diagnostics::report_error(
+                    "lyrics.qq.search.request",
+                    &error,
+                );
                 failed = true;
                 continue;
             }
@@ -276,7 +284,9 @@ async fn fetch_candidate(
                 ("musicid", &id.to_string()),
             ]);
         let qrc = async {
-            let response = read_text(request).await?;
+            let response = read_text(request)
+                .await
+                .map_err(|error| report_request_error("lyrics.qq.qrc.request", error))?;
             tauri::async_runtime::spawn_blocking(move || decode_qrc_response(&response))
                 .await
                 .map_err(|e| e.to_string())?
@@ -366,7 +376,10 @@ async fn fetch_candidate(
             ("loginUin", "0"),
             ("hostUin", "0"),
         ]);
-    let mut lyrics = decode_lyrics(read_json(request).await?)?;
+    let response = read_json(request)
+        .await
+        .map_err(|error| report_request_error("lyrics.qq.lrc.request", error))?;
+    let mut lyrics = decode_lyrics(response)?;
     if lyrics.is_none() && failed {
         return Err("QQ 歌词接口请求失败".into());
     }
@@ -395,41 +408,55 @@ fn supplement(lyrics: &mut Lyrics, extra: Lyrics) {
     }
 }
 
-async fn read_json(request: reqwest::RequestBuilder) -> AppResult<Value> {
-    serde_json::from_str(&read_text(request).await?).map_err(|e| e.to_string())
+fn report_request_error(operation: &str, error: anyhow::Error) -> String {
+    crate::infrastructure::diagnostics::report_error(operation, &error);
+    format!("{error:#}")
 }
 
-async fn read_text(request: reqwest::RequestBuilder) -> AppResult<String> {
+async fn read_json(request: reqwest::RequestBuilder) -> Result<Value> {
+    serde_json::from_str(&read_text(request).await?).context("QQ 响应 JSON 解析失败")
+}
+
+async fn read_text(request: reqwest::RequestBuilder) -> Result<String> {
     let mut response = request
         .timeout(Duration::from_millis(1400))
         .send()
         .await
-        .and_then(reqwest::Response::error_for_status)
-        .map_err(|e| e.to_string())?;
+        .context("QQ HTTP 请求发送失败")?
+        .error_for_status()
+        .context("QQ HTTP 响应状态错误")?;
     if response
         .content_length()
         .is_some_and(|n| n > MAX_LYRIC_BYTES as u64)
     {
-        return Err("QQ 响应过大".into());
+        anyhow::bail!("QQ 响应过大");
     }
     let mut bytes = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+    while let Some(chunk) = response.chunk().await.context("QQ HTTP 响应正文读取失败")? {
         if bytes.len() + chunk.len() > MAX_LYRIC_BYTES {
-            return Err("QQ 响应过大".into());
+            anyhow::bail!("QQ 响应过大");
         }
         bytes.extend_from_slice(&chunk);
     }
-    String::from_utf8(bytes).map_err(|e| e.to_string())
+    String::from_utf8(bytes).context("QQ 响应 UTF-8 解码失败")
 }
 
-fn candidates(value: Value) -> AppResult<Vec<Candidate>> {
+fn candidates(value: Value) -> Result<Vec<Candidate>> {
     if value["code"].as_i64() != Some(0) || value["req_1"]["code"].as_i64() != Some(0) {
-        return Err("QQ 搜索返回错误".into());
+        let code = value["code"]
+            .as_i64()
+            .map_or_else(|| "missing_or_invalid".to_owned(), |code| code.to_string());
+        let request_code = value["req_1"]["code"]
+            .as_i64()
+            .map_or_else(|| "missing_or_invalid".to_owned(), |code| code.to_string());
+        anyhow::bail!(
+            "QQ 搜索返回错误 stage=response_code code={code} request_code={request_code}"
+        );
     }
     let list = value
         .pointer("/req_1/data/body/song/list")
         .and_then(Value::as_array)
-        .ok_or("QQ 搜索响应无效")?;
+        .context("QQ 搜索响应无效 stage=song_list")?;
     let mut result = Vec::new();
     for track in list.iter().take(20) {
         for entry in
@@ -446,7 +473,7 @@ fn candidates(value: Value) -> AppResult<Vec<Candidate>> {
                             .any(|a| a["name"].as_str().is_some_and(|s| s.len() > 1024))
                 })
             {
-                return Err("QQ 搜索元数据过长".into());
+                anyhow::bail!("QQ 搜索元数据过长");
             }
             if let Some(mid) = entry["mid"]
                 .as_str()
@@ -827,5 +854,61 @@ mod tests {
         let lyrics = decode_lyrics(json!({"code":0,"lyric":STANDARD.encode("[00:01.00]晴天"),"trans":STANDARD.encode("[00:01.00]Sunny day")})).unwrap().unwrap();
         assert_eq!(lyrics.source, "qq");
         assert_eq!(lyrics.translation.as_deref(), Some("[00:01.00]Sunny day"));
+    }
+
+    #[test]
+    fn search_failure_preserves_numeric_response_codes_without_response_payloads() {
+        let error = candidates(json!({
+            "code": 1000,
+            "req_1": {"code": -101, "message": "SECRET"},
+            "credential": "SECRET"
+        }))
+        .unwrap_err();
+        let reason = format!("{error:#}");
+        assert!(reason.contains("stage=response_code code=1000 request_code=-101"));
+        assert!(!reason.contains("SECRET"));
+
+        let invalid = candidates(json!({"code":"SECRET", "req_1":{"code":{ "private":"SECRET" }}}))
+            .unwrap_err();
+        assert!(invalid.to_string().contains("missing_or_invalid"));
+        assert!(!invalid.to_string().contains("SECRET"));
+
+        crate::infrastructure::diagnostics::test_log::start();
+        report_request_error("lyrics.qq.search.request", error);
+        let records = crate::infrastructure::diagnostics::test_log::take();
+        let record = records
+            .iter()
+            .find(|record| record.contains("lyrics.qq.search.request"))
+            .unwrap();
+        assert!(record.contains("code=1000 request_code=-101"));
+        assert!(record.contains("backtrace="));
+        assert!(record.contains("backtrace_kind="));
+        assert!(record.contains("qq_lyrics"));
+        assert!(!record.contains("disabled backtrace"));
+        assert!(!record.contains("SECRET"));
+    }
+
+    #[test]
+    fn qq_http_failure_keeps_typed_transport_cause_and_context_until_reporting() {
+        let client = reqwest::Client::builder().no_proxy().build().unwrap();
+        let error = tauri::async_runtime::block_on(read_json(client.get("http://127.0.0.1:0/")))
+            .unwrap_err();
+        assert!(error.to_string().contains("QQ HTTP 请求发送失败"));
+        assert!(error
+            .chain()
+            .any(|cause| cause.downcast_ref::<reqwest::Error>().is_some()));
+        assert!(error.chain().count() > 2);
+
+        crate::infrastructure::diagnostics::test_log::start();
+        report_request_error("lyrics.qq.search.request", error);
+        let records = crate::infrastructure::diagnostics::test_log::take();
+        let record = records
+            .iter()
+            .find(|record| record.contains("lyrics.qq.search.request"))
+            .unwrap();
+        assert!(record.contains("QQ HTTP 请求发送失败"));
+        assert!(record.contains("backtrace="));
+        assert!(record.contains("qq_lyrics"));
+        assert!(!record.contains("http://127.0.0.1"));
     }
 }

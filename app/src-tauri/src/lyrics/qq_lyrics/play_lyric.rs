@@ -30,7 +30,9 @@ pub(super) async fn fetch(
             }
         }));
     tokio::time::timeout(Duration::from_millis(1500), async {
-        let value = read_json(request).await?;
+        let value = read_json(request)
+            .await
+            .map_err(|error| super::report_request_error("lyrics.qq.play_lyric.request", error))?;
         tauri::async_runtime::spawn_blocking(move || decode(value))
             .await
             .map_err(|e| e.to_string())?

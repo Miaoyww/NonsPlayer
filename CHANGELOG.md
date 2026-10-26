@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 问题诊断
+
+- 本机错误日志保留 Rust 调用堆栈、异步操作上下文和前端异常堆栈，区分原始异常与捕获位置；封面请求、QQ 歌词读取和本地曲目解析保留底层原因，QQ 搜索失败同时记录平台错误码。
+
 ## [1.8.2] - 2026-10-25
 
 ![NonsPlayer v1.8.2 启动稳定性与播放体验更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.2/docs/release-assets/header-1.8.2.png)

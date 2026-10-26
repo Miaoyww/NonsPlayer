@@ -60,7 +60,12 @@ def build_portable(root, tag, output):
     windows = read_json(native / "tauri.windows.conf.json")
     name = portable_name(root, version)
     executable = native / "target/release" / f"{config['mainBinaryName']}.exe"
-    files = {executable.name: executable}
+    symbols = executable.with_suffix(".pdb")
+    if not executable.is_file():
+        raise ValueError(f"Missing portable executable: {executable}")
+    if not symbols.is_file() or not symbols.stat().st_size:
+        raise ValueError(f"Missing portable debug symbols: {symbols}")
+    files = {executable.name: executable, symbols.name: symbols}
     # Use the same resource mappings as the Windows installers, never the entire target directory.
     resources = {**config["bundle"]["resources"], **windows["bundle"]["resources"]}
     for source, destination in resources.items():
@@ -76,8 +81,6 @@ def build_portable(root, tag, output):
             files[relative] = path
     if "bundled-plugins/netease-island.zip" not in files:
         raise ValueError("Missing portable resource: bundled-plugins/netease-island.zip")
-    if not executable.is_file():
-        raise ValueError(f"Missing portable executable: {executable}")
     output.mkdir(parents=True, exist_ok=True)
     target = output / f"{name}.zip"
     readme = (
@@ -86,6 +89,7 @@ def build_portable(root, tag, output):
         "需要 Microsoft Edge WebView2 Runtime；缺失时请先从微软官方网站安装：\n"
         "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
         "包含随包插件，音频播放使用系统 WebView。\n"
+        f"请保留 {symbols.name}，用于错误日志中的函数名和代码行号。\n"
         "设置、账号、曲库、插件、缓存和 WebView 数据保存到程序目录的 data 文件夹，与安装版独立。\n\n"
         "请放在可写目录并保留 portable.flag；移动整个目录可携带数据，旧用户数据不会自动迁移。\n"
         "账号与插件凭据以文件保存于 data/credentials，请妥善保管整个目录。\n"

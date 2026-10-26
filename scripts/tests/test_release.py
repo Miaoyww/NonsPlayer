@@ -60,9 +60,10 @@ class ReleaseTests(unittest.TestCase):
         with zipfile.ZipFile(portable) as archive:
             prefix = "Nons_1.0.0_windows_x64_portable/"
             names = archive.namelist()
-            for relative in ["Nons.exe", "bundled-plugins/netease-island.zip", "README.txt", "portable.flag"]:
+            for relative in ["Nons.exe", "Nons.pdb", "bundled-plugins/netease-island.zip", "README.txt", "portable.flag"]:
                 self.assertIn(prefix + relative, names)
-            self.assertFalse(any(name.endswith((".pdb", ".msi", ".gitkeep")) for name in names))
+            self.assertFalse(any(name.endswith((".msi", ".gitkeep")) for name in names))
+            self.assertEqual(archive.read(prefix + "Nons.pdb"), b"debug symbols")
             self.assertIn("WebView2", archive.read(prefix + "README.txt").decode())
             self.assertIn("data 文件夹", archive.read(prefix + "README.txt").decode())
             self.assertEqual(archive.read(prefix + "portable.flag"), b"")
@@ -90,6 +91,19 @@ class ReleaseTests(unittest.TestCase):
         portable.unlink()
         (self.native / "target/release/Nons.exe").unlink()
         with self.assertRaisesRegex(ValueError, "Missing portable executable"):
+            release.build_portable(self.root, "v1.0.0", portable.parent)
+        self.assertFalse(portable.exists())
+
+    def test_portable_missing_or_empty_symbols_fail_before_writing_archive(self):
+        portable = self.assets()
+        portable.unlink()
+        symbols = self.native / "target/release/Nons.pdb"
+        symbols.unlink()
+        with self.assertRaisesRegex(ValueError, "Missing portable debug symbols"):
+            release.build_portable(self.root, "v1.0.0", portable.parent)
+        self.assertFalse(portable.exists())
+        symbols.touch()
+        with self.assertRaisesRegex(ValueError, "Missing portable debug symbols"):
             release.build_portable(self.root, "v1.0.0", portable.parent)
         self.assertFalse(portable.exists())
 
