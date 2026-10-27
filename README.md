@@ -28,9 +28,6 @@ NonsPlayer的诞生离不开以下优秀产品的启发：
 - **[Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics)**
 - **[amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)**
 
-构建与发布流程见 [GitHub Release CI](docs/release.md)。
-
-Android ARM64 试用 APK 的命令行构建与安装见 [Android 试用版](docs/android.md)，无需安装 Android Studio。
 
 ## 📜 开源许可
 
