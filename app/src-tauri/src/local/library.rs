@@ -46,7 +46,6 @@ pub fn import(
     let mut seen = std::collections::HashSet::new();
     let mut complete = true;
     let mut covered = std::collections::HashSet::new();
-    let mut cover_bytes = super::cover_art::usage(&cover_dir);
     // Process sheets first so traversal order cannot briefly expose the whole album.
     for root in &paths {
         for entry in walkdir::WalkDir::new(root)
@@ -58,13 +57,7 @@ pub fn import(
             if !entry.file_type().is_file() || !super::cue::is_cue(entry.path()) {
                 continue;
             }
-            match import_sheet(
-                entry.path(),
-                &cover_dir,
-                &fallback,
-                &store,
-                &mut cover_bytes,
-            ) {
+            match import_sheet(entry.path(), &cover_dir, &fallback, &store) {
                 Ok((base, tracks)) => {
                     covered.insert(base.key.clone());
                     let mut imported = tracks;
@@ -132,13 +125,7 @@ pub fn import(
                     .to_string();
                 seen.insert(format!("local:{:x}", Sha256::digest(path.as_bytes())));
             }
-            match read_track(
-                entry.path(),
-                &cover_dir,
-                &fallback,
-                &store,
-                &mut cover_bytes,
-            ) {
+            match read_track(entry.path(), &cover_dir, &fallback, &store) {
                 Ok(track) => {
                     if covered.contains(&track.key) {
                         continue;
@@ -191,7 +178,6 @@ pub(super) fn import_sheet(
     covers: &Path,
     fallback: &str,
     store: &Store,
-    cover_bytes: &mut u64,
 ) -> AppResult<(Track, Vec<Track>)> {
     let sheet = super::cue::read(path)?;
     let audio = path
@@ -201,7 +187,7 @@ pub(super) fn import_sheet(
     if !is_audio(&audio) {
         return Err("CUE 引用的音频格式不受支持".into());
     }
-    let base = read_track(&audio, covers, fallback, store, cover_bytes)?;
+    let base = read_track(&audio, covers, fallback, store)?;
     let information = store.local_information(&base.key)?;
     let album_artist = sheet
         .performer
@@ -217,7 +203,7 @@ pub(super) fn import_sheet(
     let cover = embedded
         .first()
         .cloned()
-        .or_else(|| super::cover_art::external(directory, covers, cover_bytes))
+        .or_else(|| super::cover_art::external(directory, covers))
         .unwrap_or_else(|| fallback.to_owned());
     for track in &mut tracks {
         track.cover = cover.clone().into();
@@ -257,7 +243,6 @@ pub(super) fn read_track(
     cover_dir: &Path,
     fallback: &str,
     store: &Store,
-    cover_bytes: &mut u64,
 ) -> AppResult<Track> {
     let path = path
         .canonicalize()
@@ -297,13 +282,13 @@ pub(super) fn read_track(
     let tag = tagged.primary_tag().or_else(|| tagged.first_tag());
     let mut embedded = Vec::new();
     for picture in tag.into_iter().flat_map(|tag| tag.pictures()) {
-        if let Some(cover) = super::cover_art::asset(picture.data(), cover_dir, cover_bytes) {
+        if let Some(cover) = super::cover_art::asset(picture.data(), cover_dir) {
             if !embedded.contains(&cover) {
                 embedded.push(cover);
             }
         }
     }
-    if let Some(cover) = super::cover_art::asset(&ncm_image, cover_dir, cover_bytes) {
+    if let Some(cover) = super::cover_art::asset(&ncm_image, cover_dir) {
         if !embedded.contains(&cover) {
             embedded.push(cover);
         }
@@ -311,7 +296,7 @@ pub(super) fn read_track(
     let cover = embedded
         .first()
         .cloned()
-        .or_else(|| super::cover_art::external(directory, cover_dir, cover_bytes))
+        .or_else(|| super::cover_art::external(directory, cover_dir))
         .unwrap_or_else(|| fallback.to_owned());
     store.save_local_cover_state(
         &key,

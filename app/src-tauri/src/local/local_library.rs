@@ -1020,7 +1020,6 @@ mod tests {
         let covers = dir.0.join("covers");
         std::fs::create_dir_all(&covers).unwrap();
         let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
-        let mut used = 0;
         let mut tracks = Vec::new();
         for (key, number, red) in [("local:b", 2, 20), ("local:a", 1, 10)] {
             let mut bytes = std::io::Cursor::new(Vec::new());
@@ -1031,8 +1030,7 @@ mod tests {
             ))
             .write_to(&mut bytes, image::ImageFormat::Png)
             .unwrap();
-            let cover =
-                super::super::cover_art::asset(bytes.get_ref(), &covers, &mut used).unwrap();
+            let cover = super::super::cover_art::asset(bytes.get_ref(), &covers).unwrap();
             let song = track(key, "A", &cover);
             store
                 .save_local_information(

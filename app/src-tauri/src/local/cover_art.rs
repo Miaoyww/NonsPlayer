@@ -11,7 +11,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const BUDGET: u64 = 32 * 1024 * 1024;
 const SUBDIRECTORIES: &[&str] = &[
     "art",
     "scans",
@@ -243,18 +242,7 @@ fn valid_uncached(path: &Path) -> bool {
     decode(&bytes).is_some()
 }
 
-pub(super) fn usage(covers: &Path) -> u64 {
-    std::fs::read_dir(covers)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter_map(|entry| entry.metadata().ok())
-        .filter(|metadata| metadata.is_file())
-        .map(|metadata| metadata.len())
-        .sum()
-}
-
-pub(super) fn asset(bytes: &[u8], covers: &Path, used: &mut u64) -> Option<String> {
+pub(super) fn asset(bytes: &[u8], covers: &Path) -> Option<String> {
     let decoded = decode(bytes)?;
     let converted;
     let bytes = if is_jxl(bytes) {
@@ -281,18 +269,6 @@ pub(super) fn asset(bytes: &[u8], covers: &Path, used: &mut u64) -> Option<Strin
         remember(&dest, true);
         return Some(dest.to_string_lossy().into_owned());
     }
-    *used = usage(covers);
-    let previous = dest
-        .symlink_metadata()
-        .ok()
-        .filter(|m| m.is_file())
-        .map_or(0, |m| m.len());
-    let next = used
-        .saturating_sub(previous)
-        .saturating_add(bytes.len() as u64);
-    if next > BUDGET {
-        return None;
-    }
     let result = (|| -> std::io::Result<()> {
         let mut temporary = tempfile::NamedTempFile::new_in(covers)?;
         temporary.write_all(bytes)?;
@@ -304,14 +280,13 @@ pub(super) fn asset(bytes: &[u8], covers: &Path, used: &mut u64) -> Option<Strin
         crate::infrastructure::diagnostics::warn("local.cover_asset.write", error);
         return None;
     }
-    *used = next;
     remember(&dest, true);
     Some(dest.to_string_lossy().into_owned())
 }
 
-pub(super) fn external(directory: &Path, covers: &Path, used: &mut u64) -> Option<String> {
+pub(super) fn external(directory: &Path, covers: &Path) -> Option<String> {
     for path in candidates(directory) {
-        if let Some(found) = read(&path).and_then(|bytes| asset(&bytes, covers, used)) {
+        if let Some(found) = read(&path).and_then(|bytes| asset(&bytes, covers)) {
             return Some(found);
         }
     }
@@ -357,9 +332,8 @@ pub(super) fn album_cover(db: &Connection, tracks: &[Track]) -> AppResult<Option
         .filter_map(directory)
         .map(|path| (normalized(path), path))
         .collect();
-    let mut used = usage(covers);
     for directory in directories.values() {
-        if let Some(cover) = external(directory, covers, &mut used) {
+        if let Some(cover) = external(directory, covers) {
             return Ok(Some(cover));
         }
     }

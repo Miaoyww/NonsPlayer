@@ -58,45 +58,34 @@ fn candidates_follow_priority_and_only_one_named_subdirectory() {
 fn assets_deduplicate_and_repair_missing_or_changed_content() {
     let root = tempfile::tempdir().unwrap();
     let bytes = png(3);
-    let mut used = 0;
-    let path = asset(&bytes, root.path(), &mut used).unwrap();
-    assert_eq!(used, bytes.len() as u64);
+    let path = asset(&bytes, root.path()).unwrap();
     assert!(valid(Path::new(&path)));
-    assert_eq!(asset(&bytes, root.path(), &mut used).unwrap(), path);
-    assert_eq!(used, bytes.len() as u64);
+    assert_eq!(asset(&bytes, root.path()).unwrap(), path);
     std::fs::write(&path, png(4)).unwrap();
     assert!(!valid(Path::new(&path)));
-    used = usage(root.path());
-    assert_eq!(asset(&bytes, root.path(), &mut used).unwrap(), path);
+    assert_eq!(asset(&bytes, root.path()).unwrap(), path);
     assert!(valid(Path::new(&path)));
     std::fs::remove_file(&path).unwrap();
-    used = usage(root.path());
-    assert_eq!(asset(&bytes, root.path(), &mut used).unwrap(), path);
+    assert_eq!(asset(&bytes, root.path()).unwrap(), path);
     assert!(valid(Path::new(&path)));
     assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 1);
 }
 
 #[test]
-fn external_skips_broken_oversized_and_over_budget_candidates() {
+fn external_skips_invalid_candidates_and_writes_beyond_the_former_total_limit() {
     let root = tempfile::tempdir().unwrap();
     let covers = tempfile::tempdir().unwrap();
     std::fs::write(root.path().join("Folder.PNG"), b"not an image").unwrap();
     std::fs::write(root.path().join("cover.jpg"), vec![0; MAX_LYRIC_BYTES + 1]).unwrap();
-    let mut big = Cursor::new(Vec::new());
-    image::DynamicImage::new_rgb8(20, 20)
-        .write_to(&mut big, image::ImageFormat::Bmp)
-        .unwrap();
-    std::fs::write(root.path().join("a.bmp"), big.into_inner()).unwrap();
-    let small = png(1);
-    std::fs::write(root.path().join("b.png"), &small).unwrap();
-    std::fs::File::create(covers.path().join("budget.img"))
+    let bytes = png(1);
+    std::fs::write(root.path().join("a.png"), &bytes).unwrap();
+    std::fs::File::create(covers.path().join("existing.img"))
         .unwrap()
-        .set_len(BUDGET - small.len() as u64)
+        .set_len(32 * 1024 * 1024)
         .unwrap();
-    let mut used = BUDGET - small.len() as u64;
-    let found = external(root.path(), covers.path(), &mut used).unwrap();
-    assert_eq!(std::fs::read(found).unwrap(), small);
-    assert_eq!(used, BUDGET);
+    let found = external(root.path(), covers.path()).unwrap();
+    assert_eq!(std::fs::read(found).unwrap(), bytes);
+    assert!(asset(&png(2), covers.path()).is_some());
 }
 
 #[test]
@@ -128,18 +117,18 @@ fn dimensions_and_truncated_images_are_rejected() {
         .write_to(&mut encoded, image::ImageFormat::Png)
         .unwrap();
     let covers = tempfile::tempdir().unwrap();
-    assert!(asset(encoded.get_ref(), covers.path(), &mut 0).is_none());
+    assert!(asset(encoded.get_ref(), covers.path()).is_none());
     let mut truncated = png(0);
     truncated.truncate(40);
-    assert!(asset(&truncated, covers.path(), &mut 0).is_none());
-    assert!(asset(&[0xff, 0x0a, 0], covers.path(), &mut 0).is_none());
+    assert!(asset(&truncated, covers.path()).is_none());
+    assert!(asset(&[0xff, 0x0a, 0], covers.path()).is_none());
 }
 
 #[test]
 fn validation_cache_is_bounded_to_one_scan_and_asset_writes_refresh_it() {
     let root = tempfile::tempdir().unwrap();
     let bytes = png(1);
-    let path = asset(&bytes, root.path(), &mut 0).unwrap();
+    let path = asset(&bytes, root.path()).unwrap();
     {
         let _session = ValidationSession::new();
         assert!(valid(Path::new(&path)));
@@ -149,7 +138,7 @@ fn validation_cache_is_bounded_to_one_scan_and_asset_writes_refresh_it() {
     {
         let _session = ValidationSession::new();
         assert!(!valid(Path::new(&path)));
-        asset(&bytes, root.path(), &mut 0).unwrap();
+        asset(&bytes, root.path()).unwrap();
         assert!(valid(Path::new(&path)));
     }
     std::fs::remove_file(&path).unwrap();
@@ -173,8 +162,7 @@ fn jpeg_xl_is_decoded_and_published_as_browser_readable_png() {
     let root = tempfile::tempdir().unwrap();
     let covers = tempfile::tempdir().unwrap();
     std::fs::write(root.path().join("cover.JXL"), jxl).unwrap();
-    let mut used = 0;
-    let found = external(root.path(), covers.path(), &mut used).unwrap();
+    let found = external(root.path(), covers.path()).unwrap();
     let bytes = std::fs::read(&found).unwrap();
     assert_eq!(
         image::guess_format(&bytes).unwrap(),
@@ -184,6 +172,5 @@ fn jpeg_xl_is_decoded_and_published_as_browser_readable_png() {
     assert_eq!(image.dimensions(), (2, 2));
     assert_eq!(image.get_pixel(0, 0).0, [255, 0, 0]);
     assert!(valid(Path::new(&found)));
-    assert_eq!(asset(&jxl, covers.path(), &mut used).unwrap(), found);
-    assert_eq!(used, bytes.len() as u64);
+    assert_eq!(asset(&jxl, covers.path()).unwrap(), found);
 }

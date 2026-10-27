@@ -56,7 +56,6 @@ fn repair(url: &str, store: &Store, covers: &Path, fallback: &str) -> AppResult<
             .collect::<AppResult<Vec<_>>>()?;
         tracks
     };
-    let mut used = super::cover_art::usage(covers);
     let mut sources = BTreeSet::new();
     for track in &tracks {
         if let TrackSource::Local { path, cue, .. } = &track.source {
@@ -70,11 +69,9 @@ fn repair(url: &str, store: &Store, covers: &Path, fallback: &str) -> AppResult<
     let mut changed = false;
     for (cue, path) in sources {
         let result = if cue {
-            super::library::import_sheet(Path::new(&path), covers, fallback, store, &mut used)
-                .map(|_| ())
+            super::library::import_sheet(Path::new(&path), covers, fallback, store).map(|_| ())
         } else {
-            super::library::read_track(Path::new(&path), covers, fallback, store, &mut used)
-                .map(|_| ())
+            super::library::read_track(Path::new(&path), covers, fallback, store).map(|_| ())
         };
         if let Err(error) = result {
             crate::infrastructure::diagnostics::warn("local.cover.repair", error);

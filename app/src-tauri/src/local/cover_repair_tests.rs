@@ -94,6 +94,150 @@ fn audio_stat(path: &Path) -> (u64, std::time::SystemTime) {
 }
 
 #[test]
+fn rebuild_recovers_unchanged_placeholder_beyond_former_budget_and_reuses_assets() {
+    let fixture = Fixture::new();
+    let bytes = fixture.image("cover.png", 33);
+    let mut track = fixture.scan().remove(0);
+    let expected = track.cover.clone();
+    let stat = audio_stat(&fixture.music.join("album.wav"));
+    track.cover = fixture.fallback.clone().into();
+    fixture.store.save_tracks(&[track.clone()]).unwrap();
+    assert_eq!(fixture.scan()[0].cover.to_string(), fixture.fallback);
+    std::fs::File::create(fixture.covers.join("old-assets.img"))
+        .unwrap()
+        .set_len(32 * 1024 * 1024)
+        .unwrap();
+    std::fs::remove_file(&*expected).unwrap();
+    let mut progress = Vec::new();
+    super::super::cover_rebuild::rebuild(
+        &fixture.store,
+        &fixture.covers,
+        &fixture.fallback,
+        |value| progress.push(serde_json::to_value(value).unwrap()),
+    )
+    .unwrap();
+    let restored = fixture.store.track(&track.key).unwrap();
+    assert_eq!(std::fs::read(&*restored.cover).unwrap(), bytes);
+    assert_eq!(fixture.album_cover(), restored.cover.to_string());
+    assert_eq!(progress.last().unwrap()["processed"], 1);
+    assert_eq!(progress.last().unwrap()["failed"], 0);
+    assert_eq!(audio_stat(&fixture.music.join("album.wav")), stat);
+    let cover_stat = audio_stat(Path::new(&*restored.cover));
+    super::super::cover_rebuild::rebuild(
+        &fixture.store,
+        &fixture.covers,
+        &fixture.fallback,
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(audio_stat(Path::new(&*restored.cover)), cover_stat);
+}
+
+#[test]
+fn rebuild_keeps_missing_sources_and_continues_with_other_tracks() {
+    let fixture = Fixture::new();
+    fixture.image("cover.png", 34);
+    wav(&fixture.music.join("second.wav"));
+    let tracks = fixture.scan();
+    let missing = tracks.iter().find(|track| matches!(&track.source, TrackSource::Local { path, .. } if path.ends_with("second.wav"))).unwrap();
+    std::fs::remove_file(fixture.music.join("second.wav")).unwrap();
+    let before = serde_json::to_value(missing).unwrap();
+    let mut last = serde_json::Value::Null;
+    super::super::cover_rebuild::rebuild(
+        &fixture.store,
+        &fixture.covers,
+        &fixture.fallback,
+        |value| last = serde_json::to_value(value).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(last["processed"], 2);
+    assert_eq!(last["failed"], 1);
+    assert_eq!(
+        serde_json::to_value(fixture.store.track(&missing.key).unwrap()).unwrap(),
+        before
+    );
+}
+
+#[test]
+fn rebuild_embedded_cover_preserves_cue_metadata_bindings_playlists_and_history() {
+    use lofty::{
+        config::WriteOptions,
+        picture::Picture,
+        prelude::*,
+        tag::{Tag, TagType},
+    };
+    let fixture = Fixture::new();
+    let embedded = fixture.image("embedded.png", 35);
+    std::fs::remove_file(fixture.music.join("embedded.png")).unwrap();
+    fixture.image("cover.png", 36);
+    let mut tag = Tag::new(TagType::Id3v2);
+    tag.push_picture(Picture::from_reader(&mut std::io::Cursor::new(&embedded)).unwrap());
+    tag.save_to_path(fixture.music.join("album.wav"), WriteOptions::default())
+        .unwrap();
+    std::fs::write(fixture.music.join("album.cue"), "PERFORMER \"乐队\"\nTITLE \"多轨\"\nFILE \"album.wav\" WAVE\n TRACK 01 AUDIO\n TITLE \"第一首\"\n INDEX 01 00:00:00\n TRACK 02 AUDIO\n TITLE \"第二首\"\n INDEX 01 00:02:00\n").unwrap();
+    let mut tracks = fixture.scan();
+    if let TrackSource::Local { netease_id, .. } = &mut tracks[0].source {
+        *netease_id = Some(42);
+    }
+    for track in &mut tracks {
+        track.cover = fixture.fallback.clone().into();
+    }
+    fixture.store.save_tracks(&tracks).unwrap();
+    fixture
+        .store
+        .record_playback("rebuild-test", &tracks[0], 1)
+        .unwrap();
+    let playlist_value = serde_json::to_string(&tracks[0]).unwrap();
+    {
+        let db = fixture.store.0.lock().unwrap();
+        db.execute(
+            "INSERT INTO local_playlists(id,name) VALUES(1,'测试歌单')",
+            [],
+        )
+        .unwrap();
+        db.execute(
+            "INSERT INTO local_playlist_tracks(playlist_id,key,position,value) VALUES(1,?1,0,?2)",
+            rusqlite::params![tracks[0].key, playlist_value],
+        )
+        .unwrap();
+    }
+    let metadata = fixture.store.local_information(&tracks[0].key).unwrap();
+    super::super::cover_rebuild::rebuild(
+        &fixture.store,
+        &fixture.covers,
+        &fixture.fallback,
+        |_| {},
+    )
+    .unwrap();
+    for track in &tracks {
+        let mut expected = serde_json::to_value(track).unwrap();
+        let restored = fixture.store.track(&track.key).unwrap();
+        assert_eq!(std::fs::read(&*restored.cover).unwrap(), embedded);
+        expected["cover"] = serde_json::to_value(&restored.cover).unwrap();
+        assert_eq!(serde_json::to_value(restored).unwrap(), expected);
+    }
+    assert_eq!(
+        serde_json::to_value(fixture.store.local_information(&tracks[0].key).unwrap()).unwrap(),
+        serde_json::to_value(metadata).unwrap()
+    );
+    assert_eq!(fixture.store.playback_count().unwrap(), 1);
+    assert_eq!(
+        fixture
+            .store
+            .0
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT value FROM local_playlist_tracks WHERE playlist_id=1",
+                [],
+                |row| row.get::<_, String>(0)
+            )
+            .unwrap(),
+        playlist_value
+    );
+}
+
+#[test]
 fn unchanged_audio_refreshes_added_replaced_and_removed_directory_covers() {
     let fixture = Fixture::new();
     let audio = fixture.music.join("album.wav");

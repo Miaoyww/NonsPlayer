@@ -20,6 +20,7 @@ import { SettingsCard } from '@/features/settings/settings-card'
 import { FolderManager } from '@/features/local/folder-manager'
 import { ArtistSeparatorsDialog } from '@/features/local/artist-separators-dialog'
 import { OtherCacheSettings } from '@/features/settings/other-cache-settings'
+import { CoverRebuildSettings } from '@/features/local/cover-rebuild-settings'
 
 interface CacheOptions {
   enabled: boolean
@@ -155,6 +156,7 @@ export function LocalCachePage() {
         >
           <FolderManager />
         </SettingsCard>
+        <CoverRebuildSettings />
       </section>
       <section aria-labelledby="cache-heading" className="flex flex-col gap-8">
         <h3 id="cache-heading" className="text-base font-semibold">

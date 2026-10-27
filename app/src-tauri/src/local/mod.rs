@@ -1,4 +1,5 @@
 pub(crate) mod cover_art;
+pub(crate) mod cover_rebuild;
 pub(crate) mod cover_repair;
 mod cover_state;
 pub(crate) mod cue;

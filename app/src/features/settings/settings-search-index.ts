@@ -100,7 +100,8 @@ const groups: SearchGroup[] = [
       ['local-lyrics-source', '来源', '歌词 本地 在线 LRC 内嵌'],
       ['local-covers', '显示本地歌曲封面', '图片 内嵌'],
       ['artist-separators', '艺术家分隔符', '歌手 拆分 标签'],
-      ['music-folders', '音乐文件夹', '目录 扫描 导入']
+      ['music-folders', '音乐文件夹', '目录 扫描 导入'],
+      ['local-cover-rebuild', '重建本地封面', '图片 专辑 提取 修复 占位图']
     ]
   },
   {
