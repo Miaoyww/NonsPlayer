@@ -301,10 +301,83 @@ async fn failed_cover_transport_preserves_timeout_cause_and_stack() {
 }
 
 #[test]
-fn size_mime_and_freshness_boundaries_remain_explicit() {
-    assert!(check_size(8 * 1024 * 1024).is_ok());
-    assert!(check_size(8 * 1024 * 1024 + 1).is_err());
+fn supported_mime_types_remain_explicit() {
     assert_eq!(image_mime("image/jpg"), Some("image/jpeg"));
     assert_eq!(image_mime("IMAGE/JPEG; charset=binary"), Some("image/jpeg"));
     assert_eq!(image_mime("application/octet-stream"), None);
+}
+
+#[tokio::test]
+async fn covers_larger_than_eight_mib_download_and_round_trip_through_cache() {
+    use std::io::{Read, Write};
+
+    let payload = vec![7u8; 8 * 1024 * 1024 + 1];
+    for chunked in [false, true] {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let body = payload.clone();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            stream
+                .set_read_timeout(Some(Duration::from_secs(10)))
+                .unwrap();
+            stream
+                .set_write_timeout(Some(Duration::from_secs(10)))
+                .unwrap();
+            let mut request = Vec::new();
+            while !request.ends_with(b"\r\n\r\n") {
+                let mut byte = [0];
+                stream.read_exact(&mut byte).unwrap();
+                request.push(byte[0]);
+            }
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nConnection: close\r\n"
+            )
+            .unwrap();
+            if chunked {
+                write!(stream, "Transfer-Encoding: chunked\r\n\r\n").unwrap();
+                for chunk in body.chunks(64 * 1024) {
+                    write!(stream, "{:x}\r\n", chunk.len()).unwrap();
+                    stream.write_all(chunk).unwrap();
+                    stream.write_all(b"\r\n").unwrap();
+                }
+                stream.write_all(b"0\r\n\r\n").unwrap();
+            } else {
+                write!(stream, "Content-Length: {}\r\n\r\n", body.len()).unwrap();
+                stream.write_all(&body).unwrap();
+            }
+        });
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .timeout(Duration::from_secs(10))
+            .build()
+            .unwrap();
+        let url = format!("http://{address}/cover.png");
+        let result = download(url::Url::parse(&url).unwrap(), &client).await;
+        server.join().unwrap();
+        let downloaded = result.unwrap();
+        assert_eq!(downloaded.bytes, payload);
+
+        let root = tempfile::tempdir().unwrap();
+        let cache = Arc::new(CoverCache::new(root.path().into()));
+        let resolved = cache
+            .resolve_with(
+                url,
+                move || {
+                    let bytes = downloaded.bytes.clone();
+                    async move {
+                        Ok(Downloaded {
+                            bytes,
+                            mime: "image/png".into(),
+                        })
+                    }
+                },
+                || {},
+                now(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resolved.disk.read(&resolved.asset).unwrap(), payload);
+    }
 }

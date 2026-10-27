@@ -13,7 +13,6 @@ use std::{
 };
 use tauri::Emitter;
 
-pub(crate) const MAX_COVER_BYTES: u64 = 8 * 1024 * 1024;
 const DISK_BUDGET: u64 = 256 * 1024 * 1024;
 const FRESH_SECONDS: u64 = 24 * 60 * 60;
 static NEXT_REQUEST: AtomicU64 = AtomicU64::new(1);
@@ -114,7 +113,6 @@ impl CoverCache {
                     return Ok(Arc::new(asset));
                 }
                 let downloaded = loader().await?;
-                check_size(downloaded.bytes.len() as u64)?;
                 let asset = blocking(disk, move |cache| {
                     cache.publish(&url, &downloaded.bytes, &downloaded.mime, generation)
                 })
@@ -295,23 +293,12 @@ pub(crate) async fn read(
             return Err("封面来源或缓存状态已变化".into());
         }
         match result {
-            Ok(bytes) => {
-                check_size(bytes.len() as u64)?;
-                return Ok(bytes);
-            }
+            Ok(bytes) => return Ok(bytes),
             Err(_) if attempt == 0 => backend.online_covers.invalidate(url.clone()).await?,
             Err(error) => return Err(error),
         }
     }
     unreachable!()
-}
-
-fn check_size(bytes: u64) -> AppResult<()> {
-    if bytes > MAX_COVER_BYTES {
-        log::warn!(target: "nons::covers", "operation=covers.read stage=size_check code=coverTooLarge observed_bytes={bytes} limit_bytes={MAX_COVER_BYTES}");
-        return Err("封面文件过大".into());
-    }
-    Ok(())
 }
 
 #[tracing::instrument(target = "nons::covers", skip_all)]
@@ -332,12 +319,8 @@ async fn download(parsed: url::Url, client: &reqwest::Client) -> anyhow::Result<
     let mime = image_mime(content_type)
         .context("封面格式不支持")?
         .to_owned();
-    if let Some(length) = response.content_length() {
-        check_size(length).map_err(anyhow::Error::msg)?;
-    }
     let mut bytes = Vec::new();
     while let Some(chunk) = response.chunk().await.context("covers.http.read_chunk")? {
-        check_size(bytes.len() as u64 + chunk.len() as u64).map_err(anyhow::Error::msg)?;
         bytes.extend_from_slice(&chunk);
     }
     Ok(Downloaded { bytes, mime })
