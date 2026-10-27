@@ -1,6 +1,6 @@
 # GitHub Release CI
 
-发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后构建 Windows x64，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。同一标签由 [build_android.yml](../.github/workflows/build_android.yml) 构建 Android ARM64 试用 APK（仅 Artifact，不随 Release 分发）并执行 Linux 编译检查。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址。
+发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64、Android ARM64 试用 APK 和 Linux 编译检查，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。Android APK 仅作为 Artifact 提供，不随 Release 分发。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址。
 
 ## 发布前准备
 
