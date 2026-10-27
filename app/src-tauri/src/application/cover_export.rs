@@ -82,7 +82,6 @@ pub(crate) async fn cover_export(
 
 #[cfg(desktop)]
 fn read_local(root: &std::path::Path, url: &str) -> AppResult<Vec<u8>> {
-    use std::io::Read;
     let root = root.canonicalize().map_err(|e| e.to_string())?;
     let path = std::path::Path::new(url)
         .canonicalize()
@@ -90,16 +89,7 @@ fn read_local(root: &std::path::Path, url: &str) -> AppResult<Vec<u8>> {
     if !path.starts_with(root) {
         return Err("只能导出曲库封面".into());
     }
-    let mut bytes = Vec::new();
-    std::fs::File::open(path)
-        .map_err(|e| e.to_string())?
-        .take(crate::infrastructure::covers::MAX_COVER_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|e| e.to_string())?;
-    if bytes.len() as u64 > crate::infrastructure::covers::MAX_COVER_BYTES {
-        return Err("封面文件过大".into());
-    }
-    Ok(bytes)
+    std::fs::read(path).map_err(|e| e.to_string())
 }
 
 #[cfg(desktop)]
@@ -108,8 +98,8 @@ fn decode(bytes: &[u8]) -> AppResult<image::DynamicImage> {
         .with_guessed_format()
         .map_err(|e| e.to_string())?;
     let mut limits = image::Limits::default();
-    limits.max_image_width = Some(8192);
-    limits.max_image_height = Some(8192);
+    limits.max_image_width = None;
+    limits.max_image_height = None;
     limits.max_alloc = Some(64 * 1024 * 1024);
     reader.limits(limits);
     reader.decode().map_err(|e| e.to_string())
@@ -154,12 +144,27 @@ mod tests {
     }
 
     #[test]
-    fn clipboard_decode_rejects_oversized_dimensions() {
-        let mut encoded = std::io::Cursor::new(Vec::new());
-        image::DynamicImage::new_rgb8(8193, 1)
-            .write_to(&mut encoded, image::ImageFormat::Png)
-            .unwrap();
-        assert!(decode(encoded.get_ref()).is_err());
+    fn local_export_reads_assets_larger_than_online_download_limit() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("large.img");
+        let bytes = vec![7; 8 * 1024 * 1024 + 1];
+        std::fs::write(&path, &bytes).unwrap();
+        assert_eq!(
+            read_local(root.path(), path.to_str().unwrap()).unwrap(),
+            bytes
+        );
+    }
+
+    #[test]
+    fn clipboard_decode_accepts_wide_and_tall_images() {
+        for (width, height) in [(8193, 1), (1, 8193)] {
+            let mut encoded = std::io::Cursor::new(Vec::new());
+            image::DynamicImage::new_rgb8(width, height)
+                .write_to(&mut encoded, image::ImageFormat::Png)
+                .unwrap();
+            let decoded = decode(encoded.get_ref()).unwrap();
+            assert_eq!((decoded.width(), decoded.height()), (width, height));
+        }
     }
 
     #[test]

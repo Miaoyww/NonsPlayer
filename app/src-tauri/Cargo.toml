@@ -92,6 +92,8 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg",
 [dev-dependencies]
 aes = "0.8"
 cipher = { version = "0.4", features = ["alloc", "block-padding"] }
+zune-core = "0.5"
+zune-jpegxl = { version = "0.5.2", default-features = false, features = ["std"] }
 
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.39.1"

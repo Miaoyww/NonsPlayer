@@ -76,7 +76,7 @@ fn external_skips_invalid_candidates_and_writes_beyond_the_former_total_limit() 
     let root = tempfile::tempdir().unwrap();
     let covers = tempfile::tempdir().unwrap();
     std::fs::write(root.path().join("Folder.PNG"), b"not an image").unwrap();
-    std::fs::write(root.path().join("cover.jpg"), vec![0; MAX_LYRIC_BYTES + 1]).unwrap();
+    std::fs::write(root.path().join("cover.jpg"), vec![0; 2 * 1024 * 1024 + 1]).unwrap();
     let bytes = png(1);
     std::fs::write(root.path().join("a.png"), &bytes).unwrap();
     std::fs::File::create(covers.path().join("existing.img"))
@@ -111,17 +111,89 @@ fn signatures_change_on_add_replace_delete_and_ignore_unsupported_files() {
 }
 
 #[test]
-fn dimensions_and_truncated_images_are_rejected() {
-    let mut encoded = Cursor::new(Vec::new());
-    image::DynamicImage::new_rgb8(8193, 1)
-        .write_to(&mut encoded, image::ImageFormat::Png)
-        .unwrap();
+fn wide_and_tall_images_are_accepted_but_truncated_images_are_rejected() {
     let covers = tempfile::tempdir().unwrap();
-    assert!(asset(encoded.get_ref(), covers.path()).is_none());
+    for (width, height) in [(8193, 1), (1, 8193)] {
+        let mut encoded = Cursor::new(Vec::new());
+        image::DynamicImage::new_rgb8(width, height)
+            .write_to(&mut encoded, image::ImageFormat::Png)
+            .unwrap();
+        let path = asset(encoded.get_ref(), covers.path()).unwrap();
+        assert!(valid(Path::new(&path)));
+    }
     let mut truncated = png(0);
     truncated.truncate(40);
     assert!(asset(&truncated, covers.path()).is_none());
     assert!(asset(&[0xff, 0x0a, 0], covers.path()).is_none());
+}
+
+#[test]
+fn large_external_and_embedded_assets_are_read_validated_and_deduplicated() {
+    let root = tempfile::tempdir().unwrap();
+    let covers = tempfile::tempdir().unwrap();
+    let mut encoded = Cursor::new(Vec::new());
+    image::DynamicImage::new_rgb8(1024, 1024)
+        .write_to(&mut encoded, image::ImageFormat::Bmp)
+        .unwrap();
+    let bytes = encoded.into_inner();
+    assert!(bytes.len() > 2 * 1024 * 1024);
+    std::fs::write(root.path().join("cover.bmp"), &bytes).unwrap();
+    let path = external(root.path(), covers.path()).unwrap();
+    assert_eq!(std::fs::read(&path).unwrap(), bytes);
+    assert!(valid(Path::new(&path)));
+    assert_eq!(asset(&bytes, covers.path()).unwrap(), path);
+}
+
+#[test]
+fn jpeg_xl_can_publish_and_validate_png_larger_than_two_mib() {
+    use zune_core::{bit_depth::BitDepth, colorspace::ColorSpace, options::EncoderOptions};
+    let mut seed = 1u32;
+    let pixels: Vec<u8> = (0..1024 * 1024 * 3)
+        .map(|_| {
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            seed as u8
+        })
+        .collect();
+    let mut jxl = Vec::new();
+    zune_jpegxl::JxlSimpleEncoder::new(
+        &pixels,
+        EncoderOptions::new(1024, 1024, ColorSpace::RGB, BitDepth::Eight),
+    )
+    .encode(&mut jxl)
+    .unwrap();
+    let covers = tempfile::tempdir().unwrap();
+    let path = asset(&jxl, covers.path()).unwrap();
+    let bytes = std::fs::read(&path).unwrap();
+    assert!(bytes.len() > 2 * 1024 * 1024);
+    assert_eq!(
+        image::guess_format(&bytes).unwrap(),
+        image::ImageFormat::Png
+    );
+    assert_eq!(
+        image::load_from_memory(&bytes).unwrap().to_rgb8().as_raw(),
+        &pixels
+    );
+    assert!(valid(Path::new(&path)));
+}
+
+#[test]
+fn decoder_allocation_budget_is_retained_without_dimension_limits() {
+    let mut bmp = vec![0u8; 54];
+    bmp[..2].copy_from_slice(b"BM");
+    bmp[10..14].copy_from_slice(&54u32.to_le_bytes());
+    bmp[14..18].copy_from_slice(&40u32.to_le_bytes());
+    bmp[18..22].copy_from_slice(&20000i32.to_le_bytes());
+    bmp[22..26].copy_from_slice(&20000i32.to_le_bytes());
+    bmp[26..28].copy_from_slice(&1u16.to_le_bytes());
+    bmp[28..30].copy_from_slice(&24u16.to_le_bytes());
+    let mut reader = image::ImageReader::new(Cursor::new(&bmp))
+        .with_guessed_format()
+        .unwrap();
+    reader.limits(limits());
+    assert!(matches!(reader.decode(), Err(image::ImageError::Limits(_))));
+    assert!(decode(&bmp).is_none());
 }
 
 #[test]

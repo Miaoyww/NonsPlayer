@@ -34,7 +34,8 @@ object MediaSessionBridge {
         }
     }
     fun artwork(key: String, cover: String, data: String) {
-        if (key != latest.key || cover != latest.cover || data.length > 6 * 1024 * 1024) return
+        if (key != latest.key || cover != latest.cover) return
+        if ((cover.startsWith("https://") || cover.startsWith("http://")) && data.length > 6 * 1024 * 1024) return
         artworkKey = key; artworkCover = cover; artworkData = data
         service?.player?.artwork(key, cover, data)
     }

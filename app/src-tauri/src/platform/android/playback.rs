@@ -217,10 +217,7 @@ pub(crate) fn artwork(key: String, url: String) {
                 tokio::fs::canonicalize(&backend.covers).await,
             ) {
                 (Ok(path), Ok(root)) if path.starts_with(&root) => {
-                    if tokio::fs::metadata(&path)
-                        .await
-                        .is_ok_and(|m| m.len() <= crate::infrastructure::covers::MAX_COVER_BYTES)
-                    {
+                    if tokio::fs::metadata(&path).await.is_ok_and(|m| m.is_file()) {
                         use base64::Engine;
                         tokio::fs::read(path)
                             .await

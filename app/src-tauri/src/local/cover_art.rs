@@ -1,7 +1,4 @@
-use crate::{
-    model::{AppResult, Track, TrackSource},
-    storage::MAX_LYRIC_BYTES,
-};
+use crate::model::{AppResult, Track, TrackSource};
 use image::ImageDecoder;
 use rusqlite::{Connection, OptionalExtension};
 use sha2::{Digest, Sha256};
@@ -176,21 +173,19 @@ fn read(path: &Path) -> Option<Vec<u8>> {
     if !std::fs::symlink_metadata(path).ok()?.file_type().is_file() {
         return None;
     }
-    let file = std::fs::File::open(path).ok()?;
-    if !file.metadata().ok()?.is_file() || file.metadata().ok()?.len() > MAX_LYRIC_BYTES as u64 {
+    let mut file = std::fs::File::open(path).ok()?;
+    if !file.metadata().ok()?.is_file() {
         return None;
     }
     let mut bytes = Vec::new();
-    file.take(MAX_LYRIC_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)
-        .ok()?;
-    (bytes.len() <= MAX_LYRIC_BYTES).then_some(bytes)
+    file.read_to_end(&mut bytes).ok()?;
+    Some(bytes)
 }
 
 fn limits() -> image::Limits {
     let mut limits = image::Limits::default();
-    limits.max_image_width = Some(8192);
-    limits.max_image_height = Some(8192);
+    limits.max_image_width = None;
+    limits.max_image_height = None;
     limits.max_alloc = Some(64 * 1024 * 1024);
     limits
 }
@@ -200,7 +195,7 @@ fn is_jxl(bytes: &[u8]) -> bool {
 }
 
 fn decode(bytes: &[u8]) -> Option<image::DynamicImage> {
-    if bytes.is_empty() || bytes.len() > MAX_LYRIC_BYTES {
+    if bytes.is_empty() {
         return None;
     }
     if is_jxl(bytes) {
@@ -251,9 +246,6 @@ pub(super) fn asset(bytes: &[u8], covers: &Path) -> Option<String> {
             .write_to(&mut output, image::ImageFormat::Png)
             .ok()?;
         converted = output.into_inner();
-        if converted.len() > MAX_LYRIC_BYTES {
-            return None;
-        }
         converted.as_slice()
     } else {
         bytes

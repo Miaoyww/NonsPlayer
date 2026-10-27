@@ -167,9 +167,6 @@ pub fn prepare(path: &str) -> AppResult<Arc<tempfile::NamedTempFile>> {
         .map_err(|_| "音频解析锁不可用")?;
     entries.retain(|(_, file)| file.strong_count() > 0);
     let metadata = std::fs::metadata(path).map_err(|e| e.to_string())?;
-    if metadata.len() > MAX_AUDIO_BYTES + 20 * 1024 * 1024 {
-        return Err("NCM 文件过大".into());
-    }
     let key = format!(
         "{path}:{}:{:?}",
         metadata.len(),
@@ -251,6 +248,47 @@ pub(crate) mod tests {
         stream[10..18].copy_from_slice(&packed.to_be_bytes());
         data.extend_from_slice(&stream);
         data
+    }
+
+    pub fn write_padded_fixture(path: &Path, audio: &[u8], padding: u32) {
+        let mut bytes = fixture(audio, 0);
+        let start = bytes.len() - audio.len();
+        bytes[start - 8..start - 4].copy_from_slice(&padding.to_le_bytes());
+        let mut file = File::create(path).unwrap();
+        file.write_all(&bytes[..start]).unwrap();
+        file.seek(SeekFrom::Current(padding as i64)).unwrap();
+        file.write_all(&bytes[start..]).unwrap();
+    }
+
+    #[test]
+    fn large_cover_and_padding_preserve_audio_and_reject_invalid_container_bounds() {
+        let audio = flac();
+        let padding = 17 * 1024 * 1024;
+        let image = vec![7; 3 * 1024 * 1024];
+        let mut bytes = fixture(&audio, padding);
+        let start = bytes.len() - audio.len() - padding;
+        bytes[start - 4..start].copy_from_slice(&(image.len() as u32).to_le_bytes());
+        bytes[start..start + image.len()].copy_from_slice(&image);
+        let mut decoder = Decoder::new(Cursor::new(&bytes)).unwrap();
+        assert_eq!(decoder.image, image);
+        let mut output = Vec::new();
+        decoder.copy(&mut output, || Ok(())).unwrap();
+        assert_eq!(output, audio);
+        bytes[start - 4..start].copy_from_slice(&(padding as u32 + 1).to_le_bytes());
+        assert!(Decoder::new(Cursor::new(&bytes)).is_err());
+        bytes[start - 4..start].copy_from_slice(&0u32.to_le_bytes());
+        bytes[start - 8..start - 4].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(Decoder::new(Cursor::new(&bytes)).is_err());
+    }
+
+    #[test]
+    fn playback_ignores_cover_padding_size_when_audio_is_small() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("padded.ncm");
+        let audio = flac();
+        write_padded_fixture(&path, &audio, 300 * 1024 * 1024);
+        let decoded = prepare(path.to_str().unwrap()).unwrap();
+        assert_eq!(std::fs::read(decoded.path()).unwrap(), audio);
     }
     #[test]
     fn padded_cover_roundtrip_seek_and_metadata() {

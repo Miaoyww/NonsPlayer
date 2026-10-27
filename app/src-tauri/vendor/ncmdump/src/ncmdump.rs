@@ -261,10 +261,7 @@ where
         let image_start = reader.stream_position()?;
         let image_length = u32::from_le_bytes(image_length) as u64;
 
-        if image_length > 2 * 1024 * 1024
-            || image_length > cover_frame_len
-            || cover_frame_len > 16 * 1024 * 1024
-        {
+        if image_length > cover_frame_len {
             return Err(Errors::InvalidImageLength);
         }
         let data_offset = image_start + cover_frame_len;

@@ -375,11 +375,6 @@ impl Files {
             .ok_or("目录未授权读写或授权已撤销")?;
         relative(path)?;
         let file = root.dir.open(path).map_err(|e| e.to_string())?;
-        if file.metadata().map_err(|e| e.to_string())?.len()
-            > crate::local::encoded_audio::MAX_AUDIO_BYTES + 20 * 1024 * 1024
-        {
-            return Err("NCM 文件过大".into());
-        }
         Ok((
             root.dir.try_clone().map_err(|e| e.to_string())?,
             file,
@@ -773,14 +768,14 @@ mod tests {
     }
     #[test]
     fn conversion_preserves_metadata_and_never_overwrites_or_leaves_part_files() {
-        use crate::local::encoded_audio::tests::{fixture, flac};
+        use crate::local::encoded_audio::tests::{flac, write_padded_fixture};
         use lofty::prelude::*;
         let tmp = tempfile::tempdir().unwrap();
         let db = Arc::new(Database::open(Path::new(":memory:")).unwrap());
         let files = Files::new(tmp.path().join("data"), db);
         let active = std::sync::atomic::AtomicBool::new(true);
         let source = tmp.path().join("测试.ncm");
-        std::fs::write(&source, fixture(&flac(), 128)).unwrap();
+        write_padded_fixture(&source, &flac(), 300 * 1024 * 1024);
         let args = json!({"root":"*","path":source.to_string_lossy()});
         let value = files
             .call_with_access("one", 7, "files.decode-audio", &args, &active, true)

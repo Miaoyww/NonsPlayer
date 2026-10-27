@@ -117,7 +117,8 @@ class NativeMediaPlayer(private val commands: Channel) : SimpleBasePlayer(Looper
     }
 
     fun artwork(key: String, cover: String, data: String) {
-        if (key != snapshot.key || cover != snapshot.cover || data.length > 6 * 1024 * 1024) return
+        if (key != snapshot.key || cover != snapshot.cover) return
+        if ((cover.startsWith("https://") || cover.startsWith("http://")) && data.length > 6 * 1024 * 1024) return
         try {
             artwork = Base64.decode(data.substringAfter(","), Base64.NO_WRAP)
             rebuild()
