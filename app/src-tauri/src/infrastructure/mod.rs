@@ -1,3 +1,4 @@
+mod cover_disk;
 pub(crate) mod covers;
 pub(crate) mod credentials;
 pub(crate) mod diagnostics;

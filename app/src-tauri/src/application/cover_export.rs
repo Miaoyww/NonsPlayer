@@ -19,7 +19,6 @@ pub(crate) async fn cover_export(
 ) -> AppResult<bool> {
     #[cfg(desktop)]
     {
-        use base64::{engine::general_purpose::STANDARD, Engine};
         use tauri_plugin_dialog::DialogExt;
 
         // Do not queue multiple full-size decodes or native save dialogs.
@@ -29,9 +28,7 @@ pub(crate) async fn cover_export(
             .map_err(|_| "正在处理封面，请稍后重试")?;
         let bytes = if url.starts_with("https://") || url.starts_with("http://") {
             // Same bounded cache, access checks and invalidation as runtime_cover.
-            let data = crate::infrastructure::covers::fetch(url, &backend).await?;
-            let (_, encoded) = data.split_once(",").ok_or("封面数据无效")?;
-            STANDARD.decode(encoded).map_err(|e| e.to_string())?
+            crate::infrastructure::covers::read(url, &backend, &app).await?
         } else {
             let root = backend.covers.clone();
             tauri::async_runtime::spawn_blocking(move || read_local(&root, &url))

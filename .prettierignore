@@ -9,6 +9,8 @@
 **/vendor/
 **/src/bindings.rs
 app/src-tauri/gen/
+app/src-tauri/android/tests/build/
+app/src-tauri/android/tests/.gradle/
 app/src-tauri/bundled-plugins/
 .local/
 # WiX XML shares an extension with WXS JavaScript; Prettier selects the wrong parser.

@@ -203,8 +203,8 @@ pub(crate) fn artwork(key: String, url: String) {
         let Some(backend) = app.try_state::<crate::Backend>() else {
             return;
         };
-        let data = if url.starts_with("http://") || url.starts_with("https://") {
-            crate::infrastructure::covers::fetch(url.clone(), &backend)
+        let path = if url.starts_with("http://") || url.starts_with("https://") {
+            crate::infrastructure::covers::fetch(url.clone(), &backend, &app)
                 .await
                 .inspect_err(|error| {
                     crate::infrastructure::diagnostics::warn("android.artwork.fetch_remote", error);
@@ -218,22 +218,7 @@ pub(crate) fn artwork(key: String, url: String) {
             ) {
                 (Ok(path), Ok(root)) if path.starts_with(&root) => {
                     if tokio::fs::metadata(&path).await.is_ok_and(|m| m.is_file()) {
-                        use base64::Engine;
-                        tokio::fs::read(path)
-                            .await
-                            .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn(
-                                    "android.artwork.read_local",
-                                    error,
-                                );
-                            })
-                            .ok()
-                            .map(|b| {
-                                format!(
-                                    "data:image/png;base64,{}",
-                                    base64::engine::general_purpose::STANDARD.encode(b)
-                                )
-                            })
+                        Some(path.to_string_lossy().into_owned())
                     } else {
                         None
                     }
@@ -241,10 +226,10 @@ pub(crate) fn artwork(key: String, url: String) {
                 _ => None,
             }
         };
-        if let Some(data) = data {
+        if let Some(path) = path {
             let _ = (call(
                 "mediaArtwork",
-                serde_json::json!({"key": key, "cover": url, "data": data}),
+                serde_json::json!({"key": key, "cover": url, "path": path}),
             ))
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn("call", error);

@@ -41,7 +41,7 @@ class MediaInitializeArgs { lateinit var commands: Channel }
 @InvokeArg
 class MediaCommandResultArgs { var id = 0L; var snapshot: PlaybackArgs? = null; var error: String? = null }
 @InvokeArg
-class MediaArtworkArgs { var key = ""; var cover = ""; var data = "" }
+class MediaArtworkArgs { var key = ""; var cover = ""; var path = "" }
 @InvokeArg
 class MediaFavoriteArgs { var key = ""; var sequence = 0L; var liked = false; var available = false }
 @InvokeArg
@@ -79,7 +79,7 @@ class NonsAndroidPlugin(private val activity: Activity) : Plugin(activity) {
     fun mediaArtwork(invoke: Invoke) {
         val args = invoke.parseArgs(MediaArtworkArgs::class.java)
         activity.runOnUiThread {
-            MediaSessionBridge.artwork(args.key, args.cover, args.data)
+            MediaSessionBridge.artwork(args.key, args.cover, args.path)
             invoke.resolve()
         }
     }

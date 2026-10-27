@@ -28,7 +28,8 @@ pub(crate) struct Backend {
     pub(crate) cache: Arc<ttml_cache::TtmlCache>,
     pub(crate) folders: Arc<local_folders::LocalFolders>,
     pub(crate) cover_client: reqwest::Client,
-    pub(crate) cover_requests: tokio::sync::Semaphore,
+    pub(crate) cover_requests: Arc<tokio::sync::Semaphore>,
+    pub(crate) online_covers: Arc<crate::infrastructure::covers::CoverCache>,
 }
 
 #[tauri::command]
@@ -356,12 +357,16 @@ fn runtime_cover_access(url: String, backend: State<'_, Backend>) -> AppResult<S
         .map_err(|e| e.to_string())
 }
 #[tauri::command]
-async fn runtime_cover(url: String, backend: State<'_, Backend>) -> AppResult<String> {
-    crate::infrastructure::covers::fetch(url, &backend).await
+async fn runtime_cover(
+    url: String,
+    app: tauri::AppHandle,
+    backend: State<'_, Backend>,
+) -> AppResult<String> {
+    crate::infrastructure::covers::fetch(url, &backend, &app).await
 }
 #[tauri::command]
-async fn runtime_cover_invalidate(url: String) {
-    crate::infrastructure::covers::invalidate(&url).await;
+async fn runtime_cover_invalidate(url: String, backend: State<'_, Backend>) -> AppResult<()> {
+    backend.online_covers.invalidate(url).await
 }
 
 #[tauri::command]
@@ -846,6 +851,10 @@ pub fn run() {
             let covers = cache_directory.join("covers");
             std::fs::create_dir_all(&covers)?;
             app.asset_protocol_scope().allow_directory(&covers, true)?;
+            let online_covers = cache_directory.join("online-covers-v1");
+            std::fs::create_dir_all(&online_covers)?;
+            app.asset_protocol_scope().allow_directory(&online_covers, true)?;
+            let online_covers = Arc::new(crate::infrastructure::covers::CoverCache::new(online_covers));
             let fallback = covers.join("default.png");
             if !fallback.exists() {
                 std::fs::write(&fallback, include_bytes!("../../icons/128x128.png"))?;
@@ -973,7 +982,8 @@ pub fn run() {
                     .timeout(std::time::Duration::from_secs(8))
                     .redirect(reqwest::redirect::Policy::none())
                     .build()?,
-                cover_requests: tokio::sync::Semaphore::new(8),
+                cover_requests: Arc::new(tokio::sync::Semaphore::new(8)),
+                online_covers,
             });
             let telemetry_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {

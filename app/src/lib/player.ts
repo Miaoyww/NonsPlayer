@@ -173,14 +173,14 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
   if (command === 'runtime_cover') {
     const access = await invoke<string>('runtime_cover_access', { url: args?.url })
     const key = requestKey(command, args)
-    type CoverEntry = { access: string; data: T }
+    type CoverEntry = { access: string; data: string }
     const previous = coverCache.peek<CoverEntry>(key)
     if (previous && previous.access !== access) coverCache.delete(key)
     const result = await coverCache.get<CoverEntry>(
       key,
       async () => ({
         access,
-        data: await invoke<T>(command, args)
+        data: convertFileSrc(await invoke<string>(command, args))
       }),
       {
         validate: async () => {
@@ -193,7 +193,7 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
       coverCache.delete(key)
       throw new Error('封面来源状态已变化')
     }
-    return result.data
+    return result.data as T
   }
   if (cachedCommands.has(command)) {
     const key = requestKey(command, args)

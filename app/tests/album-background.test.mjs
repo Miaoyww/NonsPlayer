@@ -13,7 +13,7 @@ const cover = {
   small: 'https://y.gtimg.cn/small.jpg',
   original: 'https://y.gtimg.cn/original.jpg'
 }
-const data = 'data:image/jpeg;base64,cover'
+const data = 'asset://cache/cover.jpg'
 function deferred() {
   let resolve, reject
   const promise = new Promise((yes, no) => {
@@ -93,6 +93,9 @@ async function harness(t, { delayedImport = false } = {}) {
       }
     },
     '@/features/music/cover-image': coverImage,
+    '@/features/music/online-cover-updates': {
+      subscribeOnlineCover: () => ({ ready: Promise.resolve(), stop() {} })
+    },
     '@/features/local/use-local-options': { useLocalOptions: () => ({ showCovers: true }) },
     '@/features/lyrics/use-lyrics-settings': { useLyricsSettings: () => ({ backgroundSpeed: 1 }) },
     '@/lib/runtime-cache': {
@@ -199,19 +202,24 @@ test('decode failure invalidates both caches, tries the next host size and stops
   const h = await harness(t)
   await h.finish(() => h.requests[0].resolve(data))
   await h.event(h.image, 'error')
+  assert.deepEqual(h.invalidated, [], 'resolve the latest disk asset before removing it')
+  assert.equal(h.requests[1].url, cover.small)
+  await h.finish(() => h.requests[1].resolve(data))
   assert.deepEqual(h.invalidated, [cover.small])
   assert.equal(h.deleted.length, 1)
-  assert.equal(h.requests[1].url, cover.original)
+  assert.equal(h.requests[2].url, cover.small)
   assert.equal(h.renderers.length, 0)
-  await h.finish(() => h.requests[1].reject(Error('HTTP 404')))
+  await h.finish(() => h.requests[2].reject(Error('HTTP 404')))
+  assert.equal(h.requests[3].url, cover.original)
+  await h.finish(() => h.requests[3].reject(Error('HTTP 404')))
   assert.equal(h.image, null)
   assert.equal(h.ready, false)
   assert.equal(h.renderers.length, 0)
   await h.render()
-  assert.equal(h.requests.length, 2)
+  assert.equal(h.requests.length, 4)
   await h.render({ active: false })
   await h.render({ active: true })
-  assert.equal(h.requests.length, 3, 'reopening retries the first host candidate')
+  assert.equal(h.requests.length, 5, 'reopening retries the first host candidate')
 })
 
 test('switching songs rejects stale image events and renderer completion', async (t) => {

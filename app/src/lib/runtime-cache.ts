@@ -31,13 +31,16 @@ export class RuntimeCache {
   private pending = new Map<string, PendingRead>()
   contextRevision = 0
   revision = 0
-  constructor(maxBytes = 48 * 1024 * 1024, ttl = RUNTIME_TTL) {
+  constructor(
+    maxBytes = 48 * 1024 * 1024,
+    ttl = RUNTIME_TTL,
+    sizeOf: (value: unknown) => number = (value) => (JSON.stringify(value)?.length ?? 0) * 2
+  ) {
     this.cache = new LRUCache<string, Entry, Loader>({
       max: 512,
       maxSize: maxBytes,
       ttl,
-      sizeCalculation: (entry, key) =>
-        Math.max(1, (JSON.stringify(entry.value)?.length ?? 0) * 2 + key.length * 2),
+      sizeCalculation: (entry, key) => Math.max(1, sizeOf(entry.value) + key.length * 2),
       fetchMethod: async (_key, _stale, { context, signal }) => {
         signal.addEventListener('abort', context.invalidate, { once: true })
         try {
@@ -174,7 +177,11 @@ export function invalidateAggregateCache(id?: string) {
 }
 
 export const requestCache = new RuntimeCache()
-export const coverCache = new RuntimeCache(48 * 1024 * 1024)
+export const coverCache = new RuntimeCache(48 * 1024 * 1024, RUNTIME_TTL, (value) => {
+  if (typeof value === 'string') return value.length * 2
+  const entry = value as { access: string; data: string }
+  return (entry.access.length + entry.data.length) * 2
+})
 export const isOtherQueryCacheKey = (key: string) => !key.startsWith('track_lyrics:')
 export const cachedCommands = new Set([
   'aggregate_playlists',

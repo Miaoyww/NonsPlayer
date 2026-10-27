@@ -55,6 +55,7 @@ function harness() {
     '@tauri-apps/api/event': {},
     '@tauri-apps/api/core': {
       isTauri: () => true,
+      convertFileSrc: (path) => `asset://${path}`,
       invoke(command, args) {
         if (command === 'runtime_cover_access')
           return coverEnabled
@@ -189,22 +190,22 @@ test('runtime TTL is ten minutes, not extended by reads, and capacity evicts old
   assert.equal(tiny.peek('query:b'), undefined)
 })
 
-test('cover TTL expiry keeps the displayed data URI usable and a later read fetches again', async () => {
+test('cover metadata TTL expiry retains the displayed asset URL and later reads resolve again', async () => {
   const { cache, player, requests } = harness()
   cache.coverCache = new cache.RuntimeCache(32 * 1024 * 1024, 15)
   const args = { url: 'https://p1.music.126.net/album.jpg?param=512y512' }
   const first = player.nativeCall('runtime_cover', args)
   await tick()
-  requests[0].resolve('data:image/jpeg;base64,displayed')
+  requests[0].resolve('C:/cache/displayed.jpg')
   const displayed = await first
   await new Promise((resolve) => setTimeout(resolve, 30))
   const renewed = player.nativeCall('runtime_cover', args)
   await tick()
   assert.equal(requests.length, 2)
-  assert.equal(displayed, 'data:image/jpeg;base64,displayed')
+  assert.equal(displayed, 'asset://C:/cache/displayed.jpg')
   await tick()
-  requests[1].resolve('data:image/jpeg;base64,renewed')
-  assert.equal(await renewed, 'data:image/jpeg;base64,renewed')
+  requests[1].resolve('C:/cache/renewed.jpg')
+  assert.equal(await renewed, 'asset://C:/cache/renewed.jpg')
 })
 
 test('lyrics refresh bypasses runtime cache and cover cache stays separate from account reset', async () => {
@@ -224,13 +225,13 @@ test('lyrics refresh bypasses runtime cache and cover cache stays separate from 
   await refresh
   const cover = player.nativeCall('runtime_cover', { url: 'https://p1.music.126.net/a.jpg' })
   await tick()
-  requests[2].resolve('data:image/jpeg;base64,a')
+  requests[2].resolve('C:/cache/a.jpg')
   await cover
   await tick()
   library.resetAccountCache()
   assert.equal(
     await player.nativeCall('runtime_cover', { url: 'https://p1.music.126.net/a.jpg' }),
-    'data:image/jpeg;base64,a'
+    'asset://C:/cache/a.jpg'
   )
   await tick()
   assert.equal(requests.length, 3)
@@ -485,8 +486,8 @@ test('public cover cache hits recheck adapter permissions and old deliveries fai
   const args = { url: 'https://covers.example/card.jpg' }
   const first = h.player.nativeCall('runtime_cover', args)
   await tick()
-  h.requests[0].resolve('data:image/jpeg;base64,one')
-  assert.equal(await first, 'data:image/jpeg;base64,one')
+  h.requests[0].resolve('C:/cache/one.jpg')
+  assert.equal(await first, 'asset://C:/cache/one.jpg')
   h.disableCovers()
   await assert.rejects(h.player.nativeCall('runtime_cover', args), /cover source unavailable/)
   assert.equal(h.requests.length, 1)
@@ -494,7 +495,7 @@ test('public cover cache hits recheck adapter permissions and old deliveries fai
   const pending = next.player.nativeCall('runtime_cover', args)
   await tick()
   next.reloadCovers()
-  next.requests[0].resolve('data:image/jpeg;base64,old')
+  next.requests[0].resolve('C:/cache/old.jpg')
   await assert.rejects(pending, /封面来源状态已变化/)
 })
 
@@ -503,14 +504,14 @@ test('reloading an adapter replaces an older public cover entry before returning
   const args = { url: 'https://covers.example/album.jpg' }
   const first = h.player.nativeCall('runtime_cover', args)
   await tick()
-  h.requests[0].resolve('data:image/jpeg;base64,first')
+  h.requests[0].resolve('C:/cache/first.jpg')
   await first
   h.reloadCovers()
   const next = h.player.nativeCall('runtime_cover', args)
   await tick()
   assert.equal(h.requests.length, 2)
-  h.requests[1].resolve('data:image/jpeg;base64,reloaded')
-  assert.equal(await next, 'data:image/jpeg;base64,reloaded')
+  h.requests[1].resolve('C:/cache/reloaded.jpg')
+  assert.equal(await next, 'asset://C:/cache/reloaded.jpg')
 })
 
 for (const operation of [

@@ -6,6 +6,26 @@ import { isTauri } from '@tauri-apps/api/core'
 import { coverSource, nativeCall } from '@/lib/player'
 import { coverCache, requestKey } from '@/lib/runtime-cache'
 import { useLocalOptions } from '@/features/local/use-local-options'
+import { subscribeOnlineCover } from '@/features/music/online-cover-updates'
+
+const remoteRecoveries = new Map<string, Promise<string>>()
+function recoverOnlineCover(url: string, failedSource: string) {
+  const current = remoteRecoveries.get(url)
+  if (current) return current
+  coverCache.delete(requestKey('runtime_cover', { url }))
+  const recovery = nativeCall<string>('runtime_cover', { url })
+    .then((latest) => {
+      if (latest !== failedSource) return latest
+      return nativeCall('runtime_cover_invalidate', { url }).then(() =>
+        nativeCall<string>('runtime_cover', { url })
+      )
+    })
+    .finally(() => {
+      if (remoteRecoveries.get(url) === recovery) remoteRecoveries.delete(url)
+    })
+  remoteRecoveries.set(url, recovery)
+  return recovery
+}
 
 export function useCoverSource(cover?: CoverInput, enabled = true, size: CoverSize = 'normal') {
   return useCoverImageSource(cover, enabled, size).source
@@ -37,6 +57,8 @@ export function useCoverImageSource(
       cached: remote && coverCache.peekFresh(requestKey('runtime_cover', { url })) !== undefined
     }
   const [loaded, setLoaded] = useState<LoadedCover>()
+  const [refresh, setRefresh] = useState(0)
+  const requestRevision = useRef(0)
   const localRecovery = useRef<
     { identity: string; url: string; status?: 'pending' | 'done' } | undefined
   >(undefined)
@@ -55,24 +77,36 @@ export function useCoverImageSource(
     }
     if (!remote || !isTauri()) return
     let disposed = false
-    const cancel = afterFirstPaint(() => {
-      void nativeCall<string>('runtime_cover', { url })
-        .then((source) => {
-          if (!disposed) setLoaded({ identity, url, source, cached: true })
-        })
-        .catch((cause) => {
-          reportCaughtError('app/src/components/music/use-cover-source.ts', cause)
+    const revision = requestRevision.current
+    let cancel: (() => void) | undefined
+    const subscription = subscribeOnlineCover(url, () => {
+      localRecovery.current = { identity, url }
+      requestRevision.current++
+      setRefresh((value) => value + 1)
+    })
+    void subscription.ready.then(() => {
+      if (disposed || revision !== requestRevision.current) return
+      cancel = afterFirstPaint(() => {
+        void nativeCall<string>('runtime_cover', { url })
+          .then((source) => {
+            if (!disposed && revision === requestRevision.current)
+              setLoaded({ identity, url, source, cached: true })
+          })
+          .catch((cause) => {
+            reportCaughtError('app/src/components/music/use-cover-source.ts', cause)
 
-          if (disposed) return
-          if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
-          else setLoaded({ identity, url, source: undefined, cached: false })
-        })
+            if (disposed || revision !== requestRevision.current) return
+            if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
+            else setLoaded({ identity, url, source: undefined, cached: false })
+          })
+      })
     })
     return () => {
-      cancel()
       disposed = true
+      cancel?.()
+      subscription.stop()
     }
-  }, [identity, url, index, visible, remote])
+  }, [identity, url, index, visible, remote, refresh])
   const current = loaded?.identity === identity && loaded.url === url ? loaded : undefined
   const source = !visible
     ? undefined
@@ -114,6 +148,32 @@ export function useCoverImageSource(
       }
     }
     if (remote && isTauri() && current?.cached) {
+      const recovery = localRecovery.current
+      if (!recovery || recovery.identity !== identity || recovery.url !== url) return
+      if (recovery.status === 'pending') return
+      if (!recovery.status) {
+        recovery.status = 'pending'
+        setLoaded({ identity, url, source: undefined, cached: false, pending: true })
+        void recoverOnlineCover(url, source)
+          .then((repaired) => {
+            if (localRecovery.current !== recovery) return
+            recovery.status = 'done'
+            setLoaded({
+              identity,
+              url,
+              source: `${repaired}?runtime-cover-repair=${Date.now()}`,
+              cached: true
+            })
+          })
+          .catch((cause) => {
+            reportCaughtError('music.online-cover.repair', cause)
+            if (localRecovery.current !== recovery) return
+            recovery.status = 'done'
+            if (index + 1 < candidates.length) setAttempt({ identity, index: index + 1 })
+            else setLoaded({ identity, url, source: undefined, cached: false })
+          })
+        return
+      }
       coverCache.delete(requestKey('runtime_cover', { url }))
       void nativeCall('runtime_cover_invalidate', { url }).catch((cause) => {
         reportCaughtError('app/src/components/music/use-cover-source.ts', cause)

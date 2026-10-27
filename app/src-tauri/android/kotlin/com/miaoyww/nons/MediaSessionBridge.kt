@@ -17,11 +17,11 @@ object MediaSessionBridge {
     private var starting = false
     private var artworkKey = ""
     private var artworkCover = ""
-    private var artworkData = ""
+    private var artworkPath = ""
 
     fun update(context: Context, value: PlaybackArgs) {
         if (value.sequence < latest.sequence) return
-        if (value.key != latest.key || value.cover != latest.cover) artworkData = ""
+        if (value.key != latest.key || value.cover != latest.cover) artworkPath = ""
         if (value.key != latest.key) favorite = MediaFavoriteArgs()
         if (value.key != latest.key) lyrics = MediaLyricsArgs()
         latest = value
@@ -33,15 +33,14 @@ object MediaSessionBridge {
             } catch (error: Exception) { starting = false; throw error }
         }
     }
-    fun artwork(key: String, cover: String, data: String) {
+    fun artwork(key: String, cover: String, path: String) {
         if (key != latest.key || cover != latest.cover) return
-        if ((cover.startsWith("https://") || cover.startsWith("http://")) && data.length > 6 * 1024 * 1024) return
-        artworkKey = key; artworkCover = cover; artworkData = data
-        service?.player?.artwork(key, cover, data)
+        artworkKey = key; artworkCover = cover; artworkPath = path
+        service?.player?.artwork(key, cover, path)
     }
     fun attached(value: PlaybackService) {
         service = value; starting = false
-        if (artworkData.isNotEmpty()) value.player?.artwork(artworkKey, artworkCover, artworkData)
+        if (artworkPath.isNotEmpty()) value.player?.artwork(artworkKey, artworkCover, artworkPath)
         value.favorite(favorite)
         value.player?.lyrics(lyrics)
     }
@@ -62,7 +61,7 @@ object MediaSessionBridge {
         lyrics = MediaLyricsArgs()
         service?.update(latest)
         commands = null
-        artworkData = ""
+        artworkPath = ""
         context.stopService(Intent(context, PlaybackService::class.java))
         starting = false
     }

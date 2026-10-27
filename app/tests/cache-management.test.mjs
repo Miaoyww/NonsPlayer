@@ -44,7 +44,7 @@ function harness(failNative = false) {
   return { ...exports, ...cache, calls, nativeStatus, remaining: () => [previews, continuations] }
 }
 
-test('other cache statistics exclude lyrics and combine both cover stores without loading data', async () => {
+test('other cache statistics report disk cover payloads without adding frontend path metadata', async () => {
   const app = harness()
   app.requestCache.set('track_lyrics:one', 'lyrics')
   app.requestCache.set('music_query:one', 'metadata')
@@ -53,8 +53,8 @@ test('other cache statistics exclude lyrics and combine both cover stores withou
   const status = await app.otherCacheStatus()
   assert.equal(status.queries.entries, 2)
   assert.equal(status.queries.usedBytes, queries.usedBytes + 40)
-  assert.equal(status.covers.usedBytes, 100 + app.coverCache.stats().usedBytes)
-  assert.equal(status.covers.entries, 2)
+  assert.equal(status.covers.usedBytes, 100)
+  assert.equal(status.covers.entries, 1)
   assert.equal(app.requestCache.peek('track_lyrics:one'), 'lyrics')
 })
 

@@ -36,7 +36,7 @@ class PlaybackService : MediaSessionService() {
         super.onCreate()
         val commands = MediaSessionBridge.commands
         if (commands == null) { stopSelf(); return }
-        val nativePlayer = NativeMediaPlayer(commands)
+        val nativePlayer = NativeMediaPlayer(commands, cacheDir)
         player = nativePlayer
         nativePlayer.update(MediaSessionBridge.latest)
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),

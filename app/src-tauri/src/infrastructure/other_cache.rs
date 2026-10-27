@@ -44,7 +44,7 @@ pub(crate) async fn other_cache_status(
     backend: State<'_, crate::Backend>,
     plugins: State<'_, std::sync::Arc<crate::plugins::PluginManager>>,
 ) -> AppResult<Status> {
-    let covers = super::covers::cache_status().await;
+    let covers = backend.online_covers.status().await?;
     let collections = match &backend.music.collections {
         Some(collections) => collections
             .cache_status()
@@ -79,7 +79,7 @@ pub(crate) async fn clear_other_cache(
     plugins: State<'_, std::sync::Arc<crate::plugins::PluginManager>>,
 ) -> AppResult<()> {
     match kind {
-        Kind::Covers => super::covers::clear_cache().await,
+        Kind::Covers => backend.online_covers.clear().await?,
         Kind::Collections => {
             if let Some(collections) = &backend.music.collections {
                 collections

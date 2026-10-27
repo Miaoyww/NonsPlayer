@@ -25,7 +25,7 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPCACHE/covers/**"]
+        "scope": ["$APPCACHE/covers/**", "$APPCACHE/online-covers-v1/**"]
       }
     }
   },

@@ -19,7 +19,7 @@ const cacheItems: {
   description: string
   estimated?: boolean
 }[] = [
-  { kind: 'covers', title: '在线封面', description: '清理后按需重新加载。', estimated: true },
+  { kind: 'covers', title: '在线封面', description: '本机最多保存 256 MiB，清理后按需重新加载。' },
   {
     kind: 'queries',
     title: '查询与展示结果',

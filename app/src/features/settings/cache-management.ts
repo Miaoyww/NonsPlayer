@@ -10,15 +10,10 @@ export type OtherCacheStatus = Record<OtherCacheKind, CacheUsage>
 
 export async function otherCacheStatus(): Promise<OtherCacheStatus> {
   const native = await nativeCall<Record<NativeCacheKind, CacheUsage>>('other_cache_status')
-  const covers = coverCache.stats()
   const queries = requestCache.stats(isOtherQueryCacheKey)
   const preview = libraryPreviewCacheStatus()
   return {
     ...native,
-    covers: {
-      usedBytes: native.covers.usedBytes + covers.usedBytes,
-      entries: native.covers.entries + covers.entries
-    },
     queries: {
       usedBytes: queries.usedBytes + preview.usedBytes,
       entries: queries.entries + preview.entries

@@ -5,7 +5,6 @@ import android.os.Looper
 import android.os.Bundle
 import android.os.SystemClock
 import android.net.Uri
-import android.util.Base64
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -42,7 +41,7 @@ class PlaybackArgs {
 
 /** No decoder or audio output: every mutation is handled by the Rust playback actor. */
 @UnstableApi
-class NativeMediaPlayer(private val commands: Channel) : SimpleBasePlayer(Looper.getMainLooper()) {
+class NativeMediaPlayer(private val commands: Channel, cacheDirectory: java.io.File) : SimpleBasePlayer(Looper.getMainLooper()) {
     private var snapshot = PlaybackArgs()
     private var currentState = State.Builder().build()
     private var artwork: ByteArray? = null
@@ -52,6 +51,11 @@ class NativeMediaPlayer(private val commands: Channel) : SimpleBasePlayer(Looper
     private var positionUpdatedAt = SystemClock.elapsedRealtime()
     private val pending = mutableMapOf<Long, SettableFuture<Void>>()
     private val handler = Handler(Looper.getMainLooper())
+    private val artworkFiles = ArtworkFileLoader(cacheDirectory, { work -> handler.post(work) }, { file ->
+        try {
+            android.system.OsConstants.S_ISLNK(android.system.Os.lstat(file.path).st_mode)
+        } catch (error: android.system.ErrnoException) { throw java.io.IOException("Artwork path unavailable", error) }
+    })
     private val lyricTick = object : Runnable {
         override fun run() {
             if (updateLyricIndex()) rebuild()
@@ -61,7 +65,10 @@ class NativeMediaPlayer(private val commands: Channel) : SimpleBasePlayer(Looper
 
     fun update(value: PlaybackArgs) {
         if (value.sequence < snapshot.sequence) return
-        if (snapshot.key != value.key || snapshot.cover != value.cover) artwork = null
+        if (snapshot.key != value.key || snapshot.cover != value.cover) {
+            artwork = null
+            artworkFiles.invalidate()
+        }
         snapshot = value
         positionUpdatedAt = SystemClock.elapsedRealtime()
         if (favorite.key != value.key) favorite = MediaFavoriteArgs()
@@ -116,13 +123,13 @@ class NativeMediaPlayer(private val commands: Channel) : SimpleBasePlayer(Looper
         return request("favorite", liked = liked)
     }
 
-    fun artwork(key: String, cover: String, data: String) {
+    fun artwork(key: String, cover: String, path: String) {
         if (key != snapshot.key || cover != snapshot.cover) return
-        if ((cover.startsWith("https://") || cover.startsWith("http://")) && data.length > 6 * 1024 * 1024) return
-        try {
-            artwork = Base64.decode(data.substringAfter(","), Base64.NO_WRAP)
+        artworkFiles.load(path) { bytes ->
+            if (key != snapshot.key || cover != snapshot.cover) return@load
+            artwork = bytes
             rebuild()
-        } catch (_: IllegalArgumentException) { /* Invalid covers do not interrupt playback. */ }
+        }
     }
 
     private fun rebuild() {
@@ -223,6 +230,7 @@ class NativeMediaPlayer(private val commands: Channel) : SimpleBasePlayer(Looper
     }
     override fun handleRelease(): ListenableFuture<*> {
         handler.removeCallbacksAndMessages(null)
+        artworkFiles.close()
         pending.values.forEach { it.setException(IllegalStateException("媒体会话已释放")) }
         pending.clear()
         artwork = null

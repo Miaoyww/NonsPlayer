@@ -9,7 +9,8 @@ function harness({ intersecting = true, tauri = true, cached = false } = {}) {
   const slots = [],
     effects = [],
     requests = [],
-    deleted = []
+    deleted = [],
+    subscribers = new Map()
   let cursor = 0
   const modules = {
     '@/lib/after-first-paint': {
@@ -19,6 +20,22 @@ function harness({ intersecting = true, tauri = true, cached = false } = {}) {
       }
     },
     '@/features/music/cover-image': coverImage,
+    '@/features/music/online-cover-updates': {
+      subscribeOnlineCover(url, changed) {
+        subscribers.set(url, changed)
+        return {
+          ready: {
+            then(work) {
+              work()
+              return Promise.resolve()
+            }
+          },
+          stop() {
+            if (subscribers.get(url) === changed) subscribers.delete(url)
+          }
+        }
+      }
+    },
     react: {
       useState(initial) {
         const i = cursor++
@@ -26,13 +43,13 @@ function harness({ intersecting = true, tauri = true, cached = false } = {}) {
         return [
           slots[i],
           (value) => {
-            slots[i] = value
+            slots[i] = typeof value === 'function' ? value(slots[i]) : value
           }
         ]
       },
-      useRef() {
+      useRef(initial) {
         const i = cursor++
-        return (slots[i] ??= { current: {} })
+        return (slots[i] ??= { current: initial ?? {} })
       },
       useEffect(fn, deps) {
         const i = cursor++,
@@ -55,7 +72,7 @@ function harness({ intersecting = true, tauri = true, cached = false } = {}) {
     '@/lib/runtime-cache': {
       coverCache: {
         peekFresh: () =>
-          cached ? { access: 'valid', data: 'data:image/jpeg;base64,ready' } : undefined,
+          cached ? { access: 'valid', data: 'asset://cache/ready.jpg' } : undefined,
         delete: (key) => deleted.push(key)
       },
       requestKey: (command, args) => `${command}:${JSON.stringify(args)}`
@@ -103,6 +120,9 @@ function harness({ intersecting = true, tauri = true, cached = false } = {}) {
   return {
     requests,
     deleted,
+    updated(url) {
+      subscribers.get(url)?.()
+    },
     renderCover(cover, full = false, props = {}) {
       cursor = 0
       const tree = components.Cover({ cover, ...props })
@@ -118,10 +138,7 @@ function harness({ intersecting = true, tauri = true, cached = false } = {}) {
   }
 }
 const cover = 'https://p1.music.126.net/album.jpg'
-const settle = async () => {
-  await Promise.resolve()
-  await Promise.resolve()
-}
+const settle = () => new Promise((resolve) => setImmediate(resolve))
 
 test('eager fullscreen cover loads and becomes visible without an intersection notification', async () => {
   const h = harness({ intersecting: false })
@@ -129,7 +146,7 @@ test('eager fullscreen cover loads and becomes visible without an intersection n
   h.renderCover(cover, true, props)
   h.renderCover(cover, true, props)
   assert.equal(h.requests.length, 1, 'fullscreen cover must request its image during slide-in')
-  h.requests[0].resolve('data:image/jpeg;base64,ready')
+  h.requests[0].resolve('asset://cache/ready.jpg')
   await settle()
   const image = h.renderCover(cover, false, props)
   assert.equal(image.props.loading, 'eager', 'do not defer the already visible player image again')
@@ -146,39 +163,55 @@ test('list covers still wait for intersection before requesting images', () => {
   assert.equal(h.requests.length, 0)
 })
 
-test('the actual Cover component shows a placeholder after its only cached image fails', async () => {
+test('the actual Cover component shows a placeholder after its cached image and reread fail', async () => {
   const h = harness()
   h.renderCover(cover)
   h.renderCover(cover)
-  h.requests[0].resolve('data:image/jpeg;base64,broken')
+  h.requests[0].resolve('asset://cache/broken.jpg')
   await settle()
   const image = h.renderCover(cover)
   assert.equal(image.type, 'img')
   image.props.onError()
+  h.requests.at(-1).resolve('asset://cache/broken.jpg')
+  await settle()
+  h.requests.at(-1).resolve()
+  await settle()
+  h.requests.at(-1).reject(Error('asset unavailable'))
+  await settle()
   assert.equal(h.renderCover(cover), undefined)
 })
 
 test('cached image load errors invalidate both caches and never expose a remote URL', async () => {
   const h = harness()
   h.render(cover)
-  h.requests[0].resolve('data:image/jpeg;base64,broken')
+  h.requests[0].resolve('asset://cache/broken.jpg')
   await settle()
   let image = h.render(cover)
-  assert.match(image.source, /^data:/)
+  assert.match(image.source, /^asset:/)
   image.onError()
   image = h.render(cover)
   assert.equal(image.source, undefined)
-  assert.equal(image.pending, false)
+  assert.equal(image.pending, true)
   assert.equal(h.deleted.length, 1)
   assert.ok(h.deleted[0].includes(cover))
+  h.requests.at(-1).resolve('asset://cache/broken.jpg')
+  await settle()
+  const invalidation = h.requests.at(-1)
+  assert.equal(invalidation.command, 'runtime_cover_invalidate')
+  invalidation.resolve()
+  await settle()
+  h.requests.at(-1).resolve('asset://cache/repaired.jpg')
+  await settle()
+  image = h.render(cover)
+  assert.match(image.source, /^asset:\/\/cache\/repaired.jpg\?runtime-cover-repair=/)
   image.onError()
   assert.equal(h.render(cover).source, undefined)
   assert.equal(
     h.requests.filter((r) => r.command === 'runtime_cover').length,
-    1,
+    3,
     'failure recovery must not cause a request loop'
   )
-  assert.equal(h.requests.filter((r) => r.command === 'runtime_cover_invalidate').length, 1)
+  assert.equal(h.requests.filter((r) => r.command === 'runtime_cover_invalidate').length, 2)
   assert.equal(h.requests.at(-1).args.url, cover)
 })
 
@@ -193,19 +226,86 @@ test('request errors stop, reactivation retries, and late previous-cover respons
   h.render(cover)
   const next = `${cover}?new=1`
   h.render(next)
-  h.requests[1].resolve('data:image/jpeg;base64,old')
+  h.requests[1].resolve('asset://cache/old.jpg')
   await settle()
   assert.equal(h.render(next).source, undefined)
-  h.requests[2].resolve('data:image/jpeg;base64,new')
+  h.requests[2].resolve('asset://cache/new.jpg')
   await settle()
-  assert.equal(h.render(next).source, 'data:image/jpeg;base64,new')
+  assert.equal(h.render(next).source, 'asset://cache/new.jpg')
+})
+
+test('a refreshed disk asset replaces its displayed URL and rejects older in-flight results', async () => {
+  const h = harness()
+  h.render(cover)
+  h.updated(cover)
+  h.render(cover)
+  assert.equal(h.requests.length, 2)
+  h.requests[0].reject(Error('old cache generation'))
+  await settle()
+  assert.equal(h.render(cover).source, undefined)
+  h.requests[1].resolve('asset://cache/refreshed.jpg')
+  await settle()
+  assert.equal(h.render(cover).source, 'asset://cache/refreshed.jpg')
+  h.updated(cover)
+  assert.equal(
+    h.render(cover).source,
+    'asset://cache/refreshed.jpg',
+    'keep the old image during refresh'
+  )
+  h.requests[2].resolve('asset://cache/new-content.jpg')
+  await settle()
+  assert.equal(h.render(cover).source, 'asset://cache/new-content.jpg')
+  h.render(cover, false)
+  h.updated(cover)
+  assert.equal(h.requests.length, 3, 'hidden images no longer subscribe')
+})
+
+test('a late asset repair cannot replace a newer background refresh', async () => {
+  const h = harness()
+  h.render(cover)
+  h.requests[0].resolve('asset://cache/evicted.jpg')
+  await settle()
+  h.render(cover).onError()
+  const repair = h.requests.at(-1)
+  h.updated(cover)
+  h.render(cover)
+  h.requests.at(-1).resolve('asset://cache/background.jpg')
+  await settle()
+  assert.equal(h.render(cover).source, 'asset://cache/background.jpg')
+  repair.resolve('asset://cache/old-repair.jpg')
+  await settle()
+  assert.equal(h.render(cover).source, 'asset://cache/background.jpg')
+})
+
+test('an update missed while hidden resolves the new disk path without invalidating its resource', async () => {
+  const h = harness({ cached: true })
+  h.render(cover)
+  h.requests[0].resolve('asset://cache/old-content.jpg')
+  await settle()
+  h.render(cover, false)
+  h.updated(cover)
+  assert.equal(h.requests.length, 1, 'hidden images have no active subscription')
+  h.render(cover)
+  h.requests[1].resolve('asset://cache/old-content.jpg')
+  await settle()
+  h.render(cover).onError()
+  const latest = h.requests.at(-1)
+  assert.equal(latest.command, 'runtime_cover')
+  latest.resolve('asset://cache/new-content.jpg')
+  await settle()
+  assert.match(h.render(cover).source, /^asset:\/\/cache\/new-content.jpg\?runtime-cover-repair=/)
+  assert.equal(
+    h.requests.filter((request) => request.command === 'runtime_cover_invalidate').length,
+    0
+  )
+  assert.equal(h.requests.filter((request) => request.command === 'runtime_cover').length, 3)
 })
 
 test('Cover keeps its skeleton until image load, shows it again for a new source, and clears it after final failure', async () => {
   const h = harness()
   h.renderCover(cover)
   assert.equal(h.renderCover(cover, true).props.children[0].type, 'skeleton')
-  h.requests[0].resolve('data:image/jpeg;base64,ready')
+  h.requests[0].resolve('asset://cache/ready.jpg')
   await settle()
   let tree = h.renderCover(cover, true)
   let image = tree.props.children[1]
@@ -254,37 +354,49 @@ test('a card degrades to small then original, invalidates decoded errors and nev
   await settle()
   h.render(variants)
   assert.equal(h.requests[1].args.url, variants.small)
-  h.requests[1].resolve('data:image/jpeg;base64,broken')
+  h.requests[1].resolve('asset://cache/broken.jpg')
   await settle()
   h.render(variants).onError()
+  h.requests.at(-1).resolve('asset://cache/broken.jpg')
+  await settle()
+  h.requests.at(-1).resolve()
+  await settle()
+  h.requests.at(-1).reject(Error('small asset unavailable'))
+  await settle()
   h.render(variants)
   const original = h.requests.find(
     (r) => r.command === 'runtime_cover' && r.args.url === variants.original
   )
   assert.ok(original)
-  original.resolve('data:image/jpeg;base64,also-broken')
+  original.resolve('asset://cache/also-broken.jpg')
   await settle()
   h.render(variants).onError()
+  h.requests.at(-1).resolve('asset://cache/also-broken.jpg')
+  await settle()
+  h.requests.at(-1).resolve()
+  await settle()
+  h.requests.at(-1).reject(Error('original asset unavailable'))
+  await settle()
   assert.equal(h.render(variants).source, undefined)
   assert.equal(h.render(variants).pending, false)
   h.render(variants).onError()
-  assert.equal(h.requests.filter((r) => r.command === 'runtime_cover').length, 3)
+  assert.equal(h.requests.filter((r) => r.command === 'runtime_cover').length, 7)
   assert.equal(h.deleted.length, 2)
 })
 test('size changes ignore older in-flight images and original failures can recover through exlarge', async () => {
   const h = harness()
   h.render(variants, true, 'small')
   h.render(variants, true, 'original')
-  h.requests[0].resolve('data:image/jpeg;base64,old-small')
+  h.requests[0].resolve('asset://cache/old-small.jpg')
   await settle()
   assert.equal(h.render(variants, true, 'original').source, undefined)
   h.requests[1].reject(Error('original too big'))
   await settle()
   h.render(variants, true, 'original')
   assert.equal(h.requests[2].args.url, variants.exlarge)
-  h.requests[2].resolve('data:image/jpeg;base64,media')
+  h.requests[2].resolve('asset://cache/media.jpg')
   await settle()
-  assert.equal(h.render(variants, true, 'original').source, 'data:image/jpeg;base64,media')
+  assert.equal(h.render(variants, true, 'original').source, 'asset://cache/media.jpg')
 })
 
 test('desktop QQ covers exhaust host candidates without falling back through browser CORS', async () => {
@@ -341,7 +453,7 @@ test('cached cover skips skeleton and reveal while retaining live host validatio
     tree.props.children.some((child) => child?.type === 'img'),
     false
   )
-  h.requests[0].resolve('data:image/jpeg;base64,ready')
+  h.requests[0].resolve('asset://cache/ready.jpg')
   await settle()
   tree = h.renderCover(cover, true, props)
   const image = tree.props.children.find((child) => child?.type === 'img')
