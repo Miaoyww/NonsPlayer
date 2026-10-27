@@ -39,14 +39,8 @@ pub(crate) async fn cover_export(
             let format = image::guess_format(&bytes).map_err(|e| e.to_string())?;
             match action {
                 Action::Copy => {
-                    use clipboard_rs::{common::RustImage, Clipboard, ClipboardContext};
                     let image = decode(&bytes)?;
-                    let context = ClipboardContext::new().map_err(|e| e.to_string())?;
-                    context
-                        .set_image(clipboard_rs::common::RustImageData::from_dynamic_image(
-                            image,
-                        ))
-                        .map_err(|e| e.to_string())?;
+                    copy_image(image, &app)?;
                 }
                 Action::Save => {
                     let extension = format.extensions_str().first().ok_or("封面格式不支持")?;
@@ -75,6 +69,58 @@ pub(crate) async fn cover_export(
         let _ = (url, title, action, app, backend);
         Err("当前平台不支持封面导出".into())
     }
+}
+
+#[cfg(all(desktop, not(windows)))]
+fn copy_image(image: image::DynamicImage, _app: &tauri::AppHandle) -> AppResult<()> {
+    use clipboard_rs::{common::RustImage, Clipboard, ClipboardContext};
+    ClipboardContext::new()
+        .map_err(|e| e.to_string())?
+        .set_image(clipboard_rs::common::RustImageData::from_dynamic_image(
+            image,
+        ))
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(windows)]
+fn copy_image(image: image::DynamicImage, app: &tauri::AppHandle) -> AppResult<()> {
+    use tauri::Manager;
+    let window = app.get_window("main").ok_or("主窗口不可用")?;
+    let owner = window.hwnd().map_err(|e| e.to_string())?;
+    copy_windows_image(image, owner.0)
+}
+
+#[cfg(windows)]
+fn open_windows_clipboard(
+    owner: clipboard_win::types::HWND,
+) -> AppResult<clipboard_win::Clipboard> {
+    // A null owner lets other null-owner threads open and close this transaction.
+    if owner.is_null() {
+        return Err("复制封面需要有效窗口".into());
+    }
+    clipboard_win::Clipboard::new_attempts_for(owner, 10)
+        .map_err(|e| format!("打开剪贴板失败：{e}"))
+}
+
+#[cfg(windows)]
+fn copy_windows_image(
+    image: image::DynamicImage,
+    owner: clipboard_win::types::HWND,
+) -> AppResult<()> {
+    use clipboard_rs::common::{RustImage, RustImageData};
+    let image = RustImageData::from_dynamic_image(image);
+    // Encoding can take seconds; finish it before acquiring or clearing the clipboard.
+    let png = image.to_png().map_err(|e| e.to_string())?;
+    let bitmap = image.to_bitmap().map_err(|e| e.to_string())?;
+    // CF_DIB contains the encoded DIB header and pixels, without the 14-byte BMP file header.
+    let dib = bitmap.get_bytes().get(14..).ok_or("封面位图数据无效")?;
+    let format = clipboard_win::register_format("PNG").ok_or("注册剪贴板图片格式失败")?;
+    let _clipboard = open_windows_clipboard(owner)?;
+    clipboard_win::empty().map_err(|e| format!("清空剪贴板失败：{e}"))?;
+    clipboard_win::raw::set_without_clear(format.get(), png.get_bytes())
+        .map_err(|e| format!("写入剪贴板 PNG 失败：{e}"))?;
+    clipboard_win::raw::set_without_clear(clipboard_win::formats::CF_DIB, dib)
+        .map_err(|e| format!("写入剪贴板位图失败：{e}"))
 }
 
 #[cfg(desktop)]
@@ -168,5 +214,80 @@ mod tests {
     fn save_name_removes_path_characters() {
         assert_eq!(file_stem("../a:b\\c"), "_a_b_c - 封面");
         assert_eq!(file_stem("..."), "封面");
+    }
+
+    #[cfg(windows)]
+    mod windows_clipboard {
+        use super::*;
+        use windows::Win32::Foundation::HWND;
+        use windows::Win32::UI::WindowsAndMessaging::{
+            CreateWindowExW, DestroyWindow, HWND_MESSAGE, WINDOW_EX_STYLE, WINDOW_STYLE,
+        };
+
+        struct Owner(HWND);
+
+        impl Owner {
+            fn new() -> Self {
+                Self(unsafe {
+                    CreateWindowExW(
+                        WINDOW_EX_STYLE::default(),
+                        windows::core::w!("STATIC"),
+                        windows::core::w!("Nons cover clipboard test"),
+                        WINDOW_STYLE::default(),
+                        0,
+                        0,
+                        0,
+                        0,
+                        Some(HWND_MESSAGE),
+                        None,
+                        None,
+                        None,
+                    )
+                    .unwrap()
+                })
+            }
+        }
+
+        impl Drop for Owner {
+            fn drop(&mut self) {
+                unsafe { DestroyWindow(self.0).unwrap() };
+            }
+        }
+
+        #[test]
+        #[ignore = "requires exclusive access to the Windows clipboard"]
+        fn clipboard_owner_prevents_another_thread_from_closing_transaction() {
+            let owner = Owner::new();
+            let _clipboard = open_windows_clipboard(owner.0 .0).unwrap();
+            std::thread::spawn(|| {
+                // Null-owner readers must not acquire a guard that can close our transaction.
+                assert!(clipboard_win::Clipboard::new_attempts(0).is_err());
+            })
+            .join()
+            .unwrap();
+            assert!(open_windows_clipboard(std::ptr::null_mut()).is_err());
+        }
+
+        #[test]
+        #[ignore = "writes images to the Windows clipboard"]
+        fn clipboard_image_roundtrip_preserves_png_and_bitmap() {
+            let owner = Owner::new();
+            for side in [32, 1024, 3000] {
+                let image = image::RgbaImage::from_fn(side, side, |x, y| {
+                    image::Rgba([(x % 251) as u8, (y % 251) as u8, ((x * y) % 251) as u8, 255])
+                });
+                copy_windows_image(image.clone().into(), owner.0 .0).unwrap();
+                let _clipboard = open_windows_clipboard(owner.0 .0).unwrap();
+                let png_format = clipboard_win::register_format("PNG").unwrap();
+                let png: Vec<u8> =
+                    clipboard_win::get(clipboard_win::formats::RawData(png_format.get())).unwrap();
+                assert_eq!(image::load_from_memory(&png).unwrap().into_rgba8(), image);
+                let bitmap: Vec<u8> = clipboard_win::get(clipboard_win::formats::Bitmap).unwrap();
+                assert_eq!(
+                    image::load_from_memory(&bitmap).unwrap().into_rgba8(),
+                    image
+                );
+            }
+        }
     }
 }
