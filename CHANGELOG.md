@@ -4,9 +4,13 @@
 
 ## [Unreleased]
 
-### 插件与工具
+## [1.8.4] - 2026-10-27
 
-- Release CI 恢复 Android ARM64 试用 APK 构建与校验，并新增 Linux 编译检查；Android APK 继续作为 Artifact 提供，不随 Release 分发。
+![NonsPlayer v1.8.4 本地封面与播放体验改进头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.4/docs/release-assets/header-1.8.4.png)
+
+NonsPlayer 1.8.4 改进本地与在线封面的显示、缓存和重建体验，并完善日志入口与 QQ 音乐适配器。本次正式发布面向 **Windows x64**，提供 MSI、EXE 安装包与免安装便携 ZIP。Android ARM64 试用 APK 仅作为 GitHub Actions Artifact 保存 14 天；Linux 本次仅做编译检查，不提供对应安装包。
+
+### 插件与工具
 
 - QQ 音乐适配器改用 Rust WASM 组件，保留只读目录、曲库、双扫码登录和明文播放的适配器接口；构建不再依赖 QQ 的 JavaScript 协议包和 JS 引擎。
 

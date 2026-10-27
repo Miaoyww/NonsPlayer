@@ -28,7 +28,6 @@ NonsPlayer的诞生离不开以下优秀产品的启发：
 - **[Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics)**
 - **[amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)**
 
-
 ## 📜 开源许可
 
 Copyright Miaoyww 2026.
