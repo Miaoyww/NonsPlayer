@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { RefreshCw } from 'lucide-react'
+import { FolderOpen, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ErrorNotice } from '@/components/error-notice'
 import { reportCaughtError } from '@/lib/diagnostics'
-import { errorText } from '@/lib/player'
+import { errorText, nativeCall } from '@/lib/player'
+import { isAndroid } from '@/lib/platform'
 import { SettingsCard } from './settings-card'
 import {
   clearOtherCache,
@@ -44,7 +45,7 @@ const cacheItems: {
 export function OtherCacheSettings() {
   const desktop = isTauri()
   const [status, setStatus] = useState<OtherCacheStatus>()
-  const [busy, setBusy] = useState<OtherCacheKind | 'refresh'>()
+  const [busy, setBusy] = useState<OtherCacheKind | 'refresh' | 'open-logs'>()
   const [error, setError] = useState<{ scope: 'other' | 'logs'; message: string }>()
   const [notice, setNotice] = useState<{ scope: 'other' | 'logs'; message: string }>()
   useEffect(() => {
@@ -63,13 +64,17 @@ export function OtherCacheSettings() {
     }
   }, [desktop])
 
-  async function perform(kind: OtherCacheKind | 'refresh', scope: 'other' | 'logs') {
+  async function perform(kind: OtherCacheKind | 'refresh' | 'open-logs', scope: 'other' | 'logs') {
     if (busy) return
     setBusy(kind)
     setError(undefined)
     setNotice(undefined)
     let cleared = false
     try {
+      if (kind === 'open-logs') {
+        await nativeCall('open_logs_folder')
+        return
+      }
       if (kind !== 'refresh') {
         await clearOtherCache(kind)
         cleared = true
@@ -130,15 +135,27 @@ export function OtherCacheSettings() {
                         : '请在应用中管理。'
                   }${item.description}`}
                 >
-                  <Button
-                    variant="outline"
-                    className="text-destructive"
-                    disabled={!!busy || !desktop || !usage}
-                    onClick={() => void perform(item.kind, scope)}
-                    aria-label={`清理${item.title}`}
-                  >
-                    {busy === item.kind ? '正在清理…' : '清理'}
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    {item.kind === 'logs' && !isAndroid() && (
+                      <Button
+                        variant="outline"
+                        disabled={!!busy || !desktop}
+                        onClick={() => void perform('open-logs', scope)}
+                      >
+                        <FolderOpen aria-hidden="true" />
+                        {busy === 'open-logs' ? '正在打开…' : '打开日志文件夹'}
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      className="text-destructive"
+                      disabled={!!busy || !desktop || !usage}
+                      onClick={() => void perform(item.kind, scope)}
+                      aria-label={`清理${item.title}`}
+                    >
+                      {busy === item.kind ? '正在清理…' : '清理'}
+                    </Button>
+                  </div>
                 </SettingsCard>
               )
             })}

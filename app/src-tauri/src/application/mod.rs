@@ -1112,6 +1112,7 @@ pub fn run() {
             clear_local_cache,
             crate::infrastructure::other_cache::other_cache_status,
             crate::infrastructure::other_cache::clear_other_cache,
+            crate::infrastructure::other_cache::open_logs_folder,
             local_options,
             set_local_options,
             music_folders,

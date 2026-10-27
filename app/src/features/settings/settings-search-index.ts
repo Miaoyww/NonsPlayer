@@ -128,7 +128,7 @@ const groups: SearchGroup[] = [
   {
     section: 'local-cache',
     path: '本地与缓存 / 日志',
-    items: [['other-cache-logs', '运行日志', '日志 文件 占用 清理']]
+    items: [['other-cache-logs', '运行日志', '日志 文件夹 目录 打开 占用 清理']]
   },
   {
     section: 'about',
