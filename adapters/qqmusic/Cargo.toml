@@ -1,0 +1,39 @@
+[package]
+name = "nons-adapter-qqmusic"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[package.metadata.component]
+package = "nons:qqmusic"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+base64 = "0.22"
+url = "2"
+mqttbytes = "0.6"
+bytes = "1"
+time = { version = "0.3", default-features = false }
+aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc", "zeroize"] }
+aes = { version = "0.8", features = ["zeroize"] }
+cbc = { version = "0.1", features = ["alloc", "zeroize"] }
+hkdf = "0.12"
+sha2 = "0.10"
+hmac = "0.12"
+md-5 = "0.10"
+rsa = { version = "0.9.10", default-features = false, features = ["u64_digit"] }
+rand_chacha = { version = "0.3", default-features = false }
+rand_core = { version = "0.6", default-features = false }
+zeroize = { version = "1", features = ["alloc"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wit-bindgen = "0.41"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+panic = "abort"

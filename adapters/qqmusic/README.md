@@ -1,39 +1,44 @@
 # QQ 音乐读取适配器
 
-来源 `qqmusic`，环境中性 JS 协议运行于 ComponentizeJS 引擎，Rust 密码 Component 在构建时组合成一个交付文件。应用通过统一 AdapterManager 后台加载；产品运行不需要 Node、外部服务或本地端口。
+来源 `qqmusic`，协议以 Rust 实现并编译为 WASM Component。应用通过统一 AdapterManager 加载；网络、时钟、安全随机数、WebSocket、设备状态和账号凭据经既有通用 Host 访问。运行不需要 Node、外部服务或本地端口。
 
-2026-10-16：修复轻量搜索返回业务错误码 `2001` 时再次调用同一轻量接口仍被拒绝的问题。现在只回退一次至同平台的 `DoSearchForQQMusicDesktop`，保留关键词、分类、页码与每页条数，将桌面的单曲／歌手／专辑／歌单结构规范化后交回宿主。单次搜索最多两次请求，共用原期限；HTTP 限流、网络错误及其它业务错误不因此循环重试。该回退不保证上游持续可用。
+当前源码包含搜索、曲目／专辑／艺人／歌单读取、个人曲库、基于“我喜欢”歌单的只读收藏分页、QQ 音乐 App／微信扫码、凭据刷新，以及标准／HQ／FLAC 明文播放资源解析。搜索遇到轻量接口错误码 `2001` 时，仅回退一次同平台桌面搜索。尚未声明收藏写入、歌单写入、推荐、下载、歌词或加密音频转换能力。
 
-协议依赖固定为 `@yakult-green-tea/qq-music-api@3.1.4`，保留 MIT 许可。MD5、RSAES-PKCS1-v1_5、AES、HKDF、SHA-256、HMAC 均由 `packages/wasm-crypto` 提供。构建闭包检查拒绝 Node 内建模块、服务外壳与被替换的 JS 密码实现重新进入产物。
+Rust 组件构建、模型／密码／协议回归、受控 Host 测试和 Windows 宿主回归已通过，公网搜索与歌曲详情已验证。QQ／微信已通过真实二维码初始化及取消清理，QQ 同时验证 MQTT 连接与订阅；真实手机确认、登录后的公网曲库和实际音频播放仍需验证。完整结果及复验方法见 [验收记录](ACCEPTANCE.md)。
 
-实现搜索、详情、浏览、个人曲库读取、基于“我喜欢”歌单的只读收藏状态分页、QQ 音乐 App／微信扫码及明文标准／HQ／FLAC 播放资源。账号与不透明凭据统一进入 AccountManager；设备状态不保存登录会话密钥。设备引导与二维码创建分为通用的 prepare-login／beginLogin 调用，界面等待完整二维码。音乐适配器不设 fuel 指令配额，按时间片让出执行并受调用期限限制。未声明收藏写入、歌单写入、推荐、下载、歌词或加密音频转换能力。曲目 mid、数字歌曲 ID 与音频 media ID 分开处理；游标绑定查询和页大小。播放资源按返回文件的音质前缀、明文扩展名与目录中的完整大小验证，允许 CDN 规范化资源文件名；拒绝试听、未知完整性、加密文件和禁止的音质降级。
+## 文件与边界
+
+| 文件                             | 职责                                             |
+| -------------------------------- | ------------------------------------------------ |
+| `src/lib.rs`、`src/component.rs` | 统一 JSON transport、Host 绑定、组件生命周期     |
+| `src/catalog.rs`、`src/model.rs` | 目录业务、公开 DTO、分页和明文资源校验           |
+| `src/auth.rs`、`src/auth/`       | 账号、Cookie、刷新、扫码与 MQTT 协议             |
+| `src/device.rs`                  | Android 设备身份、QIMEI 与会话引导               |
+| `src/crypto.rs`                  | 有界 RustCrypto 包装，不向宿主增加密码或平台方法 |
+
+账号与不透明凭据统一交给 AccountManager；设备状态写入适配器专属 Host 分区，保存时剔除 `session*` 字段。曲目 MID、数字歌曲 ID 和音频 media ID 分开处理；缺少 MID 的目录曲目按数字 ID 补全，明确不存在的曲目保留不可用占位。游标绑定请求和页大小。
+
+播放仅接受已识别的明文音质前缀与扩展名，并以曲目目录中的完整大小核对资源 HEAD。拒绝试听、未知完整性、加密文件和禁止的音质降级。播放地址与凭据不进入公开元数据或诊断正文；缓存与失效沿用宿主规则。
 
 ## 构建
 
-准备 Rust `wasm32-unknown-unknown` target、Node／pnpm、WAC，以及项目既有原生依赖。分别安装本目录和 `packages/wasm-crypto` 锁定依赖（`npm ci`）。设置 `NONS_WAC_BIN` 为 WAC 路径；Windows 本地默认 `.local/tools/bin/wac.exe`。
-
-在仓库根目录运行：
+准备项目要求的 Rust 工具链、`wasm32-unknown-unknown` target 和 cargo-component 0.21.1。在仓库根目录执行：
 
 ```powershell
 node adapters/qqmusic/scripts/build.mjs
-node --test adapters/qqmusic/tests/*.test.mjs
 ```
 
-生成 `dist/adapter.component.wasm`，复制 Component、描述符和许可到应用资源。正常 Tauri 开发／打包入口先执行此构建；首次环境仍需安装上述工具。Node 仅用于构建和测试。
+构建使用本目录 Cargo.lock，生成 `dist/adapter.component.wasm`，并将 Component、描述符与许可复制到应用随包资源。正常 Tauri 开发／打包入口调用同一脚本；QQ 构建不再需要 npm 协议包、ComponentizeJS、WAC 或组合密码组件。其他 JS 适配器仍按各自构建要求安装依赖。
 
-## 验证口径
+## 测试入口
 
-Component 测试执行真正组合的 JS／Rust 产物，用受控 Host fixture 验证搜索、详情、双扫码初始化、订阅就绪、设备状态及释放；不代表真实手机登录完成。原生显式测试 `music::external::acceptance::qq_component_live_search_and_optional_login` 验证 Wasmtime 与公网接口；`NONS_QQ_QR_METHOD=qq,wechat` 依次等待用户扫码。该测试使用隔离的临时账号库与测试凭据存储，不修改正式账号库。
+```powershell
+cargo test --manifest-path adapters/qqmusic/Cargo.toml --locked
+node --test adapters/qqmusic/tests/component.test.mjs
+```
 
-2026-10-15 本机调试构建验收：Windows 11 x64（10.0.26300）、Intel Core Ultra 9 275HX、24 个逻辑处理器、31.4 GiB 内存；共享编译池仅使用两个工作线程。组件大小 13,771,829 字节。以下均为单次观察，不是平均值或分位数，不代表发布版、整个应用启动或其他机器性能：
+Component 测试必须先重新构建 Rust 产物；jco 与 WASIShim 沿用 `packages/wasm-crypto` 的锁定开发工具依赖。Rust 模型单测和受控 Host 测试不能替代真实手机扫码、刷新、音质与播放验收。
 
-| 场景               | 测量范围                                        | 耗时      |
-| ------------------ | ----------------------------------------------- | --------- |
-| 优化前、无编译缓存 | 原生适配器完整加载，含编译、实例化及描述符验证  | 137.83 秒 |
-| 优化后、空缓存     | 相同组件的原生适配器完整加载                    | 8.77 秒   |
-| 优化后、已有缓存   | 新引擎重新加载并执行描述符验证                  | 0.459 秒  |
-| 另一进程、已有缓存 | 单独测量 `Component::new`，命中计数确认磁盘复用 | 0.443 秒  |
+## 协议依据与许可
 
-独立的空缓存编译测得 9.348 秒；与完整加载的测量属于不同运行。该次缓存目录共 3 个文件、约 21.5 MiB，不是内存占用。实现复用 Wasmtime 原生缓存与 512 MiB 软限制，并优化调试构建中主要编译器依赖；缓存位置、失效与回收见[缓存约定](../../docs/cache-and-local.md#wasm-编译结果缓存)。
-
-通过源码／编译配置失效、损坏恢复、引擎重建命中及目录不可用回归，原生库测试 190 项通过（8 项显式跳过）；大歌单受控 Host 调用通过。相同轮次的公网搜索返回 `SourceUnavailable`，不能据此声称在线搜索与播放验收通过。真实界面冷启动、手机登录、实际播放、峰值内存及跨平台性能仍须单独验证。
+平台协议依据 `@yakult-green-tea/qq-music-api@3.1.4`，保留 [MIT 许可](LICENSE.qq-music-api)。密码算法使用 RustCrypto，MQTT 数据包使用 mqttbytes 编解码，日期使用 time；依赖版本由 Cargo.lock 固定，构建脚本收集 WASM 生产依赖的许可证为 `LICENSE.dependencies`。

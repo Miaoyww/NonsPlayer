@@ -1,82 +1,82 @@
-import { readFile, writeFile, mkdir, stat } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
+import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { resolve, dirname } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-import { bundle } from './bundle.mjs'
+import { fileURLToPath } from 'node:url'
+
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(project, '../..')
-const output = resolve(project, 'dist')
-const { componentize } = await import(
-  pathToFileURL(
-    resolve(
-      root,
-      'packages/wasm-crypto/node_modules/@bytecodealliance/componentize-js/src/componentize.js'
-    )
-  ).href
+const target = resolve(project, 'target')
+const env = { ...process.env, CARGO_TARGET_DIR: target }
+const result = spawnSync(
+  'cargo',
+  [
+    'component',
+    'build',
+    '--manifest-path',
+    resolve(project, 'Cargo.toml'),
+    '--target',
+    'wasm32-unknown-unknown',
+    '--release',
+    '--locked'
+  ],
+  { cwd: root, stdio: 'inherit', env }
 )
-function run(executable, args) {
-  const result = spawnSync(executable, args, { cwd: root, stdio: 'inherit' })
-  if (result.error) throw result.error
-  if (result.status !== 0) throw new Error(`Build failed: ${executable}`)
+if (result.error) throw result.error
+if (result.status !== 0) process.exit(result.status ?? 1)
+
+const wasm = resolve(target, 'wasm32-unknown-unknown/release/nons_adapter_qqmusic.wasm')
+if ((await stat(wasm)).size > 32 * 1024 * 1024)
+  throw new Error('Adapter exceeds component size limit')
+
+// Resolve production WASM dependencies so distributed notices follow the lockfile.
+const metadata = spawnSync(
+  'cargo',
+  [
+    'metadata',
+    '--manifest-path',
+    resolve(project, 'Cargo.toml'),
+    '--locked',
+    '--format-version',
+    '1',
+    '--filter-platform',
+    'wasm32-unknown-unknown'
+  ],
+  { cwd: root, encoding: 'utf8', env }
+)
+if (metadata.error) throw metadata.error
+if (metadata.status !== 0) throw new Error(metadata.stderr)
+const notices = []
+for (const dependency of JSON.parse(metadata.stdout)
+  .packages.filter((entry) => entry.source)
+  .sort((a, b) => a.name.localeCompare(b.name))) {
+  notices.push(
+    `${dependency.name}@${dependency.version} (${dependency.license ?? 'see upstream'})\n${dependency.repository ?? ''}`
+  )
+  const directory = dirname(dependency.manifest_path)
+  for (const name of (await readdir(directory)).filter((name) =>
+    /^(license|copying|notice)([.-]|$)/i.test(name)
+  )) {
+    const path = resolve(directory, name)
+    if ((await stat(path)).isFile()) notices.push(await readFile(path, 'utf8'))
+  }
 }
-const guest = await bundle(output)
-run('cargo', [
-  'build',
-  '--manifest-path',
-  resolve(root, 'packages/wasm-crypto/Cargo.toml'),
-  '--locked',
-  '--release',
-  '--target',
-  'wasm32-unknown-unknown'
-])
-const cryptoWit = await readFile(resolve(root, 'packages/wasm-crypto/wit/crypto.wit'), 'utf8')
-const hostWit = await readFile(resolve(root, 'packages/adapter-host/wit/host.wit'), 'utf8')
-const pluginWit = await readFile(resolve(root, 'plugins/wit/plugin.wit'), 'utf8')
-const hostInterface = hostWit.slice(
-  hostWit.indexOf('interface transport'),
-  hostWit.indexOf('\nworld host')
-)
-const witWorld =
-  pluginWit.replace(
-    '  import host;',
-    '  import host;\n  import nons:crypto/primitives@1.0.0;\n  import nons:host/transport@1.0.0;'
-  ) +
-  '\npackage nons:crypto@1.0.0 {\n' +
-  cryptoWit.split('\n').slice(1).join('\n') +
-  '\n}\npackage nons:host@1.0.0 {\n' +
-  hostInterface +
-  '\n}'
-const js = await componentize({
-  sourcePath: guest,
-  witWorld,
-  worldName: 'plugin',
-  disableFeatures: ['stdio', 'http', 'fetch-event'],
-  env: {}
-})
-await writeFile(resolve(output, 'js.component.wasm'), js.component)
-const jco = resolve(root, 'packages/wasm-crypto/node_modules/@bytecodealliance/jco/dist/jco.js')
-const cryptoComponent = resolve(output, 'crypto.component.wasm')
-run(process.execPath, [
-  jco,
-  'new',
-  resolve(root, 'packages/wasm-crypto/target/wasm32-unknown-unknown/release/nons_wasm_crypto.wasm'),
-  '-o',
-  cryptoComponent
-])
-const component = resolve(output, 'adapter.component.wasm')
-run(
-  process.env.NONS_WAC_BIN ??
-    (process.platform === 'win32' ? resolve(root, '.local/tools/bin/wac.exe') : 'wac'),
-  ['plug', resolve(output, 'js.component.wasm'), '--plug', cryptoComponent, '-o', component]
-)
-if ((await stat(component)).size > 32 * 1024 * 1024)
-  throw new Error('Adapter exceeds approved temporary package limit')
+
+const output = resolve(project, 'dist')
 const bundled = resolve(root, 'app/src-tauri/bundled-adapters/qqmusic')
+await mkdir(output, { recursive: true })
 await mkdir(bundled, { recursive: true })
-for (const name of ['adapter.component.wasm', 'LICENSE.qq-music-api'])
-  await writeFile(resolve(bundled, name), await readFile(resolve(output, name)))
-await writeFile(
-  resolve(bundled, 'manifest.json'),
-  await readFile(resolve(project, 'manifest.json'))
+await writeFile(resolve(output, 'LICENSE.dependencies'), notices.join('\n\n'))
+await copyFile(wasm, resolve(output, 'adapter.component.wasm'))
+for (const destination of [output, bundled]) {
+  await copyFile(resolve(project, 'manifest.json'), resolve(destination, 'manifest.json'))
+  await copyFile(
+    resolve(project, 'LICENSE.qq-music-api'),
+    resolve(destination, 'LICENSE.qq-music-api')
+  )
+}
+await copyFile(resolve(output, 'LICENSE.dependencies'), resolve(bundled, 'LICENSE.dependencies'))
+await copyFile(
+  resolve(output, 'adapter.component.wasm'),
+  resolve(bundled, 'adapter.component.wasm')
 )
-console.log(`Built adapter: ${component}`)
+console.log(`Built Rust QQ adapter: ${resolve(output, 'adapter.component.wasm')}`)

@@ -1,4 +1,4 @@
-// Executes the real composed JS/Rust Component. Node is a test runner only.
+// Executes the Rust Component with controlled Host fixtures. Node is a test runner only.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile, mkdir } from 'node:fs/promises'
@@ -38,6 +38,37 @@ const fixtureTrack = {
   album: { mid: 'AlbumMID', name: '专辑' },
   file: { media_mid: 'AudioMID', size_128mp3: 4096, size_320mp3: 4096, size_flac: 4096 }
 }
+function mqttPublish(type, payload = null) {
+  const utf8 = (value) => {
+    const bytes = Buffer.from(value)
+    return Buffer.concat([Buffer.from([bytes.length >> 8, bytes.length & 255]), bytes])
+  }
+  const variable = (value) => {
+    const bytes = []
+    do {
+      let b = value % 128
+      value = Math.floor(value / 128)
+      if (value) b |= 128
+      bytes.push(b)
+    } while (value)
+    return Buffer.from(bytes)
+  }
+  const properties = Buffer.concat([Buffer.from([0x26]), utf8('type'), utf8(type)])
+  const body = Buffer.concat([
+    utf8('fixture-qr'),
+    variable(properties.length),
+    properties,
+    payload === null ? Buffer.alloc(0) : Buffer.from(JSON.stringify(payload))
+  ])
+  return Buffer.concat([Buffer.from([0x30]), variable(body.length), body])
+}
+const mqttCredentials = () =>
+  mqttPublish('cookies', {
+    cookies: {
+      qqmusic_uin: { value: '42' },
+      qqmusic_key: { value: 'fixture-exchange-token' }
+    }
+  })
 async function component({
   credential = null,
   rejectRefresh = false,
@@ -45,6 +76,8 @@ async function component({
   searchFailureCode = 2001,
   searchFailureLevel = 'root',
   rejectDesktopSearch = false,
+  beforeSuback = [],
+  afterSuback = [],
   resource = 'full',
   flacSize = 4096,
   songDetail = fixtureTrack,
@@ -263,7 +296,12 @@ async function component({
           : new TextEncoder().encode(typeof body === 'string' ? body : JSON.stringify(body))
       return { status, headers: [{ name: 'content-type', value: 'application/json' }], body: bytes }
     },
-    websocketOpen() {
+    websocketOpen(url, protocol, timeoutMs) {
+      assert.equal(protocol, 'mqtt')
+      assert.ok(
+        timeoutMs >= 1 && timeoutMs <= 15000,
+        'connection budget must satisfy the real Host contract'
+      )
       sockets.add(1)
       return 1
     },
@@ -272,13 +310,24 @@ async function component({
         frames.push({ tag: 'binary', val: { socket, data: new Uint8Array([0x20, 3, 0, 0, 0]) } })
       if (data[0] >> 4 === 8) {
         subscribed = true
-        frames.push({ tag: 'binary', val: { socket, data: new Uint8Array([0x90, 4, 0, 1, 0, 0]) } })
+        frames.push({
+          tag: 'binary',
+          val: {
+            socket,
+            data: Buffer.concat([
+              ...beforeSuback,
+              Buffer.from([0x90, 4, 0, 1, 0, 0]),
+              ...afterSuback
+            ])
+          }
+        })
       }
     },
     websocketClose(socket) {
       sockets.delete(socket)
     },
-    nextEvent() {
+    nextEvent(timeoutMs) {
+      assert.ok(timeoutMs <= 1000, 'event wait must satisfy the real Host contract')
       return frames.shift()
     },
     credentialRead() {
@@ -512,6 +561,95 @@ for (const [searchFailureCode, attempts] of [
       fixture.instance.shutdown()
     }
   })
+
+test('QQ consumes a PUBLISH coalesced after SUBACK without waiting for another frame', async () => {
+  const fixture = await component({ afterSuback: [mqttPublish('scanned')] })
+  try {
+    const begin = fixture.start('qq')
+    assert.equal(begin.status, 'ok')
+    const progress = fixture.call('music.account', {
+      operation: 'pollLogin',
+      key: begin.data.data.key
+    })
+    assert.equal(progress.status, 'ok')
+    assert.equal(progress.data.data.code, 802)
+  } finally {
+    fixture.instance.shutdown()
+  }
+})
+
+test('QQ terminal confirmation ignores a later timeout queued before SUBACK', async () => {
+  const fixture = await component({ beforeSuback: [mqttCredentials(), mqttPublish('timeout')] })
+  try {
+    const begin = fixture.start('qq')
+    assert.equal(begin.status, 'ok')
+    const progress = fixture.call('music.account', {
+      operation: 'pollLogin',
+      key: begin.data.data.key
+    })
+    assert.equal(progress.status, 'ok')
+    assert.equal(progress.data.data.code, 803)
+    assert.equal(fixture.published().record.reference.id, '42')
+  } finally {
+    fixture.instance.shutdown()
+  }
+})
+
+test('QQ reconstructs a confirmation split across WebSocket frames', async () => {
+  const fixture = await component()
+  try {
+    const begin = fixture.start('qq')
+    assert.equal(begin.status, 'ok')
+    const packet = mqttCredentials()
+    for (const bytes of [packet.subarray(0, 1), packet.subarray(1, 4)]) {
+      assert.equal(
+        fixture.event({ kind: 'binary', socket: 1, data: bytes.toString('base64') }).status,
+        'ok'
+      )
+    }
+    const waiting = fixture.call('music.account', {
+      operation: 'pollLogin',
+      key: begin.data.data.key
+    })
+    assert.equal(waiting.data.data.code, 801)
+    assert.equal(fixture.published(), null)
+    assert.equal(
+      fixture.event({ kind: 'binary', socket: 1, data: packet.subarray(4).toString('base64') })
+        .status,
+      'ok'
+    )
+    const progress = fixture.call('music.account', {
+      operation: 'pollLogin',
+      key: begin.data.data.key
+    })
+    assert.equal(progress.data.data.code, 803)
+    assert.equal(fixture.published().record.reference.id, '42')
+    assert.equal(fixture.sockets.size, 0)
+  } finally {
+    fixture.instance.shutdown()
+  }
+})
+
+test('QQ rejects an excessive MQTT packet batch and releases the challenge transport', async () => {
+  const fixture = await component()
+  try {
+    const begin = fixture.start('qq')
+    assert.equal(begin.status, 'ok')
+    const batch = Buffer.from(Array.from({ length: 33 }, () => [0xd0, 0]).flat())
+    const event = fixture.event({ kind: 'binary', socket: 1, data: batch.toString('base64') })
+    assert.equal(event.status, 'ok')
+    const progress = fixture.call('music.account', {
+      operation: 'pollLogin',
+      key: begin.data.data.key
+    })
+    assert.equal(progress.data.data.code, 800)
+    assert.equal(fixture.sockets.size, 0)
+    assert.equal(fixture.published(), null)
+    assert.ok(fixture.diagnostics.some((entry) => entry.stage === 'mqtt.event-count'))
+  } finally {
+    fixture.instance.shutdown()
+  }
+})
 
 for (const method of ['qq', 'wechat'])
   test(`actual Component ${method} QR bootstrap uses Rust crypto and excludes session keys from device state`, async () => {

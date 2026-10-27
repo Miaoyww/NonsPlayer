@@ -106,8 +106,7 @@ async fn gdstudio_component_resolves_under_native_host_budget() {
     assert_eq!(response["data"]["headers"], serde_json::json!([]));
 }
 
-// Runs the composed interpreter under the same fuel budget as a real request.
-// The JS/Node Component harness does not meter Wasmtime fuel.
+// Runs the actual Component under the same memory and wall-clock budgets as real requests.
 #[tokio::test]
 #[ignore = "Requires built QQ Component; deterministic Host, no network or credentials"]
 async fn qq_component_large_playlist_respects_page_and_execution_budget() {
@@ -374,6 +373,26 @@ async fn gdstudio_component_live_resource() {
 #[tokio::test]
 #[ignore = "Requires built QQ Component and direct public internet; optional QR scan requires a human"]
 async fn qq_component_live_search_and_optional_login() {
+    struct ProtocolDiagnostics;
+    impl log::Log for ProtocolDiagnostics {
+        fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
+            metadata.target() == "nons::adapter"
+        }
+        fn log(&self, record: &log::Record<'_>) {
+            if self.enabled(record.metadata()) {
+                let message = record.args().to_string();
+                // Host diagnostic records contain only validated source/stage/class/code tokens.
+                if message.starts_with("source=") {
+                    eprintln!("{message}");
+                }
+            }
+        }
+        fn flush(&self) {}
+    }
+    static DIAGNOSTICS: ProtocolDiagnostics = ProtocolDiagnostics;
+    if log::set_logger(&DIAGNOSTICS).is_ok() {
+        log::set_max_level(log::LevelFilter::Warn);
+    }
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let package = root.join("adapters/qqmusic");
     let manifest: serde_json::Value =
@@ -493,6 +512,13 @@ async fn qq_component_live_search_and_optional_login() {
             serde_json::to_vec(&serde_json::json!({"image":image})).unwrap(),
         )
         .unwrap();
+        if std::env::var("NONS_QQ_QR_BOOTSTRAP_ONLY").as_deref() == Ok("1") {
+            adapter.cancel_login(&key);
+            assert!(adapter.sessions.is_empty());
+            assert!(accounts.session(&source).account.is_none());
+            eprintln!("QR bootstrap and cancellation verified ({method}); phone confirmation not attempted");
+            continue;
+        }
         eprintln!("QR ready ({method}); waiting up to 180 seconds for phone confirmation");
         let deadline = Instant::now() + std::time::Duration::from_secs(180);
         loop {
