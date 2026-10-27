@@ -157,7 +157,7 @@ jobs:
 
   release:
     name: Publish GitHub Release
-    needs: [build]
+    needs: [build, build_android]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

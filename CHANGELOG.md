@@ -6,6 +6,8 @@
 
 ### 插件与工具
 
+- Release CI 恢复 Android ARM64 试用 APK 构建与校验，并新增 Linux 编译检查；Android APK 继续作为 Artifact 提供，不随 Release 分发。
+
 - QQ 音乐适配器改用 Rust WASM 组件，保留只读目录、曲库、双扫码登录和明文播放的适配器接口；构建不再依赖 QQ 的 JavaScript 协议包和 JS 引擎。
 
 ### 设置
