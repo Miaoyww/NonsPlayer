@@ -72,8 +72,16 @@ export function useMusicOptions() {
 
 export function QualitySelect() {
   const { options, busy, error, update } = useMusicOptions()
-  const { actualQuality } = usePlayer('actualQuality')
+  const state = usePlayer('actualQuality', 'queue', 'index')
   const [open, setOpen] = useState(false)
+  const track = state.index === null ? undefined : state.queue[state.index]
+  if (track?.source.kind === 'local') {
+    return (
+      <span className="local-quality-indicator" aria-label="歌曲来源：本地音乐" title="本地音乐">
+        本地音乐
+      </span>
+    )
+  }
   return (
     <div className="quality-control flex flex-col gap-1" data-open={open}>
       <Select
@@ -89,7 +97,7 @@ export function QualitySelect() {
           size="sm"
           className="border-transparent"
           aria-label="音质"
-          title={`偏好音质：${qualities.find((q) => q.value === options.quality)?.label ?? options.quality} · 实际音质：${actualQuality ?? '尚未播放'}`}
+          title={`偏好音质：${qualities.find((q) => q.value === options.quality)?.label ?? options.quality} · 实际音质：${state.actualQuality ?? '尚未播放'}`}
         >
           <SelectValue />
         </SelectTrigger>

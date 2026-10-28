@@ -276,6 +276,19 @@
     max-width 260ms,
     opacity 160ms;
 }
+.local-quality-indicator {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
 .playback-capsule:is(
     [data-hover-expanded='true'],
     :has(.capsule-main:is(:hover, :focus-within)),

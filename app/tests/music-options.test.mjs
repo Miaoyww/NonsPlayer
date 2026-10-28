@@ -7,13 +7,19 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import * as jsx from 'react/jsx-runtime'
 import ts from 'typescript'
 
-function harness() {
+function harness(source = 'online') {
   const cache = new Map()
   const modules = {
     react: React,
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => false },
-    '@/lib/player': { usePlayer: () => ({ actualQuality: 'lossless' }) },
+    '@/lib/player': {
+      usePlayer: () => ({
+        actualQuality: 'lossless',
+        index: 0,
+        queue: [{ source: { kind: source } }]
+      })
+    },
     '@/components/error-notice': { ErrorNotice: () => null },
     '@/components/ui/select': Object.fromEntries(
       ['Select', 'SelectContent', 'SelectGroup', 'SelectItem', 'SelectTrigger', 'SelectValue'].map(
@@ -66,4 +72,17 @@ test('a quality control outside the provider still reports the missing provider'
     () => renderToStaticMarkup(React.createElement(options.QualitySelect)),
     /MusicOptionsProvider is required/
   )
+})
+
+test('local playback replaces the quality selector with its source label', () => {
+  const options = harness('local')()
+  const markup = renderToStaticMarkup(
+    React.createElement(
+      options.MusicOptionsProvider,
+      null,
+      React.createElement(options.QualitySelect)
+    )
+  )
+  assert.match(markup, /本地音乐/)
+  assert.doesNotMatch(markup, /Hi-Res/)
 })
