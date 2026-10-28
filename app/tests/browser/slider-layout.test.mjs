@@ -105,12 +105,10 @@ test('playback sliders stay inside scroll containers and fill the exact numeric 
     '100%'
   )
   assert.deepEqual(
-    await page
-      .locator('#range [data-slot="slider-range"]')
-      .evaluate((element) => ({
-        start: element.style.insetInlineStart,
-        size: element.style.width
-      })),
+    await page.locator('#range [data-slot="slider-range"]').evaluate((element) => ({
+      start: element.style.insetInlineStart,
+      size: element.style.width
+    })),
     { start: '35%', size: '30%' }
   )
   assert.deepEqual(errors, [])

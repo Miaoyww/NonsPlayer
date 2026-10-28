@@ -61,11 +61,7 @@ function findPageScrollElement(main: HTMLElement) {
   )
 }
 
-function restorePageScroll(
-  element: HTMLElement,
-  positions: Map<number, number>,
-  entryKey: number
-) {
+function restorePageScroll(element: HTMLElement, positions: Map<number, number>, entryKey: number) {
   const position = positions.get(entryKey)
   if (position === undefined || element.scrollTop === position) return
   const maxScrollTop = Math.max(0, element.scrollHeight - element.clientHeight)
@@ -100,9 +96,7 @@ function usePageScrollRestoration(entryKey: number) {
       next.addEventListener('scroll', save, { passive: true })
 
       const restore = () => restorePageScroll(next, positions.current, entryKey)
-      const timers = [0, 50, 150, 300, 600, 1200].map((delay) =>
-        window.setTimeout(restore, delay)
-      )
+      const timers = [0, 50, 150, 300, 600, 1200].map((delay) => window.setTimeout(restore, delay))
       const resizeObserver =
         typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(restore)
       resizeObserver?.observe(next)
