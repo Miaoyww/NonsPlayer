@@ -2,7 +2,7 @@
 
 记录已实现的用户可见变化；Unreleased 用于汇总下一次发布的 Release Notes。
 
-## [Unreleased]
+## [1.8.8] - 2026-10-29
 
 ### 稳定性修复
 
