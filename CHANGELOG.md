@@ -4,11 +4,11 @@
 
 ## [Unreleased]
 
-## [1.8.4] - 2026-10-27
+## [1.8.5] - 2026-10-28
 
-![NonsPlayer v1.8.4 本地封面与播放体验改进头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.4/docs/release-assets/header-1.8.4.png)
+![NonsPlayer v1.8.5 本地封面与播放体验改进头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.5/docs/release-assets/header-1.8.5.png)
 
-NonsPlayer 1.8.4 改进本地与在线封面的显示、缓存和重建体验，并完善日志入口与 QQ 音乐适配器。本次正式发布面向 **Windows x64**，提供 MSI、EXE 安装包与免安装便携 ZIP。Android ARM64 试用 APK 仅作为 GitHub Actions Artifact 保存 14 天；Linux 本次仅做编译检查，不提供对应安装包。
+NonsPlayer 1.8.5 改进本地与在线封面的显示、缓存和重建体验，并完善日志入口与 QQ 音乐适配器。本次 Release 同步提供 **Windows x64、Linux x64 和 Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供调试签名试用 APK。
 
 ### 插件与工具
 

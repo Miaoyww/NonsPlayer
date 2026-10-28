@@ -66,13 +66,29 @@ jobs:
         run: python scripts/release.py notes $env:RELEASE_TAG .local/release-notes.md
 
       - name: Install frontend dependencies
-        run: pnpm --dir app install --frozen-lockfile
+        run: |
+          pnpm --dir app install --frozen-lockfile
+          npm ci --prefix adapters/gdstudio --include=dev
+          npm ci --prefix packages/wasm-crypto --include=dev
+
+      - name: Install adapter build tools
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install cargo-component --version 0.21.1 --locked
+          cargo install wac-cli --version 0.12.0 --locked --root .local/tools
+          $env:PATH = "$(Resolve-Path .local/tools/bin);$env:PATH"
+          "PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Test release scripts
         run: python -m unittest discover -s scripts/tests
 
       - name: Prepare Android SDK
         run: python scripts/bootstrap-android.py --accept-licenses
+
+      - name: Build bundled adapters
+        run: |
+          pnpm --dir app adapters:build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build and verify Android APK
         run: pnpm --dir app build:android
@@ -231,12 +247,13 @@ jobs:
           compression-level: 0
           retention-days: 14
 
-  check_linux:
-    name: Check Linux compilation
+  build_linux:
+    name: Build Linux x64 packages
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 120
     env:
       CARGO_TERM_COLOR: always
+      RELEASE_TAG: ${{ github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -252,26 +269,77 @@ jobs:
             patchelf \
             libsecret-1-dev \
             libdbus-1-dev \
-            libfontconfig-dev
+            libfontconfig-dev \
+            libssl-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: '1.95.0'
+          targets: wasm32-unknown-unknown
           components: rustfmt
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: app/src-tauri -> target
-          shared-key: linux-check
+          shared-key: linux-build
 
-      - name: Check Rust compilation
-        run: cargo check --manifest-path app/src-tauri/Cargo.toml --lib --locked
+      - name: Install frontend and adapter dependencies
+        run: |
+          pnpm --dir app install --frozen-lockfile
+          pnpm --dir plugins/netease-download install --frozen-lockfile
+          npm ci --prefix adapters/gdstudio --include=dev
+          npm ci --prefix packages/wasm-crypto --include=dev
+
+      - name: Install adapter build tools
+        run: |
+          cargo install cargo-component --version 0.21.1 --locked
+          cargo install wac-cli --version 0.12.0 --locked --root .local/tools
+          echo "$PWD/.local/tools/bin" >> "$GITHUB_PATH"
+
+      - name: Build bundled adapters and plugins
+        run: |
+          pnpm --dir app adapters:build
+          pnpm --dir app plugins:build
+
+      - name: Build Linux AppImage and deb
+        run: pnpm --dir app tauri build --ci --bundles appimage,deb -- --locked
+
+      - name: Collect Linux packages and checksums
+        run: python scripts/release.py linux-files "$RELEASE_TAG" .local/linux-release-files
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nons-linux-x64
+          path: .local/linux-release-files/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
 
   release:
     name: Publish GitHub Release
-    needs: [build, build_android, check_linux]
+    needs: [build, build_android, build_linux]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -290,17 +358,30 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: python scripts/release.py notes "$RELEASE_TAG" .local/release-notes.md
 
-      - name: Download build artifacts
+      - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
           name: nons-windows-x64
-          path: artifacts
+          path: artifacts/windows
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nons-android-arm64
+          path: artifacts/android
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nons-linux-x64
+          path: artifacts/linux
 
       - name: Verify artifact checksums
-        working-directory: artifacts
         run: |
           set -euo pipefail
-          sha256sum --check SHA256SUMS.txt
+          (cd artifacts/windows && sha256sum --check SHA256SUMS.txt)
+          (cd artifacts/android && sha256sum --check SHA256SUMS-android.txt)
+          (cd artifacts/linux && sha256sum --check SHA256SUMS-linux.txt)
 
       - name: Create or update GitHub Release
         shell: bash
@@ -316,7 +397,9 @@ jobs:
             gh release create "$TAG" --repo "$REPO" --title "Nons $TAG" \
               --verify-tag --draft --notes-file .local/release-notes.md
           fi
-          for file in artifacts/*; do
+          find artifacts/windows artifacts/android artifacts/linux -type f \
+            ! -name 'SHA256SUMS.txt' ! -name 'SHA256SUMS-android.txt' ! -name 'SHA256SUMS-linux.txt' \
+            -print0 | while IFS= read -r -d '' file; do
             gh release upload "$TAG" "$file" --repo "$REPO" --clobber
           done
           gh release edit "$TAG" --repo "$REPO" --draft=false
@@ -324,7 +407,7 @@ jobs:
       - name: Generate mirror updater feed
         env:
           RELEASE_TAG: ${{ github.ref_name }}
-        run: python scripts/update-manifest.py "$RELEASE_TAG" artifacts .local/release-notes.md --base-url "https://download.miaoyww.top/nons/releases/$RELEASE_TAG" --output .local/r2-latest.json
+        run: python scripts/update-manifest.py "$RELEASE_TAG" artifacts/windows .local/release-notes.md --base-url "https://download.miaoyww.top/nons/releases/$RELEASE_TAG" --output .local/r2-latest.json
 
       - name: Install R2 upload client
         run: python -m pip install 'awscli>=1.35,<2'
@@ -342,7 +425,7 @@ jobs:
           : "${AWS_SECRET_ACCESS_KEY:?Missing R2_SECRET_ACCESS_KEY}"
           : "${R2_ACCOUNT_ID:?Missing R2_ACCOUNT_ID}"
           endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-          aws s3 cp artifacts/ "s3://veto/nons/releases/$RELEASE_TAG/" --recursive \
+          aws s3 cp artifacts/windows/ "s3://veto/nons/releases/$RELEASE_TAG/" --recursive \
             --endpoint-url "$endpoint" --cache-control 'public,max-age=31536000,immutable'
           aws s3 cp .local/r2-latest.json "s3://veto/nons/releases/latest.json" \
             --endpoint-url "$endpoint" --content-type 'application/json' --cache-control 'no-cache'

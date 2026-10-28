@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "identifier": "com.miaoyww.nons",
   "build": {
-    "beforeBuildCommand": "pnpm build"
+    "beforeBuildCommand": "pnpm adapters:build && pnpm build"
   },
   "app": {
     "windows": [

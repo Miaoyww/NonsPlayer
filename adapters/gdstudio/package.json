@@ -9,5 +9,8 @@
   "dependencies": {
     "music-metadata": "11.16.1",
     "strtok3": "10.5.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.27.0"
   }
 }

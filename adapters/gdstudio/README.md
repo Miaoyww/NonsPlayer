@@ -34,7 +34,6 @@ GD音乐台只用于按已有平台歌曲 ID 获取替换音源，接入自动�
 
 ```powershell
 npm ci --prefix adapters/gdstudio
-npm ci --prefix adapters/qqmusic --include=dev
 npm ci --prefix packages/wasm-crypto --include=dev
 node adapters/gdstudio/scripts/build.mjs
 node --test adapters/gdstudio/tests/*.test.mjs

@@ -1,6 +1,6 @@
 # GitHub Release CI
 
-发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64、Android ARM64 试用 APK 和 Linux 编译检查，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。Android APK 仅作为 Artifact 提供，不随 Release 分发。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址。
+发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64、Android ARM64 试用 APK 和 Linux x64 安装包，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址；Linux 与 Android 当前仅发布附件，不接入自动更新。
 
 ## 发布前准备
 
@@ -35,10 +35,10 @@ git push origin v1.0.0
 - 校验标签与四处应用版本一致，必须存在非空的对应发布说明；不使用 Unreleased 代替。
 - 检查格式，运行前端测试、脚本测试与原生库／集成测试；构建灵动岛与测试 Component。
 - QQ 音乐适配器使用 cargo-component 0.21.1 和自身 Cargo.lock 构建，目标为 `wasm32-unknown-unknown`。GD 音源仍需按锁文件安装 `adapters/gdstudio` 与 `packages/wasm-crypto` 的 npm 开发依赖，并将 WAC 0.12.0 安装到 `.local/tools`。
-- 通过应用打包入口生成 MSI 和 NSIS EXE，音频使用系统 WebView。
+- 通过应用打包入口生成 MSI 和 NSIS EXE，音频使用系统 WebView；Linux 同一次构建生成 AppImage 与 deb，Android 构建 QQMusic、GDStudio 和 Xiaobai 并嵌入 APK。
 - 从同一次构建的主程序与 Windows 资源映射生成 `Nons_<版本>_windows_x64_portable.zip`，包含随包插件、使用说明与匹配的 `Nons.pdb` 调试符号，沿用安装包的许可文件打包策略，不包含构建缓存。安装包同样携带匹配符号，请保留以支持错误日志中的函数名与代码行号。完整解压后运行 `Nons.exe`，无需安装应用，但系统必须已有 Microsoft Edge WebView2 Runtime。
 - 前端播放测试覆盖 WebAudio 的媒体控制、进度反馈、设备选择及交叉淡入淡出；实际格式与物理输出仍需在各目标平台的系统 WebView 验收。
-- 仅收集当前版本的 MSI、EXE、便携 ZIP 和匹配源码 Manifest 的灵动岛 ZIP，生成 `SHA256SUMS.txt`；Artifact 保留 14 天，发布任务下载后再次校验哈希。缺少便携 ZIP 时阻止发布。
+- Windows 收集当前版本的 MSI、EXE、便携 ZIP 和匹配源码 Manifest 的灵动岛 ZIP，生成 `SHA256SUMS.txt`；Android 收集 APK 与 `SHA256SUMS-android.txt`；Linux 收集 AppImage、deb 与 `SHA256SUMS-linux.txt`。Artifact 保留 14 天，发布任务下载后再次校验哈希。缺少 Windows 便携 ZIP、Android APK 或任一 Linux 包时阻止发布。
 - 新 Release 先创建为草稿，上传所有附件后公开；重跑时更新说明并覆盖同名附件，已有公开 Release 保持公开。
 
 ## 权限与配置
@@ -77,7 +77,7 @@ git push origin v1.0.0
 
 关于页的累计使用人次和累计播放歌曲数在发布构建前从 `GET /v1/summary` 固定注入，并显示统计快照日期；运行时不请求接口，未注入快照时显示“暂无统计数据”。发布顺序为：先迁移并部署 API，再配置 `NONS_TELEMETRY_STATS_KEY`，最后运行客户端发布构建。
 
-Windows 安装包没有配置代码签名。Android Release CI 已暂停；本地仍可构建调试签名试用 APK，正式签名与跨版本覆盖升级仍待配置。macOS/Linux 的运行时分发尚未适配，因此未加入发布构建。
+Windows 安装包没有配置代码签名。Android Release 附件仍是调试签名试用 APK，正式签名与跨版本覆盖升级仍待配置。Linux 当前发布 AppImage 与 deb，但自动更新和真机播放验收仍待配置。
 
 ## 本地检查发布元数据
 
@@ -87,8 +87,9 @@ python -m unittest discover -s scripts/tests
 # 完成 pnpm --dir app build:release 后：
 python scripts/release.py portable v1.0.0 app/src-tauri/target/release/bundle/portable
 python scripts/release.py files v1.0.0 .local/release-files
-# 仅本地手动收集 Android 试用包（不随当前 Release 发布）：
+# 收集 Android 试用包：
 python scripts/release.py android-files v1.0.0 .local/android-release-files
+python scripts/release.py linux-files v1.0.0 .local/linux-release-files
 ```
 
 收集目录必须为空，防止把上次版本的文件一起上传。整个 CI 在 GitHub runner 上执行成功后，才能确认托管环境的构建与发布通过。

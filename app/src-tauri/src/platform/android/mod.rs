@@ -1,4 +1,5 @@
 //! Native Android capabilities; business services keep their existing contracts.
+pub(crate) mod bundled_adapters;
 pub(crate) mod credentials;
 mod favorites;
 pub(crate) mod playback;

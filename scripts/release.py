@@ -149,6 +149,20 @@ def collect_android_files(root, tag, output):
     write_assets(output, [(apk, apk.name)], "SHA256SUMS-android.txt")
 
 
+def collect_linux_files(root, tag, output):
+    version = validate_version(root, tag)
+    native = root / "app/src-tauri"
+    product = read_json(native / "tauri.conf.json")["productName"]
+    bundle = native / "target/release/bundle"
+    sources = []
+    for directory, suffix in [("appimage", ".AppImage"), ("deb", ".deb")]:
+        matches = sorted((bundle / directory).glob(f"{product}_{version}_*{suffix}"))
+        if len(matches) != 1:
+            raise ValueError(f"Expected one {directory} package for {version}, found {len(matches)}")
+        sources.append((matches[0], matches[0].name))
+    write_assets(output, sources, "SHA256SUMS-linux.txt")
+
+
 def write_assets(output, sources, checksum_name="SHA256SUMS.txt"):
     if output.exists() and any(output.iterdir()):
         raise ValueError(f"Release output must be empty: {output}")
@@ -166,7 +180,7 @@ def write_assets(output, sources, checksum_name="SHA256SUMS.txt"):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["notes", "portable", "files", "android-files"])
+    parser.add_argument("command", choices=["notes", "portable", "files", "android-files", "linux-files"])
     parser.add_argument("tag")
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
@@ -179,6 +193,8 @@ def main():
         build_portable(ROOT, args.tag, args.output)
     elif args.command == "android-files":
         collect_android_files(ROOT, args.tag, args.output)
+    elif args.command == "linux-files":
+        collect_linux_files(ROOT, args.tag, args.output)
     else:
         collect_files(ROOT, args.tag, args.output)
 

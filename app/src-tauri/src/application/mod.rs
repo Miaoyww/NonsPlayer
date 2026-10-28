@@ -929,6 +929,13 @@ pub fn run() {
                 player.clone(),
             )?;
             app.manage(plugin_manager.clone());
+            #[cfg(target_os = "android")]
+            let component_directory = {
+                let directory = data.join("bundled-adapters");
+                crate::platform::android::bundled_adapters::materialize(&directory)?;
+                directory
+            };
+            #[cfg(not(target_os = "android"))]
             let component_directory = if cfg!(debug_assertions) {
                 PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bundled-adapters")
             } else {

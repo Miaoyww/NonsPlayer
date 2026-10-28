@@ -4,9 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { builtinModules } from 'node:module'
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(project, '../..')
-const { build } = await import(
-  pathToFileURL(resolve(root, 'adapters/qqmusic/node_modules/esbuild/lib/main.js')).href
-)
+const { build } = await import('esbuild')
 const { componentize } = await import(
   pathToFileURL(
     resolve(

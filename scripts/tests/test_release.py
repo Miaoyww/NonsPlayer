@@ -179,6 +179,32 @@ class ReleaseTests(unittest.TestCase):
         (folder / "Nons-1.0.0-android-arm64-debug-compat.apk").write_bytes(apk.read_bytes())
         return apk
 
+    def linux_assets(self):
+        bundle = self.native / "target/release/bundle"
+        appimage = bundle / "appimage"
+        deb = bundle / "deb"
+        appimage.mkdir(parents=True)
+        deb.mkdir(parents=True)
+        (appimage / "Nons_1.0.0_amd64.AppImage").write_bytes(b"appimage fixture")
+        (deb / "Nons_1.0.0_amd64.deb").write_bytes(b"deb fixture")
+
+    def test_linux_collection_includes_appimage_and_deb(self):
+        self.linux_assets()
+        release.collect_linux_files(self.root, "v1.0.0", self.output)
+        self.assertEqual(
+            {path.name for path in self.output.iterdir()},
+            {"Nons_1.0.0_amd64.AppImage", "Nons_1.0.0_amd64.deb", "SHA256SUMS-linux.txt"},
+        )
+        for line in (self.output / "SHA256SUMS-linux.txt").read_text().splitlines():
+            digest, name = line.split("  ")
+            self.assertEqual(digest, hashlib.sha256((self.output / name).read_bytes()).hexdigest())
+
+    def test_missing_linux_package_blocks_collection(self):
+        self.linux_assets()
+        (self.native / "target/release/bundle/deb/Nons_1.0.0_amd64.deb").unlink()
+        with self.assertRaisesRegex(ValueError, "deb package"):
+            release.collect_linux_files(self.root, "v1.0.0", self.output)
+
     def test_android_collection_only_includes_verified_current_apk(self):
         apk = self.android_asset()
         release.collect_android_files(self.root, "v1.0.0", self.output)
