@@ -38,6 +38,7 @@ export interface MusicCollection {
   artists?: import('@/lib/player').MusicCredit[]
 }
 interface Page {
+  entryKey: number
   view: MusicView
   query: string
   collection?: MusicCollection
@@ -51,7 +52,7 @@ const NavigationContext = createContext<{
   forward: () => void
 } | null>(null)
 
-type NavigationHistory = { entries: Page[]; index: number }
+type NavigationHistory = { entries: Page[]; index: number; nextEntryKey: number }
 export function MusicNavigationProvider({ children }: { children: ReactNode }) {
   const replacement = useAggregateReplacement()
   return (
@@ -69,8 +70,9 @@ export function MusicNavigationStateProvider({
   replacement?: ReturnType<typeof useAggregateReplacement>
 }) {
   const [history, setHistory] = useState<NavigationHistory>({
-    entries: [{ view: 'library', query: '' }],
-    index: 0
+    entries: [{ entryKey: 0, view: 'library', query: '' }],
+    index: 0,
+    nextEntryKey: 1
   })
   useEffect(() => {
     // Application history is independent of the WebView's document history.
@@ -116,11 +118,12 @@ export function MusicNavigationStateProvider({
       )
         return previous
       // Bound history; navigating after going back discards the forward branch.
+      const entryKey = previous.nextEntryKey
       const entries = [
         ...previous.entries.slice(0, previous.index + 1),
-        { view, query, collection }
+        { entryKey, view, query, collection }
       ].slice(-100)
-      return { entries, index: entries.length - 1 }
+      return { entries, index: entries.length - 1, nextEntryKey: entryKey + 1 }
     })
   }
   const move = (delta: number) =>

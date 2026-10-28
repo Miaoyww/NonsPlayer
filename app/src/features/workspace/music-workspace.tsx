@@ -52,6 +52,78 @@ interface ImportReport {
   errors: string[]
 }
 
+function findPageScrollElement(main: HTMLElement) {
+  return (
+    Array.from(main.children).find(
+      (child): child is HTMLElement =>
+        child instanceof HTMLElement && child.dataset.pageScroll === 'true'
+    ) ?? null
+  )
+}
+
+function restorePageScroll(
+  element: HTMLElement,
+  positions: Map<number, number>,
+  entryKey: number
+) {
+  const position = positions.get(entryKey)
+  if (position === undefined || element.scrollTop === position) return
+  const maxScrollTop = Math.max(0, element.scrollHeight - element.clientHeight)
+  if (maxScrollTop >= position) element.scrollTop = position
+}
+
+function usePageScrollRestoration(entryKey: number) {
+  const positions = useRef(new Map<number, number>())
+
+  useEffect(() => {
+    const main = document.getElementById('music-content')
+    if (!main) return
+
+    let current: HTMLElement | null = null
+    let stopCurrent: (() => void) | undefined
+
+    const attach = () => {
+      const next = findPageScrollElement(main)
+      if (next === current) {
+        if (next) restorePageScroll(next, positions.current, entryKey)
+        return
+      }
+
+      stopCurrent?.()
+      stopCurrent = undefined
+      current = next
+      if (!next) return
+
+      const save = () => {
+        positions.current.set(entryKey, next.scrollTop)
+      }
+      next.addEventListener('scroll', save, { passive: true })
+
+      const restore = () => restorePageScroll(next, positions.current, entryKey)
+      const timers = [0, 50, 150, 300, 600, 1200].map((delay) =>
+        window.setTimeout(restore, delay)
+      )
+      const resizeObserver =
+        typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(restore)
+      resizeObserver?.observe(next)
+      stopCurrent = () => {
+        next.removeEventListener('scroll', save)
+        resizeObserver?.disconnect()
+        timers.forEach((timer) => window.clearTimeout(timer))
+      }
+    }
+
+    const mutationObserver = new MutationObserver(attach)
+    mutationObserver.observe(main, { childList: true, subtree: true })
+    attach()
+
+    return () => {
+      mutationObserver.disconnect()
+      stopCurrent?.()
+    }
+  }, [entryKey])
+}
+
 export function MusicWorkspace({
   nowPlaying,
   playerVisible,
@@ -68,6 +140,7 @@ export function MusicWorkspace({
   const [density] = useInterfaceDensity()
   const { page, navigate, back } = useMusicNavigation()
   const primaryPage = usePrimaryMusicPage()
+  usePageScrollRestoration(page.entryKey)
   const settingsSection = settingsSections.find((item) => item.id === page.query.split('/')[0])
   useAndroidBack({ nowPlaying, closePlayer: () => onNowPlayingChange(false), back })
   const view = page.view
