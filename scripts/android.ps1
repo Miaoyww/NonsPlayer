@@ -20,7 +20,11 @@ $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
 $env:NDK_HOME = Join-Path $env:ANDROID_HOME "ndk/$nonsNdkVersion"
 $env:GRADLE_USER_HOME = Join-Path $nonsAndroid 'gradle'
 $env:CARGO_PROFILE_DEV_DEBUG = '0'
-$env:RUSTFLAGS = "$env:RUSTFLAGS -C link-arg=-Wl,-z,max-page-size=16384".Trim()
+$nonsInheritedRustflags = $env:RUSTFLAGS
+# Android's page-size linker flag is only valid for the native Android target.
+# The Android beforeBuildCommand also builds wasm32 adapters, whose rust-lld
+# rejects Android linker arguments.
+$env:RUSTFLAGS = $null
 $env:PATH = (Join-Path $JavaHome 'bin') + ';' + (Join-Path $env:ANDROID_HOME 'platform-tools') + ';' + $env:PATH
 Push-Location $nonsRoot
 try {
@@ -29,12 +33,15 @@ try {
         exit $LASTEXITCODE
     }
     if ($Task -eq 'check') {
+        $env:RUSTFLAGS = @($nonsInheritedRustflags, '-C link-arg=-Wl,-z,max-page-size=16384') | Where-Object { $_ } -join ' '
         $nonsClang = Join-Path $env:NDK_HOME 'toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android24-clang.cmd'
         $env:CC_aarch64_linux_android = $nonsClang
         $env:AR_aarch64_linux_android = Join-Path $env:NDK_HOME 'toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe'
         $env:CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER = $nonsClang
         & cargo check --manifest-path app/src-tauri/Cargo.toml --lib --target aarch64-linux-android
     } else {
+        # Tauri invokes the configured beforeBuildCommand first; keep RUSTFLAGS
+        # empty so the WASM adapter builds do not inherit Android linker flags.
         & pnpm --dir app tauri android build --debug --apk --target aarch64 --ci
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         $nonsApk = Join-Path $nonsRoot 'app/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk'

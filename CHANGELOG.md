@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.8.6] - 2026-10-28
+
+![NonsPlayer v1.8.6 本地封面与播放体验改进头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.6/docs/release-assets/header-1.8.6.png)
+
+NonsPlayer 1.8.6 修复 Android 发布构建中 WASM 适配器继承原生 linker 参数导致的失败。本次 Release 继续提供 Windows x64、Linux x64 和 Android ARM64 构建附件。
+
+### 稳定性修复
+
+- 隔离 Android 原生 16KB page-size linker 参数，避免 QQMusic、GDStudio 和 Xiaobai 的 WASM 构建使用不兼容的 Android linker 选项。
+
 ## [1.8.5] - 2026-10-28
 
 ![NonsPlayer v1.8.5 本地封面与播放体验改进头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.5/docs/release-assets/header-1.8.5.png)

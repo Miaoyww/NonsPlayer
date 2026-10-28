@@ -1,7 +1,7 @@
 [package]
 name = "nons"
 default-run = "Nons"
-version = "1.8.5"
+version = "1.8.6"
 description = "A Multiple music streaming services & High performance supported music player."
 authors = ["Miaoyww"]
 edition = "2021"
