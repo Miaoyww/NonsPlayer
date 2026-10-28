@@ -32,7 +32,7 @@ function Slider({
       value={value}
       min={min}
       max={max}
-      thumbAlignment="center"
+      thumbAlignment="edge"
       {...props}
     >
       <SliderPrimitive.Control className="relative flex min-h-6 w-full touch-none items-center select-none data-disabled:opacity-50 data-vertical:h-full data-vertical:w-auto data-vertical:flex-col">
@@ -44,7 +44,18 @@ function Slider({
           <SliderPrimitive.Indicator
             data-slot="slider-range"
             className="select-none data-horizontal:h-full data-vertical:w-full"
-            style={{ backgroundColor: rangeColor }}
+            style={({ values, min, max, orientation }) => {
+              // Thumb insets constrain dragging; the fill represents numeric values.
+              const percent = (value: number) =>
+                Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
+              const start = values.length > 1 ? percent(values[0]) : 0
+              const end = percent(values[values.length - 1])
+              return {
+                backgroundColor: rangeColor,
+                [orientation === 'vertical' ? 'bottom' : 'insetInlineStart']: `${start}%`,
+                [orientation === 'vertical' ? 'height' : 'width']: `${end - start}%`
+              }
+            }}
           />
         </SliderPrimitive.Track>
         {Array.from({ length: thumbCount }, (_, index) => (
