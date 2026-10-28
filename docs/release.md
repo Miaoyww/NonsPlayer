@@ -49,6 +49,9 @@ git push origin v1.0.0
 | -------- | ------------------------------------ | -------------------------------------------------------- |
 | Secret   | `TAURI_SIGNING_PRIVATE_KEY`          | Tauri updater 私钥正文，与 tauri.conf.json 的公钥对应    |
 | Secret   | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码；无密码密钥可留空                               |
+| Secret   | `ANDROID_KEY_ALIAS`                  | Android upload keystore 的别名                           |
+| Secret   | `ANDROID_KEY_PASSWORD`               | Android upload keystore 密码                             |
+| Secret   | `ANDROID_KEY_BASE64`                 | Android upload keystore 的 Base64 内容                   |
 | Secret   | `NONS_TELEMETRY_INGEST_KEY`          | nons-api 上报密钥，构建时嵌入 Rust；不能使用统计读取密钥 |
 | Secret   | `NONS_TELEMETRY_STATS_KEY`           | 读取发布构建统计快照；仅在构建步骤使用，不进入产物       |
 | Secret   | `R2_ACCESS_KEY_ID`                   | 允许写入 veto 桶的 R2 S3 凭据 ID                         |
@@ -77,7 +80,7 @@ git push origin v1.0.0
 
 关于页的累计使用人次和累计播放歌曲数在发布构建前从 `GET /v1/summary` 固定注入，并显示统计快照日期；运行时不请求接口，未注入快照时显示“暂无统计数据”。发布顺序为：先迁移并部署 API，再配置 `NONS_TELEMETRY_STATS_KEY`，最后运行客户端发布构建。
 
-Windows 安装包没有配置代码签名。Android Release 附件仍是调试签名试用 APK，正式签名与跨版本覆盖升级仍待配置。Linux 当前发布 AppImage 与 deb，但自动更新和真机播放验收仍待配置。
+Windows MSI/NSIS 安装包没有配置 Authenticode 代码签名；CI 的 `TAURI_SIGNING_PRIVATE_KEY` 只用于 Tauri updater，不会签署安装包。Android Release 附件使用固定 upload keystore 签名，但 Google Play 上架、Play App Signing 与 AAB 发布仍待配置。Linux AppImage 与 deb 没有配置发行包签名；AppImage 的可选 GPG 签名也未启用。Linux 与 Android 发布附带的 SHA-256 校验和用于检查文件完整性，不提供独立于发布渠道的签名身份。
 
 ## 本地检查发布元数据
 

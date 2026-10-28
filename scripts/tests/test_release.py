@@ -214,6 +214,18 @@ class ReleaseTests(unittest.TestCase):
         digest, name = checksums.decode().strip().split("  ")
         self.assertEqual(digest, hashlib.sha256((self.output / name).read_bytes()).hexdigest())
 
+    def test_android_collection_prefers_signed_release_apk(self):
+        self.android_asset()
+        folder = self.root / ".local/android"
+        apk = folder / "Nons-1.0.0-android-arm64-release.apk"
+        apk.write_bytes(b"signed release apk fixture")
+        checksum = hashlib.sha256(apk.read_bytes()).hexdigest()
+        apk.with_suffix(".apk.sha256").write_text(f"{checksum}  {apk.name}\n", encoding="ascii")
+
+        release.collect_android_files(self.root, "v1.0.0", self.output)
+
+        self.assertEqual({p.name for p in self.output.iterdir()}, {apk.name, "SHA256SUMS-android.txt"})
+
     def test_missing_android_apk_or_checksum_blocks_collection(self):
         apk = self.android_asset()
         apk.unlink()

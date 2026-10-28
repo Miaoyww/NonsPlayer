@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 稳定性修复
+
+- Android Release APK 改用固定 upload keystore 签名，便于跨版本覆盖安装。
+
 ### 音乐库与发现
 
 - 封面卡片标题遇到连续下划线等不可断行字符时可在卡片宽度内换行。

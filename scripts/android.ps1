@@ -1,6 +1,7 @@
 param(
     [ValidateSet('init', 'check', 'build')][string]$Task = 'build',
-    [string]$JavaHome = $env:JAVA_HOME
+    [string]$JavaHome = $env:JAVA_HOME,
+    [switch]$Release
 )
 $ErrorActionPreference = 'Stop'
 $nonsRoot = Split-Path $PSScriptRoot -Parent
@@ -44,31 +45,61 @@ try {
         $env:CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER = $nonsClang
         & cargo check --manifest-path app/src-tauri/Cargo.toml --lib --target aarch64-linux-android
     } else {
+        $nonsBuildType = if ($Release) { 'release' } else { 'debug' }
+        $nonsKeystoreProperties = Join-Path $nonsRoot 'app/src-tauri/gen/android/keystore.properties'
+        if ($Release) {
+            $nonsLocalSigningEnv = Join-Path $nonsAndroid 'android-signing.env'
+            if (-not $env:ANDROID_KEYSTORE_PATH -and (Test-Path -LiteralPath $nonsLocalSigningEnv)) {
+                $nonsLocalSigning = @{}
+                foreach ($nonsLine in Get-Content -LiteralPath $nonsLocalSigningEnv) {
+                    $nonsParts = $nonsLine -split '=', 2
+                    if ($nonsParts.Count -eq 2) { $nonsLocalSigning[$nonsParts[0]] = $nonsParts[1] }
+                }
+                $env:ANDROID_KEY_ALIAS = $nonsLocalSigning['ANDROID_KEY_ALIAS']
+                $env:ANDROID_KEY_PASSWORD = $nonsLocalSigning['ANDROID_KEY_PASSWORD']
+                $env:ANDROID_KEYSTORE_PATH = $nonsLocalSigning['ANDROID_KEYSTORE_PATH']
+            }
+            if (-not $env:ANDROID_KEY_ALIAS -or -not $env:ANDROID_KEY_PASSWORD -or -not $env:ANDROID_KEYSTORE_PATH) {
+                throw 'Android release signing requires ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD, and ANDROID_KEYSTORE_PATH.'
+            }
+            if (-not (Test-Path -LiteralPath $env:ANDROID_KEYSTORE_PATH -PathType Leaf)) {
+                throw 'Android release keystore file does not exist.'
+            }
+            $nonsStoreFile = $env:ANDROID_KEYSTORE_PATH.Replace('\', '/')
+            $nonsProperties = @(
+                "keyAlias=$($env:ANDROID_KEY_ALIAS)"
+                "password=$($env:ANDROID_KEY_PASSWORD)"
+                "storeFile=$nonsStoreFile"
+            ) -join "`n"
+            [System.IO.File]::WriteAllText($nonsKeystoreProperties, $nonsProperties + "`n", [System.Text.UTF8Encoding]::new($false))
+        }
         # Tauri invokes the configured beforeBuildCommand first; keep RUSTFLAGS
         # empty so the WASM adapter builds do not inherit Android linker flags.
-        & pnpm --dir app tauri android build --debug --apk --target aarch64 --ci
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        $nonsApk = Join-Path $nonsRoot 'app/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk'
+        $nonsBuildArgs = @('tauri', 'android', 'build', '--apk', '--target', 'aarch64', '--ci')
+        if (-not $Release) { $nonsBuildArgs += '--debug' }
+        & pnpm --dir app @nonsBuildArgs
+        if ($LASTEXITCODE -ne 0) { throw "Android $nonsBuildType build failed with exit code $LASTEXITCODE" }
+        $nonsApk = Join-Path $nonsRoot "app/src-tauri/gen/android/app/build/outputs/apk/universal/$nonsBuildType/app-universal-$nonsBuildType.apk"
         & python scripts/verify-android-apk.py $nonsApk
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if ($LASTEXITCODE -ne 0) { throw "Android $nonsBuildType APK verification failed with exit code $LASTEXITCODE" }
         $nonsSignature = & (Join-Path $env:ANDROID_HOME 'build-tools/37.0.0/apksigner.bat') verify --verbose --print-certs $nonsApk
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if ($LASTEXITCODE -ne 0) { throw "Android $nonsBuildType APK signature verification failed with exit code $LASTEXITCODE" }
         $nonsSignature | Write-Host
         # Default verification starts at minSdk 24 and can skip the V1 scheme.
         # Verify at API 23 as well to explicitly test the JAR signature.
         $nonsJarSignature = & (Join-Path $env:ANDROID_HOME 'build-tools/37.0.0/apksigner.bat') verify --verbose --min-sdk-version 23 $nonsApk 2>$null
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if ($LASTEXITCODE -ne 0) { throw "Android $nonsBuildType APK legacy signature verification failed with exit code $LASTEXITCODE" }
         foreach ($nonsScheme in @('v1', 'v2', 'v3')) {
             if (-not ($nonsJarSignature -match "Verified using $nonsScheme scheme .*: true")) {
                 throw "APK is missing required $nonsScheme signature"
             }
         }
         & (Join-Path $env:ANDROID_HOME 'build-tools/37.0.0/zipalign.exe') -c -P 16 4 $nonsApk
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if ($LASTEXITCODE -ne 0) { throw "Android $nonsBuildType APK zip alignment verification failed with exit code $LASTEXITCODE" }
         $nonsVersion = (Get-Content -Raw 'app/package.json' | ConvertFrom-Json).version
-        $nonsOutput = Join-Path $nonsAndroid "Nons-$nonsVersion-android-arm64-debug.apk"
+        $nonsOutput = Join-Path $nonsAndroid "Nons-$nonsVersion-android-arm64-$nonsBuildType.apk"
         Copy-Item -LiteralPath $nonsApk -Destination $nonsOutput
-        Copy-Item -LiteralPath $nonsApk -Destination (Join-Path $nonsAndroid "Nons-$nonsVersion-android-arm64-debug-compat.apk")
+        Copy-Item -LiteralPath $nonsApk -Destination (Join-Path $nonsAndroid "Nons-$nonsVersion-android-arm64-$nonsBuildType-compat.apk")
         $nonsHash = [System.Security.Cryptography.SHA256]::Create()
         $nonsStream = [System.IO.File]::OpenRead($nonsOutput)
         try {

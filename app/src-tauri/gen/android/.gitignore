@@ -15,6 +15,7 @@ build
 local.properties
 key.properties
 keystore.properties
+.kotlin
 
 /.tauri
 /tauri.settings.gradle

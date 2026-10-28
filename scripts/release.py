@@ -138,7 +138,12 @@ def collect_files(root, tag, output):
 
 def collect_android_files(root, tag, output):
     version = validate_version(root, tag)
-    apk = root / ".local/android" / f"Nons-{version}-android-arm64-debug.apk"
+    android_dir = root / ".local/android"
+    candidates = [
+        android_dir / f"Nons-{version}-android-arm64-release.apk",
+        android_dir / f"Nons-{version}-android-arm64-debug.apk",
+    ]
+    apk = next((candidate for candidate in candidates if candidate.is_file()), candidates[-1])
     checksum = apk.with_suffix(".apk.sha256")
     if not apk.is_file() or not checksum.is_file():
         raise ValueError(f"Missing verified Android APK or checksum: {apk}")

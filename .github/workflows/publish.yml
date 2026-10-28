@@ -91,7 +91,24 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build and verify Android APK
-        run: pnpm --dir app build:android
+        env:
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_BASE64: ${{ secrets.ANDROID_KEY_BASE64 }}
+        run: |
+          if (-not $env:ANDROID_KEY_ALIAS) { throw 'Missing ANDROID_KEY_ALIAS' }
+          if (-not $env:ANDROID_KEY_PASSWORD) { throw 'Missing ANDROID_KEY_PASSWORD' }
+          if (-not $env:ANDROID_KEY_BASE64) { throw 'Missing ANDROID_KEY_BASE64' }
+          $keystore = Join-Path $env:RUNNER_TEMP 'nons-upload-keystore.jks'
+          [IO.File]::WriteAllBytes($keystore, [Convert]::FromBase64String($env:ANDROID_KEY_BASE64))
+          $env:ANDROID_KEYSTORE_PATH = $keystore
+          try {
+            pnpm --dir app build:android:release
+            if ($LASTEXITCODE -ne 0) { throw "Android release build failed with exit code $LASTEXITCODE" }
+          } finally {
+            Remove-Item -Force -ErrorAction SilentlyContinue $keystore
+            Remove-Item -Force -ErrorAction SilentlyContinue app/src-tauri/gen/android/keystore.properties
+          }
 
       - name: Collect Android APK and checksum
         run: python scripts/release.py android-files $env:RELEASE_TAG .local/android-release-files
