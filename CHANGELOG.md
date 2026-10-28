@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 稳定性修复
+
+- 修复 Android ARM64 APK 的原生库未按 16KB page size 对齐，导致发布构建校验失败的问题。
+
 ## [1.8.7] - 2026-10-28
 
 ![NonsPlayer v1.8.7 本地封面与播放体验改进头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.7/docs/release-assets/header-1.8.7.png)

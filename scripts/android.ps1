@@ -25,6 +25,11 @@ $nonsInheritedRustflags = $env:RUSTFLAGS
 # The Android beforeBuildCommand also builds wasm32 adapters, whose rust-lld
 # rejects Android linker arguments.
 $env:RUSTFLAGS = $null
+$nonsAndroidRustflags = (@(
+    $nonsInheritedRustflags
+    '-C link-arg=-Wl,-z,max-page-size=16384'
+) | Where-Object { $_ }) -join ' '
+$env:CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS = $nonsAndroidRustflags
 $env:PATH = (Join-Path $JavaHome 'bin') + ';' + (Join-Path $env:ANDROID_HOME 'platform-tools') + ';' + $env:PATH
 Push-Location $nonsRoot
 try {
@@ -33,7 +38,6 @@ try {
         exit $LASTEXITCODE
     }
     if ($Task -eq 'check') {
-        $env:RUSTFLAGS = @($nonsInheritedRustflags, '-C link-arg=-Wl,-z,max-page-size=16384') | Where-Object { $_ } -join ' '
         $nonsClang = Join-Path $env:NDK_HOME 'toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android24-clang.cmd'
         $env:CC_aarch64_linux_android = $nonsClang
         $env:AR_aarch64_linux_android = Join-Path $env:NDK_HOME 'toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.exe'
