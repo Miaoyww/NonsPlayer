@@ -323,7 +323,7 @@ jobs:
           pnpm --dir app plugins:build
 
       - name: Build Linux AppImage and deb
-        run: pnpm --dir app tauri build --ci --bundles appimage,deb -- --locked
+        run: pnpm --dir app tauri build --ci --bundles appimage,deb --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked
 
       - name: Collect Linux packages and checksums
         run: python scripts/release.py linux-files "$RELEASE_TAG" .local/linux-release-files

@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.8.7] - 2026-10-28
+
+![NonsPlayer v1.8.7 本地封面与播放体验改进头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.7/docs/release-assets/header-1.8.7.png)
+
+NonsPlayer 1.8.7 修复 Linux 发布构建在生成 AppImage 与 deb 后错误尝试生成 updater 签名的问题。本次 Release 继续提供 Windows x64、Linux x64 和 Android ARM64 构建附件。
+
+### 稳定性修复
+
+- Linux 构建显式关闭 updater artifacts，仅发布 AppImage、deb 和校验文件；Windows 更新签名流程保持不变。
+
 ## [1.8.6] - 2026-10-28
 
 ![NonsPlayer v1.8.6 本地封面与播放体验改进头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.8.6/docs/release-assets/header-1.8.6.png)
