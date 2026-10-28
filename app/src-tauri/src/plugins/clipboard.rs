@@ -1,12 +1,12 @@
 use super::PluginManager;
 use crate::model::AppResult;
-use clipboard_rs::{Clipboard, ClipboardContext, ClipboardHandler};
 #[cfg(not(windows))]
-use clipboard_rs::{ClipboardWatcher, ClipboardWatcherContext};
+use clipboard_rs::{ClipboardHandler, ClipboardWatcher, ClipboardWatcherContext};
 use std::{
     sync::{Arc, Weak},
     time::Duration,
 };
+use tauri_plugin_clipboard_manager::ClipboardExt;
 pub enum Shutdown {
     #[cfg(windows)]
     Windows(clipboard_win::monitor::Shutdown),
@@ -25,29 +25,35 @@ impl Shutdown {
 }
 
 struct Handler {
-    context: ClipboardContext,
     manager: Weak<PluginManager>,
 }
-impl ClipboardHandler for Handler {
-    fn on_clipboard_change(&mut self) {
+impl Handler {
+    fn on_change(&mut self) {
         let Some(manager) = self.manager.upgrade() else {
             return;
         };
         if !manager.has_clipboard_subscribers() {
             return;
         }
-        let Ok(text) = read_context(&self.context) else {
+        let Ok(text) = read_text(&manager.app) else {
             return;
         };
         // Coalesce changes; the host does not interpret clipboard contents.
         manager.queue_clipboard(text);
     }
 }
+#[cfg(not(windows))]
+impl ClipboardHandler for Handler {
+    fn on_clipboard_change(&mut self) {
+        self.on_change();
+    }
+}
 pub const MAX_TEXT: usize = 16 * 1024;
 
-fn read_context(context: &ClipboardContext) -> AppResult<String> {
-    let text = context
-        .get_text()
+pub fn read_text(app: &tauri::AppHandle) -> AppResult<String> {
+    let text = app
+        .clipboard()
+        .read_text()
         .inspect_err(|error| {
             crate::infrastructure::diagnostics::warn("plugins.clipboard.read_text", error);
         })
@@ -58,10 +64,6 @@ fn read_context(context: &ClipboardContext) -> AppResult<String> {
     Ok(text)
 }
 
-pub fn read_text() -> AppResult<String> {
-    let context = ClipboardContext::new().map_err(|e| e.to_string())?;
-    read_context(&context)
-}
 #[cfg(windows)]
 pub fn start(manager: &Arc<PluginManager>) -> AppResult<Shutdown> {
     let manager = Arc::downgrade(manager);
@@ -71,8 +73,7 @@ pub fn start(manager: &Arc<PluginManager>) -> AppResult<Shutdown> {
         .spawn(move || {
             let result = (|| {
                 let monitor = clipboard_win::Monitor::new().map_err(|e| e.to_string())?;
-                let context = ClipboardContext::new().map_err(|e| e.to_string())?;
-                Ok::<_, String>((monitor, Handler { context, manager }))
+                Ok::<_, String>((monitor, Handler { manager }))
             })();
             match result {
                 Ok((mut monitor, mut handler)) => {
@@ -83,7 +84,7 @@ pub fn start(manager: &Arc<PluginManager>) -> AppResult<Shutdown> {
                         return;
                     }
                     while let Ok(true) = monitor.recv() {
-                        handler.on_clipboard_change();
+                        handler.on_change();
                     }
                 }
                 Err(error) => {
@@ -106,12 +107,10 @@ pub fn start(manager: &Arc<PluginManager>) -> AppResult<Shutdown> {
 }
 #[cfg(not(windows))]
 pub fn start(manager: &Arc<PluginManager>) -> AppResult<Shutdown> {
-    let context = ClipboardContext::new().map_err(|e| format!("剪贴板不可用: {e}"))?;
     let mut watcher = ClipboardWatcherContext::new_with_interval(Duration::from_millis(500))
         .map_err(|e| e.to_string())?;
     let shutdown = watcher
         .add_handler(Handler {
-            context,
             manager: Arc::downgrade(manager),
         })
         .get_shutdown_channel();

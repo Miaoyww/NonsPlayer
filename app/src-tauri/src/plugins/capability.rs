@@ -96,9 +96,12 @@ impl Context {
             }
             "clipboard.read-text" => {
                 self.check(Some("clipboard:read"))?;
-                let text = tauri::async_runtime::spawn_blocking(super::clipboard::read_text)
-                    .await
-                    .map_err(|e| e.to_string())??;
+                let app = self.app.clone();
+                let text =
+                    tauri::async_runtime::spawn_blocking(move || super::clipboard::read_text(&app))
+                        .await
+                        .map_err(|e| e.to_string())??;
+                self.check(Some("clipboard:read"))?;
                 Value::String(text)
             }
             "http.request" => {

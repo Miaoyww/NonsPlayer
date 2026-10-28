@@ -13,6 +13,7 @@
     "opener:default",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "clipboard-manager:allow-write-text"
   ]
 }

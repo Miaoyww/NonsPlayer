@@ -818,6 +818,7 @@ pub fn run() {
     let app = builder
         .register_uri_scheme_protocol("plugin", plugins::protocol)
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             crate::infrastructure::diagnostics::initialize(app.handle());

@@ -35,6 +35,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 tracing-error = "0.2"
 tauri = { version = "2", features = ["protocol-asset", "unstable"] }
 tauri-plugin-opener = "2"
+tauri-plugin-clipboard-manager = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 nons-music-adapter-sdk = { path = "../../packages/music-adapter-sdk" }
@@ -86,8 +87,10 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-updater = { version = "2.14.0", default-features = false, features = ["rustls-tls", "system-proxy"] }
 font-kit = "0.14"
-clipboard-rs = { version = "=0.3.5", default-features = false, features = ["image"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif", "bmp", "tiff"] }
+
+[target.'cfg(all(not(target_os = "android"), not(windows)))'.dependencies]
+clipboard-rs = { version = "=0.3.5", default-features = false }
 
 [dev-dependencies]
 aes = "0.8"
@@ -103,9 +106,6 @@ keyring = { version = "3.6", features = ["windows-native"] }
 sysproxy = "0.3"
 glob = "0.3"
 winreg = "0.55"
-
-[target.'cfg(windows)'.dev-dependencies]
-windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { version = "3.6", features = ["apple-native"] }

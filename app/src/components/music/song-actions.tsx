@@ -32,6 +32,7 @@ import {
   type ReactNode
 } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
+import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 import { nativeCall, formatTime, errorText, type Track } from '@/lib/player'
 import {
   Dialog,
@@ -160,7 +161,7 @@ export function SongActionsProvider({
     if (!text || copying.current) return
     copying.current = true
     try {
-      await navigator.clipboard.writeText(text)
+      await writeText(text)
       setCopyMessage('已复制')
       onNotice('已复制到剪贴板。')
     } catch (cause) {

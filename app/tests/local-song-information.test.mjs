@@ -5,11 +5,13 @@ import { readFileSync } from 'node:fs'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import { test } from 'node:test'
 import ts from 'typescript'
-function harness() {
+function harness(writeText = async () => {}) {
   const slots = [],
     effects = [],
     calls = [],
-    copied = []
+    copied = [],
+    errors = [],
+    notices = []
   let cursor = 0
   const jsx = (type, props) => ({ type, props })
   const modules = {
@@ -58,6 +60,12 @@ function harness() {
       }
     },
     '@tauri-apps/api/core': { isTauri: () => true },
+    '@tauri-apps/plugin-clipboard-manager': {
+      writeText: async (value) => {
+        await writeText(value)
+        copied.push(value)
+      }
+    },
     '@base-ui/react/context-menu': { ContextMenu: {} },
     'lucide-react': {},
     '@/plugins/song-menu': { PluginSongMenuItems: () => null },
@@ -106,7 +114,6 @@ function harness() {
   runInNewContext(code, {
     exports,
     Date,
-    navigator: { clipboard: { writeText: async (value) => copied.push(value) } },
     require: (name) => {
       if (name === '@/components/error-notice') return errorNoticeModule
       assert.ok(name === '@/features/music/references' || name in modules, name)
@@ -117,10 +124,8 @@ function harness() {
     cursor = 0
     const tree = exports.SongActionsProvider({
       children: null,
-      onError: (error) => {
-        throw error
-      },
-      onNotice() {}
+      onError: (error) => errors.push(error),
+      onNotice: (message) => notices.push(message)
     })
     effects.splice(0).forEach((fn) => fn())
     return tree
@@ -132,7 +137,7 @@ function harness() {
       ...[tree.props?.children].flat(Infinity).flatMap((child) => nodes(child, type))
     ]
   }
-  return { render, nodes, calls, copied }
+  return { render, nodes, calls, copied, errors, notices }
 }
 const track = {
   key: 'local:1',
@@ -188,4 +193,23 @@ test('streaming details retain structured artist and album IDs', async () => {
   assert.match(h.copied[0], /歌手 ID：42/)
   assert.match(h.copied[0], /专辑 ID：99/)
   assert.doesNotMatch(h.copied[0], /采样率|路径：/)
+})
+
+test('official clipboard errors reach the user and allow retry', async () => {
+  const failure = new Error('clipboard unavailable')
+  let fail = true
+  const h = harness(async () => {
+    if (fail) throw failure
+  })
+  h.render().props.value.copy('Song - Singer')
+  await settle()
+  assert.deepEqual(h.errors, [failure])
+  assert.deepEqual(h.copied, [])
+  assert.deepEqual(h.notices, [])
+
+  fail = false
+  h.render().props.value.copy('Song - Singer')
+  await settle()
+  assert.deepEqual(h.copied, ['Song - Singer'])
+  assert.deepEqual(h.notices, ['已复制到剪贴板。'])
 })

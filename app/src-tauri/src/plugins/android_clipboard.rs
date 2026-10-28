@@ -8,7 +8,7 @@ pub struct Shutdown;
 impl Shutdown {
     pub fn stop(self) {}
 }
-pub fn read_text() -> AppResult<String> {
+pub fn read_text(_app: &tauri::AppHandle) -> AppResult<String> {
     Err("Android 试用版暂不支持插件剪贴板访问".into())
 }
 pub fn start(_manager: &Arc<PluginManager>) -> AppResult<Shutdown> {

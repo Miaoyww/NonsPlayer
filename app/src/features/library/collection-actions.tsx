@@ -19,6 +19,7 @@ import {
   type ReactNode
 } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
+import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 import { errorText } from '@/lib/player'
 import { getLibraryTracks, playMusicCollection } from '@/features/library/library-api'
 import {
@@ -178,7 +179,7 @@ export function CollectionActionsProvider({
         copy: (item) => {
           const url = link(item)
           if (!url) return
-          void navigator.clipboard.writeText(url).then(() => onNotice('已复制分享链接。'), onError)
+          void writeText(url).then(() => onNotice('已复制分享链接。'), onError)
         }
       }}
     >
