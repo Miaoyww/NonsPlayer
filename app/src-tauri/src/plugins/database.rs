@@ -207,10 +207,6 @@ impl Database {
             .map_err(|_| "存储值必须为 JSON")?;
         let mut db = self.lock()?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
-        let total: i64 = tx.query_row("SELECT coalesce(sum(length(CAST(key AS BLOB))+length(CAST(value AS BLOB))),0) FROM storage WHERE plugin=?1 AND key!=?2", params![id,key], |r| r.get(0)).map_err(|e| e.to_string())?;
-        if total + (key.len() + value.len()) as i64 > 1024 * 1024 {
-            return Err("插件存储超过 1MiB".into());
-        }
         tx.execute("INSERT INTO storage VALUES(?1,?2,?3) ON CONFLICT(plugin,key) DO UPDATE SET value=excluded.value", params![id,key,value]).map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())
     }
@@ -226,7 +222,7 @@ impl Database {
     }
 }
 fn check_key(key: &str) -> AppResult<()> {
-    if key.is_empty() || key.len() > 128 {
+    if key.is_empty() {
         Err("存储键无效".into())
     } else {
         Ok(())
@@ -298,12 +294,17 @@ mod tests {
         assert!(db.enabled(&manifest.id, &manifest.authorization()).unwrap());
     }
     #[test]
-    fn storage_isolation_and_quota() {
+    fn storage_isolation_and_value_limit() {
         let db = Database::open(Path::new(":memory:")).unwrap();
         db.set("a", "key", "123").unwrap();
         assert_eq!(db.get("b", "key").unwrap(), None);
         db.delete("b", "key").unwrap();
         assert_eq!(db.get("a", "key").unwrap().as_deref(), Some("123"));
+        let long_key = "k".repeat(129);
+        db.set("a", &long_key, "123").unwrap();
+        assert_eq!(db.get("a", &long_key).unwrap().as_deref(), Some("123"));
+        db.delete("a", &long_key).unwrap();
+        assert!(db.set("a", "", "123").is_err());
         assert!(db
             .set("a", "large", &format!("\"{}\"", "a".repeat(65536)))
             .is_err());
