@@ -278,15 +278,16 @@
 }
 .local-quality-indicator {
   display: inline-flex;
-  min-height: 22px;
+  height: 32px;
   align-items: center;
   justify-content: center;
-  padding: 1px 6px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 18px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--input) 30%, transparent);
+  color: var(--foreground);
+  font-size: 14px;
+  line-height: 20px;
   white-space: nowrap;
 }
 .playback-capsule:is(

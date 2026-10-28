@@ -77,9 +77,17 @@ export function QualitySelect() {
   const track = state.index === null ? undefined : state.queue[state.index]
   if (track?.source.kind === 'local') {
     return (
-      <span className="local-quality-indicator" aria-label="歌曲来源：本地音乐" title="本地音乐">
-        本地音乐
-      </span>
+      <div className="quality-control flex flex-col gap-1" data-open={false}>
+        <span
+          className="local-quality-indicator"
+          data-slot="select-trigger"
+          data-size="sm"
+          aria-label="歌曲来源：本地音乐"
+          title="本地音乐"
+        >
+          本地音乐
+        </span>
+      </div>
     )
   }
   return (
