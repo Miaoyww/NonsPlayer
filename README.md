@@ -6,8 +6,9 @@
 
 [![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
 [![Tauri](https://img.shields.io/badge/Tauri-2.0-24C8DB?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)](#)
-[![license](https://img.shields.io/github/license/Miaoywww/NeteaseCloudMusicControl?style=flat-square)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android-lightgrey?style=flat-square)](#)
+![License](https://img.shields.io/github/license/Miaoyww/NonsPlayer)
+
 
 **轻量 | 全平台 | 流媒体&本地**
 
