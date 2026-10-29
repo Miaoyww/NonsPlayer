@@ -1,0 +1,13 @@
+{
+  "id": "sample-plugin",
+  "name": "示例插件",
+  "description": "Nons 插件模板，构建后可在设置 → 插件中安装。",
+  "version": "0.1.0",
+  "frontend": "ui.mjs",
+  "permissions": ["ui"],
+  "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" },
+  "contributes": {
+    "pages": [{ "id": "home", "path": "/", "export": "HomePage" }],
+    "navigation": [{ "id": "home-entry", "label": "示例插件", "page": "home" }]
+  }
+}

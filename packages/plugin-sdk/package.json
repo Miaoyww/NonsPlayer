@@ -1,8 +1,60 @@
 {
-  "name": "@app/plugin-sdk",
+  "name": "@nonsplayer/plugin-sdk",
   "version": "2.1.0",
+  "description": "Nons 插件类型、WIT 契约、Manifest schema 与构建 CLI",
+  "nons": {
+    "pluginApi": "2.1.0",
+    "uiApi": "2.1.0"
+  },
+  "license": "GPL-3.0-only",
   "type": "module",
-  "types": "index.d.ts",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts"
+    },
+    "./music": {
+      "types": "./music.d.ts"
+    },
+    "./native": {
+      "types": "./native.d.ts"
+    },
+    "./schemas/manifest.schema.json": "./schemas/manifest.schema.json",
+    "./wit/plugin.wit": "./wit/plugin.wit",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "nons-plugin": "./bin/nons-plugin.mjs"
+  },
+  "files": [
+    "index.d.ts",
+    "music.d.ts",
+    "native.d.ts",
+    "bin",
+    "lib",
+    "template",
+    "wit",
+    "schemas",
+    "README.md"
+  ],
+  "scripts": {
+    "sync:assets": "node scripts/sync-assets.mjs",
+    "pretest": "node scripts/sync-assets.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "prepack": "node scripts/sync-assets.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.20.0",
+  "dependencies": {
+    "@types/react": "^19.1.8",
+    "ajv": "^8.20.0",
+    "fflate": "^0.8.3",
+    "semver": "^7.8.5",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.16"
+  },
   "peerDependencies": {
     "react": "^19.1.0"
   }

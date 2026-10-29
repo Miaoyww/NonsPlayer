@@ -1,0 +1,14 @@
+{
+  "name": "nons-plugin-sample-plugin",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "nons-plugin build"
+  },
+  "devDependencies": {
+    "@nonsplayer/plugin-sdk": "^2.1.0",
+    "@types/react": "^19.1.8",
+    "react": "^19.1.0"
+  }
+}
