@@ -213,7 +213,6 @@ jobs:
         run: |
           pnpm --dir app install --frozen-lockfile
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          pnpm --dir plugins/netease-download install --frozen-lockfile
 
       - name: Install adapter build dependencies
         run: |
@@ -363,7 +362,6 @@ jobs:
       - name: Install frontend and adapter dependencies
         run: |
           pnpm --dir app install --frozen-lockfile
-          pnpm --dir plugins/netease-download install --frozen-lockfile
           npm ci --prefix adapters/gdstudio --include=dev
           npm ci --prefix packages/wasm-crypto --include=dev
 

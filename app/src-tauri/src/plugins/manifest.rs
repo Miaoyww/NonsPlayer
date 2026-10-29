@@ -455,9 +455,26 @@ mod tests {
     }
     #[test]
     fn validates_tool_and_rejects_unsupported_file_scope() {
-        let mut manifest: Manifest = serde_json::from_str(include_str!(
-            "../../../../plugins/ncm-converter/manifest.json"
-        ))
+        let mut manifest: Manifest = serde_json::from_str(
+            r#"{
+                "id": "ncm-converter",
+                "name": "NCM 格式转换",
+                "version": "1.0.0",
+                "frontend": "ui.mjs",
+                "permissions": ["ui", "files:selected"],
+                "fileRoots": ["*"],
+                "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" },
+                "contributes": {
+                    "pages": [{ "id": "convert", "path": "/", "export": "ConverterPage" }],
+                    "navigation": [{
+                        "id": "convert-entry",
+                        "label": "NCM 格式转换",
+                        "page": "convert",
+                        "category": "tool"
+                    }]
+                }
+            }"#,
+        )
         .unwrap();
         manifest.validate().unwrap();
         manifest.file_roots = vec!["C:/".into()];
@@ -468,9 +485,30 @@ mod tests {
     }
     #[test]
     fn validates_download_plugin_and_rejects_unknown_menu_targets() {
-        let value: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../../plugins/netease-download/manifest.json"
-        ))
+        let value: serde_json::Value = serde_json::from_str(
+            r#"{
+                "id": "netease-download",
+                "name": "网易云下载",
+                "version": "1.1.0",
+                "frontend": "ui.mjs",
+                "configuration": "configuration.json",
+                "permissions": ["ui", "config", "storage", "account:credentials", "player:control", "http:request", "http:transfer", "files:selected"],
+                "httpHosts": ["*"],
+                "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" },
+                "contributes": {
+                    "contextMenus": [{
+                        "id": "download",
+                        "target": "song",
+                        "source": "netease",
+                        "label": "下载",
+                        "icon": "download",
+                        "export": "downloadSong"
+                    }],
+                    "pages": [{ "id": "downloads", "path": "/", "export": "DownloadsPage" }],
+                    "navigation": [{ "id": "downloads-entry", "label": "下载管理", "page": "downloads" }]
+                }
+            }"#,
+        )
         .unwrap();
         serde_json::from_value::<Manifest>(value.clone())
             .unwrap()

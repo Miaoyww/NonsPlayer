@@ -232,12 +232,29 @@ fn check_key(key: &str) -> AppResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    const DOWNLOAD_MANIFEST: &str = r#"{
+        "id": "netease-download",
+        "name": "网易云下载",
+        "version": "1.1.0",
+        "frontend": "ui.mjs",
+        "permissions": ["ui", "config", "storage", "account:credentials", "player:control", "http:request", "http:transfer", "files:selected"],
+        "httpHosts": ["*"],
+        "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" }
+    }"#;
     #[test]
     fn wildcard_file_roots_require_new_authorization() {
         let db = Database::open(Path::new(":memory:")).unwrap();
-        let mut manifest: super::super::manifest::Manifest = serde_json::from_str(include_str!(
-            "../../../../plugins/ncm-converter/manifest.json"
-        ))
+        let mut manifest: super::super::manifest::Manifest = serde_json::from_str(
+            r#"{
+                "id": "ncm-converter",
+                "name": "NCM 格式转换",
+                "version": "1.0.0",
+                "frontend": "ui.mjs",
+                "permissions": ["ui", "files:selected"],
+                "fileRoots": ["*"],
+                "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" }
+            }"#,
+        )
         .unwrap();
         manifest.file_roots.clear();
         db.authorize(&manifest.id, &manifest.authorization())
@@ -266,10 +283,8 @@ mod tests {
     #[test]
     fn account_credentials_permission_requires_new_authorization() {
         let db = Database::open(Path::new(":memory:")).unwrap();
-        let new: super::super::manifest::Manifest = serde_json::from_str(include_str!(
-            "../../../../plugins/netease-download/manifest.json"
-        ))
-        .unwrap();
+        let new: super::super::manifest::Manifest =
+            serde_json::from_str(DOWNLOAD_MANIFEST).unwrap();
         let mut old = new.clone();
         old.permissions.retain(|p| p != "account:credentials");
         db.authorize(&new.id, &old.authorization()).unwrap();
@@ -280,10 +295,8 @@ mod tests {
     #[test]
     fn wildcard_http_hosts_require_new_authorization() {
         let db = Database::open(Path::new(":memory:")).unwrap();
-        let mut manifest: super::super::manifest::Manifest = serde_json::from_str(include_str!(
-            "../../../../plugins/netease-download/manifest.json"
-        ))
-        .unwrap();
+        let mut manifest: super::super::manifest::Manifest =
+            serde_json::from_str(DOWNLOAD_MANIFEST).unwrap();
         manifest.http_hosts = vec!["interface.music.163.com".into()];
         db.authorize(&manifest.id, &manifest.authorization())
             .unwrap();

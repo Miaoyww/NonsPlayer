@@ -470,9 +470,43 @@ mod tests {
     use super::*;
     #[test]
     fn download_configuration_compiles_quality_and_authorized_directory_fields() {
-        let definition: Definition = serde_json::from_str(include_str!(
-            "../../../../plugins/netease-download/configuration.json"
-        ))
+        let definition: Definition = serde_json::from_str(
+            r#"{
+                "version": 1,
+                "page": { "mode": "generated" },
+                "fields": [
+                    {
+                        "key": "quality",
+                        "title": "默认下载音质",
+                        "description": "使用插件账号可下载的音质；完成后显示实际音质。",
+                        "schema": { "type": "string", "enum": ["standard", "higher", "exhigh", "lossless", "hires"] },
+                        "default": "lossless",
+                        "apply": "live",
+                        "group": "下载",
+                        "editor": {
+                            "kind": "select",
+                            "options": [
+                                { "value": "standard", "label": "标准" },
+                                { "value": "higher", "label": "较高" },
+                                { "value": "exhigh", "label": "极高" },
+                                { "value": "lossless", "label": "无损" },
+                                { "value": "hires", "label": "Hi-Res" }
+                            ]
+                        }
+                    },
+                    {
+                        "key": "directory",
+                        "title": "默认保存目录",
+                        "description": "选择并授权读写目录；下载文件不参与播放缓存清理。",
+                        "schema": { "type": "string", "maxLength": 64 },
+                        "default": "",
+                        "apply": "live",
+                        "group": "保存",
+                        "editor": { "kind": "authorizedDirectory" }
+                    }
+                ]
+            }"#,
+        )
         .unwrap();
         let compiled = Compiled::compile(definition).unwrap();
         let (values, diagnostics) = compiled.effective(&Map::new());

@@ -32,65 +32,13 @@ async function renderTest(fn) {
   globalThis.document = dom.window.document
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   const root = createRoot(document.getElementById('root'))
-  const click = (label) =>
-    React.act(async () => {
-      const button = [...document.querySelectorAll('button')].find(
-        (button) => button.textContent === label
-      )
-      assert.ok(button, label)
-      button.click()
-    })
   try {
-    await fn(root, click)
+    await fn(root)
   } finally {
     await React.act(() => root.unmount())
     dom.window.close()
   }
 }
-
-test('converter deduplicates selection, continues after errors and skips completed files on retry', async () => {
-  await renderTest(async (root, click) => {
-    const selected = [
-      { root: '*', path: 'C:/music/bad.ncm', name: 'bad.ncm' },
-      { root: '*', path: 'C:/music/good.ncm', name: 'good.ncm' }
-    ]
-    const calls = []
-    let fail = true
-    const files = {
-      pickAudio: async () => selected,
-      decodeAudio: async (root, path) => {
-        calls.push([root, path])
-        if (path.includes('bad') && fail) throw new Error('目标已存在')
-        return { path: path.replace('.ncm', '.flac'), format: 'flac', bytes: 42 }
-      }
-    }
-    const { ConverterPage } = load('../../plugins/ncm-converter/frontend/index.tsx', {
-      react: React,
-      'react/jsx-runtime': jsx,
-      '@app/plugin-sdk': {
-        Button,
-        MusicPageHeader: Header,
-        Progress: () => null,
-        usePluginFiles: () => files
-      }
-    })
-    await React.act(() => root.render(React.createElement(ConverterPage)))
-    await click('选择 NCM 文件')
-    await click('选择 NCM 文件')
-    assert.equal(document.querySelectorAll('li').length, 2)
-    await click('开始转换')
-    assert.equal(calls.length, 2)
-    assert.match(document.body.textContent, /目标已存在/)
-    assert.match(document.body.textContent, /good.flac/)
-    fail = false
-    await click('开始转换')
-    assert.equal(calls.length, 3)
-    assert.match(document.body.textContent, /已完成 2 个/)
-    assert.ok(
-      [...document.querySelectorAll('button')].find((b) => b.textContent === '开始转换').disabled
-    )
-  })
-})
 
 test('tools page displays active tool contributions and preserves plugin page navigation', async () => {
   await renderTest(async (root) => {
