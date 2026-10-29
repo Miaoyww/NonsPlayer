@@ -4,15 +4,15 @@ Nons 在现有播放器上增量提供 `Manifest + WASM Backend + React Frontend
 
 ## 架构与文件
 
-| 部分         | 位置与职责                                                                                           |
-| ------------ | ---------------------------------------------------------------------------------------------------- |
-| Rust Host    | `app/src-tauri/src/plugins/`：Manifest、安装、管理、Wasmtime、权限、事件、存储、剪贴板与资源协议     |
-| 公共 ABI     | `plugins/wit/plugin.wit`：`nons:plugin@1.0.0`；Guest 初始化、关闭、方法调用；Host 高层 Capability    |
-| React Host   | `app/src/plugins/`：动态模块、贡献 registry、PluginSlot、PluginPageHost、生命周期与 SDK              |
-| 公共类型     | `packages/plugin-sdk/`：独立 `@app/plugin-sdk` 类型包，不引用宿主源码                                |
-| 真实插件     | `plugins/netease-island/`：独立 Rust Component 与 React UI                                           |
-| 构建         | `scripts/build-plugin.mjs`、`plugin-build-ui.mjs`、`package-plugin.py`：两端构建、React 外部化与 ZIP |
-| 测试 fixture | `plugins/runtime-fixture/`：资源耗尽／错误验证，不随包安装                                           |
+| 部分         | 位置与职责                                                                                                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Rust Host    | `app/src-tauri/src/plugins/`：Manifest、安装、管理、Wasmtime、权限、事件、存储、剪贴板与资源协议                 |
+| 公共 ABI     | `plugins/wit/plugin.wit`：`nons:plugin@1.0.0`；Guest 初始化、关闭、方法调用；Host 高层 Capability                |
+| React Host   | `app/src/plugins/`：动态模块、贡献 registry、PluginSlot、PluginPageHost、生命周期与 SDK                          |
+| 公共类型     | `packages/plugin-sdk/`：发布为 `@nonsplayer/plugin-sdk`，含类型、WIT、Manifest schema 与构建 CLI，不引用宿主源码 |
+| 真实插件     | `plugins/netease-island/`：独立 Rust Component 与 React UI                                                       |
+| 构建         | `scripts/build-plugin.mjs`、`plugin-build-ui.mjs`、`package-plugin.py`：两端构建、React 外部化与 ZIP             |
+| 测试 fixture | `plugins/runtime-fixture/`：资源耗尽／错误验证，不随包安装                                                       |
 
 宿主启动、IPC 和协议注册接入原 `lib.rs`；音乐读取经统一 MusicService／AdapterManager 路由到内置网易云适配器。App 增加通用 Provider／Slot，已有工作区和导航增加插件页面分支，设置增加插件管理。Theme 共享原偏好与 CSS tokens，播放 facade 订阅原状态及进度，不创建另一套播放器。
 
@@ -41,7 +41,17 @@ cargo component build --release --target wasm32-unknown-unknown --locked
 
 Cargo Component 根据 WIT 生成 `src/bindings.rs`，产出真正的 Component。生成的 bindings 与 target 不提交；Cargo.lock 提交。宿主只链接 Nons WIT，不提供任意 WASI filesystem、network、clipboard 或 process imports。
 
-React 从 `frontend/index.tsx` 构建 ESM。TypeScript 检查使用公开 SDK 类型；React、JSX runtime 和 SDK 保持 external，并重写到同一插件 URL 下的 `_host/` 合成模块。桥接引用宿主 React singleton，产物检查拒绝 React 副本。动态 chunk 放入 `assets/`；样式可使用宿主 CSS tokens、组件类名或插件自己的 style／资产，不依赖宿主源码路径。
+React 从 `frontend/index.tsx` 构建 ESM。TypeScript 检查使用公开 SDK 类型；React、JSX runtime 和 SDK 保持 external，并重写到同一插件 URL 下的 `_host/` 合成模块。桥接引用宿主 React singleton，产物检查拒绝 React 副本。动态 chunk 放入 `assets/`；样式可使用宿主 CSS tokens、组件类名或插件自己的 style／资产，不依赖宿主源码路径。宿主构建同时接受 `@nonsplayer/plugin-sdk` 与仓库内的 `@app/plugin-sdk` 包名。
+
+仓库外插件使用发布的 SDK：
+
+```bash
+pnpm add -D @nonsplayer/plugin-sdk react @types/react
+npx nons-plugin create my-plugin --name "我的插件"
+cd my-plugin && pnpm install && pnpm build
+```
+
+包版本独立于应用版本；包的 `nons.pluginApi`／`nons.uiApi` 元数据声明对应 API 版本，用于校验 Manifest 的 `engines` 范围。`nons-plugin build` 执行 TypeScript 检查、前端打包、Manifest 与产物校验，并生成 `<id>-<版本>.zip`；声明 `backend` 时先运行 `cargo component build`。`nons-plugin validate <manifest> --root <目录>` 单独校验 Manifest 与打包文件。WIT 位于 `node_modules/@nonsplayer/plugin-sdk/wit/plugin.wit`，Manifest schema 位于 `node_modules/@nonsplayer/plugin-sdk/schemas/manifest.schema.json`。
 
 默认产物：
 
@@ -182,7 +192,7 @@ Guest 查询歌曲失败时不产生预览，保留实例以等待后续复制�
 
 ## 新 view／page 插件
 
-新的项目沿用 `plugins/<id>/manifest.json`、可选 backend 与 `frontend/index.tsx` 结构，更新各 Cargo package 名和 SDK tsconfig 路径，再运行：
+仓库内项目沿用 `plugins/<id>/manifest.json`、可选 backend 与 `frontend/index.tsx` 结构，更新各 Cargo package 名和 SDK tsconfig 路径；仓库外项目使用 `nons-plugin create`，从发布包获取类型、WIT 与 Manifest schema。仓库内构建运行：
 
 ```powershell
 node scripts/build-plugin.mjs <id>
@@ -327,12 +337,12 @@ node scripts/build-plugin.mjs netease-download .local/plugins/netease-download
 
 ## 统一音乐客户端（ADR 0006 阶段三）
 
-宿主现已开放来源无关的音乐 DTO 和受控能力。TypeScript 定义位于 `packages/plugin-sdk/music.d.ts`，由 `@app/plugin-sdk` 导出；React 插件调用 `useMusicSource()` 的 `sources/getTrack/query/write`，WASM 后端通过既有 host.call 调用 `music.sources`、`music.read-track`、`music.query`、`music.write`。
+宿主现已开放来源无关的音乐 DTO 和受控能力。TypeScript 定义位于 `packages/plugin-sdk/music.d.ts`，随 `@nonsplayer/plugin-sdk` 发布；React 插件调用 `useMusicSource()` 的 `sources/getTrack/query/write`，WASM 后端通过既有 host.call 调用 `music.sources`、`music.read-track`、`music.query`、`music.write`。
 
 公开来源／单曲／搜索／详情读取需要 `music:metadata`，账号相关曲库、历史、推荐与喜欢读取需要 `music:library`，收藏和歌单写入需要 `music:write`。扩大权限后需要重新授权；写入权限在管理界面标为敏感。query 不能携带写操作，write 不能携带读取。后端重新判断权限、来源能力和当前账号，不依赖前端 SDK 检查。
 
 ```tsx
-import { useMusicSource } from '@app/plugin-sdk'
+import { useMusicSource } from '@nonsplayer/plugin-sdk'
 
 function SearchButton() {
   const music = useMusicSource()

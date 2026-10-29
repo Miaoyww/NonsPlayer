@@ -10,6 +10,7 @@
 
 ### 插件与工具
 
+- 发布 `@nonsplayer/plugin-sdk`，包含插件类型、WIT、Manifest schema 与 `nons-plugin` 构建 CLI；插件作者可用 `create`、`build`、`validate` 创建、打包并校验插件，宿主构建同时接受新包名与 `@app/plugin-sdk`。
 - Release 附件不再单独提供灵动岛 ZIP；灵动岛继续随安装包与便携版内置，首次启动后安装为关闭状态，可在设置 → 插件启用。
 
 ## [1.8.8] - 2026-10-29
