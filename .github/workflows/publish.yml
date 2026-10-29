@@ -13,6 +13,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  publish_plugin_sdk:
+    name: Publish plugin SDK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          cache: pnpm
+          cache-dependency-path: packages/plugin-sdk/pnpm-lock.yaml
+
+      - name: Install SDK dependencies
+        run: pnpm --dir packages/plugin-sdk install --frozen-lockfile
+
+      - name: Test SDK
+        run: pnpm --dir packages/plugin-sdk test
+
+      - name: Publish new SDK version
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./packages/plugin-sdk/package.json').version")"
+          if npm view "@nonsplayer/plugin-sdk@$version" version >/dev/null 2>&1; then
+            echo "@nonsplayer/plugin-sdk@$version 已发布，跳过"
+            exit 0
+          fi
+          : "${NODE_AUTH_TOKEN:?Missing NPM_TOKEN}"
+          npm publish ./packages/plugin-sdk --access public
+
   build_android:
     name: Build Android ARM64 APK
     runs-on: windows-2022

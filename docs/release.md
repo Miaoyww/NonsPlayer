@@ -32,6 +32,7 @@ git push origin v1.0.0
 ## CI 执行内容
 
 - 固定 Windows runner、Rust 1.95.0、Node 24、pnpm 10、Python 3.12 与 cargo-component 0.21.1；前端安装和 Rust 构建使用锁文件。
+- 独立的 SDK job 在 Ubuntu 上安装 `packages/plugin-sdk` 锁文件依赖、运行测试，并在 npm 上不存在当前版本时发布 `@nonsplayer/plugin-sdk`。
 - 校验标签与四处应用版本一致，必须存在非空的对应发布说明；不使用 Unreleased 代替。
 - 检查格式，运行前端测试、脚本测试与原生库／集成测试；构建灵动岛与测试 Component。
 - QQ 音乐适配器使用 cargo-component 0.21.1 和自身 Cargo.lock 构建，目标为 `wasm32-unknown-unknown`。GD 音源仍需按锁文件安装 `adapters/gdstudio` 与 `packages/wasm-crypto` 的 npm 开发依赖，并将 WAC 0.12.0 安装到 `.local/tools`。
@@ -45,18 +46,19 @@ git push origin v1.0.0
 
 仓库需要启用 GitHub Actions，允许 workflow 使用 `GITHUB_TOKEN` 写入 Release。构建 job 仅有 `contents: read`，发布 job 才有 `contents: write`。需配置以下 Secrets 和 Variables：
 
-| 类型     | 名称                                 | 用途                                                     |
-| -------- | ------------------------------------ | -------------------------------------------------------- |
-| Secret   | `TAURI_SIGNING_PRIVATE_KEY`          | Tauri updater 私钥正文，与 tauri.conf.json 的公钥对应    |
-| Secret   | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码；无密码密钥可留空                               |
-| Secret   | `ANDROID_KEY_ALIAS`                  | Android upload keystore 的别名                           |
-| Secret   | `ANDROID_KEY_PASSWORD`               | Android upload keystore 密码                             |
-| Secret   | `ANDROID_KEY_BASE64`                 | Android upload keystore 的 Base64 内容                   |
-| Secret   | `NONS_TELEMETRY_INGEST_KEY`          | nons-api 上报密钥，构建时嵌入 Rust；不能使用统计读取密钥 |
-| Secret   | `NONS_TELEMETRY_STATS_KEY`           | 读取发布构建统计快照；仅在构建步骤使用，不进入产物       |
-| Secret   | `R2_ACCESS_KEY_ID`                   | 允许写入 veto 桶的 R2 S3 凭据 ID                         |
-| Secret   | `R2_SECRET_ACCESS_KEY`               | 对应 R2 S3 凭据密钥                                      |
-| Variable | `R2_ACCOUNT_ID`                      | R2 所属 Cloudflare 账户 ID                               |
+| 类型     | 名称                                 | 用途                                                      |
+| -------- | ------------------------------------ | --------------------------------------------------------- |
+| Secret   | `TAURI_SIGNING_PRIVATE_KEY`          | Tauri updater 私钥正文，与 tauri.conf.json 的公钥对应     |
+| Secret   | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 私钥密码；无密码密钥可留空                                |
+| Secret   | `ANDROID_KEY_ALIAS`                  | Android upload keystore 的别名                            |
+| Secret   | `ANDROID_KEY_PASSWORD`               | Android upload keystore 密码                              |
+| Secret   | `ANDROID_KEY_BASE64`                 | Android upload keystore 的 Base64 内容                    |
+| Secret   | `NPM_TOKEN`                          | 发布 `@nonsplayer/plugin-sdk`；本地版本已发布时跳过该步骤 |
+| Secret   | `NONS_TELEMETRY_INGEST_KEY`          | nons-api 上报密钥，构建时嵌入 Rust；不能使用统计读取密钥  |
+| Secret   | `NONS_TELEMETRY_STATS_KEY`           | 读取发布构建统计快照；仅在构建步骤使用，不进入产物        |
+| Secret   | `R2_ACCESS_KEY_ID`                   | 允许写入 veto 桶的 R2 S3 凭据 ID                          |
+| Secret   | `R2_SECRET_ACCESS_KEY`               | 对应 R2 S3 凭据密钥                                       |
+| Variable | `R2_ACCOUNT_ID`                      | R2 所属 Cloudflare 账户 ID                                |
 
 私钥保存在仓库外并备份，不写入 Git；公钥随应用提交。缺少签名密钥会使发布构建失败。CI 应同时配置上报密钥，客户端开发构建与 plugin-probe 不上报；本地发布构建需自行提供同名环境变量。
 
