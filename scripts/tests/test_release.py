@@ -138,14 +138,14 @@ class ReleaseTests(unittest.TestCase):
     def test_assets_exclude_old_versions_and_have_valid_checksums(self):
         self.assets()
         release.collect_files(self.root, "v1.0.0", self.output)
-        self.assertEqual(len(list(self.output.iterdir())), 5)
+        self.assertEqual(len(list(self.output.iterdir())), 4)
         sums = (self.output / "SHA256SUMS.txt").read_bytes()
         self.assertNotIn(b"\r", sums)
         for line in sums.decode().splitlines():
             digest, name = line.split("  ")
             self.assertEqual(digest, hashlib.sha256((self.output / name).read_bytes()).hexdigest())
             self.assertNotIn("0.1.0", name)
-        self.assertTrue((self.output / "netease-island-1.3.0.zip").is_file())
+        self.assertFalse(any("netease-island" in name for name in sums.decode()))
 
     def test_partial_build_and_stale_plugin_fail(self):
         self.assets()

@@ -127,12 +127,10 @@ def collect_files(root, tag, output):
     plugin = native / "bundled-plugins/netease-island.zip"
     with zipfile.ZipFile(plugin) as archive:
         manifest = json.loads(archive.read("manifest.json"))
-    source_manifest = read_json(root / "plugins/netease-island/manifest.json")
-    if manifest != source_manifest:
+    if manifest != read_json(root / "plugins/netease-island/manifest.json"):
         raise ValueError("Bundled plugin manifest is stale; rebuild the plugin")
     if manifest["engines"]["app"] != f"^{version.split('.')[0]}.0.0":
         raise ValueError("Bundled plugin must declare compatibility with the release major version")
-    sources.append((plugin, f"netease-island-{manifest['version']}.zip"))
     write_assets(output, sources)
 
 

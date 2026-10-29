@@ -38,7 +38,7 @@ git push origin v1.0.0
 - 通过应用打包入口生成 MSI 和 NSIS EXE，音频使用系统 WebView；Linux 同一次构建生成 AppImage 与 deb，Android 构建 QQMusic、GDStudio 和 Xiaobai 并嵌入 APK。
 - 从同一次构建的主程序与 Windows 资源映射生成 `Nons_<版本>_windows_x64_portable.zip`，包含随包插件、使用说明与匹配的 `Nons.pdb` 调试符号，沿用安装包的许可文件打包策略，不包含构建缓存。安装包同样携带匹配符号，请保留以支持错误日志中的函数名与代码行号。完整解压后运行 `Nons.exe`，无需安装应用，但系统必须已有 Microsoft Edge WebView2 Runtime。
 - 前端播放测试覆盖 WebAudio 的媒体控制、进度反馈、设备选择及交叉淡入淡出；实际格式与物理输出仍需在各目标平台的系统 WebView 验收。
-- Windows 收集当前版本的 MSI、EXE、便携 ZIP 和匹配源码 Manifest 的灵动岛 ZIP，生成 `SHA256SUMS.txt`；Android 收集 APK 与 `SHA256SUMS-android.txt`；Linux 收集 AppImage、deb 与 `SHA256SUMS-linux.txt`。Artifact 保留 14 天，发布任务下载后再次校验哈希。缺少 Windows 便携 ZIP、Android APK 或任一 Linux 包时阻止发布。
+- Windows 收集当前版本的 MSI、EXE 与便携 ZIP，生成 `SHA256SUMS.txt`；Android 收集 APK 与 `SHA256SUMS-android.txt`；Linux 收集 AppImage、deb 与 `SHA256SUMS-linux.txt`。Artifact 保留 14 天，发布任务下载后再次校验哈希。缺少 Windows 便携 ZIP、Android APK 或任一 Linux 包时阻止发布。
 - 新 Release 先创建为草稿，上传所有附件后公开；重跑时更新说明并覆盖同名附件，已有公开 Release 保持公开。
 
 ## 权限与配置
