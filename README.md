@@ -9,7 +9,6 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android-lightgrey?style=flat-square)](#)
 ![License](https://img.shields.io/github/license/Miaoyww/NonsPlayer)
 
-
 **轻量 | 全平台 | 流媒体&本地**
 
 </div>
