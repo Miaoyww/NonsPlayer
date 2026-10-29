@@ -6,7 +6,7 @@ import {
   usePluginNavigate,
   usePluginRoute,
   type ConfigSnapshot
-} from '@app/plugin-sdk'
+} from '@nonsplayer/plugin-sdk'
 
 export function SettingsPage() {
   const config = usePluginConfig()

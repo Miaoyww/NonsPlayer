@@ -61,30 +61,31 @@ test('plugin page routing retains namespaces, selects longest prefixes and rejec
   assert.equal(routing.resolvePluginPage(manifest, '/settings-other').id, 'root')
 })
 
-test('lazy plugin chunks resolve the shared host modules from their asset directory', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'nons-plugin-chunks-'))
-  const project = join(directory, 'project'),
-    out = join(directory, 'out')
-  try {
-    await mkdir(join(project, 'frontend'), { recursive: true })
-    await writeFile(
-      join(project, 'frontend/index.tsx'),
-      'export const loadPage=()=>import("./page");'
-    )
-    await writeFile(
-      join(project, 'frontend/page.tsx'),
-      'import {createElement} from "react"; import {Button} from "@app/plugin-sdk"; export const Page=()=>createElement(Button);'
-    )
-    await buildFrontend(project, out, 'ui.mjs')
-    await mkdir(join(out, '_host'))
-    await writeFile(join(out, '_host/react.mjs'), 'export const createElement=(type)=>({type});')
-    await writeFile(join(out, '_host/sdk.mjs'), 'export const Button="shared-host-button";')
-    const entry = await import(pathToFileURL(join(out, 'ui.mjs')))
-    assert.equal((await entry.loadPage()).Page().type, 'shared-host-button')
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
-})
+for (const sdk of ['@nonsplayer/plugin-sdk', '@app/plugin-sdk'])
+  test(`lazy plugin chunks resolve host modules for ${sdk}`, async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'nons-plugin-chunks-'))
+    const project = join(directory, 'project'),
+      out = join(directory, 'out')
+    try {
+      await mkdir(join(project, 'frontend'), { recursive: true })
+      await writeFile(
+        join(project, 'frontend/index.tsx'),
+        'export const loadPage=()=>import("./page");'
+      )
+      await writeFile(
+        join(project, 'frontend/page.tsx'),
+        `import {createElement} from "react"; import {Button} from "${sdk}"; export const Page=()=>createElement(Button);`
+      )
+      await buildFrontend(project, out, 'ui.mjs')
+      await mkdir(join(out, '_host'))
+      await writeFile(join(out, '_host/react.mjs'), 'export const createElement=(type)=>({type});')
+      await writeFile(join(out, '_host/sdk.mjs'), 'export const Button="shared-host-button";')
+      const entry = await import(pathToFileURL(join(out, 'ui.mjs')))
+      assert.equal((await entry.loadPage()).Page().type, 'shared-host-button')
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
 
 test('real dynamic ui.mjs uses host React and scoped events, renders and cleans its timers', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'nons-plugin-ui-'))
