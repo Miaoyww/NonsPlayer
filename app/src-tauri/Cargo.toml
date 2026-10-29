@@ -42,7 +42,7 @@ nons-music-adapter-sdk = { path = "../../packages/music-adapter-sdk" }
 nons-adapter-netease = { path = "../../adapters/netease" }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
 moka = { version = "0.12", features = ["future"] }
-tokio = { version = "1", features = ["sync", "time", "fs", "macros"] }
+tokio = { version = "1", features = ["sync", "time", "fs", "macros", "io-util"] }
 rusqlite = { version = "0.38", features = ["bundled"] }
 lofty = "0.25"
 cue_lib = "0.1.0"
@@ -70,6 +70,8 @@ tokio-tungstenite = { version = "0.28", default-features = false, features = ["c
 futures-util = { version = "0.3", features = ["sink"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
 tower-http = { version = "0.6", features = ["fs"] }
+http-range = "0.1.5"
+mime_guess = "2"
 semver = "1"
 uuid = { version = "1", features = ["v4"] }
 time = { version = "0.3", features = ["formatting"] }
@@ -79,6 +81,9 @@ jsonschema = { version = "0.46", default-features = false }
 cap-std = "4"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp"] }
 jxl-oxide = { version = "0.12", default-features = false, features = ["image"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+tauri-plugin-android-fs = { version = "=30.2.0", default-features = false }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }

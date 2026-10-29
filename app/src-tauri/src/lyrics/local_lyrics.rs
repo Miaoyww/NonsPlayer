@@ -1,7 +1,7 @@
 //! On-demand local lyrics. Never populate the online runtime or TTML caches.
 use crate::model::{AppResult, Lyrics, Track, TrackSource, MAX_LYRIC_BYTES};
 use lofty::{config::ParseOptions, prelude::*, probe::Probe};
-use std::{fs::File, io::Read, path::Path};
+use std::{io::Read, path::Path};
 
 static READS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
 
@@ -30,7 +30,8 @@ fn embedded(path: &Path) -> Option<String> {
             .ok()?
             .0
     } else {
-        Probe::open(path)
+        Probe::new(crate::local::source::open(path).ok()?)
+            .guess_file_type()
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn_error(
                     "lyrics.local.embedded.open_audio",
@@ -106,7 +107,7 @@ fn read(path: &Path, skip_embedded: bool) -> AppResult<Option<Lyrics>> {
     let content = match content {
         Some(text) => text,
         None => {
-            let file = match File::open(path.with_extension("lrc")) {
+            let file = match crate::local::source::open(path.with_extension("lrc")) {
                 Ok(file) => file,
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
                 Err(error) => return Err(format!("本地歌词无法读取：{error}")),

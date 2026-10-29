@@ -71,6 +71,16 @@ struct Source {
     resolved: ResolvedTrack,
     cancelled: tokio::sync::watch::Sender<bool>,
 }
+impl Source {
+    fn authorized(&self) -> bool {
+        match &self.resolved.track.source {
+            crate::model::TrackSource::Local { path, .. } => {
+                crate::local::source::authorized(std::path::Path::new(path)).is_ok()
+            }
+            _ => true,
+        }
+    }
+}
 #[derive(Clone)]
 struct StreamState {
     source: Arc<RwLock<Option<Arc<Source>>>>,
@@ -364,6 +374,9 @@ async fn stream(
                 .filter(|s| request.uri().path().strip_prefix('/') == Some(s.token.as_str()))
         })
         .ok_or(StatusCode::NOT_FOUND)?;
+    if !source.authorized() {
+        return Err(StatusCode::GONE);
+    }
     let permit = state
         .requests
         .clone()
@@ -378,6 +391,21 @@ async fn stream(
             .await
             .map_err(|_| StatusCode::NOT_FOUND)?
             .map(Body::new)
+    } else if uri.scheme() == "nons-saf" {
+        let crate::model::TrackSource::Local { path, .. } = &source.resolved.track.source else {
+            return Err(StatusCode::BAD_GATEWAY);
+        };
+        if !crate::local::source::is_document(path) {
+            return Err(StatusCode::BAD_GATEWAY);
+        }
+        let path = std::path::PathBuf::from(path);
+        let open_path = path.clone();
+        let file =
+            tauri::async_runtime::spawn_blocking(move || crate::local::source::open(open_path))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+                .map_err(|_| StatusCode::NOT_FOUND)?;
+        super::local_stream::response(file, request.headers(), request.method(), &path).await?
     } else if matches!(uri.scheme(), "http" | "https") {
         let mut upstream = state
             .client
@@ -420,7 +448,7 @@ async fn stream(
     let stream = futures_util::stream::unfold(
         (body.into_data_stream(), cancelled, permit, source),
         |(mut body, mut cancelled, permit, source)| async move {
-            if *cancelled.borrow() {
+            if *cancelled.borrow() || !source.authorized() {
                 return None;
             }
             tokio::select! {

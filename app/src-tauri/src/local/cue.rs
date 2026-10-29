@@ -121,7 +121,7 @@ pub(super) fn parse(text: &str) -> AppResult<Sheet> {
 
 pub(super) fn read(path: &Path) -> AppResult<Sheet> {
     let mut bytes = Vec::new();
-    std::fs::File::open(path)
+    super::source::open(path)
         .map_err(|e| e.to_string())?
         .take(MAX_CUE_BYTES + 1)
         .read_to_end(&mut bytes)
@@ -133,8 +133,7 @@ pub(super) fn read(path: &Path) -> AppResult<Sheet> {
 }
 
 pub(super) fn expand(sheet: Sheet, path: &Path, base: &Track) -> AppResult<Vec<Track>> {
-    let sheet_path = path
-        .canonicalize()
+    let sheet_path = super::source::canonicalize(path)
         .map_err(|e| e.to_string())?
         .to_string_lossy()
         .trim_start_matches(r"\\?\")

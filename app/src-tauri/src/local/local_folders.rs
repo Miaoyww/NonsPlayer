@@ -13,6 +13,7 @@ use tauri::Emitter;
 #[serde(rename_all = "camelCase")]
 pub struct MusicFolder {
     pub path: String,
+    pub name: String,
     pub tracks: i64,
     pub scanning: bool,
     pub error: Option<String>,
@@ -24,7 +25,7 @@ struct Status {
 }
 pub struct LocalFolders {
     status: Mutex<Status>,
-    watcher: Mutex<RecommendedWatcher>,
+    watcher: Mutex<Option<RecommendedWatcher>>,
     scans: Mutex<()>,
     signal: mpsc::SyncSender<()>,
     store: Arc<Store>,
@@ -52,23 +53,31 @@ impl LocalFolders {
                     .ok()
             })
             .unwrap_or_default();
+        #[cfg(target_os = "android")]
+        super::source::android::initialize(app.clone(), store.clone(), &paths)?;
         let (signal, receiver) = mpsc::sync_channel(1);
+        #[cfg(not(target_os = "android"))]
         let events = signal.clone();
-        let watcher = notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
-            // Reading tags generates access notifications on some systems.
-            // Only mutations (and watcher errors requiring reconciliation) rescan.
-            let rescan = match event {
-                Ok(event) => !event.kind.is_access(),
-                Err(error) => {
-                    crate::infrastructure::diagnostics::warn("local.watch", error);
-                    true
+        #[cfg(not(target_os = "android"))]
+        let watcher = Some(
+            notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
+                // Reading tags generates access notifications on some systems.
+                // Only mutations (and watcher errors requiring reconciliation) rescan.
+                let rescan = match event {
+                    Ok(event) => !event.kind.is_access(),
+                    Err(error) => {
+                        crate::infrastructure::diagnostics::warn("local.watch", error);
+                        true
+                    }
+                };
+                if rescan {
+                    request_scan(&events);
                 }
-            };
-            if rescan {
-                request_scan(&events);
-            }
-        })
-        .map_err(|e| format!("无法监听音乐文件夹：{e}"))?;
+            })
+            .map_err(|e| format!("无法监听音乐文件夹：{e}"))?,
+        );
+        #[cfg(target_os = "android")]
+        let watcher = None;
         let service = Arc::new(Self {
             status: Mutex::new(Status {
                 paths: paths.into_iter().take(32).collect(),
@@ -105,9 +114,14 @@ impl LocalFolders {
                 })
                 .map_err(|_| "目录状态锁不可用")?;
             for path in status.paths.clone() {
-                if let Err(error) = watcher.watch(Path::new(&path), RecursiveMode::Recursive) {
-                    crate::infrastructure::diagnostics::warn("local.watch_folder", &error);
-                    status.errors.insert(path, error.to_string());
+                if super::source::is_document(&path) {
+                    continue;
+                }
+                if let Some(watcher) = watcher.as_mut() {
+                    if let Err(error) = watcher.watch(Path::new(&path), RecursiveMode::Recursive) {
+                        crate::infrastructure::diagnostics::warn("local.watch_folder", &error);
+                        status.errors.insert(path, error.to_string());
+                    }
                 }
             }
         }
@@ -156,6 +170,7 @@ impl LocalFolders {
             .map(|path| {
                 Ok(MusicFolder {
                     path: path.clone(),
+                    name: super::source::display(path),
                     tracks: self.store.origin_count(path)?,
                     scanning: status.scanning.contains(path),
                     error: status.errors.get(path).cloned(),
@@ -181,8 +196,7 @@ impl LocalFolders {
         });
     }
     pub fn add(&self, path: String) -> AppResult<()> {
-        let path = Path::new(&path)
-            .canonicalize()
+        let path = super::source::canonicalize(&path)
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn_error(
                     "local.folders.add.canonicalize",
@@ -190,7 +204,10 @@ impl LocalFolders {
                 );
             })
             .map_err(|_| "音乐文件夹不存在或无法访问")?;
-        if !path.is_dir() {
+        if !super::source::metadata(&path)
+            .map_err(|e| e.to_string())?
+            .is_dir()
+        {
             return Err("请选择音乐文件夹".into());
         }
         let path = path
@@ -224,18 +241,31 @@ impl LocalFolders {
         if status.paths.len() >= 32 {
             return Err("最多管理 32 个音乐文件夹".into());
         }
-        watcher
-            .watch(Path::new(&path), RecursiveMode::Recursive)
-            .map_err(|e| format!("无法监听此文件夹：{e}"))?;
+        if let Some(watcher) = watcher
+            .as_mut()
+            .filter(|_| !super::source::is_document(&path))
+        {
+            watcher
+                .watch(Path::new(&path), RecursiveMode::Recursive)
+                .map_err(|e| format!("无法监听此文件夹：{e}"))?;
+        }
         let mut next = status.paths.clone();
         next.push(path.clone());
         if let Err(error) = self.store.set_setting(
             "musicFolders",
             &serde_json::to_string(&next).map_err(|e| e.to_string())?,
         ) {
-            let _ = (watcher.unwatch(Path::new(&path))).inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("local.folders.add.rollback_watch", error);
-            });
+            if let Some(watcher) = watcher
+                .as_mut()
+                .filter(|_| !super::source::is_document(&path))
+            {
+                let _ = (watcher.unwatch(Path::new(&path))).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn(
+                        "local.folders.add.rollback_watch",
+                        error,
+                    );
+                });
+            }
             return Err(error);
         }
         status.paths = next;
@@ -246,6 +276,8 @@ impl LocalFolders {
         Ok(())
     }
     pub fn remove(&self, path: String) -> AppResult<()> {
+        #[cfg(target_os = "android")]
+        let _mutation = super::source::android::mutation_guard()?;
         let _scan = self
             .scans
             .lock()
@@ -283,14 +315,25 @@ impl LocalFolders {
             "musicFolders",
             &serde_json::to_string(&next).map_err(|e| e.to_string())?,
         )?;
-        self.store.reconcile_origin(&path, &HashSet::new())?;
-        let _ = (watcher.unwatch(Path::new(&path))).inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("local.folders.remove.unwatch", error);
-        });
+        #[cfg(target_os = "android")]
+        if super::source::is_document(&path) {
+            if let Err(error) = super::source::android::revoke(Path::new(&path)) {
+                crate::infrastructure::diagnostics::warn("local.folders.revoke", error);
+            }
+        }
+        if let Some(watcher) = watcher
+            .as_mut()
+            .filter(|_| !super::source::is_document(&path))
+        {
+            let _ = (watcher.unwatch(Path::new(&path))).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("local.folders.remove.unwatch", error);
+            });
+        }
         status.paths = next;
         status.errors.remove(&path);
         drop(status);
         drop(watcher);
+        self.store.reconcile_origin(&path, &HashSet::new())?;
         self.changed();
         Ok(())
     }

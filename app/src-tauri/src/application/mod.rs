@@ -345,6 +345,23 @@ async fn remove_music_folder(path: String, backend: State<'_, Backend>) -> AppRe
         .map_err(|e| e.to_string())?
 }
 #[tauri::command]
+async fn pick_music_folder(backend: State<'_, Backend>) -> AppResult<()> {
+    #[cfg(target_os = "android")]
+    {
+        let folders = backend.folders.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            crate::local::source::android::pick(|path| folders.add(path))
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = backend;
+        Err("请使用桌面目录选择器".into())
+    }
+}
+#[tauri::command]
 fn rescan_music_folders(backend: State<'_, Backend>) {
     backend.folders.rescan();
 }
@@ -814,7 +831,9 @@ pub fn run() {
         )
         .on_window_event(desktop::on_window_event);
     #[cfg(target_os = "android")]
-    let builder = builder.plugin(crate::platform::android::init());
+    let builder = builder
+        .plugin(crate::platform::android::init())
+        .plugin(tauri_plugin_android_fs::init());
     let app = builder
         .register_uri_scheme_protocol("plugin", plugins::protocol)
         .plugin(tauri_plugin_opener::init())
@@ -1125,6 +1144,7 @@ pub fn run() {
             set_local_options,
             music_folders,
             add_music_folder,
+            pick_music_folder,
             remove_music_folder,
             rescan_music_folders,
             runtime_cover,
@@ -1166,6 +1186,12 @@ pub fn run() {
         .build(context)
         .expect("无法启动 NonsPlayer");
     app.run(|app, event| {
+        #[cfg(target_os = "android")]
+        if matches!(event, tauri::RunEvent::Resumed) {
+            if let Some(backend) = app.try_state::<Backend>() {
+                backend.folders.rescan();
+            }
+        }
         if matches!(event, tauri::RunEvent::Exit) {
             #[cfg(desktop)]
             app.state::<Arc<updates::Updates>>().cleanup();

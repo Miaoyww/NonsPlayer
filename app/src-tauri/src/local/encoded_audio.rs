@@ -87,13 +87,14 @@ impl<R: Read + Seek> Decoder<R> {
 
 pub fn read_tags(path: &str) -> AppResult<(TaggedFile, Option<NcmInfo>, Vec<u8>)> {
     if !is_encoded(Path::new(path)) {
-        let tagged = Probe::open(path)
+        let tagged = Probe::new(super::source::open(path).map_err(|e| e.to_string())?)
+            .guess_file_type()
             .map_err(|e| e.to_string())?
             .read()
             .map_err(|e| e.to_string())?;
         return Ok((tagged, None, Vec::new()));
     }
-    let mut decoder = Decoder::new(File::open(path).map_err(|e| e.to_string())?)?;
+    let mut decoder = Decoder::new(super::source::open(path).map_err(|e| e.to_string())?)?;
     let tagged = Probe::new(&mut decoder.reader)
         .guess_file_type()
         .map_err(|e| e.to_string())?
@@ -166,7 +167,7 @@ pub fn prepare(path: &str) -> AppResult<Arc<tempfile::NamedTempFile>> {
         })
         .map_err(|_| "音频解析锁不可用")?;
     entries.retain(|(_, file)| file.strong_count() > 0);
-    let metadata = std::fs::metadata(path).map_err(|e| e.to_string())?;
+    let metadata = super::source::metadata(path).map_err(|e| e.to_string())?;
     let key = format!(
         "{path}:{}:{:?}",
         metadata.len(),
@@ -182,7 +183,7 @@ pub fn prepare(path: &str) -> AppResult<Arc<tempfile::NamedTempFile>> {
     if entries.len() >= MAX_LEASES {
         return Err("音频解析繁忙，请稍后重试".into());
     }
-    let mut decoder = Decoder::new(File::open(path).map_err(|e| e.to_string())?)?;
+    let mut decoder = Decoder::new(super::source::open(path).map_err(|e| e.to_string())?)?;
     let mut file = tempfile::Builder::new()
         .prefix("nons-audio-")
         .suffix(&format!(".{}", decoder.format))

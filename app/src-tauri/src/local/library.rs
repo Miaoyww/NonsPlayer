@@ -33,6 +33,8 @@ pub fn import(
     let _writes = COVER_WRITES.lock().map_err(|_| "封面写入锁不可用")?;
     prepare_covers(&cover_dir, &fallback)?;
     let _validation = super::cover_art::ValidationSession::new();
+    #[cfg(target_os = "android")]
+    let _reads = super::source::android::ReadSession::new();
     if paths.len() > 1000 {
         return Err("单次选择的路径过多".into());
     }
@@ -48,13 +50,9 @@ pub fn import(
     let mut covered = std::collections::HashSet::new();
     // Process sheets first so traversal order cannot briefly expose the whole album.
     for root in &paths {
-        for entry in walkdir::WalkDir::new(root)
-            .follow_links(false)
-            .max_open(8)
-            .sort_by_file_name()
-        {
+        for entry in super::source::walk(root) {
             let Ok(entry) = entry else { continue };
-            if !entry.file_type().is_file() || !super::cue::is_cue(entry.path()) {
+            if !entry.file_type().is_ok_and(|t| t.is_file()) || !super::cue::is_cue(entry.path()) {
                 continue;
             }
             match import_sheet(entry.path(), &cover_dir, &fallback, &store) {
@@ -66,9 +64,7 @@ pub fn import(
                     seen.extend(imported.iter().map(|track| track.key.clone()));
                     let sheet_origin = format!(
                         "cue:{}",
-                        entry
-                            .path()
-                            .canonicalize()
+                        super::source::canonicalize(entry.path())
                             .map_err(|e| e.to_string())?
                             .display()
                     );
@@ -93,11 +89,7 @@ pub fn import(
     }
     for root in paths {
         // walkdir does not follow symlinks; max_open bounds file handles.
-        for entry in walkdir::WalkDir::new(root)
-            .follow_links(false)
-            .max_open(8)
-            .sort_by_file_name()
-        {
+        for entry in super::source::walk(root) {
             let entry = match entry {
                 Ok(e) => e,
                 Err(error) => {
@@ -110,10 +102,10 @@ pub fn import(
                     continue;
                 }
             };
-            if !entry.file_type().is_file() || !is_audio(entry.path()) {
+            if !entry.file_type().is_ok_and(|t| t.is_file()) || !is_audio(entry.path()) {
                 continue;
             }
-            if let Ok(path) = (entry.path().canonicalize()).inspect_err(|error| {
+            if let Ok(path) = (super::source::canonicalize(entry.path())).inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn_error(
                     "local.scan.canonicalize_audio",
                     error,
@@ -244,8 +236,7 @@ pub(super) fn read_track(
     fallback: &str,
     store: &Store,
 ) -> AppResult<Track> {
-    let path = path
-        .canonicalize()
+    let path = super::source::canonicalize(path)
         .inspect_err(|error| {
             crate::infrastructure::diagnostics::warn_error("local.import.canonicalize", error);
         })
@@ -255,7 +246,7 @@ pub(super) fn read_track(
         .trim_start_matches(r"\\?\")
         .to_string();
     let key = format!("local:{:x}", Sha256::digest(path.as_bytes()));
-    let metadata = std::fs::metadata(&path).map_err(|e| e.to_string())?;
+    let metadata = super::source::metadata(&path).map_err(|e| e.to_string())?;
     let modified = format!("{:?}", metadata.modified().map_err(|e| e.to_string())?);
     let directory = Path::new(&path).parent().ok_or("音乐目录不可用")?;
     let signature = super::cover_art::signature(directory);

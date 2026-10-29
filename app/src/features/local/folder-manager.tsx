@@ -7,6 +7,7 @@ import { listen } from '@tauri-apps/api/event'
 import { open } from '@tauri-apps/plugin-dialog'
 import { Folder, FolderCog, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { nativeCall, errorText } from '@/lib/player'
+import { isAndroid } from '@/lib/platform'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,6 +20,7 @@ import {
 
 interface MusicFolder {
   path: string
+  name: string
   tracks: number
   scanning: boolean
   error?: string
@@ -93,7 +95,9 @@ export function FolderManager() {
         <DialogHeader>
           <DialogTitle>管理音乐文件夹</DialogTitle>
           <DialogDescription>
-            添加或移除本地音乐文件夹。已添加的文件夹会自动扫描，并同步文件变化。
+            {isAndroid()
+              ? '添加音乐文件夹后自动扫描，回到前台时更新，也可手动重新扫描。'
+              : '添加或移除本地音乐文件夹。已添加的文件夹会自动扫描，并同步文件变化。'}
           </DialogDescription>
         </DialogHeader>
         <div className="my-5 max-h-[40dvh] overflow-auto">
@@ -111,7 +115,7 @@ export function FolderManager() {
                     aria-hidden="true"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="break-all text-sm font-medium">{folder.path}</p>
+                    <p className="break-all text-sm font-medium">{folder.name}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {folder.scanning ? '正在扫描…' : `${folder.tracks} 首音乐`}
                     </p>
@@ -121,7 +125,7 @@ export function FolderManager() {
                     variant="ghost"
                     size="icon-sm"
                     disabled={busy}
-                    aria-label={`移除文件夹 ${folder.path}`}
+                    aria-label={`移除文件夹 ${folder.name}`}
                     title="移除目录索引，保留原始文件"
                     onClick={() =>
                       void mutate(() => nativeCall('remove_music_folder', { path: folder.path }))
@@ -147,6 +151,10 @@ export function FolderManager() {
             disabled={busy || !isTauri()}
             onClick={() =>
               void mutate(async () => {
+                if (isAndroid()) {
+                  await nativeCall('pick_music_folder')
+                  return
+                }
                 const path = await open({
                   directory: true,
                   multiple: false,

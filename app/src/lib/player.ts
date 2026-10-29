@@ -236,6 +236,13 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
       'local_entity_tracks',
       'local_track_information'
     ],
+    pick_music_folder: [
+      'local_music',
+      'local_entities',
+      'local_entity_detail',
+      'local_entity_tracks',
+      'local_track_information'
+    ],
     remove_music_folder: [
       'local_music',
       'local_entities',

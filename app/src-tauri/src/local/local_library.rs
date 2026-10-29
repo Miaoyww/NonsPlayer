@@ -103,7 +103,7 @@ pub fn information(file: &lofty::file::TaggedFile, path: &str) -> LocalInformati
             .and_then(|t| t.get_string(ItemKey::AlbumArtist))
             .filter(|s| !s.trim().is_empty())
             .map(str::to_string),
-        file_size: std::fs::metadata(path).map(|m| m.len()).unwrap_or(0),
+        file_size: super::source::metadata(path).map(|m| m.len()).unwrap_or(0),
         format: std::path::Path::new(path)
             .extension()
             .unwrap_or_default()

@@ -99,14 +99,14 @@ fn supported(path: &Path) -> bool {
 
 pub(super) fn candidates(directory: &Path) -> Vec<PathBuf> {
     let mut found = Vec::new();
-    let Ok(entries) = std::fs::read_dir(directory) else {
+    let Ok(entries) = super::source::read_dir(directory) else {
         return found;
     };
     for entry in entries.flatten() {
         let Ok(kind) = entry.file_type() else {
             continue;
         };
-        let path = entry.path();
+        let path = entry.path().to_path_buf();
         if kind.is_file() && supported(&path) {
             found.push(path);
         } else if kind.is_dir()
@@ -118,14 +118,14 @@ pub(super) fn candidates(directory: &Path) -> Vec<PathBuf> {
                     .as_str(),
             )
         {
-            if let Ok(children) = std::fs::read_dir(path) {
+            if let Ok(children) = super::source::read_dir(path) {
                 found.extend(
                     children
                         .flatten()
                         .filter(|e| {
                             e.file_type().is_ok_and(|t| t.is_file()) && supported(&e.path())
                         })
-                        .map(|e| e.path()),
+                        .map(|e| e.path().to_path_buf()),
                 );
             }
         }
@@ -158,7 +158,7 @@ pub(super) fn signature(directory: &Path) -> String {
         let relative = normalized(path.strip_prefix(directory).unwrap_or(&path));
         digest.update((relative.len() as u64).to_le_bytes());
         digest.update(relative.as_bytes());
-        match path.metadata() {
+        match super::source::metadata(&path) {
             Ok(metadata) => {
                 digest.update(metadata.len().to_le_bytes());
                 digest.update(format!("{:?}", metadata.modified()).as_bytes());
@@ -170,11 +170,14 @@ pub(super) fn signature(directory: &Path) -> String {
 }
 
 fn read(path: &Path) -> Option<Vec<u8>> {
-    if !std::fs::symlink_metadata(path).ok()?.file_type().is_file() {
+    if !super::source::metadata(path).ok()?.is_file()
+        || (!super::source::is_document(path)
+            && !std::fs::symlink_metadata(path).ok()?.file_type().is_file())
+    {
         return None;
     }
-    let mut file = std::fs::File::open(path).ok()?;
-    if !file.metadata().ok()?.is_file() {
+    let mut file = super::source::open(path).ok()?;
+    if !super::source::is_document(path) && !file.metadata().ok()?.is_file() {
         return None;
     }
     let mut bytes = Vec::new();
