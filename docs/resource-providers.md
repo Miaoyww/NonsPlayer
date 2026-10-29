@@ -18,7 +18,7 @@ Component 继续使用现有 initialize／shutdown／call transport；独立音�
 
 返回沿用 `{status:"ok",data}`／`{status:"error",data:MusicError}`。`session` 是 Host 绑定的音源执行身份，不是被解析歌曲的平台账号；歌曲真实平台在 `request.track.reference.source`。资源请求包含完整通用曲目元数据、首选音质和是否允许降级，不向音源交付原平台账号凭据。
 
-随包描述使用 `resourceProvider` 与 `permissions`，和完整平台包的 `descriptor` 互斥。当前独立音源可使用通用 HTTP、系统时间与随机数，不授予账号凭据、状态存储或 WebSocket。外部任意包安装和原始洛雪脚本导入不在本次实现范围。实例加载中／加载失败在适配器设置中分别显示；失败不阻止其它有效包加载。
+随包描述使用 `resourceProvider` 与 `permissions`，和完整平台包的 `descriptor` 互斥。`manifest.json` 可声明顶层 `version`（SemVer），供插件目录校验 tag 与包内容；宿主只校验格式，不使用该值。当前独立音源可使用通用 HTTP、系统时间与随机数，不授予账号凭据、状态存储或 WebSocket。外部任意包安装和原始洛雪脚本导入不在本次实现范围。实例加载中／加载失败在适配器设置中分别显示；失败不阻止其它有效包加载。
 
 每个音源最多 4 个搜索、2 个解析并发，最多注册 16 个；沿用适配器 Component 大小、内存与 transport 预算。启停设置保存为 `resourceProviderEnabledV1:<id>`，停用推进实例代次；在途请求和预加载资源检查音源实例及可用平台的账号／实例代次，取消或失效不再发起后续尝试。
 

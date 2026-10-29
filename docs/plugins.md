@@ -4,16 +4,16 @@ Nons 在现有播放器上增量提供 `Manifest + WASM Backend + React Frontend
 
 ## 架构与文件
 
-| 部分           | 位置与职责                                                                                                              |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Rust Host      | `app/src-tauri/src/plugins/`：Manifest、安装、管理、Wasmtime、权限、事件、存储、剪贴板与资源协议                        |
-| 公共 ABI       | `plugins/wit/plugin.wit`：`nons:plugin@1.0.0`；Guest 初始化、关闭、方法调用；Host 高层 Capability                       |
-| React Host     | `app/src/plugins/`：动态模块、贡献 registry、PluginSlot、PluginPageHost、生命周期与 SDK                                 |
-| 公共类型       | `packages/plugin-sdk/`：发布为 `@nonsplayer/plugin-sdk`，含类型、WIT、Manifest schema 与构建 CLI，不引用宿主源码        |
-| 真实插件       | `plugins/netease-island/`：独立 Rust Component 与 React UI                                                              |
-| 官方非随包插件 | [插件目录仓库](https://github.com/Miaoyww/plugins) `official/`：NCM 格式转换、网易云下载；源码、测试与 Release 在该仓库 |
-| 构建           | `scripts/build-plugin.mjs`、`plugin-build-ui.mjs`、`package-plugin.py`：两端构建、React 外部化与 ZIP                    |
-| 测试 fixture   | `plugins/runtime-fixture/`：资源耗尽／错误验证，不随包安装                                                              |
+| 部分         | 位置与职责                                                                                                                                                                                                            |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rust Host    | `app/src-tauri/src/plugins/`：Manifest、安装、管理、Wasmtime、权限、事件、存储、剪贴板与资源协议                                                                                                                      |
+| 公共 ABI     | `plugins/wit/plugin.wit`：`nons:plugin@1.0.0`；Guest 初始化、关闭、方法调用；Host 高层 Capability                                                                                                                     |
+| React Host   | `app/src/plugins/`：动态模块、贡献 registry、PluginSlot、PluginPageHost、生命周期与 SDK                                                                                                                               |
+| 公共类型     | `packages/plugin-sdk/`：发布为 `@nonsplayer/plugin-sdk`，含类型、WIT、Manifest schema 与构建 CLI，不引用宿主源码                                                                                                      |
+| 真实插件     | `plugins/netease-island/`：独立 Rust Component 与 React UI                                                                                                                                                            |
+| 非随包插件   | [ncm-converter](https://github.com/Miaoyww/ncm-converter)、[netease-download](https://github.com/Miaoyww/netease-download)：源码、测试与 Release 在各自仓库；注册信息在[插件目录](https://github.com/Miaoyww/plugins) |
+| 构建         | `scripts/build-plugin.mjs`、`plugin-build-ui.mjs`、`package-plugin.py`：两端构建、React 外部化与 ZIP                                                                                                                  |
+| 测试 fixture | `plugins/runtime-fixture/`：资源耗尽／错误验证，不随包安装                                                                                                                                                            |
 
 宿主启动、IPC 和协议注册接入原 `lib.rs`；音乐读取经统一 MusicService／AdapterManager 路由到内置网易云适配器。App 增加通用 Provider／Slot，已有工作区和导航增加插件页面分支，设置增加插件管理。Theme 共享原偏好与 CSS tokens，播放 facade 订阅原状态及进度，不创建另一套播放器。
 
@@ -156,13 +156,13 @@ manifest 的可选 `fileRoots: ["*"]` 须同时声明 `files:selected`。启用�
 
 工具页面在 navigation 条目声明 `category: "tool"`，宿主显示已加载实例的入口卡片。桌面工具入口位于设置左侧，与设置共用左右布局，左侧列出工具，右侧直接使用所选工具，默认选中首项；插件内导航沿用 `/plugins/<id>/*`，独立于工作区历史，关闭弹窗或切换工具时卸载原工具页面。弹窗内的 `library-heading` 和 `MusicPageHeader` 沿用设置页标题字号，插件无需自行判断宿主布局。Android 继续使用工具工作区页面与应用历史。省略 category 保留原主导航入口；同一工具不再占用顶栏独立按钮。
 
-`ncm-converter` 是独立前端工具插件，源码位于[插件目录仓库](https://github.com/Miaoyww/plugins)的 `official/ncm-converter`，使用 `fileRoots: ["*"]`，无网络权限。批量串行转换，失败后继续，可重试失败项；关闭页面停止后续项目，当前原生转换完成后结束。支持“完成当前文件后停止”，不承诺页面关闭／重启后的任务恢复。此工具恢复原始编码，不做 MP3 ↔ FLAC 转码。本地 NCM 播放由宿主音频格式支持提供，无需启用转换页面。
+`ncm-converter` 是独立前端工具插件，源码位于 [Miaoyww/ncm-converter](https://github.com/Miaoyww/ncm-converter)，使用 `fileRoots: ["*"]`，无网络权限。批量串行转换，失败后继续，可重试失败项；关闭页面停止后续项目，当前原生转换完成后结束。支持“完成当前文件后停止”，不承诺页面关闭／重启后的任务恢复。此工具恢复原始编码，不做 MP3 ↔ FLAC 转码。本地 NCM 播放由宿主音频格式支持提供，无需启用转换页面。
 
-在插件目录仓库执行：
+在插件仓库执行：
 
 ```powershell
-pnpm --dir official/ncm-converter install
-pnpm --dir official/ncm-converter build
+pnpm install
+pnpm build
 ```
 
 在设置 → 插件中安装 `ncm-converter-<版本>.zip` 并启用确认权限，随后从“工具”卡片进入。依赖来源与 NCM Rust 库的兼容补丁见 `app/src-tauri/vendor/ncmdump/NONS-PATCHES.md`；用户提供的 C++ 参考仓库克隆到播放器项目的同级 `ncmdump`，不作为运行时依赖。
@@ -317,13 +317,13 @@ cd ..
 
 传输每插件最多 2 个、全局最多 8 个，最多保留 128 个状态；单文件上限 512MiB、累计网络读取等待 10 分钟、连接／单次读取期限 30 秒；暂停不计入读取等待，单连接最多保留 24 小时。文件块在阻塞线程写入，文件权限撤销会关闭句柄，后续写入和发布被拒绝。实例停用取消网络操作；授权撤销或停用后可能保留未完成 `.part`，不越权清理外部目录。
 
-`netease-download` 是独立前端插件，源码位于[插件目录仓库](https://github.com/Miaoyww/plugins)的 `official/netease-download`，不默认构建或随安装包分发。网易云 EAPI 协议、下载资格与音质选择全部在插件内；账号复用宿主显式授权的实时凭证，插件不另建登录。不调用本体播放 URL 或导出播放缓存。通过下载接口选择资源，拒绝试听和低于最低音质的资源；凭据与 URL 只在下载流程内存中使用，不写插件存储。
+`netease-download` 是独立前端插件，源码位于 [Miaoyww/netease-download](https://github.com/Miaoyww/netease-download)，不默认构建或随安装包分发。网易云 EAPI 协议、下载资格与音质选择全部在插件内；账号复用宿主显式授权的实时凭证，插件不另建登录。不调用本体播放 URL 或导出播放缓存。通过下载接口选择资源，拒绝试听和低于最低音质的资源；凭据与 URL 只在下载流程内存中使用，不写插件存储。
 
-在插件目录仓库执行：
+在插件仓库执行：
 
 ```powershell
-pnpm --dir official/netease-download install
-pnpm --dir official/netease-download build
+pnpm install
+pnpm build
 ```
 
 在插件管理中安装 `netease-download-<版本>.zip` 并授权。配置默认音质、允许降级、最低音质与授权保存目录；右键网易云歌曲选择“下载”。缺少目录时打开插件配置；缺少账号时提示在 NonsPlayer 登录，所选歌曲保留。配置完成后继续等待任务。下载管理只有已下载单曲／正在下载分类，支持歌名、歌手、专辑搜索及打开授权目录；每项可暂停、继续和删除，没有独立扫码、歌曲链接／ID 输入框或批量操作，页面关闭后下载继续。新增凭证权限需重新安装并授权新版插件。

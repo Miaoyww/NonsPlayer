@@ -12,9 +12,18 @@ pub(super) fn default_source() -> SourceId {
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ComponentPackage {
+    #[serde(default)]
+    version: Option<String>,
     descriptor: Option<SourceDescriptor>,
     resource_provider: Option<super::provider::ResourceProviderDescriptor>,
     permissions: super::external::host::Permissions,
+}
+
+fn validate_package_version(version: Option<&str>) -> crate::model::AppResult<()> {
+    if let Some(version) = version {
+        semver::Version::parse(version).map_err(|_| "随包适配器版本无效")?;
+    }
+    Ok(())
 }
 pub(crate) struct PreparedComponent {
     directory: std::path::PathBuf,
@@ -72,6 +81,7 @@ pub(crate) fn prepare_components(
                 crate::infrastructure::diagnostics::warn("adapter.manifest_decode", error);
             })
             .map_err(|_| "随包适配器描述无效")?;
+        validate_package_version(package.version.as_deref())?;
         match (&package.descriptor, &package.resource_provider) {
             (Some(descriptor), None) => descriptor.validate(),
             (None, Some(descriptor)) => descriptor.validate(),
@@ -287,6 +297,12 @@ mod tests {
     use super::*;
     use crate::music::accounts::CredentialStore;
     use std::collections::BTreeMap;
+    #[test]
+    fn component_package_version_is_optional_semver() {
+        assert!(validate_package_version(None).is_ok());
+        assert!(validate_package_version(Some("1.0.0")).is_ok());
+        assert!(validate_package_version(Some("latest")).is_err());
+    }
     #[derive(Default)]
     struct Secrets(std::sync::Mutex<BTreeMap<String, Vec<u8>>>);
     #[tokio::test]
