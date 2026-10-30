@@ -17,6 +17,7 @@ export interface StoreEntry {
   artifact?: { url: string; size?: number; sha256?: string; md5?: string } | null
   release?: { tag?: string; created_at?: string; description?: string; notes?: string }
   releaseNotes?: string
+  total_download_count?: number | null
   permissions?: readonly string[] | Record<string, unknown>
   httpHosts?: readonly string[]
   fileRoots?: readonly string[]

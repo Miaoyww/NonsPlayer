@@ -39,6 +39,14 @@ test('extension store fits narrow settings, switches index sources and keeps con
       )
       await page.getByText('音乐工具 1', { exact: true }).scrollIntoViewIfNeeded()
       const store = page.locator('section[aria-label="插件商店"]')
+      for (const [count, text] of [
+        ['0', '0'],
+        ['999', '999'],
+        ['1,000', '1k'],
+        ['1,250', '1.3k'],
+        ['暂无统计', '暂无统计']
+      ])
+        assert.equal(await store.locator(`[title="下载总量：${count}"]`).first().innerText(), text)
       await page.screenshot({
         path: `${process.env.TEMP}/nons-extension-store-${width}-${dark ? 'dark' : 'light'}.png`,
         fullPage: true

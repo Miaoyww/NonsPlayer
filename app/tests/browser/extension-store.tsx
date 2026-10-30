@@ -31,6 +31,7 @@ host.__TAURI_INTERNALS__ = {
           labels: ['tool'],
           permissions: ['ui', 'files:selected'],
           fileRoots: ['*'],
+          total_download_count: [0, 999, 1000, 1250][index % 5],
           compatible: true,
           bundled: false,
           updateAvailable: false,

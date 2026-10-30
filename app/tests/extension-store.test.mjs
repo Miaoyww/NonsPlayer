@@ -5,6 +5,7 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import React, { act } from 'react'
 import * as jsx from 'react/jsx-runtime'
 import { createRoot } from 'react-dom/client'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 
@@ -20,6 +21,21 @@ function load(name, modules = {}) {
   return exports
 }
 const model = load('extension-store-state.ts')
+const card = load('extension-store-card.tsx', {
+  react: React,
+  'react/jsx-runtime': jsx,
+  '@tauri-apps/api/core': { isTauri: () => false },
+  '@tauri-apps/plugin-opener': { openUrl: async () => {} },
+  'lucide-react': Object.fromEntries(
+    ['ArrowRight', 'Clock3', 'Download', 'UserRound'].map((name) => [name, 'svg'])
+  ),
+  '@/components/ui/button': {
+    Button: ({ variant, size, ...props }) => React.createElement('button', props)
+  },
+  '@/components/error-notice': { ErrorNotice: () => null },
+  '@/lib/player': { errorText: String },
+  '@/assets/icons/github.svg': { default: 'github.svg' }
+})
 const entry = (overrides = {}) => ({
   id: 'download',
   name: '下载管理',
@@ -345,6 +361,52 @@ test('search covers name, id, description and labels; permission domains survive
   )
 })
 
+test('plugin and adapter cards display total downloads with k units and exact accessible counts', () => {
+  const cases = [
+    [0, '0'],
+    [999, '999'],
+    [1000, '1k'],
+    [1049, '1k'],
+    [1050, '1.1k'],
+    [1150, '1.2k'],
+    [1250, '1.3k'],
+    [1999, '2k'],
+    [10000, '10k'],
+    [1000000, '1000k'],
+    [undefined, '暂无统计'],
+    [null, '暂无统计'],
+    [-1, '暂无统计'],
+    [1.5, '暂无统计'],
+    ['1250', '暂无统计'],
+    [NaN, '暂无统计'],
+    [Infinity, '暂无统计'],
+    [Number.MAX_SAFE_INTEGER + 1, '暂无统计']
+  ]
+  for (const kind of ['plugin', 'adapter']) {
+    for (const [count, expected] of cases) {
+      const dom = new JSDOM(
+        renderToStaticMarkup(
+          React.createElement(card.ExtensionStoreCard, {
+            entry: entry({ kind, total_download_count: count }),
+            busy: false,
+            onSelect: () => {},
+            action: null
+          })
+        )
+      )
+      try {
+        const downloads = dom.window.document.querySelector('[title^="下载总量："]')
+        assert.equal(downloads.textContent, expected, `${kind}: ${String(count)}`)
+        const label = `下载总量：${expected === '暂无统计' ? expected : count.toLocaleString('zh-CN')}`
+        assert.equal(downloads.title, label)
+        assert.equal(downloads.getAttribute('aria-label'), label)
+      } finally {
+        dom.window.close()
+      }
+    }
+  }
+})
+
 test('React store renders bounded searchable list, index source, details and explicit trust dialog', async () => {
   const dom = new JSDOM('<div id="root"></div>')
   const previous = {
@@ -362,6 +424,7 @@ test('React store renders bounded searchable list, index source, details and exp
   const modules = {
     react: React,
     'react/jsx-runtime': jsx,
+    './extension-store-card': card,
     './extension-store-state': model,
     '@/components/music/infinite-load': {
       InfiniteLoad: ({ onLoad }) => {
@@ -370,7 +433,10 @@ test('React store renders bounded searchable list, index source, details and exp
       }
     },
     'lucide-react': Object.fromEntries(
-      ['Download', 'Package', 'RefreshCw', 'Search', 'Store'].map((name) => [name, 'svg'])
+      ['Download', 'LoaderCircle', 'Package', 'RefreshCw', 'Search', 'Store'].map((name) => [
+        name,
+        'svg'
+      ])
     ),
     '@/components/ui/button': {
       Button: ({ variant, size, ...props }) => React.createElement('button', props)
@@ -404,6 +470,9 @@ test('React store renders bounded searchable list, index source, details and exp
       errorText: String,
       nativeCall: (command, args) =>
         new Promise((resolve, reject) => calls.push({ command, args, resolve, reject }))
+    },
+    '@/lib/utils': {
+      cn: (...values) => values.filter(Boolean).join(' ')
     }
   }
   const { ExtensionStore } = load('extension-store.tsx', modules)

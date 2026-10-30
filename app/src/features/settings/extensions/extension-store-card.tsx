@@ -43,6 +43,16 @@ export function ExtensionStoreCard({
   const [linkError, setLinkError] = useState<string>()
   const authors = entry.authors?.map((author) => author.name).join('、') || '作者未提供'
   const releaseDate = formatRelativeReleaseDate(entry.release?.created_at)
+  const count = entry.total_download_count
+  const downloads =
+    typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 ? count : undefined
+  const downloadText =
+    downloads === undefined
+      ? '暂无统计'
+      : downloads >= 1000
+        ? `${Math.round(downloads / 100) / 10}k`
+        : String(downloads)
+  const downloadLabel = `下载总量：${downloads === undefined ? '暂无统计' : downloads.toLocaleString('zh-CN')}`
 
   async function openRepository() {
     if (!entry.repository) return
@@ -105,9 +115,13 @@ export function ExtensionStoreCard({
               '发布时间未提供'
             )}
           </span>
-          <span className="inline-flex items-center gap-1.5" title="下载量：暂无统计">
+          <span
+            className="inline-flex items-center gap-1.5"
+            title={downloadLabel}
+            aria-label={downloadLabel}
+          >
             <Download aria-hidden="true" className="size-4 shrink-0" />
-            <span>暂无统计</span>
+            <span>{downloadText}</span>
           </span>
         </div>
         <div className="ml-auto flex min-w-0 max-w-full items-center gap-2">
