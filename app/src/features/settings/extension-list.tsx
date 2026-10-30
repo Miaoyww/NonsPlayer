@@ -1,4 +1,4 @@
-import { Tabs, TabsList, TabsTab, TabsPanel } from '@/components/animate-ui/components/base/tabs'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import type { ReactNode } from 'react'
 import { RefreshCw, Search, Upload, FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -68,16 +68,16 @@ export function ExtensionTabs({
   return (
     <Tabs value={value} onValueChange={onValueChange} className="gap-4">
       <TabsList aria-label={`${noun}页面`}>
-        <TabsTab value="installed">已安装</TabsTab>
-        <TabsTab value="install">
+        <TabsTrigger value="installed">已安装</TabsTrigger>
+        <TabsTrigger value="install">
           <Upload aria-hidden="true" />
           安装{noun}
-        </TabsTab>
+        </TabsTrigger>
       </TabsList>
-      <TabsPanel value="installed" className="space-y-4">
+      <TabsContent value="installed" className="space-y-4">
         {children}
-      </TabsPanel>
-      <TabsPanel value="install">{installation}</TabsPanel>
+      </TabsContent>
+      <TabsContent value="install">{installation}</TabsContent>
     </Tabs>
   )
 }

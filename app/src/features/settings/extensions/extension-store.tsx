@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { Download, Package, RefreshCw, Search, Store } from 'lucide-react'
+import { Download, LoaderCircle, RefreshCw, Search, Store } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -22,6 +22,8 @@ import { TextSkeleton } from '@/components/music/loading'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { nativeCall, errorText } from '@/lib/player'
 import { reportCaughtError } from '@/lib/diagnostics'
+import { cn } from '@/lib/utils'
+import { ExtensionStoreCard } from './extension-store-card'
 import {
   ExtensionStoreController,
   permissionLines,
@@ -129,31 +131,48 @@ export function ExtensionStore({
 
   function installButton(entry: StoreEntry, source = state.index?.source) {
     const reason = unavailableReason(entry)
+    const preparing = state.phase === 'prepare' && state.preparingId === entry.id
+    const Icon = preparing ? LoaderCircle : entry.updateAvailable ? RefreshCw : Download
     return (
-      <div className="space-y-1">
+      <div className="min-w-0 space-y-1">
         <Button
           size="sm"
+          className={cn(
+            'max-w-full min-w-24 gap-1.5 rounded-lg px-3',
+            entry.updateAvailable &&
+              !reason &&
+              'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400'
+          )}
           disabled={disabled || !!reason}
           onClick={() => {
             if (source) void controller.prepare(entry, source)
           }}
         >
-          <Download aria-hidden="true" />
-          {reason
-            ? entry.bundled
-              ? '已随包安装'
-              : entry.distribution === 'source'
-                ? '暂不可安装'
-                : entry.installedVersion && !entry.updateAvailable
-                  ? '已安装'
-                  : '不可安装'
-            : state.phase === 'prepare' && state.preparingId === entry.id
-              ? '正在下载安装包…'
-              : entry.updateAvailable
-                ? '更新'
-                : '安装'}
+          <Icon
+            aria-hidden="true"
+            className={preparing ? 'animate-spin motion-reduce:animate-none' : undefined}
+          />
+          <span className="truncate">
+            {reason
+              ? entry.bundled
+                ? '已随包安装'
+                : entry.distribution === 'source'
+                  ? '暂不可安装'
+                  : entry.installedVersion && !entry.updateAvailable
+                    ? '已安装'
+                    : '不可安装'
+              : preparing
+                ? '正在下载安装包…'
+                : entry.updateAvailable
+                  ? '更新'
+                  : '安装'}
+          </span>
         </Button>
-        {reason && <p className="text-xs leading-normal text-muted-foreground">{reason}</p>}
+        {reason && !(kind === 'adapter' && reason === '官方已随包安装') && (
+          <p className="max-w-48 text-xs leading-normal break-words text-muted-foreground">
+            {reason}
+          </p>
+        )}
       </div>
     )
   }
@@ -243,37 +262,13 @@ export function ExtensionStore({
       <div aria-busy={state.loading} className="space-y-3">
         {state.loading && !state.index && <TextSkeleton />}
         {entries.slice(0, limit).map((entry) => (
-          <article
+          <ExtensionStoreCard
             key={entry.id}
-            className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-border p-3"
-          >
-            <div className="flex min-w-0 flex-1 items-start gap-3">
-              <Package
-                aria-hidden="true"
-                className="mt-0.5 size-5 shrink-0 text-muted-foreground"
-              />
-              <div className="min-w-0 space-y-1">
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto max-w-full justify-start p-0 whitespace-normal text-left"
-                  disabled={state.busy}
-                  onClick={() => controller.select(entry)}
-                >
-                  {entry.name}
-                </Button>
-                <p className="break-all text-xs text-muted-foreground">
-                  {entry.id} · {entry.version}
-                  {entry.installedVersion ? ` · 已安装 ${entry.installedVersion}` : ''}
-                  {entry.updateAvailable ? ' · 有更新' : ''}
-                </p>
-                <p className="break-words text-xs leading-normal text-muted-foreground">
-                  {entry.description}
-                </p>
-              </div>
-            </div>
-            {installButton(entry)}
-          </article>
+            entry={entry}
+            busy={state.busy}
+            onSelect={() => controller.select(entry)}
+            action={installButton(entry)}
+          />
         ))}
         {!state.loading && state.index && !entries.length && (
           <p className="text-sm text-muted-foreground">
