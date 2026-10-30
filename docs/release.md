@@ -1,6 +1,6 @@
 # GitHub Release CI
 
-发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64、Android ARM64 试用 APK 和 Linux x64 安装包，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址；Linux 与 Android 当前仅发布附件，不接入自动更新。
+发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64、Android ARM64 试用 APK 和 Linux x64 安装包，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。插件 SDK 发布由独立的 [.github/workflows/publish-plugin-sdk.yml](../.github/workflows/publish-plugin-sdk.yml) 定义，支持版本标签自动运行，也可在 GitHub Actions 中手动触发；手动运行会发布 `packages/plugin-sdk/package.json` 当前版本。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址；Linux 与 Android 当前仅发布附件，不接入自动更新。
 
 ## 发布前准备
 
@@ -32,7 +32,7 @@ git push origin v1.0.0
 ## CI 执行内容
 
 - 固定 Windows runner、Rust 1.95.0、Node 24、pnpm 10、Python 3.12 与 cargo-component 0.21.1；前端安装和 Rust 构建使用锁文件。
-- 独立的 SDK job 在 Ubuntu 上安装 `packages/plugin-sdk` 锁文件依赖、运行测试，并在 npm 上不存在当前版本时发布 `@nonsplayer/plugin-sdk`。
+- 独立的 SDK workflow 在 Ubuntu 上安装 `packages/plugin-sdk` 锁文件依赖、运行测试，并在 npm 上不存在当前版本时发布 `@nonsplayer/plugin-sdk`；它同时支持版本标签自动运行和 `workflow_dispatch` 手动运行。
 - 校验标签与四处应用版本一致，必须存在非空的对应发布说明；不使用 Unreleased 代替。
 - 检查格式，运行前端测试、脚本测试与原生库／集成测试；构建灵动岛与测试 Component。
 - QQ 音乐适配器使用 cargo-component 0.21.1 和自身 Cargo.lock 构建，目标为 `wasm32-unknown-unknown`。GD 音源仍需按锁文件安装 `adapters/gdstudio` 与 `packages/wasm-crypto` 的 npm 开发依赖，并将 WAC 0.12.0 安装到 `.local/tools`。
