@@ -13,9 +13,9 @@
 
 </div>
 
-## 隐私
+## 插件仓库
 
-匿名使用统计的采集字段、数据用途和关闭方式见 [隐私政策（Privacy Policy）](PRIVACY.md)。
+插件列表 [插件仓库](https://github.com/NonsPlayer/plugins)，开发与安装说明 [插件开发与使用](docs/plugins.md)。
 
 ## 灵感来源
 
@@ -32,16 +32,22 @@ NonsPlayer的诞生离不开以下优秀产品的启发：
 - **[Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics)**
 - **[amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)**
 
-## 📜 开源许可
+感谢所有为 NonsPlayer 提供帮助的开发者、设计师和测试人员。
+
+## 开源许可与隐私
 
 Copyright Miaoyww 2026.
 
 Distributed under the terms of the [GPL-3.0 license](https://github.com/Miaoyww/Nons/blob/main/LICENSE).
 
+匿名使用统计的采集字段、数据用途和关闭方式见 [隐私政策（Privacy Policy）](PRIVACY.md)。
+
 ## 实机演示
 
-以下为 Windows 桌面端的实际运行截图。
+![Windows 音乐库](docs/release-assets/library.png)
 
-![NonsPlayer 实机截图：音乐库](docs/release-assets/library-1.3.0.png)
+![Windows 全屏歌词](docs/release-assets/lyric.png)
 
-![NonsPlayer 实机截图：全屏歌词](docs/release-assets/lyrics-1.3.0.png)
+![Android 音乐库](docs/release-assets/android-lib.png)
+
+![Android 全屏歌词](docs/release-assets/android-lyric.jpg)
