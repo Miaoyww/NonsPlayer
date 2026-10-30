@@ -1,4 +1,5 @@
 use crate::model::AppResult;
+use hyper_util::client::proxy::matcher::Matcher;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
@@ -11,7 +12,12 @@ use std::{
     time::Duration,
 };
 
-pub struct Http(pub(crate) reqwest::Client, bool);
+pub struct Http {
+    direct: reqwest::Client,
+    system: reqwest::Client,
+    proxies: Matcher,
+    enforce_public: bool,
+}
 
 /// Public-only addresses; reject transition/tunnel ranges which may hide a private target.
 pub(crate) fn public_ip(ip: IpAddr) -> bool {
@@ -145,23 +151,56 @@ struct Request {
 
 impl Http {
     pub fn new() -> AppResult<Self> {
+        let system = Self::builder().build().map_err(|e| e.to_string())?;
+        Self::with_system(system, Matcher::from_system())
+    }
+    fn builder() -> reqwest::ClientBuilder {
         reqwest::Client::builder()
-            .no_proxy()
-            .dns_resolver(Arc::new(PublicResolver))
             .redirect(reqwest::redirect::Policy::none())
             .timeout(Duration::from_secs(3))
             .pool_max_idle_per_host(1)
             .pool_idle_timeout(Duration::from_secs(30))
+    }
+    fn with_system(system: reqwest::Client, proxies: Matcher) -> AppResult<Self> {
+        // Only system bypass rules use this client; proxy requests use reqwest defaults.
+        let direct = Self::builder()
+            .no_proxy()
+            .dns_resolver(Arc::new(PublicResolver))
             .build()
-            .map(|client| Self(client, true))
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+        Ok(Self {
+            direct,
+            system,
+            proxies,
+            enforce_public: true,
+        })
+    }
+    fn uses_proxy(&self, url: &url::Url) -> bool {
+        url[..url::Position::BeforePath]
+            .parse::<http::Uri>()
+            .ok()
+            .is_some_and(|uri| self.proxies.intercept(&uri).is_some())
+    }
+    pub(crate) fn client(&self, url: &url::Url) -> &reqwest::Client {
+        if self.uses_proxy(url) {
+            &self.system
+        } else {
+            &self.direct
+        }
     }
     #[cfg(test)]
     pub(crate) fn for_test(client: reqwest::Client) -> Self {
-        Self(client, false)
+        Self {
+            system: client.clone(),
+            direct: client,
+            proxies: Matcher::builder().build(),
+            enforce_public: false,
+        }
     }
     pub(crate) fn check_target(&self, response: &reqwest::Response) -> AppResult<()> {
-        if self.1
+        // With a proxy the transport peer is the configured proxy, not the origin.
+        if self.enforce_public
+            && !self.uses_proxy(response.url())
             && !response
                 .remote_addr()
                 .is_some_and(|address| public_ip(address.ip()))
@@ -194,7 +233,7 @@ impl Http {
             return Err("HTTP 请求超过额度或参数无效".into());
         }
         let mut builder = self
-            .0
+            .client(&url)
             .request(method.clone(), url.clone())
             .timeout(Duration::from_millis(request.timeout_ms as u64));
         let mut header_bytes = 0;
@@ -322,7 +361,7 @@ impl Http {
         if !(1..=3000).contains(&timeout) {
             return Err("HTTP 超时必须为 1 至 3000 毫秒".into());
         }
-        let mut builder = self.0.request(method.clone(), url);
+        let mut builder = self.client(&url).request(method.clone(), url);
         if request.body.as_ref().is_some_and(|body| body.len() > 32768)
             || (request.body.is_some() && method != reqwest::Method::POST)
         {
@@ -476,6 +515,111 @@ mod tests {
             .build()
             .unwrap()
             .block_on(future);
+    }
+    #[test]
+    fn system_proxy_defaults_reach_local_proxy_without_resolving_origin() {
+        const CHILD: &str = "NONS_SYSTEM_PROXY_TEST_CHILD";
+        if std::env::var_os(CHILD).is_some() {
+            run(async {
+                let http = Http::new().unwrap();
+                let url = url::Url::parse("http://unresolvable.invalid/index.json").unwrap();
+                assert!(http.uses_proxy(&url));
+                let response = http.client(&url).get(url).send().await.unwrap();
+                http.check_target(&response).unwrap();
+                assert_eq!(response.text().await.unwrap(), "proxied");
+                let url = url::Url::parse("https://unresolvable.invalid/index.json").unwrap();
+                assert!(http.uses_proxy(&url));
+                // The fixture rejects CONNECT after observing it; no origin DNS is needed.
+                assert!(http.client(&url).get(url).send().await.is_err());
+                let bypass = url::Url::parse("http://bypass.invalid/").unwrap();
+                assert!(!http.uses_proxy(&bypass));
+                assert!(std::ptr::eq(http.client(&bypass), &http.direct));
+                assert!(public_addresses("localhost", 80).await.is_err());
+            });
+            return;
+        }
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let server = std::thread::spawn(move || {
+            for expected in [
+                "GET http://unresolvable.invalid/index.json HTTP/1.1",
+                "CONNECT unresolvable.invalid:443 HTTP/1.1",
+            ] {
+                let deadline = std::time::Instant::now() + Duration::from_secs(10);
+                let mut socket = loop {
+                    match listener.accept() {
+                        Ok((socket, _)) => break socket,
+                        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                            assert!(std::time::Instant::now() < deadline, "proxy was not used");
+                            std::thread::sleep(Duration::from_millis(10));
+                        }
+                        Err(error) => panic!("{error}"),
+                    }
+                };
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(3)))
+                    .unwrap();
+                let mut bytes = Vec::new();
+                while !bytes.ends_with(b"\r\n\r\n") {
+                    let mut byte = [0];
+                    assert_eq!(socket.read(&mut byte).unwrap(), 1);
+                    bytes.push(byte[0]);
+                    assert!(bytes.len() < 8192);
+                }
+                let request = String::from_utf8(bytes).unwrap();
+                assert!(request.starts_with(expected), "{request}");
+                assert!(request
+                    .to_ascii_lowercase()
+                    .contains("proxy-authorization: basic "));
+                socket.write_all(if expected.starts_with("GET") {
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 7\r\nConnection: close\r\n\r\nproxied"
+                } else {
+                    b"HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                }).unwrap();
+            }
+        });
+        // Isolate environment proxy settings from other tests and the user's configuration.
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "infrastructure::http::tests::system_proxy_defaults_reach_local_proxy_without_resolving_origin", "--nocapture"])
+            .env(CHILD, "1")
+            .env_remove("ALL_PROXY")
+            .env_remove("all_proxy")
+            .env_remove("http_proxy")
+            .env_remove("https_proxy")
+            .env_remove("no_proxy")
+            .env_remove("REQUEST_METHOD")
+            .env("HTTP_PROXY", format!("http://fixture:password@localhost:{port}"))
+            .env("HTTPS_PROXY", format!("http://fixture:password@127.0.0.1:{port}"))
+            .env("NO_PROXY", "bypass.invalid")
+            .output().unwrap();
+        let server_result = server.join();
+        assert!(
+            output.status.success(),
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        server_result.unwrap();
+    }
+    #[test]
+    fn direct_response_cannot_bypass_public_target_check() {
+        run(async {
+            let (fixture, server) = fixture(
+                "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".into(),
+                Duration::ZERO,
+            );
+            let url = url::Url::parse("http://example.org/").unwrap();
+            let response = fixture.client(&url).get(url).send().await.unwrap();
+            let http =
+                Http::with_system(Http::builder().build().unwrap(), Matcher::builder().build())
+                    .unwrap();
+            assert_eq!(
+                http.check_target(&response).unwrap_err(),
+                "网络连接目标不是授权公网地址"
+            );
+            server.join().unwrap();
+        });
     }
     #[test]
     fn returns_redirect_without_following_and_bounds_text_body() {

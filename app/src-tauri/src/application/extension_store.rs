@@ -516,7 +516,7 @@ impl ExtensionStore {
             }
             let response = self
                 .http
-                .0
+                .client(&url)
                 .get(url.clone())
                 .timeout(timeout)
                 .header(reqwest::header::ACCEPT_ENCODING, "identity")
@@ -1261,9 +1261,10 @@ mod tests {
         for source in [Source::Cdn, Source::Github] {
             let url = source.url();
             let result: AppResult<Vec<u8>> = match tokio::time::timeout(INDEX_TIMEOUT, async {
+                let url = secure_url(url)?;
                 let mut response = http
-                    .0
-                    .get(secure_url(url)?)
+                    .client(&url)
+                    .get(url)
                     .timeout(INDEX_TIMEOUT)
                     .header(reqwest::header::ACCEPT_ENCODING, "identity")
                     .send()
@@ -1630,12 +1631,8 @@ mod tests {
                 .build()
                 .unwrap(),
         );
-        let response = http
-            .0
-            .get(format!("http://{address}/asset.zip"))
-            .send()
-            .await
-            .unwrap();
+        let url = Url::parse(&format!("http://{address}/asset.zip")).unwrap();
+        let response = http.client(&url).get(url).send().await.unwrap();
         http.check_target(&response).unwrap();
         server.join().unwrap();
         response

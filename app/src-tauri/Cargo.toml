@@ -40,7 +40,9 @@ serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 nons-music-adapter-sdk = { git = "https://github.com/Miaoyww/Nons.git", package = "nons-music-adapter-sdk" }
 nons-adapter-netease = { git = "https://github.com/Miaoyww/nsa-netease.git", package = "nons-adapter-netease" }
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream", "system-proxy"] }
+hyper-util = { version = "0.1.21", default-features = false, features = ["client-proxy", "client-proxy-system"] }
+http = "1"
 moka = { version = "0.12", features = ["future"] }
 tokio = { version = "1", features = ["sync", "time", "fs", "macros", "io-util"] }
 rusqlite = { version = "0.38", features = ["bundled"] }

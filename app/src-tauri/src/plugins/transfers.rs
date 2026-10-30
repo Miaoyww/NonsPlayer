@@ -269,7 +269,7 @@ async fn run(
             Duration::from_secs(30),
             context
                 .http
-                .0
+                .client(&url)
                 .get(url)
                 .timeout(Duration::from_secs(24 * 60 * 60))
                 .send(),
