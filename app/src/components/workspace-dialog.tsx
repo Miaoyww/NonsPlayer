@@ -37,7 +37,7 @@ export function WorkspaceDialogPopup({
     <DialogPopup
       showCloseButton={false}
       className={cn('overflow-hidden rounded-lg', className)}
-      style={{ width: 1024, maxWidth: 'calc(100vw - 40px)', height: '85dvh', padding: 0, gap: 0 }}
+      style={{ width: '85vw', maxWidth: 'calc(100vw - 40px)', height: '85dvh', padding: 0, gap: 0 }}
       initial={{ opacity: 0, scale: reducedMotion ? 1 : 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.98 }}
