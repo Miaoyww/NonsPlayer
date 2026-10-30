@@ -39,9 +39,6 @@ def main():
         frontend = package.read("lib/arm64-v8a/libnons_lib.so")
         if b"index.html" not in frontend or b"assets/index-" not in frontend:
             raise RuntimeError("APK does not contain the embedded frontend asset keys")
-        for marker in (b"qqmusic", b"gdstudio", b"xiaobai", b"adapter.component.wasm"):
-            if marker not in frontend:
-                raise RuntimeError(f"APK does not contain embedded adapter marker: {marker.decode()}")
         unexpected = [name for name in names if name.startswith("lib/") and not name.startswith("lib/arm64-v8a/")]
         if unexpected:
             raise RuntimeError("Unexpected native architecture")

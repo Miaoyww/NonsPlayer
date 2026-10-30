@@ -81,7 +81,7 @@ async fn gdstudio_component_resolves_under_native_host_budget() {
         }
     }
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../adapters/gdstudio/dist/adapter.component.wasm");
+        .join("../../.local/adapters/gdstudio/dist/adapter.component.wasm");
     let mut runtime = Runtime::load_host_with_budget(
         runtime::engine_with_budget(Budget::ADAPTER).unwrap(),
         &path,
@@ -154,7 +154,7 @@ async fn qq_component_large_playlist_respects_page_and_execution_budget() {
         }
     }
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../adapters/qqmusic/dist/adapter.component.wasm");
+        .join("../../.local/adapters/qqmusic/dist/adapter.component.wasm");
     let mut runtime = Runtime::load_host_with_budget(
         runtime::engine_with_budget(Budget::ADAPTER).unwrap(),
         &path,
@@ -293,7 +293,7 @@ async fn xiaobai_component_live_lemon() {
 async fn gdstudio_component_live_resource() {
     use crate::music::provider::ResourceProviderDescriptor;
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let package = root.join("adapters/gdstudio");
+    let package = root.join(".local/adapters/gdstudio");
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(package.join("manifest.json")).unwrap()).unwrap();
     let descriptor: ResourceProviderDescriptor =
@@ -394,7 +394,7 @@ async fn qq_component_live_search_and_optional_login() {
         log::set_max_level(log::LevelFilter::Warn);
     }
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let package = root.join("adapters/qqmusic");
+    let package = root.join(".local/adapters/qqmusic");
     let manifest: serde_json::Value =
         serde_json::from_slice(&std::fs::read(package.join("manifest.json")).unwrap()).unwrap();
     let descriptor: SourceDescriptor =

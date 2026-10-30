@@ -617,13 +617,16 @@ mod tests {
             .block_on(future);
     }
     #[test]
+    #[ignore = "The Nons core no longer bundles plugins; the adapter/plugin store supplies components."]
     fn actual_island_component_calls_host_and_emits_song() {
         run(async {
             let host = Arc::new(FakeHost::default());
             let mut runtime =
                 Runtime::load_host(engine().unwrap(), &fixture("netease-island"), host.clone())
                     .await
-                    .expect("Run pnpm plugins:build before Rust tests");
+                    .expect(
+                        "The plugin store must provide this component for the integration test",
+                    );
             assert_eq!(
                 runtime
                     .call(

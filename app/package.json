@@ -4,12 +4,10 @@
   "version": "1.8.8",
   "type": "module",
   "scripts": {
-    "plugins:build": "node ../scripts/build-plugin.mjs",
-    "adapters:build": "node ../scripts/build-adapters.mjs",
     "plugins:fixtures": "cargo component build --manifest-path ../plugins/runtime-fixture/backend/Cargo.toml --release --target wasm32-unknown-unknown --locked && cargo component build --manifest-path ../plugins/music-fixture/backend/Cargo.toml --release --target wasm32-unknown-unknown --locked",
     "test": "node --test tests/*.test.mjs",
     "test:layout": "node --test tests/browser/*.test.mjs",
-    "dev": "pnpm adapters:build && pnpm plugins:build && vite",
+    "dev": "vite",
     "build": "tsc && vite build",
     "build:release": "node ../scripts/tauri.mjs build --ci --bundles msi nsis -- --locked",
     "build:android": "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/android.ps1 build",
@@ -18,9 +16,9 @@
     "preview": "vite preview",
     "tauri": "node ../scripts/tauri.mjs",
     "format:prettier": "prettier --write .. --ignore-unknown --ignore-path ../.gitignore --ignore-path ../.prettierignore",
-    "format:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml && cargo fmt --manifest-path ../packages/music-adapter-sdk/Cargo.toml && cargo fmt --manifest-path ../packages/wasm-crypto/Cargo.toml && cargo fmt --manifest-path ../adapters/netease/Cargo.toml && cargo fmt --manifest-path ../packages/music-web-provider/Cargo.toml && cargo fmt --manifest-path ../adapters/xiaobai/Cargo.toml && cargo fmt --manifest-path ../adapters/qqmusic/Cargo.toml && cargo fmt --manifest-path ../plugins/netease-island/backend/Cargo.toml && cargo fmt --manifest-path ../plugins/runtime-fixture/backend/Cargo.toml && cargo fmt --manifest-path ../plugins/music-fixture/backend/Cargo.toml",
+    "format:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml && cargo fmt --manifest-path ../packages/music-adapter-sdk/Cargo.toml && cargo fmt --manifest-path ../packages/wasm-crypto/Cargo.toml && cargo fmt --manifest-path ../packages/music-web-provider/Cargo.toml && cargo fmt --manifest-path ../plugins/netease-island/backend/Cargo.toml && cargo fmt --manifest-path ../plugins/runtime-fixture/backend/Cargo.toml && cargo fmt --manifest-path ../plugins/music-fixture/backend/Cargo.toml",
     "format": "pnpm format:prettier && pnpm format:rust",
-    "format:check": "prettier --check .. --ignore-unknown --ignore-path ../.gitignore --ignore-path ../.prettierignore && cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo fmt --manifest-path ../packages/music-adapter-sdk/Cargo.toml -- --check && cargo fmt --manifest-path ../packages/wasm-crypto/Cargo.toml -- --check && cargo fmt --manifest-path ../adapters/netease/Cargo.toml -- --check && cargo fmt --manifest-path ../packages/music-web-provider/Cargo.toml -- --check && cargo fmt --manifest-path ../adapters/xiaobai/Cargo.toml -- --check && cargo fmt --manifest-path ../adapters/qqmusic/Cargo.toml -- --check && cargo fmt --manifest-path ../plugins/netease-island/backend/Cargo.toml -- --check && cargo fmt --manifest-path ../plugins/runtime-fixture/backend/Cargo.toml -- --check && cargo fmt --manifest-path ../plugins/music-fixture/backend/Cargo.toml -- --check",
+    "format:check": "prettier --check .. --ignore-unknown --ignore-path ../.gitignore --ignore-path ../.prettierignore && cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo fmt --manifest-path ../packages/music-adapter-sdk/Cargo.toml -- --check && cargo fmt --manifest-path ../packages/wasm-crypto/Cargo.toml -- --check && cargo fmt --manifest-path ../packages/music-web-provider/Cargo.toml -- --check && cargo fmt --manifest-path ../plugins/netease-island/backend/Cargo.toml -- --check && cargo fmt --manifest-path ../plugins/runtime-fixture/backend/Cargo.toml -- --check && cargo fmt --manifest-path ../plugins/music-fixture/backend/Cargo.toml -- --check",
     "verify": "pnpm format && pnpm test && pnpm build && pnpm format:check"
   },
   "dependencies": {

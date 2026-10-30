@@ -150,7 +150,8 @@ fn qq_component_compilation_cache_benchmark() {
     let directory = std::env::var_os("NONS_WASM_BENCH_CACHE")
         .map(PathBuf::from)
         .unwrap_or_else(|| temporary.path().to_path_buf());
-    let bytes = std::fs::read(root.join("adapters/qqmusic/dist/adapter.component.wasm")).unwrap();
+    let bytes =
+        std::fs::read(root.join(".local/adapters/qqmusic/dist/adapter.component.wasm")).unwrap();
     let cache = CodeCache::new(directory).unwrap();
     let engine = cached_engine(&cache, true);
     let compiled = compile_with_cache(&engine, &bytes, Some(&cache)).unwrap();

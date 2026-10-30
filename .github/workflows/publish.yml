@@ -107,27 +107,13 @@ jobs:
       - name: Install frontend dependencies
         run: |
           pnpm --dir app install --frozen-lockfile
-          npm ci --prefix adapters/gdstudio --include=dev
           npm ci --prefix packages/wasm-crypto --include=dev
-
-      - name: Install adapter build tools
-        run: |
-          rustup target add wasm32-unknown-unknown
-          cargo install cargo-component --version 0.21.1 --locked
-          cargo install wac-cli --version 0.12.0 --locked --root .local/tools
-          $env:PATH = "$(Resolve-Path .local/tools/bin);$env:PATH"
-          "PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Test release scripts
         run: python -m unittest discover -s scripts/tests
 
       - name: Prepare Android SDK
         run: python scripts/bootstrap-android.py --accept-licenses
-
-      - name: Build bundled adapters
-        run: |
-          pnpm --dir app adapters:build
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build and verify Android APK
         env:
@@ -214,26 +200,11 @@ jobs:
           pnpm --dir app install --frozen-lockfile
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Install adapter build dependencies
-        run: |
-          npm ci --prefix adapters/gdstudio --include=dev
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm ci --prefix packages/wasm-crypto --include=dev
-
-      - name: Install adapter composition tool
-        run: cargo install wac-cli --version 0.12.0 --locked --root .local/tools
-
       - name: Check formatting
         run: pnpm --dir app format:check
 
       - name: Test release scripts
         run: python -m unittest discover -s scripts/tests
-
-      - name: Install plugin compiler
-        run: cargo install cargo-component --version 0.21.1 --locked
-
-      - name: Build plugins
-        run: pnpm --dir app plugins:build
 
       - name: Fetch telemetry statistics snapshot
         env:
@@ -362,19 +333,7 @@ jobs:
       - name: Install frontend and adapter dependencies
         run: |
           pnpm --dir app install --frozen-lockfile
-          npm ci --prefix adapters/gdstudio --include=dev
           npm ci --prefix packages/wasm-crypto --include=dev
-
-      - name: Install adapter build tools
-        run: |
-          cargo install cargo-component --version 0.21.1 --locked
-          cargo install wac-cli --version 0.12.0 --locked --root .local/tools
-          echo "$PWD/.local/tools/bin" >> "$GITHUB_PATH"
-
-      - name: Build bundled adapters and plugins
-        run: |
-          pnpm --dir app adapters:build
-          pnpm --dir app plugins:build
 
       - name: Build Linux AppImage and deb
         run: pnpm --dir app tauri build --ci --bundles appimage,deb --config '{"bundle":{"createUpdaterArtifacts":false}}' -- --locked

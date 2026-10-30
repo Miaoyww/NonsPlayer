@@ -10,8 +10,6 @@
         "installerHooks": "windows/autostart-hooks.nsh"
       }
     },
-    "resources": {
-      "bundled-plugins/": "bundled-plugins/"
-    }
+    "resources": {}
   }
 }

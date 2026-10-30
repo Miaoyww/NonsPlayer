@@ -7,7 +7,7 @@
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm adapters:build && pnpm plugins:build && pnpm build",
+    "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -30,10 +30,7 @@
     }
   },
   "bundle": {
-    "resources": {
-      "bundled-plugins/": "bundled-plugins/",
-      "bundled-adapters/": "bundled-adapters/"
-    },
+    "resources": {},
     "active": true,
     "targets": "all",
     "icon": [

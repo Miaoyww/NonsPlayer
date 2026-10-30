@@ -46,3 +46,5 @@ adapters/*/target/
 packages/music-adapter-sdk/target/
 packages/music-web-provider/target/
 packages/wasm-crypto/target/
+
+.local/adapters/

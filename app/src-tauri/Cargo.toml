@@ -38,8 +38,8 @@ tauri-plugin-opener = "2"
 tauri-plugin-clipboard-manager = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
-nons-music-adapter-sdk = { path = "../../packages/music-adapter-sdk" }
-nons-adapter-netease = { path = "../../adapters/netease" }
+nons-music-adapter-sdk = { git = "https://github.com/Miaoyww/Nons.git", package = "nons-music-adapter-sdk" }
+nons-adapter-netease = { git = "https://github.com/Miaoyww/nsa-netease.git", package = "nons-adapter-netease" }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
 moka = { version = "0.12", features = ["future"] }
 tokio = { version = "1", features = ["sync", "time", "fs", "macros", "io-util"] }
@@ -148,3 +148,4 @@ opt-level = 3
 panic = "abort"
 debug = "line-tables-only"
 strip = "none"
+

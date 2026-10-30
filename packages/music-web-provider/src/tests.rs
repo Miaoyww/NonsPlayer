@@ -304,7 +304,7 @@ fn adapter_manifests_keep_site_headers_and_permissions_separate() {
         Config {
             base: "https://music.90svip.cn/",
             user_agent: UA,
-            manifest: include_str!("../../../adapters/xiaobai/manifest.json"),
+            manifest: include_str!("xiaobai-fixture.json"),
         },
     ] {
         for (platform, id) in [

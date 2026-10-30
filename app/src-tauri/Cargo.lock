@@ -3856,6 +3856,7 @@ checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
 [[package]]
 name = "ncm-api-rs"
 version = "0.1.0"
+source = "git+https://github.com/Miaoyww/nsa-netease.git#9c0e20153ae0b23eea78258c1e42f9dfe195cb9e"
 dependencies = [
  "aes",
  "base64 0.22.1",
@@ -3978,7 +3979,7 @@ dependencies = [
  "moka",
  "ncmdump",
  "nons-adapter-netease",
- "nons-music-adapter-sdk",
+ "nons-music-adapter-sdk 1.0.0",
  "notify",
  "percent-encoding",
  "quick-xml 0.39.4",
@@ -4026,12 +4027,13 @@ dependencies = [
 [[package]]
 name = "nons-adapter-netease"
 version = "1.0.0"
+source = "git+https://github.com/Miaoyww/nsa-netease.git#9c0e20153ae0b23eea78258c1e42f9dfe195cb9e"
 dependencies = [
  "base64 0.22.1",
  "cookie",
  "log 0.4.34",
  "ncm-api-rs",
- "nons-music-adapter-sdk",
+ "nons-music-adapter-sdk 1.0.0 (git+https://github.com/Miaoyww/Nons.git)",
  "qrcode",
  "serde",
  "serde_json",
@@ -4042,6 +4044,17 @@ dependencies = [
 [[package]]
 name = "nons-music-adapter-sdk"
 version = "1.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "url",
+ "zeroize",
+]
+
+[[package]]
+name = "nons-music-adapter-sdk"
+version = "1.0.0"
+source = "git+https://github.com/Miaoyww/Nons.git#b42d6f9d4ff9ffe67b81147c04b9331552d4d635"
 dependencies = [
  "serde",
  "serde_json",

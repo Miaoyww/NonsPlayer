@@ -21,10 +21,10 @@ class ReleaseTests(unittest.TestCase):
         self.write_json(self.root / "app/package.json", {"version": "1.0.0"})
         self.write_json(self.native / "tauri.conf.json", {
             "version": "1.0.0", "productName": "Nons", "mainBinaryName": "Nons",
-            "bundle": {"resources": {"bundled-plugins/": "bundled-plugins/"}},
+            "bundle": {"resources": {}},
         })
         self.write_json(self.native / "tauri.windows.conf.json", {
-            "bundle": {"resources": {"bundled-plugins/": "bundled-plugins/"}},
+            "bundle": {"resources": {}},
         })
         (self.native / "Cargo.toml").write_text('[package]\nname = "nons"\nversion = "1.0.0"\n')
         (self.native / "Cargo.lock").write_text('[[package]]\nname = "nons"\nversion = "1.0.0"\n')
@@ -43,15 +43,11 @@ class ReleaseTests(unittest.TestCase):
             folder.mkdir(parents=True)
             (folder / name).write_bytes(b"installer fixture")
             (folder / name.replace("1.0.0", "0.1.0")).write_bytes(b"stale installer")
-        manifest = {"version": "1.3.0", "engines": {"app": "^1.0.0"}}
-        self.write_json(self.root / "plugins/netease-island/manifest.json", manifest)
-        folder = self.native / "bundled-plugins"
-        folder.mkdir()
-        with zipfile.ZipFile(folder / "netease-island.zip", "w") as archive:
-            archive.writestr("manifest.json", json.dumps(manifest))
         executable = self.native / "target/release/Nons.exe"
         executable.write_bytes(b"executable fixture")
         executable.with_suffix(".pdb").write_bytes(b"debug symbols")
+        folder = self.native / "bundled-plugins"
+        folder.mkdir()
         (folder / ".gitkeep").touch()
         return release.build_portable(self.root, "v1.0.0", self.native / "target/release/bundle/portable")
 
@@ -60,7 +56,7 @@ class ReleaseTests(unittest.TestCase):
         with zipfile.ZipFile(portable) as archive:
             prefix = "Nons_1.0.0_windows_x64_portable/"
             names = archive.namelist()
-            for relative in ["Nons.exe", "Nons.pdb", "bundled-plugins/netease-island.zip", "README.txt", "portable.flag"]:
+            for relative in ["Nons.exe", "Nons.pdb", "README.txt", "portable.flag"]:
                 self.assertIn(prefix + relative, names)
             self.assertFalse(any(name.endswith((".msi", ".gitkeep")) for name in names))
             self.assertEqual(archive.read(prefix + "Nons.pdb"), b"debug symbols")
@@ -70,14 +66,6 @@ class ReleaseTests(unittest.TestCase):
             extracted = self.root / "extracted"
             archive.extractall(extracted)
             self.assertEqual((extracted / prefix / "Nons.exe").read_bytes(), b"executable fixture")
-
-    def test_portable_missing_plugin_fails_before_writing_archive(self):
-        portable = self.assets()
-        portable.unlink()
-        (self.native / "bundled-plugins/netease-island.zip").unlink()
-        with self.assertRaisesRegex(ValueError, "Missing portable resource"):
-            release.build_portable(self.root, "v1.0.0", portable.parent)
-        self.assertFalse(portable.exists())
 
     def test_missing_portable_blocks_release_collection(self):
         portable = self.assets()
@@ -147,17 +135,13 @@ class ReleaseTests(unittest.TestCase):
             self.assertNotIn("0.1.0", name)
         self.assertFalse(any("netease-island" in name for name in sums.decode()))
 
-    def test_partial_build_and_stale_plugin_fail(self):
+    def test_partial_build_fails(self):
         self.assets()
         msi = self.native / "target/release/bundle/msi/Nons_1.0.0_x64_zh-CN.msi"
         msi.unlink()
         with self.assertRaisesRegex(ValueError, "msi installer"):
             release.collect_files(self.root, "v1.0.0", self.output)
         msi.write_bytes(b"installer fixture")
-        self.write_json(self.root / "plugins/netease-island/manifest.json", {"version": "1.4.0"})
-        with self.assertRaisesRegex(ValueError, "stale"):
-            release.collect_files(self.root, "v1.0.0", self.output)
-        self.assertFalse(self.output.exists())
 
     def test_nonempty_output_is_not_overwritten(self):
         self.assets()

@@ -79,8 +79,6 @@ def build_portable(root, tag, output):
             if Path(relative).is_absolute() or ".." in Path(relative).parts or relative in files:
                 raise ValueError(f"Invalid or duplicate portable resource path: {relative}")
             files[relative] = path
-    if "bundled-plugins/netease-island.zip" not in files:
-        raise ValueError("Missing portable resource: bundled-plugins/netease-island.zip")
     output.mkdir(parents=True, exist_ok=True)
     target = output / f"{name}.zip"
     readme = (
@@ -88,7 +86,7 @@ def build_portable(root, tag, output):
         f"请完整解压整个目录，再运行 {executable.name}；不要在压缩包内直接启动或单独移动 EXE。\n"
         "需要 Microsoft Edge WebView2 Runtime；缺失时请先从微软官方网站安装：\n"
         "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
-        "包含随包插件，音频播放使用系统 WebView。\n"
+        "插件和适配器由商店安装，音频播放使用系统 WebView。\n"
         f"请保留 {symbols.name}，用于错误日志中的函数名和代码行号。\n"
         "设置、账号、曲库、插件、缓存和 WebView 数据保存到程序目录的 data 文件夹，与安装版独立。\n\n"
         "请放在可写目录并保留 portable.flag；移动整个目录可携带数据，旧用户数据不会自动迁移。\n"
@@ -124,13 +122,6 @@ def collect_files(root, tag, output):
     if not portable.is_file():
         raise ValueError(f"Missing portable archive: {portable}")
     sources.append((portable, portable.name))
-    plugin = native / "bundled-plugins/netease-island.zip"
-    with zipfile.ZipFile(plugin) as archive:
-        manifest = json.loads(archive.read("manifest.json"))
-    if manifest != read_json(root / "plugins/netease-island/manifest.json"):
-        raise ValueError("Bundled plugin manifest is stale; rebuild the plugin")
-    if manifest["engines"]["app"] != f"^{version.split('.')[0]}.0.0":
-        raise ValueError("Bundled plugin must declare compatibility with the release major version")
     write_assets(output, sources)
 
 
