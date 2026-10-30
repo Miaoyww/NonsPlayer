@@ -4,6 +4,7 @@ pub use nons_music_adapter_sdk::{
     CONTRACT_VERSION,
 };
 pub mod accounts;
+pub(crate) mod adapter_install;
 pub(crate) mod bundled;
 pub mod collections;
 pub mod external;

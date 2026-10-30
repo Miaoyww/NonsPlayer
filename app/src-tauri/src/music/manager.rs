@@ -227,6 +227,73 @@ impl AdapterManager {
             .remove(&source);
         Ok(())
     }
+    /// Replace a runtime adapter while retaining old resource tickets. The old
+    /// entry is removed from routing but remains alive through any tickets that
+    /// already own it, so an upgrade does not stop audio already handed off.
+    pub(crate) fn replace(
+        &self,
+        adapter: Arc<dyn MusicAdapter>,
+        session: SessionProvider,
+    ) -> MusicResult<()> {
+        adapter.descriptor().validate()?;
+        let source = adapter.descriptor().source.clone();
+        if (session)().source != source {
+            return Err(ErrorCode::InvalidData.into());
+        }
+        let entry = Arc::new(Entry {
+            adapter,
+            session,
+            generation: Arc::new(AtomicU64::new(1)),
+            reads: Semaphore::new(4),
+            playback: Semaphore::new(2),
+            accounts: Semaphore::new(1),
+            account_waiters: Semaphore::new(4),
+            login_challenges: Default::default(),
+            revision: AtomicU64::new(0),
+        });
+        self.entries
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .insert(source.clone(), entry);
+        self.providers
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(&source);
+        self.loading
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(&source);
+        Ok(())
+    }
+    /// Remove an adapter from new request routing. Existing resource tickets
+    /// retain their Arc-owned entry and can finish independently.
+    pub(crate) fn remove(&self, source: &SourceId) -> MusicResult<()> {
+        let removed_entry = self
+            .entries
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(source)
+            .is_some();
+        let removed_provider = self
+            .providers
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(source)
+            .is_some();
+        self.loading
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(source);
+        self.provider_loading
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(source);
+        if removed_entry || removed_provider {
+            Ok(())
+        } else {
+            Err(ErrorCode::NotFound.into())
+        }
+    }
     pub fn set_enabled(&self, source: &SourceId, enabled: bool) -> MusicResult<()> {
         let entry = self.entry(source)?;
         entry

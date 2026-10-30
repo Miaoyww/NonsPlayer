@@ -320,6 +320,18 @@ impl Store {
         Ok(())
     }
 
+    pub fn remove_setting(&self, key: &str) -> AppResult<()> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.remove_setting.lock", error);
+            })
+            .map_err(|_| "配置锁不可用")?
+            .execute("DELETE FROM settings WHERE key=?1", [key])
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
     pub fn save_player(&self, state: &PlayerSnapshot) -> AppResult<()> {
         self.set_setting(
             "player",

@@ -15,7 +15,7 @@ use std::sync::{
     Mutex, Weak,
 };
 
-#[derive(Clone, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct Permissions {
     pub http_hosts: Vec<String>,

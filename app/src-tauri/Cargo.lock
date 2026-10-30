@@ -3979,7 +3979,7 @@ dependencies = [
  "moka",
  "ncmdump",
  "nons-adapter-netease",
- "nons-music-adapter-sdk 1.0.0",
+ "nons-music-adapter-sdk",
  "notify",
  "percent-encoding",
  "quick-xml 0.39.4",
@@ -4033,22 +4033,12 @@ dependencies = [
  "cookie",
  "log 0.4.34",
  "ncm-api-rs",
- "nons-music-adapter-sdk 1.0.0 (git+https://github.com/Miaoyww/Nons.git)",
+ "nons-music-adapter-sdk",
  "qrcode",
  "serde",
  "serde_json",
  "tokio",
  "url",
-]
-
-[[package]]
-name = "nons-music-adapter-sdk"
-version = "1.0.0"
-dependencies = [
- "serde",
- "serde_json",
- "url",
- "zeroize",
 ]
 
 [[package]]

@@ -87,13 +87,15 @@ export function ExtensionInstallPage({
   available = false,
   busy = false,
   onZip,
-  onDirectory
+  onDirectory,
+  children
 }: {
   noun: string
   available?: boolean
   busy?: boolean
   onZip?: () => void
   onDirectory?: () => void
+  children?: ReactNode
 }) {
   return (
     <div className="space-y-4">
@@ -104,7 +106,7 @@ export function ExtensionInstallPage({
         <h3 className="text-sm font-semibold">从本地安装</h3>
         <p className="mt-1 text-xs leading-normal text-muted-foreground">
           {available
-            ? '拖拽 ZIP 文件到此页面，或选择安装包与插件目录。安装后查看权限并确认启用。'
+            ? '选择 ZIP 文件或插件目录。安装前会显示权限范围并要求确认。'
             : '适配器本地安装暂未开放，当前仅支持随包提供的适配器。'}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -118,6 +120,7 @@ export function ExtensionInstallPage({
           </Button>
         </div>
       </section>
+      {children}
       <section
         aria-label={`${noun}商店`}
         className="flex items-start gap-3 rounded-xl border border-border p-4"

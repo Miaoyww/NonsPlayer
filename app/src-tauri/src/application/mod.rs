@@ -949,6 +949,13 @@ pub fn run() {
                 player.clone(),
             )?;
             app.manage(plugin_manager.clone());
+            let adapter_installer = crate::music::adapter_install::AdapterInstaller::new(
+                data.join("adapters"),
+                music.clone(),
+                store.clone(),
+                plugin_manager.shared_http(),
+            )?;
+            app.manage(adapter_installer.clone());
             #[cfg(target_os = "android")]
             let component_directory = {
                 let directory = data.join("bundled-adapters");
@@ -970,6 +977,7 @@ pub fn run() {
                 .inner()
                 .clone();
             let component_app = app.handle().clone();
+            let installed_adapters = adapter_installer.clone();
             let adapters_startup = tauri::async_runtime::spawn(async move {
                 use tauri::Emitter;
                 let result = match component_packages {
@@ -987,6 +995,7 @@ pub fn run() {
                     log::error!(target: "nons::adapter", "load_components_failed directory={} reason={error}", component_directory.display());
                     let _ = (component_app.emit("adapter-load-failed", error)).inspect_err(|error| { crate::infrastructure::diagnostics::warn("component_app.emit", error); });
                 }
+                installed_adapters.startup().await;
                 let _ = (component_app.emit("adapters-changed", ())).inspect_err(|error| { crate::infrastructure::diagnostics::warn("component_app.emit", error); });
             });
             #[cfg(feature = "plugin-probe")]
@@ -1101,6 +1110,10 @@ pub fn run() {
             crate::music::settings::adapter_list,
             crate::music::settings::adapter_set_enabled,
             crate::music::settings::adapter_reload,
+            crate::music::adapter_install::adapter_package_preview,
+            crate::music::adapter_install::adapter_install,
+            crate::music::adapter_install::adapter_uninstall,
+            crate::music::adapter_install::adapter_installed_list,
             crate::music::source_preferences::music_source_preferences,
             crate::music::source_preferences::music_set_source_preferences,
             crate::music::source_preferences::music_source_intent,

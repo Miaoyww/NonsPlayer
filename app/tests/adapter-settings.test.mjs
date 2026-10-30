@@ -10,7 +10,7 @@ import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 import { loadExtensionList } from './helpers/extension-list.mjs'
 
-test('adapter settings wait for persistence, report failures and reject stale list responses', async () => {
+test('adapter settings persist changes and guard package operations and drag lifecycle', async (t) => {
   const dom = new JSDOM('<div id="root"></div>')
   const previous = {
     window: globalThis.window,
@@ -30,7 +30,12 @@ test('adapter settings wait for persistence, report failures and reject stale li
   let invalidations = 0
   let providerStatuses = []
   let providerFailure
+  let installedPackages = []
+  const pickers = []
+  const dragListeners = []
+  let delayDragListener = false
   const selectContext = React.createContext(null)
+  const dialogContext = React.createContext(null)
   const modules = {
     '@/features/music/source-label': {
       sourceLabel: (source) => (source === 'netease' ? '网易云音乐' : source)
@@ -38,6 +43,25 @@ test('adapter settings wait for persistence, report failures and reject stale li
     '@/features/account/account-login-page': { AdapterLoginCard: () => null },
     '@/features/account/use-account-adapters': {
       useAccountAdapters: () => ({ adapters: [], refresh() {} })
+    },
+    '@tauri-apps/plugin-dialog': {
+      open: (options) =>
+        new Promise((resolve, reject) => pickers.push({ options, resolve, reject }))
+    },
+    '@/components/ui/dialog': {
+      Dialog: ({ open, onOpenChange, children }) =>
+        open
+          ? React.createElement(dialogContext.Provider, { value: onOpenChange }, children)
+          : null,
+      DialogClose: ({ render, children }) => {
+        const onOpenChange = React.useContext(dialogContext)
+        return React.cloneElement(render, { onClick: () => onOpenChange(false) }, children)
+      },
+      DialogContent: ({ children }) => React.createElement('div', { role: 'dialog' }, children),
+      DialogDescription: ({ children }) => React.createElement('p', null, children),
+      DialogFooter: ({ children }) => React.createElement('div', null, children),
+      DialogHeader: ({ children }) => React.createElement('div', null, children),
+      DialogTitle: ({ children }) => React.createElement('h2', null, children)
     },
     '@/components/ui/input': {
       Input: ({ onChange, ...props }) =>
@@ -70,11 +94,26 @@ test('adapter settings wait for persistence, report failures and reject stale li
         }
       }
     },
+    '@tauri-apps/api/webview': {
+      getCurrentWebview: () => ({
+        onDragDropEvent: (callback) => {
+          const listener = { callback, cleanups: 0 }
+          dragListeners.push(listener)
+          const unlisten = () => listener.cleanups++
+          return delayDragListener
+            ? new Promise((resolve) => {
+                listener.resolve = () => resolve(unlisten)
+              })
+            : Promise.resolve(unlisten)
+        }
+      })
+    },
     'lucide-react': {
       Blocks: () => null,
       RefreshCw: () => null,
       Search: () => null,
       RotateCw: () => null,
+      Trash2: () => null,
       UserRound: () => null,
       Upload: () => null,
       Store: () => null,
@@ -100,11 +139,13 @@ test('adapter settings wait for persistence, report failures and reject stale li
     '@/lib/player': {
       errorText: String,
       nativeCall: (command, args) =>
-        command === 'resource_provider_list'
-          ? providerFailure
-            ? Promise.reject(providerFailure)
-            : Promise.resolve(providerStatuses)
-          : new Promise((resolve, reject) => requests.push({ command, args, resolve, reject }))
+        command === 'adapter_installed_list'
+          ? Promise.resolve(installedPackages)
+          : command === 'resource_provider_list'
+            ? providerFailure
+              ? Promise.reject(providerFailure)
+              : Promise.resolve(providerStatuses)
+            : new Promise((resolve, reject) => requests.push({ command, args, resolve, reject }))
     },
     '@/lib/runtime-cache': {
       invalidateNativeCache: () => {
@@ -120,6 +161,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
   ).outputText
   runInNewContext(code, {
     exports,
+    window: dom.window,
     require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
   })
   const root = createRoot(document.getElementById('root'))
@@ -146,7 +188,7 @@ test('adapter settings wait for persistence, report failures and reject stale li
     assert.equal(reservedInstall.disabled, false)
     await click(reservedInstall)
     assert.match(document.body.textContent, /适配器商店/)
-    assert.match(document.body.textContent, /适配器本地安装暂未开放/)
+    assert.match(document.body.textContent, /选择 ZIP 文件或插件目录/)
     assert.equal(
       [...document.querySelectorAll('button')].find((button) => button.textContent === '选择 ZIP')
         .disabled,
@@ -266,10 +308,242 @@ test('adapter settings wait for persistence, report failures and reject stale li
     await act(async () => requests[12].resolve(status(true)))
     assert.match(document.querySelector('[role="alert"]').textContent, /音源列表不可用/)
     assert.match(list().textContent, /网易云音乐/)
-    await act(async () => changed())
-    await act(async () => root.unmount())
-    assert.equal(unsubscribed, true)
-    await act(async () => requests[13].resolve(status(false)))
+    const permissions = {
+      httpHosts: ['music.example.com'],
+      websocketHosts: [],
+      credentials: true,
+      state: true,
+      system: false
+    }
+    const packageInfo = {
+      id: 'fixture-radio',
+      name: '测试适配器',
+      version: '1.0.0',
+      kind: 'adapter',
+      permissions,
+      permissionChanges: []
+    }
+    const surface = document.getElementById('root').firstElementChild
+    surface.getBoundingClientRect = () => ({
+      left: 100,
+      top: 50,
+      right: 300,
+      bottom: 200,
+      width: 200,
+      height: 150
+    })
+    Object.defineProperty(dom.window, 'devicePixelRatio', { value: 2 })
+    const listener = dragListeners[0]
+    const drag = (type, paths = ['C:/adapters/drag.zip'], position = { x: 500, y: 300 }) =>
+      act(async () => listener.callback({ payload: { type, paths, position } }))
+    const dialog = () => document.querySelector('[role="dialog"]')
+    const dialogButton = (label) =>
+      [...dialog().querySelectorAll('button')].find((element) => element.textContent === label)
+    const lastRequest = () => requests.at(-1)
+    const resolvePreview = () => act(async () => lastRequest().resolve(packageInfo))
+    const expectLocked = () => assert.equal(surface.getAttribute('aria-busy'), 'true')
+
+    await t.test(
+      'drag callback uses physical webview coordinates and rejects outside and multiple files',
+      async () => {
+        assert.equal(dialog(), null)
+        assert.equal(dragListeners.length, 1)
+        const count = requests.length
+        // These physical coordinates look inside the CSS rect until divided by DPR.
+        await drag('enter', undefined, { x: 150, y: 80 })
+        assert.doesNotMatch(document.body.textContent, /松开即可预览/)
+        await drag('drop', undefined, { x: 150, y: 80 })
+        assert.equal(requests.length, count)
+        await drag('enter')
+        assert.match(document.querySelector('[role="status"]').textContent, /松开即可预览/)
+        await drag('leave')
+        assert.doesNotMatch(document.body.textContent, /松开即可预览/)
+        await drag('over')
+        assert.match(document.querySelector('[role="status"]').textContent, /松开即可预览/)
+        await drag('drop', ['C:/adapters/one.zip', 'C:/adapters/two.zip'])
+        assert.equal(requests.length, count)
+        assert.match(document.querySelector('[role="alert"]').textContent, /一次只能拖入一个/)
+        assert.doesNotMatch(document.body.textContent, /松开即可预览/)
+        await drag('drop')
+        assert.equal(lastRequest().command, 'adapter_package_preview')
+        assert.equal(lastRequest().args.path, 'C:/adapters/drag.zip')
+        expectLocked()
+        await drag('drop', ['C:/adapters/ignored.zip'])
+        await drag('enter')
+        assert.equal(requests.length, count + 1)
+        assert.doesNotMatch(document.body.textContent, /松开即可预览/)
+        await resolvePreview()
+        assert.equal(surface.getAttribute('aria-busy'), 'false')
+        assert.match(dialog().textContent, /测试适配器.*music.example.com.*读取当前平台账号凭据/s)
+        await click(dialogButton('取消'))
+        assert.equal(dialog(), null)
+        assert.equal(dragListeners.length, 1)
+        assert.equal(listener.cleanups, 0)
+      }
+    )
+
+    await t.test(
+      'picker holds the operation lock until preview and supports cancellation and failure',
+      async () => {
+        await click(button('安装适配器'))
+        await click(button('选择 ZIP'))
+        expectLocked()
+        assert.equal(pickers.length, 1)
+        assert.equal(pickers[0].options.directory, false)
+        assert.equal(pickers[0].options.multiple, false)
+        assert.deepEqual([...pickers[0].options.filters[0].extensions], ['zip'])
+        assert.equal(button('选择 ZIP').disabled, true)
+        assert.equal(button('选择目录').disabled, true)
+        const count = requests.length
+        await drag('drop', ['C:/adapters/competing.zip'])
+        await click(button('选择 ZIP'))
+        await click(button('选择目录'))
+        await click(button('已安装'))
+        assert.equal(toggle().disabled, true)
+        await click(toggle())
+        await click(document.querySelector('[aria-label="重新加载网易云音乐"]'))
+        assert.equal(requests.length, count)
+        assert.equal(pickers.length, 1)
+        await act(async () => pickers[0].resolve('C:/adapters/picked.zip'))
+        assert.equal(lastRequest().command, 'adapter_package_preview')
+        assert.equal(lastRequest().args.path, 'C:/adapters/picked.zip')
+        expectLocked()
+        await drag('drop', ['C:/adapters/still-competing.zip'])
+        assert.equal(requests.length, count + 1)
+        await resolvePreview()
+        assert.match(dialog().textContent, /测试适配器/)
+        await click(dialogButton('取消'))
+        await click(button('安装适配器'))
+        await click(button('选择目录'))
+        assert.equal(pickers[1].options.directory, true)
+        await act(async () => pickers[1].resolve(null))
+        assert.equal(surface.getAttribute('aria-busy'), 'false')
+        assert.equal(requests.length, count + 1)
+        await click(button('选择 ZIP'))
+        await act(async () => pickers[2].reject(new Error('文件选择器不可用')))
+        assert.match(document.querySelector('[role="alert"]').textContent, /文件选择器不可用/)
+        assert.equal(surface.getAttribute('aria-busy'), 'false')
+        assert.equal(dragListeners.length, 1)
+      }
+    )
+
+    await t.test(
+      'install requires trust, submits the reviewed path and displays failures inside its dialog',
+      async () => {
+        await drag('drop', ['C:/adapters/install.zip'])
+        await resolvePreview()
+        const count = requests.length
+        assert.equal(dialogButton('确认安装').disabled, true)
+        await click(dialogButton('确认安装'))
+        assert.equal(requests.length, count)
+        await click(dialog().querySelector('input[type="checkbox"]'))
+        assert.equal(dialogButton('确认安装').disabled, false)
+        await click(dialogButton('确认安装'))
+        assert.equal(lastRequest().command, 'adapter_install')
+        assert.equal(lastRequest().args.path, 'C:/adapters/install.zip')
+        assert.equal(lastRequest().args.authorized, true)
+        expectLocked()
+        await click(dialogButton('确认安装'))
+        await drag('drop', ['C:/adapters/ignored.zip'])
+        await click(dialogButton('取消'))
+        assert.ok(dialog())
+        assert.equal(requests.length, count + 1)
+        await act(async () => lastRequest().reject(new Error('组件加载失败')))
+        assert.match(dialog().querySelector('[role="alert"]').textContent, /组件加载失败/)
+        assert.equal(document.querySelectorAll('[role="alert"]').length, 1)
+        assert.equal(dialogButton('确认安装').disabled, false)
+        await click(dialogButton('确认安装'))
+        installedPackages = [{ ...packageInfo, authorized: true, enabled: true, loaded: true }]
+        await act(async () => lastRequest().resolve())
+        assert.equal(dialog(), null)
+        await act(async () => lastRequest().resolve(status(true)))
+        assert.equal(surface.getAttribute('aria-busy'), 'false')
+        assert.match(document.body.textContent, /测试适配器/)
+        await drag('drop', ['C:/adapters/after-install.zip'])
+        assert.equal(lastRequest().args.path, 'C:/adapters/after-install.zip')
+        await resolvePreview()
+        assert.equal(dialogButton('确认安装').disabled, true)
+        await click(dialogButton('取消'))
+        assert.equal(dragListeners.length, 1)
+        assert.equal(listener.cleanups, 0)
+      }
+    )
+
+    await t.test(
+      'uninstall failures stay in the modal and completed operations allow another drop',
+      async () => {
+        await click(document.querySelector('[aria-label="卸载测试适配器"]'))
+        assert.equal(dialog().querySelector('[role="alert"]'), null)
+        assert.equal(dialog().querySelector('input[type="checkbox"]').checked, false)
+        await click(dialogButton('确认卸载'))
+        assert.equal(lastRequest().command, 'adapter_uninstall')
+        assert.equal(lastRequest().args.source, 'fixture-radio')
+        assert.equal(lastRequest().args.removeData, false)
+        const count = requests.length
+        await click(dialogButton('确认卸载'))
+        await drag('drop', ['C:/adapters/ignored.zip'])
+        assert.equal(requests.length, count)
+        await act(async () => lastRequest().reject(new Error('卸载目录被占用')))
+        assert.match(dialog().querySelector('[role="alert"]').textContent, /卸载目录被占用/)
+        assert.equal(document.querySelectorAll('[role="alert"]').length, 1)
+        await click(dialogButton('取消'))
+        await click(document.querySelector('[aria-label="卸载测试适配器"]'))
+        assert.equal(dialog().querySelector('[role="alert"]'), null)
+        await click(dialog().querySelector('input[type="checkbox"]'))
+        await click(dialogButton('确认卸载'))
+        assert.equal(lastRequest().args.removeData, true)
+        installedPackages = []
+        await act(async () => lastRequest().resolve())
+        await act(async () => lastRequest().resolve(status(true)))
+        assert.equal(dialog(), null)
+        await drag('drop', ['C:/adapters/after-uninstall.zip'])
+        assert.equal(lastRequest().command, 'adapter_package_preview')
+        assert.equal(lastRequest().args.path, 'C:/adapters/after-uninstall.zip')
+        await act(async () => lastRequest().reject(new Error('包描述无效')))
+        assert.match(document.querySelector('[role="alert"]').textContent, /包描述无效/)
+        await drag('drop', ['C:/adapters/retry.zip'])
+        await resolvePreview()
+        await click(dialogButton('取消'))
+        assert.equal(dragListeners.length, 1)
+      }
+    )
+
+    await t.test(
+      'unmount cleans up registered and late-resolving listeners and ignores old callbacks',
+      async () => {
+        await act(async () => changed())
+        const stale = lastRequest()
+        await act(async () => root.render(null))
+        assert.equal(unsubscribed, true)
+        assert.equal(listener.cleanups, 1)
+        const count = requests.length
+        await drag('drop')
+        assert.equal(requests.length, count)
+        await act(async () => stale.resolve(status(false)))
+        delayDragListener = true
+        await act(async () => root.render(React.createElement(exports.AdaptersPage)))
+        assert.equal(dragListeners.length, 2)
+        const late = dragListeners[1]
+        const pending = lastRequest()
+        await act(async () => root.unmount())
+        assert.equal(late.cleanups, 0)
+        await act(async () => late.resolve())
+        assert.equal(late.cleanups, 1)
+        const afterUnmount = requests.length
+        await act(async () =>
+          late.callback({
+            payload: {
+              type: 'drop',
+              paths: ['C:/adapters/ignored.zip'],
+              position: { x: 500, y: 300 }
+            }
+          })
+        )
+        assert.equal(requests.length, afterUnmount)
+        await act(async () => pending.resolve(status(false)))
+        assert.equal(listener.cleanups, 1)
+      }
+    )
   } finally {
     await act(async () => root.unmount())
     globalThis.window = previous.window

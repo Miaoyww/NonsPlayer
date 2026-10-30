@@ -237,6 +237,51 @@ impl AdapterManager {
             .remove(&id);
         Ok(())
     }
+    pub(crate) fn replace_resource_provider_with_enabled(
+        &self,
+        adapter: Arc<dyn ResourceProvider>,
+        enabled: bool,
+    ) -> MusicResult<()> {
+        adapter.descriptor().validate()?;
+        let id = adapter.descriptor().id.clone();
+        let mut providers = self.providers.lock().map_err(|_| ErrorCode::Internal)?;
+        if !providers.contains_key(&id) {
+            drop(providers);
+            return self.register_resource_provider_with_enabled(adapter, enabled);
+        }
+        providers.insert(
+            id.clone(),
+            Arc::new(ProviderEntry {
+                adapter,
+                generation: Arc::new(AtomicU64::new(if enabled { 1 } else { 2 })),
+                catalog: None,
+                reads: Semaphore::new(4),
+                playback: Semaphore::new(2),
+            }),
+        );
+        self.provider_loading
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(&id);
+        Ok(())
+    }
+    pub(crate) fn remove_resource_provider(&self, id: &SourceId) -> MusicResult<()> {
+        let removed = self
+            .providers
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(id)
+            .is_some();
+        self.provider_loading
+            .lock()
+            .map_err(|_| ErrorCode::Internal)?
+            .remove(id);
+        if removed {
+            Ok(())
+        } else {
+            Err(ErrorCode::NotFound.into())
+        }
+    }
     pub fn resource_provider_statuses(&self) -> MusicResult<Vec<ResourceProviderStatus>> {
         let mut statuses = self
             .providers
