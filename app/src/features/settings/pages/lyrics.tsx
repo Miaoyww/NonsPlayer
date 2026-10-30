@@ -2,7 +2,12 @@ import { ErrorNotice } from '@/components/error-notice'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import { defaultBackgroundSpeed, useLyricsSettings } from '@/features/lyrics/use-lyrics-settings'
+import { Input } from '@/components/ui/input'
+import {
+  defaultBackgroundSpeed,
+  defaultLyricsOffsetMs,
+  useLyricsSettings
+} from '@/features/lyrics/use-lyrics-settings'
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
 import { SettingsCard } from '@/features/settings/settings-card'
 import { LyricFontWeightControl } from '@/features/settings/lyric-font-weight-control'
@@ -11,8 +16,15 @@ import { useFontSettings } from '@/features/settings/use-font-settings'
 
 export function LyricsPage() {
   const { fonts, setFont } = useFontSettings()
-  const { backgroundSpeed, setBackgroundSpeed, autoBlur, setAutoBlur, fontWeight } =
-    useLyricsSettings()
+  const {
+    backgroundSpeed,
+    setBackgroundSpeed,
+    lyricsOffsetMs,
+    setLyricsOffsetMs,
+    autoBlur,
+    setAutoBlur,
+    fontWeight
+  } = useLyricsSettings()
   const { sources, ready, busy, error, setSources } = useLyricSources()
   return (
     <div className="flex flex-col gap-8">
@@ -72,6 +84,33 @@ export function LyricsPage() {
           description="自动模糊远离当前播放位置的歌词，遵循系统减少动态效果设置。"
         >
           <Switch aria-label="歌词自动模糊" checked={autoBlur} onCheckedChange={setAutoBlur} />
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-offset"
+          title="歌词偏移"
+          description="负数提前，正数延后；单曲偏移优先于全局设置。"
+        >
+          <div className="flex w-60 items-center gap-2">
+            <Input
+              className="w-28 text-right tabular-nums"
+              aria-label="歌词偏移（毫秒）"
+              type="number"
+              min={-60000}
+              max={60000}
+              step={1}
+              value={lyricsOffsetMs}
+              onChange={(event) => setLyricsOffsetMs(event.currentTarget.valueAsNumber)}
+            />
+            <span className="text-sm text-muted-foreground">毫秒</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto"
+              onClick={() => setLyricsOffsetMs(defaultLyricsOffsetMs)}
+            >
+              恢复默认
+            </Button>
+          </div>
         </SettingsCard>
         <SettingsCard
           searchId="lyrics-background-speed"

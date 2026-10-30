@@ -28,6 +28,7 @@ import { isAndroid } from '@/lib/platform'
 import { MobileFullscreenPlayer } from '@/features/playback/mobile-fullscreen-player'
 import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/playback-notice'
 import { requestCache, RUNTIME_TTL } from '@/lib/runtime-cache'
+import { useLyricsSettings } from './use-lyrics-settings'
 
 function isCurrentPlayback(key: string, revision: number, version: string) {
   const active = getPlayer()
@@ -92,6 +93,7 @@ export default function LyricsView({
   const track = state.index !== null ? state.queue[state.index] : undefined
   const trackVersion = useMemo(() => lyricTrackVersion(track), [track])
   const { sources } = useLyricSources()
+  const { lyricsOffsetMs } = useLyricsSettings()
   const { options: localPreferences } = useLocalPreferences()
   const [display, setDisplay] = useState<{
     key: string
@@ -132,6 +134,7 @@ export default function LyricsView({
         revision: number
         sources: LyricSources
         preferences: typeof localPreferences
+        lyricsOffsetMs: number
         cacheRevision: number
         updatedAt: number
       }
@@ -146,7 +149,10 @@ export default function LyricsView({
       cue?: { startMs: number; endMs: number }
     ) => {
       const parsed = value
-        ? offsetLyrics(parseLyrics(value, duration, cue), correction.current.offsetMs)
+        ? offsetLyrics(
+            parseLyrics(value, duration, cue),
+            correction.current.offsetMs ?? lyricsOffsetMs
+          )
         : []
       appliedSource.current = value?.source
       reusable.current = value
@@ -155,6 +161,7 @@ export default function LyricsView({
             revision,
             sources,
             preferences: localPreferences,
+            lyricsOffsetMs,
             cacheRevision: requestCache.revision,
             updatedAt: Date.now()
           }
@@ -171,7 +178,7 @@ export default function LyricsView({
           : undefined
       })
     },
-    [sources, trackVersion, localPreferences]
+    [sources, trackVersion, localPreferences, lyricsOffsetMs]
   )
   const requestLyrics = useCallback(
     async (refresh = false, reuse = false) => {
@@ -188,6 +195,7 @@ export default function LyricsView({
         previous.revision === state.revision &&
         previous.sources === sources &&
         previous.preferences === localPreferences &&
+        previous.lyricsOffsetMs === lyricsOffsetMs &&
         previous.cacheRevision === requestCache.revision &&
         Date.now() - previous.updatedAt < RUNTIME_TTL
       ) {

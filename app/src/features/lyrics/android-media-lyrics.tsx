@@ -7,6 +7,7 @@ import { parseLyrics } from './parse-lyrics'
 import { useLyricSources } from './use-lyric-sources'
 import { mediaLyricLines } from './media-lyric-lines'
 import { offsetLyrics, type LyricCorrection } from './correction'
+import { useLyricsSettings } from './use-lyrics-settings'
 
 // Fetch/parse through the existing lyric pipeline once; native code advances lines in the background.
 // This component renders nothing and has no animation or progress subscription.
@@ -14,6 +15,7 @@ export function AndroidMediaLyrics() {
   const state = usePlayer('index', 'queue')
   const track = state.index === null ? undefined : state.queue[state.index]
   const { sources, ready } = useLyricSources()
+  const { lyricsOffsetMs } = useLyricsSettings()
   const [revision, setRevision] = useState(0)
   useEffect(() => {
     let disposed = false
@@ -59,7 +61,7 @@ export function AndroidMediaLyrics() {
                           track.durationMs,
                           track.source.kind === 'local' ? track.source.cue : undefined
                         ),
-                        correction.offsetMs
+                        correction.offsetMs ?? lyricsOffsetMs
                       )
                     )
                   : [],
@@ -79,6 +81,6 @@ export function AndroidMediaLyrics() {
     return () => {
       disposed = true
     }
-  }, [track, sources, ready, revision])
+  }, [track, sources, ready, revision, lyricsOffsetMs])
   return null
 }

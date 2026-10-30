@@ -24,7 +24,9 @@ const streamLyrics = {
   content: 'stream word lyrics with translation'
 }
 
-async function harness(track, settle = true, localSource = 'local') {
+async function harness(track, settle = true, localSource = 'local', offsetMs = null) {
+  let globalOffsetMs = -200
+  const offsets = []
   let sources = { localSource, amll: true, qq: true }
   let present = true
   let open = true
@@ -68,14 +70,20 @@ async function harness(track, settle = true, localSource = 'local') {
     },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     './correction': {
-      offsetLyrics: (lines) => lines,
-      automaticLyrics: { candidate: null, offsetMs: 0 }
+      offsetLyrics: (lines, value) => {
+        offsets.push(value)
+        return lines
+      },
+      automaticLyrics: { candidate: null, offsetMs: null }
+    },
+    './use-lyrics-settings': {
+      useLyricsSettings: () => ({ lyricsOffsetMs: globalOffsetMs })
     },
     '@/lib/player': {
       usePlayer: () => player,
       getPlayer: () => player,
       errorText: String,
-      nativeCall: async () => ({ candidate: null, offsetMs: 0 })
+      nativeCall: async () => ({ candidate: null, offsetMs })
     },
     '@/features/lyrics/load-lyrics': {
       lyricTrackVersion: (track) => JSON.stringify(track),
@@ -145,6 +153,10 @@ async function harness(track, settle = true, localSource = 'local') {
   await new Promise(setImmediate)
   return {
     initial,
+    offsets,
+    setGlobalOffset: (value) => {
+      globalOffsetMs = value
+    },
     setPresent: (value) => {
       present = value
     },
@@ -435,4 +447,26 @@ test('background refresh metadata must match the current song even with the same
     }
   })
   assert.deepEqual(app.parsed, [streamLyrics])
+})
+
+test('lyrics follow the global offset and recalculate when it changes', async () => {
+  const app = await harness(streamed)
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  assert.deepEqual(app.offsets, [-200])
+  app.setGlobalOffset(-150)
+  await app.transition(true)
+  assert.equal(app.requests.length, 2)
+  app.pending[1](streamLyrics)
+  await Promise.resolve()
+  assert.deepEqual(app.offsets, [-200, -150])
+})
+
+test('saved single-song offsets, including zero, override the global offset', async () => {
+  for (const offset of [0, 500, -300]) {
+    const app = await harness(streamed, true, 'online', offset)
+    app.pending[0](streamLyrics)
+    await Promise.resolve()
+    assert.deepEqual(app.offsets, [offset])
+  }
 })

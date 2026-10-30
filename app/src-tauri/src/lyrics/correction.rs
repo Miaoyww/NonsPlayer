@@ -33,7 +33,8 @@ pub enum Source {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Correction {
     pub candidate: Option<Candidate>,
-    pub offset_ms: i32,
+    #[serde(default)]
+    pub offset_ms: Option<i32>,
 }
 
 impl Candidate {
@@ -191,7 +192,10 @@ pub fn set_lyric_correction(
     backend: State<'_, Backend>,
 ) -> AppResult<()> {
     backend.store.track(&key)?;
-    if !(-60000..=60000).contains(&correction.offset_ms) {
+    if correction
+        .offset_ms
+        .is_some_and(|offset| !(-60000..=60000).contains(&offset))
+    {
         return Err("歌词偏移须在 -60 至 60 秒之间".into());
     }
     if let Some(candidate) = &correction.candidate {
@@ -223,7 +227,7 @@ mod tests {
                 album: "Album".into(),
                 duration_ms: 10000,
             }),
-            offset_ms: -850,
+            offset_ms: Some(-850),
         };
         let key = setting_key("online:qq:1");
         {
@@ -242,6 +246,23 @@ mod tests {
             .setting(&setting_key("online:netease:1"))
             .unwrap()
             .is_none());
+    }
+    #[test]
+    fn correction_offset_can_follow_global_or_override_it_with_zero() {
+        let follows_global = Correction {
+            candidate: None,
+            offset_ms: None,
+        };
+        let overrides_global = Correction {
+            candidate: None,
+            offset_ms: Some(0),
+        };
+        assert_eq!(
+            serde_json::from_str::<Correction>(r#"{"candidate":null}"#).unwrap(),
+            follows_global
+        );
+        assert_ne!(follows_global, overrides_global);
+        assert_eq!(overrides_global.offset_ms, Some(0));
     }
     #[test]
     fn manual_candidates_reject_invalid_ids_and_unbounded_metadata() {

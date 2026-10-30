@@ -2,17 +2,30 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { useSyncExternalStore } from 'react'
 
 const storageKey = 'nons-lyrics-background-speed'
+const offsetStorageKey = 'nons-lyrics-offset-ms'
 const blurStorageKey = 'nons-lyrics-auto-blur'
 const weightStorageKey = 'nons-lyrics-font-weight'
 export const defaultBackgroundSpeed = 0.5
+export const defaultLyricsOffsetMs = -200
 const listeners = new Set<() => void>()
 let backgroundSpeed = defaultBackgroundSpeed
+let lyricsOffsetMs = defaultLyricsOffsetMs
 let autoBlur = true
 let fontWeight = 400
 try {
   const stored = localStorage.getItem(storageKey)
   const value = stored === null ? NaN : Number(stored)
   if (Number.isFinite(value) && value >= 0 && value <= 4) backgroundSpeed = value
+} catch (cause) {
+  reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
+  /* Keep the default when storage is unavailable. */
+}
+
+try {
+  const stored = localStorage.getItem(offsetStorageKey)
+  const value = stored === null ? NaN : Number(stored)
+  if (Number.isInteger(value) && value >= -60000 && value <= 60000) lyricsOffsetMs = value
 } catch (cause) {
   reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
 
@@ -57,6 +70,20 @@ function setBackgroundSpeed(value: number) {
   listeners.forEach((notify) => notify())
 }
 
+function setLyricsOffsetMs(value: number) {
+  if (!Number.isInteger(value) || value < -60000 || value > 60000 || value === lyricsOffsetMs)
+    return
+  lyricsOffsetMs = value
+  try {
+    localStorage.setItem(offsetStorageKey, String(value))
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
+    /* Changes still work for this session. */
+  }
+  listeners.forEach((notify) => notify())
+}
+
 function setAutoBlur(value: boolean) {
   if (value === autoBlur) return
   autoBlur = value
@@ -85,11 +112,14 @@ function setFontWeight(value: number) {
 
 export function useLyricsSettings() {
   const speed = useSyncExternalStore(subscribe, () => backgroundSpeed)
+  const offset = useSyncExternalStore(subscribe, () => lyricsOffsetMs)
   const blur = useSyncExternalStore(subscribe, () => autoBlur)
   const weight = useSyncExternalStore(subscribe, () => fontWeight)
   return {
     backgroundSpeed: speed,
     setBackgroundSpeed,
+    lyricsOffsetMs: offset,
+    setLyricsOffsetMs,
     autoBlur: blur,
     setAutoBlur,
     fontWeight: weight,

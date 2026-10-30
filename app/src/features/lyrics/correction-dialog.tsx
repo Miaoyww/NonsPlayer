@@ -13,9 +13,11 @@ import { ErrorNotice } from '@/components/error-notice'
 import { errorText, getPlayer, nativeCall, usePlayer, type Lyrics, type Track } from '@/lib/player'
 import { parseLyrics } from './parse-lyrics'
 import { automaticLyrics, type LyricCandidate, type LyricCorrection } from './correction'
+import { useLyricsSettings } from './use-lyrics-settings'
 
 export function LyricCorrectionDialog({ track, onClose }: { track: Track; onClose: () => void }) {
   const { revision } = usePlayer('revision')
+  const { lyricsOffsetMs } = useLyricsSettings()
   const openingRevision = useRef(revision).current
   const alive = useRef(true)
   const searchSerial = useRef(0)
@@ -126,11 +128,13 @@ export function LyricCorrectionDialog({ track, onClose }: { track: Track; onClos
       if (current()) setSaving(false)
     }
   }
-  const offset = (value: number) =>
+  const offset = (value: number) => {
+    if (!Number.isFinite(value)) return
     setChoice((previous) => ({
       ...previous,
       offsetMs: Math.max(-60000, Math.min(60000, Math.round(value)))
     }))
+  }
   return (
     <Dialog
       open
@@ -248,7 +252,7 @@ export function LyricCorrectionDialog({ track, onClose }: { track: Track; onClos
                 size="icon"
                 aria-label="歌词提前 100 毫秒"
                 disabled={!ready || saving}
-                onClick={() => offset(choice.offsetMs - 100)}
+                onClick={() => offset((choice.offsetMs ?? lyricsOffsetMs) - 100)}
               >
                 <Minus aria-hidden="true" />
               </Button>
@@ -258,10 +262,10 @@ export function LyricCorrectionDialog({ track, onClose }: { track: Track; onClos
                 type="number"
                 min={-60000}
                 max={60000}
-                step={100}
-                value={choice.offsetMs}
+                step={1}
+                value={choice.offsetMs ?? lyricsOffsetMs}
                 disabled={!ready || saving}
-                onChange={(event) => offset(Number(event.target.value))}
+                onChange={(event) => offset(event.currentTarget.valueAsNumber)}
               />
               <span>毫秒</span>
               <Button
@@ -269,13 +273,13 @@ export function LyricCorrectionDialog({ track, onClose }: { track: Track; onClos
                 size="icon"
                 aria-label="歌词延后 100 毫秒"
                 disabled={!ready || saving}
-                onClick={() => offset(choice.offsetMs + 100)}
+                onClick={() => offset((choice.offsetMs ?? lyricsOffsetMs) + 100)}
               >
                 <Plus aria-hidden="true" />
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              负数提前，正数延后，范围 ±60 秒；保存后生效。
+              负数提前，正数延后，范围 ±60 秒；默认跟随全局偏移，保存后覆盖全局值。
             </p>
           </div>
           <ErrorNotice error={error} />

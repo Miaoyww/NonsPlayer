@@ -11,9 +11,9 @@ export interface LyricCandidate {
 }
 export interface LyricCorrection {
   candidate: LyricCandidate | null
-  offsetMs: number
+  offsetMs: number | null
 }
-export const automaticLyrics: LyricCorrection = { candidate: null, offsetMs: 0 }
+export const automaticLyrics: LyricCorrection = { candidate: null, offsetMs: null }
 
 /** Shift lines and word timestamps together; never change the playback clock. */
 export function offsetLyrics(lines: LyricLine[], offsetMs: number): LyricLine[] {
