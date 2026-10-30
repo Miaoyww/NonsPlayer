@@ -237,6 +237,42 @@ test('lyrics refresh bypasses runtime cache and cover cache stays separate from 
   assert.equal(requests.length, 3)
 })
 
+test('extension store caches explicit sources separately and installation invalidates catalogues', async () => {
+  const { player, requests } = harness()
+  const cdn = player.nativeCall('extension_store_index', { source: 'cdn' })
+  await tick()
+  requests.at(-1).resolve({ source: 'cdn', plugins: [] })
+  await cdn
+  const github = player.nativeCall('extension_store_index', { source: 'github' })
+  await tick()
+  requests.at(-1).resolve({ source: 'github', plugins: [] })
+  await github
+  assert.equal((await player.nativeCall('extension_store_index', { source: 'cdn' })).source, 'cdn')
+  assert.equal(requests.length, 2)
+  const defaultSource = player.nativeCall('extension_store_index')
+  await tick()
+  requests.at(-1).resolve({ source: 'github', plugins: [] })
+  await defaultSource
+  const rereadDefault = player.nativeCall('extension_store_index')
+  await tick()
+  requests.at(-1).resolve({ source: 'github', plugins: [] })
+  await rereadDefault
+  assert.equal(requests.length, 4)
+  const install = player.nativeCall('extension_store_install', {
+    token: 'reviewed',
+    confirmed: true
+  })
+  await tick()
+  requests.at(-1).resolve(null)
+  await install
+  const refreshed = player.nativeCall('extension_store_index', { source: 'cdn' })
+  await tick()
+  assert.equal(requests.at(-1).command, 'extension_store_index')
+  assert.equal(requests.length, 6)
+  requests.at(-1).resolve({ source: 'cdn', plugins: [{ installedVersion: '1.0.0' }] })
+  assert.equal((await refreshed).plugins[0].installedVersion, '1.0.0')
+})
+
 test('source settings invalidate cached and in-flight lyrics only after a successful write', async () => {
   const { player, requests } = harness()
   const read = player.nativeCall('track_lyrics', { key: 'netease:1' })

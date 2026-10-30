@@ -184,6 +184,7 @@ export const coverCache = new RuntimeCache(48 * 1024 * 1024, RUNTIME_TTL, (value
 })
 export const isOtherQueryCacheKey = (key: string) => !key.startsWith('track_lyrics:')
 export const cachedCommands = new Set([
+  'extension_store_index',
   'aggregate_playlists',
   'aggregate_playlist',
   'aggregate_tracks',

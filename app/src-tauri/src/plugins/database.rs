@@ -4,6 +4,11 @@ use serde_json::{Map, Value};
 use std::{path::Path, sync::Mutex};
 
 pub struct Database(Mutex<Connection>);
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct AuthorizationState {
+    pub enabled: Option<bool>,
+    pub scope: Option<String>,
+}
 impl Database {
     pub fn open(path: &Path) -> AppResult<Self> {
         let db = Connection::open(path).map_err(|e| e.to_string())?;
@@ -65,6 +70,52 @@ impl Database {
             [id],
         )
         .map_err(|e| e.to_string())?;
+        tx.commit().map_err(|e| e.to_string())
+    }
+    pub(super) fn authorization_state(&self, id: &str) -> AppResult<AuthorizationState> {
+        let db = self.lock()?;
+        Ok(AuthorizationState {
+            enabled: db
+                .query_row("SELECT enabled FROM plugins WHERE id=?1", [id], |row| {
+                    row.get(0)
+                })
+                .optional()
+                .map_err(|e| e.to_string())?,
+            scope: db
+                .query_row(
+                    "SELECT scope FROM plugin_authorizations WHERE plugin=?1",
+                    [id],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?,
+        })
+    }
+    pub(super) fn restore_authorization(
+        &self,
+        id: &str,
+        state: &AuthorizationState,
+    ) -> AppResult<()> {
+        let mut db = self.lock()?;
+        let tx = db.transaction().map_err(|e| e.to_string())?;
+        tx.execute("DELETE FROM plugins WHERE id=?1", [id])
+            .map_err(|e| e.to_string())?;
+        tx.execute("DELETE FROM plugin_authorizations WHERE plugin=?1", [id])
+            .map_err(|e| e.to_string())?;
+        if let Some(enabled) = state.enabled {
+            tx.execute(
+                "INSERT INTO plugins(id,enabled) VALUES(?1,?2)",
+                params![id, enabled],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        if let Some(scope) = &state.scope {
+            tx.execute(
+                "INSERT INTO plugin_authorizations(plugin,scope) VALUES(?1,?2)",
+                params![id, scope],
+            )
+            .map_err(|e| e.to_string())?;
+        }
         tx.commit().map_err(|e| e.to_string())
     }
     pub fn enable(&self, id: &str, value: bool) -> AppResult<()> {

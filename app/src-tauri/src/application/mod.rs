@@ -12,6 +12,7 @@ use std::{path::PathBuf, sync::Arc};
 use tauri::{Manager, State};
 
 mod cover_export;
+mod extension_store;
 mod telemetry;
 #[cfg(desktop)]
 mod updates;
@@ -969,6 +970,14 @@ pub fn run() {
                 app.path().resource_dir()?.join("bundled-adapters")
             };
             let component_music = music.clone();
+            let extension_store = extension_store::ExtensionStore::new(
+                store.clone(),
+                plugin_manager.clone(),
+                adapter_installer.clone(),
+                component_directory.clone(),
+            );
+            extension_store.start_cleanup();
+            app.manage(extension_store);
             let component_packages = crate::music::bundled::prepare_components(&component_directory, &music.adapters);
             let component_store = store.clone();
             let component_http = plugin_manager.shared_http();
@@ -1050,6 +1059,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            extension_store::extension_store_index,
+            extension_store::extension_store_prepare,
+            extension_store::extension_store_install,
+            extension_store::extension_store_cancel,
             crate::aggregate::aggregate_playlists,
             crate::aggregate::aggregate_playlist,
             crate::aggregate::aggregate_play,
@@ -1100,6 +1113,7 @@ pub fn run() {
             plugins::settings::plugin_settings,
             plugins::plugin_discover,
             plugins::plugin_install,
+            plugins::plugin_package_preview,
             plugins::plugin_action,
             plugins::plugin_call,
             plugins::plugin_host_call,
@@ -1206,6 +1220,8 @@ pub fn run() {
             }
         }
         if matches!(event, tauri::RunEvent::Exit) {
+            app.state::<Arc<extension_store::ExtensionStore>>()
+                .cleanup();
             #[cfg(desktop)]
             app.state::<Arc<updates::Updates>>().cleanup();
             #[cfg(desktop)]

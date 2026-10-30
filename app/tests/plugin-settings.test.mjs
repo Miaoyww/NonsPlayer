@@ -30,8 +30,18 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
   const openedUrls = []
   const dialogs = []
   let plugins = []
+  let upgradeProps
   const selectContext = React.createContext(null)
   const modules = {
+    '../extensions/extension-store': {
+      ExtensionStore: () => React.createElement('section', { 'aria-label': '插件商店' }, '插件商店')
+    },
+    '../extensions/local-plugin-upgrade': {
+      LocalPluginUpgrade: (props) => {
+        upgradeProps = props
+        return null
+      }
+    },
     '@/components/ui/select': {
       Select: ({ onValueChange, children }) =>
         React.createElement(selectContext.Provider, { value: onValueChange }, children),
@@ -100,6 +110,10 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     '@/lib/player': {
       errorText: (error) => error.message,
       nativeCall: async (command, args) => {
+        if (command === 'plugin_package_preview')
+          return args.path === 'upgrade.zip'
+            ? { ...plugins[0].manifest, version: '2.0.0' }
+            : { id: 'fresh-plugin', name: 'Fresh', version: '1.0.0' }
         calls.push([command, args])
         if (args?.path === 'bad.zip') throw new Error('损坏的插件包')
         if (args?.path === 'slow.zip')
@@ -211,6 +225,16 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     assert.doesNotMatch(list().textContent, /下载管理/)
     await selectStatus('全部')
     assert.equal(list().querySelectorAll('h3').length, 2)
+    const beforeUpgrade = calls.length
+    await emit('drop', ['upgrade.zip'])
+    assert.equal(calls.length, beforeUpgrade)
+    assert.equal(upgradeProps.packageInfo.id, 'download')
+    assert.equal(upgradeProps.installedVersion, '1.1.0')
+    await React.act(async () => upgradeProps.onConfirm())
+    assert.equal(calls.at(-1)[0], 'plugin_install')
+    assert.equal(calls.at(-1)[1].path, 'upgrade.zip')
+    assert.equal(calls.at(-1)[1].confirmed, true)
+    assert.equal(upgradeProps.packageInfo, undefined)
     assert.equal(document.querySelector('[aria-label="筛选插件能力"]'), null)
     assert.equal(list().querySelector('[aria-label="声明的权限"]'), null)
     const search = document.querySelector('[type=search]')

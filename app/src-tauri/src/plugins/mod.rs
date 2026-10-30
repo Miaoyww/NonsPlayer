@@ -20,6 +20,7 @@ mod runtime;
 mod secrets;
 pub(crate) mod settings;
 mod transfers;
+mod upgrade;
 mod windows;
 
 use crate::{model::AppResult, player::Player};
@@ -79,6 +80,7 @@ pub struct PluginManager {
     stopped: AtomicBool,
     watcher: Mutex<Option<clipboard::Shutdown>>,
     clipboard_sender: tokio::sync::watch::Sender<Option<ClipboardChange>>,
+    lifecycle: tokio::sync::watch::Sender<()>,
 }
 impl PluginManager {
     pub(crate) fn shared_http(&self) -> Arc<crate::infrastructure::http::Http> {
@@ -118,6 +120,7 @@ impl PluginManager {
             stopped: AtomicBool::new(false),
             watcher: Default::default(),
             clipboard_sender,
+            lifecycle: tokio::sync::watch::channel(()).0,
         });
         // Bundled artifacts are built outside the host and copied only once.
         if !manager.database.initialized()? {
@@ -404,36 +407,9 @@ impl PluginManager {
             }
         }
     }
+    #[cfg(feature = "plugin-probe")]
     pub async fn install(self: &Arc<Self>, source: PathBuf) -> AppResult<()> {
-        let _operation = self.operations.lock().await;
-        let root = self.root.clone();
-        let staging = root.join(format!(
-            ".staging-{}",
-            self.generation.fetch_add(1, Ordering::SeqCst)
-        ));
-        let result: AppResult<()> = tauri::async_runtime::spawn_blocking(move || {
-            let manifest = install::install(&source, &staging)?;
-            let destination = root.join(&manifest.id);
-            if destination.exists() {
-                let _ = (std::fs::remove_dir_all(&staging)).inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("std::fs::remove_dir_all", error);
-                });
-                return Err("同 ID 插件已安装，请先卸载".into());
-            }
-            if let Err(error) = std::fs::rename(&staging, destination) {
-                let _ = (std::fs::remove_dir_all(&staging)).inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("std::fs::remove_dir_all", error);
-                });
-                return Err(error.to_string());
-            }
-            Ok(())
-        })
-        .await
-        .map_err(|e| e.to_string())?;
-        result?;
-        self.discover()?;
-        self.notify();
-        Ok(())
+        self.install_reviewed(source, false).await
     }
     fn get_engine(&self) -> AppResult<wasmtime::Engine> {
         let mut engine = self
@@ -739,14 +715,27 @@ impl PluginManager {
             record.runtime = None;
             record.ready = false;
         }
+        self.lifecycle.send_replace(());
         self.sync_watcher()?;
         self.notify();
         Ok(())
     }
     pub fn ready(self: &Arc<Self>, id: &str, generation: u64) -> AppResult<()> {
         self.scoped(id, generation)?.check(Some("ui"))?;
-        self.lock()?.get_mut(id).ok_or("插件未安装")?.ready = true;
-        self.sync_watcher()
+        {
+            let mut records = self.lock()?;
+            let record = records.get_mut(id).ok_or("插件未安装")?;
+            if !record.descriptor.loaded || record.descriptor.generation != generation {
+                return Err("插件加载代次已失效".into());
+            }
+            record.ready = true;
+        }
+        let result = self.sync_watcher();
+        if let Err(error) = &result {
+            self.fault(id, generation, error)?;
+        }
+        self.lifecycle.send_replace(());
+        result
     }
     #[cfg(feature = "plugin-probe")]
     pub(crate) fn frontend_detached(self: &Arc<Self>) -> AppResult<()> {
@@ -922,6 +911,7 @@ impl PluginManager {
     }
     pub fn stop(&self) {
         self.stopped.store(true, Ordering::SeqCst);
+        self.lifecycle.send_replace(());
         if let Ok(records) = (self.lock()).inspect_err(|error| {
             crate::infrastructure::diagnostics::warn("plugins.stop.registry_lock", error);
         }) {
@@ -979,8 +969,30 @@ pub fn plugin_discover(manager: State<'_, Arc<PluginManager>>) -> AppResult<Vec<
     manager.list()
 }
 #[tauri::command]
-pub async fn plugin_install(path: String, manager: State<'_, Arc<PluginManager>>) -> AppResult<()> {
-    manager.inner().install(path.into()).await
+pub async fn plugin_package_preview(
+    path: String,
+    manager: State<'_, Arc<PluginManager>>,
+) -> AppResult<Manifest> {
+    let manager = manager.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || manager.preview(Path::new(&path)))
+        .await
+        .map_err(|error| error.to_string())?
+}
+#[tauri::command]
+pub async fn plugin_install(
+    path: String,
+    confirmed: Option<bool>,
+    expected_manifest: Option<Manifest>,
+    manager: State<'_, Arc<PluginManager>>,
+) -> AppResult<()> {
+    let confirmed = confirmed.unwrap_or(false);
+    if confirmed && expected_manifest.is_none() {
+        return Err("确认安装前必须预览插件包并提供 expectedManifest".into());
+    }
+    manager
+        .inner()
+        .install_reviewed_expected(path.into(), confirmed, expected_manifest)
+        .await
 }
 #[tauri::command]
 pub async fn plugin_action(

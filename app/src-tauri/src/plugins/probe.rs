@@ -1,6 +1,8 @@
 //! Opt-in real WebView probe, isolated from the user's installed plugins and queue.
 use super::*;
 use std::sync::atomic::AtomicBool;
+#[path = "upgrade_probe.rs"]
+mod upgrade_probe;
 
 pub struct Probe {
     pub success: AtomicBool,
@@ -10,6 +12,7 @@ pub fn directory() -> PathBuf {
     std::env::temp_dir().join(format!("nons-plugin-probe-{}", std::process::id()))
 }
 pub fn start(manager: Arc<PluginManager>) {
+    upgrade_probe::initialize(&manager.app);
     manager.app.manage(Probe {
         success: AtomicBool::new(false),
         delivery_started: Mutex::new(None),
@@ -21,6 +24,24 @@ pub fn start(manager: Arc<PluginManager>) {
         watchdog.exit(1);
     });
     tauri::async_runtime::spawn(async move {
+        if std::env::var_os("NONS_PLUGIN_UPGRADE_PROBE").is_some() {
+            match upgrade_probe::standalone(&manager).await {
+                Ok(()) => {
+                    manager
+                        .app
+                        .state::<Probe>()
+                        .success
+                        .store(true, Ordering::SeqCst);
+                    println!("PLUGIN_UPGRADE_PROBE passed");
+                    manager.app.exit(0);
+                }
+                Err(error) => {
+                    eprintln!("PLUGIN_UPGRADE_PROBE failed: {error}");
+                    manager.app.exit(1);
+                }
+            }
+            return;
+        }
         let result: AppResult<()> = async {
             manager.action("netease-island", "enable", true).await?;
             let deadline = Instant::now();
@@ -61,6 +82,9 @@ pub async fn plugin_probe_report(
     app: tauri::AppHandle,
     manager: State<'_, Arc<PluginManager>>,
 ) -> AppResult<()> {
+    if upgrade_probe::report(&app, &phase, success) {
+        return Ok(());
+    }
     if !success {
         eprintln!("PLUGIN_PROBE {phase} failed");
         app.exit(1);
@@ -122,6 +146,11 @@ pub async fn plugin_probe_report(
         app.get_webview_window("main").ok_or("缺少 WebView")?.eval(r#"(()=>{const started=Date.now();let step=0;const poll=()=>{const button=[...document.querySelectorAll('button')].find(b=>b.textContent==='Probe Page');const state=document.querySelector('[data-probe-state]');if(step===0&&button){button.click();step=1;}else if(step===1&&state?.textContent==='0:/'){document.querySelector('[data-probe-increment]').click();step=2;}else if(step===2&&state?.textContent==='1:/'){document.querySelector('[data-probe-child]').click();step=3;}else if(step===3&&state?.textContent==='1:/child'){window.__TAURI_INTERNALS__.invoke('plugin_probe_report',{phase:'page',success:true});return;}if(Date.now()-started>8000){window.__TAURI_INTERNALS__.invoke('plugin_probe_report',{phase:'page',success:false});return;}setTimeout(poll,50);};poll();})();"#).map_err(|e| e.to_string())?;
     } else if phase == "page" {
         println!("PLUGIN_PROBE directory install, scoped storage, navigation, page and subroute state: passed");
+        if let Err(error) = upgrade_probe::run(manager.inner()).await {
+            eprintln!("PLUGIN_UPGRADE_PROBE failed: {error}");
+            app.exit(1);
+            return Err(error);
+        }
         let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("target/plugin-fixtures/settings-fixture");
         manager.inner().install(fixture).await?;

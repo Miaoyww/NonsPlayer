@@ -1,6 +1,6 @@
 import { Tabs, TabsList, TabsTab, TabsPanel } from '@/components/animate-ui/components/base/tabs'
 import type { ReactNode } from 'react'
-import { RefreshCw, Search, Store, Upload, FolderOpen } from 'lucide-react'
+import { RefreshCw, Search, Upload, FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -121,23 +121,6 @@ export function ExtensionInstallPage({
         </div>
       </section>
       {children}
-      <section
-        aria-label={`${noun}商店`}
-        className="flex items-start gap-3 rounded-xl border border-border p-4"
-      >
-        <Store aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-        <div>
-          <h3 className="text-sm font-semibold">
-            {noun}商店
-            <span className="ml-2 rounded bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
-              暂未开放
-            </span>
-          </h3>
-          <p className="mt-1 text-xs leading-normal text-muted-foreground">
-            未来可在这里发现和安装{noun}。
-          </p>
-        </div>
-      </section>
     </div>
   )
 }

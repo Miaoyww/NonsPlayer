@@ -37,6 +37,10 @@ test('adapter settings persist changes and guard package operations and drag lif
   const selectContext = React.createContext(null)
   const dialogContext = React.createContext(null)
   const modules = {
+    '../extensions/extension-store': {
+      ExtensionStore: () =>
+        React.createElement('section', { 'aria-label': '适配器商店' }, '适配器商店')
+    },
     '@/features/music/source-label': {
       sourceLabel: (source) => (source === 'netease' ? '网易云音乐' : source)
     },

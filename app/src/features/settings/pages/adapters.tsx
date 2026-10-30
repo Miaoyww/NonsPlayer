@@ -31,6 +31,7 @@ import { sourceLabel } from '@/features/music/source-label'
 import type { SourceDescriptor } from '@/features/music/types'
 import { errorText, nativeCall } from '@/lib/player'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
+import { ExtensionStore } from '../extensions/extension-store'
 
 interface AdapterStatus {
   descriptor: SourceDescriptor
@@ -114,6 +115,8 @@ function permissionLabels(permissions: AdapterPermissions) {
 }
 
 export function AdaptersPage() {
+  const [storeBusy, setStoreBusy] = useState(false)
+  const storeRunning = useRef(false)
   const accounts = useAccountAdapters()
   const refreshAccounts = useCallback(() => void accounts.refresh(), [accounts.refresh])
   const [accountSource, setAccountSource] = useState<string>()
@@ -209,7 +212,7 @@ export function AdaptersPage() {
 
   const previewPackage = useCallback(
     async (path: string) => {
-      if (running.current) return
+      if (running.current || storeRunning.current) return
       running.current = true
       setBusy(true)
       setError(undefined)
@@ -243,8 +246,8 @@ export function AdaptersPage() {
         const y = payload.position.y / window.devicePixelRatio
         const inside =
           !!bounds && x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom
-        setDragging(inside && payload.type !== 'drop' && !running.current)
-        if (payload.type !== 'drop' || !inside || running.current) return
+        setDragging(inside && payload.type !== 'drop' && !running.current && !storeRunning.current)
+        if (payload.type !== 'drop' || !inside || running.current || storeRunning.current) return
         setDragging(false)
         const paths = [...new Set(payload.paths)]
         if (paths.length !== 1) {
@@ -269,7 +272,7 @@ export function AdaptersPage() {
   }, [previewPackage])
 
   const run = async (row: AdapterRow, enabled?: boolean) => {
-    if (running.current) return
+    if (running.current || storeRunning.current) return
     running.current = true
     setBusy(true)
     setError(undefined)
@@ -298,7 +301,7 @@ export function AdaptersPage() {
   }
 
   const choosePackage = async (directory: boolean) => {
-    if (running.current) return
+    if (running.current || storeRunning.current) return
     running.current = true
     setBusy(true)
     setError(undefined)
@@ -407,7 +410,7 @@ export function AdaptersPage() {
         title="音乐适配器"
         description="按能力管理音乐来源与音源。音乐库与发现使用的平台通过账号切换。"
         icon={<Blocks aria-hidden="true" className="size-5" />}
-        busy={busy || loading}
+        busy={busy || loading || storeBusy}
         onRefresh={() => void refresh()}
       />
       {error && !review && !removing && <ErrorNotice error={error} />}
@@ -429,10 +432,25 @@ export function AdaptersPage() {
           <ExtensionInstallPage
             noun="适配器"
             available={isTauri()}
-            busy={busy || loading}
+            busy={busy || loading || storeBusy}
             onZip={() => void choosePackage(false)}
             onDirectory={() => void choosePackage(true)}
-          />
+          >
+            <ExtensionStore
+              kind="adapter"
+              busy={busy || loading || !!review}
+              onBusyChange={(value) => {
+                storeRunning.current = value
+                setStoreBusy(value)
+              }}
+              onInstalled={async () => {
+                invalidateNativeCache()
+                await refresh()
+                setQuery('')
+                setTab('installed')
+              }}
+            />
+          </ExtensionInstallPage>
         }
       >
         <ExtensionListToolbar

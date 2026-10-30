@@ -16,8 +16,10 @@ import {
 } from '../extension-list'
 import { errorText, nativeCall } from '@/lib/player'
 import { usePlugins } from '@/plugins/host'
-import type { PluginDescriptor } from '@/plugins/types'
+import type { PluginDescriptor, PluginManifest } from '@/plugins/types'
 import { PluginConfigurationPage } from '../plugins/configuration-page'
+import { ExtensionStore } from '../extensions/extension-store'
+import { LocalPluginUpgrade } from '../extensions/local-plugin-upgrade'
 
 const permissionLabels: Record<string, string> = {
   'clipboard:read': '读取剪贴板文本及监听变化',
@@ -48,6 +50,8 @@ const statusFilters = [
 export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = {}) {
   const { plugins } = usePlugins()
   const [busy, setBusy] = useState(false)
+  const [storeBusy, setStoreBusy] = useState(false)
+  const [upgrade, setUpgrade] = useState<{ path: string; manifest: PluginManifest }>()
   const [error, setError] = useState<string>()
   const [review, setReview] = useState<PluginDescriptor>()
   const [trusted, setTrusted] = useState(false)
@@ -63,8 +67,25 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
   const [dragging, setDragging] = useState(false)
   const pageRef = useRef<HTMLDivElement>(null)
   const running = useRef(false)
+  const storeRunning = useRef(false)
+  const installed = useRef(plugins)
+  installed.current = plugins
+  const installPath = useCallback(async (path: string, multiple = false) => {
+    if (installed.current.length) {
+      const manifest = await nativeCall<PluginManifest>('plugin_package_preview', { path })
+      if (installed.current.some((plugin) => plugin.manifest.id === manifest.id)) {
+        if (multiple) throw new Error('升级插件时请一次选择一个安装包。')
+        setUpgrade({ path, manifest })
+        return
+      }
+    }
+    await nativeCall('plugin_install', { path })
+    setQuery('')
+    setStatusFilter('unloaded')
+    setTab('installed')
+  }, [])
   const run = useCallback(async (work: () => Promise<unknown>) => {
-    if (running.current) return
+    if (running.current || storeRunning.current) return
     running.current = true
     setBusy(true)
     setError(undefined)
@@ -97,18 +118,15 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
         const y = payload.position.y / window.devicePixelRatio
         const inside =
           !!bounds && x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom
-        setDragging(inside && payload.type !== 'drop' && !running.current)
-        if (payload.type !== 'drop' || !inside || running.current) return
+        setDragging(inside && payload.type !== 'drop' && !running.current && !storeRunning.current)
+        if (payload.type !== 'drop' || !inside || running.current || storeRunning.current) return
         void run(async () => {
           if (!payload.paths.length || payload.paths.some((path) => !/\.zip$/i.test(path)))
             throw new Error('请拖入 .zip 格式的插件安装包。')
           const failures: string[] = []
           for (const path of new Set(payload.paths)) {
             try {
-              await nativeCall('plugin_install', { path })
-              setQuery('')
-              setStatusFilter('unloaded')
-              setTab('installed')
+              await installPath(path, payload.paths.length > 1)
             } catch (error) {
               reportCaughtError('app/src/features/settings/pages/plugins.tsx', error)
 
@@ -131,7 +149,7 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
       disposed = true
       unlisten?.()
     }
-  }, [run])
+  }, [run, installPath])
   const search = query.trim().toLocaleLowerCase()
   const filteredPlugins = plugins.filter((plugin) => {
     const matchesStatus =
@@ -161,10 +179,7 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
         filters: directory ? undefined : [{ name: '插件包', extensions: ['zip'] }]
       })
       if (typeof path === 'string') {
-        await nativeCall('plugin_install', { path })
-        setQuery('')
-        setStatusFilter('unloaded')
-        setTab('installed')
+        await installPath(path)
       }
     })
   }
@@ -180,15 +195,15 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
     <div ref={pageRef} className="flex flex-col gap-4" aria-busy={busy}>
       <ExtensionListHeader
         title="插件设置"
-        description="按能力管理播放器扩展，支持本地安装与拖入 ZIP 安装包。"
+        description="管理播放器扩展，从商店或本地安装插件。"
         icon={<Package aria-hidden="true" className="size-5" />}
-        busy={busy || !isTauri()}
+        busy={busy || storeBusy || !isTauri()}
         onRefresh={() => void run(() => nativeCall('plugin_discover'))}
       >
         <Button
           variant="ghost"
           size="sm"
-          disabled={busy || !isTauri()}
+          disabled={busy || storeBusy || !isTauri()}
           onClick={() => void run(() => nativeCall('plugin_open_folder'))}
         >
           <FolderOpen aria-hidden="true" />
@@ -204,6 +219,29 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
         </div>
       )}
       {error && <ErrorNotice error={error} />}
+      <LocalPluginUpgrade
+        packageInfo={upgrade?.manifest}
+        installedVersion={
+          plugins.find((plugin) => plugin.manifest.id === upgrade?.manifest.id)?.manifest.version
+        }
+        busy={busy}
+        error={error}
+        onClose={() => setUpgrade(undefined)}
+        onConfirm={() =>
+          void run(async () => {
+            if (!upgrade) return
+            await nativeCall('plugin_install', {
+              path: upgrade.path,
+              confirmed: true,
+              expectedManifest: upgrade.manifest
+            })
+            setUpgrade(undefined)
+            setQuery('')
+            setStatusFilter('all')
+            setTab('installed')
+          })
+        }
+      />
       <ExtensionTabs
         noun="插件"
         value={tab}
@@ -215,10 +253,24 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
           <ExtensionInstallPage
             noun="插件"
             available
-            busy={busy || !isTauri()}
+            busy={busy || storeBusy || !isTauri()}
             onZip={() => install(false)}
             onDirectory={() => install(true)}
-          />
+          >
+            <ExtensionStore
+              kind="plugin"
+              busy={busy || !!upgrade}
+              onBusyChange={(value) => {
+                storeRunning.current = value
+                setStoreBusy(value)
+              }}
+              onInstalled={() => {
+                setQuery('')
+                setStatusFilter('all')
+                setTab('installed')
+              }}
+            />
+          </ExtensionInstallPage>
         }
       >
         <ExtensionListToolbar

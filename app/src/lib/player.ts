@@ -195,7 +195,7 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
     }
     return result.data as T
   }
-  if (cachedCommands.has(command)) {
+  if (cachedCommands.has(command) && (command !== 'extension_store_index' || args?.source)) {
     const key = requestKey(command, args)
 
     if (command === 'music_query' || command === 'music_read_track') {
@@ -221,6 +221,12 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
   )
     invalidateAggregateCache(String(args?.id ?? result))
   const affected: Record<string, string[]> = {
+    extension_store_install: ['extension_store_index'],
+    plugin_install: ['extension_store_index'],
+    plugin_action: ['extension_store_index'],
+    plugin_discover: ['extension_store_index'],
+    adapter_install: ['extension_store_index'],
+    adapter_uninstall: ['extension_store_index'],
     music_write: ['music_query', 'music_read_track', 'music_queue_track', 'music_queue_tracks'],
     import_music: [
       'local_music',
