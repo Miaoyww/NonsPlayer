@@ -1,3 +1,4 @@
+mod assets;
 mod audio_files;
 mod capability;
 #[cfg(desktop)]
@@ -830,13 +831,10 @@ impl PluginManager {
                 });
         }
     }
-    pub fn resource(
+    fn resource(
         &self,
         request: &tauri::http::Request<Vec<u8>>,
-    ) -> AppResult<(Vec<u8>, &'static str)> {
-        if request.method() != tauri::http::Method::GET {
-            return Err("不支持的资源请求".into());
-        }
+    ) -> AppResult<assets::ResourceResponse> {
         let uri = request.uri();
         let decoded = percent_encoding::percent_decode_str(uri.path())
             .decode_utf8()
@@ -863,40 +861,30 @@ impl PluginManager {
         let relative = parts.next().ok_or("资源路径无效")?;
         let context = self.scoped(id, generation)?;
         context.check(Some("ui"))?;
+        if request.method() != tauri::http::Method::GET
+            && request.method() != tauri::http::Method::HEAD
+        {
+            return Ok(assets::ResourceResponse::method_not_allowed());
+        }
         if let Some(module) = relative.strip_prefix("_host/") {
-            return host_module(module);
+            let (bytes, mime) = host_module(module)?;
+            return Ok(assets::ResourceResponse::from_bytes(
+                bytes,
+                mime,
+                request.method(),
+            ));
         }
-        let records = self.lock()?;
-        let manifest = &records.get(id).ok_or("插件未安装")?.descriptor.manifest;
-        if manifest.frontend.as_deref() != Some(relative) && !relative.starts_with("assets/") {
-            return Err("资源不在公开范围".into());
-        }
-        let file = manifest::checked_file(&self.root.join(id), relative)?;
-        if file.metadata().map_err(|e| e.to_string())?.len() > 8 * 1024 * 1024 {
-            return Err("资源过大".into());
-        }
-        let mime = match file.extension().and_then(|e| e.to_str()) {
-            Some("mjs" | "js") => "text/javascript",
-            Some("css") => "text/css",
-            Some("png") => "image/png",
-            Some("jpg" | "jpeg") => "image/jpeg",
-            Some("webp") => "image/webp",
-            Some("svg") => "image/svg+xml",
-            Some("woff2") => "font/woff2",
-            _ => return Err("不支持的插件资源类型".into()),
+        let file = {
+            let records = self.lock()?;
+            let manifest = &records.get(id).ok_or("插件未安装")?.descriptor.manifest;
+            if manifest.frontend.as_deref() != Some(relative) && !relative.starts_with("assets/") {
+                return Err("资源不在公开范围".into());
+            }
+            manifest::checked_file(&self.root.join(id), relative)?
         };
-        use std::io::Read;
-        let mut bytes = Vec::new();
-        std::fs::File::open(file)
-            .map_err(|e| e.to_string())?
-            .take(8 * 1024 * 1024 + 1)
-            .read_to_end(&mut bytes)
-            .map_err(|e| e.to_string())?;
-        if bytes.len() > 8 * 1024 * 1024 {
-            return Err("资源过大".into());
-        }
+        let response = assets::read(&file, request.method(), request.headers())?;
         context.check(None)?;
-        Ok((bytes, mime))
+        Ok(response)
     }
     pub async fn account_changed(&self) {
         self.songs.clear().await;
@@ -1094,10 +1082,20 @@ pub fn protocol(
         builder = builder.header("Access-Control-Allow-Origin", origin);
     }
     match result {
-        Ok((bytes, mime)) => builder
-            .header("Content-Type", mime)
-            .body(bytes)
-            .expect("valid response"),
+        Ok(response) => {
+            let mut builder = builder
+                .status(response.status)
+                .header("Content-Type", response.content_type)
+                .header("Content-Length", response.content_length)
+                .header("Accept-Ranges", "bytes");
+            if response.status == tauri::http::StatusCode::METHOD_NOT_ALLOWED {
+                builder = builder.header("Allow", "GET, HEAD");
+            }
+            if let Some(content_range) = response.content_range {
+                builder = builder.header("Content-Range", content_range);
+            }
+            builder.body(response.body).expect("valid response")
+        }
         Err(error) => {
             crate::infrastructure::diagnostics::warn("plugins.resource", error);
             builder

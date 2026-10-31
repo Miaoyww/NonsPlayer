@@ -45,6 +45,8 @@ export interface PluginWindowUpdate {
 export interface PluginWindowOptions extends PluginWindowUpdate {
   transparent?: boolean
   decorations?: boolean
+  /** Initial visibility; defaults to true. */
+  visible?: boolean
 }
 export interface PluginWindows {
   open(id: string, options?: PluginWindowOptions): Promise<{ id: string; label: string }>

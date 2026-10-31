@@ -10,6 +10,13 @@ use std::{
     collections::BTreeMap,
     sync::{Arc, Mutex},
 };
+#[cfg(windows)]
+use tauri::Manager;
+
+#[cfg(windows)]
+fn plugin_webview_data_directory(base: &std::path::Path) -> std::path::PathBuf {
+    base.join("plugin-webview")
+}
 
 #[derive(Default)]
 pub struct Windows {
@@ -39,6 +46,7 @@ struct Options {
     decorations: Option<bool>,
     always_on_top: Option<bool>,
     ignore_cursor_events: Option<bool>,
+    visible: Option<bool>,
 }
 
 #[cfg(windows)]
@@ -99,8 +107,11 @@ impl Windows {
                     .ok_or("插件窗口尚未打开")?;
                 match operation {
                     "windows.update" => {
-                        if options.transparent.is_some() || options.decorations.is_some() {
-                            return Err("透明和窗口边框只能在创建时设置".into());
+                        if options.transparent.is_some()
+                            || options.decorations.is_some()
+                            || options.visible.is_some()
+                        {
+                            return Err("透明、窗口边框和初始可见性只能在创建时设置".into());
                         }
                         if let Some(title) = options.title {
                             window.set_title(&title).map_err(|e| e.to_string())?;
@@ -239,9 +250,17 @@ impl Windows {
             if let (Some(x), Some(y)) = (options.x, options.y) {
                 builder = builder.position(x, y);
             }
-            if let Some(data) = crate::infrastructure::directories::portable() {
-                builder = builder.data_directory(data.join("webview"));
-            }
+            let data_directory = match crate::infrastructure::directories::portable() {
+                Some(data) => plugin_webview_data_directory(data),
+                None => plugin_webview_data_directory(
+                    &context
+                        .app
+                        .path()
+                        .app_local_data_dir()
+                        .map_err(|e| e.to_string())?,
+                ),
+            };
+            builder = builder.data_directory(data_directory);
             let window = builder.build().map_err(|e| e.to_string())?;
             let closed_entries = Arc::downgrade(&entries);
             let closed_key = task_label.clone();
@@ -268,7 +287,9 @@ impl Windows {
                     .set_ignore_cursor_events(options.ignore_cursor_events.unwrap_or(false))
                     .map_err(|e| e.to_string())?;
                 entry.window = Some(window.clone());
-                window.show().map_err(|e| e.to_string())?;
+                if options.visible.unwrap_or(true) {
+                    window.show().map_err(|e| e.to_string())?;
+                }
                 Ok(())
             })();
             if let Err(error) = finish {
@@ -334,5 +355,29 @@ mod tests {
             &json!({"id":"lyrics","width":800,"height":100,"x":-1200,"y":200,"transparent":true})
         )
         .is_ok());
+    }
+
+    #[test]
+    fn parses_initial_visibility_and_defaults_to_visible() {
+        assert_eq!(Options::parse(&json!({"id":"test"})).unwrap().visible, None);
+        assert_eq!(
+            Options::parse(&json!({"id":"test","visible":false}))
+                .unwrap()
+                .visible,
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn plugin_webview_data_directory_is_separate_from_main_webview() {
+        let local = std::path::Path::new("C:/Users/test/AppData/Local/Nons");
+        let regular = plugin_webview_data_directory(local);
+        assert_eq!(regular, local.join("plugin-webview"));
+        assert_ne!(regular, local.join("webview"));
+
+        let portable = std::path::Path::new("C:/Nons/data");
+        let isolated = plugin_webview_data_directory(portable);
+        assert_eq!(isolated, portable.join("plugin-webview"));
+        assert_ne!(isolated, portable.join("webview"));
     }
 }

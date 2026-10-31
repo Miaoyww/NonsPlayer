@@ -212,7 +212,7 @@ view 导出命名 React Component，并在 views 中关联导出与 `main.overla
 - WASM：64MiB 线性内存、1000 万 fuel／调用、5 秒执行期限；Host 网络查询 3 秒；异步等待可取消，epoch 与 fuel 防止 guest 独占线程。最多同时加载 4 个 WASM 插件，单实例最多 16 个待处理请求。
 - IPC／事件／存储单值最多 64KiB；事件最多 32 次／秒；插件存储不设总量或 key 长度上限；安装最多 1024 文件、64MiB 解压总量，WASM 入口 16MiB，UI／资源单文件 8MiB。
 - SDK、元数据和资源都校验加载代次。trap／超时／资源耗尽撤销该实例，普通 Guest 业务错误保留实例。原播放队列及音频线程不承担插件执行。
-- `plugin://` 服务只允许活跃插件的前端入口、assets 和合成 Host 模块；规范化路径、拒绝链接／junction、限制类型与大小、设置 MIME、no-store 和有限 CORS。不开放通用 filesystem scope。
+- `plugin://` 服务只允许活跃插件的前端入口、assets 和合成 Host 模块；规范化路径、拒绝链接／junction、单资源最多 8 MiB，按文件扩展名推断 Web MIME（未知类型回退 `application/octet-stream`）。静态资源支持 GET、HEAD 和单区间 Range，以供浏览器媒体加载与定位；无效区间返回 416，多区间回退完整响应。响应设置 `no-store` 和有限 CORS，不开放通用 filesystem scope。
 - React 前端是受信任代码，与主 UI 共享并常驻主 WebView，以支持 WebAudio 和系统媒体控制；前端插件的下载、计时器与页面状态也会继续运行。SDK 身份、存储、事件和路径约束不等于防恶意 JS 沙箱；它仍可能直接操作 DOM、调用其他可见宿主接口或自行创建副作用。单个模块的 JS／浏览器 ESM 缓存无法强制回收，主线程循环也不能由 WASM fuel 终止。只安装可信前端。
 - Store 上限仅覆盖 guest 线性内存等资源，不代表 Wasmtime JIT、Host、WebView 或全进程内存上限。当前没有独立 WASM worker 进程、签名或权限撤销后的 JS 强制终止；频繁 reload 的 ESM 模块记录可能留在 WebView，必要时重启应用。
 - Windows 已验收；macOS/Linux 原生构建、播放与剪贴板观察尚需对应环境验证，Linux 当前为 X11 后端。音频统一使用系统 WebView。
@@ -235,7 +235,7 @@ view 导出命名 React Component，并在 views 中关联导出与 `main.overla
 
 每插件最多 4 条进程记录、全局 16 条，已退出记录需 dispose。stdout/stderr 各保留最新 256KiB，持续排空；省略 cursor 从最早保留位置读取，dropped 为累计丢弃字节数，实际 cursor 大于请求值表示旧输出已淘汰。标准输入最多排队 8 块，满时拒绝写入。Windows Job Object 在进程恢复执行前接管进程树；停用、卸载、重载、实例故障及应用退出均终止所属进程树。进程 ID 绑定插件与加载代次，主 WebView 释放不会终止进程。
 
-独立窗口需同时声明 `ui`、`window:manage`、frontend 和 `contributes.windows`，每项为 `{id,export}`，最多 4 项；窗口声明进入授权指纹。窗口只加载声明的 React 组件，不执行模块的 `activate`，不加载其他插件，不创建第二套音频播放端。窗口本身不使用工作区的 MusicPage shell。
+独立窗口需同时声明 `ui`、`window:manage`、frontend 和 `contributes.windows`，每项为 `{id,export}`，最多 4 项；窗口声明进入授权指纹。窗口只加载声明的 React 组件，不执行模块的 `activate`，不加载其他插件，不创建第二套音频播放端。Windows 窗口使用独立于主窗口的 WebView2 用户数据目录。窗口本身不使用工作区的 MusicPage shell。
 
 ```json
 {
@@ -258,7 +258,7 @@ await windows.open('floating', {
 await windows.update('floating', { ignoreCursorEvents: true })
 ```
 
-同名窗口重复 open 显示既有窗口。`windows.open` 接收 `{id,title?,width?,height?,x?,y?,transparent?,decorations?,alwaysOnTop?,ignoreCursorEvents?}`，返回 `{id,label}`；尺寸与位置以逻辑像素指定，width/height、x/y 分别成对传入。`windows.update` 支持相同选项，但 transparent/decorations 只能创建时指定。`windows.show/hide/close/start-dragging` 接收 `{id}`。SDK 对应 `open/update/show/hide/close/startDragging`，open/update 将选项作为第二个参数。
+同名窗口重复 open 显示既有窗口。`windows.open` 接收 `{id,title?,width?,height?,x?,y?,transparent?,decorations?,alwaysOnTop?,ignoreCursorEvents?,visible?}`，返回 `{id,label}`；尺寸与位置以逻辑像素指定，width/height、x/y 分别成对传入。`visible` 控制初始显示状态，默认 `true`，设为 `false` 可在后台创建并预热窗口，之后通过 `windows.show` 显示。`windows.update` 支持相同选项，但 transparent/decorations/visible 只能创建时设置。`windows.show/hide/close/start-dragging` 接收 `{id}`。SDK 对应 `open/update/show/hide/close/startDragging`，open/update 将选项作为第二个参数。
 
 窗口仅访问当前插件的声明和加载代次，不接受任意 URL；每插件最多 4 个窗口、全局 16 个。主窗口隐藏或其 WebView 释放后，独立窗口继续运行并可订阅播放状态；停用、重载、实例故障、卸载和退出时关闭。隐藏窗口的插件应停止动画与非必要刷新。当前公开播放接口仍不包含歌词时间轴，独立窗口能力本身不提供桌面歌词插件。
 
