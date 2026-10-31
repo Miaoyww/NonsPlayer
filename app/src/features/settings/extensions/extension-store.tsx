@@ -41,6 +41,7 @@ export interface ExtensionStoreProps {
   onInstalled: () => void | Promise<void>
   installed?: readonly { id: string; version?: string }[]
   onBusyChange?: (busy: boolean) => void
+  entriesFilter?: (entry: StoreEntry) => boolean
 }
 
 function EntryMetadata({ entry }: { entry: StoreEntry }) {
@@ -100,7 +101,8 @@ export function ExtensionStore({
   kind,
   busy = false,
   onInstalled,
-  onBusyChange
+  onBusyChange,
+  entriesFilter
 }: ExtensionStoreProps) {
   const callbacks = useRef({ onInstalled, onBusyChange })
   callbacks.current = { onInstalled, onBusyChange }
@@ -123,7 +125,10 @@ export function ExtensionStore({
     return () => controller.dispose()
   }, [controller])
   useEffect(() => setLimit(24), [query, state.source, kind])
-  const entries = searchEntries(controller.entries(), query)
+  const entries = searchEntries(
+    controller.entries().filter((entry) => entriesFilter?.(entry) ?? true),
+    query
+  )
   const detail = state.detail
   const preview = state.review?.preview
   const action = preview?.installedVersion ? '升级' : '安装'
@@ -259,7 +264,7 @@ export function ExtensionStore({
           {state.notice}
         </p>
       )}
-      <div aria-busy={state.loading} className="space-y-3">
+      <div aria-busy={state.loading} className="extension-store-entries space-y-3">
         {state.loading && !state.index && <TextSkeleton />}
         {entries.slice(0, limit).map((entry) => (
           <ExtensionStoreCard
