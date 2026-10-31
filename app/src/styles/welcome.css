@@ -1,4 +1,11 @@
 .welcome-page {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  height: calc(100dvh - 48px);
+  min-height: 0;
+  margin-top: 0;
+  overflow: hidden;
+  padding: clamp(16px, 3vh, 32px) clamp(24px, 8vw, 160px) 16px;
   background:
     radial-gradient(
       circle at 8% 8%,
@@ -13,8 +20,38 @@
     var(--background);
 }
 
+.welcome-app-shell {
+  background: transparent;
+}
+
+.welcome-titlebar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  height: 48px;
+  flex: 0 0 auto;
+  align-items: center;
+  background: transparent;
+}
+
+.welcome-titlebar-drag-region {
+  height: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.welcome-titlebar-controls {
+  display: flex;
+  height: 100%;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+}
+
 .welcome-shell {
   width: min(1120px, 100%);
+  height: 100%;
   margin: 0 auto;
 }
 
@@ -22,7 +59,7 @@
   display: flex;
   align-items: flex-start;
   gap: 20px;
-  padding: 8px 0 48px;
+  padding: 0 0 28px;
 }
 
 .welcome-mark {
@@ -288,6 +325,10 @@ button.welcome-option:hover:not(:disabled) {
 }
 
 @media (max-width: 760px) {
+  .welcome-page {
+    padding-inline: 24px;
+  }
+
   .welcome-hero {
     padding-bottom: 32px;
   }
@@ -302,6 +343,10 @@ button.welcome-option:hover:not(:disabled) {
 }
 
 @media (max-width: 520px) {
+  .welcome-page {
+    padding-inline: 16px;
+  }
+
   .welcome-section {
     padding: 16px;
     border-radius: 18px;

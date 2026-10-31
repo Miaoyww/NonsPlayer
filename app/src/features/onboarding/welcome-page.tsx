@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { MusicPage } from '@/components/music/music-page'
 import { ErrorNotice } from '@/components/error-notice'
 import { errorText, nativeCall } from '@/lib/player'
 import { usePlugins } from '@/plugins/host'
@@ -262,7 +261,7 @@ export function WelcomePage({ onComplete }: { onComplete: () => void }) {
   const current = sources.preferences?.current
   const availableSources = sources.statuses.filter((item) => item.descriptor.source !== 'local')
   return (
-    <MusicPage className="welcome-page" aria-label="欢迎页">
+    <main className="welcome-page" aria-label="欢迎页">
       <motion.div
         className="welcome-shell"
         initial={{ opacity: 0, y: 12 }}
@@ -379,6 +378,6 @@ export function WelcomePage({ onComplete }: { onComplete: () => void }) {
           </div>
         </footer>
       </motion.div>
-    </MusicPage>
+    </main>
   )
 }

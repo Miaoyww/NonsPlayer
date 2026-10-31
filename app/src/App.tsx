@@ -1,6 +1,7 @@
 import { AggregateLibraryProvider } from '@/features/aggregate/aggregate-library'
 import { MotionConfig } from 'motion/react'
 import { Titlebar } from '@/features/workspace/titlebar'
+import { WelcomeTitlebar } from '@/features/onboarding/welcome-titlebar'
 import { MusicWorkspace } from '@/features/workspace/music-workspace'
 import { MusicOptionsProvider } from '@/features/playback/music-options'
 import { MusicNavigationProvider } from '@/features/workspace/music-navigation'
@@ -46,17 +47,16 @@ function App() {
               <MusicNavigationProvider>
                 <PluginProvider>
                   <div
-                    className={`app-shell relative flex h-dvh flex-col overflow-hidden bg-background text-foreground ${nowPlaying ? 'now-playing' : ''}`}
+                    className={`app-shell relative flex h-dvh flex-col overflow-hidden text-foreground ${welcomeOpen ? 'welcome-app-shell' : 'bg-background'} ${nowPlaying ? 'now-playing' : ''}`}
                   >
-                    <Titlebar
-                      minimal={welcomeOpen}
-                      playerMode={nowPlaying}
-                      onBack={() => setNowPlaying(false)}
-                    />
                     {welcomeOpen ? (
-                      <WelcomePage onComplete={completeWelcome} />
+                      <>
+                        <WelcomeTitlebar />
+                        <WelcomePage onComplete={completeWelcome} />
+                      </>
                     ) : (
                       <>
+                        <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
                         <MusicWorkspace
                           nowPlaying={nowPlaying}
                           playerVisible={playerPhase !== 'closed'}

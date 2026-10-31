@@ -64,6 +64,7 @@ function harness(initialMode = 'collapsible', storage) {
       },
       'motion/react': { MotionConfig: 'MotionConfig' },
       '@/features/workspace/titlebar': { Titlebar: 'Titlebar' },
+      '@/features/onboarding/welcome-titlebar': { WelcomeTitlebar: 'WelcomeTitlebar' },
       '@/features/workspace/music-workspace': { MusicWorkspace: 'MusicWorkspace' },
       '@/features/onboarding/welcome-page': { WelcomePage: 'WelcomePage' },
       '@/features/onboarding/welcome-state': {

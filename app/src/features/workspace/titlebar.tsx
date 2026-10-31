@@ -31,12 +31,10 @@ import { usePrimaryMusicPage } from './use-primary-music-page'
 
 export function Titlebar({
   playerMode = false,
-  onBack,
-  minimal = false
+  onBack
 }: {
   playerMode?: boolean
   onBack?: () => void
-  minimal?: boolean
 }) {
   const sources = useMusicSources()
   const current = sources.statuses.find(
@@ -132,7 +130,7 @@ export function Titlebar({
         data-focused={focused}
         data-subpage={isAndroid() && !primaryPage && !playerMode}
       >
-        {!minimal && isAndroid() && (
+        {isAndroid() && (
           <SettingsDialog
             onOpenPage={(section = '') => navigate('settings', section)}
             onOpenAccounts={() => navigate('accounts')}
@@ -141,7 +139,7 @@ export function Titlebar({
         <div className={`flex h-full min-w-0 ${playerMode ? 'flex-1' : 'items-center'}`}>
           <div
             className={`flex h-full min-w-0 items-center gap-2.5 ${playerMode ? 'flex-1' : 'pl-4 pr-1'}`}
-            onMouseDown={playerMode || minimal ? drag : undefined}
+            onMouseDown={playerMode ? drag : undefined}
           >
             {playerMode ? (
               <Button
@@ -164,10 +162,10 @@ export function Titlebar({
                 <ChevronDown aria-hidden="true" />
               </Button>
             ) : null}
-            {!minimal && !isAndroid() && <PlaylistSidebar hidden={playerMode} />}
+            {!isAndroid() && <PlaylistSidebar hidden={playerMode} />}
           </div>
 
-          {!minimal && !playerMode && !isAndroid() && (
+          {!playerMode && !isAndroid() && (
             <>
               <div className="flex items-center gap-1">
                 <Button
@@ -194,7 +192,7 @@ export function Titlebar({
             </>
           )}
         </div>
-        {!minimal && !playerMode && (
+        {!playerMode && (
           <nav aria-label="音乐导航" className="flex shrink-0 items-center gap-1">
             {isAndroid() && hasTools && (
               <Button
@@ -271,7 +269,7 @@ export function Titlebar({
         <div className="flex h-full min-w-0 items-center justify-end pl-3">
           {!playerMode && <div className="h-full min-w-0 flex-1" onMouseDown={drag} />}
           <div className="flex h-full shrink-0 items-center gap-1 pr-1.5">
-            <div className={minimal || playerMode ? 'hidden' : 'flex items-center gap-1'}>
+            <div className={playerMode ? 'hidden' : 'flex items-center gap-1'}>
               {!isAndroid() && <AccountMenu />}
               {isAndroid() && !playerMode && (
                 <Button
