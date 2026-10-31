@@ -4,12 +4,28 @@
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-10-31
+
+![NonsPlayer v1.9.1 插件与窗口体验更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.9.1/docs/release-assets/header.png)
+
+NonsPlayer 1.9.1 改进插件资源访问、独立窗口隔离和全屏播放器的插件浮层体验。本次 Release 继续提供 **Windows x64、Linux x64 和 Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 ### 插件与工具
 
 - 插件静态资源按扩展名提供常见 Web MIME，支持 GET、HEAD 和媒体 Range 请求，未知类型回退为二进制流。
 - 插件独立窗口使用隔离的 WebView2 数据目录，避免与主窗口的运行时配置冲突。
 - 灵动岛源码与构建迁至独立仓库，通过插件管理安装独立构建的 ZIP。
 - 全屏播放器打开及退场动画期间隐藏插件浮层，避免覆盖播放器内容。
+
+### 安装与使用提示
+
+- Windows x64 安装版可通过内置更新获取新版；便携版请完整解压 `Nons_1.9.1_windows_x64_portable.zip` 后运行 `Nons.exe`，并保留 `data/` 目录。系统需已有 Microsoft Edge WebView2 Runtime。
+- Linux x64 提供 AppImage 与 deb；Android 提供 ARM64 试用 APK。
+
+### 已知限制与发布验收
+
+- 本次未提供 macOS 构建；macOS 安装与基本播放尚未完成验收。Android 仍为 ARM64 试用版，正式移动端发布待后续完成。
+- Windows 安装升级、真实音频设备与账号操作，Linux 基本播放，以及 Android 通知、锁屏封面和后台播放仍需使用发布构建进行实机验收；自动化测试不替代这些验收。
 
 ## [1.9.0] - 2026-10-31
 

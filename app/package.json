@@ -1,7 +1,7 @@
 {
   "name": "nons",
   "private": true,
-  "version": "1.9.0",
+  "version": "1.9.1",
   "type": "module",
   "scripts": {
     "plugins:fixtures": "cargo component build --manifest-path ../plugins/runtime-fixture/backend/Cargo.toml --release --target wasm32-unknown-unknown --locked && cargo component build --manifest-path ../plugins/music-fixture/backend/Cargo.toml --release --target wasm32-unknown-unknown --locked",
