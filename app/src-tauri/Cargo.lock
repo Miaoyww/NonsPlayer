@@ -4304,7 +4304,7 @@ dependencies = [
 
 [[package]]
 name = "nons"
-version = "1.8.8"
+version = "1.9.0"
 dependencies = [
  "aes",
  "anyhow",

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="800" viewBox="0 0 1600 800" role="img" aria-labelledby="title desc">
-          <title id="title">NonsPlayer v1.8.8 发布头图</title>
-          <desc id="desc">蓝白扁平设计，v1.8.8，本地音乐品质支持与Bug修复，Windows x64、Linux x64、Android ARM64，体验更新</desc>
+          <title id="title">NonsPlayer v1.9.0 发布头图</title>
+          <desc id="desc">蓝白扁平设计，v1.9.0，原生音频与多平台体验升级，Windows x64、Linux x64、Android ARM64，体验更新</desc>
           <rect width="1600" height="800" fill="#F5F8FC"/>
           <path d="M1080 0H1600V800H1290L1080 590Z" fill="#E5EFFA"/>
           <g font-family="Segoe UI, Microsoft YaHei, sans-serif">
@@ -13,8 +13,8 @@
             <text id="release-label" x="100" y="247" fill="#335D82" font-size="21" font-weight="600" letter-spacing="4">
               VERSION / RELEASE
             </text>
-            <text id="version" x="88" y="433" fill="#152B43" font-size="190" font-weight="700" letter-spacing="-9">v1.8.8</text>
-            <text id="subtitle" x="100" y="511" fill="#152B43" font-size="36" font-weight="500">本地音乐品质支持与Bug修复</text>
+            <text id="version" x="88" y="433" fill="#152B43" font-size="190" font-weight="700" letter-spacing="-9">v1.9.0</text>
+            <text id="subtitle" x="100" y="511" fill="#152B43" font-size="36" font-weight="500">原生音频与多平台体验升级</text>
             <path d="M100 572H728" stroke="#D5DFEA" stroke-width="2"/>
             <text id="platform" x="100" y="626" fill="#335D82" font-size="21" font-weight="500">Windows x64、Linux x64、Android ARM64</text>
             <text id="release-kind" x="728" y="626" text-anchor="end" fill="#335D82" font-size="23">体验更新</text>

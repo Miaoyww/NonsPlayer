@@ -82,9 +82,7 @@ export function PlaybackPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h2 className="text-xl font-bold">播放设置</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          设置输出设备、音质与播放过渡；桌面端使用系统音频设备，Android 由 WebView 输出。
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">设置输出设备、音质与播放过渡。</p>
       </div>
       <SettingsCard
         searchId="output-device"
