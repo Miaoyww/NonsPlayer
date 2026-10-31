@@ -35,6 +35,14 @@ function find(node, type) {
     if (match) return match
   }
 }
+function findBy(node, predicate) {
+  if (!node || typeof node !== 'object') return
+  if (predicate(node)) return node
+  for (const child of [node.props?.children].flat()) {
+    const match = findBy(child, predicate)
+    if (match) return match
+  }
+}
 function harness(initialMode = 'collapsible', storage) {
   const states = []
   let hookIndex = 0
@@ -161,6 +169,7 @@ function harness(initialMode = 'collapsible', storage) {
   }
   return {
     render,
+    app: App,
     setMode: (mode) => {
       barMode = mode
     }
@@ -185,6 +194,27 @@ test('opening fullscreen cannot render the default search page while its module 
   render().onNowPlayingChange(true)
   const opening = render()
   assert.equal(find(opening.workspace, 'FullscreenPlayer').props.open, true)
+})
+
+test('plugin overlays stay mounted but hidden until fullscreen exit completes', () => {
+  const { render, app } = harness()
+  const overlay = () => find(app(), 'PluginSlot')
+  const overlayContainer = () =>
+    findBy(app(), (node) => node.props?.className?.includes('inset-x-0 top-16'))
+
+  assert.equal(overlay().props.name, 'main.overlay')
+  assert.equal(overlayContainer().props.style.visibility, undefined)
+  assert.equal(overlayContainer().props['aria-hidden'], false)
+  render().onNowPlayingChange(true)
+  assert.equal(overlayContainer().props.style.visibility, 'hidden')
+  assert.equal(overlayContainer().props['aria-hidden'], true)
+  render().onNowPlayingChange(false)
+  const closing = render()
+  assert.equal(overlayContainer().props.style.visibility, 'hidden')
+  assert.equal(overlayContainer().props['aria-hidden'], true)
+  closing.exitComplete()
+  assert.equal(overlayContainer().props.style.visibility, undefined)
+  assert.equal(overlayContainer().props['aria-hidden'], false)
 })
 
 test('a delayed exit callback cannot show the bar after reopening fullscreen', () => {

@@ -65,7 +65,11 @@ function App() {
                             setPlayerPhase((phase) => (phase === 'closing' ? 'closed' : phase))
                           }
                         />
-                        <div className="pointer-events-none absolute inset-x-0 top-16 z-50 flex flex-col items-center gap-2">
+                        <div
+                          className="pointer-events-none absolute inset-x-0 top-16 z-50 flex flex-col items-center gap-2"
+                          aria-hidden={playerPhase !== 'closed'}
+                          style={{ visibility: playerPhase !== 'closed' ? 'hidden' : undefined }}
+                        >
                           <PluginSlot name="main.overlay" />
                         </div>
                       </>
