@@ -596,10 +596,14 @@ async fn player_device(device_id: Option<String>, backend: State<'_, Backend>) -
         .map_err(|e| e.to_string())?
 }
 #[tauri::command]
+fn player_devices() -> AppResult<Vec<crate::playback::engine::OutputDevice>> {
+    crate::playback::engine::output_devices()
+}
+#[tauri::command]
 async fn web_audio_ready(
     webview: tauri::Webview,
     backend: State<'_, Backend>,
-) -> AppResult<crate::playback::web_audio::Control> {
+) -> AppResult<crate::playback::engine::Control> {
     if webview.label() != "main" {
         return Err("音频执行端仅允许主窗口连接".into());
     }
@@ -610,7 +614,7 @@ async fn web_audio_ready(
 }
 #[tauri::command]
 fn web_audio_feedback(
-    feedback: crate::playback::web_audio::Feedback,
+    feedback: crate::playback::engine::Feedback,
     webview: tauri::Webview,
     backend: State<'_, Backend>,
 ) -> AppResult<()> {
@@ -1192,6 +1196,7 @@ pub fn run() {
             player_seek,
             player_volume,
             player_device,
+            player_devices,
             set_playback_options,
             web_audio_ready,
             web_audio_feedback,

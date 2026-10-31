@@ -37,9 +37,11 @@
 
 ## 开发运行
 
-Windows x64：需要 Rust 1.95、MSVC 工具链、Node/pnpm、Python，以及 Tauri 的 WebView2 环境。
+Windows x64：需要 Rust 1.95、MSVC 工具链、Node/pnpm、Python、LLVM/libclang，以及 Tauri 的 WebView2 环境。`ffmpeg_audio_sys` 通过 bindgen 生成绑定，`LIBCLANG_PATH` 必须指向已有 LLVM 安装中包含 `libclang.dll` 的目录；以下使用默认路径，安装在其他目录时相应调整。
 
 ```powershell
+$env:FFMPEG_MODE = 'bundled'
+$env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin'
 cd app
 pnpm install --frozen-lockfile
 pnpm tauri dev
@@ -47,7 +49,18 @@ pnpm tauri dev
 
 `native.ps1 -Task check|test|clippy` 执行原生检查；`-Task build` 与 `pnpm tauri build` 共用打包入口。Cargo.lock 暂将 kstring 固定到 2.0.2；更新依赖时遵守 manifest 的 Rust 1.95 最低版本。
 
-`pnpm tauri dev` 启动桌面应用与 Vite。`pnpm dev` 只启动 WebUI 预览。所有平台统一使用 WebAudio，不需准备应用私有音频 SDK。
+`pnpm tauri dev` 启动桌面应用与 Vite。`pnpm dev` 只启动 WebUI 预览。桌面使用 `ffmpeg_audio 0.3.1`／`ffmpeg_audio_sys 0.1.2` bundled 静态 FFmpeg 与 `CPAL 0.18.2` 共享输出，不需安装 FFmpeg 共享运行库；Android 保留 WebAudio，不构建桌面 FFmpeg／CPAL 执行端。
+
+在仓库根目录运行前端与原生库测试，Windows 原生测试沿用上述环境变量：
+
+```powershell
+pnpm --dir app test
+cargo install cargo-component --version 0.21.1 --locked
+pnpm --dir app plugins:fixtures
+cargo test --manifest-path app/src-tauri/Cargo.toml --lib --locked
+```
+
+Linux 桌面构建除 Tauri 依赖外需要 `libasound2-dev`、`libdbus-1-dev`、`libpipewire-0.3-dev`、`libpulse-dev`、`pkg-config`、`clang`、`libclang-dev`，并使用 `FFMPEG_MODE=bundled`。Windows 本机实际输出链路已在零音量下验证，但听音、设备拔插及 macOS/Linux 原生构建与基本播放尚未完成验收。
 
 ## 托盘与关闭主面板
 

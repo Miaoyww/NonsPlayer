@@ -7,7 +7,7 @@
 1. 同步 `app/package.json`、`app/src-tauri/tauri.conf.json`、`app/src-tauri/Cargo.toml` 与 `Cargo.lock` 中的应用版本。
 2. 将用户可见变化整理到 CHANGELOG 对应的 `## [版本]` 条目，保留 Unreleased 供下次开发使用。日期可写为 `## [版本] - YYYY-MM-DD`。
 3. 随包插件的 `engines.app` 兼容当前主版本；插件自身版本和 SDK/API 版本独立维护，不必与应用同步。
-4. 完成安装、账号、实际音频设备与依赖许可等发布前验收。CI 的静音解码验证不替代实机安装和听音验证。
+4. 完成安装、账号、实际音频设备与依赖许可等发布前验收。无物理输出的解码与混音测试不替代实机安装和听音验证。
 5. 提交并推送以上改动，再创建和推送版本标签。例如在版本为 1.0.0 的提交上执行：
 
 ```powershell
@@ -34,11 +34,14 @@ git push origin v1.0.0
 - 固定 Windows runner、Rust 1.95.0、Node 24、pnpm 10、Python 3.12 与 cargo-component 0.21.1；前端安装和 Rust 构建使用锁文件。
 - 独立的 SDK workflow 在 Ubuntu 上安装 `packages/plugin-sdk` 锁文件依赖、运行测试，并在 npm 上不存在当前版本时发布 `@nonsplayer/plugin-sdk`；它同时支持版本标签自动运行和 `workflow_dispatch` 手动运行。
 - 校验标签与四处应用版本一致，必须存在非空的对应发布说明；不使用 Unreleased 代替。
-- 检查格式，运行前端测试、脚本测试与原生库／集成测试；构建灵动岛与测试 Component。
+- Windows job 检查格式，运行 `pnpm --dir app test`、发布脚本测试与 `cargo test --manifest-path app/src-tauri/Cargo.toml --lib --locked`；原生库测试前以 `cargo install cargo-component --version 0.21.1 --locked` 安装 fixture 构建工具，再运行 `pnpm --dir app plugins:fixtures` 构建实际 WASM fixture。
+- 桌面构建设置 `FFMPEG_MODE=bundled`，使用 `ffmpeg_audio 0.3.1`／`ffmpeg_audio_sys 0.1.2` 静态编译 FFmpeg，输出由 `CPAL 0.18.2` 负责；不要求用户安装 FFmpeg 共享库。两项 FFmpeg crate 均为 GPL-3.0-only，与项目 GPL-3.0 许可兼容。
+- Windows job 设置 `LIBCLANG_PATH=C:\Program Files\LLVM\bin`，在原生库测试前检查该目录中的 `libclang.dll`；FFmpeg 的 bindgen 绑定生成需要 LLVM/libclang，本机开发也需设置对应路径。
+- Linux job 在既有 Tauri 系统依赖之外准备 `libasound2-dev`、`libdbus-1-dev`、`libpipewire-0.3-dev`、`libpulse-dev`、`pkg-config`、`clang`、`libclang-dev`，分别供 CPAL 的 ALSA、实时 D-Bus、PipeWire、PulseAudio 支持及绑定生成使用。
 - QQ 音乐适配器使用 cargo-component 0.21.1 和自身 Cargo.lock 构建，目标为 `wasm32-unknown-unknown`。GD 音源仍需按锁文件安装 `adapters/gdstudio` 与 `packages/wasm-crypto` 的 npm 开发依赖，并将 WAC 0.12.0 安装到 `.local/tools`。
-- 通过应用打包入口生成 MSI 和 NSIS EXE，音频使用系统 WebView；Linux 同一次构建生成 AppImage 与 deb，Android 构建 QQMusic、GDStudio 和 Xiaobai 并嵌入 APK。
+- 通过应用打包入口生成 MSI 和 NSIS EXE，桌面音频使用 bundled 静态 FFmpeg 与 CPAL 共享输出；Linux 同一次构建生成 AppImage 与 deb，Android 保留 WebAudio，并构建 QQMusic、GDStudio 和 Xiaobai 嵌入 APK。
 - 从同一次构建的主程序与 Windows 资源映射生成 `Nons_<版本>_windows_x64_portable.zip`，包含随包插件、使用说明与匹配的 `Nons.pdb` 调试符号，沿用安装包的许可文件打包策略，不包含构建缓存。安装包同样携带匹配符号，请保留以支持错误日志中的函数名与代码行号。完整解压后运行 `Nons.exe`，无需安装应用，但系统必须已有 Microsoft Edge WebView2 Runtime。
-- 前端播放测试覆盖 WebAudio 的媒体控制、进度反馈、设备选择及交叉淡入淡出；实际格式与物理输出仍需在各目标平台的系统 WebView 验收。
+- 前端播放测试覆盖桌面不启动 WebAudio、Android 启动 WebAudio、两类设备选择路径，以及媒体控制、进度反馈和交叉淡入淡出；原生库测试覆盖 FFmpeg 解码、定位、重采样、PCM 缓冲与混音。Windows 本机实际输出链路已在零音量下验证，但听音、设备拔插恢复和格式矩阵仍需实机验收，macOS/Linux 原生构建与基本播放的验证尚未完成。
 - Windows 收集当前版本的 MSI、EXE 与便携 ZIP，生成 `SHA256SUMS.txt`；Android 收集 APK 与 `SHA256SUMS-android.txt`；Linux 收集 AppImage、deb 与 `SHA256SUMS-linux.txt`。Artifact 保留 14 天，发布任务下载后再次校验哈希。缺少 Windows 便携 ZIP、Android APK 或任一 Linux 包时阻止发布。
 - 新 Release 先创建为草稿，上传所有附件后公开；重跑时更新说明并覆盖同名附件，已有公开 Release 保持公开。
 

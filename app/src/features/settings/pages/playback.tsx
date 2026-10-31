@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall, usePlayer, type OutputDevice } from '@/lib/player'
+import { isAndroid } from '@/lib/platform'
 import { useMusicOptions } from '@/features/playback/music-options'
 import {
   Select,
@@ -18,8 +19,9 @@ import { SettingsCard } from '@/features/settings/settings-card'
 
 export function PlaybackPage() {
   const state = usePlayer('deviceId', 'playbackOptions')
+  const android = isAndroid()
   const chooseAudioOutput =
-    typeof navigator === 'undefined'
+    !android || typeof navigator === 'undefined'
       ? undefined
       : (
           navigator.mediaDevices as
@@ -48,12 +50,17 @@ export function PlaybackPage() {
       return
     }
     let disposed = false
-    const fetchDevices = import('@/features/playback/audio-output').then(async (module) => {
-      if (disposed) return []
-      const supported = module.browserOutput().supportsDevices
-      if (!disposed) setBrowserDevicesSupported(supported)
-      return module.browserOutputDevices()
-    })
+    const fetchDevices = android
+      ? import('@/features/playback/audio-output').then(async (module) => {
+          if (disposed) return []
+          const supported = module.browserOutput().supportsDevices
+          if (!disposed) setBrowserDevicesSupported(supported)
+          return module.browserOutputDevices()
+        })
+      : nativeCall<OutputDevice[]>('player_devices').then((value) => {
+          if (!disposed) setBrowserDevicesSupported(true)
+          return value
+        })
     void fetchDevices
       .then((value) => {
         if (!disposed) setDevices(value)
@@ -76,7 +83,7 @@ export function PlaybackPage() {
       <div>
         <h2 className="text-xl font-bold">播放设置</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          设置输出设备、音质与播放过渡；音频格式支持由系统 WebView 决定。
+          设置输出设备、音质与播放过渡；桌面端使用系统音频设备，Android 由 WebView 输出。
         </p>
       </div>
       <SettingsCard
@@ -94,8 +101,13 @@ export function PlaybackPage() {
           disabled={!isTauri() || switching || !browserDevicesSupported}
           onOpenChange={(open) => {
             if (open)
-              void import('@/features/playback/audio-output')
-                .then((module) => module.browserOutputDevices())
+              void (
+                android
+                  ? import('@/features/playback/audio-output').then((module) =>
+                      module.browserOutputDevices()
+                    )
+                  : nativeCall<OutputDevice[]>('player_devices')
+              )
                 .then(setDevices)
                 .catch((cause) => {
                   reportCaughtError('app/src/features/settings/pages/playback.tsx', cause)
@@ -106,15 +118,13 @@ export function PlaybackPage() {
             setSwitching(true)
             setError(undefined)
             void (async () => {
-              {
-                const module = await import('@/features/playback/audio-output')
-                await module.selectBrowserOutput(deviceId)
-                try {
-                  await nativeCall('player_device', { deviceId })
-                } catch (cause) {
-                  await module.selectBrowserOutput(state.deviceId)
-                  throw cause
-                }
+              const module = android ? await import('@/features/playback/audio-output') : undefined
+              if (module) await module.selectBrowserOutput(deviceId)
+              try {
+                await nativeCall('player_device', { deviceId })
+              } catch (cause) {
+                if (module) await module.selectBrowserOutput(state.deviceId)
+                throw cause
               }
             })()
               .catch((cause) => {

@@ -6,6 +6,7 @@
 **/tsconfig.json
 **/tsconfig.*.json
 **/target/
+**/target-*/
 **/vendor/
 **/src/bindings.rs
 app/src-tauri/gen/

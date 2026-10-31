@@ -330,7 +330,7 @@ export async function connectPlayer(options: { observerOnly?: boolean } = {}): P
       })
   }
   try {
-    if (!options.observerOnly && typeof navigator !== 'undefined') {
+    if (!options.observerOnly && isAndroid() && typeof navigator !== 'undefined') {
       const { createWebAudio } = await import('@/features/playback/web-audio')
       const webAudio = createWebAudio(
         (feedback) => invoke('web_audio_feedback', { feedback }),

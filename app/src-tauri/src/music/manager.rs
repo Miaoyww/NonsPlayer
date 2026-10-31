@@ -67,6 +67,36 @@ impl std::fmt::Debug for ResourceTicket {
     }
 }
 impl ResourceTicket {
+    #[cfg(test)]
+    pub(crate) fn for_audio_test(url: String, headers: Vec<(String, String)>) -> Arc<Self> {
+        Arc::new(Self {
+            entry: None,
+            provider: None,
+            lease: ResourceLease {
+                handle: ResourceHandle::try_from("audio-test".to_owned()).unwrap(),
+                context: RequestContext {
+                    session: SessionContext {
+                        source: SourceId::try_from("test".to_owned()).unwrap(),
+                        account: None,
+                        generation: 1,
+                    },
+                    adapter_generation: 1,
+                    deadline: Instant::now(),
+                    cancellation: Cancellation::default(),
+                },
+                playback_generation: 0,
+                valid_until: Instant::now(),
+            },
+            resource: PlaybackResource {
+                access: ResourceAccess::Http(HttpAccess { url, headers }),
+                metadata: ResourceMetadata {
+                    actual_quality: "test".into(),
+                    extent: PlaybackExtent::Full,
+                    expires_at_ms: None,
+                },
+            },
+        })
+    }
     /// Lightweight atomic checks validate prepared resources without network/IO.
     pub fn check(&self, playback_generation: u64) -> MusicResult<()> {
         if let Some(provider) = &self.provider {
@@ -89,6 +119,11 @@ impl ResourceTicket {
     }
     pub(crate) fn quality(&self) -> &str {
         &self.resource.metadata.actual_quality
+    }
+    pub(crate) fn headers(&self) -> &[(String, String)] {
+        match &self.resource.access {
+            ResourceAccess::Http(http) => &http.headers,
+        }
     }
 }
 impl AdapterManager {
@@ -1089,12 +1124,34 @@ fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
     {
         return Err(ErrorCode::InvalidData.into());
     }
-    // The phase-two URI-only audio transport cannot inject credential headers.
-    // Reject these explicitly until the controlled transport implements them.
-    if !http.headers.is_empty() {
-        return Err(ErrorCode::Unsupported.into());
+    if !valid_audio_headers(&http.headers) {
+        return Err(ErrorCode::InvalidData.into());
     }
     Ok(())
+}
+
+fn valid_audio_headers(headers: &[(String, String)]) -> bool {
+    headers.len() <= 32
+        && headers.iter().all(|(name, value)| {
+            name.len() <= 128
+                && value.len() <= 4096
+                && http::header::HeaderName::from_bytes(name.as_bytes()).is_ok()
+                && http::header::HeaderValue::from_str(value).is_ok()
+                && ![
+                    "host",
+                    "range",
+                    "content-length",
+                    "transfer-encoding",
+                    "connection",
+                    "accept-encoding",
+                    "if-range",
+                    "proxy-authorization",
+                    "proxy-connection",
+                    "upgrade",
+                ]
+                .iter()
+                .any(|reserved| name.eq_ignore_ascii_case(reserved))
+        })
 }
 
 #[cfg(test)]
@@ -1712,15 +1769,27 @@ mod tests {
                 ErrorCode::InvalidData
             );
         }
-        assert_eq!(
-            validate_access(&ResourceAccess::Http(HttpAccess {
-                url: "https://example.com/a".into(),
-                headers: vec![("Authorization".into(), "secret".into())]
-            }))
-            .unwrap_err()
-            .code,
-            ErrorCode::Unsupported
-        );
+        validate_access(&ResourceAccess::Http(HttpAccess {
+            url: "https://example.com/a".into(),
+            headers: vec![("Authorization".into(), "secret".into())],
+        }))
+        .unwrap();
+        for (name, value) in [
+            ("Range", "bytes=0-"),
+            ("X-Token", "secret\r\nInjected: yes"),
+            ("bad header", "value"),
+            ("Host", "example.com"),
+        ] {
+            assert_eq!(
+                validate_access(&ResourceAccess::Http(HttpAccess {
+                    url: "https://example.com/a".into(),
+                    headers: vec![(name.into(), value.into())],
+                }))
+                .unwrap_err()
+                .code,
+                ErrorCode::InvalidData
+            );
+        }
     }
     #[tokio::test]
     async fn favorites_pages_pass_through_host_cursor_binding_and_reject_foreign_sessions() {

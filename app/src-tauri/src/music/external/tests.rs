@@ -226,7 +226,6 @@ async fn real_component_resources_expiry_preview_headers_and_disable_recovery() 
     for (id, code) in [
         ("expired", ErrorCode::DeadlineExceeded),
         ("preview", ErrorCode::PermissionDenied),
-        ("headers", ErrorCode::Unsupported),
     ] {
         assert_eq!(
             manager
@@ -237,6 +236,13 @@ async fn real_component_resources_expiry_preview_headers_and_disable_recovery() 
             code
         );
     }
+    let with_headers = manager
+        .resolve_playback(&resolve("headers"), 7)
+        .await
+        .unwrap();
+    assert_eq!(with_headers.headers().len(), 1);
+    with_headers.check(7).unwrap();
+    assert!(!format!("{with_headers:?}").contains("private"));
     let resource = manager
         .resolve_playback(&resolve("音乐:α/001"), 7)
         .await

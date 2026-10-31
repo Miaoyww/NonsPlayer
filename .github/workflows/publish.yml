@@ -118,6 +118,8 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       RELEASE_TAG: ${{ github.ref_name }}
+      FFMPEG_MODE: bundled
+      LIBCLANG_PATH: C:\Program Files\LLVM\bin
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -163,6 +165,24 @@ jobs:
 
       - name: Check formatting
         run: pnpm --dir app format:check
+
+      - name: Test frontend
+        run: pnpm --dir app test
+
+      - name: Validate LLVM for FFmpeg bindings
+        run: |
+          if (-not (Test-Path -LiteralPath (Join-Path $env:LIBCLANG_PATH 'libclang.dll'))) {
+            throw "libclang.dll not found under LIBCLANG_PATH: $env:LIBCLANG_PATH"
+          }
+
+      - name: Install cargo-component
+        run: cargo install cargo-component --version 0.21.1 --locked
+
+      - name: Build WASM test fixtures
+        run: pnpm --dir app plugins:fixtures
+
+      - name: Test native library
+        run: cargo test --manifest-path app/src-tauri/Cargo.toml --lib --locked
 
       - name: Test release scripts
         run: python -m unittest discover -s scripts/tests
@@ -241,6 +261,7 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       RELEASE_TAG: ${{ github.ref_name }}
+      FFMPEG_MODE: bundled
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -259,7 +280,13 @@ jobs:
             libfontconfig-dev \
             libssl-dev \
             libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev
+            libjavascriptcoregtk-4.1-dev \
+            libasound2-dev \
+            libpipewire-0.3-dev \
+            libpulse-dev \
+            pkg-config \
+            clang \
+            libclang-dev
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

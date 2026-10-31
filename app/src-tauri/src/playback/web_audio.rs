@@ -11,6 +11,7 @@ use axum::{
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
+#[cfg(target_os = "android")]
 use tauri::Emitter;
 
 #[derive(Clone, Default, Serialize)]
@@ -50,7 +51,7 @@ pub struct Feedback {
     pub next_source: Option<String>,
 }
 
-#[derive(Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum FeedbackKind {
     Playing,
@@ -64,11 +65,14 @@ pub enum FeedbackKind {
     TransitionEnd,
     PreloadError,
     DeviceDefault,
+    #[cfg(not(target_os = "android"))]
+    DeviceError,
 }
 
 struct Source {
     token: String,
     resolved: ResolvedTrack,
+    resource: super::engine::Resource,
     cancelled: tokio::sync::watch::Sender<bool>,
 }
 impl Source {
@@ -91,10 +95,13 @@ struct StreamState {
 }
 
 pub struct WebAudio {
+    #[cfg(any(target_os = "android", test))]
     control: Control,
     streams: StreamState,
     server: tauri::async_runtime::JoinHandle<()>,
+    #[cfg(any(target_os = "android", test))]
     pub last_sequence: u64,
+    #[cfg(target_os = "android")]
     retired_until: Option<std::time::Instant>,
 }
 
@@ -131,18 +138,23 @@ impl WebAudio {
             }
         });
         Ok(Self {
+            #[cfg(any(target_os = "android", test))]
             control: Default::default(),
             streams,
             server,
+            #[cfg(any(target_os = "android", test))]
             last_sequence: 0,
+            #[cfg(target_os = "android")]
             retired_until: None,
         })
     }
 
+    #[cfg(target_os = "android")]
     pub fn control(&self) -> Control {
         self.control.clone()
     }
 
+    #[cfg(target_os = "android")]
     pub fn emit(&mut self, app: &tauri::AppHandle) -> AppResult<()> {
         self.control.serial += 1;
         self.last_sequence = 0;
@@ -150,7 +162,8 @@ impl WebAudio {
             .map_err(|e| e.to_string())
     }
 
-    pub fn configure(&mut self, state: &crate::model::PlayerSnapshot) {
+    #[cfg(target_os = "android")]
+    pub fn configure(&mut self, state: &crate::model::PlayerSnapshot) -> AppResult<()> {
         self.control.fades = state.playback_options.fades;
         self.control.crossfade_ms = if state.playback_options.crossfade {
             state.playback_options.crossfade_duration_ms
@@ -158,9 +171,10 @@ impl WebAudio {
             0
         };
         self.control.device_id = state.device_id.clone();
+        Ok(())
     }
 
-    fn clear_secondary(&mut self) -> AppResult<()> {
+    pub(super) fn clear_secondary(&mut self) -> AppResult<()> {
         if let Some(source) = self
             .streams
             .secondary
@@ -170,17 +184,90 @@ impl WebAudio {
         {
             let _ = source.cancelled.send(true);
         }
-        self.control.next = None;
-        self.retired_until = None;
+        #[cfg(target_os = "android")]
+        {
+            self.control.next = None;
+            self.retired_until = None;
+        }
         Ok(())
     }
 
+    pub(super) fn install_source(
+        &mut self,
+        resolved: ResolvedTrack,
+        resource: super::engine::Resource,
+        secondary: bool,
+    ) -> AppResult<String> {
+        let token = uuid::Uuid::new_v4().to_string();
+        let uri = format!("http://{}/{}", self.streams.authority, token);
+        let (cancelled, _) = tokio::sync::watch::channel(false);
+        let slot = if secondary {
+            &self.streams.secondary
+        } else {
+            &self.streams.source
+        };
+        if let Some(previous) = slot
+            .write()
+            .map_err(|_| "音频资源状态不可用")?
+            .replace(Arc::new(Source {
+                token,
+                resolved,
+                resource,
+                cancelled,
+            }))
+        {
+            let _ = previous.cancelled.send(true);
+        }
+        Ok(uri)
+    }
+
+    pub(super) fn promote_source(&mut self) -> AppResult<()> {
+        let mut current = self
+            .streams
+            .source
+            .write()
+            .map_err(|_| "音频资源状态不可用")?;
+        let mut next = self
+            .streams
+            .secondary
+            .write()
+            .map_err(|_| "音频资源状态不可用")?;
+        std::mem::swap(&mut *current, &mut *next);
+        Ok(())
+    }
+
+    pub(super) fn clear_current(&mut self) -> AppResult<()> {
+        if let Some(source) = self
+            .streams
+            .source
+            .write()
+            .map_err(|_| "音频资源状态不可用")?
+            .take()
+        {
+            let _ = source.cancelled.send(true);
+        }
+        Ok(())
+    }
+
+    #[cfg(target_os = "android")]
     pub fn cancel_preload(&mut self, app: &tauri::AppHandle) -> AppResult<()> {
         self.clear_secondary()?;
         self.emit(app)
     }
 
-    pub fn prepare(&mut self, app: &tauri::AppHandle, resolved: ResolvedTrack) -> AppResult<()> {
+    #[cfg(target_os = "android")]
+    pub fn prepare(
+        &mut self,
+        app: &tauri::AppHandle,
+        resolved: ResolvedTrack,
+        resource: super::engine::Resource,
+        generation: u64,
+    ) -> AppResult<()> {
+        if let Some(resource) = &resource {
+            resource
+                .check(generation)
+                .map_err(|error| error.to_string())?;
+        }
         self.clear_secondary()?;
         let token = uuid::Uuid::new_v4().to_string();
         self.control.next = Some(NextSource {
@@ -196,11 +283,13 @@ impl WebAudio {
             .map_err(|_| "音频资源状态不可用")? = Some(Arc::new(Source {
             token,
             resolved,
+            resource,
             cancelled,
         }));
         self.emit(app)
     }
 
+    #[cfg(target_os = "android")]
     pub fn promote(&mut self, app: &tauri::AppHandle, position_ms: u64) -> AppResult<()> {
         let next = self.control.next.take().ok_or("下一首音频尚未准备")?;
         let mut current = self
@@ -228,6 +317,7 @@ impl WebAudio {
         self.emit(app)
     }
 
+    #[cfg(target_os = "android")]
     pub fn retire(&mut self) -> AppResult<()> {
         if self.retired_until.is_some() {
             self.clear_secondary()?;
@@ -235,6 +325,7 @@ impl WebAudio {
         Ok(())
     }
 
+    #[cfg(target_os = "android")]
     pub fn ready_to_prepare(&mut self) -> bool {
         if self
             .retired_until
@@ -245,6 +336,7 @@ impl WebAudio {
         self.retired_until.is_none() && self.control.next.is_none()
     }
 
+    #[cfg(target_os = "android")]
     pub fn stop(&mut self, app: &tauri::AppHandle) -> AppResult<()> {
         self.clear_secondary()?;
         if let Some(source) = self
@@ -261,14 +353,22 @@ impl WebAudio {
         self.emit(app)
     }
 
+    #[cfg(target_os = "android")]
     pub fn load(
         &mut self,
         app: &tauri::AppHandle,
         resolved: ResolvedTrack,
+        resource: super::engine::Resource,
+        generation: u64,
         position_ms: u64,
         playing: bool,
         volume: f64,
     ) -> AppResult<()> {
+        if let Some(resource) = &resource {
+            resource
+                .check(generation)
+                .map_err(|error| error.to_string())?;
+        }
         self.clear_secondary()?;
         if let Some(previous) = self
             .streams
@@ -296,11 +396,13 @@ impl WebAudio {
             .map_err(|_| "音频资源状态不可用")? = Some(Arc::new(Source {
             token,
             resolved,
+            resource,
             cancelled,
         }));
         self.emit(app)
     }
 
+    #[cfg(target_os = "android")]
     pub fn intent(
         &mut self,
         app: &tauri::AppHandle,
@@ -317,6 +419,7 @@ impl WebAudio {
         self.emit(app)
     }
 
+    #[cfg(any(target_os = "android", test))]
     pub fn accepts(&mut self, feedback: &Feedback) -> bool {
         if feedback.serial != self.control.serial || feedback.sequence <= self.last_sequence {
             return false;
@@ -411,6 +514,16 @@ async fn stream(
             .client
             .request(request.method().clone(), uri)
             .header(header::ACCEPT_ENCODING, "identity");
+        if let Some(resource) = &source.resource {
+            for (name, value) in resource.headers() {
+                if let (Ok(name), Ok(value)) = (
+                    header::HeaderName::try_from(name),
+                    header::HeaderValue::try_from(value),
+                ) {
+                    upstream = upstream.header(name, value);
+                }
+            }
+        }
         for name in [header::RANGE, header::IF_RANGE] {
             if let Some(value) = request.headers().get(&name) {
                 upstream = upstream.header(name, value);
@@ -499,6 +612,7 @@ mod tests {
                 url::Url::from_file_path(file.path()).unwrap().into(),
                 Some(file),
             ),
+            resource: None,
             cancelled,
         }));
         let client = reqwest::Client::new();
@@ -563,6 +677,7 @@ mod tests {
             *slot.write().unwrap() = Some(Arc::new(Source {
                 token: token.into(),
                 resolved: resolved(uri.clone(), Some(file.clone())),
+                resource: None,
                 cancelled,
             }));
         }
@@ -612,6 +727,7 @@ mod tests {
         *audio.streams.source.write().unwrap() = Some(Arc::new(Source {
             token: "online".into(),
             resolved: resolved(format!("http://{address}/private?secret=hidden"), None),
+            resource: None,
             cancelled,
         }));
         let response = reqwest::Client::new()

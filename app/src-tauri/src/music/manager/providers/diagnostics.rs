@@ -119,8 +119,8 @@ pub(super) fn access_reason(access: &ResourceAccess) -> &'static str {
     if url.fragment().is_some() {
         return "audio_url_contains_fragment";
     }
-    if !http.headers.is_empty() {
-        return "audio_transport_does_not_support_headers";
+    if !super::super::valid_audio_headers(&http.headers) {
+        return "audio_headers_invalid_or_reserved";
     }
     "resource_access_invalid"
 }
@@ -182,7 +182,12 @@ mod tests {
             (
                 "https://example.com/",
                 vec![("Authorization".into(), "SECRET".into())],
-                "audio_transport_does_not_support_headers",
+                "resource_access_invalid",
+            ),
+            (
+                "https://example.com/",
+                vec![("X-Token".into(), "SECRET\r\n".into())],
+                "audio_headers_invalid_or_reserved",
             ),
         ] {
             let access = ResourceAccess::Http(HttpAccess {
@@ -228,7 +233,12 @@ mod tests {
             format!("https://example.com/{}", "a".repeat(8192)),
         ];
         for url in urls {
-            for headers in [vec![], vec![("Authorization".into(), "SECRET".into())]] {
+            for headers in [
+                vec![],
+                vec![("Authorization".into(), "SECRET".into())],
+                vec![("Range".into(), "SECRET".into())],
+                vec![("X-Token".into(), "SECRET\r\n".into())],
+            ] {
                 let access = ResourceAccess::Http(HttpAccess {
                     url: url.clone(),
                     headers,
@@ -241,14 +251,7 @@ mod tests {
                     "{reason}"
                 );
                 if let Err(error) = result {
-                    assert_eq!(
-                        error.code,
-                        if reason == "audio_transport_does_not_support_headers" {
-                            ErrorCode::Unsupported
-                        } else {
-                            ErrorCode::InvalidData
-                        }
-                    );
+                    assert_eq!(error.code, ErrorCode::InvalidData);
                 }
                 assert!(!reason.contains("SECRET"));
             }

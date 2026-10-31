@@ -22,8 +22,8 @@ use std::{
 use tauri::Emitter;
 
 pub enum Command {
-    WebReady(mpsc::Sender<AppResult<super::web_audio::Control>>),
-    WebFeedback(super::web_audio::Feedback),
+    WebReady(mpsc::Sender<AppResult<super::engine::Control>>),
+    WebFeedback(super::engine::Feedback),
     SourceAttempt {
         generation: u64,
         index: usize,
@@ -337,7 +337,7 @@ impl Player {
             .map_err(|_| "保存播放设置超时".to_string())?
     }
 
-    pub fn web_ready(&self) -> AppResult<super::web_audio::Control> {
+    pub fn web_ready(&self) -> AppResult<super::engine::Control> {
         let (sender, receiver) = mpsc::channel();
         self.send(Command::WebReady(sender))?;
         receiver
@@ -368,7 +368,7 @@ impl Player {
 }
 
 struct Actor {
-    web_audio: super::web_audio::WebAudio,
+    audio_engine: super::engine::AudioEngine,
     selections: std::collections::BTreeMap<String, crate::music::service::PlaybackSelection>,
     app: tauri::AppHandle,
     store: Arc<Store>,
@@ -395,22 +395,29 @@ struct Actor {
 }
 
 impl Actor {
-    fn web_feedback(&mut self, feedback: super::web_audio::Feedback) -> AppResult<()> {
-        use super::web_audio::FeedbackKind;
-        if !self.web_audio.accepts(&feedback) {
+    fn web_feedback(&mut self, feedback: super::engine::Feedback) -> AppResult<()> {
+        use super::engine::FeedbackKind;
+        if !self.audio_engine.accepts(&feedback) {
             return Ok(());
         }
         if feedback.kind == FeedbackKind::Stopped {
             return Ok(());
         }
-        if self.web_audio.control().source.is_none() || self.current_job.is_some() {
+        if self.audio_engine.control().source.is_none() || self.current_job.is_some() {
             return Ok(());
         }
         if feedback.kind == FeedbackKind::DeviceDefault {
-            return self.select_device(None);
+            let result = self.select_device(None);
+            #[cfg(not(target_os = "android"))]
+            if let Err(error) = result {
+                self.state.position_ms =
+                    crate::audio::track_position(self.state.current(), feedback.position_ms);
+                return self.stop_with_output_error(error);
+            }
+            return result;
         }
         if feedback.kind == FeedbackKind::Transition {
-            let control = self.web_audio.control();
+            let control = self.audio_engine.control();
             if !self.state.playback_options.crossfade
                 || control.next.as_ref().map(|n| n.source.as_str())
                     != feedback.next_source.as_deref()
@@ -440,7 +447,8 @@ impl Actor {
                 self.state.error = None;
                 self.play_instance_id = uuid::Uuid::new_v4().to_string();
                 self.recorded_instance_id = None;
-                self.web_audio.promote(&self.app, self.state.position_ms)?;
+                self.audio_engine
+                    .promote(&self.app, self.state.position_ms)?;
                 if self.desired_playing {
                     self.record_playback_history();
                 }
@@ -448,17 +456,17 @@ impl Actor {
                 self.next_attempts = 0;
                 self.publish();
             } else {
-                self.web_audio.cancel_preload(&self.app)?;
+                self.audio_engine.cancel_preload(&self.app)?;
             }
             return Ok(());
         }
         if feedback.kind == FeedbackKind::TransitionEnd {
-            self.web_audio.retire()?;
+            self.audio_engine.retire()?;
             return Ok(());
         }
         if feedback.kind == FeedbackKind::PreloadError {
             if self
-                .web_audio
+                .audio_engine
                 .control()
                 .next
                 .as_ref()
@@ -466,7 +474,7 @@ impl Actor {
                 == feedback.next_source.as_deref()
             {
                 self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
-                self.web_audio.cancel_preload(&self.app)?;
+                self.audio_engine.cancel_preload(&self.app)?;
             }
             return Ok(());
         }
@@ -496,19 +504,27 @@ impl Actor {
                 self.desired_playing = false;
                 self.state.status = PlaybackStatus::Stopped;
                 self.state.position_ms = self.state.duration_ms;
-                self.web_audio.stop(&self.app)?;
+                self.audio_engine.stop(&self.app)?;
                 self.publish();
                 return Ok(());
             }
             FeedbackKind::Error => {
-                self.web_audio.stop(&self.app)?;
+                self.audio_engine.stop(&self.app)?;
                 self.skip_failed(
                     feedback
                         .error
                         .filter(|e| e.len() <= 256)
-                        .unwrap_or_else(|| "系统 WebView 无法播放此音频".into()),
+                        .unwrap_or_else(|| "无法解码或播放此音频".into()),
                 )?;
                 return Ok(());
+            }
+            #[cfg(not(target_os = "android"))]
+            FeedbackKind::DeviceError => {
+                return self.stop_with_output_error(
+                    feedback
+                        .error
+                        .unwrap_or_else(|| "音频输出设备不可用".into()),
+                );
             }
             _ => None,
         };
@@ -551,10 +567,15 @@ impl Actor {
         };
         let prepared = Arc::new(Mutex::new(None::<Prepared>));
         let generation = Arc::new(AtomicU64::new(0));
-        let mut web_audio = super::web_audio::WebAudio::new()?;
-        web_audio.configure(&state);
+        let mut audio_engine = super::engine::create(sender.clone())?;
+        if let Err(error) = audio_engine.configure(&state) {
+            crate::infrastructure::diagnostics::warn("playback.restore.device", error);
+            state.device_id = None;
+            store.set_setting("webAudioDevice", "null")?;
+            audio_engine.configure(&state)?;
+        }
         Ok(Self {
-            web_audio,
+            audio_engine,
             selections: Default::default(),
             app,
             store,
@@ -593,6 +614,13 @@ impl Actor {
                     }
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => {}
+            }
+            #[cfg(not(target_os = "android"))]
+            if let Some(feedback) = self.audio_engine.poll() {
+                if let Err(error) = self.web_feedback(feedback) {
+                    self.state.error = Some(error);
+                    self.publish();
+                }
             }
             if self.last_tick.elapsed() >= Duration::from_millis(250) {
                 self.tick();
@@ -680,7 +708,7 @@ impl Actor {
                 job.abort();
             }
             self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
-            self.web_audio.cancel_preload(&self.app)?;
+            self.audio_engine.cancel_preload(&self.app)?;
             self.next_attempt = None;
             self.next_attempts = 0;
         }
@@ -702,14 +730,14 @@ impl Actor {
         let play_now = matches!(&command, Command::PlayNextNow(_));
         match command {
             Command::WebReady(reply) => {
-                self.web_audio.intent(
+                self.audio_engine.intent(
                     &self.app,
                     self.desired_playing,
                     self.state.volume,
                     Some(self.state.position_ms),
                 )?;
 
-                let _ = reply.send(Ok(self.web_audio.control()));
+                let _ = reply.send(Ok(self.audio_engine.control()));
             }
             Command::WebFeedback(feedback) => self.web_feedback(feedback)?,
             Command::Retry { revision, key } => {
@@ -1128,7 +1156,7 @@ impl Actor {
             Command::Pause => {
                 self.desired_playing = false;
 
-                self.web_audio
+                self.audio_engine
                     .intent(&self.app, false, self.state.volume, None)?;
 
                 self.state.status = PlaybackStatus::Paused;
@@ -1151,7 +1179,7 @@ impl Actor {
                     } else {
                         self.desired_playing = true;
 
-                        self.web_audio
+                        self.audio_engine
                             .intent(&self.app, true, self.state.volume, None)?;
                         return Ok(());
                     }
@@ -1162,7 +1190,7 @@ impl Actor {
                 self.cancel_jobs();
                 self.desired_playing = false;
 
-                self.web_audio.stop(&self.app)?;
+                self.audio_engine.stop(&self.app)?;
 
                 if clear {
                     self.selections.clear();
@@ -1194,7 +1222,7 @@ impl Actor {
 
                 self.state.volume = value;
 
-                self.web_audio
+                self.audio_engine
                     .intent(&self.app, self.desired_playing, value, None)?;
 
                 self.publish();
@@ -1241,7 +1269,12 @@ impl Actor {
                             return Ok(());
                         }
 
-                        self.web_audio.prepare(&self.app, resolved.clone())?;
+                        self.audio_engine.prepare(
+                            &self.app,
+                            resolved.clone(),
+                            resource.clone(),
+                            generation,
+                        )?;
 
                         *self
                             .prepared
@@ -1270,18 +1303,24 @@ impl Actor {
                     });
                     match result {
                         Ok((resolved, resource, source)) => {
-                            let _resource = resource;
                             self.state.actual_quality = resolved.quality.clone();
                             self.state.playback_source = source;
                             self.publish();
 
-                            self.web_audio.load(
+                            if let Err(error) = self.audio_engine.load(
                                 &self.app,
                                 resolved,
+                                resource,
+                                generation,
                                 self.state.position_ms,
                                 self.desired_playing,
                                 self.state.volume,
-                            )?;
+                            ) {
+                                #[cfg(target_os = "android")]
+                                self.skip_failed(error)?;
+                                #[cfg(not(target_os = "android"))]
+                                self.stop_with_output_error(error)?;
+                            }
                             return Ok(());
                         }
                         Err(error) => {
@@ -1305,7 +1344,7 @@ impl Actor {
             &serde_json::to_string(&options).map_err(|e| e.to_string())?,
         )?;
         self.state.playback_options = options;
-        self.web_audio.configure(&self.state);
+        self.audio_engine.configure(&self.state)?;
         if !options.crossfade {
             if let Some(job) = self.next_job.take() {
                 job.abort();
@@ -1313,9 +1352,9 @@ impl Actor {
             self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
             self.next_attempt = None;
             self.next_attempts = 0;
-            self.web_audio.cancel_preload(&self.app)?;
+            self.audio_engine.cancel_preload(&self.app)?;
         } else {
-            self.web_audio.emit(&self.app)?;
+            self.audio_engine.emit(&self.app)?;
         }
         self.publish();
         Ok(())
@@ -1341,6 +1380,17 @@ impl Actor {
         self.publish();
         Ok(())
     }
+
+    #[cfg(not(target_os = "android"))]
+    fn stop_with_output_error(&mut self, error: String) -> AppResult<()> {
+        self.cancel_jobs();
+        self.audio_engine.stop(&self.app)?;
+        self.desired_playing = false;
+        self.state.status = PlaybackStatus::Error;
+        self.state.error = Some(error);
+        self.publish();
+        Ok(())
+    }
     fn load(&mut self, index: usize, playing: bool) -> AppResult<()> {
         self.load_at(index, playing, 0)
     }
@@ -1354,7 +1404,7 @@ impl Actor {
             .ok_or("歌曲不在播放队列中")?;
         self.cancel_jobs();
 
-        self.web_audio.stop(&self.app)?;
+        self.audio_engine.stop(&self.app)?;
 
         self.state.revision += 1;
         self.play_instance_id = uuid::Uuid::new_v4().to_string();
@@ -1510,8 +1560,12 @@ impl Actor {
             PlaybackStatus::Stopped | PlaybackStatus::Error
         ) && self.current_job.is_none()
         {
-            self.web_audio
-                .intent(&self.app, self.desired_playing, self.state.volume, Some(ms))?;
+            self.audio_engine.intent(
+                &self.app,
+                self.desired_playing,
+                self.state.volume,
+                Some(ms),
+            )?;
         }
         self.publish();
         Ok(())
@@ -1543,7 +1597,7 @@ impl Actor {
             && self
                 .next_attempt
                 .is_none_or(|t| t.elapsed() > Duration::from_secs(5))
-            && self.web_audio.ready_to_prepare()
+            && self.audio_engine.ready_to_prepare()
             && self.prepared.lock().map(|p| p.is_none()).unwrap_or(false)
         {
             if let Some(index) = self.state.following(false) {
@@ -1606,13 +1660,32 @@ impl Actor {
     }
 
     fn select_device(&mut self, id: Option<String>) -> AppResult<()> {
+        #[cfg(not(target_os = "android"))]
+        {
+            if let Some(job) = self.next_job.take() {
+                job.abort();
+            }
+            self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
+            self.audio_engine.cancel_preload(&self.app)?;
+            self.next_attempt = None;
+            self.next_attempts = 0;
+        }
+        let previous = self.state.device_id.clone();
         self.store.set_setting(
             "webAudioDevice",
             &serde_json::to_string(&id).map_err(|e| e.to_string())?,
         )?;
         self.state.device_id = id;
-        self.web_audio.configure(&self.state);
-        self.web_audio.emit(&self.app)?;
+        if let Err(error) = self.audio_engine.configure(&self.state) {
+            self.state.device_id = previous.clone();
+            self.store.set_setting(
+                "webAudioDevice",
+                &serde_json::to_string(&previous).map_err(|e| e.to_string())?,
+            )?;
+            let _ = self.audio_engine.configure(&self.state);
+            return Err(error);
+        }
+        self.audio_engine.emit(&self.app)?;
         self.publish();
         return Ok(());
     }
