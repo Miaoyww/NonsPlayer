@@ -476,7 +476,6 @@ impl Runtime {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
     #[test]
     fn adapter_work_is_not_limited_by_instruction_count() {
         run(async {
@@ -559,41 +558,15 @@ mod tests {
         assert_eq!(limits.allocated, 0);
     }
     #[derive(Default)]
-    struct FakeHost {
-        events: Mutex<Vec<serde_json::Value>>,
-        http_requests: Mutex<Vec<serde_json::Value>>,
-    }
+    struct FakeHost {}
     impl HostHandler for FakeHost {
         fn call<'a>(
             &'a self,
             operation: &'a str,
-            args: &'a str,
+            _args: &'a str,
         ) -> Pin<Box<dyn Future<Output = AppResult<String>> + Send + 'a>> {
             Box::pin(async move {
                 match operation {
-                    "config.get" => Ok(r#"{"values":{"detectLinks":true}}"#.into()),
-                    "http.request" => {
-                        self.http_requests
-                            .lock()
-                            .unwrap()
-                            .push(serde_json::from_str(args).unwrap());
-                        Ok(r#"{"status":302,"headers":{"location":"https://music.163.com/#/song?id=347230"},"body":""}"#.into())
-                    }
-                    "music.read-track" => {
-                        let args: serde_json::Value = serde_json::from_str(args).unwrap();
-                        assert_eq!(
-                            args["reference"],
-                            serde_json::json!({"source":"netease","kind":"track","id":"347230"})
-                        );
-                        Ok(serde_json::json!({"reference":{"source":"netease","kind":"track","id":"347230"},"artists":[],"title":"Fixture song","artist":"Fixture artist","album":"Fixture album","durationMs":1000,"cover":nons_music_adapter_sdk::cover::CoverImage::default()}).to_string())
-                    }
-                    "events.emit" => {
-                        self.events
-                            .lock()
-                            .unwrap()
-                            .push(serde_json::from_str(args).unwrap());
-                        Ok("null".into())
-                    }
                     "wait" => {
                         tokio::time::sleep(Duration::from_secs(30)).await;
                         Ok("null".into())
@@ -615,63 +588,6 @@ mod tests {
             .build()
             .unwrap()
             .block_on(future);
-    }
-    #[test]
-    #[ignore = "The Nons core no longer bundles plugins; the adapter/plugin store supplies components."]
-    fn actual_island_component_calls_host_and_emits_song() {
-        run(async {
-            let host = Arc::new(FakeHost::default());
-            let mut runtime =
-                Runtime::load_host(engine().unwrap(), &fixture("netease-island"), host.clone())
-                    .await
-                    .expect(
-                        "The plugin store must provide this component for the integration test",
-                    );
-            assert_eq!(
-                runtime
-                    .call(
-                        "event:clipboard-text",
-                        r#"{"text":"fixture text https://evil.test/private https://music.163.com/#/song?id=347230"}"#
-                    )
-                    .await
-                    .unwrap(),
-                "null"
-            );
-            {
-                let events = host.events.lock().unwrap();
-                assert_eq!(events.len(), 1);
-                assert_eq!(events[0]["event"], "song-detected");
-                assert_eq!(events[0]["payload"]["title"], "Fixture song");
-            }
-            runtime
-                .call(
-                    "event:clipboard-text",
-                    r#"{"text":"unrelated private text https://evil.test/song?id=347230"}"#,
-                )
-                .await
-                .unwrap();
-            assert_eq!(host.events.lock().unwrap().len(), 1);
-            assert!(host.http_requests.lock().unwrap().is_empty());
-            runtime
-                .call(
-                    "event:clipboard-text",
-                    r#"{"text":"分享 https://163cn.tv/fixture"}"#,
-                )
-                .await
-                .unwrap();
-            assert_eq!(host.events.lock().unwrap().len(), 2);
-            {
-                let requests = host.http_requests.lock().unwrap();
-                assert_eq!(requests.len(), 1);
-                assert_eq!(requests[0]["url"], "https://163cn.tv/fixture");
-            }
-            assert!(runtime.call("unknown", "null").await.is_err());
-            assert!(
-                !runtime.faulted,
-                "guest business errors preserve the instance"
-            );
-            runtime.shutdown().await;
-        });
     }
     #[test]
     fn fuel_memory_trap_and_invalid_results_are_isolated() {

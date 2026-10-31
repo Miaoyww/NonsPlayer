@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@nonsplayer/plugin-sdk": ["../../packages/plugin-sdk/index.d.ts"],
+      "react": ["../../app/node_modules/@types/react/index.d.ts"],
+      "react/*": ["../../app/node_modules/@types/react/*"]
+    }
+  },
+  "include": ["frontend"]
+}

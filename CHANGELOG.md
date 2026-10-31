@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 插件与工具
+
+- 灵动岛源码与构建迁至独立仓库，通过插件管理安装独立构建的 ZIP。
+
 ## [1.9.0] - 2026-10-31
 
 ![NonsPlayer v1.9.0 原生音频与多平台体验升级头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.9.0/docs/release-assets/header.png)

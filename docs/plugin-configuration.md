@@ -67,7 +67,7 @@ try {
 
 定义文件最多 64KiB、128 个字段；每个字段的键最多 128 字节，标题 128 字节，说明 2048 字节（UTF-8）。禁用远程 JSON Schema 引用。配置写入快照最多 64KiB；配置读取响应最多 128KiB。文件每块最多 32KiB、每实例最多 16 个句柄、每插件最多 32 个外部目录，目录页最多 128 项且响应有大小上限。文件 IO 在阻塞工作线程执行；这些是设计上限，尚无吞吐基准。
 
-统一页面真实示例为 `plugins/netease-island`。自定义页面和二进制存储示例为 `plugins/settings-fixture`，仅供验证，不默认随应用分发：
+统一页面真实示例为独立仓库 `netease-island` 的 `configuration.json`。自定义页面和二进制存储示例为 `plugins/settings-fixture`，仅供验证，不默认随应用分发：
 
 ```powershell
 node scripts/build-plugin.mjs settings-fixture app/src-tauri/target/plugin-fixtures/settings-fixture

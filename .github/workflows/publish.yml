@@ -153,7 +153,6 @@ jobs:
         with:
           workspaces: |
             app/src-tauri -> target
-            plugins/netease-island/backend -> target
 
       - name: Validate release version and notes
         run: python scripts/release.py notes $env:RELEASE_TAG .local/release-notes.md

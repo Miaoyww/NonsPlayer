@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const name = process.argv[2] ?? 'netease-island'
+const name = process.argv[2]
+if (!name) throw new Error('Usage: node scripts/build-plugin.mjs <fixture-id> [output]')
 if (!/^[a-z][a-z0-9-]{0,63}$/.test(name)) throw new Error('Invalid plugin ID')
 const project = resolve(root, 'plugins', name)
 const out = process.argv[3]

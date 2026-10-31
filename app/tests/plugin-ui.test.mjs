@@ -199,7 +199,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
     })
     globalThis.__NONS_PLUGIN_HOST__ = { react: React, jsx, sdk }
     await buildFrontend(
-      fileURLToPath(new URL('../../plugins/netease-island', import.meta.url)),
+      fileURLToPath(new URL('../../plugins/ui-fixture', import.meta.url)),
       directory,
       'ui.mjs'
     )
@@ -220,7 +220,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
         `export const {${exports}}=globalThis.__NONS_PLUGIN_HOST__.${object};`
       )
     }
-    const { DynamicIsland } = await import(pathToFileURL(join(directory, 'ui.mjs')))
+    const { Preview } = await import(pathToFileURL(join(directory, 'ui.mjs')))
     const scope = {
       descriptor: {
         generation: 7,
@@ -240,7 +240,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
         React.createElement(
           scopeModule.PluginScope.Provider,
           { value: scope },
-          React.createElement(DynamicIsland),
+          React.createElement(Preview),
           React.createElement(StorageProbe)
         )
       )
@@ -248,7 +248,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
     assert.equal(document.querySelector('[role=status]'), null)
     assert.equal(scope.listeners.size, 1)
     await React.act(async () => {
-      scope.events.set('song-detected', {
+      scope.events.set('track', {
         reference: { source: 'netease', kind: 'track', id: '1' },
         title: '歌曲一',
         artist: '歌手甲',
@@ -259,8 +259,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
       scope.listeners.forEach((notify) => notify())
     })
     assert.match(document.body.textContent, /歌曲一/)
-    assert.match(document.body.textContent, /立即播放/)
-    assert.match(document.body.textContent, /下一首播放/)
+    assert.match(document.body.textContent, /Queue/)
     assert.match(document.body.textContent, /收藏/)
     await React.act(async () => {
       document.querySelector('.music-entity-link').click()
@@ -270,27 +269,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
     assert.equal(navigations[0][2].id, '123')
     assert.deepEqual(likes, ['1'])
     assert.equal(pendingTimers.size, 1)
-    await React.act(async () => {
-      document.querySelector('[aria-label="关闭歌曲预览"]').focus()
-    })
-    assert.equal(pendingTimers.size, 0, 'keyboard focus pauses dismissal')
-    await React.act(async () => {
-      document.querySelector('[aria-label="关闭歌曲预览"]').click()
-    })
-    assert.equal(document.querySelector('[role=status]'), null)
-    await React.act(async () => {
-      scope.events.set('song-detected', {
-        reference: { source: 'netease', kind: 'track', id: '2' },
-        title: '歌曲二',
-        artist: '歌手乙',
-        artists: [],
-        cover: ''
-      })
-      scope.listeners.forEach((notify) => notify())
-    })
-    const next = [...document.querySelectorAll('button')].find(
-      (b) => b.textContent === '下一首播放'
-    )
+    const next = [...document.querySelectorAll('button')].find((b) => b.textContent === 'Queue')
     await React.act(async () => {
       next.click()
       next.click()
@@ -298,27 +277,13 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
     assert.equal(calls.length, 1, 'repeated clicks submit one queue operation')
     assert.equal(calls[0][1].operation, 'music.play-track')
     assert.deepEqual(JSON.parse(calls[0][1].args), {
-      reference: { source: 'netease', kind: 'track', id: '2' },
+      reference: { source: 'netease', kind: 'track', id: '1' },
       mode: 'next'
     })
     await React.act(async () => {
       finish('null')
     })
-    assert.match(document.body.textContent, /已加入下一首播放/)
-    await React.act(async () => {
-      ;[...document.querySelectorAll('button')].find((b) => b.textContent === '立即播放').click()
-    })
-    assert.deepEqual(JSON.parse(calls[1][1].args), {
-      reference: { source: 'netease', kind: 'track', id: '2' },
-      mode: 'now'
-    })
-    await React.act(async () => {
-      finish('null')
-    })
-    assert.match(document.body.textContent, /已开始播放/)
-    await React.act(async () => {
-      document.querySelector('[aria-label="关闭歌曲预览"]').click()
-    })
+    assert.match(document.body.textContent, /queued/)
     const read = storage.get('key')
     assert.equal(calls[0][1].id, 'sample')
     assert.equal(calls[0][1].generation, 7)

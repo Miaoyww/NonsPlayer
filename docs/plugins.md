@@ -1,6 +1,6 @@
 # 插件开发与使用
 
-Nons 在现有播放器上增量提供 `Manifest + WASM Backend + React Frontend + Contributions`。网易云由默认随包的独立原生适配器提供，功能插件调用统一音乐服务，不接管来源注册或播放核心。第一版随包分发灵动岛，默认关闭。
+Nons 在现有播放器上增量提供 `Manifest + WASM Backend + React Frontend + Contributions`。网易云由默认随包的独立原生适配器提供，功能插件调用统一音乐服务，不接管来源注册或播放核心。灵动岛、下载与转换插件在各自独立仓库维护，通过插件管理安装。
 
 ## 架构与文件
 
@@ -10,7 +10,7 @@ Nons 在现有播放器上增量提供 `Manifest + WASM Backend + React Frontend
 | 公共 ABI     | `plugins/wit/plugin.wit`：`nons:plugin@1.0.0`；Guest 初始化、关闭、方法调用；Host 高层 Capability                                                                                                                     |
 | React Host   | `app/src/plugins/`：动态模块、贡献 registry、PluginSlot、PluginPageHost、生命周期与 SDK                                                                                                                               |
 | 公共类型     | `packages/plugin-sdk/`：发布为 `@nonsplayer/plugin-sdk`，含类型、WIT、Manifest schema 与构建 CLI，不引用宿主源码                                                                                                      |
-| 真实插件     | `plugins/netease-island/`：独立 Rust Component 与 React UI                                                                                                                                                            |
+| 真实插件     | `netease-island` 独立仓库：Rust Component 与 React UI，通过公开 SDK 构建                                                                                                                                              |
 | 非随包插件   | [ncm-converter](https://github.com/Miaoyww/ncm-converter)、[netease-download](https://github.com/Miaoyww/netease-download)：源码、测试与 Release 在各自仓库；注册信息在[插件目录](https://github.com/Miaoyww/plugins) |
 | 构建         | `scripts/build-plugin.mjs`、`plugin-build-ui.mjs`、`package-plugin.py`：两端构建、React 外部化与 ZIP                                                                                                                  |
 | 测试 fixture | `plugins/runtime-fixture/`：资源耗尽／错误验证，不随包安装                                                                                                                                                            |
@@ -23,21 +23,15 @@ Nons 在现有播放器上增量提供 `Manifest + WASM Backend + React Frontend
 
 ## 构建与安装
 
-一次性准备：项目仍要求 Rust 1.95、Node/pnpm、Python。另安装：
+灵动岛在 `netease-island` 独立仓库构建，要求 Rust 1.95、Node.js 22 或更新版本和 pnpm：
 
 ```powershell
 cargo install cargo-component --version 0.21.1 --locked
 rustup target add wasm32-unknown-unknown
-cd app
+cd ../netease-island
 pnpm install --frozen-lockfile
-pnpm plugins:build
-```
-
-构建脚本先执行：
-
-```powershell
-cd plugins/netease-island/backend
-cargo component build --release --target wasm32-unknown-unknown --locked
+pnpm test
+pnpm build
 ```
 
 Cargo Component 根据 WIT 生成 `src/bindings.rs`，产出真正的 Component。生成的 bindings 与 target 不提交；Cargo.lock 提交。宿主只链接 Nons WIT，不提供任意 WASI filesystem、network、clipboard 或 process imports。
@@ -54,17 +48,7 @@ cd my-plugin && pnpm install && pnpm build
 
 包版本独立于应用版本；包的 `nons.pluginApi`／`nons.uiApi` 元数据声明对应 API 版本，用于校验 Manifest 的 `engines` 范围。`nons-plugin build` 执行 TypeScript 检查、前端打包、Manifest 与产物校验，并生成 `<id>-<版本>.zip`；声明 `backend` 时先运行 `cargo component build`。`nons-plugin validate <manifest> --root <目录>` 单独校验 Manifest 与打包文件。WIT 位于 `node_modules/@nonsplayer/plugin-sdk/wit/plugin.wit`，Manifest schema 位于 `node_modules/@nonsplayer/plugin-sdk/schemas/manifest.schema.json`。
 
-默认产物：
-
-```text
-app/src-tauri/bundled-plugins/netease-island/
-  manifest.json
-  backend.wasm
-  ui.mjs
-app/src-tauri/bundled-plugins/netease-island.zip
-```
-
-`pnpm dev` 与 Tauri 打包前会构建插件。正常宿主首次启动枚举随包插件并安装为关闭状态；之后卸载不会自动补装。构建目录不是源码提交内容。
+灵动岛产物位于独立仓库的 `dist/`，安装包为 `netease-island-<版本>.zip`。主仓库不构建或随包分发灵动岛；在设置 → 插件中安装 ZIP 并确认权限。仓库内的 `runtime-fixture`、`music-fixture`、`settings-fixture` 与 `ui-fixture` 仅用于验证宿主契约，不作为发布插件。
 
 设置 → 插件与适配器共用“已安装／安装”标签页布局。已安装页默认显示全部插件，支持按名称、ID 或描述搜索，并按已加载／未加载／加载异常筛选，不展示权限标签或权限筛选；启用前仍完整展示权限并确认授权。安装页提供商店、目录或 ZIP 安装，也可直接拖入 ZIP。功能插件 ZIP 根必须直接包含 `manifest.json`，复制到 `<app_data>/plugins/<id>/` 后运行；首次安装保持关闭，可在已安装页启用。管理支持重新发现、加载、卸载运行实例、重新加载、停用和删除；删除默认保留配置、独立存储和专属数据目录，主动关闭保留选项后才清理。
 
@@ -198,7 +182,7 @@ Host 自动观察新变化，不在启动时重放旧内容；插件可以显式
 
 通用 HTTP 复用独立连接池，当前支持 GET／HEAD、UTF-8 文本或仅响应头；每次请求最多 3 秒、响应头 4KiB、文本正文 8KiB、URL 2048 字节。宿主不附带网易云 Cookie，不自动跳转，不缓存响应；收到跳转后由插件决定是否继续请求，每次都校验授权域名、HTTP(S)、账号密码及默认端口。停用后取消正在等待的请求；接口上限仍受现有 IPC 总大小约束。
 
-网易云域名、歌曲 URL 格式和跳转规则全部在 `plugins/netease-island/backend/src/links.rs`。插件最多提取 4 个候选，优先直接歌曲链接；短链共享最多 3 次请求，每次 500 毫秒，以给后续 3 秒元数据查询留出 WASM 的 5 秒执行预算。每一步检查网易云域名，支持 HTTP redirect 和相对跳转，不执行网页脚本；选取首个可识别的歌曲。HTTP 和查询失败保留实例，等待后续复制。
+网易云域名、歌曲 URL 格式和跳转规则全部在独立 `netease-island` 仓库的 `backend/src/links.rs`。插件最多提取 4 个候选，优先直接歌曲链接；短链共享最多 3 次请求，每次 500 毫秒，以给后续 3 秒元数据查询留出 WASM 的 5 秒执行预算。每一步检查网易云域名，支持 HTTP redirect 和相对跳转，不执行网页脚本；选取首个可识别的歌曲。HTTP 和查询失败保留实例，等待后续复制。
 
 Guest 查询歌曲失败时不产生预览，保留实例以等待后续复制。成功时发出包含结构化艺术家信息的 Song DTO；React 插件绘制封面、标题、可点击歌手、关闭与操作区域。新歌曲替换旧预览；同歌曲 30 秒内去重；8 秒后收起，鼠标悬停或键盘聚焦暂停倒计时，Escape／关闭按钮可收起。1.1.0 新增 player:control 权限，立即播放替换队列，下一首播放使用既有 PlayNext 命令；收藏复用宿主账号与写入缓存失效规则，成功与失败均提供反馈。切换歌曲时重建操作状态，旧请求不覆盖新提示。已安装的 1.0.0 需重新安装新版并确认新增权限。
 
@@ -284,7 +268,6 @@ await windows.update('floating', { ignoreCursorEvents: true })
 
 ```powershell
 cd app
-pnpm plugins:build
 pnpm plugins:fixtures
 pnpm test
 pnpm build
@@ -300,7 +283,7 @@ cd ..
 ./scripts/probe-plugins.ps1
 ```
 
-该脚本在独立的 `target/plugin-probe` 目录构建，隐藏窗口，使用独立临时插件数据库和空队列，读取现有网易云服务，自动验证 ESM 协议、React singleton、灵动岛、权限、停用及临时页面／导航。输入为合成剪贴板文本，不覆盖用户剪贴板；操作系统真实复制通知仍需手动验收。结束时清理本次探测的临时数据。该 feature 专供探测，正常构建不启用它。
+该脚本在独立的 `target/plugin-probe` 目录构建，隐藏窗口，使用独立临时插件数据库和空队列，自动验证页面安装与导航、升级回滚、配置、文件操作、卸载及独立窗口。灵动岛链接识别与界面行为在其独立仓库验证；操作系统真实复制通知仍需手动验收。结束时清理本次探测的临时数据。该 feature 专供探测，正常构建不启用它。
 
 本机 Windows x64、Rust 1.95 的检查结果记录在 `docs/implementation.md`。开发构建体积和单次端到端时间不能代表 Release 内存／响应预算；没有据此宣称插件平台“极轻”或“极快”。
 配置编辑页面、配置 API 和目录授权见 [插件配置开发](plugin-configuration.md)。
@@ -375,6 +358,6 @@ function SearchButton() {
 
 EntityRef 使用 `{source,kind,id}`，ID 为不透明字符串；调用 getTrack 时传完整引用。分页结果 nextCursor 原样回传，不能从它推导 offset；变更查询、账号、实例或写入后从首页重新读取。业务结果为 `{type,data}`，错误为稳定 MusicError。插件响应仍受既有 64KiB host.call 上限限制，大页或很大的喜欢列表可能无法交付；不要把管理器 2MiB 上限当作插件单次返回预算，在支持可变页数的操作中降低 limit；内置网易云分类搜索、歌手专辑、收藏列表和推荐歌单当前要求 limit=30，超出插件返回预算时不能靠截断结果隐藏错误。普通插件不能调用账号管理或取得临时播放 URL、请求头和原始凭据。
 
-插件 API / UI API 2.0.0 使用统一来源引用、曲目 DTO 和播放接口。上述旧数字歌曲接口与平台账号接口已删除。内置灵动岛保留其网易云链接识别业务，但通过 `music.read-track` 与 `music.play-track` 访问音乐服务；专用下载插件通过显式通用凭据权限读取分块，在插件内部解释 Cookie 并执行 EAPI。
+插件 API / UI API 2.0.0 使用统一来源引用、曲目 DTO 和播放接口。上述旧数字歌曲接口与平台账号接口已删除。灵动岛插件保留其网易云链接识别业务，但通过 `music.read-track` 与 `music.play-track` 访问音乐服务；专用下载插件通过显式通用凭据权限读取分块，在插件内部解释 Cookie 并执行 EAPI。
 
 这组能力是功能插件消费宿主的客户端接口。阶段四外部测试 ABI 的方法、范围与执行预算见 [阶段四记录](music-adapters.md#阶段四修改记录与注意事项2026-10-10)；桌面端本地包安装已接线，完整外部登录展示和真实平台验证仍待补齐。通用客户端的修改和兼容注意事项见 [阶段三记录](music-adapters.md#阶段三修改记录与注意事项2026-10-10)。

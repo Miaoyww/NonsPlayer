@@ -1,0 +1,16 @@
+{
+  "id": "ui-fixture",
+  "name": "SDK UI Fixture",
+  "description": "Exercises the public plugin UI and authorization contracts.",
+  "repository": "https://example.org/plugins/ui-fixture",
+  "version": "1.0.0",
+  "frontend": "ui.mjs",
+  "permissions": ["ui", "http:request", "player:control", "storage"],
+  "httpHosts": ["example.org"],
+  "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" },
+  "contributes": {
+    "views": [{ "id": "preview", "slot": "main.overlay", "export": "Preview" }],
+    "pages": [],
+    "navigation": []
+  }
+}

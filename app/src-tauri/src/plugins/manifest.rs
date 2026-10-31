@@ -431,10 +431,9 @@ mod tests {
     use super::*;
     #[test]
     fn windows_require_explicit_permission_and_authorization_covers_exports() {
-        let mut manifest: Manifest = serde_json::from_str(include_str!(
-            "../../../../plugins/netease-island/manifest.json"
-        ))
-        .unwrap();
+        let mut manifest: Manifest =
+            serde_json::from_str(include_str!("../../../../plugins/ui-fixture/manifest.json"))
+                .unwrap();
         let old = manifest.authorization();
         manifest.contributes.windows.push(PluginWindow {
             id: "desktop-lyrics".into(),
@@ -530,10 +529,9 @@ mod tests {
     }
     #[test]
     fn validates_optional_metadata_and_preserves_authorization() {
-        let value: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../../plugins/netease-island/manifest.json"
-        ))
-        .unwrap();
+        let value: serde_json::Value =
+            serde_json::from_str(include_str!("../../../../plugins/ui-fixture/manifest.json"))
+                .unwrap();
         let valid: Manifest = serde_json::from_value(value.clone()).unwrap();
         assert!(valid.validate().is_ok());
         let roundtrip = serde_json::to_value(&valid).unwrap();
@@ -591,10 +589,9 @@ mod tests {
     }
     #[test]
     fn manifest_checks_compatibility_permissions_and_contribution_references() {
-        let value: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../../plugins/netease-island/manifest.json"
-        ))
-        .unwrap();
+        let value: serde_json::Value =
+            serde_json::from_str(include_str!("../../../../plugins/ui-fixture/manifest.json"))
+                .unwrap();
         let valid: Manifest = serde_json::from_value(value.clone()).unwrap();
         assert!(valid.validate().is_ok());
         for hosts in [
