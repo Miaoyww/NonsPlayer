@@ -1,0 +1,324 @@
+.welcome-page {
+  background:
+    radial-gradient(
+      circle at 8% 8%,
+      color-mix(in oklch, var(--music-accent) 16%, transparent),
+      transparent 28rem
+    ),
+    radial-gradient(
+      circle at 92% 88%,
+      color-mix(in oklch, var(--primary) 10%, transparent),
+      transparent 30rem
+    ),
+    var(--background);
+}
+
+.welcome-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.welcome-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 8px 0 48px;
+}
+
+.welcome-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in oklch, var(--music-accent) 35%, var(--border));
+  border-radius: 16px;
+  color: var(--music-accent);
+  background: color-mix(in oklch, var(--music-accent) 10%, var(--card));
+  box-shadow: 0 12px 32px color-mix(in oklch, var(--music-accent) 14%, transparent);
+}
+
+.welcome-mark svg {
+  width: 22px;
+  height: 22px;
+}
+
+.welcome-eyebrow,
+.welcome-section-kicker {
+  color: var(--music-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.welcome-hero h1 {
+  margin-top: 8px;
+  font-size: clamp(30px, 5vw, 54px);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.welcome-hero p:not(.welcome-eyebrow) {
+  max-width: 620px;
+  margin-top: 16px;
+  color: var(--muted-foreground);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.welcome-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 9px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.welcome-count span:first-child {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.welcome-count-line {
+  width: 34px;
+  height: 1px;
+  background: var(--border);
+}
+
+.welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.welcome-section {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid color-mix(in oklch, var(--border) 78%, transparent);
+  border-radius: 24px;
+  background: color-mix(in oklch, var(--card) 72%, transparent);
+  box-shadow: 0 20px 60px color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.welcome-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+}
+
+.welcome-section-heading > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: var(--music-accent);
+}
+
+.welcome-section h2 {
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.welcome-section-heading p:last-child {
+  margin-top: 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.welcome-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.welcome-option {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--background) 58%, transparent);
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+button.welcome-option {
+  cursor: pointer;
+}
+
+button.welcome-option:hover:not(:disabled) {
+  border-color: color-mix(in oklch, var(--music-accent) 55%, var(--border));
+  background: color-mix(in oklch, var(--music-accent) 6%, var(--background));
+  transform: translateY(-1px);
+}
+
+.welcome-option:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.welcome-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.welcome-option-selected {
+  border-color: color-mix(in oklch, var(--music-accent) 62%, var(--border));
+  background: color-mix(in oklch, var(--music-accent) 8%, var(--background));
+}
+
+.welcome-option-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--music-accent);
+  background: color-mix(in oklch, var(--music-accent) 12%, var(--muted));
+}
+
+.welcome-option-icon svg,
+.welcome-option-arrow {
+  width: 17px;
+  height: 17px;
+}
+
+.welcome-option-arrow {
+  flex: 0 0 auto;
+  margin-top: 8px;
+  color: var(--muted-foreground);
+}
+
+.welcome-status,
+.welcome-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.welcome-status {
+  color: var(--music-accent);
+  background: color-mix(in oklch, var(--music-accent) 12%, transparent);
+}
+
+.welcome-status-error {
+  color: var(--destructive);
+  background: color-mix(in oklch, var(--destructive) 10%, transparent);
+}
+
+.welcome-chip {
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+
+.welcome-plugin > [data-slot='switch'] {
+  margin-top: 8px;
+}
+
+.welcome-review {
+  margin-top: 14px;
+  padding: 13px;
+  border-radius: 13px;
+  background: color-mix(in oklch, var(--muted) 65%, transparent);
+}
+
+.welcome-empty {
+  display: flex;
+  min-height: 110px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  text-align: center;
+}
+
+.welcome-empty svg {
+  width: 18px;
+  height: 18px;
+}
+
+.welcome-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--music-accent);
+  box-shadow: 0 0 0 6px color-mix(in oklch, var(--music-accent) 14%, transparent);
+  animation: welcome-pulse 1.4s ease-in-out infinite;
+}
+
+.welcome-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 26px 2px 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+@keyframes welcome-pulse {
+  50% {
+    opacity: 0.45;
+    transform: scale(0.75);
+  }
+}
+
+@media (max-width: 760px) {
+  .welcome-hero {
+    padding-bottom: 32px;
+  }
+
+  .welcome-count {
+    display: none;
+  }
+
+  .welcome-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .welcome-section {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .welcome-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-option {
+    transition: none;
+  }
+
+  .welcome-pulse {
+    animation: none;
+  }
+}

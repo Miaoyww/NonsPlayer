@@ -37,7 +37,7 @@ NonsPlayer的诞生离不开以下优秀产品的启发：
 ## 开源许可与隐私
 
 Copyright Miaoyww 2026.
-    
+
 Distributed under the terms of the [GPL-3.0 license](https://github.com/Miaoyww/Nons/blob/main/LICENSE).
 
 匿名使用统计的采集字段、数据用途和关闭方式见 [隐私政策（Privacy Policy）](PRIVACY.md)。
@@ -49,5 +49,3 @@ Distributed under the terms of the [GPL-3.0 license](https://github.com/Miaoyww/
 <img src="docs/sponsor.png" alt="赞助" width="800">
 
 </div>
-
-

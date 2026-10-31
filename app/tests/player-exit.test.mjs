@@ -36,9 +36,10 @@ function find(node, type) {
   }
 }
 function harness(initialMode = 'collapsible', storage) {
-  let phase
+  const states = []
+  let hookIndex = 0
   let barMode = initialMode
-  const App = load(
+  const AppRoot = load(
     '../src/App.tsx',
     {
       '@/features/aggregate/aggregate-library': {
@@ -50,11 +51,12 @@ function harness(initialMode = 'collapsible', storage) {
       '@/lib/platform': { isAndroid: () => false },
       react: {
         useState(initial) {
-          phase ??= typeof initial === 'function' ? initial() : initial
+          const index = hookIndex++
+          states[index] ??= typeof initial === 'function' ? initial() : initial
           return [
-            phase,
+            states[index],
             (next) => {
-              phase = typeof next === 'function' ? next(phase) : next
+              states[index] = typeof next === 'function' ? next(states[index]) : next
             }
           ]
         },
@@ -63,6 +65,11 @@ function harness(initialMode = 'collapsible', storage) {
       'motion/react': { MotionConfig: 'MotionConfig' },
       '@/features/workspace/titlebar': { Titlebar: 'Titlebar' },
       '@/features/workspace/music-workspace': { MusicWorkspace: 'MusicWorkspace' },
+      '@/features/onboarding/welcome-page': { WelcomePage: 'WelcomePage' },
+      '@/features/onboarding/welcome-state': {
+        hasCompletedWelcome: () => true,
+        openWelcomeEvent: 'nons-open-welcome'
+      },
       '@/features/playback/music-options': { MusicOptionsProvider: 'MusicOptionsProvider' },
       '@/features/workspace/music-navigation': {
         MusicNavigationProvider: 'MusicNavigationProvider'
@@ -72,6 +79,10 @@ function harness(initialMode = 'collapsible', storage) {
     },
     storage
   ).default
+  const App = () => {
+    hookIndex = 0
+    return AppRoot()
+  }
   const MusicWorkspace = load('../src/features/workspace/music-workspace.tsx', {
     '@/features/aggregate/aggregate-page': {
       __esModule: true,

@@ -5,6 +5,9 @@ import { TelemetrySwitch } from '../telemetry-switch'
 import { SettingsCard } from '../settings-card'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useTrackDoubleClickSettings } from '@/features/playback/use-track-double-click'
+import { Button } from '@/components/ui/button'
+import { RotateCcw } from 'lucide-react'
+import { reopenWelcome } from '@/features/onboarding/welcome-state'
 
 export function GeneralPage() {
   const [doubleClick, updateDoubleClick] = useTrackDoubleClickSettings()
@@ -66,6 +69,21 @@ export function GeneralPage() {
           <AutostartSwitch />
         </section>
       )}
+      <section aria-labelledby="general-welcome-heading" className="flex flex-col gap-8">
+        <h3 id="general-welcome-heading" className="text-base font-semibold">
+          引导
+        </h3>
+        <SettingsCard
+          searchId="welcome-page"
+          title="欢迎页"
+          description="重新选择音乐适配器和插件。打开后会暂时离开当前工作区，完成或跳过后返回。"
+        >
+          <Button variant="outline" onClick={reopenWelcome}>
+            <RotateCcw aria-hidden="true" />
+            重新打开
+          </Button>
+        </SettingsCard>
+      </section>
       <section aria-labelledby="general-privacy-heading" className="flex flex-col gap-8">
         <h3 id="general-privacy-heading" className="text-base font-semibold">
           隐私与统计

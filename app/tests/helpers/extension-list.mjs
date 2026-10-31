@@ -16,8 +16,15 @@ export function loadExtensionList(modules) {
     {
       exports,
       require: (name) =>
-        name === '@/components/animate-ui/components/base/tabs'
-          ? { Tabs: Tabs.Root, TabsList: Tabs.List, TabsTab: Tabs.Tab, TabsPanel: Tabs.Panel }
+        name === '@/components/ui/tabs' || name === '@/components/animate-ui/components/base/tabs'
+          ? {
+              Tabs: Tabs.Root,
+              TabsList: Tabs.List,
+              TabsTrigger: Tabs.Tab,
+              TabsContent: Tabs.Panel,
+              TabsTab: Tabs.Tab,
+              TabsPanel: Tabs.Panel
+            }
           : modules[name]
     }
   )
