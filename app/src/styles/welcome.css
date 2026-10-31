@@ -1,11 +1,11 @@
 .welcome-page {
   box-sizing: border-box;
   flex: 1 1 auto;
-  height: calc(100dvh - 48px);
+  height: 100dvh;
   min-height: 0;
   margin-top: 0;
   overflow: hidden;
-  padding: clamp(16px, 3vh, 32px) clamp(24px, 8vw, 160px) 16px;
+  padding: calc(48px + clamp(16px, 3vh, 32px)) clamp(24px, 8vw, 160px) 16px;
   background:
     radial-gradient(
       circle at 8% 8%,
@@ -25,7 +25,8 @@
 }
 
 .welcome-titlebar {
-  position: relative;
+  position: absolute;
+  inset: 0 0 auto;
   z-index: 10;
   display: flex;
   height: 48px;
