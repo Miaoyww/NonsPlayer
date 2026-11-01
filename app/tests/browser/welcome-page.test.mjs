@@ -40,6 +40,17 @@ test('welcome adapter and plugin lists scroll to their last entry while navigati
     const introBounds = await intro.boundingBox()
     assert.ok(introBounds.y >= 0 && introBounds.y + introBounds.height <= viewport.height)
     await page.getByRole('button', { name: '开始设置', exact: true }).click()
+    await page.getByRole('heading', { name: '隐私协议' }).waitFor()
+    await page.locator('.privacy-policy table').waitFor()
+    const next = page.getByRole('button', { name: '下一步', exact: true })
+    assert.equal(await next.isDisabled(), true)
+    assert.equal(
+      await page.getByRole('button', { name: '跳过引导', exact: true }).isDisabled(),
+      true
+    )
+    await page.getByRole('checkbox', { name: '我已阅读并同意《隐私协议》' }).check()
+    assert.equal(await next.isDisabled(), false)
+    await next.click()
     for (const [noun, name] of [
       ['适配器', '音乐来源'],
       ['插件', '音乐工具']

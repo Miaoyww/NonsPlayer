@@ -1,0 +1,118 @@
+.welcome-privacy {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.welcome-privacy-document {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 10px;
+  scrollbar-width: thin;
+}
+
+.welcome-privacy-consent {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: 8px;
+  border-top: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  padding-top: 14px;
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.privacy-policy {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.privacy-policy > :first-child {
+  margin-top: 0;
+}
+
+.privacy-policy > :last-child {
+  margin-bottom: 0;
+}
+
+.privacy-policy :is(h1, h2, h3, h4, h5, h6) {
+  margin-block: 1.5em 0.6em;
+  color: var(--foreground);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.privacy-policy h1 {
+  font-size: 1.5em;
+}
+
+.privacy-policy h2 {
+  font-size: 1.25em;
+}
+
+.privacy-policy h3 {
+  font-size: 1.1em;
+}
+
+.privacy-policy :is(p, ul, ol, blockquote, pre, table) {
+  margin-block: 0.85em;
+}
+
+.privacy-policy :is(ul, ol) {
+  padding-left: 1.5em;
+}
+
+.privacy-policy ul {
+  list-style: disc;
+}
+
+.privacy-policy ol {
+  list-style: decimal;
+}
+
+.privacy-policy li + li {
+  margin-top: 0.4em;
+}
+
+.privacy-policy strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.privacy-policy a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.privacy-policy code {
+  border-radius: 0.25rem;
+  background: var(--muted);
+  padding: 0.15em 0.35em;
+  font-size: 0.9em;
+}
+
+.privacy-policy table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.privacy-policy :is(th, td) {
+  border: 1px solid var(--border);
+  padding: 0.5em 0.75em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.privacy-policy th {
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 600;
+}

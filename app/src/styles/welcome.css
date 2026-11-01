@@ -144,6 +144,12 @@
   justify-content: center;
 }
 
+.welcome-step-content.is-privacy {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .welcome-intro {
   display: flex;
   flex-direction: column;

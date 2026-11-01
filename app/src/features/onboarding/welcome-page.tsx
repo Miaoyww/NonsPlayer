@@ -9,9 +9,10 @@ import {
   type StoreEntry
 } from '@/features/settings/extensions/extension-store-state'
 import { useTheme } from '@/features/settings/use-theme'
+import { PrivacyPolicyStep } from './privacy-policy'
 import { markWelcomeCompleted } from './welcome-state'
 
-type WelcomeStep = 'welcome' | 'adapters' | 'plugins' | 'personalization'
+type WelcomeStep = 'welcome' | 'privacy' | 'adapters' | 'plugins' | 'personalization'
 
 function uninstalledEntry(entry: StoreEntry) {
   return !entry.installedVersion && !entry.bundled && !unavailableReason(entry)
@@ -29,20 +30,26 @@ const steps: {
     description: '几步完成初始设置，之后随时可以在设置中调整。'
   },
   {
+    id: 'privacy',
+    eyebrow: 'STEP 02 / PRIVACY',
+    title: '隐私协议',
+    description: '请阅读以下隐私政策，勾选同意后继续。'
+  },
+  {
     id: 'adapters',
-    eyebrow: 'STEP 02 / MUSIC SOURCES',
+    eyebrow: 'STEP 03 / MUSIC SOURCES',
     title: '安装你的音乐适配器',
     description: '从适配器商店选择音乐来源。安装前会显示包的权限和信任信息。'
   },
   {
     id: 'plugins',
-    eyebrow: 'STEP 03 / EXTENSIONS',
+    eyebrow: 'STEP 04 / EXTENSIONS',
     title: '挑选需要的插件',
     description: '插件可以扩展播放器的工作方式。你可以安装多个插件，之后也能在设置中管理。'
   },
   {
     id: 'personalization',
-    eyebrow: 'STEP 04 / PERSONALIZATION',
+    eyebrow: 'STEP 05 / PERSONALIZATION',
     title: '调整成你的样子',
     description: '设置主题、字体、播放栏和界面密度，所有选择都会立即保存。'
   }
@@ -51,16 +58,23 @@ const steps: {
 export function WelcomePage({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState<WelcomeStep>('welcome')
   const [storeBusy, setStoreBusy] = useState(false)
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [theme, setTheme] = useTheme()
 
   const currentIndex = steps.findIndex((item) => item.id === step)
   const current = steps[currentIndex]
   const intro = step === 'welcome'
+  // The privacy step gates every way forward until its consent box is checked.
+  const privacyIndex = steps.findIndex((item) => item.id === 'privacy')
+  const canVisit = (index: number) => privacyAccepted || index <= privacyIndex
+  const canAdvance = canVisit(currentIndex + 1)
+  const forwardLocked = !canAdvance
   const complete = () => {
     markWelcomeCompleted()
     onComplete()
   }
   const next = () => {
+    if (!canAdvance) return
     if (currentIndex === steps.length - 1) complete()
     else setStep(steps[currentIndex + 1].id)
   }
@@ -81,7 +95,7 @@ export function WelcomePage({ onComplete }: { onComplete: () => void }) {
                 className={`welcome-step ${active ? 'is-active' : ''}`}
                 aria-label={`第 ${index + 1} 步：${item.title}`}
                 aria-current={active ? 'step' : undefined}
-                disabled={storeBusy}
+                disabled={storeBusy || !canVisit(index)}
                 onClick={() => setStep(item.id)}
               >
                 <span className="welcome-step-marker" />
@@ -104,7 +118,7 @@ export function WelcomePage({ onComplete }: { onComplete: () => void }) {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={step}
-              className={`welcome-step-content ${intro ? 'is-intro' : ''}`}
+              className={`welcome-step-content ${intro ? 'is-intro' : ''} ${step === 'privacy' ? 'is-privacy' : ''}`}
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -12 }}
@@ -119,6 +133,11 @@ export function WelcomePage({ onComplete }: { onComplete: () => void }) {
                     开始设置
                   </Button>
                 </div>
+              ) : step === 'privacy' ? (
+                <PrivacyPolicyStep
+                  accepted={privacyAccepted}
+                  onAcceptedChange={setPrivacyAccepted}
+                />
               ) : step === 'adapters' ? (
                 <ExtensionStore
                   kind="adapter"
@@ -144,14 +163,18 @@ export function WelcomePage({ onComplete }: { onComplete: () => void }) {
 
         {intro ? null : (
           <footer className="welcome-footer">
-            <Button variant="ghost" disabled={storeBusy} onClick={complete}>
+            <Button variant="ghost" disabled={storeBusy || !privacyAccepted} onClick={complete}>
               跳过引导
             </Button>
             <div className="flex items-center gap-2">
               <Button variant="ghost" disabled={storeBusy} onClick={previous}>
                 上一步
               </Button>
-              <Button className="gap-2 rounded-full px-5" disabled={storeBusy} onClick={next}>
+              <Button
+                className="gap-2 rounded-full px-5"
+                disabled={storeBusy || forwardLocked}
+                onClick={next}
+              >
                 {currentIndex === steps.length - 1 ? '完成设置' : '下一步'}
               </Button>
             </div>

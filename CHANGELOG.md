@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 欢迎页在介绍页后新增隐私协议步骤，用 Markdown 展示完整隐私政策；勾选「我已阅读并同意《隐私协议》」前无法继续或跳过引导。
+
 ## [1.9.2] - 2026-11-01
 
 ![NonsPlayer v1.9.2 歌词缓存与体验优化头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.9.2/docs/release-assets/header.png)
