@@ -37,17 +37,67 @@ const LYRIC_ENDPOINTS: LyricEndpoints<'static> = LyricEndpoints {
     lrc: "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg",
 };
 
+const SEARCH_URL: &str = "https://u.y.qq.com/cgi-bin/musicu.fcg";
+
+/// QQ 用子请求 `code=2001` 表示搜索限流；其他业务错误仍按普通失败处理。
+#[derive(Debug)]
+struct RateLimited;
+
+impl std::fmt::Display for RateLimited {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("QQ 搜索被限流")
+    }
+}
+
+impl std::error::Error for RateLimited {}
+
+fn search_payload(query: &str, num_per_page: u32) -> Value {
+    json!({
+        "comm": {
+            "ct": 11,
+            "cv": "1003006",
+            "v": "1003006",
+            "tmeAppID": "qqmusiclight",
+            "uid": "0",
+            "udid": "0"
+        },
+        "request": {
+            "method": "DoSearchForQQMusicLite",
+            "module": "music.search.SearchCgiService",
+            "param": {
+                "query": query,
+                "search_type": 0,
+                "num_per_page": num_per_page,
+                "page_num": 1,
+                "highlight": 0,
+                "nqc_flag": 0,
+                "page_id": 1,
+                "grp": 1,
+                "remoteplace": "search.android.keyboard",
+                "search_id": "12345678901234"
+            }
+        }
+    })
+}
+
+fn search_request(
+    client: &reqwest::Client,
+    query: &str,
+    num_per_page: u32,
+) -> reqwest::RequestBuilder {
+    client
+        .post(SEARCH_URL)
+        .header("Referer", "https://c.y.qq.com/")
+        .json(&search_payload(query, num_per_page))
+}
+
 pub const MINIMUM_SCORE: u32 = crate::lyric_matching::PREFERRED_MINIMUM_SCORE;
 
 pub(super) async fn search_manual(
     client: &reqwest::Client,
     query: &str,
 ) -> AppResult<Vec<super::correction::Candidate>> {
-    let request = client.post("https://u.y.qq.com/cgi-bin/musicu.fcg")
-        .header("Referer", "https://c.y.qq.com/")
-        .json(&json!({"req_1": {"method": "DoSearchForQQMusicDesktop", "module": "music.search.SearchCgiService",
-            "param": {"num_per_page": "20", "page_num": "1", "query": query, "search_type": 0}}}));
-    let matches = read_json(request)
+    let matches = read_json(search_request(client, query, 20))
         .await
         .and_then(candidates)
         .map_err(|error| report_request_error("lyrics.qq.search.manual", error))?;
@@ -138,19 +188,24 @@ async fn lookup_inner(
     }
     let mut best: Option<(Candidate, u32)> = None;
     let mut failed = false;
+    let mut limited = false;
     for query in queries(track, separators) {
-        let request = client.post("https://u.y.qq.com/cgi-bin/musicu.fcg")
-            .header("Referer", "https://c.y.qq.com/")
-            .json(&json!({"req_1": {"method": "DoSearchForQQMusicDesktop", "module": "music.search.SearchCgiService",
-                "param": {"num_per_page": "20", "page_num": "1", "query": query, "search_type": 0}}}));
-        let response = match read_json(request).await.and_then(candidates) {
+        let response = match read_json(search_request(client, &query, 20))
+            .await
+            .and_then(candidates)
+        {
             Ok(value) => value,
             Err(error) => {
+                let rate_limited = error.downcast_ref::<RateLimited>().is_some();
                 crate::infrastructure::diagnostics::report_error(
                     "lyrics.qq.search.request",
                     &error,
                 );
                 failed = true;
+                if rate_limited {
+                    limited = true;
+                    break;
+                }
                 continue;
             }
         };
@@ -175,7 +230,9 @@ async fn lookup_inner(
         }
     }
     let Some((candidate, score)) = select_candidate(best) else {
-        return if failed {
+        return if limited {
+            Err("QQ 搜索被限流".into())
+        } else if failed {
             Err("QQ 歌曲搜索失败".into())
         } else {
             Ok(None)
@@ -442,21 +499,25 @@ async fn read_text(request: reqwest::RequestBuilder) -> Result<String> {
 }
 
 fn candidates(value: Value) -> Result<Vec<Candidate>> {
-    if value["code"].as_i64() != Some(0) || value["req_1"]["code"].as_i64() != Some(0) {
-        let code = value["code"]
-            .as_i64()
-            .map_or_else(|| "missing_or_invalid".to_owned(), |code| code.to_string());
-        let request_code = value["req_1"]["code"]
-            .as_i64()
-            .map_or_else(|| "missing_or_invalid".to_owned(), |code| code.to_string());
+    let code = value["code"].as_i64();
+    let request_code = value["request"]["code"].as_i64();
+    if code != Some(0) || request_code != Some(0) {
+        let code = code.map_or_else(|| "missing_or_invalid".to_owned(), |code| code.to_string());
+        let request_code =
+            request_code.map_or_else(|| "missing_or_invalid".to_owned(), |code| code.to_string());
+        if request_code == "2001" {
+            return Err(anyhow::Error::new(RateLimited).context(format!(
+                "QQ 搜索被限流 stage=response_code code={code} request_code={request_code}"
+            )));
+        }
         anyhow::bail!(
             "QQ 搜索返回错误 stage=response_code code={code} request_code={request_code}"
         );
     }
     let list = value
-        .pointer("/req_1/data/body/song/list")
+        .pointer("/request/data/body/item_song")
         .and_then(Value::as_array)
-        .context("QQ 搜索响应无效 stage=song_list")?;
+        .context("QQ 搜索响应无效 stage=item_song")?;
     let mut result = Vec::new();
     for track in list.iter().take(20) {
         for entry in
@@ -837,8 +898,45 @@ mod tests {
     fn search_keeps_versions_and_includes_grouped_candidates() {
         assert_eq!(without_translation("Hello（你好）"), "Hello");
         assert_eq!(without_translation("Hello（现场版）"), "Hello（现场版）");
-        let result = candidates(json!({"code":0,"req_1":{"code":0,"data":{"body":{"song":{"list":[{"mid":"a","title":"晴天","grp":[{"mid":"b","title":"晴天"}]}]}}}}})).unwrap();
+        let result = candidates(
+            json!({"code":0,"request":{"code":0,"data":{"body":{"item_song":[{
+                "id":97773,"mid":"a","title":"晴天","interval":269,
+                "singer":[{"name":"周杰伦"}],"album":{"title":"叶惠美"},
+                "grp":[{"mid":"b","title":"晴天"}]
+            }]}}}}),
+        )
+        .unwrap();
         assert_eq!(result.len(), 2);
+        assert_eq!(result[0].id, Some(97773));
+        assert_eq!(result[0].artists, ["周杰伦"]);
+        assert_eq!(result[0].album, "叶惠美");
+        assert_eq!(result[0].duration, 269.0);
+    }
+    #[test]
+    fn lite_search_payload_targets_the_qq_search_service() {
+        let payload = search_payload("晴天 周杰伦", 20);
+        assert_eq!(payload["comm"]["tmeAppID"], "qqmusiclight");
+        assert_eq!(payload["request"]["method"], "DoSearchForQQMusicLite");
+        assert_eq!(
+            payload["request"]["module"],
+            "music.search.SearchCgiService"
+        );
+        assert_eq!(payload["request"]["param"]["query"], "晴天 周杰伦");
+        assert_eq!(payload["request"]["param"]["search_type"], 0);
+        assert_eq!(payload["request"]["param"]["num_per_page"], 20);
+    }
+    #[test]
+    fn rate_limited_search_is_reported_once_without_response_payloads() {
+        let error = candidates(json!({
+            "code": 0,
+            "request": {"code": 2001, "message": "SECRET"}
+        }))
+        .unwrap_err();
+        assert!(error.downcast_ref::<RateLimited>().is_some());
+        let reason = format!("{error:#}");
+        assert!(reason.contains("QQ 搜索被限流"));
+        assert!(reason.contains("stage=response_code code=0 request_code=2001"));
+        assert!(!reason.contains("SECRET"));
     }
     #[test]
     fn bad_responses_are_errors_not_permanent_misses() {
@@ -860,7 +958,7 @@ mod tests {
     fn search_failure_preserves_numeric_response_codes_without_response_payloads() {
         let error = candidates(json!({
             "code": 1000,
-            "req_1": {"code": -101, "message": "SECRET"},
+            "request": {"code": -101, "message": "SECRET"},
             "credential": "SECRET"
         }))
         .unwrap_err();
@@ -868,8 +966,9 @@ mod tests {
         assert!(reason.contains("stage=response_code code=1000 request_code=-101"));
         assert!(!reason.contains("SECRET"));
 
-        let invalid = candidates(json!({"code":"SECRET", "req_1":{"code":{ "private":"SECRET" }}}))
-            .unwrap_err();
+        let invalid =
+            candidates(json!({"code":"SECRET", "request":{"code":{ "private":"SECRET" }}}))
+                .unwrap_err();
         assert!(invalid.to_string().contains("missing_or_invalid"));
         assert!(!invalid.to_string().contains("SECRET"));
 
