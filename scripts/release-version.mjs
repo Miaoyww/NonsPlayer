@@ -21,6 +21,7 @@ const PATHS = {
   editorHtml: 'docs/release-assets/editor.html'
 }
 const PROJECT_URL = 'https://raw.githubusercontent.com/Miaoyww/Nons'
+const DEFAULT_PLATFORM = 'Windows x64、Linux x64、Android ARM64'
 const MAX_LENGTH = { version: 12, subtitle: 28, platform: 48, releaseKind: 18 }
 
 const HELP = `用法：node scripts/release-version.mjs <版本号> [选项]
@@ -31,11 +32,11 @@ const HELP = `用法：node scripts/release-version.mjs <版本号> [选项]
 
 选项：
   --subtitle <文字>       头图副标题，最长 28 字
-  --platform <文字>       头图平台，最长 48 字
+  --platform <文字>       头图平台，最长 48 字；缺省为 Windows x64、Linux x64、Android ARM64
   --release-kind <文字>   头图发布类型，最长 18 字
   --intro <文字>          CHANGELOG 版本概述；省略时交互输入或使用建议文案
   --dry-run               只校验并生成临时预览，不修改仓库、不提交
-  --yes, -y               跳过确认；缺失项使用当前头图或建议值
+  --yes, -y               跳过确认；缺失项使用默认值或建议值
   --help, -h              显示本帮助
 
 互动的缺失项会逐项提示；--yes 适合完整参数的非交互运行。
@@ -457,7 +458,6 @@ async function main() {
   const current = {
     version: elementText(headerSvg, 'text', 'version'),
     subtitle: elementText(headerSvg, 'text', 'subtitle'),
-    platform: elementText(headerSvg, 'text', 'platform'),
     releaseKind: elementText(headerSvg, 'text', 'release-kind')
   }
 
@@ -488,7 +488,7 @@ async function main() {
     const platform = checkText(
       'platform',
       '平台',
-      options.platform ?? (await prompt('平台', current.platform))
+      options.platform ?? (await prompt('平台', DEFAULT_PLATFORM))
     )
     const releaseKind = checkText(
       'releaseKind',
