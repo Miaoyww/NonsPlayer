@@ -372,7 +372,7 @@
 }
 .playback-capsule .capsule-center > div:last-child {
   gap: 8px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .playback-capsule:is(
     [data-hover-expanded='true'],
