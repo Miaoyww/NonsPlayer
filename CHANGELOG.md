@@ -27,6 +27,16 @@
 - 桌面 FFmpeg 解码失败会写入本地诊断日志，便于根据播放提示排查音源问题。
 - 全局快捷键保存失败时先清除本应用残留的注册并自动重试一次，仍失败才提示组合键被其他程序占用。
 
+### 安装与使用提示
+
+- Windows x64 安装版可通过内置更新获取新版；便携版请完整解压 `Nons_1.9.2_windows_x64_portable.zip` 后运行 `Nons.exe`，并保留 `data/` 目录。系统需已有 Microsoft Edge WebView2 Runtime。
+- Linux x64 提供 AppImage 与 deb；Android 提供 ARM64 试用 APK。
+
+### 已知限制与发布验收
+
+- 本次未提供 macOS 构建；macOS 安装与基本播放尚未完成验收。Android 仍为 ARM64 试用版，正式移动端发布待后续完成。
+- Windows 安装升级、真实音频设备与账号操作，Linux 基本播放，以及 Android 通知、锁屏封面和后台播放仍需使用发布构建进行实机验收；自动化测试不替代这些验收。
+
 ## [1.9.1] - 2026-10-31
 
 ![NonsPlayer v1.9.1 插件与窗口体验更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.9.1/docs/release-assets/header.png)
