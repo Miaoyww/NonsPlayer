@@ -83,6 +83,43 @@ pub struct PluginManager {
     clipboard_sender: tokio::sync::watch::Sender<Option<ClipboardChange>>,
     lifecycle: tokio::sync::watch::Sender<()>,
 }
+
+fn refresh_bundled(root: &Path, source: &Path, id: &str) -> AppResult<()> {
+    let staging = root.join(format!(".bundled-{}", id));
+    let backup = root.join(format!(".bundled-previous-{}-{}", id, uuid::Uuid::new_v4()));
+    let destination = root.join(id);
+
+    if staging.exists() {
+        std::fs::remove_dir_all(&staging).map_err(|error| error.to_string())?;
+    }
+    install::install(source, &staging)?;
+
+    if destination.exists() {
+        std::fs::rename(&destination, &backup).map_err(|error| error.to_string())?;
+    }
+    if let Err(error) = std::fs::rename(&staging, &destination) {
+        let restore = if backup.exists() {
+            std::fs::rename(&backup, &destination)
+        } else {
+            Ok(())
+        };
+        return match restore {
+            Ok(()) => Err(format!("随包插件发布失败：{error}")),
+            Err(restore_error) => Err(format!(
+                "随包插件发布失败：{error}；原插件恢复失败：{restore_error}"
+            )),
+        };
+    }
+    if backup.exists() {
+        std::fs::remove_dir_all(&backup)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("plugins.bundled_backup_cleanup", error);
+            })
+            .ok();
+    }
+    Ok(())
+}
+
 impl PluginManager {
     pub(crate) fn shared_http(&self) -> Arc<crate::infrastructure::http::Http> {
         self.http.clone()
@@ -148,42 +185,9 @@ impl PluginManager {
                             continue;
                         }
                     };
-                    let destination = manager.root.join(&manifest.id);
-                    if destination.exists() {
-                        continue;
-                    }
-                    let staging = manager.root.join(format!(".bundled-{}", manifest.id));
-                    if staging.exists() {
-                        let _ = (std::fs::remove_dir_all(&staging)).inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn(
-                                "std::fs::remove_dir_all",
-                                error,
-                            );
-                        });
-                    }
-                    if install::install(&entry.path(), &staging)
-                        .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn(
-                                "plugins.bundled_install",
-                                error,
-                            )
-                        })
-                        .is_ok()
-                        && std::fs::rename(&staging, destination)
-                            .inspect_err(|error| {
-                                crate::infrastructure::diagnostics::warn(
-                                    "plugins.bundled_publish",
-                                    error,
-                                )
-                            })
-                            .is_err()
+                    if let Err(error) = refresh_bundled(&manager.root, &entry.path(), &manifest.id)
                     {
-                        let _ = (std::fs::remove_dir_all(&staging)).inspect_err(|error| {
-                            crate::infrastructure::diagnostics::warn(
-                                "std::fs::remove_dir_all",
-                                error,
-                            );
-                        });
+                        crate::infrastructure::diagnostics::warn("plugins.bundled_refresh", error);
                     }
                 }
             }
