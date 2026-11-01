@@ -48,6 +48,48 @@ test('aggregate changes invalidate only their member pages, including pending re
   assert.equal(await read('one'), 3)
 })
 
+test('aggregate playlist reload retries cache invalidation and keeps the retry bounded', async () => {
+  const { CacheInvalidatedError } = createRuntimeCache()
+  const aggregate = load('../src/features/aggregate/aggregate-library.tsx', {
+    react: {
+      createContext: () => ({ Provider: 'Provider' }),
+      useCallback: (callback) => callback,
+      useContext: () => undefined,
+      useEffect() {},
+      useRef: (current) => ({ current }),
+      useState: (value) => [value, () => {}]
+    },
+    '@tauri-apps/api/core': { isTauri: () => true },
+    '@tauri-apps/api/event': { listen: async () => () => {} },
+    '@/lib/player': { nativeCall: async () => undefined },
+    '@/lib/runtime-cache': {
+      CacheInvalidatedError,
+      invalidateNativeCache() {},
+      invalidateAggregateCache() {}
+    },
+    '@/features/music/client': { musicClient: { currentAccount: async () => undefined } },
+    'react/jsx-runtime': { jsx: () => null, jsxs: () => null, Fragment: 'Fragment' }
+  })
+  const refreshes = []
+  const result = await aggregate.readAggregatePlaylists(async (refresh) => {
+    refreshes.push(refresh)
+    if (refreshes.length === 1) throw new CacheInvalidatedError()
+    return []
+  })
+  assert.deepEqual(result, [])
+  assert.deepEqual(refreshes, [true, false])
+
+  refreshes.length = 0
+  await assert.rejects(
+    aggregate.readAggregatePlaylists(async (refresh) => {
+      refreshes.push(refresh)
+      throw new CacheInvalidatedError()
+    }),
+    { code: 'cacheInvalidated' }
+  )
+  assert.deepEqual(refreshes, [true, false, false])
+})
+
 function targetsHarness({ query, write, native, aggregate, current } = {}) {
   const account = { source: 'netease', id: '42' }
   const calls = []

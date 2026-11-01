@@ -10,7 +10,11 @@ import {
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { nativeCall, type Track } from '@/lib/player'
-import { invalidateNativeCache, invalidateAggregateCache } from '@/lib/runtime-cache'
+import {
+  CacheInvalidatedError,
+  invalidateNativeCache,
+  invalidateAggregateCache
+} from '@/lib/runtime-cache'
 import { musicClient } from '@/features/music/client'
 import type { AccountRef, EntityRef } from '@/features/music/types'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
@@ -45,6 +49,24 @@ export type AggregateWrite =
   | { operation: 'rename'; id: string; name: string }
   | { operation: 'delete' | 'unlink'; id: string }
   | { operation: 'add' | 'remove' | 'reorder'; id: string; keys: string[] }
+const AGGREGATE_RELOAD_ATTEMPTS = 3
+
+export async function readAggregatePlaylists(
+  read: (refresh: boolean) => Promise<AggregatePlaylist[]>,
+  isCurrent: () => boolean = () => true
+): Promise<AggregatePlaylist[] | undefined> {
+  for (let attempt = 0; attempt < AGGREGATE_RELOAD_ATTEMPTS; attempt++) {
+    if (!isCurrent()) return undefined
+    try {
+      return await read(attempt === 0)
+    } catch (cause) {
+      if (!(cause instanceof CacheInvalidatedError) || attempt === AGGREGATE_RELOAD_ATTEMPTS - 1)
+        throw cause
+    }
+  }
+  return undefined
+}
+
 const Context = createContext<{
   playlists: AggregatePlaylist[]
   accounts: Record<string, AccountRef | null>
@@ -61,8 +83,13 @@ export function AggregateLibraryProvider({ children }: { children: ReactNode }) 
   const reload = useCallback(async () => {
     if (!isTauri()) return
     const request = ++serial.current
+    setError(undefined)
     try {
-      const items = await nativeCall<AggregatePlaylist[]>('aggregate_playlists', { refresh: true })
+      const items = await readAggregatePlaylists(
+        (refresh) => nativeCall<AggregatePlaylist[]>('aggregate_playlists', { refresh }),
+        () => request === serial.current
+      )
+      if (!items || request !== serial.current) return
       const sources = [...new Set(items.flatMap((p) => (p.link ? [p.link.reference.source] : [])))]
       const selected = await Promise.all(
         sources.map(
