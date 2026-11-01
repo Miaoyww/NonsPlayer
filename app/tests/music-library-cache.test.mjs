@@ -190,6 +190,25 @@ test('runtime TTL is ten minutes, not extended by reads, and capacity evicts old
   assert.equal(tiny.peek('query:b'), undefined)
 })
 
+test('cover reads survive eviction while the cache reaches its entry limit', async () => {
+  const { cache, player, requests } = harness()
+  cache.coverCache = new cache.RuntimeCache(48 * 1024 * 1024, cache.RUNTIME_TTL, undefined, true)
+  const urls = Array.from({ length: 513 }, (_, index) => `https://p1.music.126.net/${index}.jpg`)
+  const waiting = player.nativeCall('runtime_cover', { url: urls[0] })
+  const pending = urls.slice(1).map((url) => player.nativeCall('runtime_cover', { url }))
+  await tick()
+  assert.equal(requests.length, urls.length)
+  requests.at(-1).resolve('C:/cache/last.jpg')
+  await pending.at(-1)
+  requests[0].resolve('C:/cache/waiting.jpg')
+  assert.equal(await waiting, 'asset://C:/cache/waiting.jpg')
+  assert.equal(
+    cache.coverCache.peek(`runtime_cover:${JSON.stringify({ url: urls[0] })}`),
+    undefined,
+    'an evicted in-flight cover must not refill the cache'
+  )
+})
+
 test('cover metadata TTL expiry retains the displayed asset URL and later reads resolve again', async () => {
   const { cache, player, requests } = harness()
   cache.coverCache = new cache.RuntimeCache(32 * 1024 * 1024, 15)

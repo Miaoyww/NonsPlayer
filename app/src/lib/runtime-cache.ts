@@ -34,15 +34,27 @@ export class RuntimeCache {
   constructor(
     maxBytes = 48 * 1024 * 1024,
     ttl = RUNTIME_TTL,
-    sizeOf: (value: unknown) => number = (value) => (JSON.stringify(value)?.length ?? 0) * 2
+    sizeOf: (value: unknown) => number = (value) => (JSON.stringify(value)?.length ?? 0) * 2,
+    surviveEviction = false
   ) {
     this.cache = new LRUCache<string, Entry, Loader>({
       max: 512,
       maxSize: maxBytes,
       ttl,
       sizeCalculation: (entry, key) => Math.max(1, sizeOf(entry.value) + key.length * 2),
+      ignoreFetchAbort: surviveEviction,
       fetchMethod: async (_key, _stale, { context, signal }) => {
-        signal.addEventListener('abort', context.invalidate, { once: true })
+        if (!surviveEviction) signal.addEventListener('abort', context.invalidate, { once: true })
+        else
+          signal.addEventListener(
+            'abort',
+            () => {
+              // Capacity eviction must not turn an already-started read into a failure.
+              if ((signal.reason as Error | undefined)?.message === 'evicted') return
+              context.invalidate()
+            },
+            { once: true }
+          )
         try {
           return { value: await context.load() }
         } finally {
@@ -177,11 +189,16 @@ export function invalidateAggregateCache(id?: string) {
 }
 
 export const requestCache = new RuntimeCache()
-export const coverCache = new RuntimeCache(48 * 1024 * 1024, RUNTIME_TTL, (value) => {
-  if (typeof value === 'string') return value.length * 2
-  const entry = value as { access: string; data: string }
-  return (entry.access.length + entry.data.length) * 2
-})
+export const coverCache = new RuntimeCache(
+  48 * 1024 * 1024,
+  RUNTIME_TTL,
+  (value) => {
+    if (typeof value === 'string') return value.length * 2
+    const entry = value as { access: string; data: string }
+    return (entry.access.length + entry.data.length) * 2
+  },
+  true
+)
 export const isOtherQueryCacheKey = (key: string) => !key.startsWith('track_lyrics:')
 export const cachedCommands = new Set([
   'extension_store_index',
