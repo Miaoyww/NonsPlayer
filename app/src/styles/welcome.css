@@ -139,21 +139,12 @@
 }
 
 .welcome-step-content > section {
-  height: 100%;
-  overflow: hidden;
   border: 0;
   padding: 0;
 }
 
 .welcome-step-content > section > div:first-child {
   display: none;
-}
-
-.welcome-step-content .extension-store-entries {
-  max-height: 100%;
-  overflow-y: auto;
-  padding-right: 4px;
-  scrollbar-width: thin;
 }
 
 .welcome-personalization {

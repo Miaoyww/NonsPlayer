@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 歌词与界面
+
+- 修复欢迎页适配器与插件列表底部被裁切的问题，支持滚动查看并安装末尾条目。
+
 ## [1.9.1] - 2026-10-31
 
 ![NonsPlayer v1.9.1 插件与窗口体验更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.9.1/docs/release-assets/header.png)
