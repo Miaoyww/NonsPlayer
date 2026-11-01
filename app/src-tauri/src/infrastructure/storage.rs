@@ -24,7 +24,7 @@ pub enum LyricCacheScope {
 impl LyricCacheScope {
     fn table(self) -> &'static str {
         match self {
-            Self::Persistent => "lyric_cache_v1",
+            Self::Persistent => "lyric_cache",
             Self::Session => "runtime_lyrics",
         }
     }
@@ -63,7 +63,7 @@ impl Store {
             CREATE TABLE IF NOT EXISTS local_file_stats (key TEXT PRIMARY KEY, modified TEXT NOT NULL, bytes INTEGER NOT NULL);
             PRAGMA temp_store=MEMORY;
             CREATE TEMP TABLE runtime_lyrics (key TEXT PRIMARY KEY, value TEXT, expires INTEGER NOT NULL, accessed INTEGER NOT NULL, bytes INTEGER NOT NULL);
-            CREATE TABLE IF NOT EXISTS lyric_cache_v1 (key TEXT PRIMARY KEY, value TEXT, expires INTEGER NOT NULL, accessed INTEGER NOT NULL, bytes INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS lyric_cache (key TEXT PRIMARY KEY, value TEXT, expires INTEGER NOT NULL, accessed INTEGER NOT NULL, bytes INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS playback_history (
                 instance_id TEXT PRIMARY KEY,
@@ -529,7 +529,7 @@ impl Store {
             })
             .map_err(|_| "歌词缓存锁不可用")?
             .query_row(
-                "SELECT COALESCE(SUM(bytes),0),COUNT(*) FROM lyric_cache_v1",
+                "SELECT COALESCE(SUM(bytes),0),COUNT(*) FROM lyric_cache",
                 [],
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )
