@@ -59,6 +59,7 @@ function harness(writeText = async () => {}) {
         }
       }
     },
+    '@/lib/platform': { isAndroid: () => false },
     '@tauri-apps/api/core': { isTauri: () => true },
     '@tauri-apps/plugin-clipboard-manager': {
       writeText: async (value) => {
