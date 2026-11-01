@@ -18,4 +18,6 @@
 
 排查时同时查看前端的 `command / source / operation / code / message / stage` 和相同时间的 `nons::music`、`nons::storage`、`nons_adapter_netease`、`nons::adapter` 日志。前端热更新不会更新 Rust 命令或文件日志配置，修改原生代码后需要重新启动开发应用。
 
+桌面 FFmpeg 解码线程遇到音频打开、解析、定位、解码或重采样失败时，会通过 `playback.decoder` 写入 Error 日志，同时保留原始错误用于播放反馈；主动停止引起的取消不作为解码错误记录。
+
 随包功能插件的前端使用相同的诊断队列；Backend 通过受实例代次和每秒 16 条预算约束的 `diagnostic.report` 记录恢复原因。插件短链跳过、下载解析和记录恢复失败会保留原因；后台任务的 JoinError、内置适配器的错误转译和 WASM 关闭失败也有对应操作日志。

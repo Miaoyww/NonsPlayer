@@ -35,6 +35,20 @@ impl Decoder {
             .spawn(move || {
                 if let Err(error) = decode(&resolved, &uri, &shared, start_ms, end_ms) {
                     if !shared.stop.load(Ordering::Acquire) {
+                        let source =
+                            crate::infrastructure::diagnostics::field(resolved.track.source_id());
+                        let track_id = match &resolved.track.source {
+                            crate::model::TrackSource::Online { track } => {
+                                crate::infrastructure::diagnostics::field(
+                                    track.reference.id.as_str(),
+                                )
+                            }
+                            crate::model::TrackSource::Local { .. } => "local".into(),
+                        };
+                        crate::infrastructure::diagnostics::warn(
+                            "playback.decoder",
+                            format_args!("source={source} track_id={track_id} {error}"),
+                        );
                         shared.fail(error);
                     }
                 }

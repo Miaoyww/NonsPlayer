@@ -73,6 +73,30 @@ fn decode_all(resolved: ResolvedTrack, rate: u32, channels: usize, position: u64
     samples
 }
 
+#[test]
+fn decoder_failure_is_preserved_for_playback_feedback() {
+    let mut file = tempfile::NamedTempFile::new().unwrap();
+    file.write_all(b"not an audio file").unwrap();
+    file.flush().unwrap();
+    let decoder = Decoder::spawn(resolved(Arc::new(file)), String::new(), 48000, 2, 0).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !decoder.buffer.done.load(Ordering::Acquire) && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(1));
+    }
+    assert!(
+        decoder.buffer.done.load(Ordering::Acquire),
+        "decoder stalled"
+    );
+    assert!(decoder.buffer.failed.load(Ordering::Acquire));
+    assert!(decoder
+        .buffer
+        .error
+        .lock()
+        .unwrap()
+        .as_deref()
+        .is_some_and(|error| error.contains("解析音频失败")));
+}
+
 fn voice(
     rate: u32,
     channels: usize,
