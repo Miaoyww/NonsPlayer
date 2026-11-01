@@ -35,10 +35,7 @@ export function ListeningStatisticsCard({ revision }: { revision?: string }) {
   if (!native) return null
 
   return (
-    <section className="library-stats" aria-labelledby="library-stats-heading">
-      <h2 className="library-stats-heading" id="library-stats-heading">
-        听歌统计
-      </h2>
+    <section className="library-stats" aria-label="听歌统计">
       {error && !stats ? (
         <p className="library-stats-note">暂时无法读取本机统计。</p>
       ) : (

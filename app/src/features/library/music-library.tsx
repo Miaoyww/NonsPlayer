@@ -404,18 +404,21 @@ export default function MusicLibrary({
       ) : (
         <>
           <header className="library-profile">
-            {profile?.avatarUrl ? (
-              <Cover
-                size="small"
-                cover={profile.avatarUrl}
-                className="library-avatar rounded-full"
-              />
-            ) : (
-              <UserRound className="library-avatar bg-muted p-2" aria-hidden="true" />
-            )}
-            <h1 className="library-heading">
-              {profile ? `${profile.nickname}的音乐库` : '我的音乐库'}
-            </h1>
+            <div className="library-profile-main">
+              {profile?.avatarUrl ? (
+                <Cover
+                  size="small"
+                  cover={profile.avatarUrl}
+                  className="library-avatar rounded-full"
+                />
+              ) : (
+                <UserRound className="library-avatar bg-muted p-2" aria-hidden="true" />
+              )}
+              <h1 className="library-heading">
+                {profile ? `${profile.nickname}的音乐库` : '我的音乐库'}
+              </h1>
+            </div>
+            <ListeningStatisticsCard revision={currentKey} />
           </header>
           {(accountLoading || accountError) && (
             <div
@@ -569,7 +572,6 @@ export default function MusicLibrary({
                 <p className="library-empty text-muted-foreground">喜欢的歌曲会出现在这里。</p>
               )}
             </div>
-            <ListeningStatisticsCard revision={currentKey} />
           </div>
           <div className="library-tabs-row">
             <div className="library-tabs" aria-label="音乐收藏分类">

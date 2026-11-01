@@ -1,6 +1,13 @@
 .library-profile {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.library-profile-main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
   gap: 12px;
 }
 .library-avatar {
@@ -19,32 +26,23 @@
 }
 .library-featured {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 5.5fr) minmax(210px, 2.3fr);
+  grid-template-columns: minmax(0, 3.5fr) minmax(0, 6.5fr);
   gap: 36px;
   margin-top: 32px;
 }
 .library-stats {
   display: flex;
   min-width: 0;
-  flex-direction: column;
-  gap: 14px;
-  padding: 20px 22px;
-  border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
-  border-radius: 16px;
-  background: color-mix(in oklch, var(--muted) 40%, transparent);
-}
-.library-stats-heading {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 24px;
+  padding-left: 24px;
+  border-left: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
 }
 .library-stats-list {
   display: flex;
   min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  justify-content: center;
-  gap: 14px;
+  gap: 24px;
 }
 .library-stats-list > div {
   display: flex;
@@ -57,15 +55,15 @@
   font-size: 12px;
 }
 .library-stats-list dd {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 .library-stats-note {
   color: var(--muted-foreground);
-  font-size: 13px;
+  font-size: 12px;
 }
 .library-liked-card {
   position: relative;
@@ -506,15 +504,9 @@
     grid-template-columns: minmax(260px, 3.5fr) minmax(0, 6.5fr);
     gap: 24px;
   }
-  .library-stats {
-    grid-column: 1 / -1;
-  }
-  .library-stats-list {
-    flex-direction: row;
-    gap: 24px;
-  }
-  .library-stats-list > div {
-    flex: 1 1 0;
+  .library-profile {
+    flex-wrap: wrap;
+    gap: 16px;
   }
   .library-song-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -527,16 +519,16 @@
   .library-featured {
     grid-template-columns: 1fr;
   }
-  .library-stats-list {
-    flex-direction: column;
-    gap: 8px;
+  .library-stats {
+    width: 100%;
+    gap: 16px;
+    padding-left: 0;
+    border-left: 0;
   }
-  .library-stats-list > div {
-    flex: 0 0 auto;
-    flex-direction: row;
-    align-items: baseline;
+  .library-stats-list {
+    flex: 1 1 auto;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
   }
   .library-cover-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
