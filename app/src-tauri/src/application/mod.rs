@@ -3,9 +3,10 @@ use crate::{
     fonts, hitokoto, library, local_folders, local_library, lyrics, model, player, plugins, storage,
 };
 
+use crate::platform::about;
 use crate::platform::main_webview;
 #[cfg(desktop)]
-use crate::platform::{about, autostart, desktop};
+use crate::platform::{autostart, desktop};
 use model::{AppResult, Lyrics, Track, TrackSource};
 use player::{Command, Player};
 use std::{path::PathBuf, sync::Arc};
