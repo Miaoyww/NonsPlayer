@@ -1,7 +1,7 @@
 import { reportCaughtError } from '@/lib/diagnostics'
 import { normalizeShortcut } from '@/features/playback/shortcuts/shortcut-keys'
 import { isTauri } from '@tauri-apps/api/core'
-import { register, unregister } from '@tauri-apps/plugin-global-shortcut'
+import { register, unregister, unregisterAll } from '@tauri-apps/plugin-global-shortcut'
 import { errorText, nativeCall } from '@/lib/player'
 import { isAndroid } from '@/lib/platform'
 
@@ -76,8 +76,7 @@ export async function saveShortcuts(next: ShortcutSettings, persist = true) {
   const previous = settings
   const cleaned = { enabled: next.enabled, bindings: { ...next.bindings } }
   for (const [action] of shortcutActions) cleaned.bindings[action] = cleaned.bindings[action].trim()
-  async function install(value: ShortcutSettings) {
-    if (!isTauri() || isAndroid() || !value.enabled || recording) return
+  async function bind(value: ShortcutSettings) {
     for (const [action] of shortcutActions) {
       const binding = value.bindings[action]
       if (!binding) continue
@@ -85,6 +84,23 @@ export async function saveShortcuts(next: ShortcutSettings, persist = true) {
         if (event.state === 'Pressed' && !recording) dispatch(action)
       })
       registered.push(binding)
+    }
+  }
+  async function install(value: ShortcutSettings) {
+    if (!isTauri() || isAndroid() || !value.enabled || recording) return
+    try {
+      await bind(value)
+    } catch (cause) {
+      // Registrations outlive a WebView reload, so an earlier context of this app can still
+      // hold a binding. Clear this app's registrations and retry once; a shortcut owned by
+      // another program keeps failing and reports the original error.
+      try {
+        registered = []
+        await unregisterAll()
+        await bind(value)
+      } catch {
+        throw cause
+      }
     }
   }
   async function clear() {
@@ -121,7 +137,11 @@ export async function saveShortcuts(next: ShortcutSettings, persist = true) {
   } catch (cause) {
     reportCaughtError('app/src/features/playback/shortcuts/shortcuts.ts', cause)
 
-    status.error = `快捷键保存失败：${errorText(cause)}`
+    // Registrations left by this app are already cleared and retried by install().
+    const message = errorText(cause)
+    status.error = /HotKey already registered/i.test(message)
+      ? '快捷键保存失败：此组合键已被其他程序占用，请换一个组合键。'
+      : `快捷键保存失败：${message}`
     try {
       await clear()
       if (persist) {

@@ -44,6 +44,9 @@ function session(saved, android = false) {
                     },
                     async unregister(keys) {
                       for (const key of keys) registered.delete(key)
+                    },
+                    async unregisterAll() {
+                      registered.clear()
                     }
                   }
     }
@@ -95,6 +98,16 @@ test('registration failure removes partial bindings and restores previous shortc
   assert.match(app.getShortcutStatus().error, /occupied/)
   assert.equal(await app.saveShortcuts(config(app, { next: 'ctrl+alt+p' })), false)
   assert.deepEqual([...app.registered.keys()], ['Ctrl+Alt+P'])
+})
+
+test('registrations left by an earlier WebView context are cleared and the save retried once', async () => {
+  const app = session()
+  // The native registration survives a WebView reload, so the new context starts with none tracked.
+  app.registered.set('Ctrl+Alt+P', () => {})
+  assert.equal(await app.saveShortcuts(config(app, { toggle: 'Ctrl+Alt+P' })), true)
+  assert.deepEqual([...app.registered.keys()], ['Ctrl+Alt+P'])
+  assert.equal(app.getShortcutStatus().error, undefined)
+  assert.equal(JSON.parse(app.values.get('nons-shortcut-settings')).bindings.toggle, 'Ctrl+Alt+P')
 })
 
 test('space excludes editing, modifiers and composition; focused buttons allow playback', async () => {
