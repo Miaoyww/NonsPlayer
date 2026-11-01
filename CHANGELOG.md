@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-11-01
+
+![NonsPlayer v1.9.2 歌词缓存与体验优化头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.9.2/docs/release-assets/header.png)
+
+NonsPlayer 1.9.2 完善歌词缓存与播放体验，新增听歌统计和本地文件夹入口，并修复歌词背景取色、欢迎页滚动与快捷键注册等问题。本次 Release 提供 **Windows x64、Linux x64 和 Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 ### 歌词与界面
 
 - 欢迎页新增首页：展示应用图标、欢迎标题和「开始设置」按钮，再依次进入适配器、插件和个性化设置。
