@@ -100,10 +100,13 @@ export function AlbumBackground({
       aria-hidden="true"
     >
       {album && (
+        // AMLL 会把这张图绘入 canvas 取色；资源协议返回本窗口 Origin 的 CORS 头，
+        // 以匿名跨域方式加载可避免画布被污染而取色失败。
         <img
           key={album}
           ref={imageRef}
           src={album}
+          crossOrigin="anonymous"
           alt=""
           onLoad={(event) => {
             if (event.currentTarget === imageRef.current) setLoadedImage(event.currentTarget)
