@@ -138,6 +138,47 @@
   scrollbar-width: thin;
 }
 
+.welcome-step-content.is-intro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: clamp(8px, 4vh, 48px) 0;
+  text-align: center;
+}
+
+.welcome-intro-icon {
+  width: clamp(72px, 16vh, 112px);
+  height: auto;
+  aspect-ratio: 1;
+  margin-bottom: 6px;
+  border-radius: 23%;
+  box-shadow: 0 16px 40px color-mix(in oklch, var(--foreground) 18%, transparent);
+}
+
+.welcome-intro h2 {
+  font-size: clamp(24px, 4vh, 32px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.welcome-intro p {
+  max-width: 24em;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.welcome-intro button {
+  margin-top: 14px;
+}
+
 .welcome-step-content > section {
   border: 0;
   padding: 0;

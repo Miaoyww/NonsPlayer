@@ -34,6 +34,12 @@ test('welcome adapter and plugin lists scroll to their last entry while navigati
       waitUntil: 'domcontentloaded',
       timeout: 120000
     })
+    await page.getByRole('heading', { name: '欢迎使用 NonsPlayer' }).waitFor()
+    assert.equal(await page.locator('.welcome-footer').count(), 0)
+    const intro = page.locator('.welcome-intro')
+    const introBounds = await intro.boundingBox()
+    assert.ok(introBounds.y >= 0 && introBounds.y + introBounds.height <= viewport.height)
+    await page.getByRole('button', { name: '开始设置', exact: true }).click()
     for (const [noun, name] of [
       ['适配器', '音乐来源'],
       ['插件', '音乐工具']
