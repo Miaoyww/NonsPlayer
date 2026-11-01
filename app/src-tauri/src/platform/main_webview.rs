@@ -4,22 +4,53 @@ use crate::{application::Backend, model::AppResult};
 use serde::{Deserialize, Serialize};
 use std::{
     sync::{
+        atomic::{AtomicBool, Ordering},
         mpsc::{self, Sender},
-        Mutex,
+        Arc, Mutex,
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewBuilder};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+const IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 enum Request {
     Open { show: bool, settings: bool },
     Ready(tokio::sync::oneshot::Sender<ReadyState>),
     Shortcut(String),
+    ReleasePolicyChanged,
     Stop,
 }
 
-pub(crate) struct MainWebview(Sender<Request>);
+pub(crate) struct MainWebview(Sender<Request>, Arc<AtomicBool>);
+
+fn read_release_enabled(store: &crate::storage::Store) -> AppResult<bool> {
+    Ok(store.setting("backgroundWebviewRelease")?.as_deref() != Some("false"))
+}
+
+#[tauri::command]
+pub(crate) fn background_webview_release_enabled(state: tauri::State<'_, MainWebview>) -> bool {
+    state.1.load(Ordering::SeqCst)
+}
+
+#[tauri::command]
+pub(crate) fn set_background_webview_release(
+    enabled: bool,
+    backend: tauri::State<'_, Backend>,
+    state: tauri::State<'_, MainWebview>,
+) -> AppResult<bool> {
+    backend.store.set_setting(
+        "backgroundWebviewRelease",
+        if enabled { "true" } else { "false" },
+    )?;
+    state.1.store(enabled, Ordering::SeqCst);
+    state
+        .0
+        .send(Request::ReleasePolicyChanged)
+        .map_err(|e| e.to_string())?;
+    Ok(enabled)
+}
 
 #[derive(Clone, Deserialize)]
 pub(crate) struct SleepShortcut {
@@ -40,12 +71,16 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
         configure_browser_shortcuts(&webview)?;
     }
     let (sender, receiver) = mpsc::channel();
-    app.manage(MainWebview(sender));
+    let release_enabled = Arc::new(AtomicBool::new(read_release_enabled(
+        &app.state::<Backend>().store,
+    )?));
+    app.manage(MainWebview(sender, release_enabled.clone()));
     app.manage(SleepShortcuts::default());
     let app = app.handle().clone();
     std::thread::Builder::new()
         .name("nons-main-webview".into())
         .spawn(move || {
+            let mut hidden_since = None;
             let mut ready = false;
             let mut pending_settings = false;
             let mut pending_shortcut = None;
@@ -70,6 +105,7 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
                                 window.unminimize().map_err(|e| e.to_string())?;
                                 window.show().map_err(|e| e.to_string())?;
                                 window.set_focus().map_err(|e| e.to_string())?;
+                                hidden_since = None;
                             }
                             if ready && pending_settings {
                                 app.emit_to("main", "open-settings", ())
@@ -94,15 +130,39 @@ pub(crate) fn setup(app: &tauri::App) -> AppResult<()> {
                                 if ensure_webview(&app)? {
                                     ready = false;
                                 }
+                                hidden_since = Some(Instant::now());
                             } else {
                                 background_control(&app, &action)?;
                             }
                         }
+                        Ok(Request::ReleasePolicyChanged) => {
+                            hidden_since = None;
+                        }
                         Err(mpsc::RecvTimeoutError::Timeout) => {}
                     }
-                    // Browser playback and system media controls require the main WebView.
-                    if ensure_webview(&app)? {
-                        ready = false;
+                    let window = app.get_window("main").ok_or("主窗口不可用")?;
+                    let hidden = !window.is_visible().map_err(|e| e.to_string())?
+                        || window.is_minimized().map_err(|e| e.to_string())?;
+                    if !hidden {
+                        hidden_since = None;
+                        if ensure_webview(&app)? {
+                            ready = false;
+                        }
+                        return Ok(());
+                    }
+                    let since = *hidden_since.get_or_insert_with(Instant::now);
+                    if !release_enabled.load(Ordering::SeqCst) {
+                        if ensure_webview(&app)? {
+                            ready = false;
+                        }
+                    } else if since.elapsed() >= IDLE_TIMEOUT {
+                        if let Some(webview) = app.get_webview("main") {
+                            webview.close().map_err(|e| e.to_string())?;
+                            app.state::<Arc<crate::plugins::PluginManager>>()
+                                .frontend_detached()?;
+                            ready = false;
+                            log::info!(target: "nons::window", "主面板已隐藏 30 秒，WebView 已释放");
+                        }
                     }
                     Ok(())
                 })();
@@ -271,4 +331,27 @@ fn background_control(app: &AppHandle, action: &str) -> AppResult<()> {
         _ => return Ok(()),
     };
     player.send(command)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn background_release_defaults_on_and_survives_restart() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("settings.sqlite3");
+        let store = crate::storage::Store::open(&path).unwrap();
+        assert!(read_release_enabled(&store).unwrap());
+        store
+            .set_setting("backgroundWebviewRelease", "false")
+            .unwrap();
+        drop(store);
+        let store = crate::storage::Store::open(&path).unwrap();
+        assert!(!read_release_enabled(&store).unwrap());
+        store
+            .set_setting("backgroundWebviewRelease", "true")
+            .unwrap();
+        assert!(read_release_enabled(&store).unwrap());
+    }
 }

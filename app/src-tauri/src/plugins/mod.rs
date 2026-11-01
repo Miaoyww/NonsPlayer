@@ -736,7 +736,7 @@ impl PluginManager {
         self.lifecycle.send_replace(());
         result
     }
-    #[cfg(feature = "plugin-probe")]
+    #[cfg(any(desktop, feature = "plugin-probe"))]
     pub(crate) fn frontend_detached(self: &Arc<Self>) -> AppResult<()> {
         for record in self.lock()?.values_mut() {
             record.ready = false;

@@ -1,4 +1,5 @@
 import { CloseBehaviorSelect } from '@/features/settings/close-behavior-select'
+import { BackgroundWebviewReleaseSwitch } from '@/features/settings/background-webview-release-switch'
 import { AutostartSwitch } from '@/features/settings/autostart-switch'
 import { isAndroid } from '@/lib/platform'
 import { TelemetrySwitch } from '../telemetry-switch'
@@ -66,6 +67,7 @@ export function GeneralPage() {
             窗口与启动
           </h3>
           <CloseBehaviorSelect />
+          <BackgroundWebviewReleaseSwitch />
           <AutostartSwitch />
         </section>
       )}
