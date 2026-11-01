@@ -14,7 +14,20 @@ import {
   TabsTab,
   TabsPanel
 } from '@/components/animate-ui/components/base/tabs'
-import { Disc3, ListMusic, Mic2, Music2, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react'
+import {
+  Disc3,
+  FolderOpen,
+  ListMusic,
+  Mic2,
+  Music2,
+  Pencil,
+  Play,
+  Plus,
+  Search,
+  Trash2,
+  X
+} from 'lucide-react'
+import { isAndroid } from '@/lib/platform'
 import { nativeCall, errorText, usePlayer, type Track } from '@/lib/player'
 import { localCollection, playLocalEntity, type LocalEntity } from '@/features/local/local-library'
 import { usePagedList } from '@/lib/use-paged-list'
@@ -404,29 +417,45 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
               ) : undefined
             }
             actions={
-              collection.kind === 'playlist' && (
-                <>
-                  <ActionButton
-                    variant="ghost"
-                    disabled={!isTauri()}
-                    onClick={() => {
-                      setName(collection.name)
-                      setEditing('rename')
-                    }}
-                  >
-                    <Pencil aria-hidden="true" />
-                    改名
-                  </ActionButton>
-                  <ActionButton
-                    variant="ghost"
-                    disabled={!isTauri()}
-                    onClick={() => setEditing('delete')}
-                  >
-                    <Trash2 aria-hidden="true" />
-                    删除歌单
-                  </ActionButton>
-                </>
-              )
+              collection.kind === 'album'
+                ? !isAndroid() && (
+                    <ActionButton
+                      variant="ghost"
+                      disabled={playing || !isTauri() || !list.items.length}
+                      onClick={() =>
+                        void nativeCall('open_local_entity_folder', {
+                          kind: 'album',
+                          id: collection.localId
+                        }).catch(onError)
+                      }
+                    >
+                      <FolderOpen aria-hidden="true" />
+                      打开文件夹
+                    </ActionButton>
+                  )
+                : collection.kind === 'playlist' && (
+                    <>
+                      <ActionButton
+                        variant="ghost"
+                        disabled={!isTauri()}
+                        onClick={() => {
+                          setName(collection.name)
+                          setEditing('rename')
+                        }}
+                      >
+                        <Pencil aria-hidden="true" />
+                        改名
+                      </ActionButton>
+                      <ActionButton
+                        variant="ghost"
+                        disabled={!isTauri()}
+                        onClick={() => setEditing('delete')}
+                      >
+                        <Trash2 aria-hidden="true" />
+                        删除歌单
+                      </ActionButton>
+                    </>
+                  )
             }
           />
           {list.busy && !list.items.length ? (

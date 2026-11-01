@@ -7,7 +7,9 @@ use anyhow::Context;
 use lofty::prelude::*;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 use tauri::{Emitter, State};
+use tauri_plugin_opener::OpenerExt;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -554,6 +556,41 @@ fn entity_tracks(
     let more = items.len() > 100;
     items.truncate(100);
     Ok(TrackPage { items, more })
+}
+
+fn entity_folder(store: &Store, kind: String, id: String) -> AppResult<PathBuf> {
+    let track = entity_tracks(store, kind, id, String::new(), 0)?
+        .items
+        .into_iter()
+        .next()
+        .ok_or("这里还没有本地音乐。")?;
+    let TrackSource::Local { path, .. } = track.source else {
+        return Err("这里没有本地文件。".into());
+    };
+    Path::new(&path)
+        .parent()
+        .filter(|folder| folder.is_dir())
+        .map(Path::to_path_buf)
+        .ok_or_else(|| "找不到音乐所在文件夹。".into())
+}
+
+#[tauri::command]
+pub async fn open_local_entity_folder(
+    kind: String,
+    id: String,
+    backend: State<'_, Backend>,
+    app: tauri::AppHandle,
+) -> AppResult<()> {
+    if cfg!(target_os = "android") {
+        return Err("Android 不支持打开本地文件夹".into());
+    }
+    let store = backend.store.clone();
+    let folder = tauri::async_runtime::spawn_blocking(move || entity_folder(&store, kind, id))
+        .await
+        .map_err(|e| e.to_string())??;
+    app.opener()
+        .open_path(folder.to_string_lossy(), None::<&str>)
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
