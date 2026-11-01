@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Copy,
   Ellipsis,
+  FolderOpen,
   FolderPlus,
   Heart,
   Info,
@@ -34,6 +35,7 @@ import {
 import { isTauri } from '@tauri-apps/api/core'
 import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 import { nativeCall, formatTime, errorText, type Track } from '@/lib/player'
+import { isAndroid } from '@/lib/platform'
 import {
   Dialog,
   DialogDescription,
@@ -454,6 +456,16 @@ export function SongContextMenu({
             )}
             {track.source.kind === 'local' ? (
               <>
+                {!isAndroid() && (
+                  <ContextMenu.Item
+                    onClick={() =>
+                      actions.run(() => nativeCall('open_local_track_folder', { key: track.key }))
+                    }
+                  >
+                    <FolderOpen aria-hidden="true" />
+                    打开文件所在位置
+                  </ContextMenu.Item>
+                )}
                 <ContextMenu.Item
                   onClick={() =>
                     actions.copy(track.source.kind === 'local' ? track.source.path : '')

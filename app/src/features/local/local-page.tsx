@@ -8,6 +8,7 @@ import { TrackArtists } from '@/components/music/music-links'
 import { useCallback, useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Tabs } from '@base-ui/react/tabs'
+import { ContextMenu } from '@base-ui/react/context-menu'
 import {
   Tabs as MusicTabs,
   TabsList,
@@ -161,8 +162,8 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
                   '',
                   localCollection(item)
                 )
-              return (
-                <article key={item.id} className="library-cover-card">
+              const body = (
+                <>
                   <div className="library-cover-art" data-round={kind === 'artist'}>
                     <button
                       type="button"
@@ -188,6 +189,41 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
                   <p className="library-cover-subtitle">
                     {item.trackCount} 首音乐{item.subtitle && ` · ${item.subtitle}`}
                   </p>
+                </>
+              )
+              const openFolder =
+                item.kind === 'album' && !isAndroid()
+                  ? () =>
+                      void nativeCall('open_local_entity_folder', {
+                        kind: 'album',
+                        id: item.id
+                      }).catch(onError)
+                  : undefined
+              return openFolder ? (
+                <ContextMenu.Root key={item.id}>
+                  <ContextMenu.Trigger render={<article className="library-cover-card" />}>
+                    {body}
+                  </ContextMenu.Trigger>
+                  <ContextMenu.Portal>
+                    <ContextMenu.Positioner className="z-[70]" sideOffset={4}>
+                      <ContextMenu.Popup
+                        className="song-context-menu"
+                        aria-label={`${item.name} 的菜单`}
+                      >
+                        <ContextMenu.Item
+                          disabled={!isTauri() || !item.trackCount}
+                          onClick={openFolder}
+                        >
+                          <FolderOpen aria-hidden="true" />
+                          打开文件所在位置
+                        </ContextMenu.Item>
+                      </ContextMenu.Popup>
+                    </ContextMenu.Positioner>
+                  </ContextMenu.Portal>
+                </ContextMenu.Root>
+              ) : (
+                <article key={item.id} className="library-cover-card">
+                  {body}
                 </article>
               )
             })}

@@ -1168,6 +1168,7 @@ pub fn run() {
             local_library::local_entity_detail,
             local_library::local_entity_tracks,
             local_library::open_local_entity_folder,
+            local_library::open_local_track_folder,
             local_library::local_track_information,
             local_library::local_preferences,
             local_library::set_local_preferences,

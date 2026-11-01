@@ -558,12 +558,7 @@ fn entity_tracks(
     Ok(TrackPage { items, more })
 }
 
-fn entity_folder(store: &Store, kind: String, id: String) -> AppResult<PathBuf> {
-    let track = entity_tracks(store, kind, id, String::new(), 0)?
-        .items
-        .into_iter()
-        .next()
-        .ok_or("这里还没有本地音乐。")?;
+fn local_folder(track: Track) -> AppResult<PathBuf> {
     let TrackSource::Local { path, .. } = track.source else {
         return Err("这里没有本地文件。".into());
     };
@@ -572,6 +567,21 @@ fn entity_folder(store: &Store, kind: String, id: String) -> AppResult<PathBuf> 
         .filter(|folder| folder.is_dir())
         .map(Path::to_path_buf)
         .ok_or_else(|| "找不到音乐所在文件夹。".into())
+}
+
+fn entity_folder(store: &Store, kind: String, id: String) -> AppResult<PathBuf> {
+    let track = entity_tracks(store, kind, id, String::new(), 0)?
+        .items
+        .into_iter()
+        .next()
+        .ok_or("这里还没有本地音乐。")?;
+    local_folder(track)
+}
+
+fn open_folder(app: &tauri::AppHandle, folder: PathBuf) -> AppResult<()> {
+    app.opener()
+        .open_path(folder.to_string_lossy(), None::<&str>)
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -588,9 +598,23 @@ pub async fn open_local_entity_folder(
     let folder = tauri::async_runtime::spawn_blocking(move || entity_folder(&store, kind, id))
         .await
         .map_err(|e| e.to_string())??;
-    app.opener()
-        .open_path(folder.to_string_lossy(), None::<&str>)
-        .map_err(|error| error.to_string())
+    open_folder(&app, folder)
+}
+
+#[tauri::command]
+pub async fn open_local_track_folder(
+    key: String,
+    backend: State<'_, Backend>,
+    app: tauri::AppHandle,
+) -> AppResult<()> {
+    if cfg!(target_os = "android") {
+        return Err("Android 不支持打开本地文件夹".into());
+    }
+    let store = backend.store.clone();
+    let folder = tauri::async_runtime::spawn_blocking(move || local_folder(store.track(&key)?))
+        .await
+        .map_err(|e| e.to_string())??;
+    open_folder(&app, folder)
 }
 
 #[tauri::command]
