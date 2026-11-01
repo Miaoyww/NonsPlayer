@@ -122,22 +122,6 @@ impl Database {
         self.lock()?.execute("INSERT INTO plugins(id,enabled) VALUES(?1,?2) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled", params![id,value]).map_err(|e| e.to_string())?;
         Ok(())
     }
-    pub fn initialized(&self) -> AppResult<bool> {
-        Ok(self
-            .lock()?
-            .query_row("SELECT value FROM settings WHERE key='bundled'", [], |r| {
-                r.get::<_, String>(0)
-            })
-            .optional()
-            .map_err(|e| e.to_string())?
-            .is_some())
-    }
-    pub fn mark_initialized(&self) -> AppResult<()> {
-        self.lock()?
-            .execute("INSERT OR REPLACE INTO settings VALUES('bundled','1')", [])
-            .map_err(|e| e.to_string())?;
-        Ok(())
-    }
     pub fn remove(&self, id: &str) -> AppResult<()> {
         let mut db = self.lock()?;
         let tx = db.transaction().map_err(|e| e.to_string())?;

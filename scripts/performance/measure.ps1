@@ -15,11 +15,6 @@ New-Item -ItemType Directory -Path $nonsOutput -Force | Out-Null
 $nonsBinary = Join-Path $nonsOutput 'bin'
 New-Item -ItemType Directory -Path $nonsBinary | Out-Null
 Copy-Item -LiteralPath $nonsExe -Destination (Join-Path $nonsBinary 'Nons.exe')
-# A --no-bundle build does not stage Tauri resources. Copy only current resources;
-# never inherit retired adapters or stale plugins from the Cargo output directory.
-foreach ($nonsResource in @('bundled-adapters', 'bundled-plugins')) {
-    Copy-Item -LiteralPath (Join-Path $nonsRepo ('app/src-tauri/' + $nonsResource)) -Destination (Join-Path $nonsBinary $nonsResource) -Recurse
-}
 $nonsExe = Join-Path $nonsBinary 'Nons.exe'
 $nonsCpu = Get-CimInstance Win32_Processor
 $nonsOs = Get-CimInstance Win32_OperatingSystem

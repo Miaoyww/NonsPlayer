@@ -6,12 +6,13 @@ import { spawnSync } from 'node:child_process'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const name = process.argv[2]
-if (!name) throw new Error('Usage: node scripts/build-plugin.mjs <fixture-id> [output]')
+const output = process.argv[3]
+if (!name || (output !== '--dev' && !output))
+  throw new Error('Usage: node scripts/build-plugin.mjs <fixture-id> <output> or --dev')
 if (!/^[a-z][a-z0-9-]{0,63}$/.test(name)) throw new Error('Invalid plugin ID')
 const project = resolve(root, 'plugins', name)
-const out = process.argv[3]
-  ? resolve(root, process.argv[3])
-  : resolve(root, 'app/src-tauri/bundled-plugins', name)
+const out =
+  output === '--dev' ? resolve(root, 'app/src-tauri/bundled-plugins', name) : resolve(root, output)
 const manifest = JSON.parse(await readFile(resolve(project, 'manifest.json'), 'utf8'))
 if (manifest.backend) {
   const result = spawnSync(

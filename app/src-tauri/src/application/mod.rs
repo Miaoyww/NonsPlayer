@@ -952,6 +952,9 @@ pub fn run() {
                 &data,
                 music.clone(),
                 player.clone(),
+                cfg!(debug_assertions).then(|| {
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bundled-plugins")
+                }),
             )?;
             app.manage(plugin_manager.clone());
             let adapter_installer = crate::music::adapter_install::AdapterInstaller::new(
@@ -961,18 +964,8 @@ pub fn run() {
                 plugin_manager.shared_http(),
             )?;
             app.manage(adapter_installer.clone());
-            #[cfg(target_os = "android")]
-            let component_directory = {
-                let directory = data.join("bundled-adapters");
-                crate::platform::android::bundled_adapters::materialize(&directory)?;
-                directory
-            };
-            #[cfg(not(target_os = "android"))]
-            let component_directory = if cfg!(debug_assertions) {
-                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bundled-adapters")
-            } else {
-                app.path().resource_dir()?.join("bundled-adapters")
-            };
+            let component_directory = cfg!(debug_assertions)
+                .then(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bundled-adapters"));
             let component_music = music.clone();
             let extension_store = extension_store::ExtensionStore::new(
                 store.clone(),
@@ -982,7 +975,12 @@ pub fn run() {
             );
             extension_store.start_cleanup();
             app.manage(extension_store);
-            let component_packages = crate::music::bundled::prepare_components(&component_directory, &music.adapters);
+            let component_packages = component_directory
+                .as_deref()
+                .map(|directory| {
+                    crate::music::bundled::prepare_components(directory, &music.adapters)
+                })
+                .unwrap_or_else(|| Ok(Vec::new()));
             let component_store = store.clone();
             let component_http = plugin_manager.shared_http();
             let component_settings = app
@@ -1005,7 +1003,10 @@ pub fn run() {
                   Err(error) => Err(error),
                 };
                 if let Err(error) = result {
-                    log::error!(target: "nons::adapter", "load_components_failed directory={} reason={error}", component_directory.display());
+                    let directory = component_directory
+                        .as_deref()
+                        .map_or_else(|| "<disabled>".to_owned(), |path| path.display().to_string());
+                    log::error!(target: "nons::adapter", "load_components_failed directory={} reason={error}", directory);
                     let _ = (component_app.emit("adapter-load-failed", error)).inspect_err(|error| { crate::infrastructure::diagnostics::warn("component_app.emit", error); });
                 }
                 installed_adapters.startup().await;

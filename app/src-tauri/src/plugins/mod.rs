@@ -92,6 +92,7 @@ impl PluginManager {
         data: &Path,
         music: Arc<crate::music::service::MusicService>,
         player: Arc<Player>,
+        bundled_directory: Option<PathBuf>,
     ) -> AppResult<Arc<Self>> {
         let root = data.join("plugins");
         std::fs::create_dir_all(&root).map_err(|e| e.to_string())?;
@@ -123,14 +124,8 @@ impl PluginManager {
             clipboard_sender,
             lifecycle: tokio::sync::watch::channel(()).0,
         });
-        // Bundled artifacts are built outside the host and copied only once.
-        if !manager.database.initialized()? {
-            let bundled = manager
-                .app
-                .path()
-                .resource_dir()
-                .map_err(|e| e.to_string())?
-                .join("bundled-plugins");
+        // Bundled fixtures are available only to debug builds.
+        if let Some(bundled) = bundled_directory {
             if bundled.is_dir() {
                 for entry in std::fs::read_dir(&bundled).map_err(|e| e.to_string())? {
                     let entry = match entry {
@@ -191,7 +186,6 @@ impl PluginManager {
                         });
                     }
                 }
-                manager.database.mark_initialized()?;
             }
         }
         manager.discover()?;

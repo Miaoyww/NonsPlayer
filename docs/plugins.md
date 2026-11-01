@@ -188,10 +188,16 @@ Guest 查询歌曲失败时不产生预览，保留实例以等待后续复制�
 
 ## 新 view／page 插件
 
-仓库内项目沿用 `plugins/<id>/manifest.json`、可选 backend 与 `frontend/index.tsx` 结构，更新各 Cargo package 名和 SDK tsconfig 路径；仓库外项目使用 `nons-plugin create`，从发布包获取类型、WIT 与 Manifest schema。仓库内构建运行：
+仓库内项目沿用 `plugins/<id>/manifest.json`、可选 backend 与 `frontend/index.tsx` 结构，更新各 Cargo package 名和 SDK tsconfig 路径；仓库外项目使用 `nons-plugin create`，从发布包获取类型、WIT 与 Manifest schema。`bundled-plugins` 和 `bundled-adapters` 仅供 debug 构建调试，release 构建不会扫描或打包这两个目录。仓库内构建运行：
 
 ```powershell
-node scripts/build-plugin.mjs <id>
+node scripts/build-plugin.mjs <id> --dev
+```
+
+需要构建到普通测试或探测目录时，必须显式指定输出目录：
+
+```powershell
+node scripts/build-plugin.mjs <id> <output>
 ```
 
 view 导出命名 React Component，并在 views 中关联导出与 `main.overlay`。页面通过 pages 与 navigation 声明，例如：

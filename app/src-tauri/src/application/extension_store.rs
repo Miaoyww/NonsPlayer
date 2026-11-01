@@ -456,7 +456,7 @@ pub(crate) struct ExtensionStore {
     plugins: Arc<PluginManager>,
     adapters: Arc<AdapterInstaller>,
     http: Arc<Http>,
-    bundled_directory: PathBuf,
+    bundled_directory: Option<PathBuf>,
     tickets: Mutex<Tickets>,
     prepare_slots: tokio::sync::Semaphore,
     requests: tokio::sync::Semaphore,
@@ -467,7 +467,7 @@ impl ExtensionStore {
         store: Arc<Store>,
         plugins: Arc<PluginManager>,
         adapters: Arc<AdapterInstaller>,
-        bundled_directory: PathBuf,
+        bundled_directory: Option<PathBuf>,
     ) -> Arc<Self> {
         Arc::new(Self {
             http: plugins.shared_http(),
@@ -590,44 +590,46 @@ impl ExtensionStore {
             result
                 .bundled
                 .insert("netease".into(), native_version.into());
-            match std::fs::read_dir(&this.bundled_directory) {
-                Ok(entries) => {
-                    for entry in entries {
-                        let entry = entry.map_err(|e| e.to_string())?;
-                        if !entry.file_type().map_err(|e| e.to_string())?.is_dir() {
-                            continue;
-                        }
-                        let path = entry.path();
-                        let mut bytes = Vec::new();
-                        std::fs::File::open(path.join("manifest.json"))
-                            .map_err(|e| e.to_string())?
-                            .take(16385)
-                            .read_to_end(&mut bytes)
-                            .map_err(|e| e.to_string())?;
-                        if bytes.len() > 16384 {
-                            return Err("随包适配器描述超过大小上限".into());
-                        }
-                        let package: crate::music::adapter_install::Package =
-                            serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
-                        let id = match (&package.descriptor, &package.resource_provider) {
-                            (Some(d), None) => {
-                                d.validate().map_err(|e| e.to_string())?;
-                                d.source.as_str()
+            if let Some(bundled_directory) = &this.bundled_directory {
+                match std::fs::read_dir(bundled_directory) {
+                    Ok(entries) => {
+                        for entry in entries {
+                            let entry = entry.map_err(|e| e.to_string())?;
+                            if !entry.file_type().map_err(|e| e.to_string())?.is_dir() {
+                                continue;
                             }
-                            (None, Some(d)) => {
-                                d.validate().map_err(|e| e.to_string())?;
-                                d.id.as_str()
+                            let path = entry.path();
+                            let mut bytes = Vec::new();
+                            std::fs::File::open(path.join("manifest.json"))
+                                .map_err(|e| e.to_string())?
+                                .take(16385)
+                                .read_to_end(&mut bytes)
+                                .map_err(|e| e.to_string())?;
+                            if bytes.len() > 16384 {
+                                return Err("随包适配器描述超过大小上限".into());
                             }
-                            _ => return Err("随包适配器身份无效".into()),
-                        };
-                        if let Some(version) = package.version {
-                            Version::parse(&version).map_err(|e| e.to_string())?;
-                            result.bundled.insert(id.to_owned(), version);
+                            let package: crate::music::adapter_install::Package =
+                                serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+                            let id = match (&package.descriptor, &package.resource_provider) {
+                                (Some(d), None) => {
+                                    d.validate().map_err(|e| e.to_string())?;
+                                    d.source.as_str()
+                                }
+                                (None, Some(d)) => {
+                                    d.validate().map_err(|e| e.to_string())?;
+                                    d.id.as_str()
+                                }
+                                _ => return Err("随包适配器身份无效".into()),
+                            };
+                            if let Some(version) = package.version {
+                                Version::parse(&version).map_err(|e| e.to_string())?;
+                                result.bundled.insert(id.to_owned(), version);
+                            }
                         }
                     }
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+                    Err(error) => return Err(error.to_string()),
                 }
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
-                Err(error) => return Err(error.to_string()),
             }
             for (id, version) in &result.bundled {
                 result
