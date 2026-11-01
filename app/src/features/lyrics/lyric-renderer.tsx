@@ -7,6 +7,7 @@ import { useReducedMotion } from 'motion/react'
 import { currentPosition, nativeCall, useProgress } from '@/lib/player'
 import { useFontSettings } from '@/features/settings/use-font-settings'
 import { isAndroid } from '@/lib/platform'
+import { ManualLyricPlayer } from './manual-lyric-player'
 import { useLyricsSettings } from './use-lyrics-settings'
 
 export default function LyricRenderer({
@@ -107,10 +108,13 @@ export default function LyricRenderer({
       className="lyric-renderer h-full w-full"
       style={{ fontWeight }}
       lyricLines={displayedLines}
+      lyricPlayer={ManualLyricPlayer}
       disabled
       playing={enabled && playing}
       currentTime={progress.positionMs}
       onLyricLineClick={(event) => {
+        const manualPlayer = renderer?.lyricPlayer as ManualLyricPlayer | undefined
+        manualPlayer?.releaseManualScroll?.()
         if (!isTauri() || isAndroid()) return
         void nativeCall('player_seek', { positionMs: event.line.getLine().startTime }).catch(
           onError

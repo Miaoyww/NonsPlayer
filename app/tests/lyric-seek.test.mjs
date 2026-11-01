@@ -22,6 +22,7 @@ function lyricControl({ failure, desktop = true, android = false } = {}) {
       useMemo: (fn) => fn()
     },
     '@applemusic-like-lyrics/react': { LyricPlayer: 'lyric-player' },
+    './manual-lyric-player': { ManualLyricPlayer: 'manual-lyric-player' },
     '@/features/settings/use-font-settings': {
       useFontSettings: () => ({ fonts: { app: '', lyrics: '' } })
     },
