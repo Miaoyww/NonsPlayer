@@ -17,6 +17,23 @@ git push origin v1.0.0
 
 不删除或移动已发布标签。失败后可在 GitHub Actions 中重新运行该标签的 workflow。
 
+## 一键发布脚本
+
+`node scripts/release-version.mjs <版本号>` 自动完成发布准备与推送：
+
+- 校验工作区干净、版本号高于当前版本、标签在本地和远程都不存在。
+- 生成 `docs/release-assets/header.svg` 与 `header.png`，并同步 `editor.html` 中的版本号、副标题、平台与发布类型；缺失文字交互输入，默认沿用当前头图。
+- 同步 `app/package.json`、`app/src-tauri/tauri.conf.json`、`Cargo.toml` 与 `Cargo.lock` 的版本。
+- 在 CHANGELOG 的 `## [Unreleased]` 下插入 `## [版本] - 日期`、头图链接和版本概述；该版本正文沿用 Unreleased 已有内容，发布前仍需在 Unreleased 中写好本次用户可见变化、安装提示与已知限制。
+- 格式化发布文件，运行 `scripts/release.py notes` 校验版本与发布说明，提交 `chore(release): 发布 <版本>`，再推送分支和 `v<版本>` 标签。
+
+```powershell
+node scripts/release-version.mjs 1.10.0 --subtitle "插件与窗口体验更新" --platform "Windows x64、Linux x64、Android ARM64" --release-kind "稳定性更新"
+node scripts/release-version.mjs 1.10.0 --dry-run
+```
+
+`--dry-run` 只生成临时预览 PNG 并打印改动范围，不写入仓库、不提交；`--yes` 跳过确认并使用当前头图文字与建议概述，适合完整参数的非交互运行。
+
 ## Release Notes 格式
 
 后续版本沿用 [CHANGELOG 中的 v1.0.0 发布说明](../CHANGELOG.md#100)作为格式与语气范例。
