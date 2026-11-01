@@ -192,7 +192,13 @@ test('runtime TTL is ten minutes, not extended by reads, and capacity evicts old
 
 test('cover reads survive eviction while the cache reaches its entry limit', async () => {
   const { cache, player, requests } = harness()
-  cache.coverCache = new cache.RuntimeCache(48 * 1024 * 1024, cache.RUNTIME_TTL, undefined, true)
+  cache.coverCache = new cache.RuntimeCache(
+    48 * 1024 * 1024,
+    cache.RUNTIME_TTL,
+    undefined,
+    true,
+    512
+  )
   const urls = Array.from({ length: 513 }, (_, index) => `https://p1.music.126.net/${index}.jpg`)
   const waiting = player.nativeCall('runtime_cover', { url: urls[0] })
   const pending = urls.slice(1).map((url) => player.nativeCall('runtime_cover', { url }))
@@ -207,6 +213,27 @@ test('cover reads survive eviction while the cache reaches its entry limit', asy
     undefined,
     'an evicted in-flight cover must not refill the cache'
   )
+})
+
+test('cover cache keeps more than 512 playlist images for fast scrolling', async () => {
+  const { cache, player, requests } = harness()
+  cache.coverCache = new cache.RuntimeCache(
+    48 * 1024 * 1024,
+    cache.RUNTIME_TTL,
+    undefined,
+    true,
+    4096
+  )
+  const urls = Array.from({ length: 513 }, (_, index) => `https://p1.music.126.net/${index}.jpg`)
+  const reads = urls.map((url) => player.nativeCall('runtime_cover', { url }))
+  await tick()
+  assert.equal(requests.length, urls.length)
+  requests.forEach((request, index) => request.resolve(`C:/cache/${index}.jpg`))
+  await Promise.all(reads)
+  assert.deepEqual(cache.coverCache.peek(`runtime_cover:${JSON.stringify({ url: urls[0] })}`), {
+    access: '1',
+    data: 'asset://C:/cache/0.jpg'
+  })
 })
 
 test('cover metadata TTL expiry retains the displayed asset URL and later reads resolve again', async () => {

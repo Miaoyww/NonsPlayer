@@ -35,10 +35,11 @@ export class RuntimeCache {
     maxBytes = 48 * 1024 * 1024,
     ttl = RUNTIME_TTL,
     sizeOf: (value: unknown) => number = (value) => (JSON.stringify(value)?.length ?? 0) * 2,
-    surviveEviction = false
+    surviveEviction = false,
+    maxEntries = 4096
   ) {
     this.cache = new LRUCache<string, Entry, Loader>({
-      max: 512,
+      max: maxEntries,
       maxSize: maxBytes,
       ttl,
       sizeCalculation: (entry, key) => Math.max(1, sizeOf(entry.value) + key.length * 2),
@@ -197,7 +198,8 @@ export const coverCache = new RuntimeCache(
     const entry = value as { access: string; data: string }
     return (entry.access.length + entry.data.length) * 2
   },
-  true
+  true,
+  4096
 )
 export const isOtherQueryCacheKey = (key: string) => !key.startsWith('track_lyrics:')
 export const cachedCommands = new Set([
