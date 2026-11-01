@@ -7,7 +7,6 @@ use std::{
 };
 
 pub use crate::model::MAX_LYRIC_BYTES;
-const LYRIC_CACHE_BYTES: i64 = 64 * 1024 * 1024;
 
 pub struct Store(pub(crate) Mutex<Connection>);
 
@@ -16,11 +15,33 @@ pub struct CachedLyrics {
     pub fresh: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LyricCacheScope {
+    Persistent,
+    Session,
+}
+
+impl LyricCacheScope {
+    fn table(self) -> &'static str {
+        match self {
+            Self::Persistent => "lyric_cache_v1",
+            Self::Session => "runtime_lyrics",
+        }
+    }
+}
+
 pub fn now_seconds() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64
+}
+
+fn now_millis() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64
 }
 
 impl Store {
@@ -42,6 +63,7 @@ impl Store {
             CREATE TABLE IF NOT EXISTS local_file_stats (key TEXT PRIMARY KEY, modified TEXT NOT NULL, bytes INTEGER NOT NULL);
             PRAGMA temp_store=MEMORY;
             CREATE TEMP TABLE runtime_lyrics (key TEXT PRIMARY KEY, value TEXT, expires INTEGER NOT NULL, accessed INTEGER NOT NULL, bytes INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS lyric_cache_v1 (key TEXT PRIMARY KEY, value TEXT, expires INTEGER NOT NULL, accessed INTEGER NOT NULL, bytes INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS playback_history (
                 instance_id TEXT PRIMARY KEY,
@@ -395,7 +417,12 @@ impl Store {
         )
     }
 
-    pub fn cached_lyrics(&self, key: &str) -> AppResult<Option<CachedLyrics>> {
+    pub fn cached_lyrics(
+        &self,
+        scope: LyricCacheScope,
+        key: &str,
+    ) -> AppResult<Option<CachedLyrics>> {
+        let table = scope.table();
         let db = self
             .0
             .lock()
@@ -405,7 +432,7 @@ impl Store {
             .map_err(|_| "歌词缓存锁不可用")?;
         let row: Option<(Option<String>, i64)> = db
             .query_row(
-                "SELECT value,expires FROM runtime_lyrics WHERE key=?1",
+                &format!("SELECT value,expires FROM {table} WHERE key=?1"),
                 [key],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
@@ -413,8 +440,8 @@ impl Store {
             .map_err(|e| e.to_string())?;
         if let Some((value, expires)) = row {
             db.execute(
-                "UPDATE runtime_lyrics SET accessed=?2 WHERE key=?1",
-                params![key, now_seconds()],
+                &format!("UPDATE {table} SET accessed=?2 WHERE key=?1"),
+                params![key, now_millis()],
             )
             .map_err(|e| e.to_string())?;
             Ok(Some(CachedLyrics {
@@ -429,7 +456,16 @@ impl Store {
         }
     }
 
-    pub fn cache_lyrics(&self, key: &str, value: Option<&Lyrics>, ttl: i64) -> AppResult<()> {
+    /// `expires: None` keeps a found lyric until capacity eviction or an
+    /// explicit refresh. A miss passes its retry window explicitly.
+    pub fn cache_lyrics(
+        &self,
+        scope: LyricCacheScope,
+        key: &str,
+        value: Option<&Lyrics>,
+        expires: Option<i64>,
+        max_bytes: i64,
+    ) -> AppResult<()> {
         let value = value
             .map(serde_json::to_string)
             .transpose()
@@ -438,6 +474,7 @@ impl Store {
         if size > MAX_LYRIC_BYTES {
             return Err("歌词文件过大".into());
         }
+        let table = scope.table();
         let mut db = self
             .0
             .lock()
@@ -446,52 +483,111 @@ impl Store {
             })
             .map_err(|_| "歌词缓存锁不可用")?;
         let tx = db.transaction().map_err(|e| e.to_string())?;
-        tx.execute("INSERT INTO runtime_lyrics(key,value,expires,accessed,bytes) VALUES(?1,?2,?3,?4,?5)
-            ON CONFLICT(key) DO UPDATE SET value=excluded.value,expires=excluded.expires,accessed=excluded.accessed,bytes=excluded.bytes",
-            params![key, value, now_seconds() + ttl, now_seconds(), size as i64]).map_err(|e| e.to_string())?;
-        loop {
-            let (bytes, count): (i64, i64) = tx
-                .query_row(
-                    "SELECT COALESCE(SUM(bytes),0),COUNT(*) FROM runtime_lyrics",
-                    [],
-                    |r| Ok((r.get(0)?, r.get(1)?)),
-                )
+        tx.execute(
+            &format!(
+                "INSERT INTO {table}(key,value,expires,accessed,bytes) VALUES(?1,?2,?3,?4,?5)
+            ON CONFLICT(key) DO UPDATE SET value=excluded.value,expires=excluded.expires,accessed=excluded.accessed,bytes=excluded.bytes"
+            ),
+            params![
+                key,
+                value,
+                expires.unwrap_or(i64::MAX),
+                now_millis(),
+                size as i64
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+        prune_lyrics(&tx, table, max_bytes)?;
+        tx.commit().map_err(|e| e.to_string())?;
+        if scope == LyricCacheScope::Persistent {
+            db.execute_batch("PRAGMA incremental_vacuum(32)")
                 .map_err(|e| e.to_string())?;
-            if bytes <= LYRIC_CACHE_BYTES && count <= 2000 {
-                break;
-            }
-            tx.execute("DELETE FROM runtime_lyrics WHERE key=(SELECT key FROM runtime_lyrics ORDER BY accessed,key LIMIT 1)", []).map_err(|e| e.to_string())?;
         }
+        Ok(())
+    }
+
+    pub fn prune_lyric_cache(&self, max_bytes: i64) -> AppResult<()> {
+        let mut db = self
+            .0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.prune_lyric_cache.lock", error);
+            })
+            .map_err(|_| "歌词缓存锁不可用")?;
+        let tx = db.transaction().map_err(|e| e.to_string())?;
+        prune_lyrics(&tx, LyricCacheScope::Persistent.table(), max_bytes)?;
         tx.commit().map_err(|e| e.to_string())?;
         db.execute_batch("PRAGMA incremental_vacuum(32)")
             .map_err(|e| e.to_string())
     }
 
-    pub fn invalidate_lyrics(&self, key: &str) -> AppResult<()> {
+    pub fn lyric_cache_usage(&self) -> AppResult<(i64, i64)> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.lyric_cache_usage.lock", error);
+            })
+            .map_err(|_| "歌词缓存锁不可用")?
+            .query_row(
+                "SELECT COALESCE(SUM(bytes),0),COUNT(*) FROM lyric_cache_v1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn invalidate_lyrics(&self, scope: LyricCacheScope, key: &str) -> AppResult<()> {
         self.0
             .lock()
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn("storage.invalidate_lyrics.lock", error);
             })
             .map_err(|_| "歌词缓存锁不可用")?
-            .execute("DELETE FROM runtime_lyrics WHERE key=?1", [key])
+            .execute(
+                &format!("DELETE FROM {} WHERE key=?1", scope.table()),
+                [key],
+            )
             .map_err(|e| e.to_string())?;
         Ok(())
     }
 
-    pub fn clear_runtime_lyrics(&self) -> AppResult<()> {
-        self.0
+    pub fn clear_lyric_cache(&self, scope: LyricCacheScope) -> AppResult<()> {
+        let db = self
+            .0
             .lock()
             .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn(
-                    "storage.clear_runtime_lyrics.lock",
-                    error,
-                );
+                crate::infrastructure::diagnostics::warn("storage.clear_lyric_cache.lock", error);
             })
-            .map_err(|_| "歌词缓存锁不可用")?
-            .execute("DELETE FROM runtime_lyrics", [])
+            .map_err(|_| "歌词缓存锁不可用")?;
+        db.execute(&format!("DELETE FROM {}", scope.table()), [])
             .map_err(|e| e.to_string())?;
+        if scope == LyricCacheScope::Persistent {
+            db.execute_batch("PRAGMA incremental_vacuum(32)")
+                .map_err(|e| e.to_string())?;
+        }
         Ok(())
+    }
+}
+
+fn prune_lyrics(tx: &rusqlite::Transaction<'_>, table: &str, max_bytes: i64) -> AppResult<()> {
+    loop {
+        let (bytes, count): (i64, i64) = tx
+            .query_row(
+                &format!("SELECT COALESCE(SUM(bytes),0),COUNT(*) FROM {table}"),
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+        if bytes <= max_bytes || count == 0 {
+            return Ok(());
+        }
+        tx.execute(
+            &format!(
+                "DELETE FROM {table} WHERE key=(SELECT key FROM {table} ORDER BY accessed,key LIMIT 1)"
+            ),
+            [],
+        )
+        .map_err(|e| e.to_string())?;
     }
 }
 
@@ -531,11 +627,20 @@ mod tests {
     }
     use super::*;
     #[test]
-    fn absence_and_expired_lyrics_are_distinct() {
+    fn absence_expiry_and_permanent_results_are_distinct() {
         let store = Store::initialize(Connection::open_in_memory().unwrap()).unwrap();
-        assert!(store.cached_lyrics("amll:1").unwrap().is_none());
-        store.cache_lyrics("amll:1", None, 86400).unwrap();
-        let miss = store.cached_lyrics("amll:1").unwrap().unwrap();
+        let scope = LyricCacheScope::Persistent;
+        assert!(store.cached_lyrics(scope, "amll:1").unwrap().is_none());
+        store
+            .cache_lyrics(
+                scope,
+                "amll:1",
+                None,
+                Some(now_seconds() + 86400),
+                1024 * 1024,
+            )
+            .unwrap();
+        let miss = store.cached_lyrics(scope, "amll:1").unwrap().unwrap();
         assert!(miss.fresh && miss.value.is_none());
         let lyrics = Lyrics {
             match_score: None,
@@ -545,9 +650,27 @@ mod tests {
             translation: None,
             romanization: None,
         };
-        store.cache_lyrics("amll:2", Some(&lyrics), -1).unwrap();
-        let stale = store.cached_lyrics("amll:2").unwrap().unwrap();
+        store
+            .cache_lyrics(
+                scope,
+                "amll:2",
+                Some(&lyrics),
+                Some(now_seconds() - 1),
+                1024 * 1024,
+            )
+            .unwrap();
+        let stale = store.cached_lyrics(scope, "amll:2").unwrap().unwrap();
         assert!(!stale.fresh && stale.value.is_some());
+        store
+            .cache_lyrics(scope, "amll:3", Some(&lyrics), None, 1024 * 1024)
+            .unwrap();
+        let permanent = store.cached_lyrics(scope, "amll:3").unwrap().unwrap();
+        assert!(permanent.fresh && permanent.value.is_some());
+        let session = LyricCacheScope::Session;
+        store
+            .cache_lyrics(session, "amll:4", Some(&lyrics), None, 1024 * 1024)
+            .unwrap();
+        assert!(store.cached_lyrics(session, "amll:4").unwrap().is_some());
     }
     #[test]
     fn listening_statistics_accumulate_seconds_days_and_plays() {
@@ -590,7 +713,18 @@ mod tests {
             translation: None,
             romanization: None,
         };
-        assert!(store.cache_lyrics("amll:1", Some(&lyrics), 1).is_err());
-        assert!(store.cached_lyrics("amll:1").unwrap().is_none());
+        assert!(store
+            .cache_lyrics(
+                LyricCacheScope::Persistent,
+                "amll:1",
+                Some(&lyrics),
+                None,
+                1024 * 1024
+            )
+            .is_err());
+        assert!(store
+            .cached_lyrics(LyricCacheScope::Persistent, "amll:1")
+            .unwrap()
+            .is_none());
     }
 }

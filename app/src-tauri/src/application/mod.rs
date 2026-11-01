@@ -1,6 +1,6 @@
+use crate::lyrics::lyric_cache;
 use crate::{
-    fonts, hitokoto, library, local_folders, local_library, lyrics, model, player, plugins,
-    storage, ttml_cache,
+    fonts, hitokoto, library, local_folders, local_library, lyrics, model, player, plugins, storage,
 };
 
 use crate::platform::main_webview;
@@ -26,7 +26,7 @@ pub(crate) struct Backend {
     pub(crate) covers: PathBuf,
     pub(crate) cover_rebuild: Arc<crate::local::cover_rebuild::RebuildJob>,
     pub(crate) fallback_cover: String,
-    pub(crate) cache: Arc<ttml_cache::TtmlCache>,
+    pub(crate) cache: Arc<lyric_cache::LyricCache>,
     pub(crate) folders: Arc<local_folders::LocalFolders>,
     pub(crate) cover_client: reqwest::Client,
     pub(crate) cover_requests: Arc<tokio::sync::Semaphore>,
@@ -288,7 +288,7 @@ async fn discovery_hitokoto(backend: State<'_, Backend>) -> AppResult<String> {
 }
 
 #[tauri::command]
-async fn local_cache_status(backend: State<'_, Backend>) -> AppResult<ttml_cache::CacheStatus> {
+async fn local_cache_status(backend: State<'_, Backend>) -> AppResult<lyric_cache::CacheStatus> {
     let cache = backend.cache.clone();
     tauri::async_runtime::spawn_blocking(move || cache.status())
         .await
@@ -296,7 +296,7 @@ async fn local_cache_status(backend: State<'_, Backend>) -> AppResult<ttml_cache
 }
 #[tauri::command]
 async fn set_local_cache_options(
-    options: ttml_cache::CacheOptions,
+    options: lyric_cache::CacheOptions,
     backend: State<'_, Backend>,
 ) -> AppResult<()> {
     let cache = backend.cache.clone();
@@ -928,7 +928,7 @@ pub fn run() {
                     music.adapters.clone(),
                 )?,
             ));
-            let cache = Arc::new(ttml_cache::TtmlCache::new(store.clone(), cache_directory)?);
+            let cache = Arc::new(lyric_cache::LyricCache::new(store.clone())?);
             let lyrics = Arc::new(lyrics::LyricService::new(
                 store.clone(),
                 netease.clone(),

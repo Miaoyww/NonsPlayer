@@ -109,9 +109,8 @@ const groups: SearchGroup[] = [
     section: 'local-cache',
     path: '本地与缓存 / 歌词缓存',
     items: [
-      ['local-cache-enabled', '保存歌词缓存', '歌词 离线 TTML'],
+      ['local-cache-enabled', '保存歌词缓存', '歌词 离线 缓存'],
       ['cache-limit', '歌词缓存大小上限', '容量 MB 清理'],
-      ['cache-directory', '歌词缓存目录', '路径 更改 迁移'],
       ['cache-cleanup', '歌词缓存占用与清理', '清空 删除 刷新 容量']
     ]
   },

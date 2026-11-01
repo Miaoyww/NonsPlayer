@@ -11,7 +11,6 @@ import {
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-dialog'
 import { RefreshCw } from 'lucide-react'
 import { nativeCall, errorText } from '@/lib/player'
 import { useLocalOptions } from '@/features/local/use-local-options'
@@ -25,7 +24,6 @@ import { CoverRebuildSettings } from '@/features/local/cover-rebuild-settings'
 interface CacheOptions {
   enabled: boolean
   maxMb: number
-  directory: string
 }
 interface CacheStatus {
   options: CacheOptions
@@ -165,7 +163,7 @@ export function LocalCachePage() {
         <SettingsCard
           searchId="local-cache-enabled"
           title="保存歌词缓存"
-          description="保存 TTML 歌词，加快加载并支持离线读取。"
+          description="保存歌词正文，加快加载并支持离线读取。"
         >
           <label className="flex items-center gap-2 text-sm">
             <Switch
@@ -223,45 +221,14 @@ export function LocalCachePage() {
           </form>
         </SettingsCard>
         <SettingsCard
-          searchId="cache-directory"
-          title="歌词缓存目录"
-          description={
-            options
-              ? `${options.directory}${options.directory.endsWith('/') || options.directory.endsWith('\\') ? '' : '/'}nons-cache-v1`
-              : desktop
-                ? '正在读取缓存目录…'
-                : '默认应用缓存目录'
-          }
-        >
-          <Button
-            variant="outline"
-            disabled={disabled}
-            onClick={() =>
-              void perform(async () => {
-                const directory = await open({
-                  directory: true,
-                  multiple: false,
-                  title: '选择歌词缓存目录'
-                })
-                if (typeof directory === 'string')
-                  await nativeCall('set_local_cache_options', {
-                    options: { ...options, directory }
-                  })
-              }, '缓存目录已更新，已有 TTML 歌词已迁移。')
-            }
-          >
-            更改
-          </Button>
-        </SettingsCard>
-        <SettingsCard
           searchId="cache-cleanup"
           title="歌词缓存占用与清理"
           description={
             status
-              ? `TTML 歌词占用 ${(status.usedBytes / 1024 / 1024).toFixed(2)} MB · ${status.entries} 份歌词`
+              ? `歌词占用 ${(status.usedBytes / 1024 / 1024).toFixed(2)} MB · ${status.entries} 份歌词`
               : desktop
                 ? '正在统计缓存占用…'
-                : 'TTML 歌词占用 0 MB'
+                : '歌词占用 0 MB'
           }
         >
           <div className="flex gap-2">
@@ -280,7 +247,7 @@ export function LocalCachePage() {
               className="text-destructive"
               disabled={disabled || status?.entries === 0}
               onClick={() =>
-                void perform(() => nativeCall('clear_local_cache'), 'TTML 缓存已清空。')
+                void perform(() => nativeCall('clear_local_cache'), '歌词缓存已清空。')
               }
             >
               清空歌词缓存

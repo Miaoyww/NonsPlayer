@@ -19,7 +19,7 @@ use discovery::hitokoto;
 use infrastructure::{storage, wasm_runtime};
 use local::{encoded_audio, playback_resource};
 use local::{library, local_folders, local_library};
-use lyrics::{lyric_matching, netease_lyrics, qq_lyrics, qrc_decrypt, ttml_cache};
+use lyrics::{lyric_matching, netease_lyrics, qq_lyrics, qrc_decrypt};
 use platform::fonts;
 use playback::{audio, media, player};
 

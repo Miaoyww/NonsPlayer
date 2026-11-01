@@ -78,12 +78,12 @@ impl LyricService {
             serde_json::to_string(candidate).map_err(|e| e.to_string())?
         );
         if refresh {
-            self.disk.refresh_lyrics(&[&key])?;
+            self.cache.refresh_lyrics(&[&key])?;
         }
-        if let Some(cached) = self.store.cached_lyrics(&key)?.filter(|v| v.fresh) {
+        if let Some(cached) = self.cache.get(&key)?.filter(|v| v.fresh) {
             return Ok(cached.value);
         }
-        let generation = self.disk.generation();
+        let generation = self.cache.generation();
         let _permit = self
             .correction_requests
             .try_acquire()
@@ -110,10 +110,10 @@ impl LyricService {
             }
         }
         // A failure is never cached as absence. Explicit selections never fall back to another recording.
-        self.disk.cache_result(
+        self.cache.cache_result(
             &key,
             value.as_ref(),
-            if value.is_some() { 600 } else { 86400 },
+            value.is_none().then_some(86400),
             generation,
         )?;
         Ok(value)
@@ -201,7 +201,7 @@ pub fn set_lyric_correction(
     if let Some(candidate) = &correction.candidate {
         candidate.validate()?;
     }
-    backend.lyrics.disk.set_lyric_setting(
+    backend.lyrics.cache.set_lyric_setting(
         &setting_key(&key),
         &serde_json::to_string(&correction).map_err(|e| e.to_string())?,
     )?;
@@ -235,7 +235,9 @@ mod tests {
             store
                 .set_setting(&key, &serde_json::to_string(&choice).unwrap())
                 .unwrap();
-            store.clear_runtime_lyrics().unwrap();
+            store
+                .clear_lyric_cache(crate::storage::LyricCacheScope::Session)
+                .unwrap();
         }
         let store = Store::open(&path).unwrap();
         assert_eq!(

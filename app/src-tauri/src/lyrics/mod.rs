@@ -2,19 +2,19 @@ mod amll;
 pub(crate) mod correction;
 mod identity;
 pub(crate) mod local_lyrics;
+pub(crate) mod lyric_cache;
 pub(crate) mod lyric_matching;
 pub(crate) mod media_metadata;
 pub(crate) mod netease_lyrics;
 pub(crate) mod qq_lyrics;
 pub(crate) mod qrc_decrypt;
-pub(crate) mod ttml_cache;
 
 use crate::{
     model::{AppResult, Lyrics, Track, TrackSource},
     netease::Netease,
     storage::{now_seconds, Store, MAX_LYRIC_BYTES},
-    ttml_cache::TtmlCache,
 };
+use lyric_cache::LyricCache;
 use quick_xml::{events::Event, Reader};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -25,7 +25,6 @@ use std::{
 };
 use tauri::Emitter;
 
-const FOUND_TTL: i64 = 600;
 const MISS_TTL: i64 = 86400;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -61,7 +60,7 @@ pub struct LyricService {
     client: reqwest::Client,
     refreshing: Mutex<HashSet<String>>,
     retry_after: Mutex<HashMap<String, i64>>,
-    disk: Arc<TtmlCache>,
+    cache: Arc<LyricCache>,
     correction_requests: tokio::sync::Semaphore,
 }
 
@@ -93,7 +92,7 @@ impl LyricService {
             .transpose()?
             .unwrap_or_default();
         configured.insert(platform, endpoints);
-        self.disk.set_lyric_setting(
+        self.cache.set_lyric_setting(
             "lyricEndpointsV2",
             &serde_json::to_string(&configured).map_err(|e| e.to_string())?,
         )?;
@@ -109,7 +108,7 @@ impl LyricService {
     }
 
     pub fn set_sources(&self, sources: LyricSources) -> AppResult<()> {
-        self.disk
+        self.cache
             .set_lyric_sources(&serde_json::to_string(&sources).map_err(|e| e.to_string())?)?;
         self.retry_after
             .lock()
@@ -120,7 +119,11 @@ impl LyricService {
             .clear();
         Ok(())
     }
-    pub fn new(store: Arc<Store>, netease: Arc<Netease>, disk: Arc<TtmlCache>) -> AppResult<Self> {
+    pub fn new(
+        store: Arc<Store>,
+        netease: Arc<Netease>,
+        cache: Arc<LyricCache>,
+    ) -> AppResult<Self> {
         let client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .user_agent("NonsPlayer/0.1")
@@ -134,7 +137,7 @@ impl LyricService {
             client,
             refreshing: Mutex::new(HashSet::new()),
             retry_after: Mutex::new(HashMap::new()),
-            disk,
+            cache,
             correction_requests: tokio::sync::Semaphore::new(2),
         })
     }
@@ -147,12 +150,12 @@ impl LyricService {
         app: tauri::AppHandle,
     ) -> AppResult<Option<Lyrics>> {
         if let Some(candidate) = self.correction(&track.key)?.candidate {
-            let generation = self.disk.generation();
+            let generation = self.cache.generation();
             let value = self
                 .candidate_lyrics(&candidate, skips.qrc, refresh)
                 .await?;
             // Refresh advances the cache generation once. A later setting change invalidates delivery.
-            if self.disk.generation() != generation + u64::from(refresh)
+            if self.cache.generation() != generation + u64::from(refresh)
                 || self.correction(&track.key)?.candidate.as_ref() != Some(&candidate)
             {
                 return Ok(None);
@@ -164,13 +167,13 @@ impl LyricService {
         } else {
             vec![" / ".into()]
         };
-        let generation = self.disk.generation() + u64::from(refresh);
+        let generation = self.cache.generation() + u64::from(refresh);
         let requested = serde_json::to_vec(&track).map_err(|e| e.to_string())?;
         let key = track.key.clone();
         let value = self
             .get_online(track, refresh, skips, separators, app)
             .await?;
-        if self.disk.generation() != generation
+        if self.cache.generation() != generation
             || self
                 .store
                 .track(&key)
@@ -244,7 +247,7 @@ impl LyricService {
         let search_key = format!("netease:search-v1:{digest}");
         let qq_key = if skips.qrc { &lrc_key } else { &qrc_key };
         if refresh {
-            self.disk
+            self.cache
                 .refresh_lyrics(&[&amll_key, &ncm_key, &qrc_key, &lrc_key, &search_key])?;
             let mut retries = self
                 .retry_after
@@ -259,16 +262,16 @@ impl LyricService {
             retries.remove(&search_key);
         }
         if let Some(request) = amll_request.filter(|_| sources.amll && !skips.amll) {
-            // Disk failure is a cache miss; it must never prevent online fallback.
-            if let Some(cached) = self.store.cached_lyrics(&amll_key)?.or_else(|| {
-                self.disk
-                    .get(&amll_key)
-                    .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("lyrics.amll.cache_read", error);
-                    })
-                    .ok()
-                    .flatten()
-            }) {
+            // A cache read failure is a miss; it must never prevent online fallback.
+            let cached = self
+                .cache
+                .get(&amll_key)
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("lyrics.amll.cache_read", error);
+                })
+                .ok()
+                .flatten();
+            if let Some(cached) = cached {
                 if let Some(value) = cached.value {
                     if !cached.fresh {
                         let mut refreshing = self
@@ -284,7 +287,7 @@ impl LyricService {
                         if refreshing.insert(amll_key.clone()) {
                             let this = Arc::clone(self);
                             let refreshed_track = track.clone();
-                            let generation = self.disk.generation();
+                            let generation = self.cache.generation();
                             let request = request.clone();
                             let cache_key = amll_key.clone();
                             tauri::async_runtime::spawn(async move {
@@ -343,13 +346,13 @@ impl LyricService {
         }
         let fallback = if id.is_some() {
             if !refresh {
-                if let Some(cached) = self.store.cached_lyrics(&ncm_key)? {
+                if let Some(cached) = self.cache.get(&ncm_key)? {
                     if cached.fresh {
                         return Ok(cached.value.or(preferred));
                     }
                 }
             }
-            let generation = self.disk.generation();
+            let generation = self.cache.generation();
             let budget = Duration::from_secs(12)
                 .saturating_sub(started.elapsed())
                 .min(Duration::from_secs(6));
@@ -373,10 +376,10 @@ impl LyricService {
             };
             match tokio::time::timeout(budget, fetch).await {
                 Ok(Ok(value)) => {
-                    let _ = (self.disk.cache_result(
+                    let _ = (self.cache.cache_result(
                         &ncm_key,
                         value.as_ref(),
-                        if value.is_some() { FOUND_TTL } else { MISS_TTL },
+                        value.is_none().then_some(MISS_TTL),
                         generation,
                     ))
                     .inspect_err(|error| {
@@ -385,7 +388,7 @@ impl LyricService {
                             error,
                         );
                     });
-                    if generation != self.disk.generation() {
+                    if generation != self.cache.generation() {
                         return Ok(None);
                     }
                     value
@@ -436,7 +439,7 @@ impl LyricService {
         separators: &[String],
         app: tauri::AppHandle,
     ) -> AppResult<Option<Lyrics>> {
-        if let Some(cached) = self.store.cached_lyrics(key)? {
+        if let Some(cached) = self.cache.get(key)? {
             if cached.fresh {
                 return Ok(cached.value);
             }
@@ -453,7 +456,7 @@ impl LyricService {
                     .map_err(|_| "歌词状态不可用")?;
                 if refreshing.insert(key.into()) {
                     let this = Arc::clone(self);
-                    let generation = self.disk.generation();
+                    let generation = self.cache.generation();
                     let track = track.clone();
                     let key = key.to_owned();
                     let separators = separators.to_vec();
@@ -492,7 +495,7 @@ impl LyricService {
         key: &str,
         separators: &[String],
     ) -> AppResult<Option<Lyrics>> {
-        let generation = self.disk.generation();
+        let generation = self.cache.generation();
         if self
             .retry_after
             .lock()
@@ -507,10 +510,10 @@ impl LyricService {
         }
         match crate::netease_lyrics::lookup(&self.netease, track, separators).await {
             Ok(value) => {
-                let _ = (self.disk.cache_result(
+                let _ = (self.cache.cache_result(
                     key,
                     value.as_ref(),
-                    if value.is_some() { FOUND_TTL } else { MISS_TTL },
+                    value.is_none().then_some(MISS_TTL),
                     generation,
                 ))
                 .inspect_err(|error| {
@@ -519,7 +522,7 @@ impl LyricService {
                         error,
                     );
                 });
-                if generation != self.disk.generation() {
+                if generation != self.cache.generation() {
                     return Ok(None);
                 }
                 Ok(value)
@@ -537,7 +540,7 @@ impl LyricService {
                     })
                     .map_err(|_| "歌词状态不可用")?;
                 retries.retain(|_, t| *t > now_seconds());
-                if generation == self.disk.generation() && retries.len() < 2000 {
+                if generation == self.cache.generation() && retries.len() < 2000 {
                     retries.insert(key.into(), now_seconds() + 30);
                 }
                 Ok(None)
@@ -553,7 +556,7 @@ impl LyricService {
         separators: &[String],
         app: tauri::AppHandle,
     ) -> AppResult<Option<Lyrics>> {
-        if let Some(cached) = self.store.cached_lyrics(key)? {
+        if let Some(cached) = self.cache.get(key)? {
             if cached.fresh {
                 return Ok(cached.value);
             }
@@ -570,7 +573,7 @@ impl LyricService {
                     .map_err(|_| "歌词状态不可用")?;
                 if refreshing.insert(key.into()) {
                     let this = Arc::clone(self);
-                    let generation = self.disk.generation();
+                    let generation = self.cache.generation();
                     let track = track.clone();
                     let cache_key = key.to_owned();
                     let separators = separators.to_vec();
@@ -610,7 +613,7 @@ impl LyricService {
         skip_qrc: bool,
         separators: &[String],
     ) -> AppResult<Option<Lyrics>> {
-        let generation = self.disk.generation();
+        let generation = self.cache.generation();
         if self
             .retry_after
             .lock()
@@ -625,16 +628,16 @@ impl LyricService {
         }
         match crate::qq_lyrics::lookup(&self.client, track, skip_qrc, separators).await {
             Ok(value) => {
-                let _ = (self.disk.cache_result(
+                let _ = (self.cache.cache_result(
                     key,
                     value.as_ref(),
-                    if value.is_some() { FOUND_TTL } else { MISS_TTL },
+                    value.is_none().then_some(MISS_TTL),
                     generation,
                 ))
                 .inspect_err(|error| {
                     crate::infrastructure::diagnostics::warn("lyrics.qq.cache.store", error);
                 });
-                if generation != self.disk.generation() {
+                if generation != self.cache.generation() {
                     return Ok(None);
                 }
                 Ok(value)
@@ -649,7 +652,7 @@ impl LyricService {
                     })
                     .map_err(|_| "歌词状态不可用")?;
                 retries.retain(|_, t| *t > now_seconds());
-                if generation == self.disk.generation() && retries.len() < 2000 {
+                if generation == self.cache.generation() && retries.len() < 2000 {
                     retries.insert(key.into(), now_seconds() + 30);
                 }
                 Ok(None)
@@ -658,7 +661,7 @@ impl LyricService {
     }
 
     async fn update_amll(&self, request: &amll::Request) -> AppResult<Option<Lyrics>> {
-        let generation = self.disk.generation();
+        let generation = self.cache.generation();
         let key = request.key()?;
         if self
             .retry_after
@@ -675,25 +678,26 @@ impl LyricService {
         match request.lookup(&self.client).await {
             Lookup::Found(lyrics) => {
                 let _ = (self
-                    .disk
-                    .cache_result(&key, Some(&lyrics), FOUND_TTL, generation))
+                    .cache
+                    .cache_result(&key, Some(&lyrics), None, generation))
                 .inspect_err(|error| {
                     crate::infrastructure::diagnostics::warn("lyrics.amll.cache.store", error);
                 });
-                if generation != self.disk.generation() {
+                if generation != self.cache.generation() {
                     return Ok(None);
                 }
                 Ok(Some(lyrics))
             }
             Lookup::Missing => {
-                let _ = (self.disk.cache_result(&key, None, MISS_TTL, generation)).inspect_err(
-                    |error| {
-                        crate::infrastructure::diagnostics::warn(
-                            "lyrics.amll.cache.store_absence",
-                            error,
-                        );
-                    },
-                );
+                let _ = (self
+                    .cache
+                    .cache_result(&key, None, Some(MISS_TTL), generation))
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn(
+                        "lyrics.amll.cache.store_absence",
+                        error,
+                    );
+                });
                 Ok(None)
             }
             Lookup::Failed => {
@@ -705,7 +709,7 @@ impl LyricService {
                     })
                     .map_err(|_| "歌词状态不可用")?;
                 retries.retain(|_, t| *t > now_seconds());
-                if generation == self.disk.generation() && retries.len() < 2000 {
+                if generation == self.cache.generation() && retries.len() < 2000 {
                     retries.insert(key, now_seconds() + 30);
                 }
                 Ok(None)
@@ -714,7 +718,7 @@ impl LyricService {
     }
 
     fn emit_update(&self, track: &Track, generation: u64, lyrics: Lyrics, app: &tauri::AppHandle) {
-        if self.disk.generation() != generation {
+        if self.cache.generation() != generation {
             return;
         }
         let current = self
