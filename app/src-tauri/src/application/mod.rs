@@ -395,6 +395,13 @@ fn player_snapshot(
 }
 
 #[tauri::command]
+fn listening_statistics(
+    backend: State<'_, Backend>,
+) -> AppResult<crate::model::ListeningStatistics> {
+    backend.store.listening_statistics()
+}
+
+#[tauri::command]
 fn remove_queue_track(index: usize, key: String, backend: State<'_, Backend>) -> AppResult<()> {
     backend.player.send(Command::Remove(index, key))
 }
@@ -1126,6 +1133,7 @@ pub fn run() {
             plugins::plugin_fault,
             fonts::system_fonts,
             player_snapshot,
+            listening_statistics,
             crate::music::settings::adapter_list,
             crate::music::settings::adapter_set_enabled,
             crate::music::settings::adapter_reload,

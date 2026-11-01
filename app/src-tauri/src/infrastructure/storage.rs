@@ -1,4 +1,4 @@
-use crate::model::{AppResult, Lyrics, PlayerSnapshot, Track};
+use crate::model::{AppResult, ListeningStatistics, Lyrics, PlayerSnapshot, Track};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::{
     path::Path,
@@ -54,6 +54,7 @@ impl Store {
             );
             CREATE TABLE IF NOT EXISTS playback_totals (id INTEGER PRIMARY KEY CHECK(id=1), play_count INTEGER NOT NULL);
             INSERT OR IGNORE INTO playback_totals(id, play_count) VALUES(1, 0);
+            CREATE TABLE IF NOT EXISTS listening_days (day TEXT PRIMARY KEY, seconds INTEGER NOT NULL DEFAULT 0);
             CREATE TABLE IF NOT EXISTS local_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS local_entities (kind TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, cover TEXT NOT NULL, subtitle TEXT NOT NULL, PRIMARY KEY(kind,id));
             CREATE TABLE IF NOT EXISTS local_members (key TEXT NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY(key,kind,id));
@@ -69,6 +70,17 @@ impl Store {
                         AND json_extract(c.value,'$.source.cue') IS NOT NULL));
             ").map_err(|e| e.to_string())?;
         connection.execute_batch("CREATE TABLE IF NOT EXISTS local_cover_state (key TEXT PRIMARY KEY, signature TEXT NOT NULL, embedded TEXT NOT NULL)").map_err(|e| e.to_string())?;
+        let recorded_days: i64 = connection
+            .query_row("SELECT COUNT(*) FROM listening_days", [], |row| row.get(0))
+            .map_err(|e| e.to_string())?;
+        if recorded_days == 0 {
+            connection
+                .execute_batch(
+                    "INSERT OR IGNORE INTO listening_days(day, seconds)
+                     SELECT date(started_at,'unixepoch','localtime'), 0 FROM playback_history GROUP BY 1",
+                )
+                .map_err(|e| e.to_string())?;
+        }
         crate::local_library::initialize_index(&connection)?;
         crate::aggregate::initialize(&connection).map_err(|e| e.to_string())?;
         crate::music::collections::store::initialize(&connection).map_err(|e| e.to_string())?;
@@ -93,9 +105,53 @@ impl Store {
                 [],
             )
             .map_err(|e| e.to_string())?;
+            tx.execute(
+                "INSERT OR IGNORE INTO listening_days(day, seconds) VALUES(date(?1,'unixepoch','localtime'), 0)",
+                params![started_at],
+            )
+            .map_err(|e| e.to_string())?;
         }
         tx.commit().map_err(|e| e.to_string())?;
         Ok(inserted > 0)
+    }
+
+    pub fn add_listening_seconds(&self, at: i64, seconds: i64) -> AppResult<()> {
+        if seconds <= 0 {
+            return Ok(());
+        }
+        self.0
+            .lock()
+            .map_err(|_| "曲库锁不可用")?
+            .execute(
+                "INSERT INTO listening_days(day, seconds) VALUES(date(?1,'unixepoch','localtime'), ?2)
+                 ON CONFLICT(day) DO UPDATE SET seconds = seconds + excluded.seconds",
+                params![at, seconds],
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn listening_statistics(&self) -> AppResult<ListeningStatistics> {
+        let db = self.0.lock().map_err(|_| "曲库锁不可用")?;
+        let (seconds, days) = db
+            .query_row(
+                "SELECT COALESCE(SUM(seconds), 0), COUNT(*) FROM listening_days",
+                [],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+        let plays = db
+            .query_row(
+                "SELECT play_count FROM playback_totals WHERE id=1",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(ListeningStatistics {
+            seconds,
+            days,
+            plays,
+        })
     }
 
     pub fn playback_count(&self) -> AppResult<i64> {
@@ -493,6 +549,36 @@ mod tests {
         let stale = store.cached_lyrics("amll:2").unwrap().unwrap();
         assert!(!stale.fresh && stale.value.is_some());
     }
+    #[test]
+    fn listening_statistics_accumulate_seconds_days_and_plays() {
+        use crate::model::TrackSource;
+        let store = Store::initialize(Connection::open_in_memory().unwrap()).unwrap();
+        let track = Track {
+            key: "local:a".into(),
+            title: "A".into(),
+            aliases: vec![],
+            artist: "".into(),
+            artists: vec![],
+            album: "".into(),
+            duration_ms: 1000,
+            cover: "".into(),
+            source: TrackSource::Local {
+                path: "a.mp3".into(),
+                netease_id: None,
+                cue: None,
+            },
+        };
+        let at = 1_700_000_000;
+        assert!(store.record_playback("first", &track, at).unwrap());
+        assert!(!store.record_playback("first", &track, at).unwrap());
+        store.add_listening_seconds(at, 90).unwrap();
+        store.add_listening_seconds(at, 30).unwrap();
+        let statistics = store.listening_statistics().unwrap();
+        assert_eq!(statistics.seconds, 120);
+        assert_eq!(statistics.days, 1);
+        assert_eq!(statistics.plays, 1);
+    }
+
     #[test]
     fn large_lyrics_are_rejected_before_writing() {
         let store = Store::initialize(Connection::open_in_memory().unwrap()).unwrap();

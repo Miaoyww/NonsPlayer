@@ -19,9 +19,53 @@
 }
 .library-featured {
   display: grid;
-  grid-template-columns: minmax(0, 3.5fr) minmax(0, 6.5fr);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 5.5fr) minmax(210px, 2.3fr);
   gap: 36px;
   margin-top: 32px;
+}
+.library-stats {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  border-radius: 16px;
+  background: color-mix(in oklch, var(--muted) 40%, transparent);
+}
+.library-stats-heading {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.library-stats-list {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+.library-stats-list > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.library-stats-list dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.library-stats-list dd {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.library-stats-note {
+  color: var(--muted-foreground);
+  font-size: 13px;
 }
 .library-liked-card {
   position: relative;
@@ -462,6 +506,16 @@
     grid-template-columns: minmax(260px, 3.5fr) minmax(0, 6.5fr);
     gap: 24px;
   }
+  .library-stats {
+    grid-column: 1 / -1;
+  }
+  .library-stats-list {
+    flex-direction: row;
+    gap: 24px;
+  }
+  .library-stats-list > div {
+    flex: 1 1 0;
+  }
   .library-song-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -472,6 +526,17 @@
 @media (max-width: 700px) {
   .library-featured {
     grid-template-columns: 1fr;
+  }
+  .library-stats-list {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .library-stats-list > div {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
   }
   .library-cover-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

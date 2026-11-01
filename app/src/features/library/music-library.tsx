@@ -26,6 +26,7 @@ import { TrackArtists } from '@/components/music/music-links'
 import { AlbumCard } from '@/features/library/album-card'
 import { PlaylistCard } from '@/features/library/playlist-card'
 import { CollectionHeader } from '@/features/library/collection-header'
+import { ListeningStatisticsCard } from '@/features/library/listening-statistics-card'
 import { SongContextMenu } from '@/components/music/song-actions'
 import { TrackTitle } from '@/components/music/track-title'
 // Layout and interaction adapted from YesPlayMusic src/views/library.vue.
@@ -568,6 +569,7 @@ export default function MusicLibrary({
                 <p className="library-empty text-muted-foreground">喜欢的歌曲会出现在这里。</p>
               )}
             </div>
+            <ListeningStatisticsCard revision={currentKey} />
           </div>
           <div className="library-tabs-row">
             <div className="library-tabs" aria-label="音乐收藏分类">

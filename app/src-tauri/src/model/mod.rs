@@ -339,6 +339,14 @@ pub struct Progress {
     pub status: PlaybackStatus,
 }
 
+#[derive(Clone, Debug, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListeningStatistics {
+    pub seconds: i64,
+    pub days: i64,
+    pub plays: i64,
+}
+
 #[derive(Clone)]
 pub struct ResolvedTrack {
     pub decoded_audio: Option<std::sync::Arc<tempfile::NamedTempFile>>,

@@ -390,6 +390,8 @@ struct Actor {
     next_attempts: u8,
     last_tick: Instant,
     last_save: Instant,
+    listen_last: Instant,
+    listen_pending_ms: u64,
     play_instance_id: String,
     recorded_instance_id: Option<String>,
 }
@@ -597,6 +599,8 @@ impl Actor {
             next_attempts: 0,
             last_tick: Instant::now(),
             last_save: Instant::now(),
+            listen_last: Instant::now(),
+            listen_pending_ms: 0,
             play_instance_id: uuid::Uuid::new_v4().to_string(),
             recorded_instance_id: None,
         })
@@ -634,6 +638,7 @@ impl Actor {
                 self.last_save = Instant::now();
             }
         }
+        self.flush_listening();
         self.cancel_jobs();
         let _ = (self.store.save_player(&self.state)).inspect_err(|error| {
             crate::infrastructure::diagnostics::warn("playback.persist.snapshot", error);
@@ -1581,7 +1586,32 @@ impl Actor {
         }
     }
 
+    fn accumulate_listening(&mut self) {
+        let now = Instant::now();
+        let elapsed = now.saturating_duration_since(self.listen_last);
+        self.listen_last = now;
+        if self.desired_playing && self.state.status == PlaybackStatus::Playing {
+            // A suspended process reports a long gap; count at most the tick interval.
+            self.listen_pending_ms += elapsed.min(Duration::from_secs(1)).as_millis() as u64;
+            if self.listen_pending_ms >= 10_000 {
+                self.flush_listening();
+            }
+        } else if self.listen_pending_ms >= 1_000 {
+            self.flush_listening();
+        }
+    }
+
+    fn flush_listening(&mut self) {
+        let seconds = (self.listen_pending_ms / 1000) as i64;
+        if seconds == 0 {
+            return;
+        }
+        self.history.record_listening(seconds);
+        self.listen_pending_ms -= seconds as u64 * 1000;
+    }
+
     fn tick(&mut self) {
+        self.accumulate_listening();
         if self.state.playback_options.crossfade
             && self.desired_playing
             && self.state.status == PlaybackStatus::Playing

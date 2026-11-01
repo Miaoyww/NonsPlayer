@@ -54,6 +54,13 @@
   gap: 16px;
   padding: 16px 20px;
 }
+:where(.music-workspace[data-density='compact']) .library-stats {
+  gap: 10px;
+  padding: 16px 20px;
+}
+:where(.music-workspace[data-density='compact']) .library-stats-list {
+  gap: 10px;
+}
 :where(.music-workspace[data-density='compact']) .library-tabs-row {
   margin: 28px 0 16px;
 }
