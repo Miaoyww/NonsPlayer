@@ -4,16 +4,10 @@
 
 ## 发布前准备
 
-1. 同步 `app/package.json`、`app/src-tauri/tauri.conf.json`、`app/src-tauri/Cargo.toml` 与 `Cargo.lock` 中的应用版本。
-2. 将用户可见变化整理到 CHANGELOG 对应的 `## [版本]` 条目，保留 Unreleased 供下次开发使用。日期可写为 `## [版本] - YYYY-MM-DD`。
-3. 随包插件的 `engines.app` 兼容当前主版本；插件自身版本和 SDK/API 版本独立维护，不必与应用同步。
-4. 完成安装、账号、实际音频设备与依赖许可等发布前验收。无物理输出的解码与混音测试不替代实机安装和听音验证。
-5. 提交并推送以上改动，再创建和推送版本标签。例如在版本为 1.0.0 的提交上执行：
-
-```powershell
-git tag -a v1.0.0 -m "Nons 1.0.0"
-git push origin v1.0.0
-```
+1. 将本次用户可见变化、安装提示与已知限制写入 CHANGELOG 的 `## [Unreleased]`；脚本发布时在该标题下插入版本条目并沿用这些内容。
+2. 随包插件的 `engines.app` 兼容当前主版本；插件自身版本和 SDK/API 版本独立维护，不必与应用同步。
+3. 完成安装、账号、实际音频设备与依赖许可等发布前验收。无物理输出的解码与混音测试不替代实机安装和听音验证。
+4. 确认工作区干净后运行[一键发布脚本](#一键发布脚本)：脚本同步版本文件、生成头图、插入 CHANGELOG 版本标题与概述，并提交、推送分支和标签。
 
 不删除或移动已发布标签。失败后可在 GitHub Actions 中重新运行该标签的 workflow。
 
@@ -32,7 +26,7 @@ node scripts/release-version.mjs 1.10.0 --subtitle "插件与窗口体验更新"
 node scripts/release-version.mjs 1.10.0 --dry-run
 ```
 
-`--dry-run` 只生成临时预览 PNG 并打印改动范围，不写入仓库、不提交；`--yes` 跳过确认并使用当前头图文字与建议概述，适合完整参数的非交互运行。
+`--dry-run` 只生成临时预览 PNG 并打印改动范围，不写入仓库、不提交；`--yes` 跳过确认并对缺失项使用默认值或建议概述，适合完整参数的非交互运行。
 
 ## Release Notes 格式
 
