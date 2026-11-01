@@ -27,6 +27,8 @@ NonsPlayer的诞生离不开以下优秀产品的启发：
 
 ## 特别鸣谢
 
+- **[DARKNESS118](https://github.com/DARKNESS118)** - 为 NonsPlayer 提供了大量的测试与反馈。
+- **[Fervent-Tempo](https://github.com/Fervent-Tempo)** - 为 NonsPlayer 提供了大量的测试与反馈。
 - **[Zhuym](https://github.com/Zhuym07), [GooGuJiang](https://github.com/GooGuJiang)** - 为图标与 UI 设计提供重要帮助。
 - **[NeteaseCloudMusicApiEnhanced](https://github.com/NeteaseCloudMusicApiEnhanced/api-enhanced/)**
 - **[Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics)**
