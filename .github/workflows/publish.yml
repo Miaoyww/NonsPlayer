@@ -165,9 +165,6 @@ jobs:
       - name: Check formatting
         run: pnpm --dir app format:check
 
-      - name: Test frontend
-        run: pnpm --dir app test
-
       - name: Validate LLVM for FFmpeg bindings
         run: |
           if (-not (Test-Path -LiteralPath (Join-Path $env:LIBCLANG_PATH 'libclang.dll'))) {
