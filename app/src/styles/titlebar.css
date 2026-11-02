@@ -86,6 +86,7 @@
   inset: 0 0 auto;
 }
 .titlebar.glass-surface {
-  border-width: 0 0 1px;
-  box-shadow: 0 4px 20px rgb(0 0 0 / 5%);
+  border-width: 0;
+  /* No drop shadow: it tints the page below and breaks the shared background colour. */
+  box-shadow: none;
 }
