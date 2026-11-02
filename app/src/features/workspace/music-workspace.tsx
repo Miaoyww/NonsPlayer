@@ -12,6 +12,7 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { ErrorNotice } from '@/components/error-notice'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { FullscreenPlayer } from '@/features/lyrics/fullscreen-player'
+import { restoreDesktopLyrics } from '@/features/desktop-lyrics/state'
 import { connectPlayer, errorText, nativeCall, usePlayer } from '@/lib/player'
 import { ActionButton } from '@/components/music/action-button'
 import { MusicPage } from '@/components/music/music-page'
@@ -248,6 +249,12 @@ export function MusicWorkspace({
       stop?.()
     }
   }, [onError])
+
+  useEffect(() => {
+    void restoreDesktopLyrics().catch((cause) =>
+      reportCaughtError('app/src/features/workspace/music-workspace.tsx', cause)
+    )
+  }, [])
 
   useEffect(() => {
     if (!isTauri()) return

@@ -5,6 +5,8 @@ pub(crate) mod android;
 pub(crate) mod autostart;
 #[cfg(desktop)]
 pub(crate) mod desktop;
+#[cfg(desktop)]
+pub(crate) mod desktop_lyrics;
 pub(crate) mod fonts;
 #[cfg(desktop)]
 pub(crate) mod main_webview;

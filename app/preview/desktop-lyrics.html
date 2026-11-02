@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>桌面歌词效果预览 - Nons</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: 'Microsoft YaHei UI', 'Microsoft YaHei', system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body,
+      #root {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        overflow: hidden;
+        background: #08080c;
+        color: #f4f4f8;
+      }
+      .stage {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+        background:
+          radial-gradient(58% 70% at 18% 30%, rgb(255 92 138 / 55%), transparent 70%),
+          radial-gradient(52% 64% at 82% 20%, rgb(88 116 255 / 52%), transparent 72%),
+          radial-gradient(70% 80% at 60% 96%, rgb(0 208 190 / 32%), transparent 72%),
+          linear-gradient(160deg, #161426, #0a0a12 55%, #13111d);
+      }
+      .stage.checker {
+        background-color: #17171b;
+        background-image:
+          linear-gradient(45deg, #202027 25%, transparent 25%),
+          linear-gradient(-45deg, #202027 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #202027 75%),
+          linear-gradient(-45deg, transparent 75%, #202027 75%);
+        background-size: 28px 28px;
+        background-position:
+          0 0,
+          0 14px,
+          14px -14px,
+          -14px 0;
+      }
+      .stage::after {
+        position: absolute;
+        z-index: 1;
+        inset: 0;
+        background: linear-gradient(transparent 30%, rgb(0 0 0 / 45%));
+        content: '';
+        pointer-events: none;
+      }
+      .wallpaper-meta {
+        position: absolute;
+        top: 22px;
+        left: 26px;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: rgb(255 255 255 / 62%);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .wallpaper-meta::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #66e3b0;
+        box-shadow: 0 0 12px #66e3b0;
+        content: '';
+      }
+      .lyric-window {
+        position: absolute;
+        z-index: 2;
+        bottom: 16vh;
+        left: 50%;
+        width: min(1100px, 88vw);
+        overflow: hidden;
+        transform: translateX(-50%);
+      }
+      .lyric-window.outline {
+        border-radius: 10px;
+        outline: 1px dashed rgb(255 255 255 / 28%);
+        outline-offset: 4px;
+      }
+      .lyric-window .amll-lyric-player {
+        --amll-lp-color: #fff;
+        --amll-lp-font-size: var(--preview-font-size);
+        mix-blend-mode: normal;
+        text-shadow: 0 2px 14px rgb(0 0 0 / 45%);
+      }
+      .panel {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 5;
+        width: 268px;
+        padding: 16px;
+        border: 1px solid rgb(255 255 255 / 10%);
+        border-radius: 14px;
+        background: rgb(16 16 22 / 72%);
+        backdrop-filter: blur(18px);
+        font-size: 13px;
+      }
+      .panel h1 {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .panel p {
+        margin: 0 0 14px;
+        color: rgb(255 255 255 / 52%);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 9px 0;
+      }
+      .row label {
+        color: rgb(255 255 255 / 78%);
+      }
+      .row output {
+        color: rgb(255 255 255 / 46%);
+        font-variant-numeric: tabular-nums;
+      }
+      .row input[type='range'] {
+        width: 126px;
+        accent-color: #8d95ff;
+      }
+      .row input[type='checkbox'] {
+        width: 16px;
+        height: 16px;
+        accent-color: #8d95ff;
+      }
+      .buttons {
+        display: flex;
+        gap: 8px;
+        margin: 14px 0 4px;
+      }
+      .buttons button {
+        flex: 1;
+        padding: 8px 10px;
+        border: 1px solid rgb(255 255 255 / 12%);
+        border-radius: 8px;
+        background: rgb(255 255 255 / 8%);
+        color: #f4f4f8;
+        font: inherit;
+        cursor: pointer;
+      }
+      .buttons button:hover {
+        background: rgb(255 255 255 / 14%);
+      }
+      .buttons button.primary {
+        border-color: #7f87ff;
+        background: #7f87ff;
+        color: #0b0b12;
+        font-weight: 600;
+      }
+      .progress {
+        height: 4px;
+        margin-top: 12px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgb(255 255 255 / 10%);
+      }
+      .progress > div {
+        height: 100%;
+        background: linear-gradient(90deg, #8d95ff, #66e3b0);
+        transition: width 80ms linear;
+      }
+      .time {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 6px;
+        color: rgb(255 255 255 / 40%);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .hint {
+        position: absolute;
+        bottom: 22px;
+        left: 26px;
+        z-index: 2;
+        max-width: 420px;
+        color: rgb(255 255 255 / 44%);
+        font-size: 11px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./desktop-lyrics.tsx"></script>
+  </body>
+</html>

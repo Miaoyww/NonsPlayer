@@ -21,12 +21,12 @@ function apply() {
     settings.lyrics ? fontStack(settings.lyrics) : 'var(--nons-app-font)'
   )
 }
-export function initializeFontSettings() {
+function readSettings(): FontSettings {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(fontSettingsKey) ?? 'null')
     if (saved && typeof saved === 'object') {
       const value = saved as Partial<FontSettings>
-      settings = {
+      return {
         app: validFamily(value.app) ? value.app : '',
         lyrics: validFamily(value.lyrics) ? value.lyrics : ''
       }
@@ -36,7 +36,24 @@ export function initializeFontSettings() {
 
     /* Invalid or unavailable storage uses the default font. */
   }
+  return { app: '', lyrics: '' }
+}
+
+export function initializeFontSettings() {
+  settings = readSettings()
   apply()
+}
+
+// Font settings are stored per origin, so another window's change arrives as a storage event.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== null && event.key !== fontSettingsKey) return
+    const next = readSettings()
+    if (next.app === settings.app && next.lyrics === settings.lyrics) return
+    settings = next
+    apply()
+    listeners.forEach((notify) => notify())
+  })
 }
 export function getFontSettings() {
   return settings

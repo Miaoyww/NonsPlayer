@@ -12,58 +12,102 @@ export const minLyricsFontScale = 0.7
 export const maxLyricsFontScale = 1.6
 export const defaultLyricsFontScale = 1
 const listeners = new Set<() => void>()
-let backgroundSpeed = defaultBackgroundSpeed
-let lyricsOffsetMs = defaultLyricsOffsetMs
-let autoBlur = true
-let fontWeight = 400
-let fontScale = defaultLyricsFontScale
-try {
-  const stored = localStorage.getItem(storageKey)
-  const value = stored === null ? NaN : Number(stored)
-  if (Number.isFinite(value) && value >= 0 && value <= 4) backgroundSpeed = value
-} catch (cause) {
-  reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
 
-  /* Keep the default when storage is unavailable. */
+function readNumber(key: string, fallback: number, valid: (value: number) => boolean) {
+  try {
+    const stored = localStorage.getItem(key)
+    const value = stored === null ? NaN : Number(stored)
+    return valid(value) ? value : fallback
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
+    return fallback
+  }
 }
 
-try {
-  const stored = localStorage.getItem(offsetStorageKey)
-  const value = stored === null ? NaN : Number(stored)
-  if (Number.isInteger(value) && value >= -60000 && value <= 60000) lyricsOffsetMs = value
-} catch (cause) {
-  reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+function readBoolean(key: string, fallback: boolean) {
+  try {
+    const stored = localStorage.getItem(key)
+    return stored === 'true' || stored === 'false' ? stored === 'true' : fallback
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
 
-  /* Keep the default when storage is unavailable. */
+    return fallback
+  }
 }
 
-try {
-  const stored = localStorage.getItem(blurStorageKey)
-  if (stored === 'true' || stored === 'false') autoBlur = stored === 'true'
-} catch (cause) {
-  reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+let backgroundSpeed = readNumber(
+  storageKey,
+  defaultBackgroundSpeed,
+  (value) => Number.isFinite(value) && value >= 0 && value <= 4
+)
+let lyricsOffsetMs = readNumber(
+  offsetStorageKey,
+  defaultLyricsOffsetMs,
+  (value) => Number.isInteger(value) && value >= -60000 && value <= 60000
+)
+let autoBlur = readBoolean(blurStorageKey, true)
+let fontWeight = readNumber(
+  weightStorageKey,
+  400,
+  (value) => Number.isInteger(value) && value >= 100 && value <= 900
+)
+let fontScale = readNumber(
+  scaleStorageKey,
+  defaultLyricsFontScale,
+  (value) => Number.isFinite(value) && value >= minLyricsFontScale && value <= maxLyricsFontScale
+)
 
-  /* Keep the default when storage is unavailable. */
+// Settings are stored per origin, so another window's change arrives as a storage event.
+function reloadFromStorage() {
+  const nextBackgroundSpeed = readNumber(
+    storageKey,
+    defaultBackgroundSpeed,
+    (value) => Number.isFinite(value) && value >= 0 && value <= 4
+  )
+  const nextLyricsOffsetMs = readNumber(
+    offsetStorageKey,
+    defaultLyricsOffsetMs,
+    (value) => Number.isInteger(value) && value >= -60000 && value <= 60000
+  )
+  const nextAutoBlur = readBoolean(blurStorageKey, true)
+  const nextFontWeight = readNumber(
+    weightStorageKey,
+    400,
+    (value) => Number.isInteger(value) && value >= 100 && value <= 900
+  )
+  const nextFontScale = readNumber(
+    scaleStorageKey,
+    defaultLyricsFontScale,
+    (value) => Number.isFinite(value) && value >= minLyricsFontScale && value <= maxLyricsFontScale
+  )
+  if (
+    nextBackgroundSpeed === backgroundSpeed &&
+    nextLyricsOffsetMs === lyricsOffsetMs &&
+    nextAutoBlur === autoBlur &&
+    nextFontWeight === fontWeight &&
+    nextFontScale === fontScale
+  )
+    return
+  backgroundSpeed = nextBackgroundSpeed
+  lyricsOffsetMs = nextLyricsOffsetMs
+  autoBlur = nextAutoBlur
+  fontWeight = nextFontWeight
+  fontScale = nextFontScale
+  listeners.forEach((notify) => notify())
 }
 
-try {
-  const value = Number(localStorage.getItem(weightStorageKey))
-  if (Number.isInteger(value) && value >= 100 && value <= 900) fontWeight = value
-} catch (cause) {
-  reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
-
-  /* Keep the default when storage is unavailable. */
-}
-
-try {
-  const stored = localStorage.getItem(scaleStorageKey)
-  const value = stored === null ? NaN : Number(stored)
-  if (Number.isFinite(value) && value >= minLyricsFontScale && value <= maxLyricsFontScale)
-    fontScale = value
-} catch (cause) {
-  reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
-
-  /* Keep the default when storage is unavailable. */
+if (typeof window !== 'undefined') {
+  const keys = new Set([
+    storageKey,
+    offsetStorageKey,
+    blurStorageKey,
+    weightStorageKey,
+    scaleStorageKey
+  ])
+  window.addEventListener('storage', (event) => {
+    if (event.key === null || keys.has(event.key)) reloadFromStorage()
+  })
 }
 
 function subscribe(listener: () => void) {

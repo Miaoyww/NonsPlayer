@@ -1,6 +1,7 @@
 import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useSyncExternalStore } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { errorText, nativeCall } from '@/lib/player'
 
 export interface LyricSources {
@@ -55,6 +56,23 @@ export function useLyricSources() {
         initial = undefined
         update({ error: errorText(cause) })
       })
+  }, [])
+  useEffect(() => {
+    if (!isTauri()) return
+    let disposed = false
+    let unlisten: (() => void) | undefined
+    void listen<LyricSources>('lyric-sources-changed', ({ payload }) =>
+      update({ sources: payload })
+    )
+      .then((fn) => {
+        if (disposed) fn()
+        else unlisten = fn
+      })
+      .catch((cause) => reportCaughtError('app/src/features/lyrics/use-lyric-sources.ts', cause))
+    return () => {
+      disposed = true
+      unlisten?.()
+    }
   }, [])
   return { ...value, setSources: setLyricSources }
 }

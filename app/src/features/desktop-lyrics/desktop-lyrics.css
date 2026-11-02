@@ -1,0 +1,106 @@
+.desktop-lyrics {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--nons-lyrics-font, var(--nons-app-font));
+  --desktop-lyrics-accent: var(--music-accent, oklch(0.76 0.13 264));
+  user-select: none;
+}
+
+.desktop-lyrics-surface {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  transition: height 140ms ease;
+}
+
+.desktop-lyrics-player {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.desktop-lyrics .amll-lyric-player {
+  --amll-lp-color: #fff;
+  --amll-lp-font-size: var(--desktop-lyrics-font-size);
+  mix-blend-mode: normal;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 60%);
+}
+
+.desktop-lyrics .amll-lyric-player .FmKaba_lyricLine {
+  --bright-mask-alpha: 1;
+  --dark-mask-alpha: 0.85;
+}
+
+.desktop-lyrics .FmKaba_lyricMainLine span {
+  transition: color 140ms ease;
+}
+
+.desktop-lyrics .desktop-lyrics-sung {
+  color: var(--desktop-lyrics-accent);
+}
+
+.desktop-lyrics .FmKaba_lyricLineWrapper:hover,
+.desktop-lyrics .FmKaba_lyricLineWrapper:active {
+  background-color: transparent;
+}
+
+.desktop-lyrics .FmKaba_interludeDots,
+.desktop-lyrics .FmKaba_bottomLineWrapper {
+  display: none;
+}
+
+.desktop-lyrics-empty {
+  margin: 0;
+  color: rgb(255 255 255 / 48%);
+  font-size: 18px;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 55%);
+}
+
+.desktop-lyrics-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 999px;
+  background: rgb(14 14 20 / 82%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  transform: translateX(-50%);
+  backdrop-filter: blur(12px);
+}
+
+.desktop-lyrics-toolbar button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(255 255 255 / 78%);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.desktop-lyrics-toolbar button:hover {
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+}
+
+.desktop-lyrics-toolbar .desktop-lyrics-drag {
+  cursor: grab;
+}
+
+.desktop-lyrics-toolbar .desktop-lyrics-drag:active {
+  cursor: grabbing;
+}

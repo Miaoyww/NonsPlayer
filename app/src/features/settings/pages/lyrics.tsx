@@ -13,6 +13,7 @@ import {
   useLyricsSettings
 } from '@/features/lyrics/use-lyrics-settings'
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
+import { DesktopLyricsSwitch } from '@/features/desktop-lyrics/desktop-lyrics-switch'
 import { SettingsCard } from '@/features/settings/settings-card'
 import { LyricFontWeightControl } from '@/features/settings/lyric-font-weight-control'
 import { FontPicker } from '@/features/settings/font-picker'
@@ -125,6 +126,13 @@ export function LyricsPage() {
               恢复默认
             </Button>
           </div>
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-desktop"
+          title="桌面歌词"
+          description="在独立置顶窗口中显示当前歌词与翻译；锁定后鼠标可穿透。"
+        >
+          <DesktopLyricsSwitch />
         </SettingsCard>
         <SettingsCard
           searchId="lyrics-auto-blur"

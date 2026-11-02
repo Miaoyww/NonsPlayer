@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop-lyrics",
+  "description": "Desktop lyrics window subscribes to native playback and lyric events.",
+  "platforms": ["windows", "macOS", "linux"],
+  "windows": ["desktop-lyrics"],
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten"]
+}

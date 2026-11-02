@@ -6,7 +6,7 @@ use crate::{
 use crate::platform::about;
 use crate::platform::main_webview;
 #[cfg(desktop)]
-use crate::platform::{autostart, desktop};
+use crate::platform::{autostart, desktop, desktop_lyrics};
 use model::{AppResult, Lyrics, Track, TrackSource};
 use player::{Command, Player};
 use std::{path::PathBuf, sync::Arc};
@@ -734,8 +734,16 @@ fn android_media_status() -> AppResult<serde_json::Value> {
 }
 
 #[tauri::command]
-fn set_lyric_sources(sources: lyrics::LyricSources, backend: State<'_, Backend>) -> AppResult<()> {
-    backend.lyrics.set_sources(sources)
+fn set_lyric_sources(
+    sources: lyrics::LyricSources,
+    backend: State<'_, Backend>,
+    app: tauri::AppHandle,
+) -> AppResult<()> {
+    use tauri::Emitter;
+
+    backend.lyrics.set_sources(sources.clone())?;
+    let _ = app.emit("lyric-sources-changed", sources);
+    Ok(())
 }
 
 #[tauri::command]
@@ -1115,6 +1123,14 @@ pub fn run() {
             desktop::close_behavior,
             #[cfg(desktop)]
             desktop::set_close_behavior,
+            #[cfg(desktop)]
+            desktop_lyrics::desktop_lyrics_state,
+            #[cfg(desktop)]
+            desktop_lyrics::desktop_lyrics_set_enabled,
+            #[cfg(desktop)]
+            desktop_lyrics::desktop_lyrics_set_locked,
+            #[cfg(desktop)]
+            desktop_lyrics::desktop_lyrics_begin_drag,
             main_webview::main_webview_ready,
             main_webview::main_sleep_shortcuts,
             #[cfg(desktop)]

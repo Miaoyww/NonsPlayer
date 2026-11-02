@@ -2,11 +2,22 @@ import { defineConfig } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import process from 'node:process'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 const host = process.env.TAURI_DEV_HOST
+const root = fileURLToPath(new URL('.', import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(root, 'index.html'),
+        desktopLyrics: resolve(root, 'desktop-lyrics.html')
+      }
+    }
+  },
   resolve: {
     alias: {
       '@': decodeURIComponent(new URL('./src', import.meta.url).pathname).replace(/^\/(\w:)/, '$1')
