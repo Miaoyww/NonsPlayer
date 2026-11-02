@@ -37,7 +37,6 @@
   align-items: center;
   gap: 24px;
   padding-left: 24px;
-  border-left: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
 }
 .library-stats-list {
   display: flex;
@@ -523,7 +522,6 @@
     width: 100%;
     gap: 16px;
     padding-left: 0;
-    border-left: 0;
   }
   .library-stats-list {
     flex: 1 1 auto;
