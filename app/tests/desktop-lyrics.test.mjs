@@ -215,6 +215,7 @@ test('desktop lyrics planner patches progress and rolls only when the line chang
 test('desktop lyrics stage finishes a translation roll with one visible pair', async () => {
   const dom = new JSDOM(`
     <div id="root" class="desktop-lyrics-stage">
+      <div class="desktop-lyrics-line auxiliary-line auxiliary-row-measure"></div>
       <div data-lyric="viewport">
         <div data-lyric="track">
           <div data-lyric="current-line">

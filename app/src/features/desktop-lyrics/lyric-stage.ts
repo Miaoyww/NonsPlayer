@@ -22,6 +22,7 @@ const SINGLE_ROLL_FADE_OUT_MS = 240
 
 interface StageElements {
   root: HTMLElement
+  auxiliaryRowMeasure: HTMLElement
   viewport: HTMLElement
   track: HTMLElement
   currentLine: HTMLElement
@@ -59,6 +60,7 @@ function requiredElement<T extends HTMLElement>(root: HTMLElement, selector: str
 function readElements(root: HTMLElement): StageElements {
   return {
     root,
+    auxiliaryRowMeasure: requiredElement(root, '.auxiliary-row-measure'),
     viewport: requiredElement(root, '[data-lyric="viewport"]'),
     track: requiredElement(root, '[data-lyric="track"]'),
     currentLine: requiredElement(root, '[data-lyric="current-line"]'),
@@ -129,6 +131,8 @@ export class DesktopLyricStage {
   private showTranslation = true
   private showPronunciation = true
   private rowHeight = 0
+  private auxiliaryRowHeight = 0
+  private rowGap = 0
   private linePitch = 0
   private trackBaseY = 0
   private metricsPending = false
@@ -441,7 +445,7 @@ export class DesktopLyricStage {
       this.elements.track.classList.add('auxiliary-pair-animating', 'animating')
       context.requestFrame(() => {
         if (!context.isCurrent()) return
-        this.setTrackOffset(1 + auxiliary.length)
+        this.setAuxiliaryTrackOffset(auxiliary.length)
         if (this.prefersReducedMotion()) context.requestFrame(finish)
       })
     })
@@ -540,6 +544,10 @@ export class DesktopLyricStage {
     const gap = Number.parseFloat(window.getComputedStyle(this.elements.track).rowGap) || 0
     if (height > 0) {
       this.rowHeight = height
+      this.auxiliaryRowHeight =
+        Number.parseFloat(window.getComputedStyle(this.elements.auxiliaryRowMeasure).height) ||
+        height
+      this.rowGap = gap
       this.linePitch = height + gap
       this.elements.root.style.setProperty('--line-pitch', `${this.linePitch}px`)
     }
@@ -550,14 +558,29 @@ export class DesktopLyricStage {
   private setTrackOffset(rows: number) {
     if (!this.linePitch) this.measure()
     const distance = -this.linePitch * rows
+    this.translateTrack(distance)
+  }
+
+  private setAuxiliaryTrackOffset(auxiliaryCount: number) {
+    if (!this.linePitch) this.measure()
+    const count = Math.max(0, auxiliaryCount)
+    const distance =
+      this.rowHeight +
+      count * (this.auxiliaryRowHeight || this.rowHeight) +
+      (count + 1) * this.rowGap
+    this.translateTrack(-distance)
+  }
+
+  private translateTrack(distance: number) {
     const ratio = Number(window.devicePixelRatio) || 1
     const snapped = Math.round((this.trackBaseY + distance) * ratio) / ratio
     this.elements.track.style.transform = `translateY(${snapped}px)`
   }
 
   private updateTrackBase(gap = 0) {
-    const rowCount = 1 + Math.max(this.auxiliaryCount, this.reservedAuxiliaryCount)
-    const pairHeight = rowCount * this.rowHeight + Math.max(0, rowCount - 1) * gap
+    const auxiliaryCount = Math.max(this.auxiliaryCount, this.reservedAuxiliaryCount)
+    const auxiliaryHeight = this.auxiliaryRowHeight || this.rowHeight
+    const pairHeight = this.rowHeight + auxiliaryCount * (auxiliaryHeight + gap)
     this.trackBaseY = 0
     this.elements.root.style.setProperty('--desktop-pair-height', `${pairHeight}px`)
     this.elements.root.style.setProperty('--track-base-y', `${this.trackBaseY}px`)

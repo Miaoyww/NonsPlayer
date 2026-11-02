@@ -19,7 +19,8 @@
   --next-size: calc(var(--current-size) * 0.92);
   --auxiliary-size: calc(var(--current-size) * 0.62);
   --row-height: calc(var(--current-size) * 1.18);
-  --row-gap: calc(var(--current-size) * 0.08);
+  --auxiliary-row-height: calc(var(--auxiliary-size) * 1.34);
+  --row-gap: calc(var(--current-size) * 0.04);
   --line-pitch: calc(var(--row-height) + var(--row-gap));
   --primary: rgb(255 255 255 / 96%);
   --secondary: #fff;
@@ -47,6 +48,12 @@
 
 .desktop-lyrics-stage * {
   box-sizing: border-box;
+}
+
+.desktop-lyrics-stage .auxiliary-row-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .desktop-lyrics-stage .desktop-lyrics-viewport {
@@ -157,6 +164,8 @@
 }
 
 .desktop-lyrics-stage .auxiliary-line {
+  height: var(--auxiliary-row-height);
+  min-height: var(--auxiliary-row-height);
   color: var(--auxiliary-text);
   font-size: var(--auxiliary-size);
   font-weight: var(--font-weight);
@@ -209,7 +218,7 @@
 }
 
 .desktop-lyrics-stage .incoming-auxiliary-pair .desktop-lyrics-line {
-  flex: 0 0 var(--row-height);
+  flex: 0 0 auto;
 }
 
 .desktop-lyrics-stage .incoming-auxiliary-pair > .tertiary-line {

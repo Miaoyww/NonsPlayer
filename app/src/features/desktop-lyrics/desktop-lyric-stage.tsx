@@ -125,6 +125,10 @@ export function DesktopLyricStage({
       }
       aria-live="polite"
     >
+      <div
+        className="desktop-lyrics-line auxiliary-line auxiliary-row-measure"
+        aria-hidden="true"
+      />
       <div className="desktop-lyrics-viewport" data-lyric="viewport">
         <div className="desktop-lyrics-track" data-lyric="track">
           <div className="desktop-lyrics-line current-line" data-lyric="current-line">
