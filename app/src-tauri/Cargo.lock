@@ -4362,6 +4362,7 @@ dependencies = [
  "tauri-plugin-log",
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
+ "tauri-plugin-thumbar",
  "tauri-plugin-updater",
  "tempfile",
  "time",
@@ -7157,6 +7158,22 @@ dependencies = [
  "tracing",
  "windows-sys 0.61.2",
  "zbus",
+]
+
+[[package]]
+name = "tauri-plugin-thumbar"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfc9f796a752b8d7e48ecf4d65be96b4322a723a967c4828eecc76e5c03a7760"
+dependencies = [
+ "base64 0.22.1",
+ "image",
+ "log 0.4.34",
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.21",
+ "windows 0.62.2",
 ]
 
 [[package]]

@@ -112,6 +112,10 @@ pub(crate) fn on_window_event(window: &Window, event: &WindowEvent) {
     if window.label() != "main" {
         return;
     }
+    if let WindowEvent::ThemeChanged(theme) = event {
+        window.state::<Backend>().player.theme_changed(*theme);
+        return;
+    }
     if let WindowEvent::CloseRequested { api, .. } = event {
         api.prevent_close();
         let backend = window.state::<Backend>();

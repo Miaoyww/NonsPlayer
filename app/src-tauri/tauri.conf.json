@@ -30,7 +30,7 @@
     }
   },
   "bundle": {
-    "resources": {},
+    "resources": ["icons/taskbar/*.ico"],
     "active": true,
     "targets": "all",
     "icon": [

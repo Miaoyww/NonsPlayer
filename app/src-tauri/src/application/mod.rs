@@ -843,6 +843,8 @@ pub fn run() {
                 .build(),
         )
         .on_window_event(desktop::on_window_event);
+    #[cfg(windows)]
+    let builder = builder.plugin(tauri_plugin_thumbar::init());
     #[cfg(target_os = "android")]
     let builder = builder
         .plugin(crate::platform::android::init())

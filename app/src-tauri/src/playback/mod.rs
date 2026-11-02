@@ -8,4 +8,5 @@ pub(crate) mod media;
 mod native_audio;
 pub(crate) mod player;
 pub(crate) mod publication;
+mod thumbar;
 pub(crate) mod web_audio;

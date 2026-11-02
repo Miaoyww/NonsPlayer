@@ -1,5 +1,6 @@
 use super::history::PlaybackHistory;
 use super::publication::{PlayerBootstrap, Publication};
+use super::thumbar::ThumbarControls;
 #[cfg(test)]
 use crate::model::RepeatMode;
 use crate::{
@@ -19,7 +20,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 pub enum Command {
     WebReady(mpsc::Sender<AppResult<super::engine::Control>>),
@@ -84,6 +85,7 @@ pub enum Command {
     Shuffle,
     Seek(u64),
     Volume(f64),
+    Theme(tauri::Theme),
     Device(Option<String>, mpsc::Sender<AppResult<()>>),
     Options(PlaybackOptions, mpsc::Sender<AppResult<()>>),
     Resolved {
@@ -233,6 +235,10 @@ impl Player {
         let actor_history = Arc::clone(&history);
         let (sender, receiver) = mpsc::sync_channel(64);
         let actor_sender = sender.clone();
+        let thumbar = app
+            .get_webview_window("main")
+            .ok_or_else(|| "主窗口不可用".to_string())
+            .and_then(|window| ThumbarControls::new(&window, sender.clone()));
         let thread = std::thread::Builder::new()
             .name("nons-audio".into())
             .spawn(move || {
@@ -244,6 +250,7 @@ impl Player {
                     shared.clone(),
                     actor_sender,
                     hwnd,
+                    thumbar,
                 );
                 match result {
                     Ok(mut actor) => actor.run(receiver),
@@ -296,6 +303,12 @@ impl Player {
                 .and_then(|state| state.snapshot.error.clone())
                 .unwrap_or_else(|| "播放核心不可用，请重启应用".into()),
         })
+    }
+
+    pub fn theme_changed(&self, theme: tauri::Theme) {
+        let _ = (self.sender.try_send(Command::Theme(theme))).inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("playback.theme.enqueue", error);
+        });
     }
 
     pub fn snapshot(&self) -> AppResult<PlayerSnapshot> {
@@ -378,6 +391,7 @@ struct Actor {
     sender: SyncSender<Command>,
     state: PlayerSnapshot,
     media: Option<MediaControls>,
+    thumbar: Option<ThumbarControls>,
     desired_playing: bool,
     failed_keys: std::collections::HashSet<String>,
     generation: Arc<AtomicU64>,
@@ -550,6 +564,7 @@ impl Actor {
         shared: Arc<RwLock<Publication>>,
         sender: SyncSender<Command>,
         hwnd: isize,
+        thumbar: AppResult<ThumbarControls>,
     ) -> AppResult<Self> {
         let mut state = shared
             .read()
@@ -564,6 +579,19 @@ impl Actor {
             Err(e) => {
                 log::error!(target: "nons::media", "operation=initialize reason={e}");
                 state.media_error = Some(format!("系统媒体控制初始化失败：{e}"));
+                None
+            }
+        };
+        let thumbar = match thumbar {
+            Ok(controls) => Some(controls),
+            Err(error) => {
+                log::error!(
+                    target: "nons::media",
+                    "operation=thumbar_initialize reason={error}"
+                );
+                state
+                    .media_error
+                    .get_or_insert_with(|| format!("任务栏媒体控制初始化失败：{error}"));
                 None
             }
         };
@@ -587,6 +615,7 @@ impl Actor {
             sender,
             state,
             media,
+            thumbar,
             desired_playing: false,
             failed_keys: Default::default(),
             generation,
@@ -734,6 +763,11 @@ impl Actor {
         }
         let play_now = matches!(&command, Command::PlayNextNow(_));
         match command {
+            Command::Theme(theme) => {
+                if let Some(thumbar) = &mut self.thumbar {
+                    thumbar.set_theme(theme)?;
+                }
+            }
             Command::WebReady(reply) => {
                 self.audio_engine.intent(
                     &self.app,
@@ -1665,25 +1699,38 @@ impl Actor {
     }
 
     fn update_media(&mut self) {
+        let mut failure = None;
         if let Some(media) = &mut self.media {
-            match media.update(&self.state) {
-                Err(error) => {
-                    let message = format!("系统媒体信息同步失败：{error}");
-                    if self.state.media_error.as_ref() != Some(&message) {
-                        log::error!(
-                            target: "nons::media",
-                            "operation=update revision={} status={:?} track_key={} reason={error}",
-                            self.state.revision,
-                            self.state.status,
-                            self.state.current().map_or("-", |track| track.key.as_str()),
-                        );
-                    }
-                    self.state.media_error = Some(message);
+            if let Err(error) = media.update(&self.state) {
+                failure = Some(format!("系统媒体信息同步失败：{error}"));
+            }
+        }
+        if let Some(thumbar) = &mut self.thumbar {
+            if let Err(error) = thumbar.update(&self.state) {
+                failure.get_or_insert_with(|| format!("任务栏媒体控制同步失败：{error}"));
+            }
+        }
+        match failure {
+            Some(message) => {
+                if self.state.media_error.as_ref() != Some(&message) {
+                    log::error!(
+                        target: "nons::media",
+                        "operation=update revision={} status={:?} track_key={} reason={message}",
+                        self.state.revision,
+                        self.state.status,
+                        self.state.current().map_or("-", |track| track.key.as_str()),
+                    );
                 }
-                Ok(()) => {
-                    if self.state.media_error.take().is_some() {
-                        log::info!(target: "nons::media", "operation=update outcome=recovered");
-                    }
+                self.state.media_error = Some(message);
+            }
+            None => {
+                let recovered = self.state.media_error.as_deref().is_some_and(|message| {
+                    message.starts_with("系统媒体信息同步失败：")
+                        || message.starts_with("任务栏媒体控制同步失败：")
+                });
+                if recovered {
+                    self.state.media_error = None;
+                    log::info!(target: "nons::media", "operation=update outcome=recovered");
                 }
             }
         }

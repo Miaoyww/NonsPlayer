@@ -10,6 +10,6 @@
         "installerHooks": "windows/autostart-hooks.nsh"
       }
     },
-    "resources": {}
+    "resources": ["icons/taskbar/*.ico"]
   }
 }
