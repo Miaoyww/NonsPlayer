@@ -1,5 +1,5 @@
 import { listen } from '@tauri-apps/api/event'
-import { Lock, Pause, Play, SkipBack, SkipForward, X } from 'lucide-react'
+import { AudioLines, Languages, Lock, Pause, Play, SkipBack, SkipForward, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import { reportCaughtError } from '@/lib/diagnostics'
 import {
@@ -16,6 +16,7 @@ import { parseLyrics } from '@/features/lyrics/parse-lyrics'
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
 import { useLyricsSettings } from '@/features/lyrics/use-lyrics-settings'
 import { DesktopLyricStage } from './desktop-lyric-stage'
+import { lyricPronunciation } from './lyric-display'
 import {
   dragDesktopLyrics,
   setDesktopLyricsEnabled,
@@ -117,7 +118,14 @@ export function DesktopLyricsApp() {
   const transportPlaying = ['playing', 'buffering', 'loading'].includes(snapshot.status)
   const previousIndex = adjacentIndex(snapshot, 'previous')
   const nextIndex = adjacentIndex(snapshot, 'next')
-  const { fontWeight, fontScale } = useLyricsSettings()
+  const {
+    fontWeight,
+    fontScale,
+    showDesktopLyricsTranslation,
+    setShowDesktopLyricsTranslation,
+    showDesktopLyricsPronunciation,
+    setShowDesktopLyricsPronunciation
+  } = useLyricsSettings()
   const { lines, loading } = useDesktopLyrics(track)
   const progress = useProgress(true)
   const lastHeight = useRef(0)
@@ -176,6 +184,8 @@ export function DesktopLyricsApp() {
   )
   const beforeFirstLine = lines.length > 0 && progress.positionMs < lines[0].startTime
   const showTrackInfo = !!track && !loading && (!lines.length || beforeFirstLine)
+  const hasTranslation = lines.some((line) => !!line.translatedLyric.trim())
+  const hasPronunciation = lines.some((line) => !!lyricPronunciation(line).trim())
 
   useEffect(() => {
     const element = placeholderRef.current
@@ -228,6 +238,38 @@ export function DesktopLyricsApp() {
           <div className="desktop-lyrics-controls">
             <button
               type="button"
+              aria-label="显示桌面歌词翻译"
+              aria-pressed={hasTranslation && showDesktopLyricsTranslation}
+              title={
+                hasTranslation
+                  ? showDesktopLyricsTranslation
+                    ? '隐藏翻译'
+                    : '显示翻译'
+                  : '暂无翻译'
+              }
+              disabled={!hasTranslation}
+              onClick={() => setShowDesktopLyricsTranslation(!showDesktopLyricsTranslation)}
+            >
+              <Languages aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label="显示桌面歌词发音"
+              aria-pressed={hasPronunciation && showDesktopLyricsPronunciation}
+              title={
+                hasPronunciation
+                  ? showDesktopLyricsPronunciation
+                    ? '隐藏发音'
+                    : '显示发音'
+                  : '暂无发音'
+              }
+              disabled={!hasPronunciation}
+              onClick={() => setShowDesktopLyricsPronunciation(!showDesktopLyricsPronunciation)}
+            >
+              <AudioLines aria-hidden="true" />
+            </button>
+            <button
+              type="button"
               aria-label="锁定桌面歌词窗口"
               title="锁定"
               onClick={() => run(() => setDesktopLyricsLocked(true))}
@@ -255,6 +297,8 @@ export function DesktopLyricsApp() {
           playing={playing}
           fontScale={fontScale}
           fontWeight={fontWeight}
+          showTranslation={showDesktopLyricsTranslation}
+          showPronunciation={showDesktopLyricsPronunciation}
           onContentHeight={handleContentHeight}
         />
       )}

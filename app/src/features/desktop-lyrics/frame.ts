@@ -1,8 +1,10 @@
 import type { LyricLine } from '@applemusic-like-lyrics/core'
+import { lyricText, type DesktopLyricsAuxiliaryVisibility } from './lyric-display'
 import { clamp01, type DesktopLyricsFrame } from './presentation'
 
-export function lyricText(line: LyricLine | undefined) {
-  return line?.words.map((word) => word.word).join('') ?? ''
+const defaultAuxiliaryVisibility: DesktopLyricsAuxiliaryVisibility = {
+  translation: true,
+  pronunciation: true
 }
 
 export function lineIndexAt(lines: readonly LyricLine[], positionMs: number) {
@@ -61,17 +63,17 @@ export function frameAt(
   lines: readonly LyricLine[],
   positionMs: number,
   trackId: string,
-  isPlaying: boolean
+  isPlaying: boolean,
+  visibility: DesktopLyricsAuxiliaryVisibility = defaultAuxiliaryVisibility
 ): DesktopLyricsFrame {
   const currentLineIndex = lineIndexAt(lines, positionMs)
   const line = currentLineIndex >= 0 ? lines[currentLineIndex] : undefined
   if (!line) {
     return {
       scene: 'message',
-      layout: 'single',
-      translationMode: false,
-      current: '',
-      currentTranslation: '',
+      line: null,
+      showTranslation: visibility.translation,
+      showPronunciation: visibility.pronunciation,
       currentLineIndex: -1,
       progress: 0,
       wordScanProgress: null,
@@ -80,15 +82,12 @@ export function frameAt(
     }
   }
 
-  const current = lyricText(line).trim() || ' '
-  const currentTranslation = (line.translatedLyric ?? '').trim()
   const endTime = line.endTime > line.startTime ? line.endTime : line.startTime + 1
   return {
     scene: 'lyrics',
-    layout: currentTranslation ? 'translationPair' : 'single',
-    translationMode: Boolean(currentTranslation),
-    current,
-    currentTranslation,
+    line,
+    showTranslation: visibility.translation,
+    showPronunciation: visibility.pronunciation,
     currentLineIndex,
     progress: clamp01((positionMs - line.startTime) / (endTime - line.startTime)),
     wordScanProgress: wordScanProgress(line, positionMs),

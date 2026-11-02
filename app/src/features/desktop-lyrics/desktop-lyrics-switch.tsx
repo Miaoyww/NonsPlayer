@@ -45,7 +45,7 @@ export function DesktopLyricsSwitch() {
       </label>
       {state.enabled && state.locked && (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          解锁后可拖动窗口、关闭或再次锁定。
+          解锁后可拖动窗口、切换翻译或发音、关闭或再次锁定。
         </p>
       )}
       {error && <p className="text-xs text-destructive">{error}</p>}

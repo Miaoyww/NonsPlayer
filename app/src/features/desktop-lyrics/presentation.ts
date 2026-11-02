@@ -1,14 +1,15 @@
 // Presentation behavior adapted from TaskbarLyrics (MIT). See NOTICE.md.
 
+import type { LyricLine } from '@applemusic-like-lyrics/core'
+import { hasVisibleAuxiliary } from './lyric-display'
+
 export type DesktopLyricsScene = 'lyrics' | 'message'
-export type DesktopLyricsLayout = 'single' | 'translationPair'
 
 export interface DesktopLyricsFrame {
   scene: DesktopLyricsScene
-  layout: DesktopLyricsLayout
-  translationMode: boolean
-  current: string
-  currentTranslation: string
+  line: LyricLine | null
+  showTranslation: boolean
+  showPronunciation: boolean
   currentLineIndex: number
   progress: number
   wordScanProgress: number | null
@@ -20,7 +21,7 @@ export const TRANSITIONS = {
   PROGRESS_PATCH: 'progressPatch',
   REPLACE_IN_PLACE: 'replaceInPlace',
   SINGLE_ROLL: 'singleRoll',
-  TRANSLATION_PAIR_ROLL: 'translationPairRoll',
+  AUXILIARY_ROLL: 'auxiliaryRoll',
   IMMEDIATE: 'immediate'
 } as const
 
@@ -35,7 +36,7 @@ export interface TransitionPlan {
 
 export const DEFAULT_DURATION_MS = Object.freeze({
   singleRoll: 560,
-  translationPairRoll: 760
+  auxiliaryRoll: 760
 })
 
 export function clamp01(value: unknown) {
@@ -52,16 +53,11 @@ function normalizeOptionalProgress(value: unknown) {
 
 export function normalizeFrame(frame: Partial<DesktopLyricsFrame> = {}): DesktopLyricsFrame {
   const currentLineIndex = Number(frame.currentLineIndex)
-  const layout: DesktopLyricsLayout =
-    frame.layout === 'translationPair' || frame.translationMode === true
-      ? 'translationPair'
-      : 'single'
   return {
     scene: frame.scene === 'lyrics' ? 'lyrics' : 'message',
-    layout,
-    translationMode: layout === 'translationPair',
-    current: String(frame.current ?? ''),
-    currentTranslation: String(frame.currentTranslation ?? ''),
+    line: frame.line ?? null,
+    showTranslation: frame.showTranslation !== false,
+    showPronunciation: frame.showPronunciation !== false,
     currentLineIndex: Number.isInteger(currentLineIndex) ? currentLineIndex : -1,
     progress: clamp01(frame.progress),
     wordScanProgress: normalizeOptionalProgress(frame.wordScanProgress),
@@ -77,6 +73,21 @@ function sameLyricsIdentity(current: DesktopLyricsFrame, target: DesktopLyricsFr
     current.currentLineIndex >= 0 &&
     current.currentLineIndex === target.currentLineIndex &&
     current.trackId === target.trackId
+  )
+}
+
+function frameHasAuxiliary(frame: DesktopLyricsFrame) {
+  return hasVisibleAuxiliary(frame.line, {
+    translation: frame.showTranslation,
+    pronunciation: frame.showPronunciation
+  })
+}
+
+function presentationChanged(current: DesktopLyricsFrame, target: DesktopLyricsFrame) {
+  return (
+    current.line !== target.line ||
+    current.showTranslation !== target.showTranslation ||
+    current.showPronunciation !== target.showPronunciation
   )
 }
 
@@ -107,10 +118,7 @@ export class PresentationPlanner {
     }
 
     if (sameLyricsIdentity(current, target)) {
-      const textChanged =
-        current.current !== target.current ||
-        current.currentTranslation !== target.currentTranslation ||
-        current.layout !== target.layout
+      const textChanged = presentationChanged(current, target)
       return makePlan(
         textChanged ? TRANSITIONS.REPLACE_IN_PLACE : TRANSITIONS.PROGRESS_PATCH,
         current,
@@ -119,31 +127,17 @@ export class PresentationPlanner {
       )
     }
 
-    if (target.scene === 'lyrics' && current.scene === 'lyrics') {
-      const isTranslationPair = target.layout === 'translationPair'
-      return makePlan(
-        isTranslationPair ? TRANSITIONS.TRANSLATION_PAIR_ROLL : TRANSITIONS.SINGLE_ROLL,
-        current,
-        target,
-        isTranslationPair ? DEFAULT_DURATION_MS.translationPairRoll : DEFAULT_DURATION_MS.singleRoll
-      )
-    }
-
     if (target.scene === 'lyrics') {
-      const isTranslationPair = target.layout === 'translationPair'
+      const hasAuxiliary = frameHasAuxiliary(target)
       return makePlan(
-        isTranslationPair ? TRANSITIONS.TRANSLATION_PAIR_ROLL : TRANSITIONS.SINGLE_ROLL,
+        hasAuxiliary ? TRANSITIONS.AUXILIARY_ROLL : TRANSITIONS.SINGLE_ROLL,
         current,
         target,
-        isTranslationPair ? DEFAULT_DURATION_MS.translationPairRoll : DEFAULT_DURATION_MS.singleRoll
+        hasAuxiliary ? DEFAULT_DURATION_MS.auxiliaryRoll : DEFAULT_DURATION_MS.singleRoll
       )
     }
 
-    const textChanged =
-      current.scene !== target.scene ||
-      current.current !== target.current ||
-      current.currentTranslation !== target.currentTranslation ||
-      current.layout !== target.layout
+    const textChanged = current.scene !== target.scene || presentationChanged(current, target)
     return makePlan(
       textChanged ? TRANSITIONS.SINGLE_ROLL : TRANSITIONS.PROGRESS_PATCH,
       current,

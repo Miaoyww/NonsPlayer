@@ -6,6 +6,8 @@ const offsetStorageKey = 'nons-lyrics-offset-ms'
 const blurStorageKey = 'nons-lyrics-auto-blur'
 const weightStorageKey = 'nons-lyrics-font-weight'
 const scaleStorageKey = 'nons-lyrics-font-scale'
+const desktopLyricsTranslationStorageKey = 'nons-desktop-lyrics-translation'
+const desktopLyricsPronunciationStorageKey = 'nons-desktop-lyrics-pronunciation'
 export const defaultBackgroundSpeed = 0.5
 export const defaultLyricsOffsetMs = -200
 export const minLyricsFontScale = 0.7
@@ -57,6 +59,8 @@ let fontScale = readNumber(
   defaultLyricsFontScale,
   (value) => Number.isFinite(value) && value >= minLyricsFontScale && value <= maxLyricsFontScale
 )
+let showDesktopLyricsTranslation = readBoolean(desktopLyricsTranslationStorageKey, true)
+let showDesktopLyricsPronunciation = readBoolean(desktopLyricsPronunciationStorageKey, true)
 
 // Settings are stored per origin, so another window's change arrives as a storage event.
 function reloadFromStorage() {
@@ -81,12 +85,16 @@ function reloadFromStorage() {
     defaultLyricsFontScale,
     (value) => Number.isFinite(value) && value >= minLyricsFontScale && value <= maxLyricsFontScale
   )
+  const nextShowDesktopLyricsTranslation = readBoolean(desktopLyricsTranslationStorageKey, true)
+  const nextShowDesktopLyricsPronunciation = readBoolean(desktopLyricsPronunciationStorageKey, true)
   if (
     nextBackgroundSpeed === backgroundSpeed &&
     nextLyricsOffsetMs === lyricsOffsetMs &&
     nextAutoBlur === autoBlur &&
     nextFontWeight === fontWeight &&
-    nextFontScale === fontScale
+    nextFontScale === fontScale &&
+    nextShowDesktopLyricsTranslation === showDesktopLyricsTranslation &&
+    nextShowDesktopLyricsPronunciation === showDesktopLyricsPronunciation
   )
     return
   backgroundSpeed = nextBackgroundSpeed
@@ -94,6 +102,8 @@ function reloadFromStorage() {
   autoBlur = nextAutoBlur
   fontWeight = nextFontWeight
   fontScale = nextFontScale
+  showDesktopLyricsTranslation = nextShowDesktopLyricsTranslation
+  showDesktopLyricsPronunciation = nextShowDesktopLyricsPronunciation
   listeners.forEach((notify) => notify())
 }
 
@@ -103,7 +113,9 @@ if (typeof window !== 'undefined') {
     offsetStorageKey,
     blurStorageKey,
     weightStorageKey,
-    scaleStorageKey
+    scaleStorageKey,
+    desktopLyricsTranslationStorageKey,
+    desktopLyricsPronunciationStorageKey
   ])
   window.addEventListener('storage', (event) => {
     if (event.key === null || keys.has(event.key)) reloadFromStorage()
@@ -186,12 +198,40 @@ function setFontScale(value: number) {
   listeners.forEach((notify) => notify())
 }
 
+function setShowDesktopLyricsTranslation(value: boolean) {
+  if (value === showDesktopLyricsTranslation) return
+  showDesktopLyricsTranslation = value
+  try {
+    localStorage.setItem(desktopLyricsTranslationStorageKey, String(value))
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
+    /* Changes still work for this session. */
+  }
+  listeners.forEach((notify) => notify())
+}
+
+function setShowDesktopLyricsPronunciation(value: boolean) {
+  if (value === showDesktopLyricsPronunciation) return
+  showDesktopLyricsPronunciation = value
+  try {
+    localStorage.setItem(desktopLyricsPronunciationStorageKey, String(value))
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
+    /* Changes still work for this session. */
+  }
+  listeners.forEach((notify) => notify())
+}
+
 export function useLyricsSettings() {
   const speed = useSyncExternalStore(subscribe, () => backgroundSpeed)
   const offset = useSyncExternalStore(subscribe, () => lyricsOffsetMs)
   const blur = useSyncExternalStore(subscribe, () => autoBlur)
   const weight = useSyncExternalStore(subscribe, () => fontWeight)
   const scale = useSyncExternalStore(subscribe, () => fontScale)
+  const desktopTranslation = useSyncExternalStore(subscribe, () => showDesktopLyricsTranslation)
+  const desktopPronunciation = useSyncExternalStore(subscribe, () => showDesktopLyricsPronunciation)
   return {
     backgroundSpeed: speed,
     setBackgroundSpeed,
@@ -202,6 +242,10 @@ export function useLyricsSettings() {
     fontWeight: weight,
     setFontWeight,
     fontScale: scale,
-    setFontScale
+    setFontScale,
+    showDesktopLyricsTranslation: desktopTranslation,
+    setShowDesktopLyricsTranslation,
+    showDesktopLyricsPronunciation: desktopPronunciation,
+    setShowDesktopLyricsPronunciation
   }
 }

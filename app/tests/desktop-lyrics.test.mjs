@@ -25,34 +25,46 @@ function loadModule(relativePath, modules = {}, globals = {}) {
 }
 
 function loadDesktopLyrics() {
-  const presentation = loadModule('../src/features/desktop-lyrics/presentation.ts')
-  const frame = loadModule('../src/features/desktop-lyrics/frame.ts', {
-    './presentation': presentation
+  const display = loadModule('../src/features/desktop-lyrics/lyric-display.ts')
+  const presentation = loadModule('../src/features/desktop-lyrics/presentation.ts', {
+    './lyric-display': display
   })
-  return { presentation, frame }
+  const frame = loadModule('../src/features/desktop-lyrics/frame.ts', {
+    './presentation': presentation,
+    './lyric-display': display
+  })
+  return { display, presentation, frame }
 }
 
 function loadStage(globals) {
-  const presentation = loadModule('../src/features/desktop-lyrics/presentation.ts', {}, globals)
+  const display = loadModule('../src/features/desktop-lyrics/lyric-display.ts', {}, globals)
+  const presentation = loadModule(
+    '../src/features/desktop-lyrics/presentation.ts',
+    { './lyric-display': display },
+    globals
+  )
   const frame = loadModule('../src/features/desktop-lyrics/frame.ts', {
-    './presentation': presentation
+    './presentation': presentation,
+    './lyric-display': display
   })
   const stage = loadModule(
     '../src/features/desktop-lyrics/lyric-stage.ts',
     {
       './presentation': presentation,
-      './frame': frame
+      './frame': frame,
+      './lyric-display': display
     },
     globals
   )
   return stage
 }
 
-function line({ startTime, endTime, words, translatedLyric = '' }) {
+function line({ startTime, endTime, words, translatedLyric = '', romanLyric = '' }) {
   return {
     startTime,
     endTime,
     translatedLyric,
+    romanLyric,
     words: words.map(([word, wordStart, wordEnd]) => ({
       word,
       startTime: wordStart,
@@ -74,8 +86,8 @@ test('desktop lyrics line lookup follows the parsed line timeline', () => {
   assert.equal(frame.lineIndexAt(lines, 9000), 1)
 })
 
-test('desktop lyrics frame keeps only the current line and its translation', () => {
-  const { frame } = loadDesktopLyrics()
+test('desktop lyrics frame keeps only the current line and its auxiliary text', () => {
+  const { display, frame } = loadDesktopLyrics()
   const lines = [
     line({
       startTime: 0,
@@ -90,15 +102,41 @@ test('desktop lyrics frame keeps only the current line and its translation', () 
 
   const target = frame.frameAt(lines, 250, 'track-1', true)
   assert.equal(target.scene, 'lyrics')
-  assert.equal(target.layout, 'translationPair')
-  assert.equal(target.translationMode, true)
-  assert.equal(target.current, '你好')
-  assert.equal(target.currentTranslation, 'Hello')
+  assert.equal(target.line, lines[0])
+  assert.equal(display.lyricText(target.line), '你好')
+  assert.deepEqual(
+    display.auxiliaryLines(target.line, { translation: true, pronunciation: true }),
+    ['Hello']
+  )
+  assert.equal(target.showTranslation, true)
+  assert.equal(target.showPronunciation, true)
   assert.equal(target.currentLineIndex, 0)
   assert.equal(target.progress, 0.25)
   assert.equal(target.wordScanProgress, 0.25)
   assert.equal(target.trackId, 'track-1')
   assert.equal(target.isPlaying, true)
+})
+
+test('desktop lyrics auxiliary visibility selects translation and pronunciation', () => {
+  const { display } = loadDesktopLyrics()
+  const current = line({
+    startTime: 0,
+    endTime: 1000,
+    words: [['你好', 0, 1000]],
+    translatedLyric: 'Hello',
+    romanLyric: 'Ni hao'
+  })
+
+  assert.deepEqual(display.auxiliaryLines(current, { translation: true, pronunciation: true }), [
+    'Hello',
+    'Ni hao'
+  ])
+  assert.deepEqual(display.auxiliaryLines(current, { translation: true, pronunciation: false }), [
+    'Hello'
+  ])
+  assert.deepEqual(display.auxiliaryLines(current, { translation: false, pronunciation: true }), [
+    'Ni hao'
+  ])
 })
 
 test('desktop lyrics word scan advances across parsed word timings', () => {
@@ -118,35 +156,43 @@ test('desktop lyrics word scan advances across parsed word timings', () => {
   assert.equal(frame.wordScanProgress(current, 1000), 1)
 })
 
-test('desktop lyrics without translation use the single-line layout', () => {
-  const { frame } = loadDesktopLyrics()
-  const target = frame.frameAt(
-    [line({ startTime: 0, endTime: 1000, words: [['纯音乐', 0, 1000]] })],
-    500,
-    'track-2',
-    false
+test('desktop lyrics without auxiliary text produce no auxiliary lines', () => {
+  const { display, frame } = loadDesktopLyrics()
+  const lines = [line({ startTime: 0, endTime: 1000, words: [['纯音乐', 0, 1000]] })]
+  const target = frame.frameAt(lines, 500, 'track-2', false)
+  assert.equal(target.line, lines[0])
+  assert.deepEqual(
+    display.auxiliaryLines(target.line, { translation: true, pronunciation: true }),
+    []
   )
-  assert.equal(target.layout, 'single')
-  assert.equal(target.translationMode, false)
-  assert.equal(target.currentTranslation, '')
 })
 
 test('desktop lyrics planner patches progress and rolls only when the line changes', () => {
   const { presentation } = loadDesktopLyrics()
   const planner = new presentation.PresentationPlanner()
+  const firstLine = line({
+    startTime: 0,
+    endTime: 1000,
+    words: [['第一句', 0, 1000]],
+    translatedLyric: 'First'
+  })
+  const secondLine = line({
+    startTime: 1000,
+    endTime: 2000,
+    words: [['第二句', 1000, 2000]],
+    translatedLyric: 'Second'
+  })
   const first = {
     scene: 'lyrics',
-    layout: 'translationPair',
-    translationMode: true,
-    current: '第一句',
-    currentTranslation: 'First',
+    line: firstLine,
+    showTranslation: true,
+    showPronunciation: true,
     currentLineIndex: 0,
     trackId: 'track'
   }
   const next = {
     ...first,
-    current: '第二句',
-    currentTranslation: 'Second',
+    line: secondLine,
     currentLineIndex: 1
   }
 
@@ -154,13 +200,12 @@ test('desktop lyrics planner patches progress and rolls only when the line chang
   assert.equal(
     planner.plan(first, {
       ...next,
-      layout: 'single',
-      translationMode: false,
-      currentTranslation: ''
+      showTranslation: false,
+      showPronunciation: false
     }).kind,
     presentation.TRANSITIONS.SINGLE_ROLL
   )
-  assert.equal(planner.plan(first, next).kind, presentation.TRANSITIONS.TRANSLATION_PAIR_ROLL)
+  assert.equal(planner.plan(first, next).kind, presentation.TRANSITIONS.AUXILIARY_ROLL)
   assert.equal(
     planner.plan(first, next, { reducedMotion: true }).kind,
     presentation.TRANSITIONS.IMMEDIATE
@@ -178,22 +223,33 @@ test('desktop lyrics stage finishes a translation roll with one visible pair', a
               <span class="line-text line-text-scan" data-lyric="current-scan"></span>
             </span></span>
           </div>
-          <div data-lyric="secondary-line">
+          <div class="secondary-line" data-lyric="secondary-line">
             <span class="line-text-viewport"><span class="line-text-stack">
               <span class="line-text line-text-base" data-lyric="secondary-text"></span>
               <span class="line-text line-text-scan" data-lyric="secondary-scan"></span>
             </span></span>
           </div>
-          <div data-lyric="incoming-translation-pair">
+          <div class="tertiary-line" data-lyric="tertiary-line">
+            <span class="line-text-viewport"><span class="line-text-stack">
+              <span class="line-text line-text-base" data-lyric="tertiary-text"></span>
+              <span class="line-text line-text-scan" data-lyric="tertiary-scan"></span>
+            </span></span>
+          </div>
+          <div data-lyric="incoming-auxiliary-pair">
             <div data-lyric="incoming-original-line">
               <span class="line-text-viewport"><span class="line-text-stack">
                 <span class="line-text line-text-base" data-lyric="incoming-original-text"></span>
                 <span class="line-text line-text-scan" data-lyric="incoming-original-scan"></span>
               </span></span>
             </div>
-            <div data-lyric="incoming-translation-line">
+            <div data-lyric="incoming-auxiliary-1-line">
               <span class="line-text-viewport"><span class="line-text-stack">
-                <span class="line-text line-text-base" data-lyric="incoming-translation-text"></span>
+                <span class="line-text line-text-base" data-lyric="incoming-auxiliary-1-text"></span>
+              </span></span>
+            </div>
+            <div class="tertiary-line" data-lyric="incoming-auxiliary-2-line">
+              <span class="line-text-viewport"><span class="line-text-stack">
+                <span class="line-text line-text-base" data-lyric="incoming-auxiliary-2-text"></span>
               </span></span>
             </div>
           </div>
@@ -235,7 +291,7 @@ test('desktop lyrics stage finishes a translation roll with one visible pair', a
   assert.equal(root.querySelector('[data-lyric="current-text"]').textContent, '第一句')
   assert.equal(root.querySelector('[data-lyric="secondary-text"]').textContent, 'First line')
   assert.equal(
-    root.querySelector('[data-lyric="incoming-translation-pair"]').className.includes('entering'),
+    root.querySelector('[data-lyric="incoming-auxiliary-pair"]').className.includes('entering'),
     false
   )
   assert.equal(root.style.getPropertyValue('--desktop-pair-height'), '80px')
@@ -245,7 +301,7 @@ test('desktop lyrics stage finishes a translation roll with one visible pair', a
   assert.equal(root.querySelector('[data-lyric="current-text"]').textContent, '第二句')
   assert.equal(root.querySelector('[data-lyric="secondary-text"]').textContent, 'Second line')
   assert.equal(
-    root.querySelector('[data-lyric="incoming-translation-pair"]').className.includes('entering'),
+    root.querySelector('[data-lyric="incoming-auxiliary-pair"]').className.includes('entering'),
     false
   )
   stage.destroy()

@@ -2,6 +2,7 @@
 
 import type { LyricLine } from '@applemusic-like-lyrics/core'
 import { frameAt } from './frame'
+import { auxiliaryLines, lyricText } from './lyric-display'
 import {
   DEFAULT_DURATION_MS,
   PresentationCoordinator,
@@ -17,6 +18,7 @@ const CURRENT_LINE_REST_OPACITY = 0.98
 const LEAVING_LINE_OPACITY = 0.16
 const SECONDARY_BASE_OPACITY = 0.62
 const HORIZONTAL_SCROLL_ANCHOR_RATIO = 0.65
+const SINGLE_ROLL_FADE_OUT_MS = 240
 
 interface StageElements {
   root: HTMLElement
@@ -28,12 +30,17 @@ interface StageElements {
   secondaryLine: HTMLElement
   secondaryText: HTMLElement
   secondaryScanText: HTMLElement
-  incomingTranslationPair: HTMLElement
-  incomingTranslationOriginalLine: HTMLElement
-  incomingTranslationOriginalText: HTMLElement
-  incomingTranslationOriginalScanText: HTMLElement
-  incomingTranslationLine: HTMLElement
-  incomingTranslationText: HTMLElement
+  tertiaryLine: HTMLElement
+  tertiaryText: HTMLElement
+  tertiaryScanText: HTMLElement
+  incomingAuxiliaryPair: HTMLElement
+  incomingOriginalLine: HTMLElement
+  incomingOriginalText: HTMLElement
+  incomingOriginalScanText: HTMLElement
+  incomingAuxiliary1Line: HTMLElement
+  incomingAuxiliary1Text: HTMLElement
+  incomingAuxiliary2Line: HTMLElement
+  incomingAuxiliary2Text: HTMLElement
 }
 
 interface LineScrollMetrics {
@@ -60,15 +67,17 @@ function readElements(root: HTMLElement): StageElements {
     secondaryLine: requiredElement(root, '[data-lyric="secondary-line"]'),
     secondaryText: requiredElement(root, '[data-lyric="secondary-text"]'),
     secondaryScanText: requiredElement(root, '[data-lyric="secondary-scan"]'),
-    incomingTranslationPair: requiredElement(root, '[data-lyric="incoming-translation-pair"]'),
-    incomingTranslationOriginalLine: requiredElement(root, '[data-lyric="incoming-original-line"]'),
-    incomingTranslationOriginalText: requiredElement(root, '[data-lyric="incoming-original-text"]'),
-    incomingTranslationOriginalScanText: requiredElement(
-      root,
-      '[data-lyric="incoming-original-scan"]'
-    ),
-    incomingTranslationLine: requiredElement(root, '[data-lyric="incoming-translation-line"]'),
-    incomingTranslationText: requiredElement(root, '[data-lyric="incoming-translation-text"]')
+    tertiaryLine: requiredElement(root, '[data-lyric="tertiary-line"]'),
+    tertiaryText: requiredElement(root, '[data-lyric="tertiary-text"]'),
+    tertiaryScanText: requiredElement(root, '[data-lyric="tertiary-scan"]'),
+    incomingAuxiliaryPair: requiredElement(root, '[data-lyric="incoming-auxiliary-pair"]'),
+    incomingOriginalLine: requiredElement(root, '[data-lyric="incoming-original-line"]'),
+    incomingOriginalText: requiredElement(root, '[data-lyric="incoming-original-text"]'),
+    incomingOriginalScanText: requiredElement(root, '[data-lyric="incoming-original-scan"]'),
+    incomingAuxiliary1Line: requiredElement(root, '[data-lyric="incoming-auxiliary-1-line"]'),
+    incomingAuxiliary1Text: requiredElement(root, '[data-lyric="incoming-auxiliary-1-text"]'),
+    incomingAuxiliary2Line: requiredElement(root, '[data-lyric="incoming-auxiliary-2-line"]'),
+    incomingAuxiliary2Text: requiredElement(root, '[data-lyric="incoming-auxiliary-2-text"]')
   }
 }
 
@@ -77,9 +86,16 @@ function toDisplayLine(line: string) {
   return text.length > 0 ? text : ' '
 }
 
-function toTranslationLine(line: string) {
+function toAuxiliaryLine(line: string) {
   const text = (line ?? '').trim()
   return text.length > 0 ? text : '…'
+}
+
+function frameAuxiliaryLines(frame: DesktopLyricsFrame) {
+  return auxiliaryLines(frame.line, {
+    translation: frame.showTranslation,
+    pronunciation: frame.showPronunciation
+  })
 }
 
 function easeOutCubic(value: number) {
@@ -107,7 +123,10 @@ export class DesktopLyricStage {
   private lines: readonly LyricLine[] = []
   private trackId = ''
   private playing = false
-  private translationMode = false
+  private auxiliaryCount = 0
+  private auxiliarySignature = ''
+  private showTranslation = true
+  private showPronunciation = true
   private rowHeight = 0
   private linePitch = 0
   private trackBaseY = 0
@@ -116,13 +135,13 @@ export class DesktopLyricStage {
   private transitionStartTime = 0
   private transitionBaseSecondaryOpacity = SECONDARY_BASE_OPACITY
   private transitionPromotedLineIndex = -1
-  private transitionUsesTranslationPair = false
+  private transitionUsesAuxiliaryPair = false
   private disposed = false
 
   constructor(root: HTMLElement) {
     this.elements = readElements(root)
     this.elements.root.classList.add('single-line')
-    this.elements.root.classList.remove('translation-mode')
+    this.elements.root.classList.remove('auxiliary-mode', 'double-auxiliary')
     this.measure()
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(() => {
@@ -149,9 +168,20 @@ export class DesktopLyricStage {
     this.refreshHorizontalScroll()
   }
 
+  setAuxiliaryVisibility(showTranslation: boolean, showPronunciation: boolean) {
+    this.showTranslation = showTranslation
+    this.showPronunciation = showPronunciation
+  }
+
   update(positionMs: number, playing: boolean, animate = true) {
     this.playing = playing
-    this.applyFrame(frameAt(this.lines, positionMs, this.trackId, playing), animate)
+    this.applyFrame(
+      frameAt(this.lines, positionMs, this.trackId, playing, {
+        translation: this.showTranslation,
+        pronunciation: this.showPronunciation
+      }),
+      animate
+    )
   }
 
   refresh() {
@@ -190,8 +220,8 @@ export class DesktopLyricStage {
       case TRANSITIONS.SINGLE_ROLL:
         this.startSingleRoll(target)
         return
-      case TRANSITIONS.TRANSLATION_PAIR_ROLL:
-        this.startTranslationPairRoll(target)
+      case TRANSITIONS.AUXILIARY_ROLL:
+        this.startAuxiliaryRoll(target)
     }
   }
 
@@ -227,10 +257,9 @@ export class DesktopLyricStage {
   }
 
   private applyProgressPatch(frame: DesktopLyricsFrame) {
-    this.setTranslationMode(frame.translationMode)
-    this.setCurrentLine(frame.current)
+    this.setAuxiliaryLines(frameAuxiliaryLines(frame))
+    this.setCurrentLine(lyricText(frame.line))
     this.setWordScanProgress(frame.wordScanProgress)
-    this.setSecondaryLine(frame.translationMode ? frame.currentTranslation : ' ')
     this.updateSecondaryOpacity(frame.progress)
     this.coordinator.setCurrentFrame(frame)
   }
@@ -243,18 +272,17 @@ export class DesktopLyricStage {
   }
 
   private renderFrameContent(frame: DesktopLyricsFrame, allowWordScanSmoothing: boolean) {
-    this.setTranslationMode(frame.translationMode)
-    this.setCurrentLine(frame.current)
+    this.setAuxiliaryLines(frameAuxiliaryLines(frame))
+    this.setCurrentLine(lyricText(frame.line))
     this.setWordScanProgress(frame.wordScanProgress, allowWordScanSmoothing)
-    this.setSecondaryLine(frame.translationMode ? frame.currentTranslation : ' ')
     this.updateSecondaryOpacity(frame.progress)
   }
 
   private startSingleRoll(target: DesktopLyricsFrame) {
     this.cancelActiveTransition()
     this.measure()
-    this.setTranslationMode(false)
-    this.transitionUsesTranslationPair = false
+    this.setAuxiliaryCount(0)
+    this.transitionUsesAuxiliaryPair = false
     this.transitionPromotedLineIndex = target.currentLineIndex
     this.elements.track.classList.add('single-line-roll')
 
@@ -284,7 +312,7 @@ export class DesktopLyricStage {
       this.elements.secondaryLine,
       this.elements.secondaryText,
       this.elements.secondaryScanText,
-      toDisplayLine(target.current)
+      toDisplayLine(lyricText(target.line))
     )
     this.elements.currentLine.style.opacity = String(CURRENT_LINE_REST_OPACITY)
     this.elements.secondaryLine.style.opacity = String(this.transitionBaseSecondaryOpacity)
@@ -333,10 +361,9 @@ export class DesktopLyricStage {
     this.elements.currentLine.style.opacity = String(LEAVING_LINE_OPACITY)
     this.elements.secondaryLine.style.opacity = String(CURRENT_LINE_REST_OPACITY)
     void this.elements.track.offsetHeight
-    this.setCurrentLine(target.current)
+    this.setCurrentLine(lyricText(target.line))
     this.setWordScanProgress(target.wordScanProgress, false)
-    this.setSecondaryLine(' ')
-    this.setLineWordScanProgress(this.elements.secondaryLine, null)
+    this.clearAuxiliaryLines()
     this.elements.currentLine.classList.remove('leaving')
     this.elements.secondaryLine.classList.remove('promoting')
     this.elements.track.classList.remove('animating', 'single-line-roll')
@@ -352,34 +379,31 @@ export class DesktopLyricStage {
     this.finishFrame(target)
   }
 
-  private startTranslationPairRoll(target: DesktopLyricsFrame) {
+  private startAuxiliaryRoll(target: DesktopLyricsFrame) {
     this.cancelActiveTransition()
     this.measure()
-    this.setTranslationMode(true)
-    this.transitionUsesTranslationPair = true
+    const auxiliary = frameAuxiliaryLines(target)
+    this.setAuxiliaryCount(auxiliary.length)
+    this.transitionUsesAuxiliaryPair = true
     this.transitionPromotedLineIndex = target.currentLineIndex
 
-    const pair = this.elements.incomingTranslationPair
+    const pair = this.elements.incomingAuxiliaryPair
     const context = this.coordinator.beginTransition(
       {
-        kind: TRANSITIONS.TRANSLATION_PAIR_ROLL,
-        durationMs: DEFAULT_DURATION_MS.translationPairRoll
+        kind: TRANSITIONS.AUXILIARY_ROLL,
+        durationMs: DEFAULT_DURATION_MS.auxiliaryRoll
       },
-      { complete: () => this.finalizeTranslationPairRoll(target) }
+      { complete: () => this.finalizeAuxiliaryRoll(target) }
     )
 
     this.elements.track.classList.add('no-anim')
-    this.elements.track.classList.remove('animating', 'translation-pair-animating')
+    this.elements.track.classList.remove('animating', 'auxiliary-pair-animating')
     this.elements.currentLine.classList.remove('leaving')
     this.elements.secondaryLine.classList.remove('promoting')
     this.setTrackOffset(0)
-    this.clearIncomingTranslationPair()
+    this.clearIncomingAuxiliaryPair()
     pair.classList.add('preparing', 'no-anim')
-    this.setIncomingTranslationPair(
-      target.current,
-      target.currentTranslation,
-      target.wordScanProgress
-    )
+    this.setIncomingAuxiliaryPair(lyricText(target.line), auxiliary, target.wordScanProgress)
     this.elements.currentLine.style.opacity = ''
     this.elements.secondaryLine.style.opacity = ''
     void pair.offsetHeight
@@ -404,25 +428,24 @@ export class DesktopLyricStage {
     context.requestFrame(() => {
       pair.classList.remove('preparing')
       pair.classList.add('entering')
-      this.elements.track.classList.add('translation-pair-animating', 'animating')
+      this.elements.track.classList.add('auxiliary-pair-animating', 'animating')
       context.requestFrame(() => {
         if (!context.isCurrent()) return
-        this.setTrackOffset(2)
+        this.setTrackOffset(1 + auxiliary.length)
         if (this.prefersReducedMotion()) context.requestFrame(finish)
       })
     })
-    context.scheduleFallback(finish, DEFAULT_DURATION_MS.translationPairRoll + 120)
+    context.scheduleFallback(finish, DEFAULT_DURATION_MS.auxiliaryRoll + 120)
   }
 
-  private finalizeTranslationPairRoll(target: DesktopLyricsFrame) {
+  private finalizeAuxiliaryRoll(target: DesktopLyricsFrame) {
     this.elements.track.classList.add('no-anim')
-    this.elements.incomingTranslationPair.classList.add('no-anim')
-    this.setCurrentLine(target.current)
+    this.elements.incomingAuxiliaryPair.classList.add('no-anim')
+    this.setCurrentLine(lyricText(target.line))
     this.setWordScanProgress(target.wordScanProgress, false)
-    this.setSecondaryLine(target.currentTranslation)
-    this.setLineWordScanProgress(this.elements.secondaryLine, null)
+    this.setAuxiliaryLines(frameAuxiliaryLines(target))
     this.elements.track.classList.remove(
-      'translation-pair-animating',
+      'auxiliary-pair-animating',
       'animating',
       'word-scan-transition'
     )
@@ -431,7 +454,7 @@ export class DesktopLyricStage {
     this.setTrackOffset(0)
     this.elements.currentLine.style.opacity = ''
     this.elements.secondaryLine.style.opacity = ''
-    this.clearIncomingTranslationPair()
+    this.clearIncomingAuxiliaryPair()
     void this.elements.track.offsetHeight
     this.elements.track.classList.remove('no-anim')
     this.finishFrame(target)
@@ -456,7 +479,7 @@ export class DesktopLyricStage {
     if (!this.coordinator.isTransitioning) return
     const elapsed = Math.max(0, now - this.transitionStartTime)
     const progress = clamp01(elapsed / DEFAULT_DURATION_MS.singleRoll)
-    const fadeOut = getFadeOutEase(progress)
+    const fadeOut = getFadeOutEase(elapsed / SINGLE_ROLL_FADE_OUT_MS)
     const fadeIn = getFadeInEase(progress)
     this.elements.currentLine.style.opacity = String(
       CURRENT_LINE_REST_OPACITY + (LEAVING_LINE_OPACITY - CURRENT_LINE_REST_OPACITY) * fadeOut
@@ -477,7 +500,7 @@ export class DesktopLyricStage {
     this.elements.track.classList.remove(
       'animating',
       'single-line-roll',
-      'translation-pair-animating',
+      'auxiliary-pair-animating',
       'word-scan-transition'
     )
     this.elements.currentLine.classList.remove('leaving')
@@ -489,10 +512,10 @@ export class DesktopLyricStage {
     this.elements.secondaryLine.style.fontSize = ''
     this.elements.secondaryLine.style.transform = ''
     this.elements.secondaryLine.style.removeProperty('--promotion-scale')
-    this.clearIncomingTranslationPair()
+    this.clearIncomingAuxiliaryPair()
     void this.elements.track.offsetHeight
     this.elements.track.classList.remove('no-anim')
-    this.transitionUsesTranslationPair = false
+    this.transitionUsesAuxiliaryPair = false
     this.transitionPromotedLineIndex = -1
   }
 
@@ -523,7 +546,7 @@ export class DesktopLyricStage {
   }
 
   private updateTrackBase(gap = 0) {
-    const rowCount = this.translationMode ? 2 : 1
+    const rowCount = 1 + this.auxiliaryCount
     const pairHeight = rowCount * this.rowHeight + Math.max(0, rowCount - 1) * gap
     this.trackBaseY = 0
     this.elements.root.style.setProperty('--desktop-pair-height', `${pairHeight}px`)
@@ -539,14 +562,48 @@ export class DesktopLyricStage {
     )
   }
 
-  private setSecondaryLine(line: string) {
-    const text = this.translationMode ? toTranslationLine(line) : ' '
+  private setAuxiliaryLines(lines: readonly string[]) {
+    const visible = lines
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .slice(0, 2)
+    const signature = visible.join('\n')
+    if (signature === this.auxiliarySignature) return
+    this.auxiliarySignature = signature
+    this.setAuxiliaryCount(visible.length)
     this.setLineText(
       this.elements.secondaryLine,
       this.elements.secondaryText,
       this.elements.secondaryScanText,
-      text
+      visible[0] ? toAuxiliaryLine(visible[0]) : ' '
     )
+    this.setLineText(
+      this.elements.tertiaryLine,
+      this.elements.tertiaryText,
+      this.elements.tertiaryScanText,
+      visible[1] ? toAuxiliaryLine(visible[1]) : ' '
+    )
+    this.setLineWordScanProgress(this.elements.secondaryLine, null)
+    this.setLineWordScanProgress(this.elements.tertiaryLine, null)
+  }
+
+  private clearAuxiliaryLines() {
+    this.auxiliarySignature = ''
+    this.setAuxiliaryCount(0)
+    this.setLineText(
+      this.elements.secondaryLine,
+      this.elements.secondaryText,
+      this.elements.secondaryScanText,
+      ' '
+    )
+    this.setLineText(
+      this.elements.tertiaryLine,
+      this.elements.tertiaryText,
+      this.elements.tertiaryScanText,
+      ' '
+    )
+    this.setLineWordScanProgress(this.elements.secondaryLine, null)
+    this.setLineWordScanProgress(this.elements.tertiaryLine, null)
   }
 
   private setLineText(
@@ -566,20 +623,32 @@ export class DesktopLyricStage {
     if (scanTextElement) scanTextElement.textContent = text
   }
 
-  private setTranslationMode(enabled: boolean) {
-    if (this.translationMode === enabled) return
-    this.translationMode = enabled
-    this.elements.root.classList.toggle('translation-mode', enabled)
-    this.elements.root.classList.toggle('single-line', !enabled)
-    this.elements.secondaryLine.classList.toggle('translation-line', enabled)
+  private setAuxiliaryCount(count: number) {
+    const next = Math.max(0, Math.min(2, count))
+    if (this.auxiliaryCount === next) return
+    this.auxiliaryCount = next
+    this.elements.root.classList.toggle('auxiliary-mode', next > 0)
+    this.elements.root.classList.toggle('single-line', next === 0)
+    this.elements.root.classList.toggle('double-auxiliary', next === 2)
+    this.elements.secondaryLine.classList.toggle('auxiliary-line', next > 0)
+    this.elements.tertiaryLine.classList.toggle('auxiliary-line', next === 2)
     this.updateTrackBase(
       Number.parseFloat(window.getComputedStyle(this.elements.track).rowGap) || 0
     )
-    if (enabled) {
+    if (next > 0) {
       this.setLineWordScanProgress(this.elements.secondaryLine, null)
       this.elements.secondaryLine.style.opacity = ''
     } else {
-      this.clearIncomingTranslationPair()
+      this.clearIncomingAuxiliaryPair()
+    }
+    if (next < 2) {
+      this.setLineWordScanProgress(this.elements.tertiaryLine, null)
+      this.setLineText(
+        this.elements.tertiaryLine,
+        this.elements.tertiaryText,
+        this.elements.tertiaryScanText,
+        ' '
+      )
     }
   }
 
@@ -622,14 +691,14 @@ export class DesktopLyricStage {
 
   private updateTransitionWordScan(progress: number | null) {
     if (!this.coordinator.isTransitioning || this.transitionPromotedLineIndex < 0) return
-    const line = this.transitionUsesTranslationPair
-      ? this.elements.incomingTranslationOriginalLine
+    const line = this.transitionUsesAuxiliaryPair
+      ? this.elements.incomingOriginalLine
       : this.elements.secondaryLine
     this.setLineWordScanProgress(line, progress)
   }
 
   private updateSecondaryOpacity(progress: number) {
-    if (this.translationMode) {
+    if (this.auxiliaryCount > 0) {
       this.elements.secondaryLine.style.opacity = ''
       return
     }
@@ -638,42 +707,50 @@ export class DesktopLyricStage {
     this.elements.secondaryLine.style.opacity = this.secondaryOpacity.toFixed(3)
   }
 
-  private setIncomingTranslationPair(
+  private setIncomingAuxiliaryPair(
     original: string,
-    translation: string,
+    auxiliary: readonly string[],
     wordScanProgress: number | null
   ) {
     this.setLineText(
-      this.elements.incomingTranslationOriginalLine,
-      this.elements.incomingTranslationOriginalText,
-      this.elements.incomingTranslationOriginalScanText,
+      this.elements.incomingOriginalLine,
+      this.elements.incomingOriginalText,
+      this.elements.incomingOriginalScanText,
       toDisplayLine(original)
     )
     this.setLineText(
-      this.elements.incomingTranslationLine,
-      this.elements.incomingTranslationText,
+      this.elements.incomingAuxiliary1Line,
+      this.elements.incomingAuxiliary1Text,
       null,
-      toTranslationLine(translation)
+      auxiliary[0] ? toAuxiliaryLine(auxiliary[0]) : ' '
     )
-    this.setLineWordScanProgress(
-      this.elements.incomingTranslationOriginalLine,
-      wordScanProgress,
-      false
+    this.setLineText(
+      this.elements.incomingAuxiliary2Line,
+      this.elements.incomingAuxiliary2Text,
+      null,
+      auxiliary[1] ? toAuxiliaryLine(auxiliary[1]) : ' '
     )
+    this.setLineWordScanProgress(this.elements.incomingOriginalLine, wordScanProgress, false)
   }
 
-  private clearIncomingTranslationPair() {
-    this.elements.incomingTranslationPair.classList.remove('preparing', 'entering', 'no-anim')
-    this.setLineWordScanProgress(this.elements.incomingTranslationOriginalLine, null)
+  private clearIncomingAuxiliaryPair() {
+    this.elements.incomingAuxiliaryPair.classList.remove('preparing', 'entering', 'no-anim')
+    this.setLineWordScanProgress(this.elements.incomingOriginalLine, null)
     this.setLineText(
-      this.elements.incomingTranslationOriginalLine,
-      this.elements.incomingTranslationOriginalText,
-      this.elements.incomingTranslationOriginalScanText,
+      this.elements.incomingOriginalLine,
+      this.elements.incomingOriginalText,
+      this.elements.incomingOriginalScanText,
       ' '
     )
     this.setLineText(
-      this.elements.incomingTranslationLine,
-      this.elements.incomingTranslationText,
+      this.elements.incomingAuxiliary1Line,
+      this.elements.incomingAuxiliary1Text,
+      null,
+      ' '
+    )
+    this.setLineText(
+      this.elements.incomingAuxiliary2Line,
+      this.elements.incomingAuxiliary2Text,
       null,
       ' '
     )

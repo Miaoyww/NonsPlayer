@@ -10,6 +10,8 @@ export function DesktopLyricStage({
   playing,
   fontScale,
   fontWeight,
+  showTranslation,
+  showPronunciation,
   onContentHeight
 }: {
   lines: LyricLine[]
@@ -17,10 +19,14 @@ export function DesktopLyricStage({
   playing: boolean
   fontScale: number
   fontWeight: number
+  showTranslation: boolean
+  showPronunciation: boolean
   onContentHeight?: (height: number) => void
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<DesktopLyricStageController | null>(null)
+  const auxiliaryVisibilityRef = useRef({ showTranslation, showPronunciation })
+  auxiliaryVisibilityRef.current = { showTranslation, showPronunciation }
   const sourceRef = useRef({ lines, trackId })
   sourceRef.current = { lines, trackId }
   const playingRef = useRef(playing)
@@ -35,6 +41,10 @@ export function DesktopLyricStage({
     if (!root) return
     const stage = new DesktopLyricStageController(root)
     stageRef.current = stage
+    stage.setAuxiliaryVisibility(
+      auxiliaryVisibilityRef.current.showTranslation,
+      auxiliaryVisibilityRef.current.showPronunciation
+    )
     stage.setSource(sourceRef.current.lines, sourceRef.current.trackId)
     stage.update(currentPosition(), playingRef.current, true)
     return () => {
@@ -48,6 +58,13 @@ export function DesktopLyricStage({
     document.addEventListener('visibilitychange', changed)
     return () => document.removeEventListener('visibilitychange', changed)
   }, [])
+
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    stage.setAuxiliaryVisibility(showTranslation, showPronunciation)
+    stage.update(playing ? currentPosition() : getProgress().positionMs, playing, true)
+  }, [showTranslation, showPronunciation])
 
   useEffect(() => {
     const stage = stageRef.current
@@ -113,7 +130,7 @@ export function DesktopLyricStage({
               </span>
             </span>
           </div>
-          <div className="desktop-lyrics-line next-line" data-lyric="secondary-line">
+          <div className="desktop-lyrics-line next-line secondary-line" data-lyric="secondary-line">
             <span className="line-text-viewport">
               <span className="line-text-stack">
                 <span className="line-text line-text-base" data-lyric="secondary-text" />
@@ -125,9 +142,21 @@ export function DesktopLyricStage({
               </span>
             </span>
           </div>
+          <div className="desktop-lyrics-line next-line tertiary-line" data-lyric="tertiary-line">
+            <span className="line-text-viewport">
+              <span className="line-text-stack">
+                <span className="line-text line-text-base" data-lyric="tertiary-text" />
+                <span
+                  className="line-text line-text-scan"
+                  data-lyric="tertiary-scan"
+                  aria-hidden="true"
+                />
+              </span>
+            </span>
+          </div>
           <div
-            className="incoming-translation-pair"
-            data-lyric="incoming-translation-pair"
+            className="incoming-auxiliary-pair"
+            data-lyric="incoming-auxiliary-pair"
             aria-hidden="true"
           >
             <div className="desktop-lyrics-line current-line" data-lyric="incoming-original-line">
@@ -139,14 +168,27 @@ export function DesktopLyricStage({
               </span>
             </div>
             <div
-              className="desktop-lyrics-line translation-line"
-              data-lyric="incoming-translation-line"
+              className="desktop-lyrics-line auxiliary-line"
+              data-lyric="incoming-auxiliary-1-line"
             >
               <span className="line-text-viewport">
                 <span className="line-text-stack">
                   <span
                     className="line-text line-text-base"
-                    data-lyric="incoming-translation-text"
+                    data-lyric="incoming-auxiliary-1-text"
+                  />
+                </span>
+              </span>
+            </div>
+            <div
+              className="desktop-lyrics-line auxiliary-line tertiary-line"
+              data-lyric="incoming-auxiliary-2-line"
+            >
+              <span className="line-text-viewport">
+                <span className="line-text-stack">
+                  <span
+                    className="line-text line-text-base"
+                    data-lyric="incoming-auxiliary-2-text"
                   />
                 </span>
               </span>
