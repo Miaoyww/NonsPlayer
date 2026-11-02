@@ -138,7 +138,8 @@ const groups: SearchGroup[] = [
       ['app-version', '版本号', '版本 Nons'],
       ['app-updates', '版本更新', '升级 下载 更新'],
       ['license', '开源许可', 'GPL 协议'],
-      ['repository', 'GitHub 仓库', '源码 Issue 反馈']
+      ['repository', 'GitHub 仓库', '源码 Issue 反馈'],
+      ['contact', '联系我们', '社群 QQ 群 反馈 交流']
     ]
   },
   {

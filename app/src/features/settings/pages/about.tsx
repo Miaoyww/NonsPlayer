@@ -103,6 +103,13 @@ export function AboutPage({ version }: { version: string }) {
       <SettingsCard searchId="repository" title="GitHub 仓库" description="查看源码或提交 Issue。">
         {link(repository, 'Miaoyww/Nons')}
       </SettingsCard>
+      <SettingsCard
+        searchId="contact"
+        title="联系我们"
+        description="加入用户社群，反馈问题或交流使用体验。"
+      >
+        {link('https://qm.qq.com/q/rSKaFKKttS', '加入社群')}
+      </SettingsCard>
       {error && <ErrorNotice error={error} />}
       <section aria-labelledby="thanks-heading" className="flex flex-col gap-4">
         <h2 id="thanks-heading" className="text-xl font-bold">

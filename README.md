@@ -36,6 +36,10 @@ NonsPlayer的诞生离不开以下优秀产品的启发：
 
 感谢所有为 NonsPlayer 提供帮助的开发者、设计师和测试人员。
 
+## 联系我们
+
+加入 QQ 用户群交流使用体验与反馈问题：[加入社群](https://qm.qq.com/q/rSKaFKKttS)
+
 ## 开源许可与隐私
 
 Copyright Miaoyww 2026.
@@ -43,8 +47,6 @@ Copyright Miaoyww 2026.
 Distributed under the terms of the [GPL-3.0 license](https://github.com/Miaoyww/Nons/blob/main/LICENSE).
 
 匿名使用统计的采集字段、数据用途和关闭方式见 [隐私政策（Privacy Policy）](PRIVACY.md)。
-
-## 赞助
 
 <div align="center">
 
