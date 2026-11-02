@@ -1,5 +1,7 @@
 import { listen } from '@tauri-apps/api/event'
 import {
+  AArrowDown,
+  AArrowUp,
   AudioLines,
   Languages,
   Lock,
@@ -26,7 +28,11 @@ import { loadLyrics, lyricTrackVersion } from '@/features/lyrics/load-lyrics'
 import { parseLyrics } from '@/features/lyrics/parse-lyrics'
 import { reportCurrentLyrics } from '@/features/lyrics/current-lyric-diagnostics'
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
-import { useLyricsSettings } from '@/features/lyrics/use-lyrics-settings'
+import {
+  maxLyricsFontScale,
+  minLyricsFontScale,
+  useLyricsSettings
+} from '@/features/lyrics/use-lyrics-settings'
 import { DesktopLyricStage } from './desktop-lyric-stage'
 import { lyricPronunciation } from './lyric-display'
 import {
@@ -145,6 +151,7 @@ export function DesktopLyricsApp() {
   const {
     desktopLyricsFontWeight,
     desktopLyricsFontScale,
+    setDesktopLyricsFontScale,
     showDesktopLyricsDoubleLine,
     showDesktopLyricsTranslation,
     setShowDesktopLyricsTranslation,
@@ -270,6 +277,24 @@ export function DesktopLyricsApp() {
           </button>
         </div>
         <div className="desktop-lyrics-controls">
+          <button
+            type="button"
+            aria-label="减小桌面歌词字号"
+            title="减小字号"
+            disabled={desktopLyricsFontScale <= minLyricsFontScale}
+            onClick={() => setDesktopLyricsFontScale(desktopLyricsFontScale - 0.05)}
+          >
+            <AArrowDown aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="增大桌面歌词字号"
+            title="增大字号"
+            disabled={desktopLyricsFontScale >= maxLyricsFontScale}
+            onClick={() => setDesktopLyricsFontScale(desktopLyricsFontScale + 0.05)}
+          >
+            <AArrowUp aria-hidden="true" />
+          </button>
           <button
             type="button"
             aria-label="显示桌面歌词翻译"
