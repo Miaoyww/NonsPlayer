@@ -2,11 +2,11 @@
   font-family: var(--nons-lyrics-font, var(--nons-app-font));
   --amll-lp-color: var(--foreground);
   --amll-lp-hover-bg-color: var(--muted);
-  --amll-lp-font-size: calc(clamp(26px, 3vw, 44px) * var(--nons-lyrics-font-scale, 1));
+  --amll-lp-font-size: calc(clamp(28px, 3vw, 56px) * var(--nons-lyrics-font-scale, 1));
   mix-blend-mode: normal;
 }
 .lyrics-font-preview {
-  font-size: calc(clamp(26px, 3vw, 44px) * var(--nons-lyrics-font-scale, 1));
+  font-size: calc(clamp(28px, 3vw, 56px) * var(--nons-lyrics-font-scale, 1));
 }
 .now-playing-lyrics {
   mask-image: linear-gradient(transparent, black 12%, black 85%, transparent);
