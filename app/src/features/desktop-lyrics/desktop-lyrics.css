@@ -29,6 +29,25 @@
   min-height: 0;
 }
 
+.desktop-lyrics-unlock-zone {
+  position: absolute;
+  top: 3px;
+  right: 44px;
+  z-index: 2;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.desktop-lyrics-unlock-zone.visible,
+.desktop-lyrics-unlock-zone:hover,
+.desktop-lyrics-unlock-zone:focus-within {
+  opacity: 1;
+}
+
 .desktop-lyrics-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -132,7 +151,8 @@
 }
 
 .desktop-lyrics-playback button,
-.desktop-lyrics-controls button {
+.desktop-lyrics-controls button,
+.desktop-lyrics-unlock-zone button {
   display: grid;
   width: 32px;
   height: 32px;
@@ -153,7 +173,9 @@
 .desktop-lyrics-playback button:hover,
 .desktop-lyrics-playback button:focus-visible,
 .desktop-lyrics-controls button:hover,
-.desktop-lyrics-controls button:focus-visible {
+.desktop-lyrics-controls button:focus-visible,
+.desktop-lyrics-unlock-zone button:hover,
+.desktop-lyrics-unlock-zone button:focus-visible {
   color: #fff;
 }
 
@@ -164,13 +186,15 @@
 }
 
 .desktop-lyrics-playback button:focus-visible,
-.desktop-lyrics-controls button:focus-visible {
+.desktop-lyrics-controls button:focus-visible,
+.desktop-lyrics-unlock-zone button:focus-visible {
   outline: 2px solid rgb(255 255 255 / 76%);
   outline-offset: 1px;
 }
 
 .desktop-lyrics-playback svg,
-.desktop-lyrics-controls svg {
+.desktop-lyrics-controls svg,
+.desktop-lyrics-unlock-zone svg {
   width: 18px;
   height: 18px;
   pointer-events: none;

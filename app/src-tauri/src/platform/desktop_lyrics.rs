@@ -13,6 +13,7 @@ use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder, WindowEvent,
 };
+use tokio::time::sleep;
 
 const LABEL: &str = "desktop-lyrics";
 const WIDTH: f64 = 1100.0;
@@ -23,15 +24,42 @@ const POSITION_KEY: &str = "desktopLyricsPosition";
 const ENABLED_KEY: &str = "desktopLyricsEnabled";
 const LOCKED_KEY: &str = "desktopLyricsLocked";
 const EVENT: &str = "desktop-lyrics-changed";
+const HOVER_EVENT: &str = "desktop-lyrics-hover-changed";
 const SAVE_INTERVAL: Duration = Duration::from_millis(250);
+const UNLOCK_HOVER_SIZE: f64 = 44.0;
+const UNLOCK_HOVER_RIGHT: f64 = 44.0;
+const UNLOCK_HOVER_TOP: f64 = 3.0;
+const UNLOCK_HOVER_POLL: Duration = Duration::from_millis(40);
 
 static WINDOW_LOCK: Mutex<()> = Mutex::new(());
+
+#[derive(Default)]
+struct UnlockHover {
+    epoch: u64,
+    window_hovered: bool,
+    interactive: bool,
+    revision: u64,
+}
+
+static UNLOCK_HOVER: Mutex<UnlockHover> = Mutex::new(UnlockHover {
+    epoch: 0,
+    window_hovered: false,
+    interactive: false,
+    revision: 0,
+});
 
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct State {
     pub enabled: bool,
     pub locked: bool,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct HoverState {
+    pub hovered: bool,
+    pub revision: u64,
 }
 
 fn read_flag(store: &crate::storage::Store, key: &str, fallback: bool) -> bool {
@@ -93,6 +121,108 @@ fn default_position(app: &AppHandle) -> Option<PhysicalPosition<i32>> {
     ))
 }
 
+fn cursor_zone_state(window: &WebviewWindow) -> Option<(bool, bool)> {
+    let (Ok(cursor), Ok(position), Ok(size), Ok(scale)) = (
+        window.cursor_position(),
+        window.outer_position(),
+        window.outer_size(),
+        window.scale_factor(),
+    ) else {
+        return None;
+    };
+    let left = position.x as f64;
+    let top = position.y as f64;
+    let right = left + size.width as f64;
+    let bottom = top + size.height as f64;
+    let window_hovered =
+        cursor.x >= left && cursor.x <= right && cursor.y >= top && cursor.y <= bottom;
+    if !window_hovered {
+        return Some((false, false));
+    }
+    let size = UNLOCK_HOVER_SIZE * scale;
+    let zone_right = right - UNLOCK_HOVER_RIGHT * scale;
+    let zone_top = top + UNLOCK_HOVER_TOP * scale;
+    Some((
+        true,
+        cursor.x >= zone_right - size
+            && cursor.x <= zone_right
+            && cursor.y >= zone_top
+            && cursor.y <= zone_top + size,
+    ))
+}
+
+fn watch_unlock_hover(window: WebviewWindow, epoch: u64) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            sleep(UNLOCK_HOVER_POLL).await;
+            let Some((window_hovered, interactive)) = cursor_zone_state(&window) else {
+                continue;
+            };
+            let Ok(mut hover) = UNLOCK_HOVER.lock() else {
+                return;
+            };
+            if hover.epoch != epoch {
+                return;
+            }
+            let hover_changed = hover.window_hovered != window_hovered;
+            if hover_changed {
+                hover.window_hovered = window_hovered;
+                hover.revision = hover.revision.wrapping_add(1);
+            }
+            if hover.interactive != interactive {
+                if window.set_ignore_cursor_events(!interactive).is_err() {
+                    return;
+                }
+                hover.interactive = interactive;
+            }
+            let value = HoverState {
+                hovered: hover.window_hovered,
+                revision: hover.revision,
+            };
+            drop(hover);
+            if hover_changed {
+                let _ = window.emit(HOVER_EVENT, value);
+            }
+        }
+    });
+}
+
+fn stop_unlock_hover() {
+    if let Ok(mut hover) = UNLOCK_HOVER.lock() {
+        hover.epoch = hover.epoch.wrapping_add(1);
+        hover.window_hovered = false;
+        hover.interactive = false;
+        hover.revision = hover.revision.wrapping_add(1);
+    }
+}
+
+fn set_window_lock(window: &WebviewWindow, locked: bool) -> AppResult<()> {
+    let (epoch, hover_state) = {
+        let mut hover = UNLOCK_HOVER
+            .lock()
+            .map_err(|_| "桌面歌词窗口不可用".to_string())?;
+        hover.epoch = hover.epoch.wrapping_add(1);
+        hover.window_hovered = false;
+        hover.interactive = false;
+        hover.revision = hover.revision.wrapping_add(1);
+        window
+            .set_ignore_cursor_events(locked)
+            .map_err(|error| error.to_string())?;
+        (
+            hover.epoch,
+            HoverState {
+                hovered: false,
+                revision: hover.revision,
+            },
+        )
+    };
+    let _ = window.emit(HOVER_EVENT, hover_state);
+    if locked {
+        watch_unlock_hover(window.clone(), epoch);
+    }
+    Ok(())
+}
+
 fn on_window_event(app: &AppHandle, last_save: &Mutex<Instant>, event: &WindowEvent) {
     match event {
         WindowEvent::Moved(position) => {
@@ -115,9 +245,13 @@ fn on_window_event(app: &AppHandle, last_save: &Mutex<Instant>, event: &WindowEv
             if let Some(backend) = app.try_state::<Backend>() {
                 let _ = backend.store.set_setting(ENABLED_KEY, "false");
             }
+            stop_unlock_hover();
             publish(app);
         }
-        WindowEvent::Destroyed => publish(app),
+        WindowEvent::Destroyed => {
+            stop_unlock_hover();
+            publish(app);
+        }
         _ => {}
     }
 }
@@ -127,9 +261,7 @@ fn build(app: &AppHandle) -> AppResult<WebviewWindow> {
     let locked = read_flag(&app.state::<Backend>().store, LOCKED_KEY, true);
     if let Some(window) = app.get_webview_window(LABEL) {
         window.show().map_err(|error| error.to_string())?;
-        window
-            .set_ignore_cursor_events(locked)
-            .map_err(|error| error.to_string())?;
+        set_window_lock(&window, locked)?;
         return Ok(window);
     }
     let mut builder =
@@ -173,9 +305,7 @@ fn build(app: &AppHandle) -> AppResult<WebviewWindow> {
             .set_position(position)
             .map_err(|error| error.to_string())?;
     }
-    window
-        .set_ignore_cursor_events(locked)
-        .map_err(|error| error.to_string())?;
+    set_window_lock(&window, locked)?;
     window.show().map_err(|error| error.to_string())?;
     Ok(window)
 }
@@ -183,6 +313,20 @@ fn build(app: &AppHandle) -> AppResult<WebviewWindow> {
 #[tauri::command]
 pub(crate) fn desktop_lyrics_state(app: AppHandle) -> State {
     state(&app)
+}
+
+#[tauri::command]
+pub(crate) fn desktop_lyrics_hover_state() -> HoverState {
+    UNLOCK_HOVER
+        .lock()
+        .map(|hover| HoverState {
+            hovered: hover.window_hovered,
+            revision: hover.revision,
+        })
+        .unwrap_or(HoverState {
+            hovered: false,
+            revision: 0,
+        })
 }
 
 #[tauri::command]
@@ -209,9 +353,7 @@ pub(crate) fn desktop_lyrics_set_locked(locked: bool, app: AppHandle) -> AppResu
         .store
         .set_setting(LOCKED_KEY, if locked { "true" } else { "false" })?;
     if let Some(window) = app.get_webview_window(LABEL) {
-        window
-            .set_ignore_cursor_events(locked)
-            .map_err(|error| error.to_string())?;
+        set_window_lock(&window, locked)?;
     }
     let value = state(&app);
     let _ = app.emit(EVENT, value);

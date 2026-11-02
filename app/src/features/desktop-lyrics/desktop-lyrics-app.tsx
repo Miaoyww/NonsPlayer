@@ -1,5 +1,15 @@
 import { listen } from '@tauri-apps/api/event'
-import { AudioLines, Languages, Lock, Pause, Play, SkipBack, SkipForward, X } from 'lucide-react'
+import {
+  AudioLines,
+  Languages,
+  Lock,
+  LockOpen,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  X
+} from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import { reportCaughtError } from '@/lib/diagnostics'
 import {
@@ -24,6 +34,7 @@ import {
   setDesktopLyricsEnabled,
   setDesktopLyricsHeight,
   setDesktopLyricsLocked,
+  useDesktopLyricsHover,
   useDesktopLyricsState
 } from './state'
 
@@ -124,6 +135,7 @@ function useDesktopLyrics(track: Track | undefined) {
 
 export function DesktopLyricsApp() {
   const { locked } = useDesktopLyricsState()
+  const windowHovered = useDesktopLyricsHover()
   const snapshot = usePlayer('index', 'queue', 'repeatMode', 'shuffle', 'shuffleOrder', 'status')
   const track = snapshot.index === null ? undefined : snapshot.queue[snapshot.index]
   const playing = snapshot.status === 'playing'
@@ -185,14 +197,14 @@ export function DesktopLyricsApp() {
   }
   const handleContentHeight = useCallback(
     (height: number) => {
-      const target = Math.ceil(height + (locked ? 32 : 76))
+      const target = Math.ceil(height + 76)
       if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
       lastHeight.current = target
       void setDesktopLyricsHeight(target).catch((cause) =>
         reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
       )
     },
-    [locked]
+    []
   )
   const beforeFirstLine = lines.length > 0 && progress.positionMs < lines[0].startTime
   const showTrackInfo = !!track && !loading && (!lines.length || beforeFirstLine)
@@ -212,96 +224,106 @@ export function DesktopLyricsApp() {
 
   return (
     <div className={`desktop-lyrics${locked ? '' : ' unlocked'}`} onPointerDown={startDragging}>
-      {!locked && (
-        <div className="desktop-lyrics-header">
-          <div className="desktop-lyrics-track-info">
-            <span className="desktop-lyrics-track-title">{track?.title ?? ''}</span>
-            <span className="desktop-lyrics-track-artist">{track?.artist ?? ''}</span>
-          </div>
-          <div className="desktop-lyrics-playback" role="group" aria-label="播放控制">
-            <button
-              type="button"
-              aria-label="上一首"
-              title="上一首"
-              disabled={!track || previousIndex === null}
-              onClick={() => run(() => nativeCall('player_action', { action: 'previous' }))}
-            >
-              <SkipBack aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-label={transportPlaying ? '暂停' : '播放'}
-              title={transportPlaying ? '暂停' : '播放'}
-              disabled={!track}
-              onClick={() => run(() => nativeCall('player_action', { action: 'toggle' }))}
-            >
-              {transportPlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
-            </button>
-            <button
-              type="button"
-              aria-label="下一首"
-              title="下一首"
-              disabled={!track || nextIndex === null}
-              onClick={() => run(() => nativeCall('player_action', { action: 'next' }))}
-            >
-              <SkipForward aria-hidden="true" />
-            </button>
-          </div>
-          <div className="desktop-lyrics-controls">
-            <button
-              type="button"
-              aria-label="显示桌面歌词翻译"
-              aria-pressed={hasTranslation && showDesktopLyricsTranslation}
-              title={
-                hasTranslation
-                  ? showDesktopLyricsTranslation
-                    ? '隐藏翻译'
-                    : '显示翻译'
-                  : '暂无翻译'
-              }
-              disabled={!hasTranslation}
-              onClick={() => setShowDesktopLyricsTranslation(!showDesktopLyricsTranslation)}
-            >
-              <Languages aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-label="显示桌面歌词发音"
-              aria-pressed={hasPronunciation && showDesktopLyricsPronunciation}
-              title={
-                hasPronunciation
-                  ? showDesktopLyricsPronunciation
-                    ? '隐藏发音'
-                    : '显示发音'
-                  : '暂无发音'
-              }
-              disabled={!hasPronunciation}
-              onClick={() => setShowDesktopLyricsPronunciation(!showDesktopLyricsPronunciation)}
-            >
-              <AudioLines aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-label="锁定桌面歌词窗口"
-              title="锁定"
-              onClick={() => run(() => setDesktopLyricsLocked(true))}
-            >
-              <Lock aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-label="关闭桌面歌词"
-              title="关闭"
-              onClick={() => {
-                // The window is destroyed while this call is in flight.
-                void setDesktopLyricsEnabled(false).catch(() => {})
-              }}
-            >
-              <X aria-hidden="true" />
-            </button>
-          </div>
+      {locked && (
+        <div className={`desktop-lyrics-unlock-zone${windowHovered ? ' visible' : ''}`}>
+          <button
+            type="button"
+            aria-label="解锁桌面歌词窗口"
+            title="解锁"
+            onClick={() => run(() => setDesktopLyricsLocked(false))}
+          >
+            <LockOpen aria-hidden="true" />
+          </button>
         </div>
       )}
+      <div className="desktop-lyrics-header" aria-hidden={locked ? true : undefined}>
+        <div className="desktop-lyrics-track-info">
+          <span className="desktop-lyrics-track-title">{track?.title ?? ''}</span>
+          <span className="desktop-lyrics-track-artist">{track?.artist ?? ''}</span>
+        </div>
+        <div className="desktop-lyrics-playback" role="group" aria-label="播放控制">
+          <button
+            type="button"
+            aria-label="上一首"
+            title="上一首"
+            disabled={!track || previousIndex === null}
+            onClick={() => run(() => nativeCall('player_action', { action: 'previous' }))}
+          >
+            <SkipBack aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label={transportPlaying ? '暂停' : '播放'}
+            title={transportPlaying ? '暂停' : '播放'}
+            disabled={!track}
+            onClick={() => run(() => nativeCall('player_action', { action: 'toggle' }))}
+          >
+            {transportPlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
+          </button>
+          <button
+            type="button"
+            aria-label="下一首"
+            title="下一首"
+            disabled={!track || nextIndex === null}
+            onClick={() => run(() => nativeCall('player_action', { action: 'next' }))}
+          >
+            <SkipForward aria-hidden="true" />
+          </button>
+        </div>
+        <div className="desktop-lyrics-controls">
+          <button
+            type="button"
+            aria-label="显示桌面歌词翻译"
+            aria-pressed={hasTranslation && showDesktopLyricsTranslation}
+            title={
+              hasTranslation
+                ? showDesktopLyricsTranslation
+                  ? '隐藏翻译'
+                  : '显示翻译'
+                : '暂无翻译'
+            }
+            disabled={!hasTranslation}
+            onClick={() => setShowDesktopLyricsTranslation(!showDesktopLyricsTranslation)}
+          >
+            <Languages aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="显示桌面歌词发音"
+            aria-pressed={hasPronunciation && showDesktopLyricsPronunciation}
+            title={
+              hasPronunciation
+                ? showDesktopLyricsPronunciation
+                  ? '隐藏发音'
+                  : '显示发音'
+                : '暂无发音'
+            }
+            disabled={!hasPronunciation}
+            onClick={() => setShowDesktopLyricsPronunciation(!showDesktopLyricsPronunciation)}
+          >
+            <AudioLines aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="锁定桌面歌词窗口"
+            title="锁定"
+            onClick={() => run(() => setDesktopLyricsLocked(true))}
+          >
+            <Lock aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="关闭桌面歌词"
+            title="关闭"
+            onClick={() => {
+              // The window is destroyed while this call is in flight.
+              void setDesktopLyricsEnabled(false).catch(() => {})
+            }}
+          >
+            <X aria-hidden="true" />
+          </button>
+        </div>
+      </div>
       {lines.length > 0 && !showTrackInfo && (
         <DesktopLyricStage
           lines={lines}

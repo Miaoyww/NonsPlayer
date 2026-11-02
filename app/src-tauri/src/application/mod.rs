@@ -1126,6 +1126,8 @@ pub fn run() {
             #[cfg(desktop)]
             desktop_lyrics::desktop_lyrics_state,
             #[cfg(desktop)]
+            desktop_lyrics::desktop_lyrics_hover_state,
+            #[cfg(desktop)]
             desktop_lyrics::desktop_lyrics_set_enabled,
             #[cfg(desktop)]
             desktop_lyrics::desktop_lyrics_set_locked,
