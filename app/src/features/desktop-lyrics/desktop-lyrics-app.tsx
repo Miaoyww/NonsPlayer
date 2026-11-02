@@ -153,7 +153,7 @@ export function DesktopLyricsApp() {
   }
   const handleContentHeight = useCallback(
     (height: number) => {
-      const target = Math.ceil(height + 16)
+      const target = Math.ceil(height + 32)
       if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
       lastHeight.current = target
       void setDesktopLyricsHeight(target).catch((cause) =>
