@@ -167,7 +167,7 @@
 
 /* Shared translucent chrome; blur only these small, fixed surfaces. */
 .glass-surface {
-  background: color-mix(in oklch, var(--background) 60%, transparent);
+  background: color-mix(in oklch, var(--background) 72%, transparent);
   border: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
   /* Keep the standard property last so production optimization preserves it. */
   -webkit-backdrop-filter: blur(24px);
