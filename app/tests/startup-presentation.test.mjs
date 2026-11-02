@@ -90,7 +90,7 @@ test('unresolved startup source renders the actual library shell instead of the 
   assert.ok(flatten(tree).some((node) => node.type === 'LibraryPageSkeleton'))
   assert.equal(JSON.stringify(tree).includes('正在读取音乐来源'), false)
 })
-test('account menu shows recovery instead of declaring logout before account state arrives', () => {
+test('account menu button renders only the avatar without a status label', () => {
   const { AccountMenu } = load('../src/features/account/account-menu.tsx', {
     ...base,
     '@base-ui/react/popover': {
@@ -114,6 +114,8 @@ test('account menu shows recovery instead of declaring logout before account sta
     './saved-accounts': { SavedAccounts: 'SavedAccounts' }
   })
   const trigger = flatten(AccountMenu()).find((node) => node.type === 'Trigger')
-  assert.equal(JSON.stringify(trigger).includes('未登录'), false)
-  assert.ok(JSON.stringify(trigger).includes('正在恢复'))
+  const text = JSON.stringify(trigger)
+  assert.equal(text.includes('未登录'), false)
+  assert.equal(text.includes('正在恢复'), false)
+  assert.ok(flatten(trigger).some((node) => node.type === 'Avatar'))
 })
