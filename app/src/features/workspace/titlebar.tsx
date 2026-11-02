@@ -1,7 +1,5 @@
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
-import { supportsMusicPage } from '@/features/music/source-capabilities'
-import { useMusicSources } from '@/features/music/use-music-sources'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -27,6 +25,7 @@ import { usePlugins } from '@/plugins/host'
 import { pluginPath } from '@/plugins/types'
 import { isAndroid } from '@/lib/platform'
 import { usePrimaryMusicPage } from './use-primary-music-page'
+import { MusicNavButtons } from './music-nav-buttons'
 
 export function Titlebar({
   playerMode = false,
@@ -35,10 +34,6 @@ export function Titlebar({
   playerMode?: boolean
   onBack?: () => void
 }) {
-  const sources = useMusicSources()
-  const current = sources.statuses.find(
-    (item) => item.descriptor.source === sources.preferences?.current && item.enabled
-  )
   const { plugins, loaded } = usePlugins()
   const hasTools = plugins.some(
     (plugin) =>
@@ -201,42 +196,7 @@ export function Titlebar({
                 工具
               </Button>
             )}
-            {(
-              [
-                ['library', '音乐库'],
-                ['discover', '发现'],
-                ['local', '本地']
-              ] as const
-            ).map(([view, label]) => (
-              <Button
-                key={view}
-                disabled={view !== 'local' && !supportsMusicPage(current?.descriptor, view)}
-                title={
-                  view !== 'local' && !supportsMusicPage(current?.descriptor, view)
-                    ? `此适配器未提供${label}`
-                    : undefined
-                }
-                variant={
-                  page.view === view ||
-                  (view === 'library' && ['collection', 'accounts'].includes(page.view)) ||
-                  (view === 'discover' && page.view === 'search') ||
-                  (view === 'local' && page.view.startsWith('local-'))
-                    ? 'secondary'
-                    : 'ghost'
-                }
-                aria-current={
-                  page.view === view ||
-                  (view === 'library' && ['collection', 'accounts'].includes(page.view)) ||
-                  (view === 'discover' && page.view === 'search') ||
-                  (view === 'local' && page.view.startsWith('local-'))
-                    ? 'page'
-                    : undefined
-                }
-                onClick={() => navigate(view)}
-              >
-                {label}
-              </Button>
-            ))}
+            <MusicNavButtons />
             {plugins
               .filter((p) => p.loaded)
               .flatMap((plugin) =>
