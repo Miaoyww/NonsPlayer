@@ -8,7 +8,15 @@ import { listen } from '@tauri-apps/api/event'
 import { isTauri } from '@tauri-apps/api/core'
 import { motion, useIsPresent, useReducedMotion } from 'motion/react'
 import { AudioLines, Languages } from 'lucide-react'
-import { errorText, getPlayer, nativeCall, usePlayer, type Lyrics, type Track } from '@/lib/player'
+import {
+  currentPosition,
+  errorText,
+  getPlayer,
+  nativeCall,
+  usePlayer,
+  type Lyrics,
+  type Track
+} from '@/lib/player'
 import { offsetLyrics, automaticLyrics, type LyricCorrection } from './correction'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
@@ -23,6 +31,7 @@ import {
 } from '@/features/lyrics/use-lyric-sources'
 import { loadLyrics, lyricTrackVersion } from '@/features/lyrics/load-lyrics'
 import { EmptyLyricsError, parseLyrics } from '@/features/lyrics/parse-lyrics'
+import { reportCurrentLyrics } from '@/features/lyrics/current-lyric-diagnostics'
 import { LyricLoading } from './lyric-loading'
 import { isAndroid } from '@/lib/platform'
 import { MobileFullscreenPlayer } from '@/features/playback/mobile-fullscreen-player'
@@ -154,6 +163,14 @@ export default function LyricsView({
             correction.current.offsetMs ?? lyricsOffsetMs
           )
         : []
+      reportCurrentLyrics({
+        operation: 'app/src/features/lyrics/lyrics-view.tsx',
+        trackKey: key,
+        trackLabel: track ? `${track.title} / ${track.artist}` : key,
+        positionMs: currentPosition(),
+        lyrics: value,
+        lines: parsed
+      })
       appliedSource.current = value?.source
       reusable.current = value
         ? {

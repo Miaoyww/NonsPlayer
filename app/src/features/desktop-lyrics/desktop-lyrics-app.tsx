@@ -5,6 +5,7 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import {
   adjacentIndex,
   connectPlayer,
+  currentPosition,
   nativeCall,
   usePlayer,
   useProgress,
@@ -13,6 +14,7 @@ import {
 import { offsetLyrics, type LyricCorrection } from '@/features/lyrics/correction'
 import { loadLyrics, lyricTrackVersion } from '@/features/lyrics/load-lyrics'
 import { parseLyrics } from '@/features/lyrics/parse-lyrics'
+import { reportCurrentLyrics } from '@/features/lyrics/current-lyric-diagnostics'
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
 import { useLyricsSettings } from '@/features/lyrics/use-lyrics-settings'
 import { DesktopLyricStage } from './desktop-lyric-stage'
@@ -92,7 +94,17 @@ function useDesktopLyrics(track: Track | undefined) {
             )
       )
       .then((result) => {
-        if (!disposed && result) setLines(result.parsed)
+        if (!disposed && result) {
+          reportCurrentLyrics({
+            operation: 'app/src/features/desktop-lyrics/desktop-lyrics-app.tsx',
+            trackKey: track.key,
+            trackLabel: `${track.title} / ${track.artist}`,
+            positionMs: currentPosition(),
+            lyrics: result.lyrics,
+            lines: result.parsed
+          })
+          setLines(result.parsed)
+        }
       })
       .catch((cause) => {
         if (disposed) return
