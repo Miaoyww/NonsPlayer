@@ -1,5 +1,6 @@
 import { listen } from '@tauri-apps/api/event'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Lock, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { connectPlayer, nativeCall, usePlayer, type Track } from '@/lib/player'
 import { offsetLyrics, type LyricCorrection } from '@/features/lyrics/correction'
@@ -144,44 +145,47 @@ export function DesktopLyricsApp() {
     void action().catch((cause) =>
       reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
     )
+  const startDragging = (event: PointerEvent<HTMLDivElement>) => {
+    if (locked || event.button !== 0) return
+    if ((event.target as Element).closest('button')) return
+    event.preventDefault()
+    run(dragDesktopLyrics)
+  }
   const handleContentHeight = useCallback(
     (height: number) => {
-      const target = Math.ceil(height + (locked ? 16 : 84))
+      const target = Math.ceil(height + 16)
       if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
       lastHeight.current = target
       void setDesktopLyricsHeight(target).catch((cause) =>
         reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
       )
     },
-    [locked]
+    []
   )
   const placeholder = !!track && !lines.length && !loading
 
   return (
-    <div className={`desktop-lyrics${locked ? '' : ' unlocked'}`}>
+    <div className={`desktop-lyrics${locked ? '' : ' unlocked'}`} onPointerDown={startDragging}>
       {!locked && (
-        <div className="desktop-lyrics-toolbar">
+        <div className="desktop-lyrics-controls">
           <button
             type="button"
-            className="desktop-lyrics-drag"
-            onPointerDown={(event) => {
-              event.preventDefault()
-              run(dragDesktopLyrics)
-            }}
+            aria-label="锁定桌面歌词窗口"
+            title="锁定"
+            onClick={() => run(() => setDesktopLyricsLocked(true))}
           >
-            拖动
-          </button>
-          <button type="button" onClick={() => run(() => setDesktopLyricsLocked(true))}>
-            锁定
+            <Lock aria-hidden="true" />
           </button>
           <button
             type="button"
+            aria-label="关闭桌面歌词"
+            title="关闭"
             onClick={() => {
               // The window is destroyed while this call is in flight.
               void setDesktopLyricsEnabled(false).catch(() => {})
             }}
           >
-            关闭
+            <X aria-hidden="true" />
           </button>
         </div>
       )}

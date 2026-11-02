@@ -10,6 +10,10 @@
   user-select: none;
 }
 
+.desktop-lyrics.unlocked {
+  cursor: move;
+}
+
 .desktop-lyrics .desktop-lyrics-stage {
   flex: 1 1 auto;
   min-height: 0;
@@ -23,43 +27,51 @@
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 50%)) drop-shadow(0 0 2px rgb(0 0 0 / 50%));
 }
 
-.desktop-lyrics-toolbar {
+.desktop-lyrics-controls {
   position: absolute;
-  top: 12px;
-  left: 50%;
+  top: 8px;
+  right: 8px;
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px;
-  border: 1px solid rgb(255 255 255 / 14%);
-  border-radius: 999px;
-  background: rgb(14 14 20 / 82%);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
-  transform: translateX(-50%);
-  backdrop-filter: blur(12px);
+  gap: 2px;
 }
 
-.desktop-lyrics-toolbar button {
-  padding: 5px 12px;
+.desktop-lyrics-controls button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  place-items: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   background: transparent;
-  color: rgb(255 255 255 / 78%);
+  color: rgb(255 255 255 / 72%);
   font: inherit;
-  font-size: 12px;
   cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 60%));
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
-.desktop-lyrics-toolbar button:hover {
-  background: rgb(255 255 255 / 12%);
+.desktop-lyrics-controls button:hover,
+.desktop-lyrics-controls button:focus-visible {
+  background: rgb(120 120 120 / 72%);
   color: #fff;
 }
 
-.desktop-lyrics-toolbar .desktop-lyrics-drag {
-  cursor: grab;
+.desktop-lyrics-controls button:focus-visible {
+  outline: 2px solid rgb(255 255 255 / 76%);
+  outline-offset: 1px;
 }
 
-.desktop-lyrics-toolbar .desktop-lyrics-drag:active {
-  cursor: grabbing;
+.desktop-lyrics-controls button:active {
+  background: rgb(96 96 96 / 82%);
+}
+
+.desktop-lyrics-controls svg {
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
 }
