@@ -166,7 +166,8 @@ export class DesktopLyricStage {
   }
 
   private applyFrame(targetFrame: DesktopLyricsFrame, animate: boolean) {
-    const target = normalizeFrame(targetFrame)
+    const target = this.stabilizeFrame(normalizeFrame(targetFrame))
+    if (!target) return
     if (this.coordinator.isTransitioning) {
       this.coordinator.queueLatest(target, { animate })
       this.updateTransitionWordScan(target.wordScanProgress)
@@ -192,6 +193,37 @@ export class DesktopLyricStage {
       case TRANSITIONS.TRANSLATION_PAIR_ROLL:
         this.startTranslationPairRoll(target)
     }
+  }
+
+  private stabilizeFrame(target: DesktopLyricsFrame) {
+    const current = this.coordinator.currentFrame
+    if (
+      !this.playing ||
+      current.scene !== 'lyrics' ||
+      target.scene !== 'lyrics' ||
+      current.trackId !== target.trackId
+    ) {
+      return target
+    }
+
+    if (
+      target.currentLineIndex < current.currentLineIndex &&
+      target.currentLineIndex >= current.currentLineIndex - 1
+    ) {
+      return null
+    }
+
+    if (
+      target.currentLineIndex === current.currentLineIndex &&
+      target.wordScanProgress !== null &&
+      current.wordScanProgress !== null &&
+      target.wordScanProgress < current.wordScanProgress
+    ) {
+      const difference = current.wordScanProgress - target.wordScanProgress
+      if (difference <= 0.15) return current
+    }
+
+    return target
   }
 
   private applyProgressPatch(frame: DesktopLyricsFrame) {
