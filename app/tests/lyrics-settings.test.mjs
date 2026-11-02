@@ -63,3 +63,67 @@ test('lyric font scale restores a valid saved value and falls back for invalid s
   assert.equal(load({ 'nons-lyrics-font-scale': '2' }).useLyricsSettings().fontScale, 1)
   assert.equal(load({ 'nons-lyrics-font-scale': 'abc' }).useLyricsSettings().fontScale, 1)
 })
+
+test('desktop lyric settings default, persist and clamp their values', () => {
+  const settings = load()
+  const initial = settings.useLyricsSettings()
+  assert.equal(initial.desktopLyricsFontScale, 1)
+  assert.equal(initial.desktopLyricsFontWeight, 400)
+  assert.equal(initial.showDesktopLyricsDoubleLine, false)
+  assert.equal(initial.showDesktopLyricsTranslation, true)
+  assert.equal(initial.showDesktopLyricsPronunciation, true)
+  assert.equal(initial.desktopLyricsSungColor, '#87afff')
+
+  initial.setDesktopLyricsFontScale(1.25)
+  initial.setDesktopLyricsFontWeight(700)
+  initial.setShowDesktopLyricsDoubleLine(true)
+  initial.setShowDesktopLyricsTranslation(false)
+  initial.setShowDesktopLyricsPronunciation(false)
+  initial.setDesktopLyricsSungColor('#AABBCC')
+
+  const updated = settings.useLyricsSettings()
+  assert.equal(settings.values.get('nons-desktop-lyrics-font-scale'), '1.25')
+  assert.equal(settings.values.get('nons-desktop-lyrics-font-weight'), '700')
+  assert.equal(settings.values.get('nons-desktop-lyrics-double-line'), 'true')
+  assert.equal(settings.values.get('nons-desktop-lyrics-translation'), 'false')
+  assert.equal(settings.values.get('nons-desktop-lyrics-pronunciation'), 'false')
+  assert.equal(settings.values.get('nons-desktop-lyrics-sung-color'), '#aabbcc')
+  assert.equal(updated.desktopLyricsFontScale, 1.25)
+  assert.equal(updated.desktopLyricsFontWeight, 700)
+  assert.equal(updated.showDesktopLyricsDoubleLine, true)
+  assert.equal(updated.showDesktopLyricsTranslation, false)
+  assert.equal(updated.showDesktopLyricsPronunciation, false)
+  assert.equal(updated.desktopLyricsSungColor, '#aabbcc')
+
+  updated.setDesktopLyricsFontScale(2)
+  updated.setDesktopLyricsFontWeight(1000)
+  updated.setDesktopLyricsSungColor('red')
+  const clamped = settings.useLyricsSettings()
+  assert.equal(clamped.desktopLyricsFontScale, 1.6)
+  assert.equal(clamped.desktopLyricsFontWeight, 700)
+  assert.equal(clamped.desktopLyricsSungColor, '#aabbcc')
+})
+
+test('desktop lyric settings restore valid storage and fall back for invalid values', () => {
+  const settings = load({
+    'nons-desktop-lyrics-font-scale': '1.35',
+    'nons-desktop-lyrics-font-weight': '500',
+    'nons-desktop-lyrics-double-line': 'true',
+    'nons-desktop-lyrics-sung-color': '#123ABC'
+  }).useLyricsSettings()
+  assert.equal(settings.desktopLyricsFontScale, 1.35)
+  assert.equal(settings.desktopLyricsFontWeight, 500)
+  assert.equal(settings.showDesktopLyricsDoubleLine, true)
+  assert.equal(settings.desktopLyricsSungColor, '#123abc')
+
+  const invalid = load({
+    'nons-desktop-lyrics-font-scale': '2',
+    'nons-desktop-lyrics-font-weight': '950',
+    'nons-desktop-lyrics-double-line': 'yes',
+    'nons-desktop-lyrics-sung-color': 'purple'
+  }).useLyricsSettings()
+  assert.equal(invalid.desktopLyricsFontScale, 1)
+  assert.equal(invalid.desktopLyricsFontWeight, 400)
+  assert.equal(invalid.showDesktopLyricsDoubleLine, false)
+  assert.equal(invalid.desktopLyricsSungColor, '#87afff')
+})

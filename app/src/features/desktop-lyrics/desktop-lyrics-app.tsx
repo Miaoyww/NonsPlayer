@@ -143,12 +143,14 @@ export function DesktopLyricsApp() {
   const previousIndex = adjacentIndex(snapshot, 'previous')
   const nextIndex = adjacentIndex(snapshot, 'next')
   const {
-    fontWeight,
-    fontScale,
+    desktopLyricsFontWeight,
+    desktopLyricsFontScale,
+    showDesktopLyricsDoubleLine,
     showDesktopLyricsTranslation,
     setShowDesktopLyricsTranslation,
     showDesktopLyricsPronunciation,
-    setShowDesktopLyricsPronunciation
+    setShowDesktopLyricsPronunciation,
+    desktopLyricsSungColor
   } = useLyricsSettings()
   const { lines, loading } = useDesktopLyrics(track)
   const progress = useProgress(true)
@@ -195,17 +197,14 @@ export function DesktopLyricsApp() {
     event.preventDefault()
     run(dragDesktopLyrics)
   }
-  const handleContentHeight = useCallback(
-    (height: number) => {
-      const target = Math.ceil(height + 76)
-      if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
-      lastHeight.current = target
-      void setDesktopLyricsHeight(target).catch((cause) =>
-        reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
-      )
-    },
-    []
-  )
+  const handleContentHeight = useCallback((height: number) => {
+    const target = Math.ceil(height + 76)
+    if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
+    lastHeight.current = target
+    void setDesktopLyricsHeight(target).catch((cause) =>
+      reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
+    )
+  }, [])
   const beforeFirstLine = lines.length > 0 && progress.positionMs < lines[0].startTime
   const showTrackInfo = !!track && !loading && (!lines.length || beforeFirstLine)
   const hasTranslation = lines.some((line) => !!line.translatedLyric.trim())
@@ -276,11 +275,7 @@ export function DesktopLyricsApp() {
             aria-label="显示桌面歌词翻译"
             aria-pressed={hasTranslation && showDesktopLyricsTranslation}
             title={
-              hasTranslation
-                ? showDesktopLyricsTranslation
-                  ? '隐藏翻译'
-                  : '显示翻译'
-                : '暂无翻译'
+              hasTranslation ? (showDesktopLyricsTranslation ? '隐藏翻译' : '显示翻译') : '暂无翻译'
             }
             disabled={!hasTranslation}
             onClick={() => setShowDesktopLyricsTranslation(!showDesktopLyricsTranslation)}
@@ -329,10 +324,12 @@ export function DesktopLyricsApp() {
           lines={lines}
           trackId={track?.key ?? ''}
           playing={playing}
-          fontScale={fontScale}
-          fontWeight={fontWeight}
+          fontScale={desktopLyricsFontScale}
+          fontWeight={desktopLyricsFontWeight}
+          doubleLine={showDesktopLyricsDoubleLine}
           showTranslation={showDesktopLyricsTranslation}
           showPronunciation={showDesktopLyricsPronunciation}
+          sungColor={desktopLyricsSungColor}
           onContentHeight={handleContentHeight}
         />
       )}

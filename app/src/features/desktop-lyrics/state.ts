@@ -68,8 +68,9 @@ export function useDesktopLyricsHover() {
       unlisten = cleanup
       apply(await invoke<DesktopLyricsHoverState>('desktop_lyrics_hover_state'))
     }
-    void bind()
-      .catch((cause) => reportCaughtError('app/src/features/desktop-lyrics/state.ts', cause))
+    void bind().catch((cause) =>
+      reportCaughtError('app/src/features/desktop-lyrics/state.ts', cause)
+    )
     return () => {
       disposed = true
       unlisten?.()

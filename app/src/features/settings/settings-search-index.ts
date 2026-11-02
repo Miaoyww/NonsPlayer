@@ -81,11 +81,24 @@ const groups: SearchGroup[] = [
     path: '歌词设置 / 歌词显示',
     items: [
       ['lyrics-font', '歌词字体', '翻译 发音'],
-      ['lyrics-font-weight', '歌词字重', '常规 中等 粗体 自定义 粗细 400 500 700'],
+      ['lyrics-font-weight', '歌词字重', '粗细 滑块 100 400 900'],
       ['lyrics-font-size', '字体大小', '缩放 字号 大小 比例'],
       ['lyrics-auto-blur', '歌词自动模糊', '模糊 清晰 AMLL blur'],
       ['lyrics-offset', '歌词偏移', '毫秒 提前 延迟 时间轴'],
       ['lyrics-background-speed', '背景流速', '流动 动态 静止 速度']
+    ]
+  },
+  {
+    section: 'lyrics',
+    path: '歌词设置 / 桌面歌词',
+    items: [
+      ['lyrics-desktop', '启用桌面歌词', '置顶 独立窗口 鼠标穿透'],
+      ['lyrics-desktop-font-size', '字体大小', '字号 缩放 比例 大小'],
+      ['lyrics-desktop-font-weight', '字重', '粗细 滑块'],
+      ['lyrics-desktop-double-line', '双行显示', '下一句 两行'],
+      ['lyrics-desktop-translation', '显示翻译', '译文'],
+      ['lyrics-desktop-pronunciation', '显示注音', '发音 音译'],
+      ['lyrics-desktop-sung-color', '已唱部分颜色', '高亮 颜色 逐字']
     ]
   },
   {

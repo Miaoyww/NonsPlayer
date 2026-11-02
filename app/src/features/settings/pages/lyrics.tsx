@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   defaultBackgroundSpeed,
+  defaultDesktopLyricsSungColor,
   defaultLyricsFontScale,
   defaultLyricsOffsetMs,
   maxLyricsFontScale,
@@ -29,8 +30,21 @@ export function LyricsPage() {
     autoBlur,
     setAutoBlur,
     fontWeight,
+    setFontWeight,
     fontScale,
-    setFontScale
+    setFontScale,
+    desktopLyricsFontScale,
+    setDesktopLyricsFontScale,
+    desktopLyricsFontWeight,
+    setDesktopLyricsFontWeight,
+    showDesktopLyricsDoubleLine,
+    setShowDesktopLyricsDoubleLine,
+    showDesktopLyricsTranslation,
+    setShowDesktopLyricsTranslation,
+    showDesktopLyricsPronunciation,
+    setShowDesktopLyricsPronunciation,
+    desktopLyricsSungColor,
+    setDesktopLyricsSungColor
   } = useLyricsSettings()
   const { sources, ready, busy, error, setSources } = useLyricSources()
   return (
@@ -88,7 +102,7 @@ export function LyricsPage() {
           title="歌词字重"
           description="用于歌词、翻译与发音。"
         >
-          <LyricFontWeightControl />
+          <LyricFontWeightControl value={fontWeight} onChange={setFontWeight} />
         </SettingsCard>
         <SettingsCard
           searchId="lyrics-font-size"
@@ -202,7 +216,7 @@ export function LyricsPage() {
             桌面歌词
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            在独立置顶窗口中显示当前歌词与翻译；锁定后鼠标可穿透，悬停歌词窗口可解锁。
+            在独立置顶窗口中显示歌词，可同时显示下一句、翻译与注音；锁定后鼠标可穿透，悬停歌词窗口可解锁。
           </p>
         </div>
         <SettingsCard
@@ -211,6 +225,112 @@ export function LyricsPage() {
           description="关闭后桌面上不再显示歌词。"
         >
           <DesktopLyricsSwitch />
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-desktop-font-size"
+          title="字体大小"
+          description="按比例调整桌面歌词字号。"
+        >
+          <div className="flex w-60 flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <Slider
+                className="min-w-0 flex-1"
+                aria-label="桌面歌词字体大小"
+                min={minLyricsFontScale}
+                max={maxLyricsFontScale}
+                step={0.05}
+                value={desktopLyricsFontScale}
+                onValueChange={(value) => setDesktopLyricsFontScale(Number(value))}
+              />
+              <output
+                className="w-12 text-right text-sm tabular-nums"
+                aria-label="当前桌面歌词字体大小"
+              >
+                {Math.round(desktopLyricsFontScale * 100)}%
+              </output>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>小</span>
+              <span>大</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-end"
+              onClick={() => setDesktopLyricsFontScale(defaultLyricsFontScale)}
+            >
+              恢复默认
+            </Button>
+          </div>
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-desktop-font-weight"
+          title="字重"
+          description="用于歌词、翻译与注音。"
+        >
+          <LyricFontWeightControl
+            value={desktopLyricsFontWeight}
+            onChange={setDesktopLyricsFontWeight}
+            label="桌面歌词字重"
+          />
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-desktop-double-line"
+          title="双行显示"
+          description="在当前句下方同时显示下一句歌词。"
+        >
+          <Switch
+            aria-label="桌面歌词双行显示"
+            checked={showDesktopLyricsDoubleLine}
+            onCheckedChange={setShowDesktopLyricsDoubleLine}
+          />
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-desktop-translation"
+          title="显示翻译"
+          description="显示当前歌词句的翻译。"
+        >
+          <Switch
+            aria-label="显示桌面歌词翻译"
+            checked={showDesktopLyricsTranslation}
+            onCheckedChange={setShowDesktopLyricsTranslation}
+          />
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-desktop-pronunciation"
+          title="显示注音"
+          description="显示当前歌词句的注音或音译。"
+        >
+          <Switch
+            aria-label="显示桌面歌词注音"
+            checked={showDesktopLyricsPronunciation}
+            onCheckedChange={setShowDesktopLyricsPronunciation}
+          />
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-desktop-sung-color"
+          title="已唱部分颜色"
+          description="已唱歌词的逐字高亮颜色。"
+        >
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              aria-label="已唱部分颜色"
+              className="h-9 w-12 cursor-pointer rounded-full border border-input bg-input/30 p-1"
+              value={desktopLyricsSungColor}
+              onChange={(event) => setDesktopLyricsSungColor(event.currentTarget.value)}
+            />
+            <output className="w-20 text-sm uppercase tabular-nums" aria-label="当前已唱部分颜色">
+              {desktopLyricsSungColor}
+            </output>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDesktopLyricsSungColor(defaultDesktopLyricsSungColor)}
+            >
+              恢复默认
+            </Button>
+          </div>
         </SettingsCard>
       </section>
       <section aria-labelledby="lyrics-sources-heading" className="flex flex-col gap-8">

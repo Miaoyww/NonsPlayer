@@ -24,7 +24,7 @@
   --primary: rgb(255 255 255 / 96%);
   --secondary: #fff;
   --auxiliary-text: #fff;
-  --highlight: var(--music-accent, oklch(0.76 0.13 264));
+  --highlight: var(--desktop-lyrics-sung-color, #87afff);
   --word-scan-overlay: var(--highlight);
   --word-scan-feather-width: 0.12em;
   --text-outline-color: rgb(0 0 0 / 50%);
@@ -176,6 +176,14 @@
 .desktop-lyrics-stage .desktop-lyrics-track > .secondary-line,
 .desktop-lyrics-stage .desktop-lyrics-track > .tertiary-line {
   display: none;
+}
+
+.desktop-lyrics-stage .desktop-lyrics-track > .preview-line {
+  display: none;
+}
+
+.desktop-lyrics-stage.double-line .desktop-lyrics-track > .preview-line {
+  display: flex;
 }
 
 .desktop-lyrics-stage.auxiliary-mode .desktop-lyrics-track > .secondary-line {

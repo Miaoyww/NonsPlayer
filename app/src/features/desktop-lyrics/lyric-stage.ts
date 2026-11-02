@@ -41,6 +41,8 @@ interface StageElements {
   incomingAuxiliary1Text: HTMLElement
   incomingAuxiliary2Line: HTMLElement
   incomingAuxiliary2Text: HTMLElement
+  previewLine: HTMLElement
+  previewText: HTMLElement
 }
 
 interface LineScrollMetrics {
@@ -77,7 +79,9 @@ function readElements(root: HTMLElement): StageElements {
     incomingAuxiliary1Line: requiredElement(root, '[data-lyric="incoming-auxiliary-1-line"]'),
     incomingAuxiliary1Text: requiredElement(root, '[data-lyric="incoming-auxiliary-1-text"]'),
     incomingAuxiliary2Line: requiredElement(root, '[data-lyric="incoming-auxiliary-2-line"]'),
-    incomingAuxiliary2Text: requiredElement(root, '[data-lyric="incoming-auxiliary-2-text"]')
+    incomingAuxiliary2Text: requiredElement(root, '[data-lyric="incoming-auxiliary-2-text"]'),
+    previewLine: requiredElement(root, '[data-lyric="preview-line"]'),
+    previewText: requiredElement(root, '[data-lyric="preview-text"]')
   }
 }
 
@@ -137,6 +141,9 @@ export class DesktopLyricStage {
   private transitionBaseSecondaryOpacity = SECONDARY_BASE_OPACITY
   private transitionPromotedLineIndex = -1
   private transitionUsesAuxiliaryPair = false
+  private doubleLine = false
+  private currentLineIndex = -1
+  private previewLineIndex = Number.NaN
   private disposed = false
 
   constructor(root: HTMLElement) {
@@ -166,6 +173,7 @@ export class DesktopLyricStage {
   setSource(lines: readonly LyricLine[], trackId: string) {
     this.lines = lines
     this.trackId = trackId
+    this.previewLineIndex = Number.NaN
     this.refreshReservedAuxiliaryCount()
     this.refreshHorizontalScroll()
   }
@@ -174,6 +182,14 @@ export class DesktopLyricStage {
     this.showTranslation = showTranslation
     this.showPronunciation = showPronunciation
     this.refreshReservedAuxiliaryCount()
+  }
+
+  setDoubleLine(doubleLine: boolean) {
+    if (this.doubleLine === doubleLine) return
+    this.doubleLine = doubleLine
+    this.elements.root.classList.toggle('double-line', doubleLine)
+    this.updatePreviewLine(this.currentLineIndex)
+    this.measure()
   }
 
   update(positionMs: number, playing: boolean, animate = true) {
@@ -201,6 +217,8 @@ export class DesktopLyricStage {
   private applyFrame(targetFrame: DesktopLyricsFrame, animate: boolean) {
     const target = this.stabilizeFrame(normalizeFrame(targetFrame))
     if (!target) return
+    this.currentLineIndex = target.currentLineIndex
+    this.updatePreviewLine(target.currentLineIndex)
     if (this.coordinator.isTransitioning) {
       this.coordinator.queueLatest(target, { animate })
       this.updateTransitionWordScan(target.wordScanProgress)
@@ -549,11 +567,25 @@ export class DesktopLyricStage {
   }
 
   private updateTrackBase(gap = 0) {
-    const rowCount = 1 + Math.max(this.auxiliaryCount, this.reservedAuxiliaryCount)
+    const rowCount =
+      1 + Math.max(this.auxiliaryCount, this.reservedAuxiliaryCount) + (this.doubleLine ? 1 : 0)
     const pairHeight = rowCount * this.rowHeight + Math.max(0, rowCount - 1) * gap
     this.trackBaseY = 0
     this.elements.root.style.setProperty('--desktop-pair-height', `${pairHeight}px`)
     this.elements.root.style.setProperty('--track-base-y', `${this.trackBaseY}px`)
+  }
+
+  private updatePreviewLine(currentLineIndex: number) {
+    if (!this.doubleLine) return
+    if (currentLineIndex === this.previewLineIndex) return
+    this.previewLineIndex = currentLineIndex
+    const nextLine = currentLineIndex >= 0 ? this.lines[currentLineIndex + 1] : undefined
+    this.setLineText(
+      this.elements.previewLine,
+      this.elements.previewText,
+      null,
+      nextLine ? toDisplayLine(lyricText(nextLine)) : ' '
+    )
   }
 
   private refreshReservedAuxiliaryCount() {

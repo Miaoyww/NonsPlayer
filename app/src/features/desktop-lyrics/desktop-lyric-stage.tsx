@@ -10,8 +10,10 @@ export function DesktopLyricStage({
   playing,
   fontScale,
   fontWeight,
+  doubleLine,
   showTranslation,
   showPronunciation,
+  sungColor,
   onContentHeight
 }: {
   lines: LyricLine[]
@@ -19,14 +21,18 @@ export function DesktopLyricStage({
   playing: boolean
   fontScale: number
   fontWeight: number
+  doubleLine: boolean
   showTranslation: boolean
   showPronunciation: boolean
+  sungColor: string
   onContentHeight?: (height: number) => void
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<DesktopLyricStageController | null>(null)
   const auxiliaryVisibilityRef = useRef({ showTranslation, showPronunciation })
   auxiliaryVisibilityRef.current = { showTranslation, showPronunciation }
+  const doubleLineRef = useRef(doubleLine)
+  doubleLineRef.current = doubleLine
   const sourceRef = useRef({ lines, trackId })
   sourceRef.current = { lines, trackId }
   const playingRef = useRef(playing)
@@ -45,6 +51,7 @@ export function DesktopLyricStage({
       auxiliaryVisibilityRef.current.showTranslation,
       auxiliaryVisibilityRef.current.showPronunciation
     )
+    stage.setDoubleLine(doubleLineRef.current)
     stage.setSource(sourceRef.current.lines, sourceRef.current.trackId)
     stage.update(currentPosition(), playingRef.current, true)
     return () => {
@@ -90,8 +97,9 @@ export function DesktopLyricStage({
   }, [playing, visible])
 
   useLayoutEffect(() => {
+    stageRef.current?.setDoubleLine(doubleLine)
     stageRef.current?.refresh()
-  }, [fontScale, fontWeight])
+  }, [doubleLine, fontScale, fontWeight])
 
   useEffect(() => {
     const viewport = rootRef.current?.querySelector<HTMLElement>('[data-lyric="viewport"]')
@@ -110,8 +118,9 @@ export function DesktopLyricStage({
       className="desktop-lyrics-stage"
       style={
         {
-          '--desktop-lyrics-current-size': `calc(clamp(32px, 3.6vw, 56px) * ${Math.min(fontScale, 1.4)})`,
-          '--desktop-lyrics-font-weight': String(fontWeight)
+          '--desktop-lyrics-current-size': `calc(clamp(32px, 3.6vw, 56px) * ${fontScale})`,
+          '--desktop-lyrics-font-weight': String(fontWeight),
+          '--desktop-lyrics-sung-color': sungColor
         } as CSSProperties
       }
       aria-live="polite"
@@ -193,6 +202,13 @@ export function DesktopLyricStage({
                 </span>
               </span>
             </div>
+          </div>
+          <div className="desktop-lyrics-line next-line preview-line" data-lyric="preview-line">
+            <span className="line-text-viewport">
+              <span className="line-text-stack">
+                <span className="line-text line-text-base" data-lyric="preview-text" />
+              </span>
+            </span>
           </div>
         </div>
       </div>

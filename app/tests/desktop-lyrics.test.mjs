@@ -253,6 +253,11 @@ test('desktop lyrics stage finishes a translation roll with one visible pair', a
               </span></span>
             </div>
           </div>
+          <div class="next-line preview-line" data-lyric="preview-line">
+            <span class="line-text-viewport"><span class="line-text-stack">
+              <span class="line-text line-text-base" data-lyric="preview-text"></span>
+            </span></span>
+          </div>
         </div>
       </div>
     </div>
@@ -301,10 +306,17 @@ test('desktop lyrics stage finishes a translation roll with one visible pair', a
   )
   assert.equal(root.style.getPropertyValue('--desktop-pair-height'), '80px')
 
+  stage.setDoubleLine(true)
+  stage.update(100, true)
+  assert.equal(root.classList.contains('double-line'), true)
+  assert.equal(root.querySelector('[data-lyric="preview-text"]').textContent, '第二句')
+  assert.equal(root.style.getPropertyValue('--desktop-pair-height'), '120px')
+
   stage.update(1100, true)
   await new Promise((resolve) => setTimeout(resolve, 1000))
   assert.equal(root.querySelector('[data-lyric="current-text"]').textContent, '第二句')
   assert.equal(root.querySelector('[data-lyric="secondary-text"]').textContent, 'Second line')
+  assert.equal(root.querySelector('[data-lyric="preview-text"]').textContent, '第三句')
   assert.equal(
     root.querySelector('[data-lyric="incoming-auxiliary-pair"]').className.includes('entering'),
     false
@@ -314,7 +326,8 @@ test('desktop lyrics stage finishes a translation roll with one visible pair', a
   await new Promise((resolve) => setTimeout(resolve, 1000))
   assert.equal(root.querySelector('[data-lyric="current-text"]').textContent, '第三句')
   assert.equal(root.querySelector('[data-lyric="secondary-text"]').textContent, ' ')
-  assert.equal(root.style.getPropertyValue('--desktop-pair-height'), '80px')
+  assert.equal(root.querySelector('[data-lyric="preview-text"]').textContent, ' ')
+  assert.equal(root.style.getPropertyValue('--desktop-pair-height'), '120px')
   stage.destroy()
   dom.window.close()
 })
