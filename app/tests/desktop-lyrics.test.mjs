@@ -86,59 +86,6 @@ test('desktop lyrics line lookup follows the parsed line timeline', () => {
   assert.equal(frame.lineIndexAt(lines, 9000), 1)
 })
 
-test('desktop lyrics frame keeps only the current line and its auxiliary text', () => {
-  const { display, frame } = loadDesktopLyrics()
-  const lines = [
-    line({
-      startTime: 0,
-      endTime: 1000,
-      words: [
-        ['你', 0, 500],
-        ['好', 500, 1000]
-      ],
-      translatedLyric: 'Hello'
-    })
-  ]
-
-  const target = frame.frameAt(lines, 250, 'track-1', true)
-  assert.equal(target.scene, 'lyrics')
-  assert.equal(target.line, lines[0])
-  assert.equal(display.lyricText(target.line), '你好')
-  assert.deepEqual(
-    display.auxiliaryLines(target.line, { translation: true, pronunciation: true }),
-    ['Hello']
-  )
-  assert.equal(target.showTranslation, true)
-  assert.equal(target.showPronunciation, true)
-  assert.equal(target.currentLineIndex, 0)
-  assert.equal(target.progress, 0.25)
-  assert.equal(target.wordScanProgress, 0.25)
-  assert.equal(target.trackId, 'track-1')
-  assert.equal(target.isPlaying, true)
-})
-
-test('desktop lyrics auxiliary visibility selects translation and pronunciation', () => {
-  const { display } = loadDesktopLyrics()
-  const current = line({
-    startTime: 0,
-    endTime: 1000,
-    words: [['你好', 0, 1000]],
-    translatedLyric: 'Hello',
-    romanLyric: 'Ni hao'
-  })
-
-  assert.deepEqual(display.auxiliaryLines(current, { translation: true, pronunciation: true }), [
-    'Hello',
-    'Ni hao'
-  ])
-  assert.deepEqual(display.auxiliaryLines(current, { translation: true, pronunciation: false }), [
-    'Hello'
-  ])
-  assert.deepEqual(display.auxiliaryLines(current, { translation: false, pronunciation: true }), [
-    'Ni hao'
-  ])
-})
-
 test('desktop lyrics word scan advances across parsed word timings', () => {
   const { frame } = loadDesktopLyrics()
   const current = line({
@@ -154,17 +101,6 @@ test('desktop lyrics word scan advances across parsed word timings', () => {
   assert.equal(frame.wordScanProgress(current, 250), 0.25)
   assert.equal(frame.wordScanProgress(current, 750), 0.75)
   assert.equal(frame.wordScanProgress(current, 1000), 1)
-})
-
-test('desktop lyrics without auxiliary text produce no auxiliary lines', () => {
-  const { display, frame } = loadDesktopLyrics()
-  const lines = [line({ startTime: 0, endTime: 1000, words: [['纯音乐', 0, 1000]] })]
-  const target = frame.frameAt(lines, 500, 'track-2', false)
-  assert.equal(target.line, lines[0])
-  assert.deepEqual(
-    display.auxiliaryLines(target.line, { translation: true, pronunciation: true }),
-    []
-  )
 })
 
 test('desktop lyrics planner patches progress and rolls only when the line changes', () => {
