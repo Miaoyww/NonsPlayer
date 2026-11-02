@@ -11,6 +11,7 @@ function harness({ statuses = [], current, page = { view: 'library' } } = {}) {
   const modules = {
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@/components/ui/button': { Button: 'button' },
+    cn: { cn: (...values) => values.filter(Boolean).join(' ') },
     '@/features/music/source-capabilities': sourceCapabilities,
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({ statuses, preferences: { current } })
@@ -68,9 +69,11 @@ test('marks the selected entry with accent text instead of a filled background',
   const { buttons } = harness({ statuses: [source([])], current: 'netease' })
   const [library, discover] = buttons
   assert.equal(library.props.variant, 'ghost')
+  assert.match(library.props.className, /cursor-pointer/)
   assert.match(library.props.className, /text-\[var\(--music-accent\)\]/)
   assert.equal(discover.props.variant, 'ghost')
-  assert.equal(discover.props.className, undefined)
+  assert.match(discover.props.className, /cursor-pointer/)
+  assert.doesNotMatch(discover.props.className, /music-accent/)
 })
 
 test('navigates to the matching music view', () => {

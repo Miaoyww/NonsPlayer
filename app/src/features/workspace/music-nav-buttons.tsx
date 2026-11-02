@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { cn } from 'cn'
 import { supportsMusicPage } from '@/features/music/source-capabilities'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { useMusicNavigation, type MusicView } from './music-navigation'
@@ -33,9 +34,10 @@ export function MusicNavButtons() {
         disabled={!supported}
         title={supported ? undefined : `此适配器未提供${label}`}
         variant="ghost"
-        className={
-          selected ? 'text-[var(--music-accent)] hover:text-[var(--music-accent)]' : undefined
-        }
+        className={cn(
+          'cursor-pointer',
+          selected && 'text-[var(--music-accent)] hover:text-[var(--music-accent)]'
+        )}
         aria-current={selected ? 'page' : undefined}
         onClick={() => navigate(view)}
       >
