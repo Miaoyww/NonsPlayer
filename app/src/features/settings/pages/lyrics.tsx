@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { ErrorNotice } from '@/components/error-notice'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
@@ -5,7 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   defaultBackgroundSpeed,
+  defaultLyricsFontScale,
   defaultLyricsOffsetMs,
+  maxLyricsFontScale,
+  minLyricsFontScale,
   useLyricsSettings
 } from '@/features/lyrics/use-lyrics-settings'
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
@@ -23,7 +27,9 @@ export function LyricsPage() {
     setLyricsOffsetMs,
     autoBlur,
     setAutoBlur,
-    fontWeight
+    fontWeight,
+    fontScale,
+    setFontScale
   } = useLyricsSettings()
   const { sources, ready, busy, error, setSources } = useLyricSources()
   return (
@@ -37,9 +43,14 @@ export function LyricsPage() {
           歌词显示
         </h3>
         <div
-          className="rounded-lg bg-muted/40 px-6 py-5"
+          className="lyrics-font-preview rounded-lg bg-muted/40 px-6 py-5"
           aria-label="歌词字体预览"
-          style={{ fontFamily: 'var(--nons-lyrics-font)' }}
+          style={
+            {
+              fontFamily: 'var(--nons-lyrics-font)',
+              '--nons-lyrics-font-scale': String(fontScale)
+            } as CSSProperties
+          }
         >
           <h4 className="mb-5 text-xs font-medium text-muted-foreground">字体预览</h4>
           {[false, true].map((active) => (
@@ -47,13 +58,13 @@ export function LyricsPage() {
               key={String(active)}
               className={`mb-5 last:mb-0 ${active ? 'text-foreground' : 'text-muted-foreground/60'}`}
             >
-              <p className="text-3xl leading-tight sm:text-4xl" style={{ fontWeight }}>
+              <p className="leading-tight" style={{ fontWeight }}>
                 我是一句歌词
               </p>
-              <p className="mt-3 text-base" style={{ fontWeight }}>
+              <p className="mt-3" style={{ fontWeight, fontSize: '0.7em' }}>
                 I'm the lyric
               </p>
-              <p className="mt-1 text-base" style={{ fontWeight }}>
+              <p className="mt-1" style={{ fontWeight, fontSize: '0.7em' }}>
                 wo shi yi ju ge ci
               </p>
             </div>
@@ -77,6 +88,43 @@ export function LyricsPage() {
           description="用于歌词、翻译与发音。"
         >
           <LyricFontWeightControl />
+        </SettingsCard>
+        <SettingsCard
+          searchId="lyrics-font-size"
+          title="字体大小"
+          description="按当前字号缩放歌词、翻译与发音。"
+        >
+          <div className="flex w-60 flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <Slider
+                className="min-w-0 flex-1"
+                aria-label="歌词字体大小"
+                min={minLyricsFontScale}
+                max={maxLyricsFontScale}
+                step={0.05}
+                value={fontScale}
+                onValueChange={(value) => setFontScale(Number(value))}
+              />
+              <output
+                className="w-12 text-right text-sm tabular-nums"
+                aria-label="当前歌词字体大小"
+              >
+                {Math.round(fontScale * 100)}%
+              </output>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>小</span>
+              <span>大</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-end"
+              onClick={() => setFontScale(defaultLyricsFontScale)}
+            >
+              恢复默认
+            </Button>
+          </div>
         </SettingsCard>
         <SettingsCard
           searchId="lyrics-auto-blur"

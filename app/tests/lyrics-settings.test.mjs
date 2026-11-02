@@ -44,3 +44,22 @@ test('global lyric offset restores a valid saved value and falls back for invali
   assert.equal(load({ 'nons-lyrics-offset-ms': '-450' }).useLyricsSettings().lyricsOffsetMs, -450)
   assert.equal(load({ 'nons-lyrics-offset-ms': '60001' }).useLyricsSettings().lyricsOffsetMs, -200)
 })
+
+test('lyric font scale defaults to 100%, persists and clamps adjustments', () => {
+  const settings = load()
+  assert.equal(settings.defaultLyricsFontScale, 1)
+  assert.equal(settings.useLyricsSettings().fontScale, 1)
+  settings.useLyricsSettings().setFontScale(1.25)
+  assert.equal(settings.values.get('nons-lyrics-font-scale'), '1.25')
+  assert.equal(settings.useLyricsSettings().fontScale, 1.25)
+  settings.useLyricsSettings().setFontScale(2)
+  assert.equal(settings.useLyricsSettings().fontScale, 1.6)
+  settings.useLyricsSettings().setFontScale(Number.NaN)
+  assert.equal(settings.useLyricsSettings().fontScale, 1.6)
+})
+
+test('lyric font scale restores a valid saved value and falls back for invalid storage', () => {
+  assert.equal(load({ 'nons-lyrics-font-scale': '1.35' }).useLyricsSettings().fontScale, 1.35)
+  assert.equal(load({ 'nons-lyrics-font-scale': '2' }).useLyricsSettings().fontScale, 1)
+  assert.equal(load({ 'nons-lyrics-font-scale': 'abc' }).useLyricsSettings().fontScale, 1)
+})

@@ -5,13 +5,18 @@ const storageKey = 'nons-lyrics-background-speed'
 const offsetStorageKey = 'nons-lyrics-offset-ms'
 const blurStorageKey = 'nons-lyrics-auto-blur'
 const weightStorageKey = 'nons-lyrics-font-weight'
+const scaleStorageKey = 'nons-lyrics-font-scale'
 export const defaultBackgroundSpeed = 0.5
 export const defaultLyricsOffsetMs = -200
+export const minLyricsFontScale = 0.7
+export const maxLyricsFontScale = 1.6
+export const defaultLyricsFontScale = 1
 const listeners = new Set<() => void>()
 let backgroundSpeed = defaultBackgroundSpeed
 let lyricsOffsetMs = defaultLyricsOffsetMs
 let autoBlur = true
 let fontWeight = 400
+let fontScale = defaultLyricsFontScale
 try {
   const stored = localStorage.getItem(storageKey)
   const value = stored === null ? NaN : Number(stored)
@@ -44,6 +49,17 @@ try {
 try {
   const value = Number(localStorage.getItem(weightStorageKey))
   if (Number.isInteger(value) && value >= 100 && value <= 900) fontWeight = value
+} catch (cause) {
+  reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
+  /* Keep the default when storage is unavailable. */
+}
+
+try {
+  const stored = localStorage.getItem(scaleStorageKey)
+  const value = stored === null ? NaN : Number(stored)
+  if (Number.isFinite(value) && value >= minLyricsFontScale && value <= maxLyricsFontScale)
+    fontScale = value
 } catch (cause) {
   reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
 
@@ -110,11 +126,28 @@ function setFontWeight(value: number) {
   listeners.forEach((notify) => notify())
 }
 
+function setFontScale(value: number) {
+  if (!Number.isFinite(value)) return
+  const clamped =
+    Math.round(Math.max(minLyricsFontScale, Math.min(maxLyricsFontScale, value)) * 100) / 100
+  if (clamped === fontScale) return
+  fontScale = clamped
+  try {
+    localStorage.setItem(scaleStorageKey, String(clamped))
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
+    /* Changes still work for this session. */
+  }
+  listeners.forEach((notify) => notify())
+}
+
 export function useLyricsSettings() {
   const speed = useSyncExternalStore(subscribe, () => backgroundSpeed)
   const offset = useSyncExternalStore(subscribe, () => lyricsOffsetMs)
   const blur = useSyncExternalStore(subscribe, () => autoBlur)
   const weight = useSyncExternalStore(subscribe, () => fontWeight)
+  const scale = useSyncExternalStore(subscribe, () => fontScale)
   return {
     backgroundSpeed: speed,
     setBackgroundSpeed,
@@ -123,6 +156,8 @@ export function useLyricsSettings() {
     autoBlur: blur,
     setAutoBlur,
     fontWeight: weight,
-    setFontWeight
+    setFontWeight,
+    fontScale: scale,
+    setFontScale
   }
 }

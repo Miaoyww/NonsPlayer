@@ -3,7 +3,7 @@ import type { LyricLine } from '@applemusic-like-lyrics/core'
 import '@applemusic-like-lyrics/core/style.css'
 import { ContextMenu } from '@base-ui/react/context-menu'
 import { Copy } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { useReducedMotion } from 'motion/react'
 import { useSongActions } from '@/components/music/song-actions'
@@ -30,7 +30,7 @@ export default function LyricRenderer({
   retainWhenHidden?: boolean
 }) {
   const { fonts } = useFontSettings()
-  const { autoBlur, fontWeight } = useLyricsSettings()
+  const { autoBlur, fontWeight, fontScale } = useLyricsSettings()
   const songActions = useSongActions()
   const lyricFont = fonts.lyrics || fonts.app
   // AMLL consumes immutable lyric lines; retain the original auxiliary lyrics for restoring them.
@@ -64,7 +64,7 @@ export default function LyricRenderer({
   const playing = progress.status === 'playing'
   const pausedPosition = playing ? 0 : progress.positionMs
   const lastFont = useRef<string | undefined>(undefined)
-  const fontSignature = `${lyricFont}:${fontWeight}`
+  const fontSignature = `${lyricFont}:${fontWeight}:${fontScale}`
   useEffect(() => {
     const player = renderer?.lyricPlayer
     if (!enabled || !player || lastFont.current === fontSignature) return
@@ -119,7 +119,12 @@ export default function LyricRenderer({
         <LyricPlayer
           ref={retainRenderer}
           className="lyric-renderer h-full w-full"
-          style={{ fontWeight }}
+          style={
+            {
+              fontWeight,
+              '--nons-lyrics-font-scale': String(fontScale)
+            } as CSSProperties
+          }
           lyricLines={displayedLines}
           lyricPlayer={ManualLyricPlayer}
           disabled
