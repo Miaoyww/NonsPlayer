@@ -1,6 +1,6 @@
 # GitHub Release CI
 
-发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64、Android ARM64 试用 APK 和 Linux x64 安装包，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。插件 SDK 发布由独立的 [.github/workflows/publish-plugin-sdk.yml](../.github/workflows/publish-plugin-sdk.yml) 定义，支持版本标签自动运行，也可在 GitHub Actions 中手动触发；手动运行会发布 `packages/plugin-sdk/package.json` 当前版本。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址；Linux 与 Android 当前仅发布附件，不接入自动更新。
+发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64、Android ARM64 试用 APK 和 Linux x64 安装包，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。Windows 测试签名由独立的 [.github/workflows/signpath-test.yml](../.github/workflows/signpath-test.yml) 定义，可在 GitHub Actions 中手动触发，构建 Windows 主程序并使用 SignPath `test-signing` 策略签名，成功后提供带测试签名的 `Nons.exe` Actions Artifact；该流程不创建 GitHub Release。插件 SDK 发布由独立的 [.github/workflows/publish-plugin-sdk.yml](../.github/workflows/publish-plugin-sdk.yml) 定义，支持版本标签自动运行，也可在 GitHub Actions 中手动触发；手动运行会发布 `packages/plugin-sdk/package.json` 当前版本。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址；Linux 与 Android 当前仅发布附件，不接入自动更新。
 
 ## 发布前准备
 
@@ -70,6 +70,7 @@ node scripts/release-version.mjs 1.10.0 --dry-run
 | Secret   | `NPM_TOKEN`                          | 发布 `@nonsplayer/plugin-sdk`；本地版本已发布时跳过该步骤 |
 | Secret   | `NONS_TELEMETRY_INGEST_KEY`          | nons-api 上报密钥，构建时嵌入 Rust；不能使用统计读取密钥  |
 | Secret   | `NONS_TELEMETRY_STATS_KEY`           | 读取发布构建统计快照；仅在构建步骤使用，不进入产物        |
+| Secret   | `SIGNPATH_KEY`                       | SignPath `test-signing` 测试签名请求的 API Token          |
 | Secret   | `R2_ACCESS_KEY_ID`                   | 允许写入 veto 桶的 R2 S3 凭据 ID                          |
 | Secret   | `R2_SECRET_ACCESS_KEY`               | 对应 R2 S3 凭据密钥                                       |
 | Variable | `R2_ACCOUNT_ID`                      | R2 所属 Cloudflare 账户 ID                                |

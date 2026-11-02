@@ -1,0 +1,114 @@
+name: SignPath test signing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: signpath-test-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-sign:
+    name: Build and test-sign Windows executable
+    runs-on: windows-2022
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_TERM_COLOR: always
+      FFMPEG_MODE: bundled
+      LIBCLANG_PATH: C:\Program Files\LLVM\bin
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.95.0'
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: pnpm --dir app install --frozen-lockfile
+
+      - name: Validate LLVM for FFmpeg bindings
+        run: |
+          if (-not (Test-Path -LiteralPath (Join-Path $env:LIBCLANG_PATH 'libclang.dll'))) {
+            throw "libclang.dll not found under LIBCLANG_PATH: $env:LIBCLANG_PATH"
+          }
+
+      - name: Build Windows executable
+        env:
+          NONS_TELEMETRY_INGEST_KEY: ${{ secrets.NONS_TELEMETRY_INGEST_KEY }}
+        run: |
+          if (-not $env:NONS_TELEMETRY_INGEST_KEY) { throw 'Missing NONS_TELEMETRY_INGEST_KEY' }
+          pnpm --dir app tauri build --ci --no-bundle -- --locked
+          if (-not (Test-Path -LiteralPath 'app/src-tauri/target/release/Nons.exe')) {
+            throw 'Windows executable was not produced'
+          }
+
+      - name: Upload unsigned executable
+        id: upload-unsigned-artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: app/src-tauri/target/release/Nons.exe
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Submit test-signing request
+        id: signpath
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_KEY }}
+          organization-id: 6602b85b-61bc-44fd-a302-0743e74d29bf
+          project-slug: NonsPlayer
+          signing-policy-slug: test-signing
+          github-artifact-id: ${{ steps.upload-unsigned-artifact.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-artifact
+          skip-decompress: true
+
+      - name: Verify signed executable
+        run: |
+          $signed = Get-ChildItem -LiteralPath signed-artifact -Filter 'Nons.exe' -File | Select-Object -First 1
+          if (-not $signed) { throw 'Signed Nons.exe was not downloaded' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $signed.FullName
+          if (-not $signature.SignerCertificate) { throw 'Signed executable has no Authenticode signer certificate' }
+          if ($signature.SignerCertificate.Subject -notmatch 'Test certificate') {
+            throw "Unexpected signer certificate: $($signature.SignerCertificate.Subject)"
+          }
+          if ($signature.Status -notin @('Valid', 'UnknownError', 'NotTrusted')) {
+            throw "Invalid Authenticode signature: $($signature.Status)"
+          }
+          Write-Host "Signer: $($signature.SignerCertificate.Subject)"
+          Write-Host "Signature status: $($signature.Status)"
+
+      - name: Upload signed executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: nons-windows-test-signed
+          path: signed-artifact/Nons.exe
+          if-no-files-found: error
+          retention-days: 14
