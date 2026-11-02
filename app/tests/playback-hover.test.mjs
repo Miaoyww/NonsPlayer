@@ -43,6 +43,10 @@ test('left hover opens the player and moving to right controls holds it until le
     '@/features/playback/current-track-like': {
       CurrentTrackLike: () => React.createElement('button', { id: 'like' }, 'Like')
     },
+    '@/features/desktop-lyrics/desktop-lyrics-button': {
+      DesktopLyricsButton: () =>
+        React.createElement('button', { id: 'desktop-lyrics' }, 'Desktop lyrics')
+    },
     '@/features/queue/queue-popover': {
       QueuePopover: () => React.createElement('button', { id: 'queue' }, 'Queue')
     },
@@ -113,6 +117,7 @@ test('left hover opens the player and moving to right controls holds it until le
     assert.equal(expanded(), true, 'moving from left to right must not retract the controls')
     let current = like
     for (const next of [
+      document.getElementById('desktop-lyrics'),
       document.getElementById('queue'),
       document.getElementById('volume'),
       document.querySelector('.volume-card'),

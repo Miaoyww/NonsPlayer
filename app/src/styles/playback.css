@@ -296,7 +296,7 @@
     :has(.capsule-main [data-slot='select-trigger'][aria-expanded='true'])
   )
   .capsule-playback-options {
-  max-width: 160px;
+  max-width: 200px;
   opacity: 1;
   visibility: visible;
   overflow: visible;
@@ -424,7 +424,7 @@
     visibility: visible;
   }
   .playback-capsule .capsule-playback-options {
-    max-width: 160px;
+    max-width: 200px;
     opacity: 1;
     visibility: visible;
     overflow: visible;
@@ -720,6 +720,10 @@
   justify-content: flex-end;
   gap: 8px;
   min-width: 0;
+}
+.desktop-lyrics-button[aria-pressed='true'] {
+  color: var(--foreground);
+  background: var(--accent);
 }
 .playback-timeline-edge {
   position: absolute;

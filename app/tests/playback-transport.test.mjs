@@ -17,6 +17,9 @@ function harness(state) {
     '@/features/playback/playback-timeline': {},
     '@/features/playback/player-slider': {},
     '@/features/playback/playback-transport': { PlaybackTransport: 'transport' },
+    '@/features/desktop-lyrics/desktop-lyrics-button': {
+      DesktopLyricsButton: 'desktop-lyrics-button'
+    },
     './use-volume-control': {
       useVolumeControl: () => ({ volume: state.volume, changeVolume() {}, commitVolume() {} })
     },
@@ -132,7 +135,7 @@ test('frontend shuffle navigation wraps both ends even when the repeat button is
   assert.equal(exports.adjacentIndex(state, 'previous'), 0)
 })
 
-test('collapsible player places shuffle beside repeat and routes both through playback commands', () => {
+test('collapsible player places shuffle beside repeat and desktop lyrics after repeat', () => {
   for (const shuffle of [false, true]) {
     const app = harness({ queue: [], index: null, status: 'stopped', shuffle, repeatMode: 'all' })
     const tree = app.bar({ onLyrics() {}, onQueue() {}, onError() {}, qualityControl: 'quality' })
@@ -149,6 +152,7 @@ test('collapsible player places shuffle beside repeat and routes both through pl
     assert.equal(options[1].props['aria-label'], '随机播放')
     assert.equal(options[1].props['aria-pressed'], shuffle)
     assert.equal(options[2].props['aria-pressed'], !shuffle)
+    assert.equal(options[3].type, 'desktop-lyrics-button')
     options[1].props.onClick()
     options[2].props.onClick()
     assert.deepEqual(

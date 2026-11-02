@@ -12,6 +12,7 @@ import { isAndroid } from '@/lib/platform'
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
+import { DesktopLyricsButton } from '@/features/desktop-lyrics/desktop-lyrics-button'
 
 export function PersistentPlaybackBar({
   onLyrics,
@@ -96,6 +97,7 @@ export function PersistentPlaybackBar({
           <div className="persistent-options">
             {!isAndroid() && <QualitySelect />}
             <CurrentTrackLike track={track} onError={onError} />
+            <DesktopLyricsButton onError={onError} />
             {!isAndroid() && <VolumeControl onError={onError} />}
             <QueuePopover onPage={onQueue} onError={onError} />
           </div>

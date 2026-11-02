@@ -9,6 +9,7 @@ import { QueuePopover } from '@/features/queue/queue-popover'
 import { VolumeControl } from '@/features/playback/volume-control'
 import { PlaybackTimeline } from '@/features/playback/playback-timeline'
 import { CurrentTrackLike } from '@/features/playback/current-track-like'
+import { DesktopLyricsButton } from '@/features/desktop-lyrics/desktop-lyrics-button'
 
 export function PlaybackBar({
   onLyrics,
@@ -140,6 +141,7 @@ export function PlaybackBar({
                 <Repeat aria-hidden="true" />
               )}
             </ActionButton>
+            <DesktopLyricsButton onError={onError} />
           </div>
         </div>
         <div className="capsule-options">

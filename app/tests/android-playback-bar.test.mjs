@@ -41,7 +41,10 @@ function harness(android) {
     '@/features/playback/volume-control': { VolumeControl: 'volume' },
     '@/features/playback/playback-timeline': { PlaybackTimeline: 'timeline' },
     '@/features/playback/playback-transport': { PlaybackTransport: 'transport' },
-    '@/features/playback/playback-notice': { PlaybackNotice: 'notice' }
+    '@/features/playback/playback-notice': { PlaybackNotice: 'notice' },
+    '@/features/desktop-lyrics/desktop-lyrics-button': {
+      DesktopLyricsButton: 'desktop-lyrics-button'
+    }
   }
   const exports = {}
   runInNewContext(
@@ -87,6 +90,7 @@ test('Android starts collapsed, expands the upper card and retains the same tran
   assert.equal(find(tree, toggle).props['aria-expanded'], false)
   assert.equal(find(tree, byType('volume')), undefined)
   assert.equal(find(tree, byType('timeline')), undefined)
+  assert.equal(find(tree, byType('desktop-lyrics-button')), undefined)
   assert.equal(find(tree, byType('transport')).props.withModes, true)
   find(tree, toggle).props.onClick()
   tree = app.render()
@@ -109,4 +113,9 @@ test('desktop retains track details, timeline and volume without the mobile expa
   assert.equal(find(tree, details), undefined)
   for (const type of ['transport', 'like', 'queue', 'timeline', 'volume', 'quality'])
     assert.ok(find(tree, byType(type)))
+  const options = find(tree, (node) => node.props?.className === 'persistent-options')
+  assert.deepEqual(
+    Array.from(options.props.children, (child) => child.type),
+    ['quality', 'like', 'desktop-lyrics-button', 'volume', 'queue']
+  )
 })
