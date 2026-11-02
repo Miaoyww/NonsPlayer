@@ -25,15 +25,12 @@ export function DesktopLyricsSwitch() {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <label className="flex items-center gap-3 text-sm">
-        <span>桌面歌词</span>
-        <Switch
-          aria-label="启用桌面歌词"
-          checked={state.enabled}
-          disabled={busy}
-          onCheckedChange={(checked) => void run(() => setDesktopLyricsEnabled(checked))}
-        />
-      </label>
+      <Switch
+        aria-label="启用桌面歌词"
+        checked={state.enabled}
+        disabled={busy}
+        onCheckedChange={(checked) => void run(() => setDesktopLyricsEnabled(checked))}
+      />
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
