@@ -2,7 +2,7 @@ import { listen } from '@tauri-apps/api/event'
 import { Lock, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import { reportCaughtError } from '@/lib/diagnostics'
-import { connectPlayer, nativeCall, usePlayer, type Track } from '@/lib/player'
+import { connectPlayer, nativeCall, usePlayer, useProgress, type Track } from '@/lib/player'
 import { offsetLyrics, type LyricCorrection } from '@/features/lyrics/correction'
 import { loadLyrics, lyricTrackVersion } from '@/features/lyrics/load-lyrics'
 import { parseLyrics } from '@/features/lyrics/parse-lyrics'
@@ -109,7 +109,9 @@ export function DesktopLyricsApp() {
   const playing = snapshot.status === 'playing'
   const { fontWeight, fontScale } = useLyricsSettings()
   const { lines, loading } = useDesktopLyrics(track)
+  const progress = useProgress(true)
   const lastHeight = useRef(0)
+  const placeholderRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let disposed = false
@@ -151,18 +153,27 @@ export function DesktopLyricsApp() {
     event.preventDefault()
     run(dragDesktopLyrics)
   }
-  const handleContentHeight = useCallback(
-    (height: number) => {
-      const target = Math.ceil(height + 32)
-      if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
-      lastHeight.current = target
-      void setDesktopLyricsHeight(target).catch((cause) =>
-        reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
-      )
-    },
-    []
-  )
-  const placeholder = !!track && !lines.length && !loading
+  const handleContentHeight = useCallback((height: number) => {
+    const target = Math.ceil(height + 32)
+    if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
+    lastHeight.current = target
+    void setDesktopLyricsHeight(target).catch((cause) =>
+      reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
+    )
+  }, [])
+  const beforeFirstLine = lines.length > 0 && progress.positionMs < lines[0].startTime
+  const showTrackInfo = !!track && !loading && (!lines.length || beforeFirstLine)
+
+  useEffect(() => {
+    const element = placeholderRef.current
+    if (!showTrackInfo || !element) return
+    const report = () => handleContentHeight(element.getBoundingClientRect().height)
+    report()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(report)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [handleContentHeight, showTrackInfo, track?.title, track?.artist])
 
   return (
     <div className={`desktop-lyrics${locked ? '' : ' unlocked'}`} onPointerDown={startDragging}>
@@ -189,7 +200,7 @@ export function DesktopLyricsApp() {
           </button>
         </div>
       )}
-      {lines.length > 0 && (
+      {lines.length > 0 && !showTrackInfo && (
         <DesktopLyricStage
           lines={lines}
           trackId={track?.key ?? ''}
@@ -199,7 +210,12 @@ export function DesktopLyricsApp() {
           onContentHeight={handleContentHeight}
         />
       )}
-      {placeholder && <p className="desktop-lyrics-empty">暂无歌词</p>}
+      {showTrackInfo && track && (
+        <div ref={placeholderRef} className="desktop-lyrics-empty" role="status">
+          <p className="desktop-lyrics-empty-title">{track.title}</p>
+          {track.artist && <p className="desktop-lyrics-empty-artist">{track.artist}</p>}
+        </div>
+      )}
     </div>
   )
 }

@@ -30,11 +30,37 @@
 }
 
 .desktop-lyrics-empty {
-  margin: 0;
-  color: rgb(255 255 255 / 48%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4em;
+  max-width: calc(100% - 64px);
+  padding: 8px 0;
+  color: #fff;
   font-family: var(--nons-lyrics-font, var(--nons-app-font));
-  font-size: 18px;
+  text-align: center;
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 50%)) drop-shadow(0 0 2px rgb(0 0 0 / 50%));
+}
+
+.desktop-lyrics-empty-title,
+.desktop-lyrics-empty-artist {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-lyrics-empty-title {
+  color: inherit;
+  font-size: clamp(24px, 3vw, 42px);
+  font-weight: 600;
+}
+
+.desktop-lyrics-empty-artist {
+  color: inherit;
+  font-size: clamp(16px, 1.8vw, 24px);
 }
 
 .desktop-lyrics-controls {
