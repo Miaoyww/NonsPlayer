@@ -24,9 +24,9 @@ export function DesktopLyricsSwitch() {
   }
 
   return (
-    <div className="flex w-60 flex-col gap-3">
-      <label className="flex items-center justify-between gap-3 text-sm">
-        <span>启用桌面歌词</span>
+    <div className="flex flex-col items-end gap-1">
+      <label className="flex items-center gap-3 text-sm">
+        <span>桌面歌词</span>
         <Switch
           aria-label="启用桌面歌词"
           checked={state.enabled}
@@ -34,11 +34,6 @@ export function DesktopLyricsSwitch() {
           onCheckedChange={(checked) => void run(() => setDesktopLyricsEnabled(checked))}
         />
       </label>
-      {state.enabled && state.locked && (
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          解锁后可拖动窗口、切换翻译或发音、关闭或再次锁定。
-        </p>
-      )}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )

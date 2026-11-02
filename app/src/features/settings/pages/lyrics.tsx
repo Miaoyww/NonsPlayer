@@ -40,9 +40,12 @@ export function LyricsPage() {
         <p className="mt-2 text-sm text-muted-foreground">调整歌词显示与来源。</p>
       </div>
       <section aria-labelledby="lyrics-display-heading" className="flex flex-col gap-8">
-        <h3 id="lyrics-display-heading" className="text-base font-semibold">
-          歌词显示
-        </h3>
+        <div className="flex items-center justify-between gap-4">
+          <h3 id="lyrics-display-heading" className="text-base font-semibold">
+            歌词显示
+          </h3>
+          <DesktopLyricsSwitch />
+        </div>
         <div
           className="lyrics-font-preview rounded-lg bg-muted/40 px-6 py-5"
           aria-label="歌词字体预览"
@@ -126,13 +129,6 @@ export function LyricsPage() {
               恢复默认
             </Button>
           </div>
-        </SettingsCard>
-        <SettingsCard
-          searchId="lyrics-desktop"
-          title="桌面歌词"
-          description="在独立置顶窗口中显示当前歌词与翻译；锁定后鼠标可穿透。"
-        >
-          <DesktopLyricsSwitch />
         </SettingsCard>
         <SettingsCard
           searchId="lyrics-auto-blur"
