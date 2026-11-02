@@ -32,7 +32,10 @@ export function MusicNavButtons() {
         key={view}
         disabled={!supported}
         title={supported ? undefined : `此适配器未提供${label}`}
-        variant={selected ? 'secondary' : 'ghost'}
+        variant="ghost"
+        className={
+          selected ? 'text-[var(--music-accent)] hover:text-[var(--music-accent)]' : undefined
+        }
         aria-current={selected ? 'page' : undefined}
         onClick={() => navigate(view)}
       >

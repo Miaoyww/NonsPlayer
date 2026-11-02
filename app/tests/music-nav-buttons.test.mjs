@@ -64,6 +64,15 @@ test('highlights the navigation entry that owns the current page', () => {
   assert.equal(selected('settings'), '')
 })
 
+test('marks the selected entry with accent text instead of a filled background', () => {
+  const { buttons } = harness({ statuses: [source([])], current: 'netease' })
+  const [library, discover] = buttons
+  assert.equal(library.props.variant, 'ghost')
+  assert.match(library.props.className, /text-\[var\(--music-accent\)\]/)
+  assert.equal(discover.props.variant, 'ghost')
+  assert.equal(discover.props.className, undefined)
+})
+
 test('navigates to the matching music view', () => {
   const { buttons, navigated } = harness()
   buttons.forEach((button) => button.props.onClick())
