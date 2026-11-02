@@ -1,12 +1,16 @@
 import { LyricPlayer, type LyricPlayerRef } from '@applemusic-like-lyrics/react'
 import type { LyricLine } from '@applemusic-like-lyrics/core'
 import '@applemusic-like-lyrics/core/style.css'
+import { ContextMenu } from '@base-ui/react/context-menu'
+import { Copy } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { useReducedMotion } from 'motion/react'
+import { useSongActions } from '@/components/music/song-actions'
 import { currentPosition, nativeCall, useProgress } from '@/lib/player'
 import { useFontSettings } from '@/features/settings/use-font-settings'
 import { isAndroid } from '@/lib/platform'
+import { lyricLineText, lyricsText } from './lyric-copy'
 import { ManualLyricPlayer } from './manual-lyric-player'
 import { useLyricsSettings } from './use-lyrics-settings'
 
@@ -27,6 +31,7 @@ export default function LyricRenderer({
 }) {
   const { fonts } = useFontSettings()
   const { autoBlur, fontWeight } = useLyricsSettings()
+  const songActions = useSongActions()
   const lyricFont = fonts.lyrics || fonts.app
   // AMLL consumes immutable lyric lines; retain the original auxiliary lyrics for restoring them.
   const displayedLines = useMemo(
@@ -42,6 +47,12 @@ export default function LyricRenderer({
               : line.words.map((word) => ({ ...word, romanWord: undefined, ruby: undefined }))
           })),
     [lines, showTranslation, showPronunciation]
+  )
+  const allLyricsText = useMemo(() => lyricsText(displayedLines), [displayedLines])
+  const [menu, setMenu] = useState<{ x: number; y: number; text: string }>()
+  const menuAnchor = useMemo(
+    () => (menu ? { getBoundingClientRect: () => new DOMRect(menu.x, menu.y) } : undefined),
+    [menu]
   )
   const [visible, setVisible] = useState(document.visibilityState !== 'hidden')
   const enabled = visible && active
@@ -102,28 +113,63 @@ export default function LyricRenderer({
   }, [enabled, playing, pausedPosition, renderer, displayedLines, layoutVersion, autoBlur, reduced])
   // AMLL's automatic frame loop is disabled; only the visible lyric subtree
   // receives an interpolated clock. React does not render on every frame.
-  return retainWhenHidden || visible ? (
-    <LyricPlayer
-      ref={retainRenderer}
-      className="lyric-renderer h-full w-full"
-      style={{ fontWeight }}
-      lyricLines={displayedLines}
-      lyricPlayer={ManualLyricPlayer}
-      disabled
-      playing={enabled && playing}
-      currentTime={progress.positionMs}
-      onLyricLineClick={(event) => {
-        const manualPlayer = renderer?.lyricPlayer as ManualLyricPlayer | undefined
-        manualPlayer?.releaseManualScroll?.()
-        if (!isTauri() || isAndroid()) return
-        void nativeCall('player_seek', { positionMs: event.line.getLine().startTime }).catch(
-          onError
-        )
-      }}
-      enableBlur={autoBlur && !reduced}
-      enableScale={!reduced}
-      enableSpring={!reduced}
-      alignPosition={0.4}
-    />
-  ) : null
+  return (
+    <>
+      {(retainWhenHidden || visible) && (
+        <LyricPlayer
+          ref={retainRenderer}
+          className="lyric-renderer h-full w-full"
+          style={{ fontWeight }}
+          lyricLines={displayedLines}
+          lyricPlayer={ManualLyricPlayer}
+          disabled
+          playing={enabled && playing}
+          currentTime={progress.positionMs}
+          onLyricLineClick={(event) => {
+            const manualPlayer = renderer?.lyricPlayer as ManualLyricPlayer | undefined
+            manualPlayer?.releaseManualScroll?.()
+            if (!isTauri() || isAndroid()) return
+            void nativeCall('player_seek', { positionMs: event.line.getLine().startTime }).catch(
+              onError
+            )
+          }}
+          onLyricLineContextMenu={(event) => {
+            event.preventDefault()
+            const text = lyricLineText(event.line.getLine())
+            if (text) setMenu({ x: event.clientX, y: event.clientY, text })
+          }}
+          enableBlur={autoBlur && !reduced}
+          enableScale={!reduced}
+          enableSpring={!reduced}
+          alignPosition={0.4}
+        />
+      )}
+      {menu && (
+        <ContextMenu.Root
+          open
+          onOpenChange={(open) => {
+            if (!open) setMenu(undefined)
+          }}
+        >
+          <ContextMenu.Portal>
+            <ContextMenu.Positioner anchor={menuAnchor} className="z-[70]" sideOffset={4}>
+              <ContextMenu.Popup className="song-context-menu" aria-label="歌词菜单">
+                <ContextMenu.Item onClick={() => songActions.copy(menu.text)}>
+                  <Copy aria-hidden="true" />
+                  复制此句歌词
+                </ContextMenu.Item>
+                <ContextMenu.Item
+                  disabled={!allLyricsText}
+                  onClick={() => songActions.copy(allLyricsText)}
+                >
+                  <Copy aria-hidden="true" />
+                  复制全部歌词
+                </ContextMenu.Item>
+              </ContextMenu.Popup>
+            </ContextMenu.Positioner>
+          </ContextMenu.Portal>
+        </ContextMenu.Root>
+      )}
+    </>
+  )
 }
