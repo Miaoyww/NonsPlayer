@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { errorText } from '@/lib/player'
-import { setDesktopLyricsEnabled, setDesktopLyricsLocked, useDesktopLyricsState } from './state'
+import { setDesktopLyricsEnabled, useDesktopLyricsState } from './state'
 
 export function DesktopLyricsSwitch() {
   const state = useDesktopLyricsState()
@@ -32,15 +32,6 @@ export function DesktopLyricsSwitch() {
           checked={state.enabled}
           disabled={busy}
           onCheckedChange={(checked) => void run(() => setDesktopLyricsEnabled(checked))}
-        />
-      </label>
-      <label className="flex items-center justify-between gap-3 text-sm">
-        <span>锁定窗口（鼠标穿透）</span>
-        <Switch
-          aria-label="锁定桌面歌词窗口"
-          checked={state.locked}
-          disabled={busy || !state.enabled}
-          onCheckedChange={(checked) => void run(() => setDesktopLyricsLocked(checked))}
         />
       </label>
       {state.enabled && state.locked && (
