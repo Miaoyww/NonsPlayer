@@ -284,7 +284,12 @@ test('desktop lyrics stage finishes a translation roll with one visible pair', a
     words: [['第二句', 1000, 2000]],
     translatedLyric: 'Second line'
   })
-  stage.setSource([first, second], 'track')
+  const third = line({
+    startTime: 2000,
+    endTime: 3000,
+    words: [['第三句', 2000, 3000]]
+  })
+  stage.setSource([first, second, third], 'track')
   stage.update(100, true)
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
@@ -304,6 +309,12 @@ test('desktop lyrics stage finishes a translation roll with one visible pair', a
     root.querySelector('[data-lyric="incoming-auxiliary-pair"]').className.includes('entering'),
     false
   )
+
+  stage.update(2100, true)
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+  assert.equal(root.querySelector('[data-lyric="current-text"]').textContent, '第三句')
+  assert.equal(root.querySelector('[data-lyric="secondary-text"]').textContent, ' ')
+  assert.equal(root.style.getPropertyValue('--desktop-pair-height'), '80px')
   stage.destroy()
   dom.window.close()
 })

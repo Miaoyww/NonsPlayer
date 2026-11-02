@@ -124,6 +124,7 @@ export class DesktopLyricStage {
   private trackId = ''
   private playing = false
   private auxiliaryCount = 0
+  private reservedAuxiliaryCount = 0
   private auxiliarySignature = ''
   private showTranslation = true
   private showPronunciation = true
@@ -165,12 +166,14 @@ export class DesktopLyricStage {
   setSource(lines: readonly LyricLine[], trackId: string) {
     this.lines = lines
     this.trackId = trackId
+    this.refreshReservedAuxiliaryCount()
     this.refreshHorizontalScroll()
   }
 
   setAuxiliaryVisibility(showTranslation: boolean, showPronunciation: boolean) {
     this.showTranslation = showTranslation
     this.showPronunciation = showPronunciation
+    this.refreshReservedAuxiliaryCount()
   }
 
   update(positionMs: number, playing: boolean, animate = true) {
@@ -546,11 +549,30 @@ export class DesktopLyricStage {
   }
 
   private updateTrackBase(gap = 0) {
-    const rowCount = 1 + this.auxiliaryCount
+    const rowCount = 1 + Math.max(this.auxiliaryCount, this.reservedAuxiliaryCount)
     const pairHeight = rowCount * this.rowHeight + Math.max(0, rowCount - 1) * gap
     this.trackBaseY = 0
     this.elements.root.style.setProperty('--desktop-pair-height', `${pairHeight}px`)
     this.elements.root.style.setProperty('--track-base-y', `${this.trackBaseY}px`)
+  }
+
+  private refreshReservedAuxiliaryCount() {
+    let reserved = 0
+    for (const line of this.lines) {
+      reserved = Math.max(
+        reserved,
+        auxiliaryLines(line, {
+          translation: this.showTranslation,
+          pronunciation: this.showPronunciation
+        }).length
+      )
+      if (reserved === 2) break
+    }
+    if (reserved === this.reservedAuxiliaryCount) return
+    this.reservedAuxiliaryCount = reserved
+    this.updateTrackBase(
+      Number.parseFloat(window.getComputedStyle(this.elements.track).rowGap) || 0
+    )
   }
 
   private setCurrentLine(line: string) {
