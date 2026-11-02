@@ -571,3 +571,33 @@ async fn ffmpeg_http_uses_controlled_ranges_and_stop_cancels_a_hung_probe() {
     assert!(start.elapsed() < Duration::from_millis(500));
     upstream.abort();
 }
+
+#[test]
+fn decode_error_is_eof_only_after_the_declared_samples_are_decoded() {
+    let expected = 120_000 * 44_100 / 1000;
+    assert!(!decoder::reached_declared_end(
+        Some(120_000),
+        0,
+        44_100,
+        expected - 1
+    ));
+    assert!(decoder::reached_declared_end(
+        Some(120_000),
+        0,
+        44_100,
+        expected
+    ));
+    assert!(decoder::reached_declared_end(
+        Some(120_000),
+        30_000,
+        44_100,
+        90_000 * 44_100 / 1000
+    ));
+    assert!(!decoder::reached_declared_end(None, 0, 44_100, u64::MAX));
+    assert!(!decoder::reached_declared_end(
+        Some(120_000),
+        0,
+        0,
+        u64::MAX
+    ));
+}

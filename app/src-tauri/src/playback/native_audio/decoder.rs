@@ -1,6 +1,6 @@
 use super::buffer::{Buffer, CHUNK_FRAMES};
 use crate::model::{AppResult, ResolvedTrack};
-use ffmpeg_audio::{AudioReader, HttpAudioSource, ResampleOptions, SeekMode};
+use ffmpeg_audio::{AudioReader, HttpAudioSource, ResampleOptions, Resampler, SeekMode};
 use std::{
     fs::File,
     sync::{atomic::Ordering, Arc},
@@ -115,6 +115,10 @@ fn decode(
                 .format::<f32>(),
         )
         .map_err(|error| format!("构建音频重采样失败：{error}"))?;
+    let declared_end_ms = reader
+        .duration()
+        .map(|duration| duration.as_millis().min(u64::MAX as u128) as u64);
+    let source_rate = u64::try_from(reader.source_info().sample_rate).unwrap_or(0);
     let limit = end_ms
         .map(|end| {
             end.saturating_sub(start_ms)
@@ -124,34 +128,64 @@ fn decode(
         })
         .unwrap_or(u64::MAX);
     let mut written = 0;
+    let mut decoded = 0;
     while !shared.stop.load(Ordering::Acquire) && written < limit {
-        match reader
-            .receive_frame()
-            .map_err(|error| format!("音频解码失败：{error}"))?
-        {
-            Some(frame) => {
+        match reader.receive_frame() {
+            Ok(Some(frame)) => {
+                decoded += frame.samples() as u64;
                 resampler
                     .process::<f32>(Some(&frame))
                     .map_err(|error| format!("音频重采样失败：{error}"))?;
                 written += push(shared, resampler.output_as::<f32>(), limit - written);
             }
-            None => {
-                loop {
-                    resampler
-                        .process::<f32>(None)
-                        .map_err(|error| format!("排空音频重采样失败：{error}"))?;
-                    let samples = resampler.output_as::<f32>();
-                    if samples.is_empty() || shared.stop.load(Ordering::Acquire) || written >= limit
-                    {
-                        break;
-                    }
-                    written += push(shared, samples, limit - written);
-                }
+            Ok(None) => {
+                drain(&mut resampler, shared, &mut written, limit)?;
                 break;
             }
+            // Some formats leave non-audio tags at the end of the stream, which the
+            // parser forwards as a junk frame. Once every declared sample is decoded,
+            // a decode error can only come from those trailing bytes.
+            Err(_) if reached_declared_end(declared_end_ms, start_ms, source_rate, decoded) => {
+                drain(&mut resampler, shared, &mut written, limit)?;
+                break;
+            }
+            Err(error) => return Err(format!("音频解码失败：{error}")),
         }
     }
     Ok(())
+}
+
+fn drain(
+    resampler: &mut Resampler,
+    shared: &Buffer,
+    written: &mut u64,
+    limit: u64,
+) -> AppResult<()> {
+    loop {
+        resampler
+            .process::<f32>(None)
+            .map_err(|error| format!("排空音频重采样失败：{error}"))?;
+        let samples = resampler.output_as::<f32>();
+        if samples.is_empty() || shared.stop.load(Ordering::Acquire) || *written >= limit {
+            break;
+        }
+        *written += push(shared, samples, limit - *written);
+    }
+    Ok(())
+}
+
+pub(super) fn reached_declared_end(
+    declared_end_ms: Option<u64>,
+    start_ms: u64,
+    source_rate: u64,
+    decoded: u64,
+) -> bool {
+    if source_rate == 0 {
+        return false;
+    }
+    declared_end_ms.is_some_and(|end| {
+        decoded >= end.saturating_sub(start_ms).saturating_mul(source_rate) / 1000
+    })
 }
 
 fn push(shared: &Buffer, samples: &[f32], limit: u64) -> u64 {
