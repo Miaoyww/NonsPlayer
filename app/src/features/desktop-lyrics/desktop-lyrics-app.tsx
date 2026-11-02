@@ -1,8 +1,15 @@
 import { listen } from '@tauri-apps/api/event'
-import { Lock, X } from 'lucide-react'
+import { Lock, Pause, Play, SkipBack, SkipForward, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import { reportCaughtError } from '@/lib/diagnostics'
-import { connectPlayer, nativeCall, usePlayer, useProgress, type Track } from '@/lib/player'
+import {
+  adjacentIndex,
+  connectPlayer,
+  nativeCall,
+  usePlayer,
+  useProgress,
+  type Track
+} from '@/lib/player'
 import { offsetLyrics, type LyricCorrection } from '@/features/lyrics/correction'
 import { loadLyrics, lyricTrackVersion } from '@/features/lyrics/load-lyrics'
 import { parseLyrics } from '@/features/lyrics/parse-lyrics'
@@ -104,9 +111,12 @@ function useDesktopLyrics(track: Track | undefined) {
 
 export function DesktopLyricsApp() {
   const { locked } = useDesktopLyricsState()
-  const snapshot = usePlayer('index', 'queue', 'status')
+  const snapshot = usePlayer('index', 'queue', 'repeatMode', 'shuffle', 'shuffleOrder', 'status')
   const track = snapshot.index === null ? undefined : snapshot.queue[snapshot.index]
   const playing = snapshot.status === 'playing'
+  const transportPlaying = ['playing', 'buffering', 'loading'].includes(snapshot.status)
+  const previousIndex = adjacentIndex(snapshot, 'previous')
+  const nextIndex = adjacentIndex(snapshot, 'next')
   const { fontWeight, fontScale } = useLyricsSettings()
   const { lines, loading } = useDesktopLyrics(track)
   const progress = useProgress(true)
@@ -153,14 +163,17 @@ export function DesktopLyricsApp() {
     event.preventDefault()
     run(dragDesktopLyrics)
   }
-  const handleContentHeight = useCallback((height: number) => {
-    const target = Math.ceil(height + 32)
-    if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
-    lastHeight.current = target
-    void setDesktopLyricsHeight(target).catch((cause) =>
-      reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
-    )
-  }, [])
+  const handleContentHeight = useCallback(
+    (height: number) => {
+      const target = Math.ceil(height + (locked ? 32 : 76))
+      if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
+      lastHeight.current = target
+      void setDesktopLyricsHeight(target).catch((cause) =>
+        reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
+      )
+    },
+    [locked]
+  )
   const beforeFirstLine = lines.length > 0 && progress.positionMs < lines[0].startTime
   const showTrackInfo = !!track && !loading && (!lines.length || beforeFirstLine)
 
@@ -178,26 +191,61 @@ export function DesktopLyricsApp() {
   return (
     <div className={`desktop-lyrics${locked ? '' : ' unlocked'}`} onPointerDown={startDragging}>
       {!locked && (
-        <div className="desktop-lyrics-controls">
-          <button
-            type="button"
-            aria-label="锁定桌面歌词窗口"
-            title="锁定"
-            onClick={() => run(() => setDesktopLyricsLocked(true))}
-          >
-            <Lock aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label="关闭桌面歌词"
-            title="关闭"
-            onClick={() => {
-              // The window is destroyed while this call is in flight.
-              void setDesktopLyricsEnabled(false).catch(() => {})
-            }}
-          >
-            <X aria-hidden="true" />
-          </button>
+        <div className="desktop-lyrics-header">
+          <div className="desktop-lyrics-track-info">
+            <span className="desktop-lyrics-track-title">{track?.title ?? ''}</span>
+            <span className="desktop-lyrics-track-artist">{track?.artist ?? ''}</span>
+          </div>
+          <div className="desktop-lyrics-playback" role="group" aria-label="播放控制">
+            <button
+              type="button"
+              aria-label="上一首"
+              title="上一首"
+              disabled={!track || previousIndex === null}
+              onClick={() => run(() => nativeCall('player_action', { action: 'previous' }))}
+            >
+              <SkipBack aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label={transportPlaying ? '暂停' : '播放'}
+              title={transportPlaying ? '暂停' : '播放'}
+              disabled={!track}
+              onClick={() => run(() => nativeCall('player_action', { action: 'toggle' }))}
+            >
+              {transportPlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
+            </button>
+            <button
+              type="button"
+              aria-label="下一首"
+              title="下一首"
+              disabled={!track || nextIndex === null}
+              onClick={() => run(() => nativeCall('player_action', { action: 'next' }))}
+            >
+              <SkipForward aria-hidden="true" />
+            </button>
+          </div>
+          <div className="desktop-lyrics-controls">
+            <button
+              type="button"
+              aria-label="锁定桌面歌词窗口"
+              title="锁定"
+              onClick={() => run(() => setDesktopLyricsLocked(true))}
+            >
+              <Lock aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label="关闭桌面歌词"
+              title="关闭"
+              onClick={() => {
+                // The window is destroyed while this call is in flight.
+                void setDesktopLyricsEnabled(false).catch(() => {})
+              }}
+            >
+              <X aria-hidden="true" />
+            </button>
+          </div>
         </div>
       )}
       {lines.length > 0 && !showTrackInfo && (
