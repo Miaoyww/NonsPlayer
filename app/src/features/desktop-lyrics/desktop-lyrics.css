@@ -20,7 +20,6 @@
   color: rgb(255 255 255 / 48%);
   font-family: var(--nons-lyrics-font, var(--nons-app-font));
   font-size: 18px;
-  text-shadow: 0 2px 10px rgb(0 0 0 / 55%);
 }
 
 .desktop-lyrics-toolbar {
