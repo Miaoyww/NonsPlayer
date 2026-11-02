@@ -23,7 +23,6 @@ import { ToolsDialog } from '@/features/tools/tools-dialog'
 import { AccountMenu } from '@/features/account/account-menu'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { MusicSearch } from '@/features/search/music-search'
-import { PlaylistSidebar } from '@/features/library/playlist-sidebar'
 import { usePlugins } from '@/plugins/host'
 import { pluginPath } from '@/plugins/types'
 import { isAndroid } from '@/lib/platform'
@@ -162,7 +161,6 @@ export function Titlebar({
                 <ChevronDown aria-hidden="true" />
               </Button>
             ) : null}
-            {!isAndroid() && <PlaylistSidebar hidden={playerMode} />}
           </div>
 
           {!playerMode && !isAndroid() && (

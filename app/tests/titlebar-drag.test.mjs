@@ -33,7 +33,6 @@ function harness(playerMode = false) {
       useMusicNavigation: () => ({ page: { view: 'library' }, navigate() {} })
     },
     '@/features/search/music-search': { MusicSearch: 'search' },
-    '@/features/library/playlist-sidebar': { PlaylistSidebar: 'sidebar' },
     '@/plugins/host': { usePlugins: () => ({ plugins: [], loaded: new Set() }) },
     '@/plugins/types': {}
   }
