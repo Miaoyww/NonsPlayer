@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-02
+
+![NonsPlayer v1.10.0 桌面歌词与体验更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.10.0/docs/release-assets/header.png)
+
+NonsPlayer 1.10.0 新增桌面歌词、隐私协议步骤与本地歌词译文识别，并完善播放栏、标题栏和本地音乐播放体验。本次 Release 提供 **Windows x64、Linux x64 和 Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 ### 歌词与界面
 
 - 设置 → 歌词设置新增「桌面歌词」分组，并在独立置顶窗口中显示当前行、翻译与发音；切句和辅助文本使用滚动动画，已唱部分逐字扫描高亮，无歌词或尚未到第一句时显示歌名与艺术家。
