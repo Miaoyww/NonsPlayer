@@ -75,10 +75,18 @@ export function parseLyrics(
     return {
       ...line,
       endTime: end,
-      words: line.words.map((word) => ({
-        ...word,
-        endTime: Number.isFinite(word.endTime) && word.endTime > word.startTime ? word.endTime : end
-      })),
+      words: line.words.map((word, wordIndex) => {
+        const nextStart = line.words[wordIndex + 1]?.startTime
+        const wordEnd =
+          Number.isFinite(word.endTime) && word.endTime > word.startTime ? word.endTime : end
+        return {
+          ...word,
+          endTime:
+            Number.isFinite(nextStart) && nextStart >= word.startTime && wordEnd > nextStart
+              ? nextStart
+              : wordEnd
+        }
+      }),
       translatedLyric: cleanAuxiliary(line.translatedLyric).trim()
         ? line.translatedLyric
         : cleanAuxiliary(translations[index] ?? ''),

@@ -57,6 +57,35 @@ test("QRC preserves each word's start and end through the actual AMLL parser", (
   )
 })
 
+test('overlapping word timings stop at the next word start', () => {
+  const lines = exports.parseLyrics(
+    {
+      ...lyrics,
+      content:
+        '[195732,6503]「(195732,231)愛(195963,448)し(196411,456)た(196867,464)い(197331,425)」(197756,4479)と(197756,512)祈(198564,384)り(198948,559)な(199507,713)が(200220,257)ら(200477,1758)'
+    },
+    210000
+  )
+  assert.deepEqual(
+    Array.from(lines[0].words, (word) => [word.word, word.startTime, word.endTime]),
+    [
+      ['「', 195732, 195963],
+      ['愛', 195963, 196411],
+      ['し', 196411, 196867],
+      ['た', 196867, 197331],
+      ['い', 197331, 197756],
+      ['」', 197756, 197756],
+      ['と', 197756, 198268],
+      ['祈', 198564, 198948],
+      ['り', 198948, 199507],
+      ['な', 199507, 200220],
+      ['が', 200220, 200477],
+      ['ら', 200477, 202235]
+    ]
+  )
+  assert.equal(lines[0].words.map((word) => word.word).join(''), '「愛したい」と祈りながら')
+})
+
 test('empty or malformed QRC triggers fallback; LRC and YRC still parse', () => {
   assert.throws(
     () => exports.parseLyrics({ ...lyrics, content: '<html>error</html>' }, 4000),
