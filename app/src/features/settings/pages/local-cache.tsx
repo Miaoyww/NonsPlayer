@@ -96,7 +96,7 @@ export function LocalCachePage() {
         <SettingsCard
           searchId="local-lyrics-source"
           title="来源"
-          description="本地读取音频内嵌歌词或同目录同名 LRC；在线按歌曲信息匹配。所选来源无歌词时不切换另一来源，流媒体歌曲始终在线取词。"
+          description="本地读取音频内嵌歌词、同目录同名 LRC 及 _trans/_roma 伴随文件；在线按歌曲信息匹配。所选来源无歌词时不切换另一来源，流媒体歌曲始终在线取词。"
         >
           <Select
             items={[

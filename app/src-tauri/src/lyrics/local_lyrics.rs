@@ -1,7 +1,11 @@
 //! On-demand local lyrics. Never populate the online runtime or TTML caches.
 use crate::model::{AppResult, Lyrics, Track, TrackSource, MAX_LYRIC_BYTES};
 use lofty::{config::ParseOptions, prelude::*, probe::Probe};
-use std::{io::Read, path::Path};
+use std::{
+    ffi::OsString,
+    io::Read,
+    path::{Path, PathBuf},
+};
 
 static READS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
 
@@ -102,6 +106,50 @@ fn decode(bytes: Vec<u8>) -> AppResult<String> {
     Ok(text.trim_start_matches('\u{feff}').to_owned())
 }
 
+fn companion(audio: &Path, suffix: &str) -> Option<PathBuf> {
+    let mut name = OsString::from(audio.file_stem()?);
+    name.push(suffix);
+    Some(audio.with_file_name(name))
+}
+
+fn read_companion(audio: &Path, suffixes: &[&str], operation: &'static str) -> Option<String> {
+    suffixes.iter().find_map(|suffix| {
+        let path = companion(audio, suffix)?;
+        let file = match crate::local::source::open(&path) {
+            Ok(file) => file,
+            Err(error) => {
+                if error.kind() != std::io::ErrorKind::NotFound {
+                    crate::infrastructure::diagnostics::warn(&format!("{operation}.open"), error);
+                }
+                return None;
+            }
+        };
+        let mut bytes = Vec::new();
+        if let Err(error) = file
+            .take(MAX_LYRIC_BYTES as u64 + 1)
+            .read_to_end(&mut bytes)
+        {
+            crate::infrastructure::diagnostics::warn(&format!("{operation}.read"), error);
+            return None;
+        }
+        if bytes.len() > MAX_LYRIC_BYTES {
+            crate::infrastructure::diagnostics::warn(
+                &format!("{operation}.too_large"),
+                path.display(),
+            );
+            return None;
+        }
+        let text = match decode(bytes) {
+            Ok(text) => text,
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn(&format!("{operation}.decode"), error);
+                return None;
+            }
+        };
+        (!text.trim().is_empty()).then_some(text)
+    })
+}
+
 fn read(path: &Path, skip_embedded: bool) -> AppResult<Option<Lyrics>> {
     let content = if !skip_embedded { embedded(path) } else { None };
     let content = match content {
@@ -122,12 +170,22 @@ fn read(path: &Path, skip_embedded: bool) -> AppResult<Option<Lyrics>> {
             decode(bytes)?
         }
     };
+    let translation = read_companion(
+        path,
+        &["_trans.lrc", ".trans.lrc"],
+        "lyrics.local.translation",
+    );
+    let romanization = read_companion(
+        path,
+        &["_roma.lrc", ".roma.lrc"],
+        "lyrics.local.romanization",
+    );
     Ok((!content.trim().is_empty()).then_some(Lyrics {
         source: "local".into(),
         format: "lrc".into(),
         content,
-        translation: None,
-        romanization: None,
+        translation,
+        romanization,
         match_score: None,
     }))
 }
@@ -211,6 +269,53 @@ mod tests {
     }
 
     #[test]
+    fn companion_translation_and_romanization_are_optional() {
+        let dir = TestDir::new();
+        let audio = dir.0.join("song.flac");
+        std::fs::write(audio.with_extension("lrc"), TEXT).unwrap();
+        assert!(read(&audio, false).unwrap().unwrap().translation.is_none());
+
+        std::fs::write(dir.0.join("song_trans.lrc"), "[00:01.00]译文").unwrap();
+        std::fs::write(dir.0.join("song_roma.lrc"), "[00:01.00]roman").unwrap();
+        let lyrics = read(&audio, false).unwrap().unwrap();
+        assert_eq!(lyrics.translation.as_deref(), Some("[00:01.00]译文"));
+        assert_eq!(lyrics.romanization.as_deref(), Some("[00:01.00]roman"));
+        assert_eq!(lyrics.content, TEXT);
+    }
+
+    #[test]
+    fn dotted_companion_names_are_supported_after_primary_names() {
+        let dir = TestDir::new();
+        let audio = dir.0.join("song.mp3");
+        std::fs::write(audio.with_extension("lrc"), TEXT).unwrap();
+        std::fs::write(dir.0.join("song.trans.lrc"), "[00:01.00]点号译文").unwrap();
+        std::fs::write(dir.0.join("song.roma.lrc"), "[00:01.00]dot roman").unwrap();
+        let lyrics = read(&audio, false).unwrap().unwrap();
+        assert_eq!(lyrics.translation.as_deref(), Some("[00:01.00]点号译文"));
+        assert_eq!(lyrics.romanization.as_deref(), Some("[00:01.00]dot roman"));
+
+        std::fs::write(dir.0.join("song_trans.lrc"), "[00:01.00]主译文").unwrap();
+        assert_eq!(
+            read(&audio, false).unwrap().unwrap().translation.as_deref(),
+            Some("[00:01.00]主译文")
+        );
+    }
+
+    #[test]
+    fn companion_files_ignore_bad_input_and_fall_back_to_dotted_names() {
+        let dir = TestDir::new();
+        let audio = dir.0.join("song.flac");
+        std::fs::write(&audio, b"not audio").unwrap();
+        std::fs::write(audio.with_extension("lrc"), TEXT).unwrap();
+        std::fs::write(dir.0.join("song_trans.lrc"), [0xff]).unwrap();
+        std::fs::write(dir.0.join("song.trans.lrc"), "[00:01.00]备用译文").unwrap();
+        std::fs::write(dir.0.join("song.roma.lrc"), vec![b'a'; MAX_LYRIC_BYTES + 1]).unwrap();
+        let lyrics = read(&audio, true).unwrap().unwrap();
+        assert_eq!(lyrics.translation.as_deref(), Some("[00:01.00]备用译文"));
+        assert!(lyrics.romanization.is_none());
+    }
+
+    #[test]
     fn oversized_empty_and_bad_sidecars() {
         let dir = TestDir::new();
         let audio = dir.0.join("song.mp3");
@@ -264,10 +369,12 @@ mod tests {
             Some(TEXT)
         );
         std::fs::write(audio.with_extension("lrc"), "[00:01.00]外挂").unwrap();
-        assert_eq!(read(&audio, false).unwrap().unwrap().content, TEXT);
-        assert_eq!(
-            read(&audio, true).unwrap().unwrap().content,
-            "[00:01.00]外挂"
-        );
+        std::fs::write(dir.0.join("song_trans.lrc"), "[00:01.00]译文").unwrap();
+        let embedded = read(&audio, false).unwrap().unwrap();
+        assert_eq!(embedded.content, TEXT);
+        assert_eq!(embedded.translation.as_deref(), Some("[00:01.00]译文"));
+        let sidecar = read(&audio, true).unwrap().unwrap();
+        assert_eq!(sidecar.content, "[00:01.00]外挂");
+        assert_eq!(sidecar.translation.as_deref(), Some("[00:01.00]译文"));
     }
 }

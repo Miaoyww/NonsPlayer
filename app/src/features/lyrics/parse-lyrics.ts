@@ -2,6 +2,7 @@ import { parseLrc, parseQrc, parseTTML, parseYrc } from '@applemusic-like-lyrics
 import type { LyricLine } from '@applemusic-like-lyrics/core'
 import type { Lyrics } from '@/lib/player'
 import { matchAuxiliary } from './auxiliary-matching'
+import { parseLocalLrc } from './local-lrc'
 
 export class EmptyLyricsError extends Error {
   readonly code = 'emptyLyrics'
@@ -16,7 +17,7 @@ export function parseLyricsContent(value: Lyrics): LyricLine[] {
     case 'qrc':
       return parseQrc(value.content)
     case 'lrc':
-      return parseLrc(value.content)
+      return value.source === 'local' ? parseLocalLrc(value.content) : parseLrc(value.content)
   }
 }
 

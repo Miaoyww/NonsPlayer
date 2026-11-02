@@ -15,6 +15,15 @@ runInNewContext(
   { exports: matching, require: () => FastPriorityQueue }
 )
 
+const localLrc = {}
+runInNewContext(
+  ts.transpileModule(
+    readFileSync(new URL('../src/features/lyrics/local-lrc.ts', import.meta.url), 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS } }
+  ).outputText,
+  { exports: localLrc, require: () => amll }
+)
+
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/qrc.json', import.meta.url), 'utf8'))
 const exports = {}
 const { outputText } = ts.transpileModule(
@@ -23,7 +32,8 @@ const { outputText } = ts.transpileModule(
 )
 runInNewContext(outputText, {
   exports,
-  require: (name) => (name === './auxiliary-matching' ? matching : amll)
+  require: (name) =>
+    name === './auxiliary-matching' ? matching : name === './local-lrc' ? localLrc : amll
 })
 const lyrics = {
   source: 'qq',
