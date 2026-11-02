@@ -228,14 +228,14 @@
     --word-scan-progress 90ms linear;
 }
 
-.desktop-lyrics-stage .line.horizontal-scrolling .line-text-stack {
+.desktop-lyrics-stage .desktop-lyrics-line.horizontal-scrolling .line-text-stack {
   width: max-content;
   max-width: none;
   margin-inline: 0;
   transform: translateX(var(--line-scroll-offset));
 }
 
-.desktop-lyrics-stage .line.horizontal-scrolling .line-text {
+.desktop-lyrics-stage .desktop-lyrics-line.horizontal-scrolling .line-text {
   width: max-content;
   overflow: visible;
   text-overflow: clip;
@@ -284,7 +284,7 @@
     overflow-clip-margin: 3px;
   }
 
-  .desktop-lyrics-stage .line.horizontal-scrolling .line-text {
+  .desktop-lyrics-stage .desktop-lyrics-line.horizontal-scrolling .line-text {
     overflow: visible;
   }
 }
@@ -293,7 +293,7 @@
   .desktop-lyrics-stage .desktop-lyrics-track.animating,
   .desktop-lyrics-stage .desktop-lyrics-line,
   .desktop-lyrics-stage .line.word-scan-smoothing,
-  .desktop-lyrics-stage .line.horizontal-scrolling .line-text-stack {
+  .desktop-lyrics-stage .desktop-lyrics-line.horizontal-scrolling .line-text-stack {
     transition: none;
     will-change: auto;
   }
