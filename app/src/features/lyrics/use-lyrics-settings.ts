@@ -89,7 +89,7 @@ let desktopLyricsFontWeight = readNumber(
   defaultLyricsFontWeight,
   (value) => Number.isInteger(value) && value >= minLyricsFontWeight && value <= maxLyricsFontWeight
 )
-let showDesktopLyricsDoubleLine = readBoolean(desktopLyricsDoubleLineStorageKey, false)
+let showDesktopLyricsDoubleLine = readBoolean(desktopLyricsDoubleLineStorageKey, true)
 let showDesktopLyricsTranslation = readBoolean(desktopLyricsTranslationStorageKey, true)
 let showDesktopLyricsPronunciation = readBoolean(desktopLyricsPronunciationStorageKey, true)
 let desktopLyricsSungColor = readColor(
@@ -132,7 +132,7 @@ function reloadFromStorage() {
     (value) =>
       Number.isInteger(value) && value >= minLyricsFontWeight && value <= maxLyricsFontWeight
   )
-  const nextShowDesktopLyricsDoubleLine = readBoolean(desktopLyricsDoubleLineStorageKey, false)
+  const nextShowDesktopLyricsDoubleLine = readBoolean(desktopLyricsDoubleLineStorageKey, true)
   const nextShowDesktopLyricsTranslation = readBoolean(desktopLyricsTranslationStorageKey, true)
   const nextShowDesktopLyricsPronunciation = readBoolean(desktopLyricsPronunciationStorageKey, true)
   const nextDesktopLyricsSungColor = readColor(

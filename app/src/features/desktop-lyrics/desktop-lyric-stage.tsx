@@ -69,9 +69,10 @@ export function DesktopLyricStage({
   useEffect(() => {
     const stage = stageRef.current
     if (!stage) return
+    stage.setDoubleLine(doubleLine)
     stage.setAuxiliaryVisibility(showTranslation, showPronunciation)
     stage.update(playing ? currentPosition() : getProgress().positionMs, playing, true)
-  }, [showTranslation, showPronunciation])
+  }, [doubleLine, showTranslation, showPronunciation])
 
   useEffect(() => {
     const stage = stageRef.current
@@ -97,9 +98,8 @@ export function DesktopLyricStage({
   }, [playing, visible])
 
   useLayoutEffect(() => {
-    stageRef.current?.setDoubleLine(doubleLine)
     stageRef.current?.refresh()
-  }, [doubleLine, fontScale, fontWeight])
+  }, [fontScale, fontWeight])
 
   useEffect(() => {
     const viewport = rootRef.current?.querySelector<HTMLElement>('[data-lyric="viewport"]')
@@ -202,13 +202,6 @@ export function DesktopLyricStage({
                 </span>
               </span>
             </div>
-          </div>
-          <div className="desktop-lyrics-line next-line preview-line" data-lyric="preview-line">
-            <span className="line-text-viewport">
-              <span className="line-text-stack">
-                <span className="line-text line-text-base" data-lyric="preview-text" />
-              </span>
-            </span>
           </div>
         </div>
       </div>

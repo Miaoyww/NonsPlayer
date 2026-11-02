@@ -216,7 +216,7 @@ export function LyricsPage() {
             桌面歌词
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            在独立置顶窗口中显示歌词，可同时显示下一句、翻译与注音；锁定后鼠标可穿透，悬停歌词窗口可解锁。
+            在独立置顶窗口中显示歌词，可在原文下方显示翻译与注音；锁定后鼠标可穿透，悬停歌词窗口可解锁。
           </p>
         </div>
         <SettingsCard
@@ -277,7 +277,7 @@ export function LyricsPage() {
         <SettingsCard
           searchId="lyrics-desktop-double-line"
           title="双行显示"
-          description="在当前句下方同时显示下一句歌词。"
+          description="在原文下方显示翻译与注音；关闭后仅显示原文。"
         >
           <Switch
             aria-label="桌面歌词双行显示"
@@ -288,7 +288,7 @@ export function LyricsPage() {
         <SettingsCard
           searchId="lyrics-desktop-translation"
           title="显示翻译"
-          description="显示当前歌词句的翻译。"
+          description="在双行显示的第二行中显示翻译。"
         >
           <Switch
             aria-label="显示桌面歌词翻译"
@@ -299,7 +299,7 @@ export function LyricsPage() {
         <SettingsCard
           searchId="lyrics-desktop-pronunciation"
           title="显示注音"
-          description="显示当前歌词句的注音或音译。"
+          description="在双行显示的第二行中显示注音或音译。"
         >
           <Switch
             aria-label="显示桌面歌词注音"

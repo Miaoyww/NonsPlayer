@@ -95,7 +95,7 @@ const groups: SearchGroup[] = [
       ['lyrics-desktop', '启用桌面歌词', '置顶 独立窗口 鼠标穿透'],
       ['lyrics-desktop-font-size', '字体大小', '字号 缩放 比例 大小'],
       ['lyrics-desktop-font-weight', '字重', '粗细 滑块'],
-      ['lyrics-desktop-double-line', '双行显示', '下一句 两行'],
+      ['lyrics-desktop-double-line', '双行显示', '翻译 注音 第二行 辅助行'],
       ['lyrics-desktop-translation', '显示翻译', '译文'],
       ['lyrics-desktop-pronunciation', '显示注音', '发音 音译'],
       ['lyrics-desktop-sung-color', '已唱部分颜色', '高亮 颜色 逐字']

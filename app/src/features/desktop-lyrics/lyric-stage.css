@@ -178,14 +178,6 @@
   display: none;
 }
 
-.desktop-lyrics-stage .desktop-lyrics-track > .preview-line {
-  display: none;
-}
-
-.desktop-lyrics-stage.double-line .desktop-lyrics-track > .preview-line {
-  display: flex;
-}
-
 .desktop-lyrics-stage.auxiliary-mode .desktop-lyrics-track > .secondary-line {
   display: flex;
 }
