@@ -1,65 +1,25 @@
-import { LyricPlayer, type LyricPlayerRef } from '@applemusic-like-lyrics/react'
-import type { LyricLine } from '@applemusic-like-lyrics/core'
-import '@applemusic-like-lyrics/core/style.css'
 import { listen } from '@tauri-apps/api/event'
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { reportCaughtError } from '@/lib/diagnostics'
-import {
-  connectPlayer,
-  currentPosition,
-  getProgress,
-  nativeCall,
-  usePlayer,
-  useProgress,
-  type Track
-} from '@/lib/player'
+import { connectPlayer, nativeCall, usePlayer, type Track } from '@/lib/player'
 import { offsetLyrics, type LyricCorrection } from '@/features/lyrics/correction'
 import { loadLyrics, lyricTrackVersion } from '@/features/lyrics/load-lyrics'
 import { parseLyrics } from '@/features/lyrics/parse-lyrics'
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
 import { useLyricsSettings } from '@/features/lyrics/use-lyrics-settings'
+import { DesktopLyricStage } from './desktop-lyric-stage'
 import {
   dragDesktopLyrics,
   setDesktopLyricsEnabled,
+  setDesktopLyricsHeight,
   setDesktopLyricsLocked,
   useDesktopLyricsState
 } from './state'
 
-const INITIAL_SURFACE_HEIGHT = 140
-
-interface RenderedWord {
-  mainElement: HTMLElement
-  endTime: number
-}
-
-interface RenderedGroup {
-  mainLine?: {
-    splittedWords?: RenderedWord[]
-  }
-}
-
-function paintSungWords(groups: readonly unknown[], position: number) {
-  for (const group of groups) {
-    for (const word of (group as RenderedGroup).mainLine?.splittedWords ?? [])
-      word.mainElement.classList.toggle('desktop-lyrics-sung', word.endTime <= position)
-  }
-}
-
-function lineIndexAt(lines: LyricLine[], time: number) {
-  let low = 0
-  let high = lines.length
-  while (low < high) {
-    const middle = (low + high) >> 1
-    if (lines[middle].startTime <= time) low = middle + 1
-    else high = middle
-  }
-  return low - 1
-}
-
 function useDesktopLyrics(track: Track | undefined) {
   const { sources, ready } = useLyricSources()
   const { lyricsOffsetMs } = useLyricsSettings()
-  const [lines, setLines] = useState<LyricLine[]>([])
+  const [lines, setLines] = useState<ReturnType<typeof parseLyrics>>([])
   const [loading, setLoading] = useState(false)
   const [revision, setRevision] = useState(0)
   const version = track ? lyricTrackVersion(track) : ''
@@ -146,23 +106,9 @@ export function DesktopLyricsApp() {
   const snapshot = usePlayer('index', 'queue', 'status')
   const track = snapshot.index === null ? undefined : snapshot.queue[snapshot.index]
   const playing = snapshot.status === 'playing'
-  const progress = useProgress(true)
   const { fontWeight, fontScale } = useLyricsSettings()
   const { lines, loading } = useDesktopLyrics(track)
-  const displayedLines = useMemo(
-    () =>
-      lines.map((line) => ({
-        ...line,
-        romanLyric: '',
-        words: line.words.map((word) => ({ ...word, romanWord: undefined, ruby: undefined }))
-      })),
-    [lines]
-  )
-  const [renderer, setRenderer] = useState<LyricPlayerRef | null>(null)
-  const retainRenderer = useCallback((value: LyricPlayerRef | null) => setRenderer(value), [])
-  const [surfaceHeight, setSurfaceHeight] = useState(INITIAL_SURFACE_HEIGHT)
-  const heightRef = useRef(0)
-  const seekRef = useRef(true)
+  const lastHeight = useRef(0)
 
   useEffect(() => {
     let disposed = false
@@ -182,77 +128,6 @@ export function DesktopLyricsApp() {
   }, [])
 
   useEffect(() => {
-    seekRef.current = true
-    heightRef.current = 0
-    setSurfaceHeight(INITIAL_SURFACE_HEIGHT)
-  }, [track?.key])
-
-  useEffect(() => {
-    const core = renderer?.lyricPlayer
-    if (!core) return
-    let disposed = false
-    let frame = 0
-    void document.fonts.ready.then(() => {
-      if (disposed) return
-      frame = requestAnimationFrame(() => {
-        core.rebuildLyricView()
-        paintSungWords(core.currentLyricGroups, getProgress().positionMs)
-      })
-    })
-    return () => {
-      disposed = true
-      cancelAnimationFrame(frame)
-    }
-  }, [renderer, fontWeight, fontScale])
-
-  useEffect(() => {
-    const core = renderer?.lyricPlayer
-    if (!core) return
-    core.setHidePassedLines(false)
-  }, [renderer])
-
-  useEffect(() => {
-    const core = renderer?.lyricPlayer
-    if (!core) return
-    let frame = 0
-    let previous = performance.now()
-    const started = previous
-    const tick = (now: number) => {
-      const delta = Math.min(50, now - previous)
-      previous = now
-      const position = playing ? currentPosition(now) : getProgress().positionMs
-      core.setCurrentTime(position, seekRef.current)
-      seekRef.current = false
-      core.update(delta)
-      paintSungWords(core.currentLyricGroups, position)
-      if (displayedLines.length) {
-        const index = Math.max(
-          0,
-          Math.min(displayedLines.length - 1, lineIndexAt(displayedLines, position))
-        )
-        const element = core.currentLyricGroups[index]?.getElement()
-        const height = element?.getBoundingClientRect().height ?? 0
-        if (height > 1 && Math.abs(height - heightRef.current) > 1) {
-          heightRef.current = height
-          setSurfaceHeight(Math.ceil(height))
-        }
-      }
-      if (playing || now - started < 1000) frame = requestAnimationFrame(tick)
-    }
-    frame = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame)
-  }, [renderer, playing, displayedLines])
-
-  useEffect(() => {
-    if (playing) return
-    const core = renderer?.lyricPlayer
-    if (!core) return
-    core.setCurrentTime(progress.positionMs, true)
-    core.update(0)
-    paintSungWords(core.currentLyricGroups, progress.positionMs)
-  }, [renderer, playing, progress.positionMs])
-
-  useEffect(() => {
     if (locked) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
@@ -269,18 +144,21 @@ export function DesktopLyricsApp() {
     void action().catch((cause) =>
       reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
     )
-  const placeholder = !!track && !displayedLines.length && !loading
+  const handleContentHeight = useCallback(
+    (height: number) => {
+      const target = Math.ceil(height + (locked ? 16 : 84))
+      if (Number.isNaN(target) || Math.abs(target - lastHeight.current) < 1) return
+      lastHeight.current = target
+      void setDesktopLyricsHeight(target).catch((cause) =>
+        reportCaughtError('app/src/features/desktop-lyrics/desktop-lyrics-app.tsx', cause)
+      )
+    },
+    [locked]
+  )
+  const placeholder = !!track && !lines.length && !loading
 
   return (
-    <div
-      className={`desktop-lyrics${locked ? '' : ' unlocked'}`}
-      style={
-        {
-          fontWeight,
-          '--desktop-lyrics-font-size': `calc(clamp(32px, 3.6vw, 56px) * ${Math.min(fontScale, 1.4)})`
-        } as CSSProperties
-      }
-    >
+    <div className={`desktop-lyrics${locked ? '' : ' unlocked'}`}>
       {!locked && (
         <div className="desktop-lyrics-toolbar">
           <button
@@ -307,21 +185,15 @@ export function DesktopLyricsApp() {
           </button>
         </div>
       )}
-      {displayedLines.length > 0 && (
-        <div className="desktop-lyrics-surface" style={{ height: surfaceHeight }}>
-          <LyricPlayer
-            ref={retainRenderer}
-            className="desktop-lyrics-player"
-            lyricLines={displayedLines}
-            disabled
-            playing={playing}
-            alignAnchor="center"
-            alignPosition={0.5}
-            enableBlur={false}
-            enableScale={false}
-            wordFadeWidth={0.5}
-          />
-        </div>
+      {lines.length > 0 && (
+        <DesktopLyricStage
+          lines={lines}
+          trackId={track?.key ?? ''}
+          playing={playing}
+          fontScale={fontScale}
+          fontWeight={fontWeight}
+          onContentHeight={handleContentHeight}
+        />
       )}
       {placeholder && <p className="desktop-lyrics-empty">暂无歌词</p>}
     </div>

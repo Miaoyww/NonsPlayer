@@ -1130,6 +1130,8 @@ pub fn run() {
             #[cfg(desktop)]
             desktop_lyrics::desktop_lyrics_set_locked,
             #[cfg(desktop)]
+            desktop_lyrics::desktop_lyrics_set_height,
+            #[cfg(desktop)]
             desktop_lyrics::desktop_lyrics_begin_drag,
             main_webview::main_webview_ready,
             main_webview::main_sleep_shortcuts,

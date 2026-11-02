@@ -52,6 +52,10 @@ export function setDesktopLyricsLocked(locked: boolean) {
   return invoke<DesktopLyricsState>('desktop_lyrics_set_locked', { locked })
 }
 
+export function setDesktopLyricsHeight(height: number) {
+  return invoke('desktop_lyrics_set_height', { height })
+}
+
 export function dragDesktopLyrics() {
   return invoke('desktop_lyrics_begin_drag')
 }

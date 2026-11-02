@@ -10,13 +10,15 @@ use std::{
     time::{Duration, Instant},
 };
 use tauri::{
-    AppHandle, Emitter, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
-    WindowEvent,
+    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow,
+    WebviewWindowBuilder, WindowEvent,
 };
 
 const LABEL: &str = "desktop-lyrics";
 const WIDTH: f64 = 1100.0;
-const HEIGHT: f64 = 320.0;
+const DEFAULT_HEIGHT: f64 = 160.0;
+const MIN_HEIGHT: f64 = 96.0;
+const MAX_HEIGHT: f64 = 320.0;
 const POSITION_KEY: &str = "desktopLyricsPosition";
 const ENABLED_KEY: &str = "desktopLyricsEnabled";
 const LOCKED_KEY: &str = "desktopLyricsLocked";
@@ -83,7 +85,7 @@ fn default_position(app: &AppHandle) -> Option<PhysicalPosition<i32>> {
     let position = monitor.position();
     let size = monitor.size();
     let width = (WIDTH * scale) as i32;
-    let height = (HEIGHT * scale) as i32;
+    let height = (DEFAULT_HEIGHT * scale) as i32;
     let margin = (80.0 * scale) as i32;
     Some(PhysicalPosition::new(
         position.x + (size.width as i32 - width) / 2,
@@ -133,7 +135,7 @@ fn build(app: &AppHandle) -> AppResult<WebviewWindow> {
     let mut builder =
         WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("desktop-lyrics.html".into()))
             .title("桌面歌词")
-            .inner_size(WIDTH, HEIGHT)
+            .inner_size(WIDTH, DEFAULT_HEIGHT)
             .transparent(true)
             .decorations(false)
             .always_on_top(true)
@@ -214,6 +216,29 @@ pub(crate) fn desktop_lyrics_set_locked(locked: bool, app: AppHandle) -> AppResu
     let value = state(&app);
     let _ = app.emit(EVENT, value);
     Ok(value)
+}
+
+#[tauri::command]
+pub(crate) fn desktop_lyrics_set_height(height: f64, window: WebviewWindow) -> AppResult<()> {
+    if window.label() != LABEL {
+        return Err("桌面歌词窗口不可用".into());
+    }
+    let height = height.clamp(MIN_HEIGHT, MAX_HEIGHT);
+    let scale = window.scale_factor().map_err(|error| error.to_string())?;
+    let outer = window.outer_size().map_err(|error| error.to_string())?;
+    let position = window.outer_position().map_err(|error| error.to_string())?;
+    let physical_height = (height * scale).round() as u32;
+    if outer.height == physical_height {
+        return Ok(());
+    }
+    let delta = outer.height as i32 - physical_height as i32;
+    window
+        .set_size(PhysicalSize::new(outer.width, physical_height))
+        .map_err(|error| error.to_string())?;
+    window
+        .set_position(PhysicalPosition::new(position.x, position.y + delta / 2))
+        .map_err(|error| error.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]

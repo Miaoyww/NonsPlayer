@@ -74,6 +74,14 @@ function harness(initialMode = 'collapsible', storage) {
       '@/features/workspace/titlebar': { Titlebar: 'Titlebar' },
       '@/features/onboarding/welcome-titlebar': { WelcomeTitlebar: 'WelcomeTitlebar' },
       '@/features/workspace/music-workspace': { MusicWorkspace: 'MusicWorkspace' },
+      '@/features/desktop-lyrics/state': {
+        restoreDesktopLyrics: () => {},
+        useDesktopLyricsState: () => ({ enabled: false, locked: true }),
+        setDesktopLyricsEnabled: () => Promise.resolve(),
+        setDesktopLyricsLocked: () => Promise.resolve(),
+        setDesktopLyricsHeight: () => Promise.resolve(),
+        dragDesktopLyrics: () => Promise.resolve()
+      },
       '@/features/onboarding/welcome-page': { WelcomePage: 'WelcomePage' },
       '@/features/onboarding/welcome-state': {
         hasCompletedWelcome: () => true,
@@ -140,6 +148,7 @@ function harness(initialMode = 'collapsible', storage) {
     },
     '@/features/playback/shortcuts/use-playback-shortcuts': { usePlaybackShortcuts() {} },
     '@/features/lyrics/lyrics-view': { default: 'LyricsView' },
+    '@/features/desktop-lyrics/state': { restoreDesktopLyrics: () => {} },
     '@/lib/player': { usePlayer: () => ({ index: null, queue: [] }) },
     '@/components/music/action-button': { ActionButton: 'ActionButton' },
     '@/components/music/music-page': { MusicPage: 'MusicPage' },
