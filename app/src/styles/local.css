@@ -100,6 +100,9 @@
   border-radius: 999px;
   background: color-mix(in oklch, var(--background) 88%, transparent);
 }
+.local-artist-index-scroll [data-slot='scroll-area-scrollbar'] {
+  display: none;
+}
 .local-artist-index-list {
   display: flex;
   flex-direction: column;
