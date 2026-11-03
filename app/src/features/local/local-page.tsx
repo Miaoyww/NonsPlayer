@@ -6,7 +6,7 @@ import { CollectionContent } from '@/features/library/collection-content'
 import { CollectionHeader } from '@/features/library/collection-header'
 import { ArtistCard } from '@/features/library/artist-card'
 import { TrackArtists } from '@/components/music/music-links'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Tabs } from '@base-ui/react/tabs'
 import { ContextMenu } from '@base-ui/react/context-menu'
@@ -55,7 +55,6 @@ import {
   ArtistAvatarDetailMenu
 } from '@/features/local/artist-avatar/actions'
 import { ArtistAvatarCompletionButton } from '@/features/local/artist-avatar/completion-dialog'
-import { groupArtists } from '@/features/local/artist-index'
 
 const categories = [
   { value: 'song', label: '音乐', icon: Music2 },
@@ -113,11 +112,6 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
   const { navigate } = useMusicNavigation()
   const player = usePlayer('index', 'queue')
   const [playing, setPlaying] = useState(false)
-  const isArtistBrowse = kind === 'artist' && !keyword && !sectionTitle
-  const artistGroups = useMemo(
-    () => (isArtistBrowse ? groupArtists(list.items as LocalEntity[]) : []),
-    [isArtistBrowse, list.items]
-  )
   async function play(item: LocalEntity) {
     if (playing) return
     setPlaying(true)
@@ -183,24 +177,6 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
                 .catch(onError)
             }
           />
-        ) : isArtistBrowse ? (
-          <div className="local-artist-sections">
-            {artistGroups.map((group) => (
-              <section
-                key={group.letter}
-                className="local-artist-section"
-                data-artist-letter={group.letter}
-              >
-                <h2
-                  className="local-artist-section-letter"
-                  aria-label={group.letter === '#' ? '其他' : group.letter}
-                >
-                  {group.letter}
-                </h2>
-                <div className="library-cover-grid">{group.items.map(artistCard)}</div>
-              </section>
-            ))}
-          </div>
         ) : (
           <div className="library-cover-grid">
             {(list.items as LocalEntity[]).map((item) => {

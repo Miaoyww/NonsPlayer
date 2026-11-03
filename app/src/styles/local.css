@@ -67,19 +67,6 @@
 .local-result-section + .local-result-section {
   margin-top: 36px;
 }
-.local-artist-sections {
-  min-width: 0;
-}
-.local-artist-section + .local-artist-section {
-  margin-top: 32px;
-}
-.local-artist-section-letter {
-  margin-bottom: 14px;
-  color: var(--muted-foreground);
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1;
-}
 @media (max-width: 850px) {
   .local-search-results {
     gap: 16px;
