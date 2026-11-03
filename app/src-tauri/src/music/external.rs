@@ -198,10 +198,10 @@ impl ExternalAdapter {
         };
         let mut runtime = Runtime::from_component(self.engine.clone(), &self.component, handler)
             .await
-        .map_err(|error| {
-            log::error!(target: "nons::adapter", "runtime_failure reason={error}");
-            ErrorCode::Internal
-        })?;
+            .map_err(|error| {
+                log::error!(target: "nons::adapter", "runtime_failure reason={error}");
+                ErrorCode::Internal
+            })?;
         let response = runtime.call(method, args).await.map_err(|error| {
             log::error!(target: "nons::adapter", "runtime_failure reason={error}");
             ErrorCode::Internal

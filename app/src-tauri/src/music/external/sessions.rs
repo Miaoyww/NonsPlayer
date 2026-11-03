@@ -165,10 +165,10 @@ impl ExternalAdapter {
                 let mut runtime =
                     Runtime::from_component(self.engine.clone(), &self.component, host.clone())
                         .await
-                .map_err(|error| {
-                    log::error!(target: "nons::adapter", "runtime_failure reason={error}");
-                    ErrorCode::Internal
-                })?;
+                        .map_err(|error| {
+                            log::error!(target: "nons::adapter", "runtime_failure reason={error}");
+                            ErrorCode::Internal
+                        })?;
                 // Each generic phase gets one invocation budget. The UI receives no
                 // challenge until creation finishes; both phases share the same deadline.
                 let preparation = runtime

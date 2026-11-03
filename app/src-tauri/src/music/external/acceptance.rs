@@ -150,20 +150,17 @@ async fn qq_component_large_playlist_reads_one_page() {
     }
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../.local/adapters/qqmusic/dist/adapter.component.wasm");
-    let mut runtime =
-        Runtime::load_host(runtime::engine().unwrap(), &path, Arc::new(PlaylistHost))
-            .await
-            .unwrap();
+    let mut runtime = Runtime::load_host(runtime::engine().unwrap(), &path, Arc::new(PlaylistHost))
+        .await
+        .unwrap();
     let started = Instant::now();
     let response = runtime.call("music.business", r#"{"session":{"source":"qqmusic"},"request":{"operation":"tracks","entity":{"source":"qqmusic","kind":"playlist","id":"123"},"page":{"limit":25,"cursor":null}}}"#).await;
     eprintln!(
         "large playlist elapsed_ms={}",
         started.elapsed().as_millis()
     );
-    let response: serde_json::Value = serde_json::from_str(
-        &response.expect("A page of a large playlist must resolve"),
-    )
-    .unwrap();
+    let response: serde_json::Value =
+        serde_json::from_str(&response.expect("A page of a large playlist must resolve")).unwrap();
     assert_eq!(response["status"], "ok", "{response}");
     assert_eq!(
         response["data"]["data"]["items"].as_array().unwrap().len(),
