@@ -30,6 +30,17 @@
 - 修复 Windows 便携版打包无法读取任务栏图标资源列表、导致发布失败的问题。
 - 修复 Android APK 校验依赖旧前端入口文件名，导致已生成的安装包被误判为缺少前端资源的问题。
 
+### 安装与使用提示
+
+- Windows x64 安装版可通过内置更新获取新版；便携版请完整解压 `Nons_1.11.0_windows_x64_portable.zip` 后运行 `Nons.exe`，并保留 `data/` 目录。系统需已有 Microsoft Edge WebView2 Runtime。
+- Linux x64 提供 AppImage 与 deb；Android 提供 ARM64 试用 APK。
+
+### 已知限制与发布验收
+
+- 本次未提供 macOS 构建；macOS 安装与基本播放尚未完成验收。Android 仍为 ARM64 试用版，正式移动端发布待后续完成。
+- 原生歌曲下载当前仅支持 Windows，Linux 与 Android 暂不提供下载入口。
+- Windows 安装升级、真实音频设备与账号操作，Linux 基本播放，以及 Android 通知、锁屏封面和后台播放仍需使用发布构建进行实机验收；自动化测试不替代这些验收。
+
 ## [1.10.1] - 2026-11-03
 
 ![NonsPlayer v1.10.1 本地歌词与体验修复头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.10.1/docs/release-assets/header.png)
