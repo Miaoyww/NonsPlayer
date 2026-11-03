@@ -210,12 +210,14 @@
   gap: 14px;
 }
 .song-information-field {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
   min-width: 0;
   font-size: 13px;
 }
 .song-information-field span {
-  display: block;
-  margin-bottom: 4px;
   color: var(--muted-foreground);
 }
 .song-information-field p {
