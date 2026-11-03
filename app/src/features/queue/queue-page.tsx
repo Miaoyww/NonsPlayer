@@ -52,10 +52,7 @@ export function QueuePage({ onError }: { onError: (error: unknown) => void }) {
           />
         </div>
       </header>
-      <div
-        className="queue-page-scroll relative isolate min-h-0 flex-1 overflow-auto px-8"
-        data-page-scroll="true"
-      >
+      <div className="queue-page-scroll relative isolate min-h-0 flex-1 overflow-auto px-8">
         {tracks.length ? (
           <TrackList
             tracks={tracks}
