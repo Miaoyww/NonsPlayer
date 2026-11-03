@@ -53,3 +53,32 @@ test('explicit invalidation reports a normalized error while real loader errors 
   )
   assert.equal(reports.at(-1), original)
 })
+
+test('retryInvalidated retries internal invalidation without reporting intermediate errors', async () => {
+  const reports = []
+  const { RuntimeCache } = createRuntimeCache((_, error) => reports.push(error))
+  const cache = new RuntimeCache()
+  let calls = 0
+  let finish
+  let started
+  const firstStarted = new Promise((resolve) => (started = resolve))
+  const read = cache.get(
+    'local_entity_tracks:playlist',
+    () => {
+      calls++
+      if (calls === 1)
+        return new Promise((resolve) => {
+          finish = resolve
+          started()
+        })
+      return Promise.resolve('fresh')
+    },
+    { retryInvalidated: 2 }
+  )
+  await firstStarted
+  cache.delete('local_entity_tracks:playlist')
+  finish('stale')
+  assert.equal(await read, 'fresh')
+  assert.equal(calls, 2)
+  assert.deepEqual(reports, [])
+})

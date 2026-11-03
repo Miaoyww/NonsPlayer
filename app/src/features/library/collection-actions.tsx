@@ -341,7 +341,7 @@ export function CollectionContextMenu({
             {item?.localId && !unavailable && (
               <ContextMenu.Item onClick={() => actions.manageAggregate(item)}>
                 <FolderOpen aria-hidden="true" />
-                管理聚合歌单
+                {item.playlistType === 'local' ? '管理本地歌单' : '管理聚合歌单'}
               </ContextMenu.Item>
             )}
             {item?.kind === 'playlist' && editable && !unavailable && (

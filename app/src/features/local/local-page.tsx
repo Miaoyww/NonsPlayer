@@ -47,12 +47,13 @@ import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
+import { CreateAggregatePlaylist } from '@/features/aggregate/aggregate-page'
 
 const categories = [
   { value: 'song', label: '音乐', icon: Music2 },
   { value: 'artist', label: '艺术家', icon: Mic2 },
   { value: 'album', label: '专辑', icon: Disc3 },
-  { value: 'playlist', label: '聚合歌单', icon: ListMusic }
+  { value: 'playlist', label: '歌单', icon: ListMusic }
 ] as const
 type Kind = (typeof categories)[number]['value']
 interface Props {
@@ -404,6 +405,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
           localId: id,
           reference: null,
           kind: 'playlist',
+          playlistType: 'local',
           name: name.trim(),
           cover: '',
           subtitle: '',
@@ -617,7 +619,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
               categories.map(({ value }) => (
                 <Tabs.Panel key={value} value={value}>
                   {value === 'playlist' && (
-                    <div className="mb-5">
+                    <div className="mb-5 flex flex-wrap gap-2">
                       <ActionButton
                         variant="outline"
                         disabled={!isTauri()}
@@ -629,6 +631,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
                         <Plus aria-hidden="true" />
                         创建歌单
                       </ActionButton>
+                      <CreateAggregatePlaylist variant="outline" onError={onError} />
                     </div>
                   )}
                   <BrowseResults
@@ -654,15 +657,17 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
           <DialogHeader>
             <DialogTitle>
               {editing === 'create'
-                ? '创建聚合歌单'
+                ? '创建歌单'
                 : editing === 'rename'
                   ? '修改歌单名称'
-                  : '删除聚合歌单'}
+                  : '删除歌单'}
             </DialogTitle>
             <DialogDescription>
               {editing === 'delete'
                 ? '删除歌单会保留曲库中的歌曲和原始文件。'
-                : '给喜欢的音乐一个名字。'}
+                : editing === 'create'
+                  ? '给喜欢的音乐一个名字。'
+                  : '改变歌单的名称。'}
             </DialogDescription>
           </DialogHeader>
           <form

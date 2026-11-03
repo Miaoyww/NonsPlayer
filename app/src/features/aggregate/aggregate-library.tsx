@@ -22,6 +22,7 @@ import type { MusicCollection } from '@/features/workspace/music-navigation'
 export interface AggregatePlaylist {
   id: string
   name: string
+  playlistType: 'local' | 'aggregate'
   covers: string[]
   trackCount: number
   link: {
@@ -166,9 +167,10 @@ export function aggregateCollection(p: AggregatePlaylist): MusicCollection {
     localId: p.id,
     reference: null,
     kind: 'playlist',
+    playlistType: p.playlistType,
     name: p.name,
     cover: p.covers[0] ?? '',
-    subtitle: '聚合歌单',
+    subtitle: p.playlistType === 'local' ? '本地歌单' : '聚合歌单',
     trackCount: p.trackCount
   }
 }

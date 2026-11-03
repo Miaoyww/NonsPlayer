@@ -3,6 +3,7 @@ import type { MusicCollection } from '@/features/workspace/music-navigation'
 export interface LocalEntity {
   id: string
   kind: 'artist' | 'album' | 'playlist'
+  playlistType?: 'local' | 'aggregate'
   name: string
   cover: string
   subtitle: string

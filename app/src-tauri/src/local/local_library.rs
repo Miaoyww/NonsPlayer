@@ -360,7 +360,12 @@ fn aggregate_entity(p: crate::aggregate::Playlist) -> LocalEntity {
         kind: "playlist".into(),
         name: p.name,
         cover: p.covers.first().cloned().unwrap_or_default(),
-        subtitle: "聚合歌单".into(),
+        subtitle: match p.playlist_type {
+            crate::aggregate::PlaylistType::Local => "本地歌单",
+            crate::aggregate::PlaylistType::Aggregate => "聚合歌单",
+        }
+        .into(),
+        playlist_type: Some(p.playlist_type),
         track_count: p.track_count,
     }
 }
@@ -373,6 +378,8 @@ pub struct LocalEntity {
     pub cover: String,
     pub subtitle: String,
     pub track_count: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub playlist_type: Option<crate::aggregate::PlaylistType>,
 }
 #[derive(Serialize)]
 pub struct EntityPage {
@@ -428,6 +435,7 @@ fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> App
                 cover: r.get(3)?,
                 subtitle: r.get(4)?,
                 track_count: r.get(5)?,
+                playlist_type: None,
             })
         })
         .map_err(|e| e.to_string())?
@@ -491,6 +499,7 @@ fn entity_detail(store: &Store, kind: String, id: String) -> AppResult<LocalEnti
             cover: r.get(3)?,
             subtitle: r.get(4)?,
             track_count: r.get(5)?,
+            playlist_type: None,
         })
     };
     db.query_row("SELECT e.id,e.kind,e.name,e.cover,e.subtitle,(SELECT COUNT(*) FROM local_members m JOIN visible_local_tracks t ON t.key=m.key WHERE m.kind=e.kind AND m.id=e.id AND t.source='local') FROM local_entities e WHERE e.kind=?1 AND e.id=?2", params![kind,id], row).map_err(|e| e.to_string())
@@ -517,7 +526,14 @@ fn entity_tracks(
     offset: u32,
 ) -> AppResult<TrackPage> {
     if kind == "playlist" {
-        let page = crate::aggregate::tracks(store, &id, offset, false)?;
+        let page = match crate::aggregate::playlist_type(store, &id)? {
+            crate::aggregate::PlaylistType::Local => {
+                crate::aggregate::local_tracks(store, &id, offset)?
+            }
+            crate::aggregate::PlaylistType::Aggregate => {
+                crate::aggregate::tracks(store, &id, offset, false)?
+            }
+        };
         return Ok(TrackPage {
             items: page.items.into_iter().map(|m| m.track).collect(),
             more: page.more,
@@ -688,10 +704,7 @@ pub fn create_local_playlist(
     Ok(result)
 }
 fn create_playlist(store: &Store, name: String) -> AppResult<String> {
-    crate::aggregate::write(
-        store,
-        &crate::aggregate::Write::Create { name, keys: vec![] },
-    )
+    crate::aggregate::create_local(store, name)
 }
 
 #[tauri::command]

@@ -362,7 +362,20 @@ export function MusicWorkspace({
                       这是界面预览。播放、搜索和导入功能需要在桌面应用中使用。
                     </p>
                   )}
-                  {view === 'local-playlist' && page.collection?.localId ? (
+                  {view === 'local' ||
+                  view === 'local-artist' ||
+                  view === 'local-album' ||
+                  (view === 'local-playlist' && page.collection?.playlistType === 'local') ? (
+                    <Suspense fallback={<MusicPageSkeleton view="local" />}>
+                      <LocalPage
+                        refresh={refresh}
+                        importing={importing}
+                        onImport={() => void importMusic(false)}
+                        onError={onError}
+                        onNotice={showNotice}
+                      />
+                    </Suspense>
+                  ) : view === 'local-playlist' && page.collection?.localId ? (
                     <AggregatePage
                       key={page.collection.localId}
                       id={page.collection.localId}

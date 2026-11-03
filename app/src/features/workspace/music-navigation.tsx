@@ -25,6 +25,7 @@ export interface MusicCollection {
 
   reference: import('@/features/music/types').EntityRef | null
   localId?: string
+  playlistType?: 'local' | 'aggregate'
   id: number | string
   kind: 'playlist' | 'album' | 'artist'
   name: string
@@ -112,6 +113,7 @@ export function MusicNavigationStateProvider({
         current.collection?.id === collection?.id &&
         current.collection?.kind === collection?.kind &&
         current.collection?.localId === collection?.localId &&
+        current.collection?.playlistType === collection?.playlistType &&
         current.collection?.bypassAggregate === collection?.bypassAggregate &&
         JSON.stringify(current.collection?.reference) === JSON.stringify(collection?.reference) &&
         current.collection?.name === collection?.name

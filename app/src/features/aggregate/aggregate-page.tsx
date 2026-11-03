@@ -7,7 +7,13 @@ import { ActionButton } from '@/components/music/action-button'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { ErrorNotice } from '@/components/error-notice'
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { useMusicSources } from '@/features/music/use-music-sources'
@@ -25,7 +31,13 @@ import {
   type AggregateMember
 } from './aggregate-library'
 
-export function CreateAggregatePlaylist({ onError }: { onError: (cause: unknown) => void }) {
+export function CreateAggregatePlaylist({
+  onError,
+  variant = 'ghost'
+}: {
+  onError: (cause: unknown) => void
+  variant?: 'ghost' | 'outline'
+}) {
   const { reload } = useAggregateLibrary()
   const { navigate } = useMusicNavigation()
   const [create, setCreate] = useState(false)
@@ -33,7 +45,7 @@ export function CreateAggregatePlaylist({ onError }: { onError: (cause: unknown)
   const [busy, setBusy] = useState(false)
   return (
     <>
-      <ActionButton variant="ghost" disabled={!isTauri()} onClick={() => setCreate(true)}>
+      <ActionButton variant={variant} disabled={!isTauri()} onClick={() => setCreate(true)}>
         <Plus aria-hidden="true" />
         创建聚合歌单
       </ActionButton>
@@ -44,8 +56,12 @@ export function CreateAggregatePlaylist({ onError }: { onError: (cause: unknown)
         }}
       >
         <DialogContent>
-          <DialogTitle>创建聚合歌单</DialogTitle>
-          <DialogDescription>保存在这台设备，可添加本地及不同平台的歌曲。</DialogDescription>
+          <DialogHeader>
+            <DialogTitle>创建聚合歌单</DialogTitle>
+            <DialogDescription>
+              给喜欢的音乐一个名字。可以添加本地音乐以及不同平台的音乐。
+            </DialogDescription>
+          </DialogHeader>
           <form
             className="flex flex-col gap-3"
             onSubmit={(event) => {
@@ -62,6 +78,7 @@ export function CreateAggregatePlaylist({ onError }: { onError: (cause: unknown)
                     localId: id,
                     reference: null,
                     kind: 'playlist',
+                    playlistType: 'aggregate',
                     name,
                     cover: '',
                     subtitle: '聚合歌单',

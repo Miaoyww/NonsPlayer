@@ -50,6 +50,7 @@ export function PlatformPlaylistMenu({
         aggregateCollection({
           id,
           name: collection.name,
+          playlistType: 'aggregate',
           covers: [],
           trackCount: collection.trackCount,
           link: null

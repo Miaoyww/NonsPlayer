@@ -4,7 +4,10 @@ pub(crate) mod sync;
 #[cfg(test)]
 mod tests;
 use crate::{model::AppResult, Backend};
-pub(crate) use store::{initialize, playlist, playlists, tracks, write, Playlist, ReadPage, Write};
+pub(crate) use store::{
+    create_local, initialize, local_tracks, playlist, playlist_type, playlists, tracks, write,
+    Playlist, PlaylistType, ReadPage, Write,
+};
 pub(crate) use sync::SyncJobs;
 use tauri::{Emitter, State};
 

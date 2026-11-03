@@ -9,6 +9,7 @@ type Loader = { load: () => Promise<unknown>; invalidate: () => void }
 interface ReadOptions {
   validate?: () => Promise<void>
   refresh?: boolean
+  retryInvalidated?: number
 }
 interface PendingRead {
   readers: number
@@ -64,7 +65,7 @@ export class RuntimeCache {
       }
     })
   }
-  async get<T>(key: string, load: () => Promise<T>, options: ReadOptions = {}): Promise<T> {
+  private async fetch<T>(key: string, load: () => Promise<T>, options: ReadOptions): Promise<T> {
     const active = this.pending.get(key)
     // Concurrent explicit refreshes share the replacement; the first refresh
     // cancels an ordinary read that started before it.
@@ -90,12 +91,25 @@ export class RuntimeCache {
       if (pending.invalidated) throw new CacheInvalidatedError()
       return result.value as T
     } catch (cause) {
-      const error = pending.invalidated ? (pending.error ??= new CacheInvalidatedError()) : cause
-      reportCaughtError('app/src/lib/runtime-cache.ts', error)
-      throw error
+      throw pending.invalidated ? (pending.error ??= new CacheInvalidatedError()) : cause
     } finally {
       pending.readers--
       if (!pending.readers && this.pending.get(key) === pending) this.pending.delete(key)
+    }
+  }
+  async get<T>(key: string, load: () => Promise<T>, options: ReadOptions = {}): Promise<T> {
+    const retries = options.retryInvalidated ?? 0
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.fetch(key, load, {
+          validate: options.validate,
+          refresh: attempt === 0 && options.refresh
+        })
+      } catch (cause) {
+        if (cause instanceof CacheInvalidatedError && attempt < retries) continue
+        reportCaughtError('app/src/lib/runtime-cache.ts', cause)
+        throw cause
+      }
     }
   }
   peek<T>(key: string): T | undefined {

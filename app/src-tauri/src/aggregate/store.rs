@@ -1,6 +1,6 @@
 use crate::music::{account::AccountRef, identity::EntityRef};
 use crate::{
-    model::{AppResult, Track},
+    model::{AppResult, Track, TrackSource},
     storage::{now_seconds, Store},
 };
 use rusqlite::{params, Connection, OptionalExtension};
@@ -43,11 +43,27 @@ pub struct Link {
     pub last_attempt: i64,
     pub error: Option<String>,
 }
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum PlaylistType {
+    Local,
+    Aggregate,
+}
+impl PlaylistType {
+    fn from_db(value: &str) -> AppResult<Self> {
+        match value {
+            "local" => Ok(Self::Local),
+            "aggregate" => Ok(Self::Aggregate),
+            _ => Err("歌单类型无效".into()),
+        }
+    }
+}
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Playlist {
     pub id: String,
     pub name: String,
+    pub playlist_type: PlaylistType,
     pub covers: Vec<String>,
     pub track_count: u32,
     pub link: Option<Link>,
@@ -111,19 +127,47 @@ fn name(value: &str) -> AppResult<&str> {
 pub(crate) fn linked(db: &Connection, id: &str) -> AppResult<Option<Link>> {
     db.query_row("SELECT reference,source,account,last_success,last_attempt,error FROM aggregate_links WHERE playlist_id=?1", [id], |r| Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional().map_err(|e|e.to_string())?.map(|(reference,source,account,last_success,last_attempt,error)| Ok(Link {reference:serde_json::from_str(&reference).map_err(|e|e.to_string())?,account:AccountRef{source:source.try_into().map_err(|e:crate::music::MusicError|e.to_string())?,id:account.try_into().map_err(|e:crate::music::MusicError|e.to_string())?},last_success,last_attempt,error})).transpose()
 }
-fn summary(db: &Connection, id: String, name: String) -> AppResult<Playlist> {
-    let track_count = db
-        .query_row(
-            "SELECT COUNT(*) FROM local_playlist_tracks WHERE playlist_id=?1 AND excluded=0",
-            [&id],
-            |r| r.get(0),
-        )
-        .map_err(|e| e.to_string())?;
-    let covers=db.prepare("SELECT DISTINCT json_extract(COALESCE(t.value,p.value),'$.cover.original') FROM local_playlist_tracks p LEFT JOIN tracks t ON t.key=p.key WHERE p.playlist_id=?1 AND p.excluded=0 AND COALESCE(json_extract(COALESCE(t.value,p.value),'$.cover.original'),'')<>'' ORDER BY p.position LIMIT 4").map_err(|e|e.to_string())?.query_map([&id],|r|r.get(0)).map_err(|e|e.to_string())?.collect::<Result<Vec<_>,_>>().map_err(|e|e.to_string())?;
+fn summary(
+    db: &Connection,
+    id: String,
+    name: String,
+    playlist_type: PlaylistType,
+) -> AppResult<Playlist> {
+    let (track_count, covers) = match playlist_type {
+        PlaylistType::Local => {
+            let track_count = db
+                .query_row(
+                    "SELECT COUNT(*) FROM local_playlist_tracks p JOIN visible_local_tracks t ON t.key=p.key WHERE p.playlist_id=?1 AND p.excluded=0",
+                    [&id],
+                    |r| r.get(0),
+                )
+                .map_err(|e| e.to_string())?;
+            let covers = db
+                .prepare("SELECT DISTINCT json_extract(t.value,'$.cover.original') FROM local_playlist_tracks p JOIN visible_local_tracks t ON t.key=p.key WHERE p.playlist_id=?1 AND p.excluded=0 AND COALESCE(json_extract(t.value,'$.cover.original'),'')<>'' ORDER BY p.position LIMIT 4")
+                .map_err(|e| e.to_string())?
+                .query_map([&id], |r| r.get(0))
+                .map_err(|e| e.to_string())?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| e.to_string())?;
+            (track_count, covers)
+        }
+        PlaylistType::Aggregate => {
+            let track_count = db
+                .query_row(
+                    "SELECT COUNT(*) FROM local_playlist_tracks WHERE playlist_id=?1 AND excluded=0",
+                    [&id],
+                    |r| r.get(0),
+                )
+                .map_err(|e| e.to_string())?;
+            let covers=db.prepare("SELECT DISTINCT json_extract(COALESCE(t.value,p.value),'$.cover.original') FROM local_playlist_tracks p LEFT JOIN tracks t ON t.key=p.key WHERE p.playlist_id=?1 AND p.excluded=0 AND COALESCE(json_extract(COALESCE(t.value,p.value),'$.cover.original'),'')<>'' ORDER BY p.position LIMIT 4").map_err(|e|e.to_string())?.query_map([&id],|r|r.get(0)).map_err(|e|e.to_string())?.collect::<Result<Vec<_>,_>>().map_err(|e|e.to_string())?;
+            (track_count, covers)
+        }
+    };
     Ok(Playlist {
         link: linked(db, &id)?,
         id,
         name,
+        playlist_type,
         covers,
         track_count,
     })
@@ -131,24 +175,28 @@ fn summary(db: &Connection, id: String, name: String) -> AppResult<Playlist> {
 pub(crate) fn playlists(store: &Store) -> AppResult<Vec<Playlist>> {
     let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
     let rows = db
-        .prepare("SELECT CAST(id AS TEXT),name FROM local_playlists ORDER BY id DESC")
+        .prepare("SELECT CAST(id AS TEXT),name,playlist_type FROM local_playlists ORDER BY id DESC")
         .map_err(|e| e.to_string())?
-        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
         .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<(String, String)>, _>>()
+        .collect::<Result<Vec<(String, String, String)>, _>>()
         .map_err(|e| e.to_string())?;
     rows.into_iter()
-        .map(|(id, name)| summary(&db, id, name))
+        .map(|(id, name, playlist_type)| {
+            summary(&db, id, name, PlaylistType::from_db(&playlist_type)?)
+        })
         .collect()
 }
 pub(crate) fn playlist(store: &Store, id: &str) -> AppResult<Playlist> {
     let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
-    let name = db
-        .query_row("SELECT name FROM local_playlists WHERE id=?1", [id], |r| {
-            r.get(0)
-        })
+    let (name, playlist_type) = db
+        .query_row(
+            "SELECT name,playlist_type FROM local_playlists WHERE id=?1",
+            [id],
+            |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)),
+        )
         .map_err(|e| e.to_string())?;
-    summary(&db, id.into(), name)
+    summary(&db, id.into(), name, PlaylistType::from_db(&playlist_type)?)
 }
 pub(crate) fn tracks(store: &Store, id: &str, offset: u32, excluded: bool) -> AppResult<ReadPage> {
     let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
@@ -178,6 +226,27 @@ pub(crate) fn tracks(store: &Store, id: &str, offset: u32, excluded: bool) -> Ap
     items.truncate(100);
     Ok(ReadPage { items, more })
 }
+pub(crate) fn local_tracks(store: &Store, id: &str, offset: u32) -> AppResult<ReadPage> {
+    let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    let mut statement = db
+        .prepare("SELECT t.value FROM local_playlist_tracks p JOIN visible_local_tracks t ON t.key=p.key WHERE p.playlist_id=?1 AND p.excluded=0 ORDER BY p.position,p.key LIMIT 101 OFFSET ?2")
+        .map_err(|e| e.to_string())?;
+    let values = statement
+        .query_map(params![id, offset], |r| r.get::<_, String>(0))
+        .map_err(|e| e.to_string())?;
+    let mut items = Vec::new();
+    for value in values {
+        items.push(Member {
+            track: serde_json::from_str(&value.map_err(|e| e.to_string())?)
+                .map_err(|e| e.to_string())?,
+            remote: false,
+            unavailable: None,
+        });
+    }
+    let more = items.len() > 100;
+    items.truncate(100);
+    Ok(ReadPage { items, more })
+}
 fn exists(db: &Connection, id: &str) -> AppResult<()> {
     let found: bool = db
         .query_row(
@@ -191,6 +260,20 @@ fn exists(db: &Connection, id: &str) -> AppResult<()> {
     } else {
         Err("歌单不存在".into())
     }
+}
+fn read_playlist_type(db: &Connection, id: &str) -> AppResult<PlaylistType> {
+    let value: String = db
+        .query_row(
+            "SELECT playlist_type FROM local_playlists WHERE id=?1",
+            [id],
+            |r| r.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    PlaylistType::from_db(&value)
+}
+pub(crate) fn playlist_type(store: &Store, id: &str) -> AppResult<PlaylistType> {
+    let db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    read_playlist_type(&db, id)
 }
 fn capacity(db: &Connection, id: &str) -> AppResult<()> {
     let count: u32 = db
@@ -206,19 +289,32 @@ fn capacity(db: &Connection, id: &str) -> AppResult<()> {
         Ok(())
     }
 }
-pub(crate) fn create(db: &Connection, value: &str) -> AppResult<String> {
+fn create(db: &Connection, value: &str, playlist_type: PlaylistType) -> AppResult<String> {
     let count: u32 = db
         .query_row("SELECT COUNT(*) FROM local_playlists", [], |r| r.get(0))
         .map_err(|e| e.to_string())?;
     if count >= 200 {
-        return Err("最多创建 200 个聚合歌单".into());
+        return Err("最多创建 200 个歌单".into());
     }
     db.execute(
-        "INSERT INTO local_playlists(name) VALUES(?1)",
-        [name(value)?],
+        "INSERT INTO local_playlists(name,playlist_type) VALUES(?1,?2)",
+        params![
+            name(value)?,
+            match playlist_type {
+                PlaylistType::Local => "local",
+                PlaylistType::Aggregate => "aggregate",
+            }
+        ],
     )
     .map_err(|e| e.to_string())?;
     Ok(db.last_insert_rowid().to_string())
+}
+pub(crate) fn create_local(store: &Store, value: String) -> AppResult<String> {
+    let mut db = store.0.lock().map_err(|_| "曲库锁不可用")?;
+    let tx = db.transaction().map_err(|e| e.to_string())?;
+    let id = create(&tx, &value, PlaylistType::Local)?;
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(id)
 }
 fn prepend_position(db: &Connection, id: &str, count: usize) -> AppResult<i64> {
     let first: i64 = db
@@ -247,7 +343,7 @@ pub(crate) fn write(store: &Store, request: &Write) -> AppResult<String> {
         return Err("一次最多处理 10000 首歌曲".into());
     }
     let id = match request {
-        Write::Create { name, .. } => create(&tx, name)?,
+        Write::Create { name, .. } => create(&tx, name, PlaylistType::Aggregate)?,
         Write::Rename { id, .. }
         | Write::Delete { id }
         | Write::Unlink { id }
@@ -261,11 +357,27 @@ pub(crate) fn write(store: &Store, request: &Write) -> AppResult<String> {
     match request {
         Write::Create { keys, .. } | Write::Add { keys, .. } => {
             let link = linked(&tx, &id)?;
+            let playlist_type = read_playlist_type(&tx, &id)?;
             // Prepend new members as one ordered batch; conflicts retain their existing position.
             let first = prepend_position(&tx, &id, keys.len())?;
             for (index, key) in keys.iter().enumerate() {
                 let value:String=tx.query_row("SELECT value FROM tracks WHERE key=?1",[key],|r|r.get(0)).optional().map_err(|e|e.to_string())?.or(tx.query_row("SELECT value FROM local_playlist_tracks WHERE playlist_id=?1 AND key=?2",params![id,key],|r|r.get(0)).optional().map_err(|e|e.to_string())?.flatten()).ok_or("歌曲不存在")?;
                 let track: Track = serde_json::from_str(&value).map_err(|e| e.to_string())?;
+                if playlist_type == PlaylistType::Local {
+                    if !matches!(&track.source, TrackSource::Local { .. }) {
+                        return Err("本地歌单仅支持本地歌曲".into());
+                    }
+                    let visible: bool = tx
+                        .query_row(
+                            "SELECT EXISTS(SELECT 1 FROM visible_local_tracks WHERE key=?1)",
+                            [&track.key],
+                            |r| r.get(0),
+                        )
+                        .map_err(|e| e.to_string())?;
+                    if !visible {
+                        return Err("歌曲已退出本地曲库".into());
+                    }
+                }
                 let remote = link
                     .as_ref()
                     .is_some_and(|link| link.reference.source.as_str() == track.source_id());
@@ -374,13 +486,16 @@ pub(crate) fn apply_checked(
     validate()?;
     let id = if let Some(id) = id {
         exists(&tx, id)?;
+        if read_playlist_type(&tx, id)? != PlaylistType::Aggregate {
+            return Err("本地歌单不能关联平台歌单".into());
+        }
         let old = linked(&tx, id)?.ok_or("关联已解除")?;
         if old.reference != link.reference || old.account != link.account {
             return Err("同步关联已变化".into());
         }
         id.into()
     } else {
-        create(&tx, title)?
+        create(&tx, title, PlaylistType::Aggregate)?
     };
     Store::save_tracks_in(&tx, tracks)?;
     tx.execute(

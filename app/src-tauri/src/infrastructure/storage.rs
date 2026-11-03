@@ -81,7 +81,7 @@ impl Store {
             CREATE TABLE IF NOT EXISTS local_entities (kind TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, cover TEXT NOT NULL, subtitle TEXT NOT NULL, PRIMARY KEY(kind,id));
             CREATE TABLE IF NOT EXISTS local_members (key TEXT NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY(key,kind,id));
             CREATE INDEX IF NOT EXISTS local_members_entity ON local_members(kind,id);
-            CREATE TABLE IF NOT EXISTS local_playlists (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS local_playlists (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, playlist_type TEXT NOT NULL DEFAULT 'aggregate');
             CREATE TABLE IF NOT EXISTS local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, manual INTEGER NOT NULL DEFAULT 1, remote INTEGER NOT NULL DEFAULT 0, excluded INTEGER NOT NULL DEFAULT 0, value TEXT NOT NULL, PRIMARY KEY(playlist_id,key));
             CREATE INDEX IF NOT EXISTS local_audio_path ON tracks(json_extract(value,'$.source.path')) WHERE source='local';
             CREATE VIEW IF NOT EXISTS visible_local_tracks AS
@@ -92,6 +92,16 @@ impl Store {
                         AND json_extract(c.value,'$.source.cue') IS NOT NULL));
             ").map_err(|e| e.to_string())?;
         connection.execute_batch("CREATE TABLE IF NOT EXISTS local_cover_state (key TEXT PRIMARY KEY, signature TEXT NOT NULL, embedded TEXT NOT NULL)").map_err(|e| e.to_string())?;
+        if !has_column(&connection, "local_playlists", "playlist_type")
+            .map_err(|e| e.to_string())?
+        {
+            connection
+                .execute(
+                    "ALTER TABLE local_playlists ADD COLUMN playlist_type TEXT NOT NULL DEFAULT 'aggregate'",
+                    [],
+                )
+                .map_err(|e| e.to_string())?;
+        }
         let recorded_days: i64 = connection
             .query_row("SELECT COUNT(*) FROM listening_days", [], |row| row.get(0))
             .map_err(|e| e.to_string())?;
@@ -567,6 +577,17 @@ impl Store {
         }
         Ok(())
     }
+}
+
+fn has_column(connection: &Connection, table: &str, column: &str) -> rusqlite::Result<bool> {
+    let mut statement = connection.prepare(&format!("PRAGMA table_info({table})"))?;
+    let mut rows = statement.query([])?;
+    while let Some(row) = rows.next()? {
+        if row.get::<_, String>(1)? == column {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn prune_lyrics(tx: &rusqlite::Transaction<'_>, table: &str, max_bytes: i64) -> AppResult<()> {

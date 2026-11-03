@@ -141,11 +141,15 @@ export function AggregatePlaylistPicker({
       })),
     ...list.items
       .filter((item) => !targets.some((target) => replacement(target.item)?.id === item.id))
+      .filter(
+        (item) =>
+          item.playlistType !== 'local' || selected.every((track) => track.source.kind === 'local')
+      )
       .map((item) => ({
         id: item.id,
         name: item.name,
         cover: item.cover,
-        subtitle: `${item.trackCount} 首`,
+        subtitle: `${item.playlistType === 'local' ? '本地歌单' : '聚合歌单'} · ${item.trackCount} 首`,
         run: () => add(item.id)
       }))
   ].filter((item) => item.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))

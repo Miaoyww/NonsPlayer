@@ -203,7 +203,13 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
       return scopedNativeCall<T>(String(args?.source ?? reference?.source), command, args)
     }
     const value = await requestCache.get<T>(key, () => invoke<T>(command, args), {
-      refresh: Boolean(args?.refresh)
+      refresh: Boolean(args?.refresh),
+      retryInvalidated:
+        command === 'local_entities' ||
+        command === 'local_entity_detail' ||
+        command === 'local_entity_tracks'
+          ? 2
+          : undefined
     })
     if (command === 'track_lyrics' && value === null) requestCache.delete(key)
     return value
