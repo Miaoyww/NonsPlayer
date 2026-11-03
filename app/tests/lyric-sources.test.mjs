@@ -61,19 +61,59 @@ test('local selection reads only local lyrics, including when none are available
   const app = harness([null, { source: 'netease', content: 'online' }], 'local')
   assert.equal((await app.load({ localSource: 'local', amll: true, qq: true })).lyrics, null)
   assert.deepEqual(app.commands, ['local_track_lyrics'])
+  assert.equal(app.calls[0].key, 'local:1')
+  assert.equal(app.calls[0].skipEmbedded, false)
+  assert.equal(app.calls[0].skipTtml, false)
 })
 
 test('invalid embedded lyrics can try the sidecar but never online lyrics', async () => {
   const app = harness(
     [
-      { source: 'local', content: 'broken' },
-      { source: 'local', content: 'usable' }
+      { source: 'local', format: 'lrc', content: 'broken' },
+      { source: 'local', format: 'lrc', content: 'usable' }
     ],
     'local'
   )
   assert.equal((await app.load({ localSource: 'local', amll: true, qq: true })).parsed, 'usable')
   assert.deepEqual(app.commands, ['local_track_lyrics', 'local_track_lyrics'])
   assert.equal(app.calls[1].skipEmbedded, true)
+  assert.equal(app.calls[1].skipTtml, false)
+})
+
+test('invalid TTML falls back to the same-name LRC', async () => {
+  const app = harness(
+    [
+      { source: 'local', format: 'ttml', content: 'broken' },
+      { source: 'local', format: 'lrc', content: 'usable' }
+    ],
+    'local'
+  )
+  assert.equal((await app.load({ localSource: 'local', amll: true, qq: true })).parsed, 'usable')
+  assert.deepEqual(
+    app.calls.map((call) => [call.skipEmbedded, call.skipTtml]),
+    [
+      [false, false],
+      [true, true]
+    ]
+  )
+})
+
+test('embedded lyrics can fall back to TTML before the same-name LRC', async () => {
+  const app = harness(
+    [
+      { source: 'local', format: 'lrc', content: 'broken' },
+      { source: 'local', format: 'ttml', content: 'usable' }
+    ],
+    'local'
+  )
+  assert.equal((await app.load({ localSource: 'local', amll: true, qq: true })).parsed, 'usable')
+  assert.deepEqual(
+    app.calls.map((call) => [call.skipEmbedded, call.skipTtml]),
+    [
+      [false, false],
+      [true, false]
+    ]
+  )
 })
 
 test('local selection never changes streaming lyrics routing or their translation', async () => {

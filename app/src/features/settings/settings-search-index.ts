@@ -113,7 +113,7 @@ const groups: SearchGroup[] = [
     section: 'local-cache',
     path: '本地与缓存 / 本地歌曲',
     items: [
-      ['local-lyrics-source', '来源', '歌词 本地 在线 LRC 内嵌 翻译 发音 _trans _roma'],
+      ['local-lyrics-source', '来源', '歌词 本地 在线 TTML LRC 内嵌 翻译 发音 _trans _roma'],
       ['local-covers', '显示本地歌曲封面', '图片 内嵌'],
       ['artist-separators', '艺术家分隔符', '歌手 拆分 标签'],
       ['music-folders', '音乐文件夹', '目录 扫描 导入'],

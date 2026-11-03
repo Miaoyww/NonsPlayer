@@ -34,11 +34,14 @@ export async function loadLyrics<T>(
   manual = false
 ) {
   if (!manual && track.source?.kind === 'local' && sources.localSource === 'local') {
-    for (const skipEmbedded of [false, true]) {
+    let skipEmbedded = false,
+      skipTtml = false
+    for (let attempt = 0; attempt < 3; attempt++) {
       if (!isCurrent()) return null
       const lyrics = await nativeCall<Lyrics | null>('local_track_lyrics', {
         key: track.key,
-        skipEmbedded
+        skipEmbedded,
+        skipTtml
       })
       if (!isCurrent()) return null
       try {
@@ -46,7 +49,13 @@ export async function loadLyrics<T>(
       } catch (cause) {
         reportCaughtError('app/src/features/lyrics/load-lyrics.ts', cause)
 
-        if (skipEmbedded) throw cause
+        if (attempt === 2) throw cause
+        if (lyrics?.format === 'ttml') {
+          skipTtml = true
+          skipEmbedded = true
+        } else if (lyrics?.format === 'lrc' && !skipEmbedded) {
+          skipEmbedded = true
+        } else throw cause
       }
     }
     return null

@@ -9,14 +9,14 @@ use std::{
 
 static READS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
 
-pub async fn get(track: Track, skip_embedded: bool) -> AppResult<Option<Lyrics>> {
+pub async fn get(track: Track, skip_embedded: bool, skip_ttml: bool) -> AppResult<Option<Lyrics>> {
     let TrackSource::Local { path, .. } = track.source else {
         return Ok(None);
     };
     let permit = READS.acquire().await.map_err(|e| e.to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
-        read(Path::new(&path), skip_embedded)
+        read(Path::new(&path), skip_embedded, skip_ttml)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -192,26 +192,62 @@ fn read_companion(audio: &Path, suffixes: &[&str], operation: &'static str) -> O
     })
 }
 
-fn read(path: &Path, skip_embedded: bool) -> AppResult<Option<Lyrics>> {
-    let content = if !skip_embedded { embedded(path) } else { None };
-    let content = match content {
-        Some(text) => text,
-        None => {
-            let file = match crate::local::source::open(path.with_extension("lrc")) {
-                Ok(file) => file,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-                Err(error) => return Err(format!("本地歌词无法读取：{error}")),
-            };
-            let mut bytes = Vec::new();
-            file.take(MAX_LYRIC_BYTES as u64 + 1)
-                .read_to_end(&mut bytes)
-                .map_err(|e| format!("本地歌词无法读取：{e}"))?;
-            if bytes.len() > MAX_LYRIC_BYTES {
-                return Err("本地歌词超过 2MiB 上限".into());
-            }
-            decode(bytes)?
+fn read_sidecar(path: &Path, extension: &str) -> AppResult<Option<String>> {
+    let file = match crate::local::source::open(path.with_extension(extension)) {
+        Ok(file) => file,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(format!("本地歌词无法读取：{error}")),
+    };
+    let mut bytes = Vec::new();
+    file.take(MAX_LYRIC_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("本地歌词无法读取：{e}"))?;
+    if bytes.len() > MAX_LYRIC_BYTES {
+        return Err("本地歌词超过 2MiB 上限".into());
+    }
+    Ok(Some(decode(bytes)?))
+}
+
+fn ttml_sidecar(path: &Path) -> Option<String> {
+    let text = match read_sidecar(path, "ttml") {
+        Ok(Some(text)) => text,
+        Ok(None) => return None,
+        Err(error) => {
+            crate::infrastructure::diagnostics::warn("lyrics.local.ttml.read", error);
+            return None;
         }
     };
+    if text.trim().is_empty() {
+        return None;
+    }
+    if !super::valid_ttml(&text) {
+        crate::infrastructure::diagnostics::warn(
+            "lyrics.local.ttml.invalid",
+            path.with_extension("ttml").display(),
+        );
+        return None;
+    }
+    Some(text)
+}
+
+fn read(path: &Path, skip_embedded: bool, skip_ttml: bool) -> AppResult<Option<Lyrics>> {
+    let embedded = if skip_embedded { None } else { embedded(path) };
+    let (content, format) = if let Some(text) = embedded {
+        (text, "lrc")
+    } else {
+        let ttml = if skip_ttml { None } else { ttml_sidecar(path) };
+        if let Some(text) = ttml {
+            (text, "ttml")
+        } else {
+            let Some(text) = read_sidecar(path, "lrc")? else {
+                return Ok(None);
+            };
+            (text, "lrc")
+        }
+    };
+    if content.trim().is_empty() {
+        return Ok(None);
+    }
     let translation = read_companion(
         path,
         &["_trans.lrc", ".trans.lrc"],
@@ -222,9 +258,9 @@ fn read(path: &Path, skip_embedded: bool) -> AppResult<Option<Lyrics>> {
         &["_roma.lrc", ".roma.lrc"],
         "lyrics.local.romanization",
     );
-    Ok((!content.trim().is_empty()).then_some(Lyrics {
+    Ok(Some(Lyrics {
         source: "local".into(),
-        format: "lrc".into(),
+        format: format.into(),
         content,
         translation,
         romanization,
@@ -237,6 +273,8 @@ mod tests {
     use super::*;
     use crate::test_support::TestDir;
     const TEXT: &str = "[00:01.00]本地歌词😀\n[00:02.00]第二行";
+    const TTML: &str =
+        "<tt xmlns=\"http://www.w3.org/ns/ttml\"><body><p begin=\"0s\" end=\"1s\">TTML 歌词</p></body></tt>";
 
     #[tokio::test]
     async fn stream_tracks_never_enter_local_file_reader() {
@@ -259,7 +297,7 @@ mod tests {
             unavailable_reason: None,
         })
         .unwrap();
-        assert!(get(track, false).await.unwrap().is_none());
+        assert!(get(track, false, false).await.unwrap().is_none());
     }
 
     #[test]
@@ -294,20 +332,50 @@ mod tests {
         let dir = TestDir::new();
         let audio = dir.0.join("song.flac");
         std::fs::write(dir.0.join("other.lrc"), TEXT).unwrap();
-        assert!(read(&audio, false).unwrap().is_none());
+        assert!(read(&audio, false, false).unwrap().is_none());
         let sidecar = audio.with_extension("lrc");
         std::fs::write(&sidecar, TEXT).unwrap();
-        let lyrics = read(&audio, false).unwrap().unwrap();
+        let lyrics = read(&audio, false, false).unwrap().unwrap();
         assert_eq!(lyrics.source, "local");
         assert!(lyrics.translation.is_none());
         assert_eq!(lyrics.content, TEXT);
         std::fs::write(&sidecar, "[00:03.00]已修改").unwrap();
         assert_eq!(
-            read(&audio, false).unwrap().unwrap().content,
+            read(&audio, false, false).unwrap().unwrap().content,
             "[00:03.00]已修改"
         );
         std::fs::remove_file(&sidecar).unwrap();
-        assert!(read(&audio, false).unwrap().is_none());
+        assert!(read(&audio, false, false).unwrap().is_none());
+    }
+
+    #[test]
+    fn ttml_sidecar_precedes_lrc_and_invalid_ttml_falls_back() {
+        let dir = TestDir::new();
+        let audio = dir.0.join("song.flac");
+        let ttml = audio.with_extension("ttml");
+        std::fs::write(audio.with_extension("lrc"), TEXT).unwrap();
+        std::fs::write(&ttml, TTML).unwrap();
+        std::fs::write(dir.0.join("song_trans.lrc"), "[00:01.00]译文").unwrap();
+
+        let lyrics = read(&audio, false, false).unwrap().unwrap();
+        assert_eq!(lyrics.format, "ttml");
+        assert_eq!(lyrics.content, TTML);
+        assert_eq!(lyrics.translation.as_deref(), Some("[00:01.00]译文"));
+
+        let lrc = read(&audio, false, true).unwrap().unwrap();
+        assert_eq!(lrc.format, "lrc");
+        assert_eq!(lrc.content, TEXT);
+
+        std::fs::write(&ttml, "<html><body>Unavailable</body></html>").unwrap();
+        let fallback = read(&audio, false, false).unwrap().unwrap();
+        assert_eq!(fallback.format, "lrc");
+        assert_eq!(fallback.content, TEXT);
+
+        std::fs::write(&ttml, "  ").unwrap();
+        assert_eq!(read(&audio, false, false).unwrap().unwrap().format, "lrc");
+
+        std::fs::remove_file(audio.with_extension("lrc")).unwrap();
+        assert!(read(&audio, false, false).unwrap().is_none());
     }
 
     #[test]
@@ -315,11 +383,15 @@ mod tests {
         let dir = TestDir::new();
         let audio = dir.0.join("song.flac");
         std::fs::write(audio.with_extension("lrc"), TEXT).unwrap();
-        assert!(read(&audio, false).unwrap().unwrap().translation.is_none());
+        assert!(read(&audio, false, false)
+            .unwrap()
+            .unwrap()
+            .translation
+            .is_none());
 
         std::fs::write(dir.0.join("song_trans.lrc"), "[00:01.00]译文").unwrap();
         std::fs::write(dir.0.join("song_roma.lrc"), "[00:01.00]roman").unwrap();
-        let lyrics = read(&audio, false).unwrap().unwrap();
+        let lyrics = read(&audio, false, false).unwrap().unwrap();
         assert_eq!(lyrics.translation.as_deref(), Some("[00:01.00]译文"));
         assert_eq!(lyrics.romanization.as_deref(), Some("[00:01.00]roman"));
         assert_eq!(lyrics.content, TEXT);
@@ -332,13 +404,17 @@ mod tests {
         std::fs::write(audio.with_extension("lrc"), TEXT).unwrap();
         std::fs::write(dir.0.join("song.trans.lrc"), "[00:01.00]点号译文").unwrap();
         std::fs::write(dir.0.join("song.roma.lrc"), "[00:01.00]dot roman").unwrap();
-        let lyrics = read(&audio, false).unwrap().unwrap();
+        let lyrics = read(&audio, false, false).unwrap().unwrap();
         assert_eq!(lyrics.translation.as_deref(), Some("[00:01.00]点号译文"));
         assert_eq!(lyrics.romanization.as_deref(), Some("[00:01.00]dot roman"));
 
         std::fs::write(dir.0.join("song_trans.lrc"), "[00:01.00]主译文").unwrap();
         assert_eq!(
-            read(&audio, false).unwrap().unwrap().translation.as_deref(),
+            read(&audio, false, false)
+                .unwrap()
+                .unwrap()
+                .translation
+                .as_deref(),
             Some("[00:01.00]主译文")
         );
     }
@@ -352,7 +428,7 @@ mod tests {
         std::fs::write(dir.0.join("song_trans.lrc"), [0xff]).unwrap();
         std::fs::write(dir.0.join("song.trans.lrc"), "[00:01.00]备用译文").unwrap();
         std::fs::write(dir.0.join("song.roma.lrc"), vec![b'a'; MAX_LYRIC_BYTES + 1]).unwrap();
-        let lyrics = read(&audio, true).unwrap().unwrap();
+        let lyrics = read(&audio, true, false).unwrap().unwrap();
         assert_eq!(lyrics.translation.as_deref(), Some("[00:01.00]备用译文"));
         assert!(lyrics.romanization.is_none());
     }
@@ -363,11 +439,11 @@ mod tests {
         let audio = dir.0.join("song.mp3");
         let sidecar = audio.with_extension("lrc");
         std::fs::write(&sidecar, vec![b'a'; MAX_LYRIC_BYTES + 1]).unwrap();
-        assert!(read(&audio, true).unwrap_err().contains("2MiB"));
+        assert!(read(&audio, true, false).unwrap_err().contains("2MiB"));
         std::fs::write(&sidecar, "  \n").unwrap();
-        assert!(read(&audio, true).unwrap().is_none());
+        assert!(read(&audio, true, false).unwrap().is_none());
         std::fs::write(&sidecar, [0xff]).unwrap();
-        assert!(read(&audio, true).is_err());
+        assert!(read(&audio, true, false).is_err());
     }
 
     #[test]
@@ -437,12 +513,17 @@ mod tests {
             Some(TEXT)
         );
         std::fs::write(audio.with_extension("lrc"), "[00:01.00]外挂").unwrap();
+        std::fs::write(audio.with_extension("ttml"), TTML).unwrap();
         std::fs::write(dir.0.join("song_trans.lrc"), "[00:01.00]译文").unwrap();
-        let embedded = read(&audio, false).unwrap().unwrap();
+        let embedded = read(&audio, false, false).unwrap().unwrap();
         assert_eq!(embedded.content, TEXT);
         assert_eq!(embedded.translation.as_deref(), Some("[00:01.00]译文"));
-        let sidecar = read(&audio, true).unwrap().unwrap();
-        assert_eq!(sidecar.content, "[00:01.00]外挂");
+        let sidecar = read(&audio, true, false).unwrap().unwrap();
+        assert_eq!(sidecar.format, "ttml");
+        assert_eq!(sidecar.content, TTML);
         assert_eq!(sidecar.translation.as_deref(), Some("[00:01.00]译文"));
+        let lrc = read(&audio, true, true).unwrap().unwrap();
+        assert_eq!(lrc.format, "lrc");
+        assert_eq!(lrc.content, "[00:01.00]外挂");
     }
 }
