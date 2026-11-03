@@ -105,14 +105,12 @@ export function SongActionsProvider({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const [retry, setRetry] = useState(0)
-  const [copyMessage, setCopyMessage] = useState<string>()
   const copying = useRef(false)
   useEffect(() => {
     let disposed = false
     setInformation(undefined)
     setLocalInformation(undefined)
     setError(undefined)
-    setCopyMessage(undefined)
     setBusy(!!track && isTauri())
     if (track?.source.kind === 'local' && isTauri())
       void nativeCall<LocalInformation>('local_track_information', {
@@ -164,12 +162,10 @@ export function SongActionsProvider({
     copying.current = true
     try {
       await writeText(text)
-      setCopyMessage('已复制')
       onNotice('已复制到剪贴板。')
     } catch (cause) {
       reportCaughtError('app/src/components/music/song-actions.tsx', cause)
 
-      setCopyMessage('复制失败，请重试')
       onError(cause)
     } finally {
       copying.current = false
@@ -231,19 +227,8 @@ export function SongActionsProvider({
     const [label, value] = fields[index]
     return (
       <div className="song-information-field" key={label}>
-        <label htmlFor={`song-information-${index}`}>{label}</label>
-        <div>
-          <input id={`song-information-${index}`} readOnly value={value || '未知'} />
-          <ActionButton
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`复制${label}`}
-            disabled={!value}
-            onClick={() => void copy(value)}
-          >
-            <Copy aria-hidden="true" />
-          </ActionButton>
-        </div>
+        <span>{label}</span>
+        <p>{value || '未知'}</p>
       </div>
     )
   }
@@ -283,30 +268,27 @@ export function SongActionsProvider({
       >
         <DialogContent className="song-information-dialog" style={{ width: 560 }}>
           <DialogHeader>
-            <DialogTitle>歌曲详情复制</DialogTitle>
-            <DialogDescription>查看歌曲信息，点击复制按钮复制单项或全部信息。</DialogDescription>
+            <DialogTitle>歌曲详情</DialogTitle>
+            <DialogDescription>查看歌曲信息与文件元数据。</DialogDescription>
           </DialogHeader>
           {track && (
             <>
               {local ? (
                 <>
-                  {field(0)}
-                  <div className="song-information-grid">{[1, 2, 3].map(field)}</div>
+                  <div className="song-information-fields">{field(0)}</div>
+                  <div className="song-information-fields">{[1, 2, 3].map(field)}</div>
                   <h3 className="song-information-divider">文件信息</h3>
-                  <div className="song-information-grid">
-                    {[4, 5, 6, 7, 8, 9, 10, 11].map(field)}
+                  <div className="song-information-fields">
+                    {[4, 5, 6, 7, 8, 9, 10, 11, 12].map(field)}
                   </div>
-                  {field(12)}
                 </>
               ) : (
                 <>
-                  {field(0)}
+                  <div className="song-information-fields">{field(0)}</div>
                   <h3 className="song-information-divider">制作人员</h3>
-                  <div className="song-information-grid">{[1, 2, 3, 4].map(field)}</div>
+                  <div className="song-information-fields">{[1, 2, 3, 4].map(field)}</div>
                   <h3 className="song-information-divider">歌曲信息</h3>
-                  <div className="song-information-grid">{[5, 6].map(field)}</div>
-                  {field(7)}
-                  {field(8)}
+                  <div className="song-information-fields">{[5, 6, 7, 8].map(field)}</div>
                 </>
               )}
               {busy && <TextSkeleton />}
@@ -322,20 +304,6 @@ export function SongActionsProvider({
                   </ActionButton>
                 </div>
               )}
-              <p role="status" className="sr-only">
-                {copyMessage}
-              </p>
-              <ActionButton
-                variant="secondary"
-                className="w-full"
-                onClick={() =>
-                  void copy(
-                    fields.map(([label, value]) => `${label}：${value || '未知'}`).join('\n')
-                  )
-                }
-              >
-                复制全部信息
-              </ActionButton>
             </>
           )}
         </DialogContent>

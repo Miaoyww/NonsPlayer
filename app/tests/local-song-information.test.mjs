@@ -138,7 +138,17 @@ function harness(writeText = async () => {}) {
       ...[tree.props?.children].flat(Infinity).flatMap((child) => nodes(child, type))
     ]
   }
-  return { render, nodes, calls, copied, errors, notices }
+  function information(tree) {
+    return Object.fromEntries(
+      nodes(tree, 'div')
+        .filter((node) => node.props?.className === 'song-information-field')
+        .map((node) => {
+          const [label, value] = [node.props.children].flat(Infinity)
+          return [label.props.children, value.props.children]
+        })
+    )
+  }
+  return { render, nodes, information, calls, copied, errors, notices }
 }
 const track = {
   key: 'local:1',
@@ -152,7 +162,7 @@ const track = {
 const settle = async () => {
   for (let i = 0; i < 8; i++) await Promise.resolve()
 }
-test('local information uses file metadata even when linked to NetEase and copies it without online IDs', async () => {
+test('local information uses file metadata even when linked to NetEase and omits online IDs', async () => {
   const h = harness()
   h.render().props.value.details(track)
   h.render()
@@ -160,19 +170,14 @@ test('local information uses file metadata even when linked to NetEase and copie
   const tree = h.render()
   assert.equal(h.calls.length, 1)
   assert.equal(h.calls[0].command, 'local_track_information')
-  const values = h.nodes(tree, 'input').map((node) => node.props.value)
-  assert.ok(values.includes('44100 Hz'))
-  assert.ok(values.includes('1411 kbps'))
-  assert.ok(values.includes('C:/Music/song.wav'))
+  const information = h.information(tree)
+  assert.equal(information['采样率'], '44100 Hz')
+  assert.equal(information['码率'], '1411 kbps')
+  assert.equal(information['路径'], 'C:/Music/song.wav')
   assert.equal(h.nodes(tree, 'DialogContent').length, 1)
   assert.equal(h.nodes(tree, 'DialogHeader').length, 1)
-  h.nodes(tree, 'ActionButton')
-    .find((node) => node.props.children === '复制全部信息')
-    .props.onClick()
-  await settle()
-  assert.match(h.copied[0], /音轨：3/)
-  assert.match(h.copied[0], /路径：C:\/Music\/song.wav/)
-  assert.doesNotMatch(h.copied[0], /歌手 ID|专辑 ID|歌曲 ID|歌曲链接/)
+  assert.equal(h.nodes(tree, 'input').length, 0)
+  assert.equal(h.nodes(tree, 'ActionButton').length, 0)
   h.nodes(tree, 'Dialog')[0].props.onOpenChange(false)
   assert.equal(h.nodes(h.render(), 'Dialog')[0].props.open, false)
 })
@@ -187,13 +192,13 @@ test('streaming details retain structured artist and album IDs', async () => {
   await settle()
   const tree = h.render()
   assert.equal(h.calls[0].command, 'music_query')
-  h.nodes(tree, 'ActionButton')
-    .find((node) => node.props.children === '复制全部信息')
-    .props.onClick()
-  await settle()
-  assert.match(h.copied[0], /歌手 ID：42/)
-  assert.match(h.copied[0], /专辑 ID：99/)
-  assert.doesNotMatch(h.copied[0], /采样率|路径：/)
+  const information = h.information(tree)
+  assert.equal(information['歌手 ID'], '42')
+  assert.equal(information['专辑 ID'], '99')
+  assert.equal(information['采样率'], undefined)
+  assert.equal(information['路径'], undefined)
+  assert.equal(h.nodes(tree, 'input').length, 0)
+  assert.equal(h.nodes(tree, 'ActionButton').length, 0)
 })
 
 test('official clipboard errors reach the user and allow retry', async () => {

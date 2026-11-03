@@ -177,38 +177,25 @@
   gap: 14px;
   border-radius: 18px;
 }
-.song-information-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+.song-information-fields {
+  display: flex;
+  flex-direction: column;
   gap: 14px;
 }
 .song-information-field {
   min-width: 0;
   font-size: 13px;
 }
-.song-information-field label {
+.song-information-field span {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: var(--muted-foreground);
 }
-.song-information-field > div {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 6px 4px 12px;
-  border-radius: 8px;
-  background: var(--muted);
-}
-.song-information-field input {
-  min-width: 0;
-  width: 100%;
-  background: transparent;
-  outline: none;
-  text-overflow: ellipsis;
-}
-.song-information-field input:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+.song-information-field p {
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 .song-information-divider {
   display: flex;
@@ -230,12 +217,6 @@
   outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
-@media (max-width: 420px) {
-  .song-information-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 .track-sort-header {
   display: flex;
   align-items: center;
