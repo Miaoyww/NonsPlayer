@@ -177,6 +177,33 @@
   gap: 14px;
   border-radius: 18px;
 }
+.song-information-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.song-information-cover {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+}
+.song-information-summary-text {
+  min-width: 0;
+}
+.song-information-summary-text h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.song-information-summary-text p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
 .song-information-fields {
   display: flex;
   flex-direction: column;

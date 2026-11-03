@@ -5,6 +5,7 @@ import { favoriteId, onlineReference } from '@/features/music/references'
 import { readTrackInformation } from '@/features/music/queries'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { TextSkeleton } from '@/components/music/loading'
+import { Cover } from '@/components/music/cover'
 import { PluginSongMenuItems } from '@/plugins/song-menu'
 import { AggregatePlaylistPicker } from '@/features/aggregate/aggregate-playlist-picker'
 import { ContextMenu } from '@base-ui/react/context-menu'
@@ -172,12 +173,14 @@ export function SongActionsProvider({
     }
   }
   const local = track?.source.kind === 'local'
+  const displayArtist = track
+    ? local
+      ? track.artist
+      : information?.artists.map((artist) => artist.name).join(' / ') || track.artist
+    : ''
   const fields =
     track && local
       ? [
-          ['歌曲名称', track.title],
-          ['艺术家', track.artist],
-          ['专辑', track.album],
           ['时长', formatTime(track.durationMs)],
           ['音轨', localInformation?.trackNumber?.toString() ?? ''],
           ['碟号', localInformation?.discNumber?.toString() ?? ''],
@@ -196,13 +199,10 @@ export function SongActionsProvider({
         ]
       : track
         ? [
-            ['歌曲名称', track.title],
-            ['歌手', information?.artists.map((artist) => artist.name).join(' / ') || track.artist],
             [
               '歌手 ID',
               information?.artists.map((artist) => artist.reference?.id ?? '未知').join(' / ') ?? ''
             ],
-            ['专辑', track.album],
             ['专辑 ID', information?.albumReference?.id ?? ''],
             [
               '歌曲 ID',
@@ -273,22 +273,28 @@ export function SongActionsProvider({
           </DialogHeader>
           {track && (
             <>
+              <div className="song-information-summary">
+                <Cover cover={track.cover} className="song-information-cover" loading="eager" />
+                <div className="song-information-summary-text">
+                  <h3>{track.title}</h3>
+                  <p>{displayArtist || '未知'}</p>
+                  <p>{track.album || '未知'}</p>
+                </div>
+              </div>
               {local ? (
                 <>
                   <div className="song-information-fields">{field(0)}</div>
-                  <div className="song-information-fields">{[1, 2, 3].map(field)}</div>
                   <h3 className="song-information-divider">文件信息</h3>
                   <div className="song-information-fields">
-                    {[4, 5, 6, 7, 8, 9, 10, 11, 12].map(field)}
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(field)}
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="song-information-fields">{field(0)}</div>
                   <h3 className="song-information-divider">制作人员</h3>
-                  <div className="song-information-fields">{[1, 2, 3, 4].map(field)}</div>
+                  <div className="song-information-fields">{[0, 1].map(field)}</div>
                   <h3 className="song-information-divider">歌曲信息</h3>
-                  <div className="song-information-fields">{[5, 6, 7, 8].map(field)}</div>
+                  <div className="song-information-fields">{[2, 3, 4, 5].map(field)}</div>
                 </>
               )}
               {busy && <TextSkeleton />}

@@ -29,6 +29,7 @@ function harness(writeText = async () => {}) {
     '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     '@/features/music/share-links': { trackShareLink: () => '' },
     '@/components/music/loading': { TextSkeleton: 'div' },
+    '@/components/music/cover': { Cover: 'Cover' },
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
     react: {
       createContext: () => ({ Provider: 'Provider' }),
@@ -174,6 +175,10 @@ test('local information uses file metadata even when linked to NetEase and omits
   assert.equal(information['采样率'], '44100 Hz')
   assert.equal(information['码率'], '1411 kbps')
   assert.equal(information['路径'], 'C:/Music/song.wav')
+  assert.equal(information['歌曲名称'], undefined)
+  assert.equal(information['艺术家'], undefined)
+  assert.equal(information['专辑'], undefined)
+  assert.equal(h.nodes(tree, 'Cover').length, 1)
   assert.equal(h.nodes(tree, 'DialogContent').length, 1)
   assert.equal(h.nodes(tree, 'DialogHeader').length, 1)
   assert.equal(h.nodes(tree, 'input').length, 0)
@@ -195,8 +200,12 @@ test('streaming details retain structured artist and album IDs', async () => {
   const information = h.information(tree)
   assert.equal(information['歌手 ID'], '42')
   assert.equal(information['专辑 ID'], '99')
+  assert.equal(information['歌曲名称'], undefined)
+  assert.equal(information['歌手'], undefined)
+  assert.equal(information['专辑'], undefined)
   assert.equal(information['采样率'], undefined)
   assert.equal(information['路径'], undefined)
+  assert.equal(h.nodes(tree, 'Cover').length, 1)
   assert.equal(h.nodes(tree, 'input').length, 0)
   assert.equal(h.nodes(tree, 'ActionButton').length, 0)
 })
