@@ -283,10 +283,9 @@ export function SongActionsProvider({
               </div>
               {local ? (
                 <>
-                  <div className="song-information-fields">{field(0)}</div>
                   <h3 className="song-information-divider">文件信息</h3>
                   <div className="song-information-fields">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(field)}
+                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(field)}
                   </div>
                 </>
               ) : (
