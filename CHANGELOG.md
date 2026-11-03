@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-11-03
+
+![NonsPlayer v1.10.1 本地歌词与体验修复头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.10.1/docs/release-assets/header.png)
+
+NonsPlayer 1.10.1 完善本地歌词选择与自动读取，修复同尺寸封面替换和工作区滚动回拉问题。本次 Release 提供 **Windows x64、Linux x64 和 Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 ### 歌词与界面
 
 - 全屏播放器“歌词来源”新增本地歌词选项，桌面端可为单曲选择 TTML 文件并持久保留。
