@@ -95,7 +95,9 @@ node scripts/release-version.mjs 1.10.0 --dry-run
 
 单次请求超时 8 秒，不跟随重定向；仅对网络失败、429 和 5xx 进行重试。关闭开关会取消当前等待／在途请求并阻止后续上报；本地播放历史仍继续记录，重新开启后从累计快照补报。开发和探针进程不贡献统计，日志不记录请求正文、安装标识和密钥。
 
-关于页的累计使用人次和累计播放歌曲数在发布构建前从 `GET /v1/summary` 固定注入，并显示统计快照日期；运行时不请求接口，未注入快照时显示“暂无统计数据”。发布顺序为：先迁移并部署 API，再配置 `NONS_TELEMETRY_STATS_KEY`，最后运行客户端发布构建。
+关于页的累计使用人次和累计播放歌曲数在发布构建前从 `GET /v1/summary` 固定注入，并显示统计快照日期；发布版运行时不请求接口，未注入快照时显示“暂无统计数据”。发布顺序为：先迁移并部署 API，再配置 `NONS_TELEMETRY_STATS_KEY`，最后运行客户端发布构建。
+
+本地开发可在 `app/.env.local` 配置 `NONS_TELEMETRY_STATS_KEY`（该文件被 `*.local` 忽略，不会提交）。`pnpm --dir app dev` 启动时 Vite 读取密钥并请求 `GET /v1/summary`，关于页通过仅开发环境提供的 `/__dev/telemetry-summary` 获取快照；密钥只保留在开发服务器进程，不进入前端产物。未配置或请求失败时显示构建期快照或“暂无统计数据”。
 
 Windows MSI/NSIS 安装包没有配置 Authenticode 代码签名；CI 的 `TAURI_SIGNING_PRIVATE_KEY` 只用于 Tauri updater，不会签署安装包。Android Release 附件使用固定 upload keystore 签名，但 Google Play 上架、Play App Signing 与 AAB 发布仍待配置。Linux AppImage 与 deb 没有配置发行包签名；AppImage 的可选 GPG 签名也未启用。Linux 与 Android 发布附带的 SHA-256 校验和用于检查文件完整性，不提供独立于发布渠道的签名身份。
 

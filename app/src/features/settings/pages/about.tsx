@@ -10,15 +10,9 @@ import appIcon from '../../../../app-icon.png'
 import { Button } from '@/components/ui/button'
 import { errorText, nativeCall } from '@/lib/player'
 import { SettingsCard } from '@/features/settings/settings-card'
+import { useTelemetryStatistics } from '@/features/settings/use-telemetry-statistics'
 
 const repository = 'https://github.com/Miaoyww/Nons'
-const statistics = [
-  { label: '累计使用人次', value: import.meta.env.VITE_TELEMETRY_USAGE_COUNT, unit: '人次' },
-  { label: '累计播放歌曲', value: import.meta.env.VITE_TELEMETRY_PLAY_COUNT, unit: '首' }
-]
-const generatedAt = import.meta.env.VITE_TELEMETRY_STATS_GENERATED_AT
-const statisticsDate = generatedAt?.slice(0, 10)
-const hasStatistics = statistics.every(({ value }) => /^\d+$/.test(value ?? ''))
 const thanks = [
   ['YesPlayMusic', 'qier222/YesPlayMusic'],
   ['SPlayer', 'SPlayer-Dev/SPlayer'],
@@ -29,6 +23,13 @@ const thanks = [
 
 export function AboutPage({ version }: { version: string }) {
   const [error, setError] = useState<string>()
+  const { usageCount, playCount, generatedAt } = useTelemetryStatistics()
+  const statistics = [
+    { label: '累计使用人次', value: usageCount, unit: '人次' },
+    { label: '累计播放歌曲', value: playCount, unit: '首' }
+  ]
+  const statisticsDate = generatedAt?.slice(0, 10)
+  const hasStatistics = statistics.every(({ value }) => /^\d+$/.test(value ?? ''))
   async function run(operation: () => Promise<unknown>) {
     setError(undefined)
     try {
