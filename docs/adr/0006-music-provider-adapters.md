@@ -103,7 +103,7 @@
 
 独立构建的 `plugins/music-fixture/backend` WASM Component 通过 `music/external.rs` 转为 `MusicAdapter`，由独立 AdapterManager 注册并执行；不使用 PluginManager 的注册、授权或贡献生命周期。来源 `fixture-radio` 使用 Unicode／非数字曲目 ID 和真正的两页 continuation token，覆盖能力缺失、账号代次切换、错误来源响应、过期／试听／带头资源拒绝，以及停用、恢复和重载后的资源失效。既有测试适配器与 AccountManager 回归继续验证主动取消、期限、账号越权、保存记录保留和缓存作用域。
 
-受限外部 ABI 复用 `nons:plugin@1.0.0` 的 Component transport，单独定义 `music.descriptor/read-track/business/resolve-playback` JSON 方法与响应封套；宿主在注册前校验描述符一致性与音乐契约版本。每次请求独立实例化 Store，共享已编译 Component；取消销毁 Store，防止旧执行或 guest 状态污染下一会话。查询 4、播放解析 2 的预算独立，线性内存、fuel、有效载荷及初始化／执行期限沿用受控 Wasmtime 基础设施。真实 WASM 回归覆盖耗尽 fuel、内存增长、trap、非法／超大响应、Host 能力拒绝和故障后新请求恢复。
+受限外部 ABI 复用 `nons:plugin@1.0.0` 的 Component transport，单独定义 `music.descriptor/read-track/business/resolve-playback` JSON 方法与响应封套；宿主在注册前校验描述符一致性与音乐契约版本。每次请求独立实例化 Store，共享已编译 Component；取消销毁 Store，防止旧执行或 guest 状态污染下一会话。查询 4、播放解析 2 的预算独立。2026-11-03 按用户决定移除执行配额（线性内存、memory 数量、fuel、初始化／执行期限、JSON 大小），只保留每 10 毫秒的 epoch 让出，见 [执行限制](../wasm-adapter-runtime.md#执行限制2026-11-03)。真实 WASM 回归覆盖 trap、非法 JSON、Host 能力拒绝和故障后新请求恢复。
 
 阶段四完成的是测试来源与受限外部执行验证，不等于已开放通用平台包安装：验证来源不随包安装，也没有真实音乐平台的网络和登录实现。当前桥仅允许 Search／Browse 可选组，不提供任何 Host Capability、WASI、前端、账号凭据访问或持久 guest 状态。阶段五拆网易云前须补平台域名授权与受控 HTTP、AccountAccess 和登录／刷新／退出 ABI、账号展示及独立安装管理；仍需验证真实第二平台、macOS/Linux、WebView 释放后的外部真实播放和 Release 性能。契约及注意事项见 [阶段四记录](../music-adapters.md#阶段四修改记录与注意事项2026-10-10)，实际验收见 [实现记录](../implementation.md)。
 

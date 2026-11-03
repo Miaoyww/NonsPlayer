@@ -26,6 +26,16 @@ impl Guest for Fixture {
                 core::hint::black_box(&memory);
                 Ok("null".into())
             }
+            "large" => {
+                // Valid JSON string above the removed 64KiB response ceiling.
+                let mut payload = String::with_capacity(70 * 1024 + 2);
+                payload.push('"');
+                for _ in 0..70 * 1024 {
+                    payload.push('x');
+                }
+                payload.push('"');
+                Ok(payload)
+            }
             "trap" => panic!("fixture trap"),
             "invalid-json" => Ok("not json".into()),
             "host-wait" => host::call("wait", "null"),

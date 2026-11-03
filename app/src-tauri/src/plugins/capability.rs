@@ -14,7 +14,6 @@ use std::{
 };
 use tauri::Emitter;
 
-pub const MAX_JSON: usize = 64 * 1024;
 #[derive(Clone)]
 pub struct Context {
     pub id: String,
@@ -67,9 +66,6 @@ impl Context {
         Ok(())
     }
     pub async fn call(&self, operation: &str, args: &str) -> AppResult<String> {
-        if args.len() > MAX_JSON {
-            return Err("插件请求过大".into());
-        }
         let args: Value = serde_json::from_str(args)
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn("plugins.call.parse_arguments", error);
@@ -446,14 +442,6 @@ impl Context {
         };
         self.check(None)?;
         let result = serde_json::to_string(&result).map_err(|e| e.to_string())?;
-        let limit = if operation.starts_with("config.") {
-            MAX_JSON * 2
-        } else {
-            MAX_JSON
-        };
-        if result.len() > limit {
-            return Err("插件响应过大".into());
-        }
         Ok(result)
     }
 }

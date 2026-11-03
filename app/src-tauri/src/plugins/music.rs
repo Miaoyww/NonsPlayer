@@ -1,4 +1,3 @@
-use super::capability::MAX_JSON;
 use crate::model::AppResult;
 use serde_json::{json, Value};
 use std::{
@@ -163,10 +162,6 @@ impl SongService {
             {
                 cache.remove(&key);
             }
-        }
-        let value = serde_json::to_value(&track).map_err(|e| e.to_string())?;
-        if serde_json::to_vec(&value).map_err(|e| e.to_string())?.len() > MAX_JSON {
-            return Err("歌曲信息过大".into());
         }
         cache.insert(
             reference.clone(),

@@ -652,11 +652,8 @@ fn read_package(directory: &Path) -> AppResult<PackageWithPath> {
     let component = component_path(directory)?;
     let component_meta = fs::symlink_metadata(&component)
         .map_err(|error| format!("适配器 Component 不可读：{error}"))?;
-    if !component_meta.is_file()
-        || is_link(&component_meta)
-        || component_meta.len() > crate::wasm_runtime::Budget::ADAPTER.component_bytes as u64
-    {
-        return Err("适配器 Component 无效或过大".into());
+    if !component_meta.is_file() || is_link(&component_meta) {
+        return Err("适配器 Component 无效".into());
     }
     Ok(PackageWithPath {
         path: directory.to_path_buf(),

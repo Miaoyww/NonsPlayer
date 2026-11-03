@@ -11,8 +11,8 @@ struct Secrets(Mutex<BTreeMap<String, Vec<u8>>>);
 
 #[tokio::test]
 #[ignore = "Requires built GD Studio Component; deterministic Host, no network or credentials"]
-async fn gdstudio_component_resolves_under_native_host_budget() {
-    use crate::wasm_runtime::{host_io, Budget, HostHandler, Runtime};
+async fn gdstudio_component_resolves_under_native_host() {
+    use crate::wasm_runtime::{host_io, HostHandler, Runtime};
     struct AudioHost;
     impl HostHandler for AudioHost {
         fn system_capabilities(&self) -> bool {
@@ -82,14 +82,9 @@ async fn gdstudio_component_resolves_under_native_host_budget() {
     }
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../.local/adapters/gdstudio/dist/adapter.component.wasm");
-    let mut runtime = Runtime::load_host_with_budget(
-        runtime::engine_with_budget(Budget::ADAPTER).unwrap(),
-        &path,
-        Arc::new(AudioHost),
-        Budget::ADAPTER,
-    )
-    .await
-    .unwrap();
+    let mut runtime = Runtime::load_host(runtime::engine().unwrap(), &path, Arc::new(AudioHost))
+        .await
+        .unwrap();
     let descriptor: serde_json::Value = serde_json::from_str(
         &runtime
             .call("music.resource-descriptor", "null")
@@ -106,11 +101,11 @@ async fn gdstudio_component_resolves_under_native_host_budget() {
     assert_eq!(response["data"]["headers"], serde_json::json!([]));
 }
 
-// Runs the actual Component under the same memory and wall-clock budgets as real requests.
+// Runs the actual Component through the same executor path as real requests.
 #[tokio::test]
 #[ignore = "Requires built QQ Component; deterministic Host, no network or credentials"]
-async fn qq_component_large_playlist_respects_page_and_execution_budget() {
-    use crate::wasm_runtime::{host_io, Budget, HostHandler, Runtime};
+async fn qq_component_large_playlist_reads_one_page() {
+    use crate::wasm_runtime::{host_io, HostHandler, Runtime};
     use std::{future::Future, pin::Pin};
     struct PlaylistHost;
     impl HostHandler for PlaylistHost {
@@ -155,14 +150,10 @@ async fn qq_component_large_playlist_respects_page_and_execution_budget() {
     }
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../.local/adapters/qqmusic/dist/adapter.component.wasm");
-    let mut runtime = Runtime::load_host_with_budget(
-        runtime::engine_with_budget(Budget::ADAPTER).unwrap(),
-        &path,
-        Arc::new(PlaylistHost),
-        Budget::ADAPTER,
-    )
-    .await
-    .unwrap();
+    let mut runtime =
+        Runtime::load_host(runtime::engine().unwrap(), &path, Arc::new(PlaylistHost))
+            .await
+            .unwrap();
     let started = Instant::now();
     let response = runtime.call("music.business", r#"{"session":{"source":"qqmusic"},"request":{"operation":"tracks","entity":{"source":"qqmusic","kind":"playlist","id":"123"},"page":{"limit":25,"cursor":null}}}"#).await;
     eprintln!(
@@ -170,7 +161,7 @@ async fn qq_component_large_playlist_respects_page_and_execution_budget() {
         started.elapsed().as_millis()
     );
     let response: serde_json::Value = serde_json::from_str(
-        &response.expect("A page of a large playlist must fit the normal adapter execution budget"),
+        &response.expect("A page of a large playlist must resolve"),
     )
     .unwrap();
     assert_eq!(response["status"], "ok", "{response}");

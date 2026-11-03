@@ -240,12 +240,10 @@ impl Manifest {
             .flatten()
         {
             let file = checked_file(root, entry)?;
-            let limit = if entry.ends_with(".wasm") {
-                16 * 1024 * 1024
-            } else {
-                8 * 1024 * 1024
-            };
-            if file.metadata().map_err(|e| e.to_string())?.len() > limit {
+            // WASM backends are not size-capped; frontend entries keep the UI limit.
+            if !entry.ends_with(".wasm")
+                && file.metadata().map_err(|e| e.to_string())?.len() > 8 * 1024 * 1024
+            {
                 return Err("插件入口过大".into());
             }
         }

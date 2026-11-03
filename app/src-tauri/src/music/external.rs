@@ -5,7 +5,7 @@ use crate::{
     wasm_runtime::{self as runtime, HostHandler, Runtime},
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{future::Future, io::Read, path::Path, pin::Pin, sync::Arc};
+use std::{future::Future, path::Path, pin::Pin, sync::Arc};
 use wasmtime::{component::Component, Engine};
 pub(crate) mod host;
 mod sessions;
@@ -86,7 +86,7 @@ impl ExternalAdapter {
             })
             .map_err(|_| ErrorCode::RateLimited)?;
         let engine_started = std::time::Instant::now();
-        let engine = runtime::engine_with_budget(runtime::Budget::ADAPTER).map_err(|error| {
+        let engine = runtime::engine().map_err(|error| {
             log::error!(target: "nons::adapter", "runtime_failure reason={error}");
             ErrorCode::Internal
         })?;
@@ -97,15 +97,8 @@ impl ExternalAdapter {
         let component = tauri::async_runtime::spawn_blocking(move || {
             let _permit = permit;
             let read_started = std::time::Instant::now();
-            let mut bytes = Vec::new();
-            std::fs::File::open(path)
-                .inspect_err(|error| { crate::infrastructure::diagnostics::warn("adapter.component_open", error); }).map_err(|_| ErrorCode::InvalidData)?
-                .take(runtime::Budget::ADAPTER.component_bytes as u64 + 1)
-                .read_to_end(&mut bytes)
+            let bytes = std::fs::read(&path)
                 .inspect_err(|error| { crate::infrastructure::diagnostics::warn("adapter.component_read", error); }).map_err(|_| ErrorCode::InvalidData)?;
-            if bytes.len() > runtime::Budget::ADAPTER.component_bytes {
-                return Err(ErrorCode::InvalidData);
-            }
             log::info!(target: "nons::adapter", "source={} stage=read_component bytes={} elapsed_ms={}", compile_source.as_str(), bytes.len(), read_started.elapsed().as_millis());
             runtime::compile_component(&compile_engine, &bytes).map(|compiled| {
                 log::info!(target: "nons::adapter", "source={} stage=compile_component cache={} elapsed_ms={}", compile_source.as_str(), compiled.cache, compiled.elapsed.as_millis());
@@ -203,13 +196,8 @@ impl ExternalAdapter {
             ),
             _ => Arc::new(NoCapabilities),
         };
-        let mut runtime = Runtime::from_component_with_budget(
-            self.engine.clone(),
-            &self.component,
-            handler,
-            runtime::Budget::ADAPTER,
-        )
-        .await
+        let mut runtime = Runtime::from_component(self.engine.clone(), &self.component, handler)
+            .await
         .map_err(|error| {
             log::error!(target: "nons::adapter", "runtime_failure reason={error}");
             ErrorCode::Internal

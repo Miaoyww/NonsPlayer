@@ -8,8 +8,8 @@
 - 非敏感状态：按来源隔离，最多 16 个键，每值 8KiB、总量 64KiB；取消或代次变化拒绝交付／写入。
 - 标准能力：选定 WASI clocks、random、io 子集，不提供文件系统、进程、环境变量或原始 sockets。
 
-`Account` Component 的登录调用顺序为 `music.prepare-login`（返回 null）、`music.account/beginLogin`（返回完整挑战），两阶段共用 Store、账号上下文和外层期限，各自执行单次 fuel 预算。宿主不解释准备内容，准备失败时不展示占位二维码。
+`Account` Component 的登录调用顺序为 `music.prepare-login`（返回 null）、`music.account/beginLogin`（返回完整挑战），两阶段共用 Store、账号上下文和外层期限；运行时不再给单次调用设 fuel 或期限配额。宿主不解释准备内容，准备失败时不展示占位二维码。
 
-普通调用使用独立 Store；登录挑战最多 180 秒、4 个会话，占查询并发额度。完成、取消、到期、停用或重载释放 Store、连接与敏感状态。普通功能插件仍使用原 JSON／资源预算，不因适配器扩容而扩容。
+普通调用使用独立 Store；登录挑战最多 180 秒、4 个会话，占查询并发额度。完成、取消、到期、停用或重载释放 Store、连接与敏感状态。普通功能插件使用同一执行配置，不因适配器不同而不同。
 
-聚合适配器临时预算：32MiB 包、256MiB 总线性内存、4 个 memory、每次调用 2 亿 fuel、初始化／调用 15 秒。编译耗时和应用总内存不等于 guest 调用期限或线性内存预算，需分别实测。
+执行器不再限制包大小、总线性内存、memory 数量、fuel、调用期限或 JSON 大小。仍保留的是 epoch 让出：每 10 毫秒把 guest 计算交回异步执行器，不计数也不拒绝。并发、业务期限与 Host 能力上限（HTTP／WSS、凭据、状态、WASI 子集）照旧，详见 [执行与组合模块](../../docs/wasm-adapter-runtime.md)。编译耗时与应用总内存需实测，不构成 guest 的额度。

@@ -41,8 +41,7 @@ impl Guest for Fixture {
                     }
                     "trap" => panic!("fixture trap"),
                     "invalid-json" => return Ok("invalid".into()),
-                    "oversized" => return Ok("x".repeat(65 * 1024)),
-                    "wrong-source" => {
+                                        "wrong-source" => {
                         return ok(track(
                             json!({"source":"netease","kind":"track","id":"same-id"}),
                         ))

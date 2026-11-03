@@ -419,19 +419,7 @@ impl PluginManager {
             })
             .map_err(|_| "WASM Engine 不可用")?;
         if engine.is_none() {
-            let value = runtime::engine()?;
-            let weak = value.weak();
-            std::thread::Builder::new()
-                .name("nons-plugin-epoch".into())
-                .spawn(move || {
-                    while let Some(engine) = weak.upgrade() {
-                        engine.increment_epoch();
-                        drop(engine);
-                        std::thread::sleep(Duration::from_millis(10));
-                    }
-                })
-                .map_err(|e| e.to_string())?;
-            *engine = Some(value);
+            *engine = Some(runtime::engine()?);
         }
         engine.clone().ok_or_else(|| "WASM Engine 不可用".into())
     }
@@ -670,23 +658,14 @@ impl PluginManager {
             .get(id)
             .and_then(|r| r.runtime.clone())
             .ok_or("插件没有 WASM Backend")?;
-        let result = tokio::time::timeout(Duration::from_secs(6), async {
-            let mut runtime = runtime.lock().await;
-            context.check(None)?;
-            let result = runtime.call(method, args).await;
-            if runtime.faulted {
-                if let Err(error) = &result {
-                    self.fault(id, generation, error)?;
-                }
+        let mut runtime = runtime.lock().await;
+        context.check(None)?;
+        let result = runtime.call(method, args).await;
+        if runtime.faulted {
+            if let Err(error) = &result {
+                self.fault(id, generation, error)?;
             }
-            result
-        })
-        .await
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("plugins.invoke.queue_timeout", error);
-        })
-        .map_err(|_| "插件调用队列超时".to_string())
-        .and_then(|r| r);
+        }
         match result {
             Ok(value) => {
                 context.check(None)?;

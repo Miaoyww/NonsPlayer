@@ -162,13 +162,9 @@ impl ExternalAdapter {
                     })
                     .map_err(|_| ErrorCode::RateLimited)?;
                 let host = host::Context::new(services, context.clone(), true);
-                let mut runtime = Runtime::from_component_with_budget(
-                    self.engine.clone(),
-                    &self.component,
-                    host.clone(),
-                    runtime::Budget::ADAPTER,
-                )
-                .await
+                let mut runtime =
+                    Runtime::from_component(self.engine.clone(), &self.component, host.clone())
+                        .await
                 .map_err(|error| {
                     log::error!(target: "nons::adapter", "runtime_failure reason={error}");
                     ErrorCode::Internal

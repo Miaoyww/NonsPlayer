@@ -232,9 +232,9 @@ Tokio 的 future 丢弃／期限语义经 Context7 核对；ncm-api-rs 的响应
 
 ### 修改清单与接线范围
 
-- `music/external.rs` 实现外部后端加载、描述符一致性检查、音乐 JSON ABI 转换及两类独立执行预算。`ExternalAdapter::load(path, expected)` 成功后，后端调用 `AdapterManager::register(adapter, sessionProvider)`；来源由宿主传入的预期描述符和 guest 自报描述符共同核对，不能按功能插件 manifest 自动注册。
+- `music/external.rs` 实现外部后端加载、描述符一致性检查、音乐 JSON ABI 转换，与功能插件共用同一执行器配置。`ExternalAdapter::load(path, expected)` 成功后，后端调用 `AdapterManager::register(adapter, sessionProvider)`；来源由宿主传入的预期描述符和 guest 自报描述符共同核对，不能按功能插件 manifest 自动注册。
 - `plugins/music-fixture/backend/` 是独立 Cargo Component 项目，使用公开 WIT，不导入宿主 crate。来源 `fixture-radio`，必选单曲／资源解析以及可选 Search／Browse；没有账号能力。fixture 不随包安装，不发起网络请求，资源 URL 是测试数据，不能据此宣称已经完成真实第二平台接入。
-- `infrastructure/wasm_runtime.rs` 提取共享 Component 执行器，开放 crate 内部的 HostHandler／from_component；`plugins/runtime.rs` 只绑定功能插件 Context，外部适配器使用全拒绝 Host，不引用插件运行模块。五个既有音乐探测 example 同步引入共享模块，避免独立编译依赖完整插件系统。三个管理器没有合并，没有向功能插件公开新适配器管理权限。共享加载路径改为最多读取 16MiB + 1 字节再拒绝，避免先整文件读取后检查。
+- `infrastructure/wasm_runtime.rs` 提取共享 Component 执行器，开放 crate 内部的 HostHandler／from_component；`plugins/runtime.rs` 只绑定功能插件 Context，外部适配器使用全拒绝 Host，不引用插件运行模块。五个既有音乐探测 example 同步引入共享模块，避免独立编译依赖完整插件系统。三个管理器没有合并，没有向功能插件公开新适配器管理权限。共享加载路径直接读取整个 Component；2026-11-03 起不再有文件大小上限。
 - `pnpm --dir app plugins:fixtures` 同时构建原运行 fixture 与音乐 fixture；format／format:check 加入音乐 fixture。独立 Cargo.lock 提交，生成 bindings 和 target 沿用忽略规则。没有新增宿主依赖、缓存、IPC 或产品入口，本轮无用户可见 CHANGELOG 条目。
 
 ### 受限外部 ABI v1
@@ -254,33 +254,35 @@ TrackPage 的 JSON 是展平的 `{ items, nextCursor, total, description }`，�
 
 WireResource 仅在后端反序列化；域模型 PlaybackResource／HttpAccess 没有增加 Serialize，Debug 隐藏 URL 和请求头。返回后统一管理器照常拒绝过期、试听和当前音频管线不支持的请求头；域模型不会为了通过 fixture 静默丢弃头。临时 URL 不进入 nativeCall、插件 DTO、查询缓存或队列。
 
-### 执行预算与生命周期
+### 执行限制与生命周期
 
-| 项目       | 阶段四实际限制                                                                                                                  |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 编译／读取 | 进程级最多 2 个阻塞任务；文件最多 16MiB，超载直接 rateLimited；许可在阻塞闭包持有                                               |
-| 运行并发   | 每外部适配器查询 4、播放解析独立 2，均无额外等待队列；管理器原预算仍有效                                                        |
-| Store      | 每次调用新建，共享已编译 Component；单线性内存最多 64MiB、最多 1 个 memory、16 instances、8 tables、每 table 10000 元素         |
-| CPU        | 初始化和每次 call 分别 1000 万 fuel；每 10000 fuel 主动 yield，耗尽触发 trap                                                    |
-| 时间       | 实例化／initialize／call 各最多 5 秒；统一单曲总期限 3 秒、业务／播放解析总期限 12 秒包含实例化和初始化，管理器每 10ms 复核失效 |
-| JSON       | 复用 transport 的 64KiB 请求与响应上限，比业务契约的 2MiB 更严格；外部查询不能依靠增加每页条数越过上限                          |
-| Host 能力  | 全部拒绝；没有 WASI、HTTP、文件、配置、storage、secrets、账号读取或其他来源访问                                                 |
+2026-11-03 起执行器不再设资源配额，`Budget`、`MemoryLimits` 与 `StoreLimits` 已删除。当前实际约束：
+
+| 项目       | 现状                                                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 编译／读取 | 进程级最多 2 个阻塞任务；文件不设大小上限；许可在阻塞闭包持有                                                            |
+| 运行并发   | 每外部适配器查询 4、播放解析独立 2，均无额外等待队列                                                                     |
+| Store      | 每次调用新建，共享已编译 Component；不限制线性内存、memory 数量、instances、tables 或表元素                              |
+| CPU        | 不设 fuel；Engine 每 10 毫秒递增 epoch，使 guest 计算回到异步执行器，不计数也不拒绝                                       |
+| 时间       | 运行时不给实例化／initialize／call 设期限；单曲 3 秒、业务／播放解析 12 秒总期限由管理器执行，每 10ms 复核失效            |
+| JSON       | 不再有 64KiB 上限；响应仍必须是合法 JSON，否则按 internal 处理                                                           |
+| Host 能力  | 全部拒绝；没有 WASI、HTTP、文件、配置、storage、secrets、账号读取或其他来源访问                                          |
 
 请求取消、停用或账号／实例变化会丢弃整个执行 future 及其 Store，不将中断后的 Store 交给下一请求。guest trap 等只影响该请求的 Store，后续请求从干净实例恢复；来源注册和账号选择不会因此删除。descriptor 加载发生在注册前，平台调用阶段由 AdapterManager 统一期限约束；阻塞读取／编译不能被异步 future 强行终止，仍由上述编译许可控制数量，没有宣称硬实时编译期限。
 
 外部桥暂不保存 guest 状态，initialize 每次调用执行，shutdown 不作为持久化或资源清理前提。需要长驻登录状态的适配器不能直接套用此生命周期；应设计显式后端 challenge／账号存储接口，不得把凭据或会话放入 guest 临时全局变量后依赖下次调用。新增 Host Capability 时必须绑定宿主 RequestContext，不能相信 guest 自报来源或账号。资源 URL 仍由既有宿主音频管线读取，后端执行不进入 streaming thread。
 
-上述限制不是进程总内存测量：最多六个并行 Store 的线性内存理论上限合计 384MiB，另有编译器、代码、HTTP/TLS 和宿主分配。独立实例化换取取消／账号隔离，但增加调用成本；未测 Release 首声延迟与内存，不宣称这些数值适合所有平台。实际使用前应测量并调整，不能用此 fixture 的小数据代表真实平台性能。
+执行器不再设进程总预算，也不再有 Store 线性内存合计上限：多个并发 Store 的实际占用取决于各 guest 分配，目前没有测量。独立实例化换取取消／账号隔离，但增加调用成本；单个 guest 可以耗尽机器内存或长期占用执行，恢复只能停用插件、取消账号或结束进程。未测 Release 首声延迟与内存，不能用此 fixture 的小数据代表真实平台性能。
 
 ### 回归与阶段五注意事项
 
-真实外部 Component 回归覆盖非数字／Unicode ID、两页 token、缺少 Favorites 能力、账号代次使旧游标失效、跨来源响应拒绝、账号读取 Host 越权拒绝、过期／试听／带头资源拒绝、停用／恢复／重载、敏感 Debug、查询满载时播放保留容量、取消后许可释放、fuel／内存／trap／非法／超大响应与下一请求恢复、版本／身份不符、编译超载及过大／非法文件拒绝。原 TestAdapter 与 AccountManager 测试继续覆盖在途停用与账号／实例取消、缓存作用域、原始凭据越权拒绝、停用保留保存账号、删除墓碑与旧提交隔离；没有操作开发机真实账号。
+真实外部 Component 回归覆盖非数字／Unicode ID、两页 token、缺少 Favorites 能力、账号代次使旧游标失效、跨来源响应拒绝、账号读取 Host 越权拒绝、过期／试听／带头资源拒绝、停用／恢复／重载、敏感 Debug、查询满载时播放保留容量、取消后许可释放、trap／非法 JSON／超大响应与下一请求恢复、版本／身份不符、编译超载及非法文件拒绝。原 TestAdapter 与 AccountManager 测试继续覆盖在途停用与账号／实例取消、缓存作用域、原始凭据越权拒绝、停用保留保存账号、删除墓碑与旧提交隔离；没有操作开发机真实账号。
 
 当前仍需补：应用商店和 Android 导入；受控 HTTP 域名授权、响应上限、超时和播放保留预算继续沿现有 Host 契约验收；绑定 AccountAccess 的凭据读取／刷新和登录完成／退出 ABI；有界 challenge 与不同登录展示；长驻执行或明确无状态协议的成本测量。当前 loader 明确拒绝未接线的能力声明，不能把尚未接线的账号、曲库、收藏等能力先写进描述符。复用功能插件 HTTP 基础设施时也不能赋予整个 Context 或其账号兼容能力。
 
 历史 TrackSource、持久曲库／队列和播放器兼容 DTO 仍保留旧形状；本轮验证统一后端契约，未让任意外部来源在现有数字页面／混合队列 UI 中直接播放。后续接入须单独做原子数据迁移与通用播放入口，继续核对本地绑定、歌词关联、账号／缓存失效。真实外部音频、WebView 释放后播放、跨平台构建／基本播放和真实平台不同登录流程仍需对应环境验收。
 
-Wasmtime StoreLimitsBuilder 与 fuel_async_yield_interval 经 Context7 核对官方 Rust API；memory_size 限制每个线性内存，配合 memories(1) 才得到上述每 Store 上限。实际宿主固定版本继续为 46.0.1，没有新增执行框架。验收结果见 [实现记录](implementation.md)。
+Wasmtime 的 epoch interruption 与 `epoch_deadline_async_yield_and_update` 经 Context7 核对官方 Rust API；取消后不恢复任何额度，被丢弃的 Store 直接释放。实际宿主固定版本继续为 46.0.1，没有新增执行框架。验收结果见 [实现记录](implementation.md)。
 
 ## 阶段五修改记录与注意事项（2026-10-10）
 
@@ -298,7 +300,7 @@ Wasmtime StoreLimitsBuilder 与 fuel_async_yield_interval 经 Context7 核对官
 
 当前默认网易云包是 Rust 原生库，随应用编译和链接。独立源码/依赖/测试可以单独维护，稳定业务接口仍由 AdapterManager 调度；它不是可拖入安装的 WASM/ZIP，不提供运行时原生库替换或卸载。升级包需重新构建应用。运行时可安装的第三方平台包、其受控 HTTP/凭据与登录 ABI 仍未开放；阶段四 fixture 的全拒绝 Host 和 Search/Browse 限制不变。
 
-选择此方式保留现有成熟 SDK、共享连接池和登录协议，避免以受限测试桥冒充完整平台运行时。原生代码必须受信任；没有 Wasmtime 的线性内存/fuel 沙箱，不宣称凭据无法被恶意原生代码复制。阶段四“拆包前须补”的外部能力门槛适用于迁入 WASM 执行器的路线；本阶段没有越过这些门槛向第三方开放权限。
+选择此方式保留现有成熟 SDK、共享连接池和登录协议，避免以受限测试桥冒充完整平台运行时。原生代码必须受信任；它不在 Wasmtime 的 Store 隔离内，也没有任何资源上限，不宣称凭据无法被恶意原生代码复制。阶段四“拆包前须补”的外部能力门槛适用于迁入 WASM 执行器的路线；本阶段没有越过这些门槛向第三方开放权限。
 
 ### 设置、缓存与生命周期
 
