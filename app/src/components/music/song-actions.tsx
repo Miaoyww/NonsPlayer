@@ -22,6 +22,7 @@ import {
   Play,
   RefreshCw,
   Share2,
+  Tags,
   Trash2
 } from 'lucide-react'
 import {
@@ -46,6 +47,7 @@ import {
 } from '@/components/ui/dialog'
 import { ActionButton } from '@/components/music/action-button'
 import { useAccount } from '@/features/account/account'
+import { LocalTagEditorDialog } from '@/features/local/tag-editor-dialog'
 
 interface LocalInformation {
   trackNumber: number | null
@@ -72,6 +74,7 @@ const SongActionsContext = createContext<{
   collect: (track: Track) => void
   collectGroup: (tracks: Track[]) => void
   details: (track: Track) => void
+  edit: (track: Track) => void
   run: (
     operation: () => void | Promise<unknown>,
     notice?: string | ((result: unknown) => string | undefined)
@@ -101,6 +104,7 @@ export function SongActionsProvider({
   const [aggregateTrack, setAggregateTrack] = useState<Track>()
   const [collectGroup, setCollectGroup] = useState<Track[]>()
   const [track, setTrack] = useState<Track>()
+  const [editTrack, setEditTrack] = useState<Track>()
   const [localInformation, setLocalInformation] = useState<LocalInformation>()
   const [information, setInformation] = useState<SongInformation>()
   const [busy, setBusy] = useState(false)
@@ -243,6 +247,7 @@ export function SongActionsProvider({
           setRetry(0)
           setTrack(value)
         },
+        edit: setEditTrack,
         run,
         copy: (text) => {
           void copy(text)
@@ -313,6 +318,17 @@ export function SongActionsProvider({
           )}
         </DialogContent>
       </Dialog>
+      {editTrack && (
+        <LocalTagEditorDialog
+          key={editTrack.key}
+          track={editTrack}
+          onClose={() => setEditTrack(undefined)}
+          onSaved={(updated) => {
+            setEditTrack(undefined)
+            onNotice(`已更新「${updated.title}」的标签。`)
+          }}
+        />
+      )}
     </SongActionsContext.Provider>
   )
 }
@@ -352,6 +368,10 @@ export function SongContextMenu({
   const status = id === undefined ? 'unknown' : favoriteStatus(id)
   const liked = status === 'liked'
   const unavailable = busy || !isTauri()
+  const editableLocal =
+    track.source.kind === 'local' &&
+    !track.source.cue &&
+    !track.source.path.toLowerCase().endsWith('.ncm')
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger render={render} tabIndex={0}>
@@ -447,6 +467,12 @@ export function SongContextMenu({
                   <Copy aria-hidden="true" />
                   复制文件路径
                 </ContextMenu.Item>
+                {editableLocal && !isAndroid() && !unavailable && (
+                  <ContextMenu.Item onClick={() => actions.edit(track)}>
+                    <Tags aria-hidden="true" />
+                    编辑标签
+                  </ContextMenu.Item>
+                )}
                 <ContextMenu.Item onClick={() => actions.details(track)}>
                   <Info aria-hidden="true" />
                   更多信息

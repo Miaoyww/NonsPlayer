@@ -60,6 +60,7 @@ pub enum Command {
         reply: tokio::sync::oneshot::Sender<AppResult<bool>>,
     },
     Queue(Vec<Track>, usize),
+    RefreshTrack(Track),
     FmQueue(Vec<Track>),
     AppendFm {
         session: u64,
@@ -1010,6 +1011,19 @@ impl Actor {
                 let index = self.state.index.unwrap_or(0);
                 self.state.reset_shuffle_order(Some(index));
                 self.load(index, true)?;
+            }
+            Command::RefreshTrack(track) => {
+                let queue = Arc::make_mut(&mut self.state.queue);
+                let mut changed = false;
+                for item in queue {
+                    if item.key == track.key {
+                        *item = track.clone();
+                        changed = true;
+                    }
+                }
+                if changed {
+                    self.publish();
+                }
             }
             Command::FmQueue(queue) => {
                 self.command_now(Command::Queue(queue, 0))?;

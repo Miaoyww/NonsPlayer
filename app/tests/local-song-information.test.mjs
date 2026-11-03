@@ -30,6 +30,7 @@ function harness(writeText = async () => {}) {
     '@/features/music/share-links': { trackShareLink: () => '' },
     '@/components/music/loading': { TextSkeleton: 'div' },
     '@/components/music/cover': { Cover: 'Cover' },
+    '@/features/local/tag-editor-dialog': { LocalTagEditorDialog: 'LocalTagEditorDialog' },
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
     react: {
       createContext: () => ({ Provider: 'Provider' }),

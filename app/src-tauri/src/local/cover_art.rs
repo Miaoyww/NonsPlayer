@@ -267,6 +267,19 @@ fn decode(bytes: &[u8]) -> Option<image::DynamicImage> {
     }
 }
 
+pub(super) fn valid_bytes(bytes: &[u8]) -> bool {
+    decode(bytes).is_some()
+}
+
+pub(super) fn thumbnail(bytes: &[u8], size: u32) -> Option<Vec<u8>> {
+    let mut output = Cursor::new(Vec::new());
+    decode(bytes)?
+        .thumbnail(size, size)
+        .write_to(&mut output, image::ImageFormat::Png)
+        .ok()?;
+    Some(output.into_inner())
+}
+
 pub(super) fn valid(path: &Path) -> bool {
     if let Some(result) = VALIDATION.with_borrow(|cache| {
         (cache.depth > 0)
