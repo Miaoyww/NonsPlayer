@@ -340,6 +340,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const [dialogError, setDialogError] = useState<string>()
+  const deleting = saving && editing === 'delete'
   useEffect(() => setDialogError(undefined), [editing])
   useEffect(() => {
     setInput(page.query)
@@ -348,7 +349,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
   const [detail, setDetail] = useState<{ identity: string; item: LocalEntity }>()
   const identity = `${initialCollection?.kind}:${initialCollection?.localId}`
   useEffect(() => {
-    if (!initialCollection || !isTauri()) return
+    if (!initialCollection || !isTauri() || deleting) return
     let disposed = false
     void nativeCall<LocalEntity>('local_entity_detail', {
       kind: initialCollection.kind,
@@ -361,7 +362,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
     return () => {
       disposed = true
     }
-  }, [initialCollection, identity, refresh, revision, onError])
+  }, [initialCollection, identity, refresh, revision, deleting, onError])
   const collection =
     detail?.identity === identity ? localCollection(detail.item) : initialCollection
   const loader = useCallback(
@@ -374,7 +375,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
       }),
     [collection?.kind, collection?.localId, refresh, revision]
   )
-  const list = usePagedList<Track>(loader, 100, isTauri() && !!collection, {
+  const list = usePagedList<Track>(loader, 100, isTauri() && !!collection && !deleting, {
     cacheKey: presentationKey('local-detail', collection?.kind, collection?.localId)
   })
   const player = usePlayer('index', 'queue')
