@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-03
+
+![NonsPlayer v1.11.0 本地标签编辑与歌曲下载头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.11.0/docs/release-assets/header.png)
+
+NonsPlayer 1.11.0 新增本地歌曲标签编辑与内嵌封面替换、Windows 原生歌曲下载与下载设置，并完善本地歌单、艺术家头像和歌曲详情体验。本次 Release 提供 **Windows x64、Linux x64 和 Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 ### 本地音乐
 
 - 本地音乐的“歌单”分类同时展示本地歌单与聚合歌单，并支持分别创建；本地歌单仅添加当前曲库中的本地歌曲。
