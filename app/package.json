@@ -22,6 +22,7 @@
     "verify": "pnpm format && pnpm test && pnpm build && pnpm format:check"
   },
   "dependencies": {
+    "@animate-ui/react": "^2.4.1",
     "@applemusic-like-lyrics/core": "^0.6.0",
     "@applemusic-like-lyrics/lyric": "^1.1.0",
     "@applemusic-like-lyrics/react": "^0.6.0",
@@ -40,7 +41,7 @@
     "fastpriorityqueue": "^0.8.0",
     "lru-cache": "^11.5.3",
     "lucide-react": "^1.48.0",
-    "motion": "^13.4.4",
+    "motion": "^14.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",

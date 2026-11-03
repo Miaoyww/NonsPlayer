@@ -5,6 +5,7 @@ import { isTauri } from '@tauri-apps/api/core'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { ExternalLink, FileText, Terminal } from 'lucide-react'
 import { UpdateCard } from '@/features/updates/update-provider'
+import { CountingNumber } from '@animate-ui/react/primitives/texts/counting-number'
 import appIcon from '../../../../app-icon.png'
 import { Button } from '@/components/ui/button'
 import { errorText, nativeCall } from '@/lib/player'
@@ -67,9 +68,18 @@ export function AboutPage({ version }: { version: string }) {
               <div key={label} className="flex min-w-0 flex-col-reverse gap-2 px-3">
                 <dt className="text-xs text-muted-foreground">{label}</dt>
                 <dd className="flex items-baseline justify-center gap-1.5">
-                  <span className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
-                    {hasStatistics ? Number(value).toLocaleString('en-US') : '暂无统计数据'}
-                  </span>
+                  {hasStatistics ? (
+                    <CountingNumber
+                      number={Number(value)}
+                      thousandSeparator=","
+                      inView
+                      className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl"
+                    />
+                  ) : (
+                    <span className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
+                      暂无统计数据
+                    </span>
+                  )}
                   {hasStatistics && <span className="text-xs text-muted-foreground">{unit}</span>}
                 </dd>
               </div>
