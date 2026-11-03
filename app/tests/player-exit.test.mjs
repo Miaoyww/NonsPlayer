@@ -54,6 +54,7 @@ function harness(initialMode = 'collapsible', storage) {
         AggregateLibraryProvider: 'AggregateLibraryProvider'
       },
       '@/features/updates/update-provider': { UpdateProvider: 'UpdateProvider' },
+      '@/features/downloads/download-provider': { DownloadProvider: 'DownloadProvider' },
       '@/features/workspace/use-android-window-layout': { useAndroidWindowLayout() {} },
       '@/features/lyrics/android-media-lyrics': { AndroidMediaLyrics: 'AndroidMediaLyrics' },
       '@/lib/platform': { isAndroid: () => false },

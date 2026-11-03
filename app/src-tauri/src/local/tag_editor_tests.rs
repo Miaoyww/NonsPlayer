@@ -147,6 +147,59 @@ fn writing_tags_updates_file_indexes_cover_and_queue_metadata() {
 }
 
 #[test]
+fn download_writer_persists_title_artist_album_and_cover() {
+    let fixture = Fixture::new();
+    let temporary = fixture.music.join("download.part");
+    wav(&temporary);
+    let cover_path = fixture.image();
+    let cover_bytes = std::fs::read(&cover_path).unwrap();
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&temporary)
+        .unwrap();
+    write_download_tags(
+        &mut file,
+        "下载标题",
+        "下载艺术家",
+        "下载专辑",
+        Some(&cover_bytes),
+    )
+    .unwrap();
+    drop(file);
+    let path = fixture.music.join("download.wav");
+    std::fs::rename(&temporary, &path).unwrap();
+
+    let tags = read_tags(&path.to_string_lossy()).unwrap();
+    assert_eq!(tags.title, "下载标题");
+    assert_eq!(tags.artist, "下载艺术家");
+    assert_eq!(tags.album, "下载专辑");
+    let tagged = Probe::open(&path).unwrap().read().unwrap();
+    assert_eq!(
+        tagged
+            .primary_tag()
+            .unwrap()
+            .get_picture_type(PictureType::CoverFront)
+            .unwrap()
+            .data(),
+        cover_bytes
+    );
+    let report = library::import(
+        vec![path.to_string_lossy().into_owned()],
+        fixture.store.clone(),
+        fixture.covers.clone(),
+        fixture.fallback.clone(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(report.imported, 1);
+    let tracks = fixture.store.local_tracks("", 0).unwrap();
+    assert!(tracks.iter().any(|track| {
+        track.title == "下载标题" && track.artist == "下载艺术家" && track.album == "下载专辑"
+    }));
+}
+
+#[test]
 fn empty_fields_and_removed_cover_clear_tags_and_restore_fallback() {
     let fixture = Fixture::new();
     let track = fixture.track();

@@ -31,6 +31,7 @@ pub(crate) struct Backend {
     pub(crate) fallback_cover: String,
     pub(crate) cache: Arc<lyric_cache::LyricCache>,
     pub(crate) folders: Arc<local_folders::LocalFolders>,
+    pub(crate) downloads: Arc<crate::downloads::Downloads>,
     pub(crate) cover_client: reqwest::Client,
     pub(crate) cover_requests: Arc<tokio::sync::Semaphore>,
     pub(crate) online_covers: Arc<crate::infrastructure::covers::CoverCache>,
@@ -1043,6 +1044,28 @@ pub fn run() {
             });
             #[cfg(feature = "plugin-probe")]
             plugins::probe::start(plugin_manager.clone());
+            let cover_client = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(8))
+                .redirect(reqwest::redirect::Policy::none())
+                .build()?;
+            let cover_requests = Arc::new(tokio::sync::Semaphore::new(8));
+            let cover_runtime = crate::infrastructure::covers::CoverRuntime::new(
+                music.adapters.clone(),
+                cover_client.clone(),
+                cover_requests.clone(),
+                online_covers.clone(),
+            );
+            let downloads = crate::downloads::Downloads::new(
+                app.handle().clone(),
+                store.clone(),
+                music.clone(),
+                plugin_manager.shared_http(),
+                cover_runtime,
+                folders.clone(),
+                data.join("downloads"),
+                data.join("temp").join("downloads"),
+            )?;
+            let downloads_startup = downloads.clone();
             let plugins_startup = tauri::async_runtime::spawn(async move {
                 plugin_manager.startup().await;
             });
@@ -1059,11 +1082,9 @@ pub fn run() {
                 fallback_cover: fallback.to_string_lossy().to_string(),
                 cache,
                 folders,
-                cover_client: reqwest::Client::builder()
-                    .timeout(std::time::Duration::from_secs(8))
-                    .redirect(reqwest::redirect::Policy::none())
-                    .build()?,
-                cover_requests: Arc::new(tokio::sync::Semaphore::new(8)),
+                downloads,
+                cover_client,
+                cover_requests,
                 online_covers,
             });
             let telemetry_app = app.handle().clone();
@@ -1075,6 +1096,7 @@ pub fn run() {
                 if let Err(error) = plugins {
                     crate::infrastructure::diagnostics::warn("plugins.startup.join", error);
                 }
+                downloads_startup.start();
                 crate::performance::startup_ready();
                 telemetry.report(telemetry_app, launch_time).await;
             });
@@ -1169,6 +1191,16 @@ pub fn run() {
             plugins::plugin_host_call,
             plugins::plugin_ready,
             plugins::plugin_fault,
+            crate::downloads::downloads_add,
+            crate::downloads::downloads_list,
+            crate::downloads::downloads_cancel,
+            crate::downloads::downloads_retry,
+            crate::downloads::downloads_remove,
+            crate::downloads::downloads_clear_finished,
+            crate::downloads::download_settings,
+            crate::downloads::set_download_quality,
+            crate::downloads::set_download_filename_format,
+            crate::downloads::open_download_directory,
             fonts::system_fonts,
             player_snapshot,
             listening_statistics,

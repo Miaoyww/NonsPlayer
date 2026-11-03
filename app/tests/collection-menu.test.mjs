@@ -71,6 +71,10 @@ function harness() {
     'lucide-react': {},
     '@/plugins/song-menu': { PluginSongMenuItems: () => null },
     '@/lib/player': {},
+    '@/lib/platform': { isAndroid: () => false, isWindows: () => true },
+    '@/features/downloads/download-provider': {
+      useDownloads: () => ({ start: async () => '已加入下载' })
+    },
     '@/features/library/library-api': {},
     '@/components/ui/dialog': {},
     '@/components/ui/button': {},
@@ -203,6 +207,10 @@ test('song favorite action precedes the divider and unavailable remove actions a
     'lucide-react': {},
     '@/plugins/song-menu': { PluginSongMenuItems: () => null },
     '@/lib/player': {},
+    '@/lib/platform': { isAndroid: () => false, isWindows: () => true },
+    '@/features/downloads/download-provider': {
+      useDownloads: () => ({ start: async () => '已加入下载' })
+    },
     '@/components/animate-ui/components/base/dialog': {},
     '@/components/music/action-button': {},
     '@/features/account/account': {

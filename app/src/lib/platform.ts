@@ -2,3 +2,7 @@
 export function isAndroid() {
   return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 }
+
+export function isWindows() {
+  return typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent)
+}

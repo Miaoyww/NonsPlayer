@@ -1,6 +1,7 @@
 import { GeneralPage } from './pages/general'
 import { PersonalizationPage } from './pages/personalization'
 import { PlaybackPage } from './pages/playback'
+import { DownloadPage } from './pages/download'
 import { LyricsPage } from './pages/lyrics'
 import { LocalCachePage } from './pages/local-cache'
 import { AdaptersPage } from './pages/adapters'
@@ -29,6 +30,8 @@ export function SettingsContent({
       return <PersonalizationPage theme={theme} onThemeChange={onThemeChange} />
     case 'playback':
       return <PlaybackPage />
+    case 'download':
+      return <DownloadPage />
     case 'lyrics':
       return <LyricsPage />
     case 'local-cache':

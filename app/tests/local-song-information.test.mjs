@@ -61,7 +61,7 @@ function harness(writeText = async () => {}) {
         }
       }
     },
-    '@/lib/platform': { isAndroid: () => false },
+    '@/lib/platform': { isAndroid: () => false, isWindows: () => true },
     '@tauri-apps/api/core': { isTauri: () => true },
     '@tauri-apps/plugin-clipboard-manager': {
       writeText: async (value) => {
@@ -72,6 +72,9 @@ function harness(writeText = async () => {}) {
     '@base-ui/react/context-menu': { ContextMenu: {} },
     'lucide-react': {},
     '@/plugins/song-menu': { PluginSongMenuItems: () => null },
+    '@/features/downloads/download-provider': {
+      useDownloads: () => ({ start: async () => '已加入下载' })
+    },
     '@/features/aggregate/aggregate-playlist-picker': {
       AggregatePlaylistPicker: 'AggregatePlaylistPicker'
     },

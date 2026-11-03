@@ -13,7 +13,11 @@ use lofty::{
     tag::{ItemKey, Tag},
 };
 use serde::{Deserialize, Serialize};
-use std::{io::Cursor, path::Path, str::FromStr};
+use std::{
+    io::{Cursor, Seek},
+    path::Path,
+    str::FromStr,
+};
 use tauri::{Emitter, State};
 
 const MAX_TEXT_BYTES: usize = 16 * 1024;
@@ -170,7 +174,18 @@ fn write_tags(
 ) -> AppResult<Track> {
     let track = store.track(key)?;
     let path = editable_path(&track)?;
-    validate(&update)?;
+    let values = TagValues {
+        title: &update.title,
+        artist: &update.artist,
+        album_artist: &update.album_artist,
+        album: &update.album,
+        year: &update.year,
+        track_number: update.track_number,
+        disc_number: update.disc_number,
+        genre: &update.genre,
+        comment: &update.comment,
+    };
+    validate_values(&values)?;
     let cover = match &update.cover {
         CoverChange::Keep => None,
         CoverChange::Remove => Some(None),
@@ -190,36 +205,8 @@ fn write_tags(
         .map_err(|error| format!("无法打开音频文件：{error}"))?
         .read()
         .map_err(|error| format!("无法读取音频标签：{error}"))?;
-    if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
-        let tag_type = tagged.primary_tag_type();
-        let _ = tagged.insert_tag(Tag::new(tag_type));
-    }
-    let tag = match tagged.primary_tag_mut() {
-        Some(tag) => tag,
-        None => tagged.first_tag_mut().ok_or("当前音频格式不支持写入标签")?,
-    };
-
-    set_text(tag, ItemKey::TrackTitle, &update.title);
-    set_text(tag, ItemKey::TrackArtist, &update.artist);
-    set_text(tag, ItemKey::AlbumArtist, &update.album_artist);
-    set_text(tag, ItemKey::AlbumTitle, &update.album);
-    set_text(tag, ItemKey::Genre, &update.genre);
-    set_text(tag, ItemKey::Comment, &update.comment);
-    if update.year.is_empty() {
-        tag.remove_date();
-    } else {
-        tag.set_date(parse_year(&update.year)?);
-    }
-    if let Some(track_number) = update.track_number {
-        tag.set_track(track_number);
-    } else {
-        tag.remove_track();
-    }
-    if let Some(disc_number) = update.disc_number {
-        tag.set_disk(disc_number);
-    } else {
-        tag.remove_disk();
-    }
+    let tag = ensure_tag(&mut tagged)?;
+    apply_values(tag, &values)?;
     if let Some(picture) = cover {
         while !tag.pictures().is_empty() {
             tag.remove_picture(0);
@@ -233,6 +220,108 @@ fn write_tags(
 
     refresh_track(store, covers, fallback, key, &path)
         .map_err(|error| format!("标签已写入文件，但曲库刷新失败：{error}"))
+}
+
+pub(crate) fn write_download_tags(
+    file: &mut std::fs::File,
+    title: &str,
+    artist: &str,
+    album: &str,
+    cover: Option<&[u8]>,
+) -> AppResult<()> {
+    let title = clip(title);
+    let artist = clip(artist);
+    let album = clip(album);
+    let values = TagValues {
+        title: &title,
+        artist: &artist,
+        album_artist: "",
+        album: &album,
+        year: "",
+        track_number: None,
+        disc_number: None,
+        genre: "",
+        comment: "",
+    };
+    validate_values(&values)?;
+    let picture = cover
+        .map(|bytes| {
+            let mut picture = Picture::from_reader(&mut Cursor::new(bytes))
+                .map_err(|error| format!("封面图片格式不受支持：{error}"))?;
+            picture.set_pic_type(PictureType::CoverFront);
+            Ok::<_, String>(picture)
+        })
+        .transpose()?;
+    file.rewind().map_err(|error| error.to_string())?;
+    let mut tagged = Probe::new(&mut *file)
+        .guess_file_type()
+        .map_err(|error| format!("无法识别音频格式：{error}"))?
+        .read()
+        .map_err(|error| format!("无法读取音频标签：{error}"))?;
+    let tag = ensure_tag(&mut tagged)?;
+    apply_values(tag, &values)?;
+    if let Some(picture) = picture {
+        while !tag.pictures().is_empty() {
+            tag.remove_picture(0);
+        }
+        tag.push_picture(picture);
+    }
+    file.rewind().map_err(|error| error.to_string())?;
+    tag.save_to(&mut *file, WriteOptions::default())
+        .map_err(|error| format!("无法写入音频标签：{error}"))?;
+    file.sync_all().map_err(|error| error.to_string())
+}
+
+struct TagValues<'a> {
+    title: &'a str,
+    artist: &'a str,
+    album_artist: &'a str,
+    album: &'a str,
+    year: &'a str,
+    track_number: Option<u32>,
+    disc_number: Option<u32>,
+    genre: &'a str,
+    comment: &'a str,
+}
+
+fn ensure_tag(tagged: &mut lofty::file::TaggedFile) -> AppResult<&mut Tag> {
+    if tagged.primary_tag().is_none() && tagged.first_tag().is_none() {
+        let tag_type = tagged.primary_tag_type();
+        let _ = tagged.insert_tag(Tag::new(tag_type));
+    }
+    if tagged.primary_tag().is_some() {
+        return tagged
+            .primary_tag_mut()
+            .ok_or_else(|| "当前音频格式不支持写入标签".into());
+    }
+    tagged
+        .first_tag_mut()
+        .ok_or_else(|| "当前音频格式不支持写入标签".into())
+}
+
+fn apply_values(tag: &mut Tag, values: &TagValues<'_>) -> AppResult<()> {
+    set_text(tag, ItemKey::TrackTitle, values.title);
+    set_text(tag, ItemKey::TrackArtist, values.artist);
+    set_text(tag, ItemKey::AlbumArtist, values.album_artist);
+    set_text(tag, ItemKey::AlbumTitle, values.album);
+    set_text(tag, ItemKey::Genre, values.genre);
+    set_text(tag, ItemKey::Comment, values.comment);
+    if values.year.is_empty() {
+        tag.remove_date();
+    } else {
+        tag.set_date(parse_year(values.year)?);
+    }
+    if let Some(track_number) = values.track_number {
+        tag.set_track(track_number);
+    } else {
+        tag.remove_track();
+    }
+    if let Some(disc_number) = values.disc_number {
+        tag.set_disk(disc_number);
+    } else {
+        tag.remove_disk();
+    }
+    Ok(())
 }
 
 fn refresh_track(
@@ -276,15 +365,15 @@ fn parse_year(value: &str) -> AppResult<lofty::tag::items::Timestamp> {
     Ok(timestamp)
 }
 
-fn validate(update: &LocalTrackTagUpdate) -> AppResult<()> {
+fn validate_values(values: &TagValues<'_>) -> AppResult<()> {
     for (name, value) in [
-        ("标题", update.title.as_str()),
-        ("艺术家", update.artist.as_str()),
-        ("专辑艺术家", update.album_artist.as_str()),
-        ("专辑", update.album.as_str()),
-        ("年份", update.year.as_str()),
-        ("流派", update.genre.as_str()),
-        ("备注", update.comment.as_str()),
+        ("标题", values.title),
+        ("艺术家", values.artist),
+        ("专辑艺术家", values.album_artist),
+        ("专辑", values.album),
+        ("年份", values.year),
+        ("流派", values.genre),
+        ("备注", values.comment),
     ] {
         if value.len() > MAX_TEXT_BYTES {
             return Err(format!("{name}过长，最多 {MAX_TEXT_BYTES} 字节"));
@@ -293,10 +382,21 @@ fn validate(update: &LocalTrackTagUpdate) -> AppResult<()> {
             return Err(format!("{name}包含无效字符"));
         }
     }
-    if update.track_number == Some(0) || update.disc_number == Some(0) {
+    if values.track_number == Some(0) || values.disc_number == Some(0) {
         return Err("曲目号与碟号必须大于 0".into());
     }
     Ok(())
+}
+
+fn clip(value: &str) -> String {
+    if value.len() <= MAX_TEXT_BYTES {
+        return value.to_owned();
+    }
+    let mut end = MAX_TEXT_BYTES;
+    while !value.is_char_boundary(end) {
+        end -= 1;
+    }
+    value[..end].to_owned()
 }
 
 fn cover_bytes(path: &Path) -> AppResult<Vec<u8>> {

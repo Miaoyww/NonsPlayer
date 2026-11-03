@@ -1,4 +1,4 @@
-import { isAndroid } from '@/lib/platform'
+import { isAndroid, isWindows } from '@/lib/platform'
 import { getShortcutStatus, shortcutActions } from '@/features/playback/shortcuts/shortcuts'
 import type { SettingsSection } from './settings-sections'
 
@@ -61,6 +61,15 @@ const groups: SearchGroup[] = [
       ['quality-downgrade', '允许音质降级', '不可用'],
       ['playback-fades', '播放/暂停渐变', '淡入 淡出 过渡'],
       ['crossfade', '交叉淡入淡出', 'WebAudio 自动切歌 重叠 过渡时长']
+    ]
+  },
+  {
+    section: 'download',
+    path: '下载设置',
+    items: [
+      ['download-directory', '下载目录', '保存位置 downloads 本地音乐库 索引'],
+      ['download-filename-format', '文件名格式', '命名 歌曲名 歌手 艺术家 分隔符'],
+      ['download-quality', '下载音质', '标准 较高 极高 无损 Hi-Res']
     ]
   },
   {
@@ -185,6 +194,7 @@ export function getSettingsSearchItems(): SettingsSearchItem[] {
       items.map(([id, title, keywords]) => ({ id, section, title, path, keywords }))
     )
     .filter(({ id }) => !isAndroid() || !desktopOnly.has(id))
+    .filter(({ section }) => isWindows() || section !== 'download')
   if (getShortcutStatus().settings.enabled) {
     items.push(
       ...shortcutActions.map(([action, title]) => ({

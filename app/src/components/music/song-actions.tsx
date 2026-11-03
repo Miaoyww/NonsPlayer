@@ -12,6 +12,7 @@ import { ContextMenu } from '@base-ui/react/context-menu'
 import {
   ChevronRight,
   Copy,
+  Download,
   Ellipsis,
   FolderOpen,
   FolderPlus,
@@ -37,7 +38,7 @@ import {
 import { isTauri } from '@tauri-apps/api/core'
 import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 import { nativeCall, formatTime, errorText, type Track } from '@/lib/player'
-import { isAndroid } from '@/lib/platform'
+import { isAndroid, isWindows } from '@/lib/platform'
 import {
   Dialog,
   DialogDescription,
@@ -48,6 +49,7 @@ import {
 import { ActionButton } from '@/components/music/action-button'
 import { useAccount } from '@/features/account/account'
 import { LocalTagEditorDialog } from '@/features/local/tag-editor-dialog'
+import { useDownloads } from '@/features/downloads/download-provider'
 
 interface LocalInformation {
   trackNumber: number | null
@@ -353,6 +355,7 @@ export function SongContextMenu({
   onLocate?: () => void
 }) {
   const actions = useSongActions()
+  const downloads = useDownloads()
   const {
     profile,
     favoriteStatus,
@@ -403,6 +406,19 @@ export function SongContextMenu({
               >
                 <ListPlus aria-hidden="true" />
                 下一首播放
+              </ContextMenu.Item>
+            )}
+            {!unavailable && isWindows() && track.source.kind === 'online' && (
+              <ContextMenu.Item
+                onClick={() =>
+                  actions.run(
+                    () => downloads.start(track),
+                    (result) => (typeof result === 'string' ? result.slice(0, 512) : undefined)
+                  )
+                }
+              >
+                <Download aria-hidden="true" />
+                下载
               </ContextMenu.Item>
             )}
             {!unavailable && canToggleLike !== false && id !== undefined && profile && (

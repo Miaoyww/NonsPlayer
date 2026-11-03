@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { SettingsDialog } from '@/features/settings/settings-dialog'
 import { ToolsDialog } from '@/features/tools/tools-dialog'
+import { DownloadProgressButton } from '@/features/downloads/download-progress-button'
 import { AccountMenu } from '@/features/account/account-menu'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { MusicSearch } from '@/features/search/music-search'
@@ -229,6 +230,7 @@ export function Titlebar({
           <div className="flex h-full shrink-0 items-center gap-1 pr-1.5">
             <div className={playerMode ? 'hidden' : 'flex items-center gap-1'}>
               {!isAndroid() && <AccountMenu />}
+              <DownloadProgressButton />
               {isAndroid() && !playerMode && (
                 <Button
                   variant="ghost"

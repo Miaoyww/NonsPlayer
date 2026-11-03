@@ -12,6 +12,7 @@ import { useAndroidWindowLayout } from '@/features/workspace/use-android-window-
 import { AndroidMediaLyrics } from '@/features/lyrics/android-media-lyrics'
 import { isAndroid } from '@/lib/platform'
 import { UpdateProvider } from '@/features/updates/update-provider'
+import { DownloadProvider } from '@/features/downloads/download-provider'
 import { WelcomePage } from '@/features/onboarding/welcome-page'
 import { hasCompletedWelcome, openWelcomeEvent } from '@/features/onboarding/welcome-state'
 import { useEffect } from 'react'
@@ -46,35 +47,39 @@ function App() {
             <AggregateLibraryProvider>
               <MusicNavigationProvider>
                 <PluginProvider>
-                  <div
-                    className={`app-shell relative flex h-dvh flex-col overflow-hidden text-foreground ${welcomeOpen ? 'welcome-app-shell' : 'bg-background'} ${nowPlaying ? 'now-playing' : ''}`}
-                  >
-                    {welcomeOpen ? (
-                      <>
-                        <WelcomeTitlebar />
-                        <WelcomePage onComplete={completeWelcome} />
-                      </>
-                    ) : (
-                      <>
-                        <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
-                        <MusicWorkspace
-                          nowPlaying={nowPlaying}
-                          playerVisible={playerPhase !== 'closed'}
-                          onNowPlayingChange={setNowPlaying}
-                          onPlayerExitComplete={() =>
-                            setPlayerPhase((phase) => (phase === 'closing' ? 'closed' : phase))
-                          }
-                        />
-                        <div
-                          className="pointer-events-none absolute inset-x-0 top-16 z-50 flex flex-col items-center gap-2"
-                          aria-hidden={playerPhase !== 'closed'}
-                          style={{ visibility: playerPhase !== 'closed' ? 'hidden' : undefined }}
-                        >
-                          <PluginSlot name="main.overlay" />
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <DownloadProvider>
+                    <div
+                      className={`app-shell relative flex h-dvh flex-col overflow-hidden text-foreground ${welcomeOpen ? 'welcome-app-shell' : 'bg-background'} ${nowPlaying ? 'now-playing' : ''}`}
+                    >
+                      {welcomeOpen ? (
+                        <>
+                          <WelcomeTitlebar />
+                          <WelcomePage onComplete={completeWelcome} />
+                        </>
+                      ) : (
+                        <>
+                          <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
+                          <MusicWorkspace
+                            nowPlaying={nowPlaying}
+                            playerVisible={playerPhase !== 'closed'}
+                            onNowPlayingChange={setNowPlaying}
+                            onPlayerExitComplete={() =>
+                              setPlayerPhase((phase) => (phase === 'closing' ? 'closed' : phase))
+                            }
+                          />
+                          <div
+                            className="pointer-events-none absolute inset-x-0 top-16 z-50 flex flex-col items-center gap-2"
+                            aria-hidden={playerPhase !== 'closed'}
+                            style={{
+                              visibility: playerPhase !== 'closed' ? 'hidden' : undefined
+                            }}
+                          >
+                            <PluginSlot name="main.overlay" />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </DownloadProvider>
                 </PluginProvider>
               </MusicNavigationProvider>
             </AggregateLibraryProvider>

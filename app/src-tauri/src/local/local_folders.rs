@@ -275,6 +275,26 @@ impl LocalFolders {
         self.changed();
         Ok(())
     }
+    pub fn index_file(&self, path: String, origin: String) -> AppResult<crate::model::Track> {
+        let _scan = self
+            .scans
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn(
+                    "local.folders.index_file.scans_lock",
+                    error,
+                );
+            })
+            .map_err(|_| "目录扫描锁不可用")?;
+        let track =
+            library::read_track(Path::new(&path), &self.covers, &self.fallback, &self.store)?;
+        self.store.save_tracks(std::slice::from_ref(&track))?;
+        self.store
+            .mark_origin(std::slice::from_ref(&track), &origin)?;
+        self.store.refresh_local_albums()?;
+        self.changed();
+        Ok(track)
+    }
     pub fn remove(&self, path: String) -> AppResult<()> {
         #[cfg(target_os = "android")]
         let _mutation = super::source::android::mutation_guard()?;

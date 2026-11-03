@@ -25,6 +25,7 @@ function harness(playerMode = false) {
     '@/components/ui/button': { Button: 'button' },
     '@/features/settings/settings-dialog': { SettingsDialog: 'settings' },
     '@/features/tools/tools-dialog': { ToolsDialog: 'tools' },
+    '@/features/downloads/download-progress-button': { DownloadProgressButton: () => null },
     '@/features/account/account-menu': { AccountMenu: 'account' },
     '@/features/workspace/music-navigation': {
       useMusicNavigation: () => ({ page: { view: 'library' }, navigate() {} })

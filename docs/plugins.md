@@ -1,19 +1,19 @@
 # 插件开发与使用
 
-Nons 在现有播放器上增量提供 `Manifest + WASM Backend + React Frontend + Contributions`。网易云由默认随包的独立原生适配器提供，功能插件调用统一音乐服务，不接管来源注册或播放核心。灵动岛、下载与转换插件在各自独立仓库维护，通过插件管理安装。
+Nons 在现有播放器上增量提供 `Manifest + WASM Backend + React Frontend + Contributions`。网易云由默认随包的独立原生适配器提供，功能插件调用统一音乐服务，不接管来源注册或播放核心。灵动岛与转换插件在各自独立仓库维护，通过插件管理安装；应用内下载由 Windows 原生功能提供。
 
 ## 架构与文件
 
-| 部分         | 位置与职责                                                                                                                                                                                                            |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rust Host    | `app/src-tauri/src/plugins/`：Manifest、安装、管理、Wasmtime、权限、事件、存储、剪贴板与资源协议                                                                                                                      |
-| 公共 ABI     | `plugins/wit/plugin.wit`：`nons:plugin@1.0.0`；Guest 初始化、关闭、方法调用；Host 高层 Capability                                                                                                                     |
-| React Host   | `app/src/plugins/`：动态模块、贡献 registry、PluginSlot、PluginPageHost、生命周期与 SDK                                                                                                                               |
-| 公共类型     | `packages/plugin-sdk/`：发布为 `@nonsplayer/plugin-sdk`，含类型、WIT、Manifest schema 与构建 CLI，不引用宿主源码                                                                                                      |
-| 真实插件     | `netease-island` 独立仓库：Rust Component 与 React UI，通过公开 SDK 构建                                                                                                                                              |
-| 非随包插件   | [ncm-converter](https://github.com/Miaoyww/ncm-converter)、[netease-download](https://github.com/Miaoyww/netease-download)：源码、测试与 Release 在各自仓库；注册信息在[插件目录](https://github.com/Miaoyww/plugins) |
-| 构建         | `scripts/build-plugin.mjs`、`plugin-build-ui.mjs`、`package-plugin.py`：两端构建、React 外部化与 ZIP                                                                                                                  |
-| 测试 fixture | `plugins/runtime-fixture/`：资源耗尽／错误验证，不随包安装                                                                                                                                                            |
+| 部分         | 位置与职责                                                                                                                                           |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rust Host    | `app/src-tauri/src/plugins/`：Manifest、安装、管理、Wasmtime、权限、事件、存储、剪贴板与资源协议                                                     |
+| 公共 ABI     | `plugins/wit/plugin.wit`：`nons:plugin@1.0.0`；Guest 初始化、关闭、方法调用；Host 高层 Capability                                                    |
+| React Host   | `app/src/plugins/`：动态模块、贡献 registry、PluginSlot、PluginPageHost、生命周期与 SDK                                                              |
+| 公共类型     | `packages/plugin-sdk/`：发布为 `@nonsplayer/plugin-sdk`，含类型、WIT、Manifest schema 与构建 CLI，不引用宿主源码                                     |
+| 真实插件     | `netease-island` 独立仓库：Rust Component 与 React UI，通过公开 SDK 构建                                                                             |
+| 非随包插件   | [ncm-converter](https://github.com/Miaoyww/ncm-converter)：源码、测试与 Release 在独立仓库；注册信息在[插件目录](https://github.com/Miaoyww/plugins) |
+| 构建         | `scripts/build-plugin.mjs`、`plugin-build-ui.mjs`、`package-plugin.py`：两端构建、React 外部化与 ZIP                                                 |
+| 测试 fixture | `plugins/runtime-fixture/`：资源耗尽／错误验证，不随包安装                                                                                           |
 
 宿主启动、IPC 和协议注册接入原 `lib.rs`；音乐读取经统一 MusicService／AdapterManager 路由到内置网易云适配器。App 增加通用 Provider／Slot，已有工作区和导航增加插件页面分支，设置增加插件管理。Theme 共享原偏好与 CSS tokens，播放 facade 订阅原状态及进度，不创建另一套播放器。
 
@@ -294,13 +294,15 @@ cd ..
 本机 Windows x64、Rust 1.95 的检查结果记录在 `docs/implementation.md`。开发构建体积和单次端到端时间不能代表 Release 内存／响应预算；没有据此宣称插件平台“极轻”或“极快”。
 配置编辑页面、配置 API 和目录授权见 [插件配置开发](plugin-configuration.md)。
 
-## 歌曲菜单与独立下载插件
+## 歌曲菜单与下载
 
 插件 API／UI API 1.1.0 增加歌曲菜单贡献；1.2.0 增加账户凭证、下载管理组件及暂停／继续传输。`contextMenus` 每插件最多 16 项，格式为 `{id,target:"song",source:"netease"或"local",label,export}`。宿主按曲目的真实来源筛选；本地音乐绑定的网易云歌词 ID 不改变来源。贡献处理方法接收 `(song, client)`；song 只含公开元数据及 `{kind:"netease",id}`／`{kind:"local"}`，不交付本地路径。
 
 菜单项使用可选 `icon` 图标标识，当前支持 `download`（Download）和 `layout-grid`（LayoutGrid）；省略或未知标识默认显示 LayoutGrid。标识遵循 manifest 的 ID 格式限制；新增菜单的图标要求见 [项目约束](architecture.md#页面-shell-与滚动)。
 
 可选 `activate(client)` 在模块加载时调用，旧的无参 activate 保持兼容。client 提供绑定身份和加载代次的 `call(operation,args)`、`openPage(path?)` 和 `openConfiguration()`；同样受宿主权限与取消检查。处理方法可返回提示文字，宿主复用歌曲操作通知显示。菜单点击不改变播放队列、不预取音频地址，停用立即撤销贡献，旧异步结果不可发布。
+
+应用内下载由 Windows 原生下载提供：在线歌曲右键菜单选择“下载”，下载进度弹窗显示任务、取消、重试和清理记录。下载目录固定为应用数据目录下的 `downloads`，设置 → 下载设置配置下载音质与文件名格式；完成后写入标题、艺术家、专辑与内嵌封面标签，并自动加入本地音乐库。第三方插件仍可通过歌曲菜单贡献自己的动作，但不再承担应用内下载入口。
 
 新增通用操作：
 
@@ -313,21 +315,6 @@ cd ..
 | `files.publish`          | 目标根文件权限；`{root,path,to}`，使用同根 hard link 后移除临时文件，目标存在时失败，避免覆盖。文件系统须支持硬链接（Windows 推荐 NTFS）。                              |
 
 传输每插件最多 2 个、全局最多 8 个，最多保留 128 个状态；单文件上限 512MiB、累计网络读取等待 10 分钟、连接／单次读取期限 30 秒；暂停不计入读取等待，单连接最多保留 24 小时。文件块在阻塞线程写入，文件权限撤销会关闭句柄，后续写入和发布被拒绝。实例停用取消网络操作；授权撤销或停用后可能保留未完成 `.part`，不越权清理外部目录。
-
-`netease-download` 是独立前端插件，源码位于 [Miaoyww/netease-download](https://github.com/Miaoyww/netease-download)，不默认构建或随安装包分发。网易云 EAPI 协议、下载资格与音质选择全部在插件内；账号复用宿主显式授权的实时凭证，插件不另建登录。不调用本体播放 URL 或导出播放缓存。通过下载接口选择资源，拒绝试听和低于最低音质的资源；凭据与 URL 只在下载流程内存中使用，不写插件存储。
-
-在插件仓库执行：
-
-```powershell
-pnpm install
-pnpm build
-```
-
-在插件管理中安装 `netease-download-<版本>.zip` 并授权。配置默认音质、允许降级、最低音质与授权保存目录；右键网易云歌曲选择“下载”。缺少目录时打开插件配置；缺少账号时提示在 NonsPlayer 登录，所选歌曲保留。配置完成后继续等待任务。下载管理只有已下载单曲／正在下载分类，支持歌名、歌手、专辑搜索及打开授权目录；每项可暂停、继续和删除，没有独立扫码、歌曲链接／ID 输入框或批量操作，页面关闭后下载继续。新增凭证权限需重新安装并授权新版插件。
-
-队列正常串行，暂停后允许下一项继续，最多两个传输（含暂停）并存；最多保留 32 项，新任务保存配置快照；修改设置只影响新任务与显式重试。重复添加待处理歌曲去重。先传输 `.part`，核对预期大小和音频头后以实际格式发布；重名失败不覆盖。重启后的中断任务显示重试，重新解析 URL 并从头下载，不承诺续传。完成文件不进入播放缓存，已有本地音乐目录同步可正常收录；目录授权不会自动加入曲库。
-
-验证包括 EAPI 独立加密向量、音质与权限失败、在线／本地菜单来源、队列去重与配置快照，以及 Rust 文件传输、取消、目录撤权和不覆盖测试。真实账号下载需交互验收；macOS/Linux 与非 NTFS 目录仍需对应环境验证。
 
 ### API 1.2.0 下载管理能力
 
@@ -364,6 +351,6 @@ function SearchButton() {
 
 EntityRef 使用 `{source,kind,id}`，ID 为不透明字符串；调用 getTrack 时传完整引用。分页结果 nextCursor 原样回传，不能从它推导 offset；变更查询、账号、实例或写入后从首页重新读取。业务结果为 `{type,data}`，错误为稳定 MusicError。插件响应已无 64KiB host.call 上限，但管理器仍按 2MiB 处理业务结果，在支持可变页数的操作中应按需降低 limit；内置网易云分类搜索、歌手专辑、收藏列表和推荐歌单当前要求 limit=30，超出插件返回预算时不能靠截断结果隐藏错误。普通插件不能调用账号管理或取得临时播放 URL、请求头和原始凭据。
 
-插件 API / UI API 2.0.0 使用统一来源引用、曲目 DTO 和播放接口。上述旧数字歌曲接口与平台账号接口已删除。灵动岛插件保留其网易云链接识别业务，但通过 `music.read-track` 与 `music.play-track` 访问音乐服务；专用下载插件通过显式通用凭据权限读取分块，在插件内部解释 Cookie 并执行 EAPI。
+插件 API / UI API 2.0.0 使用统一来源引用、曲目 DTO 和播放接口。上述旧数字歌曲接口与平台账号接口已删除。灵动岛插件保留其网易云链接识别业务，但通过 `music.read-track` 与 `music.play-track` 访问音乐服务；第三方下载插件通过显式通用凭据权限读取分块，在插件内部解释 Cookie 并执行 EAPI。
 
 这组能力是功能插件消费宿主的客户端接口。阶段四外部测试 ABI 的方法、范围与执行预算见 [阶段四记录](music-adapters.md#阶段四修改记录与注意事项2026-10-10)；桌面端本地包安装已接线，完整外部登录展示和真实平台验证仍待补齐。通用客户端的修改和兼容注意事项见 [阶段三记录](music-adapters.md#阶段三修改记录与注意事项2026-10-10)。

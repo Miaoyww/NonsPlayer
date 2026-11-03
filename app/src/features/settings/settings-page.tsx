@@ -4,14 +4,17 @@ import { SettingsContent } from './settings-content'
 import { settingsSections } from './settings-sections'
 import { useTheme } from './use-theme'
 import { SettingsHome } from './settings-home'
-import { isAndroid } from '@/lib/platform'
+import { isAndroid, isWindows } from '@/lib/platform'
 
 export default function SettingsPage() {
   const { page, navigate } = useMusicNavigation()
   const [theme, setTheme] = useTheme()
   const [sectionId, ...pluginParts] = page.query.split('/')
   const section = settingsSections.find(
-    (item) => item.id === sectionId && !(isAndroid() && item.id === 'shortcuts')
+    (item) =>
+      item.id === sectionId &&
+      !(isAndroid() && item.id === 'shortcuts') &&
+      (isWindows() || item.id !== 'download')
   )
   return (
     <MusicPage

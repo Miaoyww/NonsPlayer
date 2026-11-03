@@ -1,6 +1,7 @@
 mod aggregate;
 mod application;
 mod discovery;
+mod downloads;
 mod infrastructure;
 mod local;
 mod lyrics;
