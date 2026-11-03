@@ -1,6 +1,6 @@
 # GitHub Release CI
 
-发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64、Android ARM64 试用 APK 和 Linux x64 安装包，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。Windows 测试签名由独立的 [.github/workflows/signpath-test.yml](../.github/workflows/signpath-test.yml) 定义，可在 GitHub Actions 中手动触发，构建 Windows 主程序并使用 SignPath `test-signing` 策略签名，成功后提供带测试签名的 `Nons.exe` Actions Artifact；该流程不创建 GitHub Release。插件 SDK 发布由独立的 [.github/workflows/publish-plugin-sdk.yml](../.github/workflows/publish-plugin-sdk.yml) 定义，支持版本标签自动运行，也可在 GitHub Actions 中手动触发；手动运行会发布 `packages/plugin-sdk/package.json` 当前版本。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址；Linux 与 Android 当前仅发布附件，不接入自动更新。
+发布流程由 [.github/workflows/publish.yml](../.github/workflows/publish.yml) 定义：推送 `v<主版本>.<次版本>.<补丁版本>` 标签后并行构建 Windows x64、Android ARM64 试用 APK 和 Linux x64 安装包，上传 Actions Artifact，再发布到 GitHub Release 与 Cloudflare R2。分支 push 由 [.github/workflows/ci.yml](../.github/workflows/ci.yml) 运行前端、原生库和发布脚本测试；发布流程不重复执行这些测试。Windows 测试签名由独立的 [.github/workflows/signpath-test.yml](../.github/workflows/signpath-test.yml) 定义，可在 GitHub Actions 中手动触发，构建 Windows 主程序并使用 SignPath `test-signing` 策略签名，成功后提供带测试签名的 `Nons.exe` Actions Artifact；该流程不创建 GitHub Release。插件 SDK 发布由独立的 [.github/workflows/publish-plugin-sdk.yml](../.github/workflows/publish-plugin-sdk.yml) 定义，支持版本标签自动运行，也可在 GitHub Actions 中手动触发；手动运行会发布 `packages/plugin-sdk/package.json` 当前版本。Windows x64 安装版通过 Tauri updater 插件更新，便携版仅提示并打开压缩包下载地址；Linux 与 Android 当前仅发布附件，不接入自动更新。
 
 ## 发布前准备
 
@@ -42,12 +42,12 @@ node scripts/release-version.mjs 1.10.0 --dry-run
 
 ## CI 执行内容
 
-- 固定 Windows runner、Rust 1.95.0、Node 24、pnpm 10、Python 3.12 与 cargo-component 0.21.1；前端安装和 Rust 构建使用锁文件。
+- 发布构建与 push CI 固定 Rust 1.95.0、Node 24、pnpm 10 与 Python 3.12；push CI 额外固定 cargo-component 0.21.1。测试在 Windows runner 与 Ubuntu runner 上运行，前端安装和 Rust 构建使用锁文件。
 - 独立的 SDK workflow 在 Ubuntu 上安装 `packages/plugin-sdk` 锁文件依赖、运行测试，并在 npm 上不存在当前版本时发布 `@nonsplayer/plugin-sdk`；它同时支持版本标签自动运行和 `workflow_dispatch` 手动运行。
 - 校验标签与四处应用版本一致，必须存在非空的对应发布说明；不使用 Unreleased 代替。
-- Windows job 检查格式，运行 `pnpm --dir app test`、发布脚本测试与 `cargo test --manifest-path app/src-tauri/Cargo.toml --lib --locked`；原生库测试前以 `cargo install cargo-component --version 0.21.1 --locked` 安装 fixture 构建工具，再运行 `pnpm --dir app plugins:fixtures` 构建实际 WASM fixture。
+- push CI 在 Windows 上运行 `pnpm --dir app test` 与 `cargo test --manifest-path app/src-tauri/Cargo.toml --lib --locked`，在 Ubuntu 上运行 `python -m unittest discover -s scripts/tests`；原生库测试前以 `cargo install cargo-component --version 0.21.1 --locked` 安装 fixture 构建工具，再运行 `pnpm --dir app plugins:fixtures` 构建实际 WASM fixture。发布流程的 Windows job 保留格式检查，不重复运行测试。
 - 桌面构建设置 `FFMPEG_MODE=bundled`，使用 `ffmpeg_audio 0.3.1`／`ffmpeg_audio_sys 0.1.2` 静态编译 FFmpeg，输出由 `CPAL 0.18.2` 负责；不要求用户安装 FFmpeg 共享库。两项 FFmpeg crate 均为 GPL-3.0-only，与项目 GPL-3.0 许可兼容。
-- Windows job 设置 `LIBCLANG_PATH=C:\Program Files\LLVM\bin`，在原生库测试前检查该目录中的 `libclang.dll`；FFmpeg 的 bindgen 绑定生成需要 LLVM/libclang，本机开发也需设置对应路径。
+- Windows 发布构建与 push CI 的原生库测试都设置 `LIBCLANG_PATH=C:\Program Files\LLVM\bin`，并在构建或测试前检查该目录中的 `libclang.dll`；FFmpeg 的 bindgen 绑定生成需要 LLVM/libclang，本机开发也需设置对应路径。
 - Linux job 在既有 Tauri 系统依赖之外准备 `libasound2-dev`、`libdbus-1-dev`、`libpipewire-0.3-dev`、`libpulse-dev`、`pkg-config`、`clang`、`libclang-dev`，分别供 CPAL 的 ALSA、实时 D-Bus、PipeWire、PulseAudio 支持及绑定生成使用。
 - QQ 音乐适配器使用 cargo-component 0.21.1 和自身 Cargo.lock 构建，目标为 `wasm32-unknown-unknown`。GD 音源仍需按锁文件安装 `adapters/gdstudio` 与 `packages/wasm-crypto` 的 npm 开发依赖，并将 WAC 0.12.0 安装到 `.local/tools`。
 - 通过应用打包入口生成 MSI 和 NSIS EXE，桌面音频使用 bundled 静态 FFmpeg 与 CPAL 共享输出；Linux 同一次构建生成 AppImage 与 deb，Android 保留 WebAudio，并构建 QQMusic、GDStudio 和 Xiaobai 嵌入 APK。

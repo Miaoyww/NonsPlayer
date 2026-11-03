@@ -70,9 +70,6 @@ jobs:
           pnpm --dir app install --frozen-lockfile
           npm ci --prefix packages/wasm-crypto --include=dev
 
-      - name: Test release scripts
-        run: python -m unittest discover -s scripts/tests
-
       - name: Prepare Android SDK
         run: python scripts/bootstrap-android.py --accept-licenses
 
@@ -170,18 +167,6 @@ jobs:
           if (-not (Test-Path -LiteralPath (Join-Path $env:LIBCLANG_PATH 'libclang.dll'))) {
             throw "libclang.dll not found under LIBCLANG_PATH: $env:LIBCLANG_PATH"
           }
-
-      - name: Install cargo-component
-        run: cargo install cargo-component --version 0.21.1 --locked
-
-      - name: Build WASM test fixtures
-        run: pnpm --dir app plugins:fixtures
-
-      - name: Test native library
-        run: cargo test --manifest-path app/src-tauri/Cargo.toml --lib --locked
-
-      - name: Test release scripts
-        run: python -m unittest discover -s scripts/tests
 
       - name: Fetch telemetry statistics snapshot
         env:
