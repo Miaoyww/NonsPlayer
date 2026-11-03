@@ -91,17 +91,29 @@ fn external_skips_invalid_candidates_and_writes_beyond_the_former_total_limit() 
 #[test]
 fn signatures_change_on_add_replace_delete_and_ignore_unsupported_files() {
     let root = tempfile::tempdir().unwrap();
-    let empty = signature(root.path());
+    let empty = signature(root.path(), true);
     std::fs::write(root.path().join("ignored.webp"), png(1)).unwrap();
-    assert_eq!(signature(root.path()), empty);
+    assert_eq!(signature(root.path(), true), empty);
     let path = root.path().join("any.PNG");
     std::fs::write(&path, png(1)).unwrap();
-    let added = signature(root.path());
+    let added = signature(root.path(), true);
     assert_ne!(empty, added);
     std::fs::write(&path, b"changed-size").unwrap();
-    assert_ne!(signature(root.path()), added);
+    assert_ne!(signature(root.path(), true), added);
+    let before_stat = std::fs::metadata(&path).unwrap();
+    let before = signature(root.path(), true);
+    std::fs::write(&path, b"changed-sizf").unwrap();
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_modified(before_stat.modified().unwrap())
+        .unwrap();
+    let same_size = signature(root.path(), true);
+    assert_ne!(same_size, before);
+    assert_eq!(std::fs::metadata(&path).unwrap().len(), before_stat.len());
     std::fs::remove_file(path).unwrap();
-    assert_eq!(signature(root.path()), empty);
+    assert_eq!(signature(root.path(), true), empty);
     for folder in SUBDIRECTORIES {
         let folder = root.path().join(folder);
         std::fs::create_dir(&folder).unwrap();

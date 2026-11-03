@@ -32,6 +32,7 @@ const SUBDIRECTORIES: &[&str] = &[
 struct ValidationCache {
     depth: usize,
     entries: std::collections::HashMap<PathBuf, bool>,
+    signatures: std::collections::HashMap<(PathBuf, bool), String>,
 }
 thread_local! {
     static VALIDATION: std::cell::RefCell<ValidationCache> = std::cell::RefCell::new(ValidationCache::default());
@@ -43,6 +44,7 @@ impl ValidationSession {
         VALIDATION.with_borrow_mut(|cache| {
             if cache.depth == 0 {
                 cache.entries.clear();
+                cache.signatures.clear();
             }
             cache.depth += 1;
         });
@@ -55,6 +57,7 @@ impl Drop for ValidationSession {
             cache.depth -= 1;
             if cache.depth == 0 {
                 cache.entries.clear();
+                cache.signatures.clear();
             }
         });
     }
@@ -152,8 +155,44 @@ pub(super) fn candidates(directory: &Path) -> Vec<PathBuf> {
     found
 }
 
-pub(super) fn signature(directory: &Path) -> String {
+pub(super) fn signature(directory: &Path, include_external_content: bool) -> String {
+    let key = (directory.to_path_buf(), include_external_content);
+    if let Some(signature) = VALIDATION.with_borrow(|cache| {
+        (cache.depth > 0)
+            .then(|| cache.signatures.get(&key).cloned())
+            .flatten()
+    }) {
+        return signature;
+    }
+    let signature = signature_uncached(directory, include_external_content);
+    VALIDATION.with_borrow_mut(|cache| {
+        if cache.depth > 0 {
+            if cache.signatures.len() >= 512 {
+                cache.signatures.clear();
+            }
+            cache.signatures.insert(key, signature.clone());
+        }
+    });
+    signature
+}
+
+fn content_digest(path: &Path) -> std::io::Result<[u8; 32]> {
+    let mut file = super::source::open(path)?;
     let mut digest = Sha256::new();
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        let read = file.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(digest.finalize().into())
+}
+
+fn signature_uncached(directory: &Path, include_external_content: bool) -> String {
+    let mut digest = Sha256::new();
+    digest.update([u8::from(include_external_content)]);
     for path in candidates(directory) {
         let relative = normalized(path.strip_prefix(directory).unwrap_or(&path));
         digest.update((relative.len() as u64).to_le_bytes());
@@ -164,6 +203,20 @@ pub(super) fn signature(directory: &Path) -> String {
                 digest.update(format!("{:?}", metadata.modified()).as_bytes());
             }
             Err(error) => digest.update(format!("{:?}", error.kind()).as_bytes()),
+        }
+        if include_external_content {
+            match content_digest(&path) {
+                Ok(content) => {
+                    digest.update([1]);
+                    digest.update(content);
+                }
+                Err(error) => {
+                    let error = format!("{:?}", error.kind());
+                    digest.update([0]);
+                    digest.update((error.len() as u64).to_le_bytes());
+                    digest.update(error.as_bytes());
+                }
+            }
         }
     }
     format!("{:x}", digest.finalize())

@@ -198,7 +198,7 @@ fn rebuild_track(store: &Store, track: &Track, covers: &Path, fallback: &str) ->
     updated.cover = cover.into();
     let cover = serde_json::to_string(&updated.cover).map_err(|e| e.to_string())?;
     let embedded = serde_json::to_string(&embedded).map_err(|e| e.to_string())?;
-    let signature = super::cover_art::signature(directory);
+    let signature = super::cover_art::signature(directory, embedded.is_empty());
     let mut db = store.0.lock().map_err(|_| "曲库锁不可用")?;
     let tx = db.transaction().map_err(|e| e.to_string())?;
     // Only replace cover fields on the current row, preserving concurrent lyric bindings.

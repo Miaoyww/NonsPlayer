@@ -202,7 +202,7 @@ pub(super) fn import_sheet(
         store.save_local_cover_state(
             &track.key,
             &super::cover_state::CoverState {
-                signature: super::cover_art::signature(directory),
+                signature: super::cover_art::signature(directory, embedded.is_empty()),
                 embedded: embedded.clone(),
             },
         )?;
@@ -249,7 +249,6 @@ pub(super) fn read_track(
     let metadata = super::source::metadata(&path).map_err(|e| e.to_string())?;
     let modified = format!("{:?}", metadata.modified().map_err(|e| e.to_string())?);
     let directory = Path::new(&path).parent().ok_or("音乐目录不可用")?;
-    let signature = super::cover_art::signature(directory);
     if store.file_unchanged(&key, &modified, metadata.len())?
         && store.has_local_information(&key)?
     {
@@ -257,6 +256,7 @@ pub(super) fn read_track(
             crate::infrastructure::diagnostics::warn("local.import.read_cached_track", error);
         }) {
             if let Some(state) = store.local_cover_state(&key)? {
+                let signature = super::cover_art::signature(directory, state.embedded.is_empty());
                 if state.signature == signature
                     && (track.cover.is_empty() || super::cover_art::valid(Path::new(&*track.cover)))
                     && state
@@ -289,6 +289,7 @@ pub(super) fn read_track(
         .cloned()
         .or_else(|| super::cover_art::external(directory, cover_dir))
         .unwrap_or_else(|| fallback.to_owned());
+    let signature = super::cover_art::signature(directory, embedded.is_empty());
     store.save_local_cover_state(
         &key,
         &super::cover_state::CoverState {

@@ -245,11 +245,21 @@ fn unchanged_audio_refreshes_added_replaced_and_removed_directory_covers() {
     let initial = fixture.scan().remove(0);
     assert_eq!(initial.cover.to_string(), fixture.fallback);
     let first_bytes = fixture.image("cover.png", 20);
+    let first_source = audio_stat(&fixture.music.join("cover.png"));
     let first = fixture.scan().remove(0);
     assert_eq!(first.key, initial.key);
     assert_eq!(std::fs::read(&*first.cover).unwrap(), first_bytes);
     assert_eq!(fixture.album_cover(), first.cover.to_string());
     let second_bytes = fixture.image("cover.png", 180);
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(fixture.music.join("cover.png"))
+        .unwrap()
+        .set_modified(first_source.1)
+        .unwrap();
+    let second_source = audio_stat(&fixture.music.join("cover.png"));
+    assert_eq!(second_source.0, first_source.0);
+    assert_eq!(second_source.1, first_source.1);
     let second = fixture.scan().remove(0);
     assert_ne!(second.cover, first.cover);
     assert_eq!(std::fs::read(&*second.cover).unwrap(), second_bytes);
