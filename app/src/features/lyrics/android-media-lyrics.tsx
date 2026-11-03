@@ -50,7 +50,7 @@ export function AndroidMediaLyrics() {
           ? null
           : loadLyrics(
               track,
-              false,
+              !!correction.localTtml,
               sources,
               (value) =>
                 value
@@ -66,7 +66,7 @@ export function AndroidMediaLyrics() {
                     )
                   : [],
               () => !disposed,
-              !!correction.candidate
+              !!(correction.candidate || correction.localTtml)
             )
       )
       .then((value) => {

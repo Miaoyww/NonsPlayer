@@ -87,7 +87,8 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
         getPlayer: () => ({ revision: 1 }),
         errorText: String,
         nativeCall: async (command, args) => {
-          if (command === 'lyric_correction') return { candidate: null, offsetMs: songOffset }
+          if (command === 'lyric_correction')
+            return { candidate: null, localTtml: null, offsetMs: songOffset }
           if (command === 'lyric_candidates') return [candidate(1), candidate(2)]
           if (command === 'preview_lyric_candidate')
             return args.candidate.id === 1
@@ -95,15 +96,21 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
                   late = resolve
                 })
               : { content: 'Correct version', format: 'lrc' }
+          if (command === 'pick_local_ttml') return 'C:/Lyrics/song.ttml'
+          if (command === 'preview_local_ttml')
+            return { content: 'Local TTML version', format: 'ttml' }
           if (command === 'set_lyric_correction') saved.push(args)
         }
       },
+      '@/lib/platform': { isAndroid: () => false },
       './use-lyrics-settings': {
         defaultLyricsOffsetMs: -200,
         useLyricsSettings: () => ({ lyricsOffsetMs: globalOffset })
       },
       './parse-lyrics': { parseLyrics: (value) => [{ words: [{ word: value.content }] }] },
-      './correction': { automaticLyrics: { candidate: null, offsetMs: null } }
+      './correction': {
+        automaticLyrics: { candidate: null, localTtml: null, offsetMs: null }
+      }
     }
     const exports = {}
     runInNewContext(
@@ -168,9 +175,22 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
       assert.equal(saved[0].correction.candidate.id, 2)
       assert.equal(saved[0].correction.offsetMs, savedOffset)
       assert.equal(closed, 1)
-      await click(button('恢复自动匹配'))
+      await click(button('本地歌词'))
+      await click(button('选择 TTML 文件'))
+      assert.equal(
+        document
+          .querySelector('[aria-label="歌词预览"]')
+          .textContent.includes('Local TTML version'),
+        true
+      )
+      await click(button('保存'))
       assert.equal(saved[1].correction.candidate, null)
-      assert.equal(saved[1].correction.offsetMs, null)
+      assert.equal(saved[1].correction.localTtml.path, 'C:/Lyrics/song.ttml')
+      assert.equal(saved[1].correction.offsetMs, savedOffset)
+      await click(button('恢复自动匹配'))
+      assert.equal(saved[2].correction.candidate, null)
+      assert.equal(saved[2].correction.localTtml, null)
+      assert.equal(saved[2].correction.offsetMs, null)
     } finally {
       await React.act(async () => root.unmount())
       dom.window.close()

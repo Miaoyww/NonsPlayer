@@ -134,6 +134,7 @@ export default function LyricsView({
         revision: number
         sources: LyricSources
         preferences: typeof localPreferences
+        local: boolean
         lyricsOffsetMs: number
         cacheRevision: number
         updatedAt: number
@@ -161,6 +162,7 @@ export default function LyricsView({
             revision,
             sources,
             preferences: localPreferences,
+            local: value.source === 'local',
             lyricsOffsetMs,
             cacheRevision: requestCache.revision,
             updatedAt: Date.now()
@@ -195,6 +197,7 @@ export default function LyricsView({
         previous.revision === state.revision &&
         previous.sources === sources &&
         previous.preferences === localPreferences &&
+        !previous.local &&
         previous.lyricsOffsetMs === lyricsOffsetMs &&
         previous.cacheRevision === requestCache.revision &&
         Date.now() - previous.updatedAt < RUNTIME_TTL
@@ -221,10 +224,10 @@ export default function LyricsView({
         correction.current = selected
         await loadLyrics(
           track,
-          refresh,
+          refresh || !!selected.localTtml,
           sources,
           (value) => {
-            if (!value && selected.candidate)
+            if (!value && (selected.candidate || selected.localTtml))
               throw new Error('已选歌词版本暂不可用，请刷新重试或在歌词来源中重新选择。')
             return apply(
               value,
@@ -235,7 +238,7 @@ export default function LyricsView({
             )
           },
           isCurrent,
-          !!selected.candidate
+          !!(selected.candidate || selected.localTtml)
         )
       } catch (cause) {
         reportCaughtError('app/src/features/lyrics/lyrics-view.tsx', cause)

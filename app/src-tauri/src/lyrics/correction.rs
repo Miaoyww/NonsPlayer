@@ -7,7 +7,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 use tauri::{Emitter, State};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -29,10 +29,18 @@ pub enum Source {
     Netease,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalTtml {
+    pub path: String,
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Correction {
     pub candidate: Option<Candidate>,
+    #[serde(default)]
+    pub local_ttml: Option<LocalTtml>,
     #[serde(default)]
     pub offset_ms: Option<i32>,
 }
@@ -49,6 +57,35 @@ impl Candidate {
             || (self.source == Source::Qq && self.id.is_none() && self.mid.is_empty())
         {
             return Err("歌词候选信息无效".into());
+        }
+        Ok(())
+    }
+}
+
+impl LocalTtml {
+    fn validate(&self) -> AppResult<()> {
+        if self.path.is_empty()
+            || self.path.len() > 32768
+            || !Path::new(&self.path)
+                .extension()
+                .is_some_and(|extension| extension.to_string_lossy().eq_ignore_ascii_case("ttml"))
+        {
+            return Err("只能选择 TTML 歌词文件".into());
+        }
+        Ok(())
+    }
+}
+
+impl Correction {
+    pub(super) fn validate(&self) -> AppResult<()> {
+        if self.candidate.is_some() && self.local_ttml.is_some() {
+            return Err("歌词来源选择无效".into());
+        }
+        if let Some(candidate) = &self.candidate {
+            candidate.validate()?;
+        }
+        if let Some(local) = &self.local_ttml {
+            local.validate()?;
         }
         Ok(())
     }
@@ -118,6 +155,11 @@ impl LyricService {
         )?;
         Ok(value)
     }
+
+    pub async fn local_ttml_lyrics(&self, local: &LocalTtml) -> AppResult<Lyrics> {
+        local.validate()?;
+        super::local_lyrics::read_ttml(local.path.clone()).await
+    }
 }
 
 #[tauri::command]
@@ -185,6 +227,41 @@ pub async fn preview_lyric_candidate(
 }
 
 #[tauri::command]
+pub async fn pick_local_ttml(app: tauri::AppHandle) -> AppResult<Option<String>> {
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_dialog::DialogExt;
+
+        let selected = tauri::async_runtime::spawn_blocking(move || {
+            app.dialog()
+                .file()
+                .set_title("选择本地 TTML 歌词")
+                .add_filter("TTML 歌词", &["ttml"])
+                .blocking_pick_file()
+        })
+        .await
+        .map_err(|e| e.to_string())?;
+        selected
+            .map(|path| {
+                path.into_path()
+                    .map(|value| value.to_string_lossy().into_owned())
+                    .map_err(|e| e.to_string())
+            })
+            .transpose()
+    }
+    #[cfg(not(desktop))]
+    {
+        let _ = app;
+        Err("当前平台不支持选择本地 TTML 歌词".into())
+    }
+}
+
+#[tauri::command]
+pub async fn preview_local_ttml(path: String) -> AppResult<Lyrics> {
+    super::local_lyrics::read_ttml(path).await
+}
+
+#[tauri::command]
 pub fn set_lyric_correction(
     key: String,
     correction: Correction,
@@ -192,14 +269,12 @@ pub fn set_lyric_correction(
     backend: State<'_, Backend>,
 ) -> AppResult<()> {
     backend.store.track(&key)?;
+    correction.validate()?;
     if correction
         .offset_ms
         .is_some_and(|offset| !(-60000..=60000).contains(&offset))
     {
         return Err("歌词偏移须在 -60 至 60 秒之间".into());
-    }
-    if let Some(candidate) = &correction.candidate {
-        candidate.validate()?;
     }
     backend.lyrics.cache.set_lyric_setting(
         &setting_key(&key),
@@ -227,6 +302,7 @@ mod tests {
                 album: "Album".into(),
                 duration_ms: 10000,
             }),
+            local_ttml: None,
             offset_ms: Some(-850),
         };
         let key = setting_key("online:qq:1");
@@ -253,10 +329,12 @@ mod tests {
     fn correction_offset_can_follow_global_or_override_it_with_zero() {
         let follows_global = Correction {
             candidate: None,
+            local_ttml: None,
             offset_ms: None,
         };
         let overrides_global = Correction {
             candidate: None,
+            local_ttml: None,
             offset_ms: Some(0),
         };
         assert_eq!(
@@ -287,5 +365,38 @@ mod tests {
         assert!(c.validate().is_ok());
         c.title = "a".repeat(1025);
         assert!(c.validate().is_err());
+    }
+
+    #[test]
+    fn local_ttml_paths_and_exclusive_selection_are_validated() {
+        let local = LocalTtml {
+            path: "C:\\Lyrics\\song.ttml".into(),
+        };
+        assert!(local.validate().is_ok());
+        assert!(LocalTtml {
+            path: "C:\\Lyrics\\song.lrc".into()
+        }
+        .validate()
+        .is_err());
+        assert!(LocalTtml {
+            path: String::new()
+        }
+        .validate()
+        .is_err());
+        assert!(Correction {
+            candidate: Some(Candidate {
+                source: Source::Qq,
+                id: Some(1),
+                mid: "abc".into(),
+                title: "Song".into(),
+                artist: "Artist".into(),
+                album: "Album".into(),
+                duration_ms: 1000,
+            }),
+            local_ttml: Some(local),
+            offset_ms: None,
+        }
+        .validate()
+        .is_err());
     }
 }

@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 全屏播放器“歌词来源”新增本地歌词选项，桌面端可为单曲选择 TTML 文件并持久保留。
+
 ## [1.10.0] - 2026-11-02
 
 ![NonsPlayer v1.10.0 桌面歌词与体验更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.10.0/docs/release-assets/header.png)

@@ -1240,6 +1240,8 @@ pub fn run() {
             crate::lyrics::correction::lyric_correction,
             crate::lyrics::correction::lyric_candidates,
             crate::lyrics::correction::preview_lyric_candidate,
+            crate::lyrics::correction::pick_local_ttml,
+            crate::lyrics::correction::preview_local_ttml,
             crate::lyrics::correction::set_lyric_correction,
             local_track_lyrics,
             lyric_sources,

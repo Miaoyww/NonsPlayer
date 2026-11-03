@@ -149,7 +149,19 @@ impl LyricService {
         skips: LyricSkips,
         app: tauri::AppHandle,
     ) -> AppResult<Option<Lyrics>> {
-        if let Some(candidate) = self.correction(&track.key)?.candidate {
+        let correction = self.correction(&track.key)?;
+        if let Some(local) = &correction.local_ttml {
+            correction.validate()?;
+            let generation = self.cache.generation();
+            let value = self.local_ttml_lyrics(local).await?;
+            if self.cache.generation() != generation
+                || self.correction(&track.key)?.local_ttml.as_ref() != Some(local)
+            {
+                return Ok(None);
+            }
+            return Ok(Some(value));
+        }
+        if let Some(candidate) = correction.candidate {
             let generation = self.cache.generation();
             let value = self
                 .candidate_lyrics(&candidate, skips.qrc, refresh)

@@ -74,7 +74,7 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
         offsets.push(value)
         return lines
       },
-      automaticLyrics: { candidate: null, offsetMs: null }
+      automaticLyrics: { candidate: null, localTtml: null, offsetMs: null }
     },
     './use-lyrics-settings': {
       useLyricsSettings: () => ({ lyricsOffsetMs: globalOffsetMs })
@@ -83,7 +83,7 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
       usePlayer: () => player,
       getPlayer: () => player,
       errorText: String,
-      nativeCall: async () => ({ candidate: null, offsetMs })
+      nativeCall: async () => ({ candidate: null, localTtml: null, offsetMs })
     },
     '@/features/lyrics/load-lyrics': {
       lyricTrackVersion: (track) => JSON.stringify(track),

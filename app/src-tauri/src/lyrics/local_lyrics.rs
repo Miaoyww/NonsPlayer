@@ -22,6 +22,48 @@ pub async fn get(track: Track, skip_embedded: bool) -> AppResult<Option<Lyrics>>
     .map_err(|e| e.to_string())?
 }
 
+pub async fn read_ttml(path: String) -> AppResult<Lyrics> {
+    let permit = READS.acquire().await.map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let _permit = permit;
+        read_ttml_file(Path::new(&path))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn read_ttml_file(path: &Path) -> AppResult<Lyrics> {
+    if !path
+        .extension()
+        .is_some_and(|extension| extension.to_string_lossy().eq_ignore_ascii_case("ttml"))
+    {
+        return Err("只能选择 TTML 歌词文件".into());
+    }
+    let file = crate::local::source::open(path).map_err(|e| format!("本地歌词无法读取：{e}"))?;
+    let mut bytes = Vec::new();
+    file.take(MAX_LYRIC_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("本地歌词无法读取：{e}"))?;
+    if bytes.len() > MAX_LYRIC_BYTES {
+        return Err("本地歌词超过 2MiB 上限".into());
+    }
+    let content = decode(bytes)?;
+    if content.trim().is_empty() {
+        return Err("本地歌词内容为空".into());
+    }
+    if !super::valid_ttml(&content) {
+        return Err("所选文件不是有效的 TTML 歌词".into());
+    }
+    Ok(Lyrics {
+        match_score: None,
+        source: "local".into(),
+        format: "ttml".into(),
+        content,
+        translation: None,
+        romanization: None,
+    })
+}
+
 fn embedded(path: &Path) -> Option<String> {
     let tagged = if crate::encoded_audio::is_encoded(path) {
         crate::encoded_audio::read_tags(&path.to_string_lossy())
@@ -326,6 +368,32 @@ mod tests {
         assert!(read(&audio, true).unwrap().is_none());
         std::fs::write(&sidecar, [0xff]).unwrap();
         assert!(read(&audio, true).is_err());
+    }
+
+    #[test]
+    fn selected_ttml_is_bounded_and_validated() {
+        let dir = TestDir::new();
+        let path = dir.0.join("song.ttml");
+        std::fs::write(&path, "<tt><body><p>歌词</p></body></tt>").unwrap();
+        let lyrics = read_ttml_file(&path).unwrap();
+        assert_eq!(lyrics.source, "local");
+        assert_eq!(lyrics.format, "ttml");
+        assert_eq!(lyrics.content, "<tt><body><p>歌词</p></body></tt>");
+
+        std::fs::write(&path, "<html><body>Unavailable</body></html>").unwrap();
+        assert!(read_ttml_file(&path).unwrap_err().contains("TTML"));
+
+        std::fs::write(&path, "  ").unwrap();
+        assert!(read_ttml_file(&path).unwrap_err().contains("为空"));
+
+        std::fs::write(&path, vec![b'a'; MAX_LYRIC_BYTES + 1]).unwrap();
+        assert!(read_ttml_file(&path).unwrap_err().contains("2MiB"));
+
+        let non_ttml = dir.0.join("song.lrc");
+        std::fs::write(&non_ttml, "<tt><body/></tt>").unwrap();
+        assert!(read_ttml_file(&non_ttml)
+            .unwrap_err()
+            .contains("只能选择 TTML"));
     }
 
     #[test]

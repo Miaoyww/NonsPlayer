@@ -91,7 +91,7 @@ function useDesktopLyrics(track: Track | undefined) {
           ? null
           : loadLyrics(
               track,
-              false,
+              !!correction.localTtml,
               sources,
               (value) =>
                 value
@@ -105,7 +105,7 @@ function useDesktopLyrics(track: Track | undefined) {
                     )
                   : [],
               () => !disposed,
-              !!correction.candidate
+              !!(correction.candidate || correction.localTtml)
             )
       )
       .then((result) => {

@@ -9,11 +9,19 @@ export interface LyricCandidate {
   album: string
   durationMs: number
 }
+export interface LocalTtml {
+  path: string
+}
 export interface LyricCorrection {
   candidate: LyricCandidate | null
+  localTtml: LocalTtml | null
   offsetMs: number | null
 }
-export const automaticLyrics: LyricCorrection = { candidate: null, offsetMs: null }
+export const automaticLyrics: LyricCorrection = {
+  candidate: null,
+  localTtml: null,
+  offsetMs: null
+}
 
 /** Shift lines and word timestamps together; never change the playback clock. */
 export function offsetLyrics(lines: LyricLine[], offsetMs: number): LyricLine[] {
