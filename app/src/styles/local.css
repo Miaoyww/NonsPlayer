@@ -13,6 +13,15 @@
   gap: 20px;
   margin-bottom: 28px;
 }
+.local-tabs-tools {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
 .local-search > svg {
   width: 18px;
   height: 18px;
@@ -20,9 +29,10 @@
 }
 .local-search {
   display: flex;
+  flex: 0 0 240px;
   align-items: center;
   gap: 8px;
-  width: min(100%, 320px);
+  width: 240px;
   color: var(--muted-foreground);
 }
 .local-search-results {

@@ -716,35 +716,56 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
                     </TabsTab>
                   ))}
                 </TabsList>
-                <form
-                  className="local-search"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    navigate('local', input.trim())
-                  }}
-                >
-                  <Input
-                    aria-label="搜索本地音乐、艺术家或专辑"
-                    placeholder="搜索音乐、艺术家、专辑"
-                    value={input}
-                    maxLength={100}
-                    onChange={(event) => setInput(event.target.value)}
-                  />
-                  {page.query && (
-                    <ActionButton
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="清除本地搜索"
-                      onClick={() => {
-                        setInput('')
-                        navigate('local')
-                      }}
-                    >
-                      <X aria-hidden="true" />
-                    </ActionButton>
+                <div className="local-tabs-tools">
+                  {!page.query && kind === 'artist' && (
+                    <ArtistAvatarCompletionButton onError={onError} onNotice={onNotice} />
                   )}
-                  <Search aria-hidden="true" />
-                </form>
+                  {!page.query && kind === 'playlist' && (
+                    <>
+                      <ActionButton
+                        variant="outline"
+                        disabled={!isTauri()}
+                        onClick={() => {
+                          setName('')
+                          setEditing('create')
+                        }}
+                      >
+                        <Plus aria-hidden="true" />
+                        创建歌单
+                      </ActionButton>
+                      <CreateAggregatePlaylist variant="outline" onError={onError} />
+                    </>
+                  )}
+                  <form
+                    className="local-search"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      navigate('local', input.trim())
+                    }}
+                  >
+                    <Input
+                      aria-label="搜索本地音乐、艺术家或专辑"
+                      placeholder="搜索音乐、艺术家、专辑"
+                      value={input}
+                      maxLength={100}
+                      onChange={(event) => setInput(event.target.value)}
+                    />
+                    {page.query && (
+                      <ActionButton
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="清除本地搜索"
+                        onClick={() => {
+                          setInput('')
+                          navigate('local')
+                        }}
+                      >
+                        <X aria-hidden="true" />
+                      </ActionButton>
+                    )}
+                    <Search aria-hidden="true" />
+                  </form>
+                </div>
               </div>
               {page.query ? (
                 <LocalSearchResults
@@ -757,27 +778,6 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
               ) : (
                 categories.map(({ value }) => (
                   <Tabs.Panel key={value} value={value}>
-                    {value === 'playlist' && (
-                      <div className="mb-5 flex flex-wrap gap-2">
-                        <ActionButton
-                          variant="outline"
-                          disabled={!isTauri()}
-                          onClick={() => {
-                            setName('')
-                            setEditing('create')
-                          }}
-                        >
-                          <Plus aria-hidden="true" />
-                          创建歌单
-                        </ActionButton>
-                        <CreateAggregatePlaylist variant="outline" onError={onError} />
-                      </div>
-                    )}
-                    {value === 'artist' && (
-                      <div className="mb-5 flex flex-wrap gap-2">
-                        <ArtistAvatarCompletionButton onError={onError} onNotice={onNotice} />
-                      </div>
-                    )}
                     <BrowseResults
                       kind={value}
                       keyword=""
