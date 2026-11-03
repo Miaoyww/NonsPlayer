@@ -105,7 +105,7 @@ test('desktop lyrics frame keeps only the current line and its auxiliary text', 
   assert.equal(target.line, lines[0])
   assert.equal(display.lyricText(target.line), '你好')
   assert.deepEqual(
-    display.auxiliaryLines(target.line, { translation: true, pronunciation: true }),
+    [...display.auxiliaryLines(target.line, { translation: true, pronunciation: true })],
     ['Hello']
   )
   assert.equal(target.showTranslation, true)
@@ -127,16 +127,18 @@ test('desktop lyrics auxiliary visibility selects translation and pronunciation'
     romanLyric: 'Ni hao'
   })
 
-  assert.deepEqual(display.auxiliaryLines(current, { translation: true, pronunciation: true }), [
-    'Hello',
-    'Ni hao'
-  ])
-  assert.deepEqual(display.auxiliaryLines(current, { translation: true, pronunciation: false }), [
-    'Hello'
-  ])
-  assert.deepEqual(display.auxiliaryLines(current, { translation: false, pronunciation: true }), [
-    'Ni hao'
-  ])
+  assert.deepEqual(
+    [...display.auxiliaryLines(current, { translation: true, pronunciation: true })],
+    ['Hello', 'Ni hao']
+  )
+  assert.deepEqual(
+    [...display.auxiliaryLines(current, { translation: true, pronunciation: false })],
+    ['Hello']
+  )
+  assert.deepEqual(
+    [...display.auxiliaryLines(current, { translation: false, pronunciation: true })],
+    ['Ni hao']
+  )
 })
 
 test('desktop lyrics word scan advances across parsed word timings', () => {
@@ -162,7 +164,7 @@ test('desktop lyrics without auxiliary text produce no auxiliary lines', () => {
   const target = frame.frameAt(lines, 500, 'track-2', false)
   assert.equal(target.line, lines[0])
   assert.deepEqual(
-    display.auxiliaryLines(target.line, { translation: true, pronunciation: true }),
+    [...display.auxiliaryLines(target.line, { translation: true, pronunciation: true })],
     []
   )
 })
