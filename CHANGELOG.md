@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 稳定性修复
+
+- 修复 Windows 便携版打包无法读取任务栏图标资源列表、导致发布失败的问题。
+- 修复 Android APK 校验依赖旧前端入口文件名，导致已生成的安装包被误判为缺少前端资源的问题。
+
 ## [1.10.1] - 2026-11-03
 
 ![NonsPlayer v1.10.1 本地歌词与体验修复头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.10.1/docs/release-assets/header.png)

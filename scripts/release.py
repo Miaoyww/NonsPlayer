@@ -1,5 +1,6 @@
 """Validate release metadata and collect Nons Windows and Android release assets."""
 import argparse
+import glob
 import hashlib
 import json
 from pathlib import Path
@@ -53,6 +54,64 @@ def portable_name(root, version):
     return f"{product}_{version}_windows_x64_portable"
 
 
+def portable_resources(native, configs):
+    """Return Tauri bundle resources as portable archive paths and source files."""
+    mappings = {}
+    lists = []
+    for config in configs:
+        resources = config.get("bundle", {}).get("resources", [])
+        if isinstance(resources, dict):
+            mappings.update(resources)
+        elif isinstance(resources, list):
+            lists.extend(resource for resource in resources if resource not in lists)
+        else:
+            raise ValueError("Tauri bundle.resources must be a mapping or list")
+
+    files = {}
+
+    def add_file(relative, path):
+        previous = files.get(relative)
+        if previous is not None and previous.resolve() != path.resolve():
+            raise ValueError(f"Duplicate portable resource path: {relative}")
+        files[relative] = path
+
+    for pattern, destination in mappings.items():
+        source = Path(pattern)
+        resolved = source if source.is_absolute() else native / source
+        matches = [Path(path) for path in glob.glob(str(resolved), recursive=True)]
+        if not matches:
+            raise ValueError(f"Missing portable resource: {resolved}")
+        has_glob = glob.has_magic(pattern)
+        for match in matches:
+            if match.is_dir():
+                for path in sorted(match.rglob("*")):
+                    if path.is_file() and path.name != ".gitkeep":
+                        relative = Path(destination) / path.relative_to(match)
+                        add_file(relative.as_posix(), path)
+            elif match.is_file() and match.name != ".gitkeep":
+                relative = (
+                    Path(destination) / match.name
+                    if has_glob or str(destination).endswith(("/", "\\"))
+                    else Path(destination)
+                )
+                add_file(relative.as_posix(), match)
+
+    for pattern in lists:
+        source = Path(pattern)
+        resolved = source if source.is_absolute() else native / source
+        matches = [Path(path) for path in glob.glob(str(resolved), recursive=True)]
+        if not matches:
+            raise ValueError(f"Missing portable resource: {resolved}")
+        for match in matches:
+            paths = match.rglob("*") if match.is_dir() else [match]
+            for path in sorted(paths):
+                if not path.is_file() or path.name == ".gitkeep":
+                    continue
+                relative = path.relative_to(native).as_posix()
+                add_file(relative, path)
+    return files
+
+
 def build_portable(root, tag, output):
     version = validate_version(root, tag)
     native = root / "app/src-tauri"
@@ -66,19 +125,11 @@ def build_portable(root, tag, output):
     if not symbols.is_file() or not symbols.stat().st_size:
         raise ValueError(f"Missing portable debug symbols: {symbols}")
     files = {executable.name: executable, symbols.name: symbols}
-    # Use the same resource mappings as the Windows installers, never the entire target directory.
-    resources = {**config["bundle"]["resources"], **windows["bundle"]["resources"]}
-    for source, destination in resources.items():
-        directory = (native / source).resolve()
-        if not directory.is_dir():
-            raise ValueError(f"Missing portable resource directory: {directory}")
-        for path in sorted(directory.rglob("*")):
-            if not path.is_file() or path.name == ".gitkeep":
-                continue
-            relative = (Path(destination) / path.relative_to(directory)).as_posix()
-            if Path(relative).is_absolute() or ".." in Path(relative).parts or relative in files:
-                raise ValueError(f"Invalid or duplicate portable resource path: {relative}")
-            files[relative] = path
+    # Use the same resource declarations as the Windows installers, never the entire target directory.
+    for relative, path in portable_resources(native, [config, windows]).items():
+        if Path(relative).is_absolute() or ".." in Path(relative).parts or relative in files:
+            raise ValueError(f"Invalid or duplicate portable resource path: {relative}")
+        files[relative] = path
     output.mkdir(parents=True, exist_ok=True)
     target = output / f"{name}.zip"
     readme = (

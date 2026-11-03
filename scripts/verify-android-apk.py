@@ -2,8 +2,19 @@
 
 import argparse
 from pathlib import Path
+import re
 import struct
 import zipfile
+
+
+FRONTEND_ASSET = re.compile(rb"assets/[A-Za-z0-9_.-]+\.(?:css|js|mjs)")
+
+
+def verify_frontend_asset_keys(binary):
+    if b"index.html" not in binary:
+        raise RuntimeError("APK does not contain the embedded frontend entrypoint")
+    if not FRONTEND_ASSET.search(binary):
+        raise RuntimeError("APK does not contain the embedded frontend asset keys")
 
 
 def main():
@@ -37,8 +48,7 @@ def main():
         # Tauri embeds the bundled frontend in its Rust library, rather than
         # placing index.html in the APK assets directory.
         frontend = package.read("lib/arm64-v8a/libnons_lib.so")
-        if b"index.html" not in frontend or b"assets/index-" not in frontend:
-            raise RuntimeError("APK does not contain the embedded frontend asset keys")
+        verify_frontend_asset_keys(frontend)
         unexpected = [name for name in names if name.startswith("lib/") and not name.startswith("lib/arm64-v8a/")]
         if unexpected:
             raise RuntimeError("Unexpected native architecture")

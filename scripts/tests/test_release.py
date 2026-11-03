@@ -67,12 +67,61 @@ class ReleaseTests(unittest.TestCase):
             archive.extractall(extracted)
             self.assertEqual((extracted / prefix / "Nons.exe").read_bytes(), b"executable fixture")
 
+    def test_portable_supports_list_resources_and_deduplicates_platform_overrides(self):
+        self.write_json(
+            self.native / "tauri.conf.json",
+            {
+                "version": "1.0.0",
+                "productName": "Nons",
+                "mainBinaryName": "Nons",
+                "bundle": {"resources": ["icons/taskbar/*.ico"]},
+            },
+        )
+        self.write_json(
+            self.native / "tauri.windows.conf.json",
+            {"bundle": {"resources": ["icons/taskbar/*.ico"]}},
+        )
+        folder = self.native / "icons/taskbar"
+        folder.mkdir(parents=True)
+        (folder / "previous.ico").write_bytes(b"previous")
+        (folder / "next.ico").write_bytes(b"next")
+
+        portable = self.assets()
+        with zipfile.ZipFile(portable) as archive:
+            prefix = "Nons_1.0.0_windows_x64_portable/"
+            self.assertEqual(archive.read(prefix + "icons/taskbar/previous.ico"), b"previous")
+            self.assertEqual(archive.read(prefix + "icons/taskbar/next.ico"), b"next")
+
     def test_missing_portable_blocks_release_collection(self):
         portable = self.assets()
         portable.unlink()
         with self.assertRaisesRegex(ValueError, "Missing portable archive"):
             release.collect_files(self.root, "v1.0.0", self.output)
         self.assertFalse(self.output.exists())
+
+    def test_portable_preserves_mapped_directories_and_individual_files(self):
+        self.write_json(self.native / "tauri.windows.conf.json", {
+            "bundle": {"resources": {"resources/": "data/", "license.txt": "LICENSE.txt"}},
+        })
+        folder = self.native / "resources/nested"
+        folder.mkdir(parents=True)
+        (folder / "settings.json").write_bytes(b"{}")
+        (self.native / "license.txt").write_bytes(b"license")
+
+        with zipfile.ZipFile(self.assets()) as archive:
+            prefix = "Nons_1.0.0_windows_x64_portable/"
+            self.assertEqual(archive.read(prefix + "data/nested/settings.json"), b"{}")
+            self.assertEqual(archive.read(prefix + "LICENSE.txt"), b"license")
+
+    def test_portable_rejects_conflicting_mapped_files(self):
+        self.write_json(self.native / "tauri.windows.conf.json", {
+            "bundle": {"resources": {"first.txt": "same.txt", "second.txt": "same.txt"}},
+        })
+        (self.native / "first.txt").write_bytes(b"first")
+        (self.native / "second.txt").write_bytes(b"second")
+
+        with self.assertRaisesRegex(ValueError, "Duplicate portable resource path"):
+            self.assets()
 
     def test_portable_missing_executable_fails(self):
         portable = self.assets()
