@@ -24,6 +24,15 @@ pub(crate) struct CoverCache {
     refreshes: Cache<(u64, String), ()>,
 }
 
+/// Shared cover fetching context for commands and background jobs.
+#[derive(Clone)]
+pub(crate) struct CoverRuntime {
+    adapters: Arc<crate::music::manager::AdapterManager>,
+    client: reqwest::Client,
+    requests: Arc<tokio::sync::Semaphore>,
+    online: Arc<CoverCache>,
+}
+
 struct Resolved {
     disk: Arc<DiskCache>,
     generation: u64,
@@ -193,72 +202,124 @@ impl CoverCache {
     }
 }
 
-fn access(backend: &crate::Backend, url: &str) -> AppResult<String> {
-    backend
-        .music
-        .adapters
-        .cover_access(url)
-        .map_err(|e| e.to_string())
-}
-
-async fn resolve(
-    url: String,
-    backend: &crate::Backend,
-    app: &tauri::AppHandle,
-) -> AppResult<Resolved> {
-    let expected_access = access(backend, &url)?;
-    let adapters = backend.music.adapters.clone();
-    let client = backend.cover_client.clone();
-    let requests = backend.cover_requests.clone();
-    let request_url = url.clone();
-    let load_access = expected_access.clone();
-    let refresh_app = app.clone();
-    let refresh_url = url.clone();
-    let value = backend
-        .online_covers
-        .resolve_with(
-            url.clone(),
-            move || {
-                let adapters = adapters.clone();
-                let client = client.clone();
-                let requests = requests.clone();
-                let url = request_url.clone();
-                let expected = load_access.clone();
-                async move {
-                    let _permit = requests.acquire().await.map_err(|e| e.to_string())?;
-                    if adapters.cover_access(&url).map_err(|e| e.to_string())? != expected {
-                        return Err("封面来源状态已变化".into());
-                    }
-                    let request = NEXT_REQUEST.fetch_add(1, Ordering::Relaxed);
-                    let parsed = url::Url::parse(&url).map_err(|e| e.to_string())?;
-                    let result = download(parsed, &client)
-                        .await
-                        .with_context(|| format!("runtime_cover request={request}"))
-                        .inspect_err(|error| {
-                            crate::infrastructure::diagnostics::report_error("covers.load", error)
-                        })
-                        .map_err(|error| format!("{error:#}"))?;
-                    if adapters.cover_access(&url).map_err(|e| e.to_string())? != expected {
-                        return Err("封面来源状态已变化".into());
-                    }
-                    Ok(result)
-                }
-            },
-            move || {
-                if let Err(error) = refresh_app.emit(
-                    "runtime-cover-updated",
-                    serde_json::json!({"url": refresh_url}),
-                ) {
-                    crate::infrastructure::diagnostics::warn("covers.updated", error);
-                }
-            },
-            now(),
-        )
-        .await?;
-    if access(backend, &url)? != expected_access {
-        return Err("封面来源状态已变化".into());
+impl CoverRuntime {
+    pub(crate) fn new(
+        adapters: Arc<crate::music::manager::AdapterManager>,
+        client: reqwest::Client,
+        requests: Arc<tokio::sync::Semaphore>,
+        online: Arc<CoverCache>,
+    ) -> Self {
+        Self {
+            adapters,
+            client,
+            requests,
+            online,
+        }
     }
-    Ok(value)
+
+    pub(crate) fn from_backend(backend: &crate::Backend) -> Self {
+        Self::new(
+            backend.music.adapters.clone(),
+            backend.cover_client.clone(),
+            backend.cover_requests.clone(),
+            backend.online_covers.clone(),
+        )
+    }
+
+    fn access(&self, url: &str) -> AppResult<String> {
+        self.adapters.cover_access(url).map_err(|e| e.to_string())
+    }
+
+    async fn resolve(&self, url: String, app: &tauri::AppHandle) -> AppResult<Resolved> {
+        let expected_access = self.access(&url)?;
+        let adapters = self.adapters.clone();
+        let client = self.client.clone();
+        let requests = self.requests.clone();
+        let request_url = url.clone();
+        let load_access = expected_access.clone();
+        let refresh_app = app.clone();
+        let refresh_url = url.clone();
+        let value = self
+            .online
+            .resolve_with(
+                url.clone(),
+                move || {
+                    let adapters = adapters.clone();
+                    let client = client.clone();
+                    let requests = requests.clone();
+                    let url = request_url.clone();
+                    let expected = load_access.clone();
+                    async move {
+                        let _permit = requests.acquire().await.map_err(|e| e.to_string())?;
+                        if adapters.cover_access(&url).map_err(|e| e.to_string())? != expected {
+                            return Err("封面来源状态已变化".into());
+                        }
+                        let request = NEXT_REQUEST.fetch_add(1, Ordering::Relaxed);
+                        let parsed = url::Url::parse(&url).map_err(|e| e.to_string())?;
+                        let result = download(parsed, &client)
+                            .await
+                            .with_context(|| format!("runtime_cover request={request}"))
+                            .inspect_err(|error| {
+                                crate::infrastructure::diagnostics::report_error(
+                                    "covers.load",
+                                    error,
+                                )
+                            })
+                            .map_err(|error| format!("{error:#}"))?;
+                        if adapters.cover_access(&url).map_err(|e| e.to_string())? != expected {
+                            return Err("封面来源状态已变化".into());
+                        }
+                        Ok(result)
+                    }
+                },
+                move || {
+                    if let Err(error) = refresh_app.emit(
+                        "runtime-cover-updated",
+                        serde_json::json!({"url": refresh_url}),
+                    ) {
+                        crate::infrastructure::diagnostics::warn("covers.updated", error);
+                    }
+                },
+                now(),
+            )
+            .await?;
+        if self.access(&url)? != expected_access {
+            return Err("封面来源状态已变化".into());
+        }
+        Ok(value)
+    }
+
+    #[tracing::instrument(target = "nons::covers", skip_all)]
+    pub(crate) async fn fetch(&self, url: String, app: &tauri::AppHandle) -> AppResult<String> {
+        Ok(self
+            .resolve(url, app)
+            .await?
+            .asset
+            .path
+            .to_string_lossy()
+            .into_owned())
+    }
+
+    pub(crate) async fn read(&self, url: String, app: &tauri::AppHandle) -> AppResult<Vec<u8>> {
+        let expected = self.access(&url)?;
+        for attempt in 0..2 {
+            let resolved = self.resolve(url.clone(), app).await?;
+            let generation = resolved.generation;
+            let asset = resolved.asset;
+            let result = blocking(resolved.disk.clone(), move |cache| cache.read(&asset)).await;
+            if self.access(&url)? != expected
+                || blocking(resolved.disk, |cache| cache.generation()).await? != generation
+            {
+                return Err("封面来源或缓存状态已变化".into());
+            }
+            match result {
+                Ok(bytes) => return Ok(bytes),
+                Err(_) if attempt == 0 => self.online.invalidate(url.clone()).await?,
+                Err(error) => return Err(error),
+            }
+        }
+        unreachable!()
+    }
 }
 
 #[tracing::instrument(target = "nons::covers", skip_all)]
@@ -267,38 +328,15 @@ pub(crate) async fn fetch(
     backend: &crate::Backend,
     app: &tauri::AppHandle,
 ) -> AppResult<String> {
-    Ok(resolve(url, backend, app)
-        .await?
-        .asset
-        .path
-        .to_string_lossy()
-        .into_owned())
+    CoverRuntime::from_backend(backend).fetch(url, app).await
 }
 
-#[cfg(desktop)]
 pub(crate) async fn read(
     url: String,
     backend: &crate::Backend,
     app: &tauri::AppHandle,
 ) -> AppResult<Vec<u8>> {
-    let expected = access(backend, &url)?;
-    for attempt in 0..2 {
-        let resolved = resolve(url.clone(), backend, app).await?;
-        let generation = resolved.generation;
-        let asset = resolved.asset;
-        let result = blocking(resolved.disk.clone(), move |cache| cache.read(&asset)).await;
-        if access(backend, &url)? != expected
-            || blocking(resolved.disk, |cache| cache.generation()).await? != generation
-        {
-            return Err("封面来源或缓存状态已变化".into());
-        }
-        match result {
-            Ok(bytes) => return Ok(bytes),
-            Err(_) if attempt == 0 => backend.online_covers.invalidate(url.clone()).await?,
-            Err(error) => return Err(error),
-        }
-    }
-    unreachable!()
+    CoverRuntime::from_backend(backend).read(url, app).await
 }
 
 #[tracing::instrument(target = "nons::covers", skip_all)]

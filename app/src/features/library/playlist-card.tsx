@@ -38,7 +38,7 @@ export function PlaylistCard({
       busy={busy}
       render={<article className="library-cover-card" />}
     >
-      <div className="library-cover-art" data-round={item.kind === 'artist'}>
+      <div className="library-cover-art">
         <button
           className="library-cover-open"
           onClick={() => onOpen(item)}

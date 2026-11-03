@@ -1,4 +1,5 @@
 use crate::{
+    local::artist_avatar::ArtistAvatarStatus,
     model::{AppResult, MusicCredit, Track, TrackSource},
     storage::Store,
     Backend,
@@ -367,6 +368,9 @@ fn aggregate_entity(p: crate::aggregate::Playlist) -> LocalEntity {
         .into(),
         playlist_type: Some(p.playlist_type),
         track_count: p.track_count,
+        avatar_status: None,
+        avatar_source: None,
+        avatar_error: None,
     }
 }
 #[derive(Serialize)]
@@ -380,6 +384,12 @@ pub struct LocalEntity {
     pub track_count: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub playlist_type: Option<crate::aggregate::PlaylistType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar_status: Option<ArtistAvatarStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar_source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar_error: Option<String>,
 }
 #[derive(Serialize)]
 pub struct EntityPage {
@@ -424,10 +434,11 @@ fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> App
             crate::infrastructure::diagnostics::warn("local.entities.list.db_lock", error);
         })
         .map_err(|_| "曲库锁不可用")?;
-    let sql = "SELECT e.id,e.kind,e.name,e.cover,e.subtitle,COUNT(t.key) FROM local_entities e JOIN local_members m ON m.kind=e.kind AND m.id=e.id JOIN visible_local_tracks t ON t.key=m.key AND t.source='local' WHERE e.kind=?1 AND instr(lower(e.name),lower(?2))>0 GROUP BY e.kind,e.id ORDER BY e.name,e.id LIMIT 31 OFFSET ?3";
+    let sql = "SELECT e.id,e.kind,e.name,COALESCE(NULLIF(a.avatar_path,''),e.cover),e.subtitle,COUNT(t.key),a.status,a.source,a.error FROM local_entities e JOIN local_members m ON m.kind=e.kind AND m.id=e.id JOIN visible_local_tracks t ON t.key=m.key AND t.source='local' LEFT JOIN local_artist_avatars a ON a.artist_id=e.id AND e.kind='artist' WHERE e.kind=?1 AND instr(lower(e.name),lower(?2))>0 GROUP BY e.kind,e.id ORDER BY e.name,e.id LIMIT 31 OFFSET ?3";
     let mut stmt = db.prepare(sql).map_err(|e| e.to_string())?;
     let mut items = stmt
         .query_map(params![kind, keyword, offset], |r| {
+            let avatar_status: Option<String> = r.get(6)?;
             Ok(LocalEntity {
                 id: r.get(0)?,
                 kind: r.get(1)?,
@@ -436,6 +447,11 @@ fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> App
                 subtitle: r.get(4)?,
                 track_count: r.get(5)?,
                 playlist_type: None,
+                avatar_status: avatar_status
+                    .as_deref()
+                    .map(ArtistAvatarStatus::from_storage),
+                avatar_source: r.get(7)?,
+                avatar_error: r.get(8)?,
             })
         })
         .map_err(|e| e.to_string())?
@@ -492,6 +508,7 @@ fn entity_detail(store: &Store, kind: String, id: String) -> AppResult<LocalEnti
         .map_err(|_| "曲库锁不可用")?;
     let id = resolve_entity_id(&db, &kind, id)?;
     let row = |r: &rusqlite::Row<'_>| {
+        let avatar_status: Option<String> = r.get(6)?;
         Ok(LocalEntity {
             id: r.get(0)?,
             kind: r.get(1)?,
@@ -500,9 +517,14 @@ fn entity_detail(store: &Store, kind: String, id: String) -> AppResult<LocalEnti
             subtitle: r.get(4)?,
             track_count: r.get(5)?,
             playlist_type: None,
+            avatar_status: avatar_status
+                .as_deref()
+                .map(ArtistAvatarStatus::from_storage),
+            avatar_source: r.get(7)?,
+            avatar_error: r.get(8)?,
         })
     };
-    db.query_row("SELECT e.id,e.kind,e.name,e.cover,e.subtitle,(SELECT COUNT(*) FROM local_members m JOIN visible_local_tracks t ON t.key=m.key WHERE m.kind=e.kind AND m.id=e.id AND t.source='local') FROM local_entities e WHERE e.kind=?1 AND e.id=?2", params![kind,id], row).map_err(|e| e.to_string())
+    db.query_row("SELECT e.id,e.kind,e.name,COALESCE(NULLIF(a.avatar_path,''),e.cover),e.subtitle,(SELECT COUNT(*) FROM local_members m JOIN visible_local_tracks t ON t.key=m.key WHERE m.kind=e.kind AND m.id=e.id AND t.source='local'),a.status,a.source,a.error FROM local_entities e LEFT JOIN local_artist_avatars a ON a.artist_id=e.id AND e.kind='artist' WHERE e.kind=?1 AND e.id=?2", params![kind,id], row).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1269,5 +1291,72 @@ mod tests {
     fn separators_are_literal_and_deduplicated() {
         assert_eq!(split_artists(" A.*B.*A ", &[".*".into()]), vec!["A", "B"]);
         assert_eq!(split_artists("AC/DC", &[]), vec!["AC/DC"]);
+    }
+    #[test]
+    fn artist_avatar_override_is_used_by_list_and_detail_and_keeps_the_local_fallback() {
+        let dir = crate::test_support::TestDir::new();
+        let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
+        store
+            .save_tracks(&[track("local:a", "Artist", "album-cover.jpg")])
+            .unwrap();
+        store
+            .0
+            .lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO local_artist_avatars(artist_id,status,source,avatar_path,updated_at) VALUES('Artist','auto','netease','avatar.jpg',0)",
+                [],
+            )
+            .unwrap();
+        let page = entity_page(&store, "artist".into(), "".into(), 0).unwrap();
+        assert_eq!(page.items[0].cover, "avatar.jpg");
+        assert_eq!(page.items[0].avatar_status, Some(ArtistAvatarStatus::Auto));
+        let detail = entity_detail(&store, "artist".into(), "Artist".into()).unwrap();
+        assert_eq!(detail.cover, "avatar.jpg");
+        store
+            .0
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE local_artist_avatars SET status='default',avatar_path=NULL WHERE artist_id='Artist'",
+                [],
+            )
+            .unwrap();
+        assert_eq!(
+            entity_detail(&store, "artist".into(), "Artist".into())
+                .unwrap()
+                .cover,
+            "album-cover.jpg"
+        );
+    }
+    #[test]
+    fn artist_avatar_never_leaks_into_an_album_with_the_same_id() {
+        let dir = crate::test_support::TestDir::new();
+        let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
+        let mut song = track("local:a", "Same", "album-cover.jpg");
+        song.album = "Same".into();
+        store.save_tracks(&[song]).unwrap();
+        store.refresh_local_albums().unwrap();
+        store
+            .0
+            .lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO local_artist_avatars(artist_id,status,source,avatar_path,updated_at) VALUES('Same','auto','netease','avatar.jpg',0)",
+                [],
+            )
+            .unwrap();
+        assert_eq!(
+            entity_detail(&store, "artist".into(), "Same".into())
+                .unwrap()
+                .cover,
+            "avatar.jpg"
+        );
+        assert_eq!(
+            entity_detail(&store, "album".into(), "Same".into())
+                .unwrap()
+                .cover,
+            ""
+        );
     }
 }

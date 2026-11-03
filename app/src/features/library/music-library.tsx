@@ -24,6 +24,7 @@ import { MusicPage } from '@/components/music/music-page'
 import { CollectionContextMenu, useCollectionActions } from '@/features/library/collection-actions'
 import { TrackArtists } from '@/components/music/music-links'
 import { AlbumCard } from '@/features/library/album-card'
+import { ArtistCard } from '@/features/library/artist-card'
 import { PlaylistCard } from '@/features/library/playlist-card'
 import { CollectionHeader } from '@/features/library/collection-header'
 import { ListeningStatisticsCard } from '@/features/library/listening-statistics-card'
@@ -102,6 +103,14 @@ function CollectionCards({
             busy={busy}
             onOpen={onOpen}
             onPlay={onPlay}
+          />
+        ) : item.kind === 'artist' ? (
+          <ArtistCard
+            key={`${item.kind}:${item.id}`}
+            name={item.name}
+            cover={item.cover}
+            meta={item.subtitle}
+            onOpen={() => onOpen(item)}
           />
         ) : (
           <PlaylistCard

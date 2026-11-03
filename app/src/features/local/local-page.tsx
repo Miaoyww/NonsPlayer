@@ -4,6 +4,7 @@ import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton, CollectionGridSkeleton } from '@/components/music/loading'
 import { CollectionContent } from '@/features/library/collection-content'
 import { CollectionHeader } from '@/features/library/collection-header'
+import { ArtistCard } from '@/features/library/artist-card'
 import { TrackArtists } from '@/components/music/music-links'
 import { useCallback, useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -48,6 +49,12 @@ import { Cover } from '@/components/music/cover'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { CreateAggregatePlaylist } from '@/features/aggregate/aggregate-page'
+import {
+  ArtistAvatarActionsProvider,
+  ArtistAvatarContextItems,
+  ArtistAvatarDetailMenu
+} from '@/features/local/artist-avatar/actions'
+import { ArtistAvatarCompletionButton } from '@/features/local/artist-avatar/completion-dialog'
 
 const categories = [
   { value: 'song', label: '音乐', icon: Music2 },
@@ -163,9 +170,21 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
                   '',
                   localCollection(item)
                 )
+              if (kind === 'artist') {
+                return (
+                  <ArtistCard
+                    key={item.id}
+                    name={item.name}
+                    cover={item.cover}
+                    meta={`${item.trackCount} 首音乐${item.subtitle ? ` · ${item.subtitle}` : ''}`}
+                    onOpen={open}
+                    menu={<ArtistAvatarContextItems artistId={item.id} artistName={item.name} />}
+                  />
+                )
+              }
               const body = (
                 <>
-                  <div className="library-cover-art" data-round={kind === 'artist'}>
+                  <div className="library-cover-art">
                     <button
                       type="button"
                       className="library-cover-open"
@@ -432,32 +451,33 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
   }
   const version = refresh + revision
   return (
-    <MusicPage aria-label="本地音乐" className="local-page">
-      {collection ? (
-        <CollectionContent
-          key={`${collection.kind}:${collection.localId ?? collection.id}`}
-          hasMore={list.more}
-        >
-          <CollectionHeader
-            collection={collection}
-            total={collection.trackCount}
-            busy={playing}
-            disabled={playing || !isTauri() || !list.items.length}
-            onPlay={() => void play()}
-            cover={
-              <Cover
-                cover={collection.cover || list.items[0]?.cover}
-                className={`library-detail-cover ${collection.kind === 'artist' ? 'rounded-full' : 'rounded-xl'}`}
-              />
-            }
-            credits={
-              collection.kind === 'album' && collection.subtitle && list.items[0] ? (
-                <TrackArtists track={{ ...list.items[0], artist: collection.subtitle }} />
-              ) : undefined
-            }
-            actions={
-              collection.kind === 'album'
-                ? !isAndroid() && (
+    <ArtistAvatarActionsProvider onError={onError} onNotice={onNotice}>
+      <MusicPage aria-label="本地音乐" className="local-page">
+        {collection ? (
+          <CollectionContent
+            key={`${collection.kind}:${collection.localId ?? collection.id}`}
+            hasMore={list.more}
+          >
+            <CollectionHeader
+              collection={collection}
+              total={collection.trackCount}
+              busy={playing}
+              disabled={playing || !isTauri() || !list.items.length}
+              onPlay={() => void play()}
+              cover={
+                <Cover
+                  cover={collection.cover || list.items[0]?.cover}
+                  className={`library-detail-cover ${collection.kind === 'artist' ? 'rounded-full' : 'rounded-xl'}`}
+                />
+              }
+              credits={
+                collection.kind === 'album' && collection.subtitle && list.items[0] ? (
+                  <TrackArtists track={{ ...list.items[0], artist: collection.subtitle }} />
+                ) : undefined
+              }
+              actions={
+                collection.kind === 'album' ? (
+                  !isAndroid() && (
                     <ActionButton
                       variant="ghost"
                       disabled={playing || !isTauri() || !list.items.length}
@@ -472,228 +492,242 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
                       打开文件夹
                     </ActionButton>
                   )
-                : collection.kind === 'playlist' && (
-                    <>
-                      <ActionButton
-                        variant="ghost"
-                        disabled={!isTauri()}
-                        onClick={() => {
-                          setName(collection.name)
-                          setEditing('rename')
-                        }}
-                      >
-                        <Pencil aria-hidden="true" />
-                        改名
-                      </ActionButton>
-                      <ActionButton
-                        variant="ghost"
-                        disabled={!isTauri()}
-                        onClick={() => setEditing('delete')}
-                      >
-                        <Trash2 aria-hidden="true" />
-                        删除歌单
-                      </ActionButton>
-                    </>
-                  )
-            }
-          />
-          {list.busy && !list.items.length ? (
-            <TrackListSkeleton online={false} />
-          ) : list.items.length > 0 ? (
-            <TrackList
-              tracks={list.items}
-              key={`${collection.kind}:${collection.localId ?? collection.id}`}
-              searchable
-              sortable
-              hasMore={list.more}
-              busy={!isTauri()}
-              currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
-              onPlay={(index, tracks) => {
-                const start = index >= 1000 ? index : 0
-                void nativeCall('play_queue', {
-                  keys: tracks.slice(start, start + 1000).map((t) => t.key),
-                  index: index - start
-                }).catch(onError)
-              }}
-              onAppend={(track) =>
-                void nativeCall('append_queue', { keys: [track.key] }).catch(onError)
+                ) : collection.kind === 'playlist' ? (
+                  <>
+                    <ActionButton
+                      variant="ghost"
+                      disabled={!isTauri()}
+                      onClick={() => {
+                        setName(collection.name)
+                        setEditing('rename')
+                      }}
+                    >
+                      <Pencil aria-hidden="true" />
+                      改名
+                    </ActionButton>
+                    <ActionButton
+                      variant="ghost"
+                      disabled={!isTauri()}
+                      onClick={() => setEditing('delete')}
+                    >
+                      <Trash2 aria-hidden="true" />
+                      删除歌单
+                    </ActionButton>
+                  </>
+                ) : collection.kind === 'artist' ? (
+                  <ArtistAvatarDetailMenu
+                    artistId={collection.localId!}
+                    artistName={collection.name}
+                  />
+                ) : undefined
               }
-              onRemove={
-                collection.kind === 'playlist'
-                  ? async (track) => {
-                      await nativeCall('remove_local_playlist_track', {
-                        id: collection.localId,
-                        key: track.key
-                      })
-                      setRevision((v) => v + 1)
-                    }
-                  : undefined
-              }
-              removeLabel="从歌单移除"
             />
-          ) : (
-            !list.error && (
-              <div className="library-empty">
-                {list.busy ? (
-                  <TrackListSkeleton online={false} />
-                ) : (
-                  '还没有歌曲，在本地歌曲的右键菜单中添加到此歌单。'
-                )}
-              </div>
-            )
-          )}
-          <InfiniteLoad
-            more={list.more}
-            busy={list.busy}
-            error={list.error}
-            onLoad={list.loadMore}
-          />
-        </CollectionContent>
-      ) : (
-        <>
-          <MusicPageHeader title="本地音乐">
-            <p>熟悉的收藏，随时聆听。</p>
-          </MusicPageHeader>
-          <div className="local-folder-actions">
-            <ActionButton variant="ghost" disabled={importing || !isTauri()} onClick={onImport}>
-              <Plus aria-hidden="true" />
-              打开文件
-            </ActionButton>
-            <FolderManager />
-          </div>
-          <MusicTabs
-            className="gap-0"
-            value={kind}
-            onValueChange={(value) => {
-              setKind(value as Kind)
-              if (page.query) navigate('local')
-            }}
-          >
-            <div className="local-tabs-row">
-              <TabsList className="music-tabs" aria-label="本地音乐分类">
-                {categories.map(({ value, label, icon: Icon }) => (
-                  <TabsTab key={value} value={value}>
-                    <Icon aria-hidden="true" />
-                    {label}
-                  </TabsTab>
-                ))}
-              </TabsList>
-              <form
-                className="local-search"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  navigate('local', input.trim())
+            {list.busy && !list.items.length ? (
+              <TrackListSkeleton online={false} />
+            ) : list.items.length > 0 ? (
+              <TrackList
+                tracks={list.items}
+                key={`${collection.kind}:${collection.localId ?? collection.id}`}
+                searchable
+                sortable
+                hasMore={list.more}
+                busy={!isTauri()}
+                currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
+                onPlay={(index, tracks) => {
+                  const start = index >= 1000 ? index : 0
+                  void nativeCall('play_queue', {
+                    keys: tracks.slice(start, start + 1000).map((t) => t.key),
+                    index: index - start
+                  }).catch(onError)
                 }}
-              >
-                <Input
-                  aria-label="搜索本地音乐、艺术家或专辑"
-                  placeholder="搜索音乐、艺术家、专辑"
-                  value={input}
-                  maxLength={100}
-                  onChange={(event) => setInput(event.target.value)}
-                />
-                {page.query && (
-                  <ActionButton
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="清除本地搜索"
-                    onClick={() => {
-                      setInput('')
-                      navigate('local')
-                    }}
-                  >
-                    <X aria-hidden="true" />
-                  </ActionButton>
-                )}
-                <Search aria-hidden="true" />
-              </form>
-            </div>
-            {page.query ? (
-              <LocalSearchResults
-                key={`${page.query}:${version}`}
-                keyword={page.query}
-                refresh={version}
-                onError={onError}
-                onNotice={onNotice}
+                onAppend={(track) =>
+                  void nativeCall('append_queue', { keys: [track.key] }).catch(onError)
+                }
+                onRemove={
+                  collection.kind === 'playlist'
+                    ? async (track) => {
+                        await nativeCall('remove_local_playlist_track', {
+                          id: collection.localId,
+                          key: track.key
+                        })
+                        setRevision((v) => v + 1)
+                      }
+                    : undefined
+                }
+                removeLabel="从歌单移除"
               />
             ) : (
-              categories.map(({ value }) => (
-                <Tabs.Panel key={value} value={value}>
-                  {value === 'playlist' && (
-                    <div className="mb-5 flex flex-wrap gap-2">
-                      <ActionButton
-                        variant="outline"
-                        disabled={!isTauri()}
-                        onClick={() => {
-                          setName('')
-                          setEditing('create')
-                        }}
-                      >
-                        <Plus aria-hidden="true" />
-                        创建歌单
-                      </ActionButton>
-                      <CreateAggregatePlaylist variant="outline" onError={onError} />
-                    </div>
+              !list.error && (
+                <div className="library-empty">
+                  {list.busy ? (
+                    <TrackListSkeleton online={false} />
+                  ) : (
+                    '还没有歌曲，在本地歌曲的右键菜单中添加到此歌单。'
                   )}
-                  <BrowseResults
-                    kind={value}
-                    keyword=""
-                    refresh={version}
-                    onError={onError}
-                    onNotice={onNotice}
+                </div>
+              )
+            )}
+            <InfiniteLoad
+              more={list.more}
+              busy={list.busy}
+              error={list.error}
+              onLoad={list.loadMore}
+            />
+          </CollectionContent>
+        ) : (
+          <>
+            <MusicPageHeader title="本地音乐">
+              <p>熟悉的收藏，随时聆听。</p>
+            </MusicPageHeader>
+            <div className="local-folder-actions">
+              <ActionButton variant="ghost" disabled={importing || !isTauri()} onClick={onImport}>
+                <Plus aria-hidden="true" />
+                打开文件
+              </ActionButton>
+              <FolderManager />
+            </div>
+            <MusicTabs
+              className="gap-0"
+              value={kind}
+              onValueChange={(value) => {
+                setKind(value as Kind)
+                if (page.query) navigate('local')
+              }}
+            >
+              <div className="local-tabs-row">
+                <TabsList className="music-tabs" aria-label="本地音乐分类">
+                  {categories.map(({ value, label, icon: Icon }) => (
+                    <TabsTab key={value} value={value}>
+                      <Icon aria-hidden="true" />
+                      {label}
+                    </TabsTab>
+                  ))}
+                </TabsList>
+                <form
+                  className="local-search"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    navigate('local', input.trim())
+                  }}
+                >
+                  <Input
+                    aria-label="搜索本地音乐、艺术家或专辑"
+                    placeholder="搜索音乐、艺术家、专辑"
+                    value={input}
+                    maxLength={100}
+                    onChange={(event) => setInput(event.target.value)}
                   />
-                </Tabs.Panel>
-              ))
-            )}
-          </MusicTabs>
-        </>
-      )}
-      <Dialog
-        open={!!editing}
-        onOpenChange={(open) => {
-          if (!open && !saving) setEditing(undefined)
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editing === 'create'
-                ? '创建歌单'
-                : editing === 'rename'
-                  ? '修改歌单名称'
-                  : '删除歌单'}
-            </DialogTitle>
-            <DialogDescription>
-              {editing === 'delete'
-                ? '删除歌单会保留曲库中的歌曲和原始文件。'
-                : editing === 'create'
-                  ? '给喜欢的音乐一个名字。'
-                  : '改变歌单的名称。'}
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              void save()
-            }}
-            className="flex flex-col gap-4"
-          >
-            {editing !== 'delete' && (
-              <Input
-                autoFocus
-                aria-label="歌单名称"
-                value={name}
-                maxLength={100}
-                onChange={(event) => setName(event.target.value)}
-              />
-            )}
-            {dialogError && <ErrorNotice error={dialogError} />}
-            <ActionButton type="submit" disabled={saving || (editing !== 'delete' && !name.trim())}>
-              {saving ? '正在保存…' : editing === 'delete' ? '删除歌单' : '保存'}
-            </ActionButton>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </MusicPage>
+                  {page.query && (
+                    <ActionButton
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="清除本地搜索"
+                      onClick={() => {
+                        setInput('')
+                        navigate('local')
+                      }}
+                    >
+                      <X aria-hidden="true" />
+                    </ActionButton>
+                  )}
+                  <Search aria-hidden="true" />
+                </form>
+              </div>
+              {page.query ? (
+                <LocalSearchResults
+                  key={`${page.query}:${version}`}
+                  keyword={page.query}
+                  refresh={version}
+                  onError={onError}
+                  onNotice={onNotice}
+                />
+              ) : (
+                categories.map(({ value }) => (
+                  <Tabs.Panel key={value} value={value}>
+                    {value === 'playlist' && (
+                      <div className="mb-5 flex flex-wrap gap-2">
+                        <ActionButton
+                          variant="outline"
+                          disabled={!isTauri()}
+                          onClick={() => {
+                            setName('')
+                            setEditing('create')
+                          }}
+                        >
+                          <Plus aria-hidden="true" />
+                          创建歌单
+                        </ActionButton>
+                        <CreateAggregatePlaylist variant="outline" onError={onError} />
+                      </div>
+                    )}
+                    {value === 'artist' && (
+                      <div className="mb-5 flex flex-wrap gap-2">
+                        <ArtistAvatarCompletionButton onError={onError} onNotice={onNotice} />
+                      </div>
+                    )}
+                    <BrowseResults
+                      kind={value}
+                      keyword=""
+                      refresh={version}
+                      onError={onError}
+                      onNotice={onNotice}
+                    />
+                  </Tabs.Panel>
+                ))
+              )}
+            </MusicTabs>
+          </>
+        )}
+        <Dialog
+          open={!!editing}
+          onOpenChange={(open) => {
+            if (!open && !saving) setEditing(undefined)
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editing === 'create'
+                  ? '创建歌单'
+                  : editing === 'rename'
+                    ? '修改歌单名称'
+                    : '删除歌单'}
+              </DialogTitle>
+              <DialogDescription>
+                {editing === 'delete'
+                  ? '删除歌单会保留曲库中的歌曲和原始文件。'
+                  : editing === 'create'
+                    ? '给喜欢的音乐一个名字。'
+                    : '改变歌单的名称。'}
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault()
+                void save()
+              }}
+              className="flex flex-col gap-4"
+            >
+              {editing !== 'delete' && (
+                <Input
+                  autoFocus
+                  aria-label="歌单名称"
+                  value={name}
+                  maxLength={100}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              )}
+              {dialogError && <ErrorNotice error={dialogError} />}
+              <ActionButton
+                type="submit"
+                disabled={saving || (editing !== 'delete' && !name.trim())}
+              >
+                {saving ? '正在保存…' : editing === 'delete' ? '删除歌单' : '保存'}
+              </ActionButton>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </MusicPage>
+    </ArtistAvatarActionsProvider>
   )
 }

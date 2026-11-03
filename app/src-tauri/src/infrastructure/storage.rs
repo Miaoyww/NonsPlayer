@@ -37,7 +37,7 @@ pub fn now_seconds() -> i64 {
         .as_secs() as i64
 }
 
-fn now_millis() -> i64 {
+pub(crate) fn now_millis() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -81,6 +81,20 @@ impl Store {
             CREATE TABLE IF NOT EXISTS local_entities (kind TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, cover TEXT NOT NULL, subtitle TEXT NOT NULL, PRIMARY KEY(kind,id));
             CREATE TABLE IF NOT EXISTS local_members (key TEXT NOT NULL, kind TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY(key,kind,id));
             CREATE INDEX IF NOT EXISTS local_members_entity ON local_members(kind,id);
+            CREATE TABLE IF NOT EXISTS local_artist_avatars (
+                artist_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                source TEXT,
+                platform_id TEXT,
+                platform_name TEXT,
+                cover_variants TEXT,
+                cover_size TEXT,
+                avatar_path TEXT,
+                width INTEGER,
+                height INTEGER,
+                error TEXT,
+                updated_at INTEGER NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS local_playlists (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, playlist_type TEXT NOT NULL DEFAULT 'aggregate');
             CREATE TABLE IF NOT EXISTS local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, manual INTEGER NOT NULL DEFAULT 1, remote INTEGER NOT NULL DEFAULT 0, excluded INTEGER NOT NULL DEFAULT 0, value TEXT NOT NULL, PRIMARY KEY(playlist_id,key));
             CREATE INDEX IF NOT EXISTS local_audio_path ON tracks(json_extract(value,'$.source.path')) WHERE source='local';

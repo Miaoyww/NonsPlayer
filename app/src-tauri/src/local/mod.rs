@@ -1,3 +1,4 @@
+pub(crate) mod artist_avatar;
 pub(crate) mod cover_art;
 pub(crate) mod cover_rebuild;
 pub(crate) mod cover_repair;

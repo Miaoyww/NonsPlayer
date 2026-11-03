@@ -1,5 +1,6 @@
 import { nativeCall, type Track } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
+import type { ArtistAvatarStatus } from './artist-avatar/types'
 export interface LocalEntity {
   id: string
   kind: 'artist' | 'album' | 'playlist'
@@ -8,6 +9,9 @@ export interface LocalEntity {
   cover: string
   subtitle: string
   trackCount: number
+  avatarStatus?: ArtistAvatarStatus
+  avatarSource?: string
+  avatarError?: string
 }
 export function localCollection(item: LocalEntity): MusicCollection {
   return { ...item, id: 0, localId: item.id, reference: null }

@@ -276,6 +276,8 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
       'local_entity_tracks',
       'local_track_information'
     ],
+    local_artist_avatar_select: ['local_entities', 'local_entity_detail'],
+    local_artist_avatar_restore: ['local_entities', 'local_entity_detail'],
     bind_local_lyrics: ['track_lyrics', 'local_music'],
     set_lyric_correction: ['track_lyrics', 'local_track_lyrics'],
     set_lyric_endpoints: ['track_lyrics'],

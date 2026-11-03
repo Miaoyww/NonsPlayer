@@ -293,8 +293,9 @@ fn valid_uncached(path: &Path) -> bool {
     decode(&bytes).is_some()
 }
 
-pub(super) fn asset(bytes: &[u8], covers: &Path) -> Option<String> {
+pub(super) fn asset_with_size(bytes: &[u8], covers: &Path) -> Option<(String, u32, u32)> {
     let decoded = decode(bytes)?;
+    let size = (decoded.width(), decoded.height());
     let converted;
     let bytes = if is_jxl(bytes) {
         let mut output = Cursor::new(Vec::new());
@@ -309,13 +310,13 @@ pub(super) fn asset(bytes: &[u8], covers: &Path) -> Option<String> {
     let dest = covers.join(format!("{:x}.img", Sha256::digest(bytes)));
     if read(&dest).as_deref() == Some(bytes) {
         remember(&dest, true);
-        return Some(dest.to_string_lossy().into_owned());
+        return Some((dest.to_string_lossy().into_owned(), size.0, size.1));
     }
     static WRITE: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let _guard = WRITE.lock().ok()?;
     if read(&dest).as_deref() == Some(bytes) {
         remember(&dest, true);
-        return Some(dest.to_string_lossy().into_owned());
+        return Some((dest.to_string_lossy().into_owned(), size.0, size.1));
     }
     let result = (|| -> std::io::Result<()> {
         let mut temporary = tempfile::NamedTempFile::new_in(covers)?;
@@ -329,7 +330,11 @@ pub(super) fn asset(bytes: &[u8], covers: &Path) -> Option<String> {
         return None;
     }
     remember(&dest, true);
-    Some(dest.to_string_lossy().into_owned())
+    Some((dest.to_string_lossy().into_owned(), size.0, size.1))
+}
+
+pub(super) fn asset(bytes: &[u8], covers: &Path) -> Option<String> {
+    asset_with_size(bytes, covers).map(|(path, _, _)| path)
 }
 
 pub(super) fn external(directory: &Path, covers: &Path) -> Option<String> {

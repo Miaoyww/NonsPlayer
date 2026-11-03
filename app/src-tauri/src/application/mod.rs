@@ -25,7 +25,9 @@ pub(crate) struct Backend {
     pub(crate) lyrics: Arc<lyrics::LyricService>,
     pub(crate) player: Arc<Player>,
     pub(crate) covers: PathBuf,
+    pub(crate) avatars: PathBuf,
     pub(crate) cover_rebuild: Arc<crate::local::cover_rebuild::RebuildJob>,
+    pub(crate) artist_avatars: Arc<crate::local::artist_avatar::ArtistAvatarJob>,
     pub(crate) fallback_cover: String,
     pub(crate) cache: Arc<lyric_cache::LyricCache>,
     pub(crate) folders: Arc<local_folders::LocalFolders>,
@@ -900,6 +902,9 @@ pub fn run() {
             let covers = cache_directory.join("covers");
             std::fs::create_dir_all(&covers)?;
             app.asset_protocol_scope().allow_directory(&covers, true)?;
+            let avatars = cache_directory.join("avatars");
+            std::fs::create_dir_all(&avatars)?;
+            app.asset_protocol_scope().allow_directory(&avatars, true)?;
             let online_covers = cache_directory.join("online-covers-v1");
             std::fs::create_dir_all(&online_covers)?;
             app.asset_protocol_scope().allow_directory(&online_covers, true)?;
@@ -1048,7 +1053,9 @@ pub fn run() {
                 lyrics,
                 player,
                 covers,
+                avatars,
                 cover_rebuild: Arc::default(),
+                artist_avatars: Arc::default(),
                 fallback_cover: fallback.to_string_lossy().to_string(),
                 cache,
                 folders,
@@ -1224,6 +1231,12 @@ pub fn run() {
             crate::local::cover_repair::local_cover_repair,
             crate::local::cover_rebuild::local_cover_rebuild,
             crate::local::cover_rebuild::local_cover_rebuild_status,
+            crate::local::artist_avatar::local_artist_avatars,
+            crate::local::artist_avatar::local_artist_avatar_status,
+            crate::local::artist_avatar::local_artist_avatar_candidates,
+            crate::local::artist_avatar::local_artist_avatar_start,
+            crate::local::artist_avatar::local_artist_avatar_select,
+            crate::local::artist_avatar::local_artist_avatar_restore,
             cover_export::cover_export,
             runtime_cover_access,
             runtime_cover_invalidate,

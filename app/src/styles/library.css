@@ -232,14 +232,44 @@
 .library-cover-open > div {
   border-radius: inherit;
 }
-.library-cover-open img {
+.library-cover-card:not(.library-artist-card) .library-cover-open img {
   transition:
     transform 300ms ease,
     filter 300ms ease;
 }
-.library-cover-art:is(:hover, :focus-within) img {
+.library-cover-card:not(.library-artist-card) .library-cover-art:is(:hover, :focus-within) img {
   transform: scale(1.1);
   filter: brightness(0.8);
+}
+/* 艺人卡片单独的 hover：头像轻微抬升、放大，并淡入一圈细描边。 */
+.library-artist-card .library-cover-art {
+  transition:
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.library-artist-card .library-cover-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 24%, transparent);
+  transition: opacity 320ms ease;
+}
+.library-artist-card .library-cover-art img {
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.library-artist-card:is(:hover, :focus-within) .library-cover-art {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgb(0 0 0 / 14%);
+}
+.library-artist-card:is(:hover, :focus-within) .library-cover-art::after {
+  opacity: 1;
+}
+.library-artist-card:is(:hover, :focus-within) .library-cover-art img {
+  filter: none;
+  transform: scale(1.05);
 }
 .library-cover-open {
   width: 100%;
@@ -578,10 +608,16 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .library-cover-open img,
-  .library-cover-play {
+  .library-cover-play,
+  .library-artist-card .library-cover-art,
+  .library-artist-card .library-cover-art::after {
     transition: none;
   }
-  .library-cover-art:is(:hover, :focus-within) img {
+  .library-cover-art:is(:hover, :focus-within) img,
+  .library-artist-card:is(:hover, :focus-within) .library-cover-art img {
+    transform: none;
+  }
+  .library-artist-card:is(:hover, :focus-within) .library-cover-art {
     transform: none;
   }
   .library-cover-play {
