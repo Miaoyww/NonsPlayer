@@ -57,6 +57,58 @@
 .local-result-section + .local-result-section {
   margin-top: 36px;
 }
+.local-artist-browser {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.25rem;
+  align-items: start;
+  gap: 20px;
+}
+.local-artist-sections {
+  min-width: 0;
+}
+.local-artist-section {
+  scroll-margin-top: 24px;
+}
+.local-artist-section + .local-artist-section {
+  margin-top: 32px;
+}
+.local-artist-section-letter {
+  margin-bottom: 14px;
+  color: var(--muted-foreground);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+.local-artist-index {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+.local-artist-index-scroll {
+  height: clamp(12rem, calc(100dvh - 15rem), 34rem);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--background) 88%, transparent);
+}
+.local-artist-index-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+}
+.local-artist-index-button {
+  width: 100%;
+  height: 1.375rem;
+  min-height: 1.375rem;
+  padding-inline: 0;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--muted-foreground);
+}
+.local-artist-index-button[data-active='true'] {
+  color: var(--primary-foreground);
+}
 @media (max-width: 850px) {
   .local-search-results {
     gap: 16px;
@@ -66,5 +118,17 @@
   }
   .local-search-nav [data-slot='tabs-tab'] {
     padding-inline: 8px;
+  }
+  .local-artist-browser {
+    grid-template-columns: minmax(0, 1fr) 2rem;
+    gap: 12px;
+  }
+  .local-artist-index-scroll {
+    height: clamp(11rem, calc(100dvh - 14rem), 28rem);
+  }
+  .local-artist-index-button {
+    height: 1.25rem;
+    min-height: 1.25rem;
+    font-size: 10px;
   }
 }

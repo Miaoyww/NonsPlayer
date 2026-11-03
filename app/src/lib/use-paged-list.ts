@@ -80,6 +80,7 @@ export function usePagedList<T, M = undefined>(
         state.offset = offset
         state.more = page!.more
         state.reloadPages = Math.max(1, offset / size)
+        return { items, more: page!.more }
       } catch (cause) {
         reportCaughtError('app/src/lib/use-paged-list.ts', cause)
 

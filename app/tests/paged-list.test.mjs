@@ -132,6 +132,18 @@ test('repeated end-of-list notifications append each page once and stop at the e
   assert.equal(app.requests.length, 2)
 })
 
+test('continuation returns the loaded page so callers can inspect a target row', async () => {
+  const app = harness()
+  app.render()
+  app.requests[0].resolve({ items: ['first'], more: true })
+  await settle()
+  const pending = app.render().loadMore()
+  app.requests[1].resolve({ items: ['target'], more: false })
+  const page = await pending
+  assert.deepEqual([...page.items], ['target'])
+  assert.equal(page.more, false)
+})
+
 test('failed continuation preserves results and retries the same offset', async () => {
   const app = harness()
   app.render()

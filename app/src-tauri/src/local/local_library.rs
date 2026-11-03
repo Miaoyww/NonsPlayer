@@ -434,7 +434,7 @@ fn entity_page(store: &Store, kind: String, keyword: String, offset: u32) -> App
             crate::infrastructure::diagnostics::warn("local.entities.list.db_lock", error);
         })
         .map_err(|_| "曲库锁不可用")?;
-    let sql = "SELECT e.id,e.kind,e.name,COALESCE(NULLIF(a.avatar_path,''),e.cover),e.subtitle,COUNT(t.key),a.status,a.source,a.error FROM local_entities e JOIN local_members m ON m.kind=e.kind AND m.id=e.id JOIN visible_local_tracks t ON t.key=m.key AND t.source='local' LEFT JOIN local_artist_avatars a ON a.artist_id=e.id AND e.kind='artist' WHERE e.kind=?1 AND instr(lower(e.name),lower(?2))>0 GROUP BY e.kind,e.id ORDER BY e.name,e.id LIMIT 31 OFFSET ?3";
+    let sql = "SELECT e.id,e.kind,e.name,COALESCE(NULLIF(a.avatar_path,''),e.cover),e.subtitle,COUNT(t.key),a.status,a.source,a.error FROM local_entities e JOIN local_members m ON m.kind=e.kind AND m.id=e.id JOIN visible_local_tracks t ON t.key=m.key AND t.source='local' LEFT JOIN local_artist_avatars a ON a.artist_id=e.id AND e.kind='artist' WHERE e.kind=?1 AND instr(lower(e.name),lower(?2))>0 GROUP BY e.kind,e.id ORDER BY CASE WHEN ?1='artist' THEN lower(e.name) ELSE e.name END,e.id LIMIT 31 OFFSET ?3";
     let mut stmt = db.prepare(sql).map_err(|e| e.to_string())?;
     let mut items = stmt
         .query_map(params![kind, keyword, offset], |r| {
@@ -1291,6 +1291,26 @@ mod tests {
     fn separators_are_literal_and_deduplicated() {
         assert_eq!(split_artists(" A.*B.*A ", &[".*".into()]), vec!["A", "B"]);
         assert_eq!(split_artists("AC/DC", &[]), vec!["AC/DC"]);
+    }
+    #[test]
+    fn artist_pages_sort_names_case_insensitively_for_the_alphabet_index() {
+        let dir = crate::test_support::TestDir::new();
+        let store = Store::open(&dir.0.join("library.sqlite")).unwrap();
+        store
+            .save_tracks(&[
+                track("local:zulu", "Zulu", ""),
+                track("local:lower", "alpha", ""),
+                track("local:beta", "Beta", ""),
+            ])
+            .unwrap();
+        let page = entity_page(&store, "artist".into(), "".into(), 0).unwrap();
+        assert_eq!(
+            page.items
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["alpha", "Beta", "Zulu"]
+        );
     }
     #[test]
     fn artist_avatar_override_is_used_by_list_and_detail_and_keeps_the_local_fallback() {

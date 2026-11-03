@@ -6,7 +6,7 @@ import { CollectionContent } from '@/features/library/collection-content'
 import { CollectionHeader } from '@/features/library/collection-header'
 import { ArtistCard } from '@/features/library/artist-card'
 import { TrackArtists } from '@/components/music/music-links'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Tabs } from '@base-ui/react/tabs'
 import { ContextMenu } from '@base-ui/react/context-menu'
@@ -55,6 +55,12 @@ import {
   ArtistAvatarDetailMenu
 } from '@/features/local/artist-avatar/actions'
 import { ArtistAvatarCompletionButton } from '@/features/local/artist-avatar/completion-dialog'
+import { ArtistAlphabetIndex } from '@/features/local/artist-alphabet-index'
+import {
+  artistIndexLetter,
+  groupArtists,
+  type ArtistIndexLetter
+} from '@/features/local/artist-index'
 
 const categories = [
   { value: 'song', label: '音乐', icon: Music2 },
@@ -112,6 +118,19 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
   const { navigate } = useMusicNavigation()
   const player = usePlayer('index', 'queue')
   const [playing, setPlaying] = useState(false)
+  const isArtistBrowse = kind === 'artist' && !keyword && !sectionTitle
+  const artistGroups = useMemo(
+    () => (isArtistBrowse ? groupArtists(list.items as LocalEntity[]) : []),
+    [isArtistBrowse, list.items]
+  )
+  const availableLetters = useMemo(
+    () => new Set(artistGroups.map((group) => group.letter)),
+    [artistGroups]
+  )
+  const [activeLetter, setActiveLetter] = useState<ArtistIndexLetter>()
+  const [pendingLetter, setPendingLetter] = useState<ArtistIndexLetter>()
+  const groupRefs = useRef(new Map<ArtistIndexLetter, HTMLElement>())
+  const indexContainer = useRef<HTMLDivElement>(null)
   async function play(item: LocalEntity) {
     if (playing) return
     setPlaying(true)
@@ -125,7 +144,87 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
       setPlaying(false)
     }
   }
+  async function selectArtistLetter(letter: ArtistIndexLetter) {
+    if (pendingLetter || list.busy) return
+    setActiveLetter(letter)
+    setPendingLetter(letter)
+    if (availableLetters.has(letter) || !list.more) return
+    let more: boolean = list.more
+    while (more) {
+      const page = await list.loadMore()
+      if (!page?.items.length) break
+      if (page.items.some((item) => artistIndexLetter((item as LocalEntity).name) === letter)) break
+      more = page.more
+    }
+  }
   const tracks = list.items as Track[]
+  useEffect(() => {
+    if (!isArtistBrowse) return
+    if (!artistGroups.length) {
+      setActiveLetter(undefined)
+      return
+    }
+    if (!activeLetter || !availableLetters.has(activeLetter)) {
+      setActiveLetter(artistGroups[0].letter)
+    }
+  }, [activeLetter, artistGroups, availableLetters, isArtistBrowse])
+  useEffect(() => {
+    if (!isArtistBrowse) return
+    const container = indexContainer.current
+    const scroller = container?.closest('.music-library')
+    if (!(scroller instanceof HTMLElement)) return
+    let frame = 0
+    const update = () => {
+      frame = 0
+      const threshold = scroller.getBoundingClientRect().top + 32
+      let current = artistGroups[0]?.letter
+      for (const group of artistGroups) {
+        const element = groupRefs.current.get(group.letter)
+        if (element && element.getBoundingClientRect().top <= threshold) current = group.letter
+      }
+      if (current && !pendingLetter) setActiveLetter(current)
+    }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+    scroller.addEventListener('scroll', schedule, { passive: true })
+    update()
+    return () => {
+      scroller.removeEventListener('scroll', schedule)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [artistGroups, isArtistBrowse, pendingLetter])
+  useEffect(() => {
+    if (!pendingLetter) return
+    const element = groupRefs.current.get(pendingLetter)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setActiveLetter(pendingLetter)
+      setPendingLetter(undefined)
+    } else if (!list.more || list.error) {
+      setPendingLetter(undefined)
+    }
+  }, [artistGroups, list.error, list.more, pendingLetter])
+  const openEntity = (item: LocalEntity) =>
+    navigate(
+      item.kind === 'artist'
+        ? 'local-artist'
+        : item.kind === 'album'
+          ? 'local-album'
+          : 'local-playlist',
+      '',
+      localCollection(item)
+    )
+  const artistCard = (item: LocalEntity) => (
+    <ArtistCard
+      key={item.id}
+      name={item.name}
+      cover={item.cover}
+      meta={`${item.trackCount} 首音乐${item.subtitle ? ` · ${item.subtitle}` : ''}`}
+      onOpen={() => openEntity(item)}
+      menu={<ArtistAvatarContextItems artistId={item.id} artistName={item.name} />}
+    />
+  )
   if (sectionTitle && !list.items.length && !list.busy && !list.error) return null
   const content = (
     <>
@@ -157,30 +256,44 @@ function Results({ sectionTitle, kind, keyword, list, onError, onNotice }: Resul
                 .catch(onError)
             }
           />
+        ) : isArtistBrowse ? (
+          <div className="local-artist-browser" ref={indexContainer}>
+            <div className="local-artist-sections">
+              {artistGroups.map((group) => (
+                <section
+                  key={group.letter}
+                  className="local-artist-section"
+                  data-artist-letter={group.letter}
+                  ref={(node) => {
+                    if (node) groupRefs.current.set(group.letter, node)
+                    else groupRefs.current.delete(group.letter)
+                  }}
+                >
+                  <h2
+                    className="local-artist-section-letter"
+                    aria-label={group.letter === '#' ? '其他' : group.letter}
+                  >
+                    {group.letter}
+                  </h2>
+                  <div className="library-cover-grid">{group.items.map(artistCard)}</div>
+                </section>
+              ))}
+            </div>
+            <ArtistAlphabetIndex
+              active={activeLetter}
+              available={availableLetters}
+              canLoadMore={list.more}
+              disabled={list.busy}
+              pending={pendingLetter}
+              onSelect={(letter) => void selectArtistLetter(letter)}
+            />
+          </div>
         ) : (
           <div className="library-cover-grid">
             {(list.items as LocalEntity[]).map((item) => {
-              const open = () =>
-                navigate(
-                  item.kind === 'artist'
-                    ? 'local-artist'
-                    : item.kind === 'album'
-                      ? 'local-album'
-                      : 'local-playlist',
-                  '',
-                  localCollection(item)
-                )
+              const open = () => openEntity(item)
               if (kind === 'artist') {
-                return (
-                  <ArtistCard
-                    key={item.id}
-                    name={item.name}
-                    cover={item.cover}
-                    meta={`${item.trackCount} 首音乐${item.subtitle ? ` · ${item.subtitle}` : ''}`}
-                    onOpen={open}
-                    menu={<ArtistAvatarContextItems artistId={item.id} artistName={item.name} />}
-                  />
-                )
+                return artistCard(item)
               }
               const body = (
                 <>
