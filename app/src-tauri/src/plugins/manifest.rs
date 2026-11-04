@@ -6,7 +6,9 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-pub const API_VERSION: &str = "2.1.0";
+pub const API_VERSION: &str = "2.2.0";
+const FULLSCREEN_PLAYER_PANEL_SLOT: &str = "fullscreen.player.panel";
+const FULLSCREEN_PLAYER_ACTION_SLOT: &str = "fullscreen.player.actions";
 pub const PERMISSIONS: &[&str] = &[
     "clipboard:read",
     "http:request",
@@ -87,6 +89,8 @@ pub struct PluginWindow {
 pub struct View {
     pub id: String,
     pub slot: String,
+    #[serde(default)]
+    pub label: Option<String>,
     pub export: String,
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -396,8 +400,40 @@ impl Manifest {
         {
             return Err("歌曲菜单贡献无效".into());
         }
-        if c.views.iter().any(|v| v.slot != "main.overlay") {
+        if c.views.iter().any(|v| {
+            !matches!(
+                v.slot.as_str(),
+                "main.overlay" | FULLSCREEN_PLAYER_PANEL_SLOT | FULLSCREEN_PLAYER_ACTION_SLOT
+            )
+        }) {
             return Err("未知 UI Slot".into());
+        }
+        if c.views.len() > 16
+            || c.views
+                .iter()
+                .filter(|view| view.slot == FULLSCREEN_PLAYER_PANEL_SLOT)
+                .count()
+                > 8
+            || c.views
+                .iter()
+                .filter(|view| view.slot == FULLSCREEN_PLAYER_ACTION_SLOT)
+                .count()
+                > 8
+        {
+            return Err("全屏播放器扩展数量超过上限".into());
+        }
+        for view in &c.views {
+            if view.slot == FULLSCREEN_PLAYER_PANEL_SLOT {
+                if view
+                    .label
+                    .as_ref()
+                    .is_none_or(|label| label.trim().is_empty() || label.len() > 128)
+                {
+                    return Err("全屏播放器面板页缺少有效名称".into());
+                }
+            } else if view.label.is_some() {
+                return Err("仅全屏播放器面板页可声明名称".into());
+            }
         }
         let mut paths = HashSet::new();
         for page in &c.pages {
@@ -478,6 +514,28 @@ mod tests {
         assert!(manifest.validate().is_err());
         manifest.file_roots = vec!["*".into()];
         manifest.permissions.retain(|p| p != "files:selected");
+        assert!(manifest.validate().is_err());
+    }
+    #[test]
+    fn validates_fullscreen_player_views_and_limits() {
+        let mut manifest: Manifest =
+            serde_json::from_str(include_str!("../../../../plugins/ui-fixture/manifest.json"))
+                .unwrap();
+        manifest.validate().unwrap();
+        manifest.contributes.views[1].label = None;
+        assert!(manifest.validate().is_err());
+        manifest.contributes.views[1].label = Some("测试面板".into());
+        manifest.contributes.views[2].label = Some("错误位置".into());
+        assert!(manifest.validate().is_err());
+        manifest.contributes.views[2].label = None;
+        for index in 0..9 {
+            manifest.contributes.views.push(View {
+                id: format!("panel-{index}"),
+                slot: FULLSCREEN_PLAYER_PANEL_SLOT.into(),
+                label: Some(format!("面板 {index}")),
+                export: format!("Panel{index}"),
+            });
+        }
         assert!(manifest.validate().is_err());
     }
     #[test]

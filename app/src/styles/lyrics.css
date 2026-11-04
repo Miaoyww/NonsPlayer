@@ -15,8 +15,16 @@
   margin-bottom: clamp(40px, 7.5vh, 60px);
 }
 .now-playing-lyrics[data-panel-page='information'],
-.now-playing-lyrics[data-panel-page='queue'] {
+.now-playing-lyrics[data-panel-page='queue'],
+.now-playing-lyrics[data-plugin-panel='true'] {
   mask-image: none;
+}
+.fullscreen-plugin-panel {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: clamp(4px, 1.5vh, 16px) clamp(4px, 1.5vw, 16px) calc(clamp(40px, 7.5vh, 60px) + 16px);
+  scrollbar-width: thin;
 }
 .now-playing-information {
   height: 100%;

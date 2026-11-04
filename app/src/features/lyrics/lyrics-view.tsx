@@ -34,6 +34,14 @@ import { NowPlayingInformation } from '@/features/playback/now-playing/now-playi
 import { requestCache, RUNTIME_TTL } from '@/lib/runtime-cache'
 import { useLyricsSettings } from './use-lyrics-settings'
 import { Panel } from '@/components/ui/panel'
+import {
+  FULLSCREEN_PLAYER_ACTION_SLOT,
+  FULLSCREEN_PLAYER_PANEL_SLOT,
+  PluginSlot,
+  PluginView,
+  usePluginViews,
+  type PluginFullscreenPlayerBinding
+} from '@/plugins/host'
 
 function isCurrentPlayback(key: string, revision: number, version: string) {
   const active = getPlayer()
@@ -139,7 +147,27 @@ export default function LyricsView({
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
   const [lyricsSourceOpen, setLyricsSourceOpen] = useState(false)
-  const [panelPage, setPanelPage] = useState<'lyrics' | 'information' | 'queue'>('lyrics')
+  const [panelPage, setPanelPage] = useState('lyrics')
+  const pluginPanelPages = usePluginViews(FULLSCREEN_PLAYER_PANEL_SLOT)
+  const activePluginPanel = pluginPanelPages.find(
+    (page) => `plugin:${page.pluginId}:${page.viewId}` === panelPage
+  )
+  const pluginPanelBinding = useMemo<PluginFullscreenPlayerBinding>(
+    () => ({
+      active: activePluginPanel
+        ? { pluginId: activePluginPanel.pluginId, viewId: activePluginPanel.viewId }
+        : null,
+      showPage: (pluginId, viewId) => setPanelPage(`plugin:${pluginId}:${viewId}`)
+    }),
+    [activePluginPanel?.pluginId, activePluginPanel?.viewId]
+  )
+  useEffect(() => {
+    if (
+      panelPage.startsWith('plugin:') &&
+      !pluginPanelPages.some((page) => `plugin:${page.pluginId}:${page.viewId}` === panelPage)
+    )
+      setPanelPage('lyrics')
+  }, [panelPage, pluginPanelPages])
   const hasTranslation = lines.some((line) => !!line.translatedLyric.trim())
   const hasPronunciation = lines.some(
     (line) =>
@@ -519,6 +547,7 @@ export default function LyricsView({
               <div
                 className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden"
                 data-panel-page={panelPage}
+                data-plugin-panel={activePluginPanel ? 'true' : undefined}
               >
                 <Panel
                   className="h-full"
@@ -540,7 +569,19 @@ export default function LyricsView({
                           onError={(cause) => setError(errorText(cause))}
                         />
                       )
-                    }
+                    },
+                    ...pluginPanelPages.map((page) => ({
+                      value: `plugin:${page.pluginId}:${page.viewId}`,
+                      content: (
+                        <div className="fullscreen-plugin-panel">
+                          <PluginView
+                            pluginId={page.pluginId}
+                            viewId={page.viewId}
+                            fullscreenPlayer={pluginPanelBinding}
+                          />
+                        </div>
+                      )
+                    }))
                   ]}
                 />
               </div>
@@ -549,6 +590,14 @@ export default function LyricsView({
               onQueuePanel={() => setPanelPage((value) => (value === 'queue' ? 'lyrics' : 'queue'))}
               queueActive={panelPage === 'queue'}
               onError={(cause) => setError(errorText(cause))}
+              pluginActions={
+                <div className="fullscreen-playback-plugin-actions">
+                  <PluginSlot
+                    name={FULLSCREEN_PLAYER_ACTION_SLOT}
+                    fullscreenPlayer={pluginPanelBinding}
+                  />
+                </div>
+              }
             />
             {lyricsSourceOpen && track && (
               <LyricCorrectionDialog

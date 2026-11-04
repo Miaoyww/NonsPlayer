@@ -8,6 +8,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ComponentType,
   type ReactNode
@@ -18,8 +19,33 @@ import { errorText, nativeCall } from '@/lib/player'
 import * as sdk from './sdk'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { installBridge } from './bridge'
-import { PluginScope, PluginNavigationScope, type Scope } from './scope'
-import { resolvePluginPage, resolvePluginPath, type PluginDescriptor } from './types'
+import {
+  PluginFullscreenPlayerScope,
+  PluginScope,
+  PluginNavigationScope,
+  type Scope
+} from './scope'
+import {
+  resolvePluginPage,
+  resolvePluginPath,
+  type PluginDescriptor,
+  type PluginManifest
+} from './types'
+
+export const FULLSCREEN_PLAYER_PANEL_SLOT = 'fullscreen.player.panel'
+export const FULLSCREEN_PLAYER_ACTION_SLOT = 'fullscreen.player.actions'
+type PluginViewContribution = PluginManifest['contributes']['views'][number]
+export interface PluginFullscreenPlayerBinding {
+  active: { pluginId: string; viewId: string } | null
+  showPage: (pluginId: string, viewId: string) => void
+}
+export interface PluginView {
+  key: string
+  pluginId: string
+  viewId: string
+  exportName: string
+  label?: string
+}
 
 interface Loaded {
   scope: Scope
@@ -259,17 +285,94 @@ class PluginBoundary extends Component<
     )
   }
 }
-function Contribution({ plugin, name }: { plugin: Loaded; name: string }) {
+function Contribution({
+  plugin,
+  view,
+  fullscreenPlayer
+}: {
+  plugin: Loaded
+  view: Pick<PluginViewContribution, 'id' | 'export'>
+  fullscreenPlayer?: PluginFullscreenPlayerBinding
+}) {
+  const { id, export: name } = view
   const View = plugin.module[name] as ComponentType
+  const manifest = plugin.scope.descriptor.manifest
+  const fullscreenContext = fullscreenPlayer
+    ? {
+        pageId:
+          fullscreenPlayer.active?.pluginId === manifest.id && fullscreenPlayer.active.viewId === id
+            ? id
+            : null,
+        showPage: (pageId: string) => {
+          const target = manifest.contributes.views.find(
+            (candidate) =>
+              candidate.slot === FULLSCREEN_PLAYER_PANEL_SLOT && candidate.id === pageId
+          )
+          if (!target) throw new Error(`插件未声明全屏播放器面板页 ${pageId}`)
+          fullscreenPlayer.showPage(manifest.id, target.id)
+        }
+      }
+    : null
   return (
     <PluginBoundary plugin={plugin}>
       <PluginScope.Provider value={plugin.scope}>
-        <View />
+        <PluginFullscreenPlayerScope.Provider value={fullscreenContext}>
+          <View />
+        </PluginFullscreenPlayerScope.Provider>
       </PluginScope.Provider>
     </PluginBoundary>
   )
 }
-export function PluginSlot({ name }: { name: string }) {
+export function usePluginViews(slot: string) {
+  const { loaded } = usePlugins()
+  return useMemo(
+    () =>
+      [...loaded.values()].flatMap((plugin) => {
+        const { generation, manifest } = plugin.scope.descriptor
+        return manifest.contributes.views
+          .filter((view) => view.slot === slot)
+          .map((view): PluginView => ({
+            key: `${manifest.id}:${generation}:${view.id}`,
+            pluginId: manifest.id,
+            viewId: view.id,
+            exportName: view.export,
+            label: view.label ?? undefined
+          }))
+      }),
+    [loaded, slot]
+  )
+}
+export function PluginView({
+  pluginId,
+  viewId,
+  fullscreenPlayer
+}: {
+  pluginId: string
+  viewId: string
+  fullscreenPlayer?: PluginFullscreenPlayerBinding
+}) {
+  const { loaded } = usePlugins()
+  const plugin = loaded.get(pluginId)
+  const view = plugin?.scope.descriptor.manifest.contributes.views.find(
+    (candidate) => candidate.id === viewId
+  )
+  if (!plugin || !view) return null
+  return (
+    <Contribution
+      key={`${pluginId}:${plugin.scope.descriptor.generation}:${view.id}`}
+      plugin={plugin}
+      view={view}
+      fullscreenPlayer={fullscreenPlayer}
+    />
+  )
+}
+export function PluginSlot({
+  name,
+  fullscreenPlayer
+}: {
+  name: string
+  fullscreenPlayer?: PluginFullscreenPlayerBinding
+}) {
   const { loaded } = usePlugins()
   return (
     <>
@@ -280,7 +383,8 @@ export function PluginSlot({ name }: { name: string }) {
             <Contribution
               key={`${plugin.scope.descriptor.manifest.id}:${plugin.scope.descriptor.generation}:${view.id}`}
               plugin={plugin}
-              name={view.export}
+              view={view}
+              fullscreenPlayer={fullscreenPlayer}
             />
           ))
       )}
@@ -311,7 +415,7 @@ export function PluginPageHost({
         <Contribution
           key={`${route!.pluginId}:${plugin.scope.descriptor.generation}:${page.id}`}
           plugin={plugin}
-          name={page.export}
+          view={page}
         />
       </PluginNavigationScope.Provider>
     )

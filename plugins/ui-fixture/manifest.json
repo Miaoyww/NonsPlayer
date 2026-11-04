@@ -5,11 +5,24 @@
   "repository": "https://example.org/plugins/ui-fixture",
   "version": "1.0.0",
   "frontend": "ui.mjs",
-  "permissions": ["ui", "http:request", "player:control", "storage"],
+  "permissions": ["ui", "http:request", "player:read", "player:control", "storage"],
   "httpHosts": ["example.org"],
   "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" },
   "contributes": {
-    "views": [{ "id": "preview", "slot": "main.overlay", "export": "Preview" }],
+    "views": [
+      { "id": "preview", "slot": "main.overlay", "export": "Preview" },
+      {
+        "id": "fullscreen-details",
+        "slot": "fullscreen.player.panel",
+        "label": "测试面板",
+        "export": "FullscreenDetailsPanel"
+      },
+      {
+        "id": "fullscreen-details-action",
+        "slot": "fullscreen.player.actions",
+        "export": "FullscreenDetailsAction"
+      }
+    ],
     "pages": [],
     "navigation": []
   }

@@ -14,7 +14,7 @@ export interface PluginManifest {
   engines: { app: string; pluginApi: string; uiApi: string }
   contributes: {
     windows?: { id: string; export: string }[]
-    views: { id: string; slot: string; export: string }[]
+    views: { id: string; slot: string; label?: string | null; export: string }[]
     pages: { id: string; path: string; export: string }[]
     navigation: { id: string; label: string; page: string; category?: 'tool' | null }[]
     contextMenus?: {

@@ -1,10 +1,10 @@
 {
   "name": "@nonsplayer/plugin-sdk",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Nons 插件类型、WIT 契约、Manifest schema 与构建 CLI",
   "nons": {
-    "pluginApi": "2.1.0",
-    "uiApi": "2.1.0"
+    "pluginApi": "2.2.0",
+    "uiApi": "2.2.0"
   },
   "license": "GPL-3.0-only",
   "type": "module",

@@ -7,7 +7,13 @@ import { nativeCall, usePlayer as useHostPlayer, useProgress } from '@/lib/playe
 import { useTheme as useHostTheme } from '@/features/settings/appearance/use-theme'
 import { useCoverSource as useHostCoverSource } from '@/components/music/use-cover-source'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
-import { checkScope, useScope, PluginNavigationScope, type Scope } from './scope'
+import {
+  checkScope,
+  useScope,
+  PluginFullscreenPlayerScope,
+  PluginNavigationScope,
+  type Scope
+} from './scope'
 import type { ConfigSnapshot } from './configuration-types'
 import type { PluginProcesses, PluginWindows } from '../../../packages/plugin-sdk/native'
 export type * from '../../../packages/plugin-sdk/native'
@@ -263,6 +269,31 @@ export function usePluginRoute() {
   return route?.pluginId === scope.descriptor.manifest.id
     ? { pathname: route.pathname, search: route.search }
     : { pathname: '/', search: '' }
+}
+export function useFullscreenPlayerPanel(pageId: string) {
+  const scope = useScope('ui')
+  const context = useContext(PluginFullscreenPlayerScope)
+  if (!/^[a-z][a-z0-9-]{0,63}$/.test(pageId)) throw new Error('全屏播放器面板页 ID 无效')
+  if (
+    !scope.descriptor.manifest.contributes.views.some(
+      (view) => view.slot === 'fullscreen.player.panel' && view.id === pageId
+    )
+  )
+    throw new Error(`插件未声明全屏播放器面板页 ${pageId}`)
+  const label =
+    scope.descriptor.manifest.contributes.views.find(
+      (view) => view.slot === 'fullscreen.player.panel' && view.id === pageId
+    )?.label ?? ''
+  const show = useCallback(() => {
+    checkScope(scope, 'ui')
+    if (!context) throw new Error('全屏播放器面板只能在播放器扩展中使用')
+    context.showPage(pageId)
+  }, [context, pageId, scope])
+  return {
+    active: context?.pageId === pageId,
+    label,
+    show
+  }
 }
 export function usePluginConfig() {
   const scope = useScope('config')

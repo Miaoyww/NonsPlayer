@@ -69,6 +69,7 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
       Suspense: 'Suspense'
     },
     'react/jsx-runtime': { jsx, jsxs: jsx },
+    '@/components/ui/panel': { Panel: 'Panel' },
     './correction': {
       offsetLyrics: (lines, value) => {
         offsets.push(value)
@@ -122,6 +123,13 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
       motion: { section: 'section' },
       useIsPresent: () => present,
       useReducedMotion: () => false
+    },
+    '@/plugins/host': {
+      FULLSCREEN_PLAYER_ACTION_SLOT: 'fullscreen.player.actions',
+      FULLSCREEN_PLAYER_PANEL_SLOT: 'fullscreen.player.panel',
+      PluginSlot: 'PluginSlot',
+      PluginView: 'PluginView',
+      usePluginViews: () => []
     }
   }
   const exports = {}
@@ -270,7 +278,9 @@ test('lyrics and renderer load during entry and ready lyrics render before anima
   const count = (tree) => {
     if (!tree || typeof tree !== 'object') return 0
     if (tree.type?.name === 'LyricRenderer') return 1
-    return [tree.props?.children].flat().reduce((sum, child) => sum + count(child), 0)
+    return [tree.props?.children, ...(tree.props?.pages ?? []).map((page) => page.content)]
+      .flat()
+      .reduce((sum, child) => sum + count(child), 0)
   }
   assert.equal(count(app.render()), 1, 'ready lyrics render without waiting for entry animation')
   app.initial.props.onAnimationComplete('open')
@@ -280,7 +290,10 @@ test('lyrics and renderer load during entry and ready lyrics render before anima
   const renderer = (tree) => {
     if (!tree || typeof tree !== 'object') return
     if (tree.type?.name === 'LyricRenderer') return tree.props
-    for (const child of [tree.props?.children].flat()) {
+    for (const child of [
+      tree.props?.children,
+      ...(tree.props?.pages ?? []).map((page) => page.content)
+    ].flat()) {
       const found = renderer(child)
       if (found) return found
     }
@@ -361,7 +374,9 @@ test('the first stream render hides local lyrics even before the new loading eff
   const renderedLines = (tree) => {
     if (!tree || typeof tree !== 'object') return 0
     if (tree.type?.name === 'LyricRenderer') return tree.props.lines.length
-    return [tree.props?.children].flat().reduce((count, child) => count + renderedLines(child), 0)
+    return [tree.props?.children, ...(tree.props?.pages ?? []).map((page) => page.content)]
+      .flat()
+      .reduce((count, child) => count + renderedLines(child), 0)
   }
   assert.equal(renderedLines(app.render()), 1)
   app.switchTo(streamed)

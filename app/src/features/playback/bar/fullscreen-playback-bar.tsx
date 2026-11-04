@@ -7,15 +7,18 @@ import { PlaybackTimeline } from '@/features/playback/controls/playback-timeline
 import { PlaybackTransport } from '@/features/playback/controls/playback-transport'
 import { VolumeControl } from '@/features/playback/controls/volume-control'
 import { DesktopLyricsButton } from '@/features/desktop-lyrics/desktop-lyrics-button'
+import type { ReactNode } from 'react'
 
 export function FullscreenPlaybackBar({
   onQueuePanel,
   queueActive = false,
-  onError
+  onError,
+  pluginActions
 }: {
   onQueuePanel: () => void
   queueActive?: boolean
   onError: (error: unknown) => void
+  pluginActions?: ReactNode
 }) {
   const state = usePlayer('actualQuality', 'index', 'queue', 'status')
   const track = state.index === null ? undefined : state.queue[state.index]
@@ -25,6 +28,7 @@ export function FullscreenPlaybackBar({
         <div className="fullscreen-playback-left">
           <CurrentTrackLike track={track} onError={onError} />
           <CurrentTrackCollect track={track} />
+          {pluginActions}
         </div>
         <div className="fullscreen-playback-main">
           <PlaybackTransport withModes onError={onError} />

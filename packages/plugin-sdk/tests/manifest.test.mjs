@@ -70,6 +70,36 @@ test('checks file roots, UI permissions and contribution references', async () =
   )
 })
 
+test('validates fullscreen player panel pages and action slots', async () => {
+  assert.deepEqual(
+    await check((m) => {
+      m.contributes.views = [
+        { id: 'details', slot: 'fullscreen.player.panel', label: '详情', export: 'Details' },
+        { id: 'details-action', slot: 'fullscreen.player.actions', export: 'DetailsAction' }
+      ]
+    }),
+    []
+  )
+  assert.match(
+    (
+      await check((m) => {
+        m.contributes.views = [
+          { id: 'details', slot: 'fullscreen.player.panel', export: 'Details' }
+        ]
+      })
+    ).join(),
+    /label/
+  )
+  assert.match(
+    (
+      await check((m) => {
+        m.contributes.views = [{ id: 'details', slot: 'unknown', label: '详情', export: 'Details' }]
+      })
+    ).join(),
+    /allowed values|未知 slot/
+  )
+})
+
 test('rejects unsafe entry paths and repositories with credentials', async () => {
   assert.match((await check((m) => (m.frontend = '../ui.mjs'))).join(), /frontend/)
   assert.match((await check((m) => (m.frontend = 'ui.js'))).join(), /frontend/)

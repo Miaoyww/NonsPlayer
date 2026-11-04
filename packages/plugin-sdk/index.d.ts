@@ -83,6 +83,11 @@ export function usePluginFiles(): {
 }
 export function usePluginNavigate(): (path?: string) => void
 export function usePluginRoute(): { pathname: string; search: string }
+export function useFullscreenPlayerPanel(pageId: string): {
+  active: boolean
+  label: string
+  show(): void
+}
 export function useTheme(): 'light' | 'dark' | 'system'
 export function useCoverSource(
   cover?: import('./music').CoverInput,
@@ -106,6 +111,7 @@ export const Button: ComponentType<{
   variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'destructive' | 'link'
   size?: 'default' | 'sm' | 'lg' | 'icon' | 'icon-sm'
   'aria-label'?: string
+  'aria-pressed'?: boolean
 }>
 
 export const Progress: ComponentType<{

@@ -4,6 +4,8 @@ Nons 插件开发包：TypeScript 类型、WIT 契约、Manifest schema 与 `non
 
 包版本独立维护；`package.json` 的 `nons.pluginApi` 与 `nons.uiApi` 声明对应的插件 API 与 UI API 版本，`nons-plugin` 用它校验 Manifest 的 `engines` 范围。
 
+`contributes.views` 支持 `main.overlay`、`fullscreen.player.panel` 与 `fullscreen.player.actions`。全屏面板页需声明 `label`，操作按钮可通过 `useFullscreenPlayerPanel(pageId)` 读取激活状态与显示名称，并切换到同一插件声明的面板页。每个全屏 slot 最多 8 项。
+
 ## 安装
 
 ```bash

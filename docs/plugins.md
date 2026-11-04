@@ -121,6 +121,7 @@ WIT Host 的 `call(operation, args-json)` 返回 JSON 或业务错误，身份�
 | `usePluginStorage()`                     | 异步 get／set／delete；缺失值为 null                                                                                                       |
 | `usePluginNavigate()`                    | 在当前插件命名空间内导航，参数为 `/child` 等相对插件根路径                                                                                 |
 | `usePluginRoute()`                       | 当前插件的 pathname 和 search                                                                                                              |
+| `useFullscreenPlayerPanel(pageId)`       | 读取所声明全屏面板页的 `active`、`label` 并显示该页；需 ui，并位于全屏播放器扩展中                                                         |
 | `usePlayer()`                            | 原播放状态和进度；读取需 player:read，control 还需 player:control                                                                          |
 | `useTheme()`                             | 原主题偏好 light／dark／system；实际颜色使用宿主 CSS tokens                                                                                |
 | `useCoverSource()`                       | 复用宿主封面缓存和失败回退                                                                                                                 |
@@ -200,7 +201,7 @@ node scripts/build-plugin.mjs <id> --dev
 node scripts/build-plugin.mjs <id> <output>
 ```
 
-view 导出命名 React Component，并在 views 中关联导出与 `main.overlay`。页面通过 pages 与 navigation 声明，例如：
+view 导出命名 React Component，并在 views 中关联导出与目标 slot。`main.overlay` 用于工作区顶部覆盖层；`fullscreen.player.panel` 与 `fullscreen.player.actions` 分别扩展桌面全屏播放器右侧面板和播放栏左侧追加按钮区。每个 slot 最多 8 项，面板页须提供最多 128 字节的 `label`。页面通过 pages 与 navigation 声明，例如：
 
 ```json
 {
@@ -212,6 +213,39 @@ view 导出命名 React Component，并在 views 中关联导出与 `main.overla
 页面入口统一为 `/plugins/<id>/*`，使用现有应用内历史而非新建全局 router。按最长页面路径前缀选择 contribution；同一页面的子路径变化保留组件状态，离开该页面后卸载。组件从 SDK 获取子路径，并用 `usePluginNavigate()` 导航；不得跳出自身命名空间。没有额外交付网易云示例页面，桌面探测中的临时页面仅用于验证。
 
 工作区插件页面由宿主统一包裹 `MusicPage`，插件只渲染页面内容；布局与滚动验收遵循 [页面 shell 与滚动](architecture.md#页面-shell-与滚动)。
+
+全屏播放器扩展同样声明在 `views`。面板页组件挂载在右侧面板中；播放栏按钮组件追加在收藏按钮组右侧。按钮可调用 `useFullscreenPlayerPanel(pageId)` 显示同一插件声明的面板页，并读取 `active`、`label`：
+
+```json
+{
+  "views": [
+    {
+      "id": "details",
+      "slot": "fullscreen.player.panel",
+      "label": "详情",
+      "export": "DetailsPanel"
+    },
+    {
+      "id": "details-action",
+      "slot": "fullscreen.player.actions",
+      "export": "DetailsAction"
+    }
+  ]
+}
+```
+
+```tsx
+export function DetailsAction() {
+  const panel = useFullscreenPlayerPanel('details')
+  return (
+    <Button aria-label={panel.label} aria-pressed={panel.active} onClick={panel.show}>
+      {panel.label}
+    </Button>
+  )
+}
+```
+
+面板页组件与操作按钮都沿用所属插件的加载代次、`PluginScope`、错误隔离和停用卸载；页面只显示当前曲目存在时的桌面全屏播放器。插件自行控制面板页内部滚动，宿主提供全高容器。隐藏页面不应继续运行不必要的动画或刷新。
 
 ## 边界与资源预算
 
@@ -225,7 +259,7 @@ view 导出命名 React Component，并在 views 中关联导出与 `main.overla
 
 ## Windows 子进程与独立窗口
 
-插件 API / UI API 2.1.0 提供 `process:spawn` 与 `window:manage`。两项能力仅支持 Windows，其他平台明确返回不支持；权限扩大后须重新授权。它们不改变 WASM 执行限制，也不改变前端可信代码的边界。
+插件 API / UI API 2.2.0 提供 `process:spawn`、`window:manage` 和全屏播放器扩展 slot。`process:spawn` 与 `window:manage` 两项能力仅支持 Windows，其他平台明确返回不支持；权限扩大后须重新授权。它们不改变 WASM 执行限制，也不改变前端可信代码的边界。
 
 `process:spawn` 为敏感权限：可启动当前系统用户能运行的任意程序，程序的文件与网络访问不受插件目录、HTTP 域名授权限制。通过 `usePluginProcesses()` 或 `client.call` / WASM `host.call` 使用：
 

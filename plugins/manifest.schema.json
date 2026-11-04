@@ -96,6 +96,7 @@
       "properties": {
         "views": {
           "type": "array",
+          "maxItems": 16,
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -105,12 +106,33 @@
                 "$ref": "#/$defs/id"
               },
               "slot": {
-                "const": "main.overlay"
+                "enum": ["main.overlay", "fullscreen.player.panel", "fullscreen.player.actions"]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "\\S",
+                "description": "全屏播放器面板页的显示名称。"
               },
               "export": {
                 "$ref": "#/$defs/export"
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "slot": {
+                      "const": "fullscreen.player.panel"
+                    }
+                  }
+                },
+                "then": {
+                  "required": ["label"]
+                }
+              }
+            ]
           }
         },
         "pages": {

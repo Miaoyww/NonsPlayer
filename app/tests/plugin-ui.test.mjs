@@ -220,17 +220,33 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
         `export const {${exports}}=globalThis.__NONS_PLUGIN_HOST__.${object};`
       )
     }
-    const { Preview } = await import(pathToFileURL(join(directory, 'ui.mjs')))
+    const { Preview, FullscreenDetailsAction } = await import(
+      pathToFileURL(join(directory, 'ui.mjs'))
+    )
     const scope = {
       descriptor: {
         generation: 7,
-        manifest: { id: 'sample', permissions: ['ui', 'storage', 'player:control', 'config'] }
+        manifest: {
+          id: 'sample',
+          permissions: ['ui', 'storage', 'player:control', 'config'],
+          contributes: {
+            views: [
+              {
+                id: 'fullscreen-details',
+                slot: 'fullscreen.player.panel',
+                label: '测试面板',
+                export: 'FullscreenDetailsPanel'
+              }
+            ]
+          }
+        }
       },
       active: true,
       events: new Map(),
       listeners: new Set()
     }
     let storage
+    const shownPanels = []
     function StorageProbe() {
       storage = sdk.usePluginStorage()
       return null
@@ -240,13 +256,27 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
         React.createElement(
           scopeModule.PluginScope.Provider,
           { value: scope },
-          React.createElement(Preview),
+          React.createElement(
+            scopeModule.PluginFullscreenPlayerScope.Provider,
+            {
+              value: {
+                pageId: null,
+                showPage: (pageId) => shownPanels.push(pageId)
+              }
+            },
+            React.createElement(Preview),
+            React.createElement(FullscreenDetailsAction)
+          ),
           React.createElement(StorageProbe)
         )
       )
     })
     assert.equal(document.querySelector('[role=status]'), null)
     assert.equal(scope.listeners.size, 1)
+    const panelAction = document.querySelector('[aria-label="测试面板"]')
+    assert.equal(panelAction.getAttribute('aria-pressed'), 'false')
+    await React.act(async () => panelAction.click())
+    assert.deepEqual(shownPanels, ['fullscreen-details'])
     await React.act(async () => {
       scope.events.set('track', {
         reference: { source: 'netease', kind: 'track', id: '1' },

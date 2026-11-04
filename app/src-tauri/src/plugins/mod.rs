@@ -909,7 +909,7 @@ fn host_module(module: &str) -> AppResult<(Vec<u8>, &'static str)> {
     let (object, exports) = match module {
         "react.mjs" => ("react", "Children,Fragment,Profiler,StrictMode,Suspense,Component,PureComponent,createContext,createElement,cloneElement,isValidElement,forwardRef,memo,lazy,startTransition,useActionState,useCallback,useContext,useDebugValue,useDeferredValue,useEffect,useId,useImperativeHandle,useInsertionEffect,useLayoutEffect,useMemo,useOptimistic,useReducer,useRef,useState,useSyncExternalStore,useTransition,use,act,cache,version"),
         "jsx-runtime.mjs" => ("jsx", "Fragment,jsx,jsxs"),
-        "sdk.mjs" => ("sdk", "reportCaughtError,usePluginClipboard,usePluginHttp,useMusicSource,usePluginBackend,usePluginEvent,usePluginStorage,usePluginConfig,usePluginFiles,usePluginProcesses,usePluginWindows,usePluginNavigate,usePluginRoute,usePlayer,useTheme,useCoverSource,useSongPlayback,SongArtists,SongLikeButton,SongIdentity,DownloadedSongList,MusicPageHeader,Button,Progress,Input,Icon,Tabs,TabsList,TabsTab,TabsPanel,TabsPanels"),
+        "sdk.mjs" => ("sdk", "reportCaughtError,usePluginClipboard,usePluginHttp,useMusicSource,usePluginBackend,usePluginEvent,usePluginStorage,usePluginConfig,usePluginFiles,usePluginProcesses,usePluginWindows,usePluginNavigate,usePluginRoute,useFullscreenPlayerPanel,usePlayer,useTheme,useCoverSource,useSongPlayback,SongArtists,SongLikeButton,SongIdentity,DownloadedSongList,MusicPageHeader,Button,Progress,Input,Icon,Tabs,TabsList,TabsTab,TabsPanel,TabsPanels"),
         _ => return Err("未知宿主桥接模块".into()),
     };
     Ok((format!("const host=globalThis.__NONS_PLUGIN_HOST__.{object};export default host;export const {{{exports}}}=host;").into_bytes(), "text/javascript"))

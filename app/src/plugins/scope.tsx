@@ -14,6 +14,10 @@ export const PluginNavigationScope = createContext<{
   search: string
   navigate: (path: string) => void
 } | null>(null)
+export const PluginFullscreenPlayerScope = createContext<{
+  pageId: string | null
+  showPage: (pageId: string) => void
+} | null>(null)
 export function checkScope(scope: Scope, permission?: string) {
   if (!scope.active) throw new Error('插件已禁用或卸载')
   if (permission && !scope.descriptor.manifest.permissions.includes(permission))

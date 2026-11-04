@@ -124,8 +124,32 @@ function validateSemantics(manifest) {
         errors.push(`contributes.${kind} 的 export 无效：${item.export}`)
     }
   }
-  if (c.views?.some((view) => view.slot !== 'main.overlay'))
-    errors.push('contributes.views 仅支持 main.overlay')
+  const fullscreenPanelViews =
+    c.views?.filter((view) => view.slot === 'fullscreen.player.panel') ?? []
+  const fullscreenActionViews =
+    c.views?.filter((view) => view.slot === 'fullscreen.player.actions') ?? []
+  if (
+    c.views?.some(
+      (view) =>
+        !['main.overlay', 'fullscreen.player.panel', 'fullscreen.player.actions'].includes(
+          view.slot
+        )
+    )
+  )
+    errors.push('contributes.views 包含未知 slot')
+  if (fullscreenPanelViews.length > 8) errors.push('全屏播放器面板页最多 8 个')
+  if (fullscreenActionViews.length > 8) errors.push('全屏播放器操作按钮最多 8 个')
+  for (const view of c.views ?? []) {
+    if (
+      view.slot === 'fullscreen.player.panel' &&
+      (typeof view.label !== 'string' ||
+        view.label.trim().length === 0 ||
+        Buffer.byteLength(view.label) > 128)
+    )
+      errors.push(`fullscreen.player.panel 需要有效的 label：${view.id}`)
+    else if (view.slot !== 'fullscreen.player.panel' && view.label != null)
+      errors.push(`仅 fullscreen.player.panel 支持 label：${view.id}`)
+  }
   const paths = new Set()
   for (const page of c.pages ?? []) {
     if (
