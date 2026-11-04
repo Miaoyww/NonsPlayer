@@ -16,6 +16,7 @@ import { CoverContextMenu } from '@/features/playback/now-playing/cover-context-
 import { AlbumBackground } from '@/features/lyrics/album-background'
 import { FullscreenPlaybackBar } from '@/features/playback/bar/fullscreen-playback-bar'
 import { NowPlayingMenu } from '@/features/playback/now-playing/now-playing-menu'
+import { QueuePanel } from '@/features/queue/queue-panel'
 import { NowPlayingTags } from '@/features/playback/now-playing/now-playing-tags'
 import { LyricCorrectionDialog } from '@/features/lyrics/correction-dialog'
 import {
@@ -138,7 +139,7 @@ export default function LyricsView({
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
   const [lyricsSourceOpen, setLyricsSourceOpen] = useState(false)
-  const [panelPage, setPanelPage] = useState<'lyrics' | 'information'>('lyrics')
+  const [panelPage, setPanelPage] = useState<'lyrics' | 'information' | 'queue'>('lyrics')
   const hasTranslation = lines.some((line) => !!line.translatedLyric.trim())
   const hasPronunciation = lines.some(
     (line) =>
@@ -487,7 +488,7 @@ export default function LyricsView({
                   onLyrics={() => setLyricsSourceOpen(true)}
                   informationActive={panelPage === 'information'}
                   onInformation={() =>
-                    setPanelPage((value) => (value === 'lyrics' ? 'information' : 'lyrics'))
+                    setPanelPage((value) => (value === 'information' ? 'lyrics' : 'information'))
                   }
                 />
                 <div className="now-playing-meta">
@@ -530,13 +531,23 @@ export default function LyricsView({
                     {
                       value: 'information',
                       content: <NowPlayingInformation track={track} />
+                    },
+                    {
+                      value: 'queue',
+                      content: (
+                        <QueuePanel
+                          onPage={onQueue}
+                          onError={(cause) => setError(errorText(cause))}
+                        />
+                      )
                     }
                   ]}
                 />
               </div>
             )}
             <FullscreenPlaybackBar
-              onQueue={onQueue}
+              onQueuePanel={() => setPanelPage((value) => (value === 'queue' ? 'lyrics' : 'queue'))}
+              queueActive={panelPage === 'queue'}
               onError={(cause) => setError(errorText(cause))}
             />
             {lyricsSourceOpen && track && (

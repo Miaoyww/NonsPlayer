@@ -1,17 +1,20 @@
 import { CurrentTrackLike } from '@/features/playback/now-playing/current-track-like'
 import { CurrentTrackCollect } from '@/features/playback/now-playing/current-track-collect'
 import { statusLabels, usePlayer } from '@/lib/player'
+import { ListMusic } from 'lucide-react'
+import { ActionButton } from '@/components/music/action-button'
 import { PlaybackTimeline } from '@/features/playback/controls/playback-timeline'
 import { PlaybackTransport } from '@/features/playback/controls/playback-transport'
-import { QueuePopover } from '@/features/queue/queue-popover'
 import { VolumeControl } from '@/features/playback/controls/volume-control'
 import { DesktopLyricsButton } from '@/features/desktop-lyrics/desktop-lyrics-button'
 
 export function FullscreenPlaybackBar({
-  onQueue,
+  onQueuePanel,
+  queueActive = false,
   onError
 }: {
-  onQueue: () => void
+  onQueuePanel: () => void
+  queueActive?: boolean
   onError: (error: unknown) => void
 }) {
   const state = usePlayer('actualQuality', 'index', 'queue', 'status')
@@ -30,7 +33,16 @@ export function FullscreenPlaybackBar({
         <div className="persistent-options">
           <DesktopLyricsButton onError={onError} />
           <VolumeControl onError={onError} />
-          <QueuePopover onPage={onQueue} onError={onError} />
+          <ActionButton
+            variant="ghost"
+            size="icon-sm"
+            aria-label={queueActive ? '隐藏播放列表' : '显示播放列表'}
+            aria-pressed={queueActive}
+            title={queueActive ? '隐藏播放列表' : '显示播放列表'}
+            onClick={onQueuePanel}
+          >
+            <ListMusic aria-hidden="true" />
+          </ActionButton>
         </div>
         <span className="sr-only">
           {statusLabels[state.status]}

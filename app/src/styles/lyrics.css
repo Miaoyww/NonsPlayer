@@ -14,7 +14,8 @@
 .now-playing-layout .now-playing-lyrics {
   margin-bottom: clamp(40px, 7.5vh, 60px);
 }
-.now-playing-lyrics[data-panel-page='information'] {
+.now-playing-lyrics[data-panel-page='information'],
+.now-playing-lyrics[data-panel-page='queue'] {
   mask-image: none;
 }
 .now-playing-information {

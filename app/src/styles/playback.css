@@ -10,6 +10,8 @@
   --input: oklch(1 0 0 / 18%);
   --border: oklch(1 0 0 / 20%);
   --ring: oklch(1 0 0 / 75%);
+  --current-track-background: oklch(1 0 0 / 12%);
+  --current-track-marker: oklch(1 0 0 / 70%);
   background: oklch(0.23 0.015 260);
 }
 
