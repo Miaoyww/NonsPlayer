@@ -13,9 +13,10 @@ const pages = [
 function isSelected(view: MusicView, current: MusicView) {
   return (
     current === view ||
-    (view === 'library' && (current === 'collection' || current === 'accounts')) ||
+    (view === 'library' &&
+      (current === 'collection' || current === 'streaming-playlist' || current === 'accounts')) ||
     (view === 'discover' && current === 'search') ||
-    (view === 'local' && current.startsWith('local-'))
+    (view === 'local' && (current.startsWith('local-') || current === 'aggregate-playlist'))
   )
 }
 

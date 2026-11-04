@@ -68,7 +68,7 @@ async function readonlyFavoritesScenario(scenario = 'complete') {
       '@tauri-apps/api/event': { listen: async () => () => {} },
       '@/lib/player': { errorText: String },
       '@/lib/runtime-cache': { invalidateNativeCache() {} },
-      '@/features/library/library-api': {
+      '@/features/library/shared/library-api': {
         invalidateMusicLibrary() {},
         resetAccountCache() {},
         setLibraryAccount() {}
@@ -248,7 +248,7 @@ test('page source selection preserves every platform account and routes favorite
       },
       '@/lib/player': { errorText: String },
       '@/lib/runtime-cache': { invalidateNativeCache() {} },
-      '@/features/library/library-api': {
+      '@/features/library/shared/library-api': {
         invalidateMusicLibrary() {},
         resetAccountCache() {},
         setLibraryAccount() {}

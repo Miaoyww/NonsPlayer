@@ -5,7 +5,10 @@ import { test } from 'node:test'
 import ts from 'typescript'
 import { coverImage } from './helpers/cover-image.mjs'
 const code = ts.transpileModule(
-  readFileSync(new URL('../src/features/library/library-preview.ts', import.meta.url), 'utf8'),
+  readFileSync(
+    new URL('../src/features/library/shared/library-preview.ts', import.meta.url),
+    'utf8'
+  ),
   { compilerOptions: { module: ts.ModuleKind.CommonJS } }
 ).outputText
 function harness(raw) {

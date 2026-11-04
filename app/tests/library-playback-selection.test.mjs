@@ -11,7 +11,7 @@ import ts from 'typescript'
 
 test('homepage allows a newer song selection while the previous collection is preparing', async () => {
   const source = readFileSync(
-    new URL('../src/features/library/music-library.tsx', import.meta.url),
+    new URL('../src/features/library/music-library/music-library.tsx', import.meta.url),
     'utf8'
   )
   const placeholder = ({ children }) => React.createElement('div', {}, children)
@@ -46,10 +46,10 @@ test('homepage allows a newer song selection while the previous collection is pr
     '@/features/aggregate/aggregate-page': {
       CreateAggregatePlaylist: () => React.createElement('button', {}, '创建聚合歌单')
     },
-    '@/features/library/create-playlist': {
+    '@/features/library/playlist/create-playlist': {
       CreatePlaylist: () => React.createElement('button', {}, '新建歌单')
     },
-    '@/features/library/playlist-card': {
+    '@/features/library/playlist/playlist-card': {
       PlaylistCard: ({ item }) => React.createElement('article', {}, item.name)
     },
     '@/features/aggregate/aggregate-library': {
@@ -69,7 +69,7 @@ test('homepage allows a newer song selection while the previous collection is pr
     '@/features/account/account': {
       useAccount: () => ({ profile: summary.profile, confirmLikedTracks() {} })
     },
-    '@/features/library/collection-actions': {
+    '@/features/library/collection/collection-actions': {
       useCollectionActions: () => ({ revision: 0 }),
       CollectionContextMenu: placeholder
     },
@@ -77,7 +77,7 @@ test('homepage allows a newer song selection while the previous collection is pr
       useMusicNavigation: () => ({ page: { view: 'library' }, navigate() {} })
     },
     '@/lib/use-paged-list': { usePagedList: () => ({ items: [], more: false, busy: false }) },
-    '@/features/library/library-api': {
+    '@/features/library/shared/library-api': {
       peekMusicLibrary: () => summary,
       peekLibraryCollections: () => undefined,
       getMusicLibrary: async () => summary,
@@ -94,7 +94,9 @@ test('homepage allows a newer song selection while the previous collection is pr
       ActionButton: ({ children, variant, size, ...props }) =>
         React.createElement('button', props, children)
     },
-    '@/features/library/reconcile-tracks': { reconcileTracks: (_previous, next) => next }
+    '@/features/library/music-library/reconcile-tracks': {
+      reconcileTracks: (_previous, next) => next
+    }
   })
   const exports = {}
   runInNewContext(

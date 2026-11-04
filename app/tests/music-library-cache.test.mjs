@@ -10,7 +10,7 @@ import ts from 'typescript'
 function load(path, modules) {
   modules = {
     '@/features/music/cover-image': coverImage,
-    '@/features/library/library-preview': {
+    '@/features/library/shared/library-preview': {
       clearLibraryPreviews() {},
       peekLibraryPreview() {},
       saveLibraryPreview() {}
@@ -71,7 +71,7 @@ function harness() {
     '@/lib/player': player,
     '@/lib/runtime-cache': cache
   }).musicClient
-  const library = load('../src/features/library/library-api.ts', {
+  const library = load('../src/features/library/shared/library-api.ts', {
     '@/features/music/client': { musicClient: client },
     '@/features/music/queries': { clearContinuations() {} },
     '@/features/music/entities': {},

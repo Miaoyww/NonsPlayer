@@ -1,4 +1,4 @@
-import { CreatePlaylist } from '@/features/library/create-playlist'
+import { CreatePlaylist } from '@/features/library/playlist/create-playlist'
 import { onlineReference } from '@/features/music/references'
 import {
   ownedPlaylistTargets,
@@ -14,7 +14,7 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useCollectionActions } from '@/features/library/collection-actions'
+import { useCollectionActions } from '@/features/library/collection/collection-actions'
 import { nativeCall, errorText, type Track } from '@/lib/player'
 import type { LocalEntity } from '@/features/local/local-library'
 import { usePagedList } from '@/lib/use-paged-list'

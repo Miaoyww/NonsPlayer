@@ -164,7 +164,9 @@ function harness(initialMode = 'collapsible', storage) {
     '@/features/playback/music-options': { QualitySelect: 'QualitySelect' },
     '@/components/music/track-list': {},
     '@/features/queue/queue-page': { QueuePage: 'QueuePage' },
-    '@/features/library/collection-actions': { CollectionActionsProvider: 'collection-actions' },
+    '@/features/library/collection/collection-actions': {
+      CollectionActionsProvider: 'collection-actions'
+    },
     '@/components/music/song-actions': { SongActionsProvider: 'SongActionsProvider' }
   }).MusicWorkspace
   function render() {

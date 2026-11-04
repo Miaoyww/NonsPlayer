@@ -46,7 +46,7 @@ export function CreatePlaylist({
       setName('')
       onCreated()
     } catch (cause) {
-      reportCaughtError('app/src/features/library/create-playlist.tsx', cause)
+      reportCaughtError('app/src/features/library/playlist/create-playlist.tsx', cause)
 
       setError(errorText(cause))
     } finally {

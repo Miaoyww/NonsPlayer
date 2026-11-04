@@ -211,10 +211,10 @@ test('platform entries open the aggregate while explicit origin bypass remains r
     item.bypassAggregate ? undefined : { id: '17', name: 'Aggregate' }
   )
   app.render().navigate('collection', '', item)
-  assert.equal(app.render().page.view, 'local-playlist')
+  assert.equal(app.render().page.view, 'aggregate-playlist')
   assert.equal(app.render().page.collection.localId, '17')
   app.render().navigate('collection', '', { ...item, bypassAggregate: true })
-  assert.equal(app.render().page.view, 'collection')
+  assert.equal(app.render().page.view, 'streaming-playlist')
   assert.equal(app.render().page.collection.reference.source, 'qqmusic')
   app.close()
 })

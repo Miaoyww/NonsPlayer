@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { ErrorNotice } from '@/components/error-notice'
-import { CollectionHeader } from '@/features/library/collection-header'
+import { CollectionHeader } from '@/features/library/collection/collection-header'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { aggregateCollection, type AggregatePlaylist } from './aggregate-library'
 import { AggregateCover } from './aggregate-cover'

@@ -4,15 +4,15 @@ import { useCallback, useState } from 'react'
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
 import { ActionButton } from '@/components/music/action-button'
 import { InfiniteLoad } from '@/components/music/infinite-load'
-import { AlbumCard } from '@/features/library/album-card'
-import { PlaylistCard } from '@/features/library/playlist-card'
+import { AlbumCard } from '@/features/library/album/album-card'
+import { PlaylistCard } from '@/features/library/playlist/playlist-card'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { usePagedList } from '@/lib/use-paged-list'
 import { isTauri } from '@tauri-apps/api/core'
 import { musicClient } from './client'
 import { musicCollection } from './entities'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
-import { playLibraryCollection } from '@/features/library/library-api'
+import { playLibraryCollection } from '@/features/library/shared/library-api'
 
 // Platforms use their own library/recommendation operations. Optional unsupported
 // operations remain visible as errors instead of falling back to another platform.

@@ -31,7 +31,7 @@ function harness(failNative = false) {
         return nativeStatus
       }
     },
-    '@/features/library/library-preview': {
+    '@/features/library/shared/library-preview': {
       clearLibraryPreviews: () => (previews = 0),
       libraryPreviewCacheStatus: () => ({ usedBytes: previews * 40, entries: previews })
     },

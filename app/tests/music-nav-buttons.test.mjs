@@ -59,9 +59,11 @@ test('highlights the navigation entry that owns the current page', () => {
   }
   assert.equal(selected('library'), '音乐库')
   assert.equal(selected('collection'), '音乐库')
+  assert.equal(selected('streaming-playlist'), '音乐库')
   assert.equal(selected('accounts'), '音乐库')
   assert.equal(selected('search'), '发现')
   assert.equal(selected('local-album'), '本地')
+  assert.equal(selected('aggregate-playlist'), '本地')
   assert.equal(selected('settings'), '')
 })
 

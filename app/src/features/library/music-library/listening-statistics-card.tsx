@@ -23,7 +23,10 @@ export function ListeningStatisticsCard({ revision }: { revision?: string }) {
         if (!disposed) setStats(value)
       })
       .catch((cause) => {
-        reportCaughtError('app/src/features/library/listening-statistics-card.tsx', cause)
+        reportCaughtError(
+          'app/src/features/library/music-library/listening-statistics-card.tsx',
+          cause
+        )
 
         if (!disposed) setError(true)
       })

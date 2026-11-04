@@ -2,9 +2,9 @@ import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton, CollectionGridSkeleton } from '@/components/music/loading'
-import { CollectionContent } from '@/features/library/collection-content'
-import { CollectionHeader } from '@/features/library/collection-header'
-import { ArtistCard } from '@/features/library/artist-card'
+import { CollectionContent } from '@/features/library/collection/collection-content'
+import { CollectionHeader } from '@/features/library/collection/collection-header'
+import { ArtistCard } from '@/features/library/artist/artist-card'
 import { TrackArtists } from '@/components/music/music-links'
 import { useCallback, useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -16,19 +16,7 @@ import {
   TabsTab,
   TabsPanel
 } from '@/components/animate-ui/components/base/tabs'
-import {
-  Disc3,
-  FolderOpen,
-  ListMusic,
-  Mic2,
-  Music2,
-  Pencil,
-  Play,
-  Plus,
-  Search,
-  Trash2,
-  X
-} from 'lucide-react'
+import { Disc3, FolderOpen, ListMusic, Mic2, Music2, Play, Plus, Search, X } from 'lucide-react'
 import { isAndroid } from '@/lib/platform'
 import { nativeCall, errorText, usePlayer, type Track } from '@/lib/player'
 import { localCollection, playLocalEntity, type LocalEntity } from '@/features/local/local-library'
@@ -357,12 +345,11 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
   const [kind, setKind] = useState<Kind>('song')
   const [input, setInput] = useState(page.query)
   const [revision, setRevision] = useState(0)
-  const [editing, setEditing] = useState<'create' | 'rename' | 'delete'>()
+  const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const [dialogError, setDialogError] = useState<string>()
-  const deleting = saving && editing === 'delete'
-  useEffect(() => setDialogError(undefined), [editing])
+  useEffect(() => setDialogError(undefined), [creating])
   useEffect(() => {
     setInput(page.query)
   }, [page.query])
@@ -370,7 +357,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
   const [detail, setDetail] = useState<{ identity: string; item: LocalEntity }>()
   const identity = `${initialCollection?.kind}:${initialCollection?.localId}`
   useEffect(() => {
-    if (!initialCollection || !isTauri() || deleting) return
+    if (!initialCollection || !isTauri()) return
     let disposed = false
     void nativeCall<LocalEntity>('local_entity_detail', {
       kind: initialCollection.kind,
@@ -383,7 +370,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
     return () => {
       disposed = true
     }
-  }, [initialCollection, identity, refresh, revision, deleting, onError])
+  }, [initialCollection, identity, refresh, revision, onError])
   const collection =
     detail?.identity === identity ? localCollection(detail.item) : initialCollection
   const loader = useCallback(
@@ -396,7 +383,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
       }),
     [collection?.kind, collection?.localId, refresh, revision]
   )
-  const list = usePagedList<Track>(loader, 100, isTauri() && !!collection && !deleting, {
+  const list = usePagedList<Track>(loader, 100, isTauri() && !!collection, {
     cacheKey: presentationKey('local-detail', collection?.kind, collection?.localId)
   })
   const player = usePlayer('index', 'queue')
@@ -420,29 +407,20 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
     setSaving(true)
     setDialogError(undefined)
     try {
-      if (editing === 'create') {
-        const id = await nativeCall<string>('create_local_playlist', { name })
-        navigate('local-playlist', '', {
-          id: 0,
-          localId: id,
-          reference: null,
-          kind: 'playlist',
-          playlistType: 'local',
-          name: name.trim(),
-          cover: '',
-          subtitle: '',
-          trackCount: 0
-        })
-      } else if (editing === 'rename') {
-        await nativeCall('rename_local_playlist', { id: collection!.localId, name })
-        navigate('local-playlist', '', { ...collection!, name: name.trim() })
-      } else {
-        await nativeCall('delete_local_playlist', { id: collection!.localId })
-        navigate('local')
-        setKind('playlist')
-      }
+      const id = await nativeCall<string>('create_local_playlist', { name })
+      navigate('local-playlist', '', {
+        id: 0,
+        localId: id,
+        reference: null,
+        kind: 'playlist',
+        playlistType: 'local',
+        name: name.trim(),
+        cover: '',
+        subtitle: '',
+        trackCount: 0
+      })
       setRevision((v) => v + 1)
-      setEditing(undefined)
+      setCreating(false)
     } catch (cause) {
       reportCaughtError('app/src/features/local/local-page.tsx', cause)
 
@@ -494,28 +472,6 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
                       打开文件夹
                     </ActionButton>
                   )
-                ) : collection.kind === 'playlist' ? (
-                  <>
-                    <ActionButton
-                      variant="ghost"
-                      disabled={!isTauri()}
-                      onClick={() => {
-                        setName(collection.name)
-                        setEditing('rename')
-                      }}
-                    >
-                      <Pencil aria-hidden="true" />
-                      改名
-                    </ActionButton>
-                    <ActionButton
-                      variant="ghost"
-                      disabled={!isTauri()}
-                      onClick={() => setEditing('delete')}
-                    >
-                      <Trash2 aria-hidden="true" />
-                      删除歌单
-                    </ActionButton>
-                  </>
                 ) : collection.kind === 'artist' ? (
                   <ArtistAvatarDetailMenu
                     artistId={collection.localId!}
@@ -545,27 +501,11 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
                 onAppend={(track) =>
                   void nativeCall('append_queue', { keys: [track.key] }).catch(onError)
                 }
-                onRemove={
-                  collection.kind === 'playlist'
-                    ? async (track) => {
-                        await nativeCall('remove_local_playlist_track', {
-                          id: collection.localId,
-                          key: track.key
-                        })
-                        setRevision((v) => v + 1)
-                      }
-                    : undefined
-                }
-                removeLabel="从歌单移除"
               />
             ) : (
               !list.error && (
                 <div className="library-empty">
-                  {list.busy ? (
-                    <TrackListSkeleton online={false} />
-                  ) : (
-                    '还没有歌曲，在本地歌曲的右键菜单中添加到此歌单。'
-                  )}
+                  {list.busy ? <TrackListSkeleton online={false} /> : '这里还没有歌曲。'}
                 </div>
               )
             )}
@@ -616,7 +556,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
                         disabled={!isTauri()}
                         onClick={() => {
                           setName('')
-                          setEditing('create')
+                          setCreating(true)
                         }}
                       >
                         <Plus aria-hidden="true" />
@@ -681,27 +621,15 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
           </>
         )}
         <Dialog
-          open={!!editing}
+          open={creating}
           onOpenChange={(open) => {
-            if (!open && !saving) setEditing(undefined)
+            if (!open && !saving) setCreating(false)
           }}
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {editing === 'create'
-                  ? '创建歌单'
-                  : editing === 'rename'
-                    ? '修改歌单名称'
-                    : '删除歌单'}
-              </DialogTitle>
-              <DialogDescription>
-                {editing === 'delete'
-                  ? '删除歌单会保留曲库中的歌曲和原始文件。'
-                  : editing === 'create'
-                    ? '给喜欢的音乐一个名字。'
-                    : '改变歌单的名称。'}
-              </DialogDescription>
+              <DialogTitle>创建歌单</DialogTitle>
+              <DialogDescription>给喜欢的音乐一个名字。</DialogDescription>
             </DialogHeader>
             <form
               onSubmit={(event) => {
@@ -710,21 +638,16 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
               }}
               className="flex flex-col gap-4"
             >
-              {editing !== 'delete' && (
-                <Input
-                  autoFocus
-                  aria-label="歌单名称"
-                  value={name}
-                  maxLength={100}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              )}
+              <Input
+                autoFocus
+                aria-label="歌单名称"
+                value={name}
+                maxLength={100}
+                onChange={(event) => setName(event.target.value)}
+              />
               {dialogError && <ErrorNotice error={dialogError} />}
-              <ActionButton
-                type="submit"
-                disabled={saving || (editing !== 'delete' && !name.trim())}
-              >
-                {saving ? '正在保存…' : editing === 'delete' ? '删除歌单' : '保存'}
+              <ActionButton type="submit" disabled={saving || !name.trim()}>
+                {saving ? '正在创建…' : '创建'}
               </ActionButton>
             </form>
           </DialogContent>

@@ -21,7 +21,7 @@ import {
 import { isTauri } from '@tauri-apps/api/core'
 import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 import { errorText } from '@/lib/player'
-import { getLibraryTracks, playMusicCollection } from '@/features/library/library-api'
+import { getLibraryTracks, playMusicCollection } from '@/features/library/shared/library-api'
 import {
   Dialog,
   DialogClose,
@@ -93,7 +93,7 @@ export function CollectionActionsProvider({
           }
         })
         .catch((cause) => {
-          reportCaughtError('app/src/features/library/collection-actions.tsx', cause)
+          reportCaughtError('app/src/features/library/collection/collection-actions.tsx', cause)
 
           if (!disposed) setError(errorText(cause))
         })
@@ -124,7 +124,7 @@ export function CollectionActionsProvider({
         `${next ? '已按顺序加入下一首播放' : '已替换播放列表'}${truncated ? '（前 1000 首）' : ''}。`
       )
     } catch (cause) {
-      reportCaughtError('app/src/features/library/collection-actions.tsx', cause)
+      reportCaughtError('app/src/features/library/collection/collection-actions.tsx', cause)
 
       onError(cause)
     } finally {
@@ -155,7 +155,7 @@ export function CollectionActionsProvider({
         )
       onNotice(target.deleting ? '已删除歌单。' : '已保存歌单信息。')
     } catch (cause) {
-      reportCaughtError('app/src/features/library/collection-actions.tsx', cause)
+      reportCaughtError('app/src/features/library/collection/collection-actions.tsx', cause)
 
       setError(errorText(cause))
     } finally {

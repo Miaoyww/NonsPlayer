@@ -118,7 +118,7 @@ for (const changedMetadata of [false, true])
             })
           }
         },
-        '@/features/library/library-api': {
+        '@/features/library/shared/library-api': {
           resetAccountCache() {
             accountResets++
             cache.invalidateNativeCache(undefined, 'context')
@@ -139,14 +139,14 @@ for (const changedMetadata of [false, true])
         '@/features/aggregate/playlist-targets': {
           mergeLibraryPlaylists: (remote, local) => [...remote, ...local]
         },
-        '@/features/library/collection-actions': {
+        '@/features/library/collection/collection-actions': {
           useCollectionActions: () => ({ revision: 0 }),
           CollectionContextMenu: wrapper
         },
         '@/features/workspace/music-navigation': {
           useMusicNavigation: () => ({ page: {}, navigate() {} })
         },
-        '@/features/library/reconcile-tracks': { reconcileTracks: (_, next) => next },
+        '@/features/library/music-library/reconcile-tracks': { reconcileTracks: (_, next) => next },
         '@/components/music/music-page': { MusicPage: wrapper }
       },
       { get: (target, name) => target[name] ?? new Proxy({}, { get: () => empty }) }
@@ -160,7 +160,10 @@ for (const changedMetadata of [false, true])
       modules['@/features/music/client'].musicClient.query
     const account = load('../src/features/account/account-state.tsx', modules)
     modules['@/features/account/account'] = account
-    const { default: MusicLibrary } = load('../src/features/library/music-library.tsx', modules)
+    const { default: MusicLibrary } = load(
+      '../src/features/library/music-library/music-library.tsx',
+      modules
+    )
     function View() {
       snapshot = account.useAccount()
       return React.createElement(MusicLibrary, { onError() {}, onNotice() {} })

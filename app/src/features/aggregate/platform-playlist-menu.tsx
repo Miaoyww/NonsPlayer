@@ -45,7 +45,7 @@ export function PlatformPlaylistMenu({
       await reload()
       if (!mounted.current) return
       navigate(
-        'local-playlist',
+        'aggregate-playlist',
         '',
         aggregateCollection({
           id,

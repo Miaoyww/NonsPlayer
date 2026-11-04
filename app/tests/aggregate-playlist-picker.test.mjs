@@ -44,8 +44,10 @@ test('aggregate playlist picker atomically adds the selected tracks', async () =
         addToAggregatePlaylist: async (id, tracks) =>
           calls.push({ operation: 'add', id, keys: tracks.map((track) => track.key) })
       },
-      '@/features/library/create-playlist': { CreatePlaylist: () => null },
-      '@/features/library/collection-actions': { useCollectionActions: () => ({ changed() {} }) },
+      '@/features/library/playlist/create-playlist': { CreatePlaylist: () => null },
+      '@/features/library/collection/collection-actions': {
+        useCollectionActions: () => ({ changed() {} })
+      },
       '@tanstack/react-virtual': {
         useVirtualizer: ({ count }) => ({
           getTotalSize: () => count * 64,

@@ -63,7 +63,7 @@ async function harness({ delayed = false } = {}) {
   }
   const modules = {
     '@/features/music/cover-image': coverImage,
-    '@/features/library/library-preview': {
+    '@/features/library/shared/library-preview': {
       clearLibraryPreviews() {},
       peekLibraryPreview() {},
       saveLibraryPreview() {}

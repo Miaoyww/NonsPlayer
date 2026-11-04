@@ -4,7 +4,7 @@ import { supportsMusicPage } from '@/features/music/source-capabilities'
 import { ListFindProvider } from '@/components/music/list-find'
 import { MusicPageSkeleton, LibraryPageSkeleton } from '@/components/music/loading'
 import { usePlaybackShortcuts } from '@/features/playback/shortcuts/use-playback-shortcuts'
-import { CollectionActionsProvider } from '@/features/library/collection-actions'
+import { CollectionActionsProvider } from '@/features/library/collection/collection-actions'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
@@ -39,14 +39,16 @@ import { TrackSearchContext } from '@/components/music/track-search-context'
 
 const PerformanceProbe = lazy(() => import('@/features/performance/performance-probe'))
 const LocalPage = lazy(() => import('@/features/local/local-page'))
+const LocalPlaylistPage = lazy(() => import('@/features/local/local-playlist-page'))
 const SearchPage = lazy(() => import('@/features/search/search-page'))
 const SettingsPage = lazy(() => import('@/features/settings/settings-page'))
-const ArtistPage = lazy(() => import('@/features/library/artist-page'))
-const AlbumPage = lazy(() => import('@/features/library/album-page'))
+const ArtistPage = lazy(() => import('@/features/library/artist/artist-page'))
+const AlbumPage = lazy(() => import('@/features/library/album/album-page'))
 const Discovery = lazy(() => import('@/features/discovery/discovery'))
 const AccountLoginPage = lazy(() => import('@/features/account/account-login-page'))
-const MusicLibrary = lazy(() => import('@/features/library/music-library'))
+const MusicLibrary = lazy(() => import('@/features/library/music-library/music-library'))
 const EntityPage = lazy(() => import('@/features/music/entity-page'))
+const StreamingPlaylistPage = lazy(() => import('@/features/music/streaming-playlist-page'))
 interface ImportReport {
   imported: number
   skipped: number
@@ -74,8 +76,10 @@ export function MusicWorkspace({
   const view = page.view
   const canSearchList = [
     'collection',
+    'streaming-playlist',
     'album',
     'artist',
+    'aggregate-playlist',
     'local-playlist',
     'local-album',
     'local-artist'
@@ -314,7 +318,9 @@ export function MusicWorkspace({
                             local: '本地音乐',
                             'local-artist': '本地艺人',
                             'local-album': '本地专辑',
-                            'local-playlist': '本地歌单'
+                            'local-playlist': '本地歌单',
+                            'aggregate-playlist': '聚合歌单',
+                            'streaming-playlist': '歌单'
                           } as Record<string, string>
                         )[page.view] ??
                         '音乐')
@@ -362,10 +368,7 @@ export function MusicWorkspace({
                       这是界面预览。播放、搜索和导入功能需要在桌面应用中使用。
                     </p>
                   )}
-                  {view === 'local' ||
-                  view === 'local-artist' ||
-                  view === 'local-album' ||
-                  (view === 'local-playlist' && page.collection?.playlistType === 'local') ? (
+                  {view === 'local' || view === 'local-artist' || view === 'local-album' ? (
                     <Suspense fallback={<MusicPageSkeleton view="local" />}>
                       <LocalPage
                         refresh={refresh}
@@ -376,12 +379,39 @@ export function MusicWorkspace({
                       />
                     </Suspense>
                   ) : view === 'local-playlist' && page.collection?.localId ? (
+                    <Suspense
+                      fallback={
+                        <MusicPageSkeleton view="collection" collection={page.collection} />
+                      }
+                    >
+                      <LocalPlaylistPage
+                        key={page.collection.localId}
+                        collection={page.collection}
+                        refresh={refresh}
+                        onError={onError}
+                        onNotice={showNotice}
+                      />
+                    </Suspense>
+                  ) : view === 'aggregate-playlist' && page.collection?.localId ? (
                     <AggregatePage
                       key={page.collection.localId}
                       id={page.collection.localId}
                       onError={onError}
                       onNotice={showNotice}
                     />
+                  ) : view === 'streaming-playlist' && page.collection?.reference ? (
+                    <Suspense
+                      fallback={
+                        <MusicPageSkeleton view="collection" collection={page.collection} />
+                      }
+                    >
+                      <StreamingPlaylistPage
+                        key={JSON.stringify(page.collection.reference)}
+                        collection={page.collection}
+                        onError={onError}
+                        onNotice={showNotice}
+                      />
+                    </Suspense>
                   ) : page.collection?.reference &&
                     ['artist', 'album', 'collection'].includes(view) ? (
                     <Suspense

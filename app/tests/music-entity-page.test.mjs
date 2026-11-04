@@ -28,6 +28,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
   let table
   const modules = {
     '@/lib/runtime-cache': createRuntimeCache(),
+    '@/lib/diagnostics': { reportCaughtError() {} },
     '@/features/account/account': {
       useAccount: (source) => {
         assert.equal(source, 'qqmusic')
@@ -110,8 +111,8 @@ test('uniform details retain cursor and rows on failure, reload only their own s
   }
   const exports = {}
   Object.assign(modules, {
-    '@/features/library/detail-header': { DetailHeader: 'header' },
-    '@/features/library/detail-description': {
+    '@/features/library/collection/detail-header': { DetailHeader: 'header' },
+    '@/features/library/collection/detail-description': {
       DetailDescription: ({ description }) => React.createElement('p', {}, description)
     },
     '@/components/music/cover': {
@@ -121,21 +122,27 @@ test('uniform details retain cursor and rows on failure, reload only their own s
       ActionButton: ({ children, ...props }) => React.createElement('button', props, children)
     },
     'lucide-react': { Play: () => null, Ellipsis: () => null, GitBranch: () => null },
-    '@/features/library/collection-content': { CollectionContent: ({ children }) => children },
+    '@/features/library/collection/collection-content': {
+      CollectionContent: ({ children }) => children
+    },
+    '@/features/library/playlist/playlist-page-shell': {
+      PlaylistPageShell: ({ header, children }) =>
+        React.createElement(React.Fragment, {}, header, children)
+    },
     './collection-content': { CollectionSearch: () => null },
     './collection-kind': { CollectionKind: () => null },
     '@/components/music/music-links': { ArtistLinks: () => null },
-    '@/features/library/library-api': {
+    '@/features/library/shared/library-api': {
       playLibraryCollection: async (collection, key) => {
         playback.push({ collection, key })
         return false
       }
     },
-    '@/features/library/artist-page': {
+    '@/features/library/artist/artist-page': {
       __esModule: true,
       default: () => React.createElement('p', {}, '歌手完整详情')
     },
-    '@/features/library/album-page': {
+    '@/features/library/album/album-page': {
       __esModule: true,
       default: () => React.createElement('p', {}, '专辑完整详情')
     }
@@ -145,8 +152,12 @@ test('uniform details retain cursor and rows on failure, reload only their own s
       '@/features/aggregate/platform-playlist-menu',
       '../src/features/aggregate/platform-playlist-menu.tsx'
     ],
-    ['@/features/library/collection-header', '../src/features/library/collection-header.tsx'],
-    ['./entities', '../src/features/music/entities.ts']
+    [
+      '@/features/library/collection/collection-header',
+      '../src/features/library/collection/collection-header.tsx'
+    ],
+    ['./entities', '../src/features/music/entities.ts'],
+    ['./streaming-playlist-page', '../src/features/music/streaming-playlist-page.tsx']
   ]) {
     const loaded = {}
     runInNewContext(
@@ -215,7 +226,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     assert.equal(derive.disabled, false)
     await act(async () => derive.click())
     assert.equal(derivations[0].id, collection.reference.id)
-    assert.equal(navigation[0][0], 'local-playlist')
+    assert.equal(navigation[0][0], 'aggregate-playlist')
     assert.equal(navigation[0][2].localId, 'local-version')
     assert.equal(document.getElementById('tracks').textContent, 'qqmusic:one')
     await act(async () => document.querySelector('header button').click())

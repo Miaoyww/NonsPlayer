@@ -12,7 +12,7 @@ import ts from 'typescript'
 
 test('likes refresh the loaded playlist in the background without unmounting its song list', async () => {
   const source = readFileSync(
-    new URL('../src/features/library/music-library.tsx', import.meta.url),
+    new URL('../src/features/library/music-library/music-library.tsx', import.meta.url),
     'utf8'
   )
   const modules = {
@@ -67,11 +67,13 @@ test('likes refresh the loaded playlist in the background without unmounting its
     '@tauri-apps/api/core': { isTauri: () => true },
     '@/lib/player': { usePlayer: () => ({ index: null, queue: [] }), errorText: String },
     '@/features/account/account': { useAccount: () => account },
-    '@/features/library/collection-actions': { useCollectionActions: () => ({ revision: 0 }) },
+    '@/features/library/collection/collection-actions': {
+      useCollectionActions: () => ({ revision: 0 })
+    },
     '@/features/workspace/music-navigation': {
       useMusicNavigation: () => ({ page: { view: 'collection', collection } })
     },
-    '@/features/library/library-api': {
+    '@/features/library/shared/library-api': {
       peekMusicLibrary: () => summary,
       peekLibraryCollections: () => undefined,
       getMusicLibrary: async () => summary,
@@ -121,8 +123,8 @@ test('likes refresh the loaded playlist in the background without unmounting its
     return exports
   }
   modules['@/lib/use-paged-list'] = load('../src/lib/use-paged-list.ts')
-  modules['@/features/library/reconcile-tracks'] = load(
-    '../src/features/library/reconcile-tracks.ts'
+  modules['@/features/library/music-library/reconcile-tracks'] = load(
+    '../src/features/library/music-library/reconcile-tracks.ts'
   )
   const library = load(null, source)
   const dom = new JSDOM('<div id="root"></div>')
@@ -195,7 +197,7 @@ test('likes refresh the loaded playlist in the background without unmounting its
 
 test('playlist detail siblings have distinct keys and search state resets when switching playlists', async () => {
   const source = readFileSync(
-    new URL('../src/features/library/music-library.tsx', import.meta.url),
+    new URL('../src/features/library/music-library/music-library.tsx', import.meta.url),
     'utf8'
   )
   const modules = {
@@ -232,15 +234,17 @@ test('playlist detail siblings have distinct keys and search state resets when s
     '@tauri-apps/api/core': { isTauri: () => false },
     '@/lib/player': { usePlayer: () => ({ index: null, queue: [] }) },
     '@/features/account/account': { useAccount: () => ({ profile: null }) },
-    '@/features/library/collection-actions': { useCollectionActions: () => ({ revision: 0 }) },
+    '@/features/library/collection/collection-actions': {
+      useCollectionActions: () => ({ revision: 0 })
+    },
     '@/features/workspace/music-navigation': {
       useMusicNavigation: () => ({ page: { view: 'collection', collection } })
     },
     '@/lib/use-paged-list': { usePagedList: () => ({ items: [], more: false, busy: false }) },
-    '@/features/library/collection-header': {
+    '@/features/library/collection/collection-header': {
       CollectionHeader: ({ collection }) => React.createElement('h1', {}, collection.name)
     },
-    '@/features/library/collection-content': {
+    '@/features/library/collection/collection-content': {
       CollectionContent: ({ children }) => {
         const [value, setValue] = React.useState(0)
         return React.createElement(
@@ -312,7 +316,7 @@ test('playlist detail siblings have distinct keys and search state resets when s
 
 test('library home limits the featured preview to twelve without changing the favorites total', async () => {
   const source = readFileSync(
-    new URL('../src/features/library/music-library.tsx', import.meta.url),
+    new URL('../src/features/library/music-library/music-library.tsx', import.meta.url),
     'utf8'
   )
   const modules = {
@@ -355,7 +359,7 @@ test('library home limits the featured preview to twelve without changing the fa
     '@tauri-apps/api/core': { isTauri: () => true },
     '@/lib/player': { usePlayer: () => ({ index: null, queue: [] }) },
     '@/features/account/account': { useAccount: () => ({ profile, confirmLikedTracks() {} }) },
-    '@/features/library/collection-actions': {
+    '@/features/library/collection/collection-actions': {
       useCollectionActions: () => ({ revision: 0 }),
       CollectionContextMenu: placeholder
     },
@@ -363,11 +367,13 @@ test('library home limits the featured preview to twelve without changing the fa
       useMusicNavigation: () => ({ page: { view: 'library' } })
     },
     '@/lib/use-paged-list': { usePagedList: () => ({ items: [], more: false, busy: false }) },
-    '@/features/library/library-api': {
+    '@/features/library/shared/library-api': {
       peekMusicLibrary: () => summary,
       getMusicLibrary: async () => summary
     },
-    '@/features/library/reconcile-tracks': { reconcileTracks: (_previous, next) => next },
+    '@/features/library/music-library/reconcile-tracks': {
+      reconcileTracks: (_previous, next) => next
+    },
     '@/components/music/music-links': { TrackArtists: () => React.createElement('span') },
     '@/components/music/list-find': {
       FindSongGrid: ({ tracks, children }) =>

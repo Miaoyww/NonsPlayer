@@ -96,7 +96,7 @@ function harness(snapshot = null, storage = new Map()) {
         return () => events.delete(event)
       }
     },
-    '@/features/library/library-api': {
+    '@/features/library/shared/library-api': {
       resetAccountCache() {},
       setLibraryAccount() {},
       invalidateMusicLibrary() {

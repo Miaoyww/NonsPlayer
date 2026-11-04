@@ -20,6 +20,8 @@ export type MusicView =
   | 'local-artist'
   | 'local-album'
   | 'local-playlist'
+  | 'aggregate-playlist'
+  | 'streaming-playlist'
 export interface MusicCollection {
   bypassAggregate?: boolean
 
@@ -99,12 +101,14 @@ export function MusicNavigationStateProvider({
     if (collection && view === 'collection') {
       const aggregate = replacement?.(collection)
       if (aggregate) {
-        view = 'local-playlist'
+        view = 'aggregate-playlist'
         collection = aggregateCollection(aggregate)
-      }
+      } else if (collection.kind === 'artist') view = 'artist'
+      else if (collection.kind === 'album') view = 'album'
+      else if (collection.kind === 'playlist' && collection.reference) view = 'streaming-playlist'
     }
-    if (view === 'collection' && collection?.kind === 'artist') view = 'artist'
-    if (view === 'collection' && collection?.kind === 'album') view = 'album'
+    if (view === 'local-playlist' && collection?.playlistType === 'aggregate' && collection.localId)
+      view = 'aggregate-playlist'
     setHistory((previous) => {
       const current = previous.entries[previous.index]
       if (

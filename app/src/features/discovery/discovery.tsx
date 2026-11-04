@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TrackListSkeleton, CollectionGridSkeleton, TextSkeleton } from '@/components/music/loading'
 import { Tabs, TabsList, TabsTab, TabsPanel } from '@/components/animate-ui/components/base/tabs'
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
-import { CollectionContextMenu } from '@/features/library/collection-actions'
+import { CollectionContextMenu } from '@/features/library/collection/collection-actions'
 import { TrackArtists, TrackAlbum } from '@/components/music/music-links'
 import { GreetingQuote } from '@/features/discovery/greeting-quote'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -48,7 +48,7 @@ import {
   type Track
 } from '@/lib/player'
 import { usePagedList } from '@/lib/use-paged-list'
-import { playLibraryCollection } from '@/features/library/library-api'
+import { playLibraryCollection } from '@/features/library/shared/library-api'
 import {
   createDiscoveryPlaylistLoader,
   discoveryCategories,
@@ -60,7 +60,7 @@ import { useAccount } from '@/features/account/account'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { InfiniteLoad } from '@/components/music/infinite-load'
-import { PlaylistCard } from '@/features/library/playlist-card'
+import { PlaylistCard } from '@/features/library/playlist/playlist-card'
 import { TrackList } from '@/components/music/track-list'
 import { useMusicNavigation, type MusicCollection } from '@/features/workspace/music-navigation'
 

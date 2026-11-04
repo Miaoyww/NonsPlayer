@@ -19,15 +19,18 @@ import {
   SongGridSkeleton,
   TextSkeleton
 } from '@/components/music/loading'
-import { CollectionContent } from '@/features/library/collection-content'
+import { CollectionContent } from '@/features/library/collection/collection-content'
 import { MusicPage } from '@/components/music/music-page'
-import { CollectionContextMenu, useCollectionActions } from '@/features/library/collection-actions'
+import {
+  CollectionContextMenu,
+  useCollectionActions
+} from '@/features/library/collection/collection-actions'
 import { TrackArtists } from '@/components/music/music-links'
-import { AlbumCard } from '@/features/library/album-card'
-import { ArtistCard } from '@/features/library/artist-card'
-import { PlaylistCard } from '@/features/library/playlist-card'
-import { CollectionHeader } from '@/features/library/collection-header'
-import { ListeningStatisticsCard } from '@/features/library/listening-statistics-card'
+import { AlbumCard } from '@/features/library/album/album-card'
+import { ArtistCard } from '@/features/library/artist/artist-card'
+import { PlaylistCard } from '@/features/library/playlist/playlist-card'
+import { CollectionHeader } from '@/features/library/collection/collection-header'
+import { ListeningStatisticsCard } from '@/features/library/music-library/listening-statistics-card'
 import { SongContextMenu } from '@/components/music/song-actions'
 import { TrackTitle } from '@/components/music/track-title'
 // Layout and interaction adapted from YesPlayMusic src/views/library.vue.
@@ -49,8 +52,8 @@ import {
   type LibrarySummary,
   type LibraryTab,
   type PlaylistFilter
-} from '@/features/library/library-api'
-import { CreatePlaylist } from '@/features/library/create-playlist'
+} from '@/features/library/shared/library-api'
+import { CreatePlaylist } from '@/features/library/playlist/create-playlist'
 import {
   Select,
   SelectContent,
@@ -68,7 +71,7 @@ import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { usePagedList } from '@/lib/use-paged-list'
 import { LyricExcerpt } from '@/features/lyrics/lyric-excerpt'
-import { reconcileTracks } from '@/features/library/reconcile-tracks'
+import { reconcileTracks } from '@/features/library/music-library/reconcile-tracks'
 
 const filters = [
   { value: 'all', label: '全部歌单' },
@@ -191,7 +194,7 @@ export default function MusicLibrary({
           }))
       })
       .catch((cause) => {
-        reportCaughtError('app/src/features/library/music-library.tsx', cause)
+        reportCaughtError('app/src/features/library/music-library/music-library.tsx', cause)
 
         if (!disposed) setSummaryError(errorText(cause))
       })
@@ -302,7 +305,7 @@ export default function MusicLibrary({
       if (request === playRequest.current && truncated)
         onNotice('已将前 1000 首歌曲加入播放队列。其余歌曲可在收藏详情中继续浏览并播放。')
     } catch (cause) {
-      reportCaughtError('app/src/features/library/music-library.tsx', cause)
+      reportCaughtError('app/src/features/library/music-library/music-library.tsx', cause)
 
       if (request === playRequest.current) onError(cause)
     } finally {

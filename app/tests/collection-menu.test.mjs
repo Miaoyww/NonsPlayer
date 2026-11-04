@@ -75,7 +75,7 @@ function harness() {
     '@/features/downloads/download-provider': {
       useDownloads: () => ({ start: async () => '已加入下载' })
     },
-    '@/features/library/library-api': {},
+    '@/features/library/shared/library-api': {},
     '@/components/ui/dialog': {},
     '@/components/ui/button': {},
     '@/features/account/account': { useAccount: () => ({ profile }) },
@@ -84,7 +84,7 @@ function harness() {
   const exports = {}
   const { outputText } = ts.transpileModule(
     readFileSync(
-      new URL('../src/features/library/collection-actions.tsx', import.meta.url),
+      new URL('../src/features/library/collection/collection-actions.tsx', import.meta.url),
       'utf8'
     ),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Trash2, ArrowUpDown, Check, ListChecks } from 'lucide-react'
 import { isTauri } from '@tauri-apps/api/core'
 import { MusicPage } from '@/components/music/music-page'
-import { CollectionContent } from '@/features/library/collection-content'
+import { PlaylistPageShell } from '@/features/library/playlist/playlist-page-shell'
 import { ActionButton } from '@/components/music/action-button'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
@@ -21,7 +21,7 @@ import { useSongActions } from '@/components/music/song-actions'
 import { usePagedList } from '@/lib/use-paged-list'
 import { nativeCall, usePlayer } from '@/lib/player'
 import { AggregateHeader } from './aggregate-header'
-import { PlaylistCard } from '@/features/library/playlist-card'
+import { PlaylistCard } from '@/features/library/playlist/playlist-card'
 import {
   aggregateCollection,
   allAggregateTracks,
@@ -73,7 +73,7 @@ export function CreateAggregatePlaylist({
                   await reload()
                   setCreate(false)
                   setName('')
-                  navigate('local-playlist', '', {
+                  navigate('aggregate-playlist', '', {
                     id,
                     localId: id,
                     reference: null,
@@ -211,27 +211,33 @@ export default function AggregatePage({
     return ''
   }
   return (
-    <MusicPage aria-label="聚合歌单">
-      <CollectionContent key={id} hasMore={list.more} searchable={!batch}>
-        <AggregateHeader
-          key={id}
-          playlist={playlist}
-          batch={batch}
-          onBatch={toggleBatch}
-          busy={busy}
-          onPlay={() =>
-            void run(async () => {
-              const skipped = await playAggregate(id)
-              onNotice(
-                skipped ? `已开始播放，跳过 ${skipped} 首已退出曲库的歌曲。` : '已开始播放。'
-              )
-            })
-          }
-          onEdit={(operation) => {
-            setName(playlist.name)
-            setEdit(operation)
-          }}
-        />
+    <>
+      <PlaylistPageShell
+        key={id}
+        hasMore={list.more}
+        searchable={!batch}
+        header={
+          <AggregateHeader
+            key={id}
+            playlist={playlist}
+            batch={batch}
+            onBatch={toggleBatch}
+            busy={busy}
+            onPlay={() =>
+              void run(async () => {
+                const skipped = await playAggregate(id)
+                onNotice(
+                  skipped ? `已开始播放，跳过 ${skipped} 首已退出曲库的歌曲。` : '已开始播放。'
+                )
+              })
+            }
+            onEdit={(operation) => {
+              setName(playlist.name)
+              setEdit(operation)
+            }}
+          />
+        }
+      >
         {batch && (
           <div
             className="mb-4 flex flex-wrap items-center gap-2"
@@ -339,7 +345,7 @@ export default function AggregatePage({
         {!list.busy && !list.items.length && (
           <p className="py-8 text-muted-foreground">还没有歌曲，可从歌曲菜单添加。</p>
         )}
-      </CollectionContent>
+      </PlaylistPageShell>
       <Dialog
         open={!!edit}
         onOpenChange={(open) => {
@@ -412,6 +418,6 @@ export default function AggregatePage({
           </form>
         </DialogContent>
       </Dialog>
-    </MusicPage>
+    </>
   )
 }

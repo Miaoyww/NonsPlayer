@@ -3,7 +3,7 @@ import { musicClient } from '@/features/music/client'
 import { musicCollection } from '@/features/music/entities'
 import { onlineReference } from '@/features/music/references'
 import type { Track } from '@/lib/player'
-import type { CollectionPage } from '@/features/library/library-api'
+import type { CollectionPage } from '@/features/library/shared/library-api'
 
 interface PlaylistQuery {
   section: 'recommended' | 'square'

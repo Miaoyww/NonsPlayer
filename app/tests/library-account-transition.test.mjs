@@ -22,7 +22,10 @@ test('library preview renders through account reset without throwing or showing 
   }
   runInNewContext(
     ts.transpileModule(
-      readFileSync(new URL('../src/features/library/library-api.ts', import.meta.url), 'utf8'),
+      readFileSync(
+        new URL('../src/features/library/shared/library-api.ts', import.meta.url),
+        'utf8'
+      ),
       { compilerOptions: { module: ts.ModuleKind.CommonJS } }
     ).outputText,
     { exports: library, require: (name) => modules[name] ?? {} }

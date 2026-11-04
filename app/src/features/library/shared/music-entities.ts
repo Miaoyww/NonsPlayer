@@ -41,7 +41,7 @@ export function useEntityDetail(collection: MusicCollection, refresh: number, en
           }
         })
         .catch((cause) => {
-          reportCaughtError('app/src/features/library/music-entities.ts', cause)
+          reportCaughtError('app/src/features/library/shared/music-entities.ts', cause)
 
           if (!disposed) setError(errorText(cause))
         })

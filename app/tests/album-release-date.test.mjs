@@ -54,7 +54,7 @@ test('album cards show current metadata dates without per-card detail requests',
       nativeCall: (command, args) =>
         new Promise((resolve, reject) => requests.push({ command, args, resolve, reject }))
     },
-    '@/features/library/collection-actions': {
+    '@/features/library/collection/collection-actions': {
       CollectionContextMenu: ({ render, children }) => React.cloneElement(render, {}, children)
     },
     'lucide-react': { Play: () => null },
@@ -75,11 +75,13 @@ test('album cards show current metadata dates without per-card detail requests',
     })
     return exports
   }
-  modules['@/features/library/music-entities'] = load('../src/features/library/music-entities.ts')
+  modules['@/features/library/shared/music-entities'] = load(
+    '../src/features/library/shared/music-entities.ts'
+  )
   modules['@/features/workspace/music-navigation'] = {}
   modules['@/lib/player'] = {}
   modules['@/components/music/music-links'] = load('../src/components/music/music-links.tsx')
-  const { AlbumCard } = load('../src/features/library/album-card.tsx')
+  const { AlbumCard } = load('../src/features/library/album/album-card.tsx')
   const root = createRoot(document.getElementById('root'))
   const album = {
     id: '142163139',

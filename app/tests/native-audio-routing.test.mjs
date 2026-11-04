@@ -87,7 +87,7 @@ function harness({ platform = 'Windows', tauri = true, readyError } = {}) {
     '@/features/playback/player-store': compile('features/playback/player-store.ts'),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
     '@/features/music/cover-image': { coverOriginal: (value) => value },
-    '@/features/library/library-preview': { clearLibraryPreviews() {} },
+    '@/features/library/shared/library-preview': { clearLibraryPreviews() {} },
     '@/features/discovery/private-fm': {
       createPrivateFm() {
         fm.created++

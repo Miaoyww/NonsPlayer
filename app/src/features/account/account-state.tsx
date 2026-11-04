@@ -17,7 +17,7 @@ import {
   invalidateMusicLibrary,
   resetAccountCache,
   setLibraryAccount
-} from '@/features/library/library-api'
+} from '@/features/library/shared/library-api'
 import { musicClient } from '@/features/music/client'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import type { AccountRecord, AccountRef } from '@/features/music/types'

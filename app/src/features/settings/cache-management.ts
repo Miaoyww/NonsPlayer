@@ -1,6 +1,9 @@
 import { nativeCall } from '@/lib/player'
 import { coverCache, isOtherQueryCacheKey, requestCache } from '@/lib/runtime-cache'
-import { clearLibraryPreviews, libraryPreviewCacheStatus } from '@/features/library/library-preview'
+import {
+  clearLibraryPreviews,
+  libraryPreviewCacheStatus
+} from '@/features/library/shared/library-preview'
 import { clearContinuations } from '@/features/music/queries'
 
 export type CacheUsage = { usedBytes: number; entries: number }

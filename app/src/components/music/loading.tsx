@@ -15,8 +15,8 @@ import {
   Sparkles,
   LayoutGrid
 } from 'lucide-react'
-import { CollectionHeader } from '@/features/library/collection-header'
-import { CollectionContent } from '@/features/library/collection-content'
+import { CollectionHeader } from '@/features/library/collection/collection-header'
+import { CollectionContent } from '@/features/library/collection/collection-content'
 import { ActionButton } from '@/components/music/action-button'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'

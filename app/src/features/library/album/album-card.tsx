@@ -1,4 +1,4 @@
-import { CollectionContextMenu } from '@/features/library/collection-actions'
+import { CollectionContextMenu } from '@/features/library/collection/collection-actions'
 import { Play } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'

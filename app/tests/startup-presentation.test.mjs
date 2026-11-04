@@ -62,7 +62,9 @@ test('unresolved startup source renders the actual library shell instead of the 
     '@/features/playback/use-playback-bar-mode': { usePlaybackBarMode: () => ['off'] },
     '@/features/playback/shortcuts/use-playback-shortcuts': { usePlaybackShortcuts() {} },
     '@/features/lyrics/fullscreen-player': { FullscreenPlayer: 'FullscreenPlayer' },
-    '@/features/library/collection-actions': { CollectionActionsProvider: 'Collections' },
+    '@/features/library/collection/collection-actions': {
+      CollectionActionsProvider: 'Collections'
+    },
     '@/components/music/song-actions': { SongActionsProvider: 'Songs' },
     '@/components/music/list-find': { ListFindProvider: 'Find' },
     '@/components/music/track-search-context': { TrackSearchContext: { Provider: 'Search' } },

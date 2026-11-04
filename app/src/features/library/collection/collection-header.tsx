@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { DetailHeader } from '@/features/library/detail-header'
-import { DetailDescription } from '@/features/library/detail-description'
+import { DetailHeader } from '@/features/library/collection/detail-header'
+import { DetailDescription } from '@/features/library/collection/detail-description'
 import { Play } from 'lucide-react'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
 import { ActionButton } from '@/components/music/action-button'

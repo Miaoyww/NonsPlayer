@@ -57,7 +57,7 @@ function valid(value: Preview): boolean {
   try {
     account = JSON.parse(value.userId)
   } catch (cause) {
-    reportCaughtError('app/src/features/library/library-preview.ts', cause)
+    reportCaughtError('app/src/features/library/shared/library-preview.ts', cause)
 
     return false
   }
@@ -92,7 +92,7 @@ function read() {
       const data: unknown = raw && raw.length * 2 <= 2 * limit ? JSON.parse(raw) : []
       entries = Array.isArray(data) ? data.filter(valid).slice(0, 2) : []
     } catch (cause) {
-      reportCaughtError('app/src/features/library/library-preview.ts', cause)
+      reportCaughtError('app/src/features/library/shared/library-preview.ts', cause)
 
       entries = []
     }
@@ -116,7 +116,7 @@ export function saveLibraryPreview(
   try {
     localStorage.setItem(key, JSON.stringify(entries))
   } catch (cause) {
-    reportCaughtError('app/src/features/library/library-preview.ts', cause)
+    reportCaughtError('app/src/features/library/shared/library-preview.ts', cause)
 
     /* Quota/storage failure does not block rendering. */
   }
@@ -126,7 +126,7 @@ export function libraryPreviewCacheStatus() {
     const raw = localStorage.getItem(key)
     return { usedBytes: raw ? (key.length + raw.length) * 2 : 0, entries: raw ? 1 : 0 }
   } catch (cause) {
-    reportCaughtError('app/src/features/library/library-preview.ts', cause)
+    reportCaughtError('app/src/features/library/shared/library-preview.ts', cause)
     return {
       usedBytes: entries?.length ? JSON.stringify(entries).length * 2 : 0,
       entries: entries?.length ? 1 : 0
@@ -138,7 +138,7 @@ export function clearLibraryPreviews(strict = false) {
   try {
     localStorage.removeItem(key)
   } catch (cause) {
-    reportCaughtError('app/src/features/library/library-preview.ts', cause)
+    reportCaughtError('app/src/features/library/shared/library-preview.ts', cause)
     if (strict) throw cause
     /* Storage may be unavailable. */
   }

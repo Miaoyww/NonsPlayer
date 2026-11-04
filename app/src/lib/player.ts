@@ -1,5 +1,5 @@
 import { reportCaughtError } from '@/lib/diagnostics'
-import { clearLibraryPreviews } from '@/features/library/library-preview'
+import { clearLibraryPreviews } from '@/features/library/shared/library-preview'
 import { coverOriginal, type CoverInput } from '@/features/music/cover-image'
 import { ScopedMusicQueries } from '@/features/music/scoped-query'
 import { isAndroid } from '@/lib/platform'

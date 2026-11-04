@@ -5,26 +5,29 @@ import { TrackListSkeleton, CollectionGridSkeleton, TextSkeleton } from '@/compo
 import { tracksForCollection, queryPage } from '@/features/music/queries'
 import { collectionReference } from '@/features/music/references'
 import { musicCollection } from '@/features/music/entities'
-import { DetailHeader } from '@/features/library/detail-header'
-import { DetailDescription } from '@/features/library/detail-description'
+import { DetailHeader } from '@/features/library/collection/detail-header'
+import { DetailDescription } from '@/features/library/collection/detail-description'
 import { MusicPage } from '@/components/music/music-page'
 import { useCallback, useRef, useState, type KeyboardEvent } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { RefreshCw } from 'lucide-react'
 import { nativeCall, usePlayer, type Track } from '@/lib/player'
-import { playLibraryCollection } from '@/features/library/library-api'
-import { useEntityDetail } from '@/features/library/music-entities'
+import { playLibraryCollection } from '@/features/library/shared/library-api'
+import { useEntityDetail } from '@/features/library/shared/music-entities'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { usePagedList } from '@/lib/use-paged-list'
 import { ActionButton } from '@/components/music/action-button'
 import { PlayButton } from '@/components/music/play-button'
-import { AlbumCard } from '@/features/library/album-card'
+import { AlbumCard } from '@/features/library/album/album-card'
 import { Cover } from '@/components/music/cover'
 import { formatReleaseDate } from '@/components/music/music-links'
 import { useMusicNavigation, type MusicCollection } from '@/features/workspace/music-navigation'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
-import { CollectionContent, CollectionSearch } from '@/features/library/collection-content'
+import {
+  CollectionContent,
+  CollectionSearch
+} from '@/features/library/collection/collection-content'
 
 export default function ArtistPage({
   collection,
@@ -84,7 +87,7 @@ export default function ArtistPage({
     try {
       if (await playLibraryCollection(item)) onNotice('已将前 1000 首歌曲加入播放队列。')
     } catch (cause) {
-      reportCaughtError('app/src/features/library/artist-page.tsx', cause)
+      reportCaughtError('app/src/features/library/artist/artist-page.tsx', cause)
 
       onError(cause)
     } finally {

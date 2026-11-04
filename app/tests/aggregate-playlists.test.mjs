@@ -359,7 +359,7 @@ test('aggregate detail reuses the platform header and keeps deletion and refresh
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
     '@/components/music/action-button': { ActionButton: 'Button' },
     '@/components/error-notice': { ErrorNotice: 'Error' },
-    '@/features/library/collection-header': { CollectionHeader: 'SharedHeader' },
+    '@/features/library/collection/collection-header': { CollectionHeader: 'SharedHeader' },
     '@/features/workspace/music-navigation': {
       useMusicNavigation: () => ({ navigate: (...args) => calls.push(args) })
     },
@@ -480,7 +480,7 @@ test('ordinary playlist menu exposes only derivation for owned playlists and ope
   assert.equal(items[0].props.children[1], '派生为聚合歌单')
   items[0].props.onClick()
   await new Promise((resolve) => setImmediate(resolve))
-  assert.equal(calls.at(-1)[0], 'local-playlist')
+  assert.equal(calls.at(-1)[0], 'aggregate-playlist')
   assert.equal(calls.at(-1)[2].localId, 'local')
   assert.equal(
     PlatformPlaylistMenu({ ...props, collection: { ...props.collection, creatorId: 'other' } }),

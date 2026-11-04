@@ -3,8 +3,8 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton } from '@/components/music/loading'
 import { tracksForCollection } from '@/features/music/queries'
-import { CollectionContent } from '@/features/library/collection-content'
-import { CollectionHeader } from '@/features/library/collection-header'
+import { CollectionContent } from '@/features/library/collection/collection-content'
+import { CollectionHeader } from '@/features/library/collection/collection-header'
 import { MusicPage } from '@/components/music/music-page'
 // Independent album detail, adapted from the playlist detail in music-library.tsx.
 // Layout originally adapted from YesPlayMusic src/views/library.vue.
@@ -13,8 +13,8 @@ import { useCallback, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { RefreshCw } from 'lucide-react'
 import { nativeCall, usePlayer, type Track } from '@/lib/player'
-import { playLibraryCollection, type CollectionTracks } from '@/features/library/library-api'
-import { useEntityDetail } from '@/features/library/music-entities'
+import { playLibraryCollection, type CollectionTracks } from '@/features/library/shared/library-api'
+import { useEntityDetail } from '@/features/library/shared/music-entities'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { usePagedList } from '@/lib/use-paged-list'
 import { ActionButton } from '@/components/music/action-button'
@@ -55,7 +55,7 @@ export default function AlbumPage({
       if (await playLibraryCollection(album, list.items[0]?.key))
         onNotice('已将前 1000 首歌曲加入播放队列。')
     } catch (cause) {
-      reportCaughtError('app/src/features/library/album-page.tsx', cause)
+      reportCaughtError('app/src/features/library/album/album-page.tsx', cause)
 
       onError(cause)
     } finally {
