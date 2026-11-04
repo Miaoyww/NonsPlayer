@@ -25,3 +25,14 @@ export function selectCurrentSource(
   if (preferences.supplementary.includes(current)) supplementary.unshift(preferences.current)
   return { ...preferences, current, supplementary }
 }
+
+// Enabled search-capable sources participate even when they never held the current role.
+export function searchSources(
+  preferences: SourcePreferences,
+  statuses: { source: string; enabled: boolean; search: boolean }[]
+): string[] {
+  const enabled = statuses
+    .filter((status) => status.enabled && status.search)
+    .map((status) => status.source)
+  return [...new Set([preferences.current, ...preferences.supplementary, ...enabled])]
+}

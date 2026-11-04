@@ -17,6 +17,7 @@ import { ActionButton } from '@/components/music/action-button'
 import { musicClient } from '@/features/music/client'
 import { musicCollection } from '@/features/music/entities'
 import { useMusicSources } from '@/features/music/use-music-sources'
+import { searchSources } from '@/features/music/source-preferences'
 import { AggregateQuery, type SearchSource } from './aggregate-query'
 import { MusicSearch } from './music-search'
 import { isAndroid } from '@/lib/platform'
@@ -281,7 +282,14 @@ export default function SearchPage({
     () =>
       preferences
         ? [
-            ...[preferences.current, ...preferences.supplementary].map((source) => {
+            ...searchSources(
+              preferences,
+              statuses.map((status) => ({
+                source: status.descriptor.source,
+                enabled: status.enabled,
+                search: status.descriptor.capabilities.includes('search')
+              }))
+            ).map((source) => {
               const status = statuses.find((value) => value.descriptor.source === source)
               return {
                 source,

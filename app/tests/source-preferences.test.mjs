@@ -33,4 +33,13 @@ test('changing current source preserves configured roles, order and revision wit
   exports.sourcePreferences.set(next)
   assert.equal(calls[0][0], 'music_set_source_preferences')
   assert.equal(calls.length, 1)
+  const sources = exports.searchSources(saved, [
+    { source: 'netease', enabled: true, search: true },
+    { source: 'qqmusic', enabled: true, search: true },
+    { source: 'third', enabled: true, search: true },
+    { source: 'bilibili', enabled: true, search: true },
+    { source: 'disabled', enabled: false, search: true },
+    { source: 'library-only', enabled: true, search: false }
+  ])
+  assert.deepEqual(Array.from(sources), ['netease', 'third', 'qqmusic', 'bilibili'])
 })
