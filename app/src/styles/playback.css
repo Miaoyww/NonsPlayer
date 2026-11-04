@@ -850,14 +850,14 @@ button.now-playing-tag:focus-visible {
 .playback-timeline-edge .timeline-slider > div {
   min-height: 20px;
 }
-.playback-timeline-edge [data-slot='slider-track'] {
+.persistent-playback .playback-timeline-edge [data-slot='slider-track'] {
   border-radius: 0;
   /* Extend the clipping box below the thin track to preserve the surface's full corner radius. */
   clip-path: inset(
     0 0 -40px round var(--playback-surface-radius) var(--playback-surface-radius) 0 0
   );
 }
-.playback-timeline-edge [data-slot='slider-thumb'] {
+.persistent-playback .playback-timeline-edge [data-slot='slider-thumb'] {
   /* The track's visible top edge starts and ends at the surface's corner radius. */
   left: clamp(
     var(--playback-surface-radius),
@@ -910,6 +910,9 @@ button.now-playing-tag:focus-visible {
 }
 .fullscreen-playback-bar-surface > .persistent-options {
   grid-column: 3;
+}
+.fullscreen-playback-bar .playback-like[aria-pressed='true'] {
+  color: rgb(255 255 255);
 }
 @media (max-width: 900px) {
   .persistent-playback {

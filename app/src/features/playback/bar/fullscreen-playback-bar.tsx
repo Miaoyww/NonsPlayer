@@ -1,6 +1,5 @@
 import { CurrentTrackLike } from '@/features/playback/now-playing/current-track-like'
 import { statusLabels, usePlayer } from '@/lib/player'
-import { QualitySelect } from '@/features/playback/now-playing/music-options'
 import { PlaybackTimeline } from '@/features/playback/controls/playback-timeline'
 import { PlaybackTransport } from '@/features/playback/controls/playback-transport'
 import { QueuePopover } from '@/features/queue/queue-popover'
@@ -22,7 +21,6 @@ export function FullscreenPlaybackBar({
         <PlaybackTimeline layout="edge" showTimeOnHover onError={onError} />
         <PlaybackTransport withModes onError={onError} />
         <div className="persistent-options">
-          <QualitySelect />
           <CurrentTrackLike track={track} onError={onError} />
           <DesktopLyricsButton onError={onError} />
           <VolumeControl onError={onError} />
