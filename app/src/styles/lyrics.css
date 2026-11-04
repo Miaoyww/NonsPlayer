@@ -11,6 +11,92 @@
 .now-playing-lyrics {
   mask-image: linear-gradient(transparent, black 12%, black 85%, transparent);
 }
+.now-playing-content {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  padding-top: 3rem;
+  transition: opacity 220ms ease;
+}
+.now-playing-content[data-mv-active='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+.local-mv-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: black;
+}
+.local-mv-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: black;
+  object-fit: cover;
+  object-position: center;
+}
+.fullscreen-display-controls {
+  position: absolute;
+  top: 64px;
+  right: clamp(24px, 4vw, 64px);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.25;
+  transition: opacity 160ms;
+}
+.fullscreen-display-controls:is(:hover, :focus-within),
+.fullscreen-display-controls[data-mode='mv'] {
+  opacity: 1;
+}
+.fullscreen-display-controls .lyrics-display-controls {
+  position: static;
+  opacity: 1;
+}
+.fullscreen-mode-button {
+  color: var(--muted-foreground);
+}
+.fullscreen-mode-button[aria-pressed='true'] {
+  color: var(--foreground);
+  background: var(--accent);
+}
+.mv-alignment-popover {
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 22%);
+}
+.mv-alignment-title {
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mv-alignment-controls {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.mv-alignment-input {
+  width: 100%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mv-alignment-hint {
+  margin-top: 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .now-playing-layout .now-playing-lyrics {
   margin-bottom: clamp(40px, 7.5vh, 60px);
 }
@@ -94,6 +180,10 @@
 @media (prefers-reduced-motion: reduce) {
   .lyric-renderer {
     animation: none;
+  }
+  .now-playing-content,
+  .fullscreen-display-controls {
+    transition: none;
   }
 }
 .lyrics-display-controls {

@@ -7,6 +7,7 @@ mod local;
 mod lyrics;
 mod model;
 pub mod music;
+mod mv;
 mod netease;
 mod performance;
 mod platform;

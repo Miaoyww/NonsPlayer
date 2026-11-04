@@ -70,6 +70,18 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
     },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@/components/ui/panel': { Panel: 'Panel' },
+    '@/components/ui/spinner': { Spinner: 'Spinner' },
+    '@/features/mv/local-mv-stage': { LocalMvStage: 'LocalMvStage' },
+    '@/features/mv/local-mv': { localMvSource: (mv) => mv.path },
+    '@/features/mv/mv-alignment-popover': { MvAlignmentPopover: 'MvAlignmentPopover' },
+    '@/features/mv/use-local-mv': {
+      useLocalMv: () => ({
+        mode: 'lyrics',
+        selection: undefined,
+        busy: false,
+        toggle: async () => {}
+      })
+    },
     './correction': {
       offsetLyrics: (lines, value) => {
         offsets.push(value)

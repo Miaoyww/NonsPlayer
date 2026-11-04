@@ -20,6 +20,11 @@ pub struct DownloadedLocal {
     pub quality: Option<String>,
 }
 
+pub struct LocalMvLink {
+    pub path: String,
+    pub offset_ms: i64,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LyricCacheScope {
     Persistent,
@@ -102,6 +107,7 @@ impl Store {
             );
             CREATE TABLE IF NOT EXISTS local_playlists (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, playlist_type TEXT NOT NULL DEFAULT 'aggregate');
             CREATE TABLE IF NOT EXISTS local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, manual INTEGER NOT NULL DEFAULT 1, remote INTEGER NOT NULL DEFAULT 0, excluded INTEGER NOT NULL DEFAULT 0, value TEXT NOT NULL, PRIMARY KEY(playlist_id,key));
+            CREATE TABLE IF NOT EXISTS local_mv_links (track_key TEXT PRIMARY KEY, path TEXT NOT NULL, offset_ms INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS download_local_tracks (track_key TEXT PRIMARY KEY, path TEXT NOT NULL, quality TEXT, updated_at INTEGER NOT NULL);
             CREATE INDEX IF NOT EXISTS local_audio_path ON tracks(json_extract(value,'$.source.path')) WHERE source='local';
             CREATE VIEW IF NOT EXISTS visible_local_tracks AS
@@ -118,6 +124,14 @@ impl Store {
             connection
                 .execute(
                     "ALTER TABLE local_playlists ADD COLUMN playlist_type TEXT NOT NULL DEFAULT 'aggregate'",
+                    [],
+                )
+                .map_err(|e| e.to_string())?;
+        }
+        if !has_column(&connection, "local_mv_links", "offset_ms").map_err(|e| e.to_string())? {
+            connection
+                .execute(
+                    "ALTER TABLE local_mv_links ADD COLUMN offset_ms INTEGER NOT NULL DEFAULT 0",
                     [],
                 )
                 .map_err(|e| e.to_string())?;
@@ -479,6 +493,63 @@ impl Store {
             .map_err(|_| "配置锁不可用")?
             .execute("DELETE FROM settings WHERE key=?1", [key])
             .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    /// Temporary per-track MV path association; remove with the local-MV MVP.
+    pub fn local_mv_link(&self, key: &str) -> AppResult<Option<LocalMvLink>> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.local_mv_link.lock", error);
+            })
+            .map_err(|_| "本地 MV 关联锁不可用")?
+            .query_row(
+                "SELECT path,offset_ms FROM local_mv_links WHERE track_key=?1",
+                [key],
+                |row| {
+                    Ok(LocalMvLink {
+                        path: row.get(0)?,
+                        offset_ms: row.get(1)?,
+                    })
+                },
+            )
+            .optional()
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn link_local_mv(&self, key: &str, path: &str) -> AppResult<()> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.link_local_mv.lock", error);
+            })
+            .map_err(|_| "本地 MV 关联锁不可用")?
+            .execute(
+                "INSERT INTO local_mv_links(track_key,path,offset_ms,updated_at) VALUES(?1,?2,0,?3)
+                 ON CONFLICT(track_key) DO UPDATE SET path=excluded.path,offset_ms=0,updated_at=excluded.updated_at",
+                params![key, path, now_seconds()],
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn set_local_mv_offset(&self, key: &str, offset_ms: i64) -> AppResult<()> {
+        let updated = self
+            .0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.set_local_mv_offset.lock", error);
+            })
+            .map_err(|_| "本地 MV 关联锁不可用")?
+            .execute(
+                "UPDATE local_mv_links SET offset_ms=?2,updated_at=?3 WHERE track_key=?1",
+                params![key, offset_ms, now_seconds()],
+            )
+            .map_err(|e| e.to_string())?;
+        if updated == 0 {
+            return Err("本地 MV 关联不存在".into());
+        }
         Ok(())
     }
 

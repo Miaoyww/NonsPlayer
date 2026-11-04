@@ -7,7 +7,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { listen } from '@tauri-apps/api/event'
 import { isTauri } from '@tauri-apps/api/core'
 import { motion, useIsPresent, useReducedMotion } from 'motion/react'
-import { AudioLines, DiscAlbum, Languages, Music2 } from 'lucide-react'
+import { AudioLines, Captions, Clapperboard, DiscAlbum, Languages, Music2 } from 'lucide-react'
 import { errorText, getPlayer, nativeCall, usePlayer, type Lyrics, type Track } from '@/lib/player'
 import { offsetLyrics, automaticLyrics, type LyricCorrection } from './correction'
 import { ActionButton } from '@/components/music/action-button'
@@ -34,6 +34,11 @@ import { NowPlayingInformation } from '@/features/playback/now-playing/now-playi
 import { requestCache, RUNTIME_TTL } from '@/lib/runtime-cache'
 import { useLyricsSettings } from './use-lyrics-settings'
 import { Panel } from '@/components/ui/panel'
+import { Spinner } from '@/components/ui/spinner'
+import { LocalMvStage } from '@/features/mv/local-mv-stage'
+import { localMvSource } from '@/features/mv/local-mv'
+import { useLocalMv } from '@/features/mv/use-local-mv'
+import { MvAlignmentPopover } from '@/features/mv/mv-alignment-popover'
 import {
   FULLSCREEN_PLAYER_ACTION_SLOT,
   FULLSCREEN_PLAYER_PANEL_SLOT,
@@ -144,6 +149,13 @@ export default function LyricsView({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
   const playbackError = error
+  const mv = useLocalMv(track?.key, setError)
+  const localMvUrl = useMemo(
+    () => (mv.selection?.available ? localMvSource(mv.selection) : undefined),
+    [mv.selection]
+  )
+  const mvActive = !mobile && mv.mode === 'mv' && !!localMvUrl
+  const showMv = mvActive && (open || !hidden)
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
   const [lyricsSourceOpen, setLyricsSourceOpen] = useState(false)
@@ -406,7 +418,7 @@ export default function LyricsView({
         lines={lines}
         showTranslation={showTranslation}
         showPronunciation={showPronunciation}
-        active={active && rendering}
+        active={active && rendering && !mvActive}
         retainWhenHidden
         onError={(cause) => setError(errorText(cause))}
       />
@@ -426,7 +438,7 @@ export default function LyricsView({
       cover={track?.cover}
       playing={state.status === 'playing'}
       hasLyrics={lines.length > 0}
-      active={rendering && (entered || !!reduced)}
+      active={rendering && !mvActive && (entered || !!reduced)}
       enabled={entered || !!reduced}
       retainWhenInactive
     />
@@ -437,6 +449,7 @@ export default function LyricsView({
       aria-label="正在播放"
       aria-hidden={!isPresent}
       inert={!isPresent}
+      data-display-mode={mvActive ? 'mv' : 'lyrics'}
       initial={{ y: reduced ? 0 : '100%' }}
       animate={open ? 'open' : 'closed'}
       variants={{
@@ -474,139 +487,187 @@ export default function LyricsView({
         />
       ) : (
         <>
-          {albumBackground}
-          {panelPage === 'lyrics' && lyricControls}
-          <div
-            className={`now-playing-layout relative min-h-0 flex-1 ${showLyrics ? 'has-lyrics' : ''}`}
-          >
-            <div className="now-playing-details flex min-h-0 min-w-0 flex-col overflow-y-auto">
-              <CoverContextMenu cover={track?.cover} title={track?.title ?? '封面'}>
-                <div className="now-playing-cover-slot">
-                  <Cover
-                    size="original"
-                    cover={track?.cover}
-                    loading="eager"
-                    className="now-playing-cover aspect-square"
-                  />
-                </div>
-              </CoverContextMenu>
-              <div className="now-playing-identity shrink-0">
-                <div className="now-playing-title-row">
-                  <div className="now-playing-title-block">
-                    <h1 className="now-playing-title">{track?.title ?? '让音乐开始'}</h1>
-                    {aliasText && (
-                      <p className="now-playing-aliases text-white/50" title={aliasText}>
-                        {aliasText}
-                      </p>
-                    )}
-                  </div>
-                  <NowPlayingMenu
-                    track={track}
-                    source={source}
-                    loading={loading}
-                    onRefresh={() => void requestLyrics(true)}
-                    onInformation={() => setPanelPage('information')}
-                    showCollect={false}
-                  />
-                </div>
-                <NowPlayingTags
-                  track={track}
-                  quality={state.actualQuality}
-                  lyricFormat={currentDisplay?.format}
-                  onLyrics={() => setLyricsSourceOpen(true)}
-                  informationActive={panelPage === 'information'}
-                  onInformation={() =>
-                    setPanelPage((value) => (value === 'information' ? 'lyrics' : 'information'))
-                  }
-                />
-                <div className="now-playing-meta">
-                  <div className="now-playing-meta-row text-white/75">
-                    <Music2 aria-hidden="true" />
-                    <span className="now-playing-meta-text">
-                      {track ? <TrackArtists track={track} /> : '选择一首喜欢的音乐'}
-                    </span>
-                  </div>
-                  <div className="now-playing-meta-row text-white/75">
-                    <DiscAlbum aria-hidden="true" />
-                    <span className="now-playing-meta-text" title={track?.album || '未知专辑'}>
-                      {track ? (
-                        track.album ? (
-                          <TrackAlbum track={track} />
-                        ) : (
-                          '未知专辑'
-                        )
-                      ) : (
-                        '选择一首喜欢的音乐'
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {showLyrics && (
-              <div
-                className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden"
-                data-panel-page={panelPage}
-                data-plugin-panel={activePluginPanel ? 'true' : undefined}
-              >
-                <Panel
-                  className="h-full"
-                  value={panelPage}
-                  pages={[
-                    {
-                      value: 'lyrics',
-                      content: renderLyrics(panelPage === 'lyrics')
-                    },
-                    {
-                      value: 'information',
-                      content: <NowPlayingInformation track={track} />
-                    },
-                    {
-                      value: 'queue',
-                      content: (
-                        <QueuePanel
-                          onPage={onQueue}
-                          onError={(cause) => setError(errorText(cause))}
-                        />
-                      )
-                    },
-                    ...pluginPanelPages.map((page) => ({
-                      value: `plugin:${page.pluginId}:${page.viewId}`,
-                      content: (
-                        <div className="fullscreen-plugin-panel">
-                          <PluginView
-                            pluginId={page.pluginId}
-                            viewId={page.viewId}
-                            fullscreenPlayer={pluginPanelBinding}
-                          />
-                        </div>
-                      )
-                    }))
-                  ]}
-                />
-              </div>
-            )}
-            <FullscreenPlaybackBar
-              onQueuePanel={() => setPanelPage((value) => (value === 'queue' ? 'lyrics' : 'queue'))}
-              queueActive={panelPage === 'queue'}
+          {showMv && localMvUrl && (
+            <LocalMvStage
+              key={mv.selection?.path}
+              source={localMvUrl}
+              active={isPresent}
+              offsetMs={mv.selection?.offsetMs ?? 0}
               onError={(cause) => setError(errorText(cause))}
-              pluginActions={
-                <div className="fullscreen-playback-plugin-actions">
-                  <PluginSlot
-                    name={FULLSCREEN_PLAYER_ACTION_SLOT}
-                    fullscreenPlayer={pluginPanelBinding}
+            />
+          )}
+          <div
+            className="now-playing-content"
+            data-mv-active={mvActive}
+            aria-hidden={mvActive}
+            inert={mvActive}
+          >
+            {albumBackground}
+            <div
+              className={`now-playing-layout relative min-h-0 flex-1 ${showLyrics ? 'has-lyrics' : ''}`}
+            >
+              <div className="now-playing-details flex min-h-0 min-w-0 flex-col overflow-y-auto">
+                <CoverContextMenu cover={track?.cover} title={track?.title ?? '封面'}>
+                  <div className="now-playing-cover-slot">
+                    <Cover
+                      size="original"
+                      cover={track?.cover}
+                      loading="eager"
+                      className="now-playing-cover aspect-square"
+                    />
+                  </div>
+                </CoverContextMenu>
+                <div className="now-playing-identity shrink-0">
+                  <div className="now-playing-title-row">
+                    <div className="now-playing-title-block">
+                      <h1 className="now-playing-title">{track?.title ?? '让音乐开始'}</h1>
+                      {aliasText && (
+                        <p className="now-playing-aliases text-white/50" title={aliasText}>
+                          {aliasText}
+                        </p>
+                      )}
+                    </div>
+                    <NowPlayingMenu
+                      track={track}
+                      source={source}
+                      loading={loading}
+                      onRefresh={() => void requestLyrics(true)}
+                      onInformation={() => setPanelPage('information')}
+                      showCollect={false}
+                    />
+                  </div>
+                  <NowPlayingTags
+                    track={track}
+                    quality={state.actualQuality}
+                    lyricFormat={currentDisplay?.format}
+                    onLyrics={() => setLyricsSourceOpen(true)}
+                    informationActive={panelPage === 'information'}
+                    onInformation={() =>
+                      setPanelPage((value) => (value === 'information' ? 'lyrics' : 'information'))
+                    }
+                  />
+                  <div className="now-playing-meta">
+                    <div className="now-playing-meta-row text-white/75">
+                      <Music2 aria-hidden="true" />
+                      <span className="now-playing-meta-text">
+                        {track ? <TrackArtists track={track} /> : '选择一首喜欢的音乐'}
+                      </span>
+                    </div>
+                    <div className="now-playing-meta-row text-white/75">
+                      <DiscAlbum aria-hidden="true" />
+                      <span className="now-playing-meta-text" title={track?.album || '未知专辑'}>
+                        {track ? (
+                          track.album ? (
+                            <TrackAlbum track={track} />
+                          ) : (
+                            '未知专辑'
+                          )
+                        ) : (
+                          '选择一首喜欢的音乐'
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {showLyrics && (
+                <div
+                  className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden"
+                  data-panel-page={panelPage}
+                  data-plugin-panel={activePluginPanel ? 'true' : undefined}
+                >
+                  <Panel
+                    className="h-full"
+                    value={panelPage}
+                    pages={[
+                      {
+                        value: 'lyrics',
+                        content: renderLyrics(panelPage === 'lyrics')
+                      },
+                      {
+                        value: 'information',
+                        content: <NowPlayingInformation track={track} />
+                      },
+                      {
+                        value: 'queue',
+                        content: (
+                          <QueuePanel
+                            onPage={onQueue}
+                            onError={(cause) => setError(errorText(cause))}
+                          />
+                        )
+                      },
+                      ...pluginPanelPages.map((page) => ({
+                        value: `plugin:${page.pluginId}:${page.viewId}`,
+                        content: (
+                          <div className="fullscreen-plugin-panel">
+                            <PluginView
+                              pluginId={page.pluginId}
+                              viewId={page.viewId}
+                              fullscreenPlayer={pluginPanelBinding}
+                            />
+                          </div>
+                        )
+                      }))
+                    ]}
                   />
                 </div>
-              }
-            />
-            {lyricsSourceOpen && track && (
-              <LyricCorrectionDialog
-                key={track.key}
-                track={track}
-                onClose={() => setLyricsSourceOpen(false)}
+              )}
+              {lyricsSourceOpen && track && (
+                <LyricCorrectionDialog
+                  key={track.key}
+                  track={track}
+                  onClose={() => setLyricsSourceOpen(false)}
+                />
+              )}
+            </div>
+          </div>
+          <div className="fullscreen-display-controls" data-mode={mvActive ? 'mv' : 'lyrics'}>
+            {!mvActive && panelPage === 'lyrics' && lyricControls}
+            {mvActive && (
+              <MvAlignmentPopover
+                offsetMs={mv.selection?.offsetMs ?? 0}
+                onChange={(value) => void mv.setOffset(value)}
               />
             )}
+            <ActionButton
+              variant="ghost"
+              size="icon"
+              className="fullscreen-mode-button"
+              aria-label={mv.busy ? '正在选择本地 MV' : mvActive ? '返回歌词' : '播放本地 MV'}
+              aria-pressed={mvActive}
+              title={
+                mv.busy
+                  ? '正在选择本地 MV…'
+                  : mvActive
+                    ? '返回歌词'
+                    : '播放本地 MV；首次点击时选择视频'
+              }
+              disabled={!track || mv.busy}
+              onClick={() => void mv.toggle()}
+            >
+              {mv.busy ? (
+                <Spinner />
+              ) : mvActive ? (
+                <Captions aria-hidden="true" />
+              ) : (
+                <Clapperboard aria-hidden="true" />
+              )}
+            </ActionButton>
           </div>
+          <FullscreenPlaybackBar
+            onQueuePanel={() => setPanelPage((value) => (value === 'queue' ? 'lyrics' : 'queue'))}
+            queueActive={panelPage === 'queue'}
+            onError={(cause) => setError(errorText(cause))}
+            pluginActions={
+              <div className="fullscreen-playback-plugin-actions">
+                <PluginSlot
+                  name={FULLSCREEN_PLAYER_ACTION_SLOT}
+                  fullscreenPlayer={pluginPanelBinding}
+                />
+              </div>
+            }
+          />
         </>
       )}
       <div className="fullscreen-playback-notice">
