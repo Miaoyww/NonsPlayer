@@ -12,6 +12,17 @@
   transform: none;
 }
 
+.titlebar[data-player-mode='true'] .titlebar-control {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+.titlebar[data-player-mode='true']:is(:hover, :has(.titlebar-control:focus-visible))
+  .titlebar-control {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .titlebar-close:hover:not(:disabled) {
   background: var(--destructive);
   color: white;

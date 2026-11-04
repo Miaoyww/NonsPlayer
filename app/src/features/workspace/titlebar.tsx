@@ -123,6 +123,7 @@ export function Titlebar({
       <header
         className={`titlebar relative z-10 shrink-0 select-none items-center ${playerMode ? 'flex h-[68px] bg-transparent' : 'glass-surface grid h-12 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'}`}
         data-focused={focused}
+        data-player-mode={playerMode}
         data-subpage={isAndroid() && !primaryPage && !playerMode}
       >
         {isAndroid() && (

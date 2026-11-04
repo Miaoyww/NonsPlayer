@@ -14,6 +14,7 @@ import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { CoverContextMenu } from '@/features/playback/now-playing/cover-context-menu'
 import { AlbumBackground } from '@/features/lyrics/album-background'
+import { FullscreenPlaybackBar } from '@/features/playback/bar/fullscreen-playback-bar'
 import { NowPlayingMenu } from '@/features/playback/now-playing/now-playing-menu'
 import {
   getLyricSources,
@@ -59,11 +60,13 @@ function LyricRenderer(props: {
 
 export default function LyricsView({
   open = true,
+  onQueue,
   notice,
   onClose,
   onExitComplete
 }: {
   open?: boolean
+  onQueue: () => void
   notice?: PlaybackNoticeMessage
   onClose: () => void
   onExitComplete?: () => void
@@ -488,6 +491,10 @@ export default function LyricsView({
                 {renderLyrics()}
               </div>
             )}
+            <FullscreenPlaybackBar
+              onQueue={onQueue}
+              onError={(cause) => setError(errorText(cause))}
+            />
           </div>
         </>
       )}

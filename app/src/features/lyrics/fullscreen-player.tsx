@@ -20,11 +20,13 @@ function PlayerLoading({ open, onExitComplete }: { open: boolean; onExitComplete
 
 export function FullscreenPlayer({
   open,
+  onQueue,
   notice,
   onClose,
   onExitComplete
 }: {
   open: boolean
+  onQueue: () => void
   notice?: PlaybackNoticeMessage
   onClose: () => void
   onExitComplete: () => void
@@ -36,7 +38,13 @@ export function FullscreenPlayer({
   if (!open && !visited) return null
   return (
     <Suspense fallback={<PlayerLoading open={open} onExitComplete={onExitComplete} />}>
-      <LyricsView open={open} notice={notice} onClose={onClose} onExitComplete={onExitComplete} />
+      <LyricsView
+        open={open}
+        onQueue={onQueue}
+        notice={notice}
+        onClose={onClose}
+        onExitComplete={onExitComplete}
+      />
     </Suspense>
   )
 }

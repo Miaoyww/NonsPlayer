@@ -843,6 +843,38 @@
 .persistent-playback .playback-notice-slot {
   bottom: calc(100% + 12px);
 }
+.fullscreen-playback-bar {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  padding: 24px 32px 12px;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.fullscreen-playback-bar:is(:hover, :focus-within) {
+  opacity: 1;
+}
+.fullscreen-playback-bar-surface {
+  --playback-surface-radius: 20px;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  width: min(1120px, 100%);
+  padding: 8px 20px 10px;
+  background: transparent;
+}
+.fullscreen-playback-bar-surface > .now-playing-transport {
+  grid-column: 2;
+  gap: 4px;
+}
+.fullscreen-playback-bar-surface > .persistent-options {
+  grid-column: 3;
+}
 @media (max-width: 900px) {
   .persistent-playback {
     width: calc(100% - 32px);
@@ -861,6 +893,11 @@
   }
   .persistent-options {
     gap: 4px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fullscreen-playback-bar {
+    transition: none;
   }
 }
 @media (max-width: 680px) {
