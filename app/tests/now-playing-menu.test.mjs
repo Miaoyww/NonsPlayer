@@ -33,8 +33,6 @@ function harness() {
     ].map((name) => [name, name])
   )
   const modules = {
-    react: { useState: (initial) => [initial, (value) => calls.push(['sources', value])] },
-    './song-source-dialog': { SongSourceDialog: 'SongSourceDialog' },
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({
         statuses: [
@@ -131,6 +129,7 @@ test('stream menu uses existing favorite, collection and copy actions without ly
   }
   assert.equal(menu.item('歌词来源'), undefined)
   assert.equal(menu.item('歌曲详情'), undefined)
+  assert.equal(menu.item('歌曲来源'), undefined)
   assert.deepEqual(app.calls, [
     ['like', '12'],
     ['collect', stream.key],

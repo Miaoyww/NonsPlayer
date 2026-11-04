@@ -1,9 +1,7 @@
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { Menu } from '@base-ui/react/menu'
 import { favoriteId, onlineReference } from '@/features/music/references'
-import { Copy, Ellipsis, FolderPlus, Heart, Link2Off, RefreshCw, Share2, Radio } from 'lucide-react'
-import { useState } from 'react'
-import { SongSourceDialog } from './song-source-dialog'
+import { Copy, Ellipsis, FolderPlus, Heart, Link2Off, RefreshCw, Share2 } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { songCopyName, useSongActions } from '@/components/music/song-actions'
 import { useAccount } from '@/features/account/account'
@@ -32,7 +30,6 @@ export function NowPlayingMenu({
   showCollect?: boolean
 }) {
   const actions = useSongActions()
-  const [sourcesOpen, setSourcesOpen] = useState(false)
   const {
     profile,
     favoriteStatus,
@@ -138,12 +135,6 @@ export function NowPlayingMenu({
                 </Menu.Item>
               )}
               <Menu.Separator />
-              {track && track.source.kind !== 'local' && (
-                <Menu.Item disabled={!desktop} onClick={() => setSourcesOpen(true)}>
-                  <Radio aria-hidden="true" />
-                  歌曲来源
-                </Menu.Item>
-              )}
               {track && mvLinked && onUnlinkMv && (
                 <Menu.Item disabled={!desktop || mvBusy} onClick={onUnlinkMv}>
                   <Link2Off aria-hidden="true" />
@@ -160,9 +151,6 @@ export function NowPlayingMenu({
           </Menu.Positioner>
         </Menu.Portal>
       </Menu.Root>
-      {sourcesOpen && track && (
-        <SongSourceDialog key={track.key} track={track} onClose={() => setSourcesOpen(false)} />
-      )}
     </>
   )
 }
