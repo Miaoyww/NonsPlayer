@@ -28,12 +28,16 @@ export function NowPlayingTags({
   track,
   quality,
   lyricFormat,
-  onLyrics
+  onLyrics,
+  onInformation,
+  informationActive = false
 }: {
   track?: Track
   quality?: string | null
   lyricFormat?: string
   onLyrics: () => void
+  onInformation?: () => void
+  informationActive?: boolean
 }) {
   const actions = useSongActions()
   if (!track) return null
@@ -48,9 +52,11 @@ export function NowPlayingTags({
       <button
         type="button"
         className="now-playing-tag"
-        title="查看歌曲详情"
-        aria-label={`查看歌曲详情，当前音质 ${qualityBadgeLabel(quality)}`}
-        onClick={() => actions.details(track)}
+        title={informationActive ? '返回歌词' : '查看歌曲详情'}
+        aria-label={
+          informationActive ? '返回歌词' : `查看歌曲详情，当前音质 ${qualityBadgeLabel(quality)}`
+        }
+        onClick={() => (onInformation ? onInformation() : actions.details(track))}
       >
         {qualityBadgeLabel(quality)}
       </button>

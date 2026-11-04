@@ -1,11 +1,7 @@
 import { reportCaughtError } from '@/lib/diagnostics'
-import { ErrorNotice } from '@/components/error-notice'
 import { trackShareLink } from '@/features/music/share-links'
 import { favoriteId, onlineReference } from '@/features/music/references'
-import { readTrackInformation } from '@/features/music/queries'
 import { useMusicSources } from '@/features/music/use-music-sources'
-import { TextSkeleton } from '@/components/music/loading'
-import { Cover } from '@/components/music/cover'
 import { PluginSongMenuItems } from '@/plugins/song-menu'
 import { AggregatePlaylistPicker } from '@/features/aggregate/aggregate-playlist-picker'
 import { ContextMenu } from '@base-ui/react/context-menu'
@@ -29,7 +25,6 @@ import {
 import {
   createContext,
   useContext,
-  useEffect,
   useRef,
   useState,
   type ReactElement,
@@ -37,7 +32,7 @@ import {
 } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { writeText } from '@tauri-apps/plugin-clipboard-manager'
-import { nativeCall, formatTime, errorText, type Track } from '@/lib/player'
+import { nativeCall, type Track } from '@/lib/player'
 import { isAndroid, isWindows } from '@/lib/platform'
 import {
   Dialog,
@@ -46,26 +41,10 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { ActionButton } from '@/components/music/action-button'
 import { useAccount } from '@/features/account/account'
 import { LocalTagEditorDialog } from '@/features/local/tag-editor-dialog'
 import { useDownloads } from '@/features/downloads/download-provider'
-
-interface LocalInformation {
-  trackNumber: number | null
-  discNumber: number | null
-  bitrate: number | null
-  sampleRate: number | null
-  bitDepth: number | null
-  channels: number | null
-  fileSize: number
-  format: string
-}
-interface SongInformation {
-  artists: import('@/features/music/types').MusicCredit[]
-  albumReference: import('@/features/music/types').EntityRef | null
-  publishedAt: number | null
-}
+import { SongInformationContent } from './song-information'
 export function songCopyName(track: Track) {
   return `${track.title} - ${track.artist}`
 }
@@ -107,51 +86,7 @@ export function SongActionsProvider({
   const [collectGroup, setCollectGroup] = useState<Track[]>()
   const [track, setTrack] = useState<Track>()
   const [editTrack, setEditTrack] = useState<Track>()
-  const [localInformation, setLocalInformation] = useState<LocalInformation>()
-  const [information, setInformation] = useState<SongInformation>()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string>()
-  const [retry, setRetry] = useState(0)
   const copying = useRef(false)
-  useEffect(() => {
-    let disposed = false
-    setInformation(undefined)
-    setLocalInformation(undefined)
-    setError(undefined)
-    setBusy(!!track && isTauri())
-    if (track?.source.kind === 'local' && isTauri())
-      void nativeCall<LocalInformation>('local_track_information', {
-        key: track.key,
-        refresh: retry > 0
-      })
-        .then((value) => {
-          if (!disposed) setLocalInformation(value)
-        })
-        .catch((cause) => {
-          reportCaughtError('app/src/components/music/song-actions.tsx', cause)
-
-          if (!disposed) setError(errorText(cause))
-        })
-        .finally(() => {
-          if (!disposed) setBusy(false)
-        })
-    else if (track && isTauri())
-      void readTrackInformation(track, retry > 0)
-        .then((value) => {
-          if (!disposed) setInformation(value)
-        })
-        .catch((cause) => {
-          reportCaughtError('app/src/components/music/song-actions.tsx', cause)
-
-          if (!disposed) setError(errorText(cause))
-        })
-        .finally(() => {
-          if (!disposed) setBusy(false)
-        })
-    return () => {
-      disposed = true
-    }
-  }, [track, retry])
   function run(
     operation: () => void | Promise<unknown>,
     notice?: string | ((result: unknown) => string | undefined)
@@ -178,66 +113,6 @@ export function SongActionsProvider({
       copying.current = false
     }
   }
-  const local = track?.source.kind === 'local'
-  const displayArtist = track
-    ? local
-      ? track.artist
-      : information?.artists.map((artist) => artist.name).join(' / ') || track.artist
-    : ''
-  const fields =
-    track && local
-      ? [
-          ['时长', formatTime(track.durationMs)],
-          ['音轨', localInformation?.trackNumber?.toString() ?? ''],
-          ['碟号', localInformation?.discNumber?.toString() ?? ''],
-          ['码率', localInformation?.bitrate ? `${localInformation.bitrate} kbps` : ''],
-          ['采样率', localInformation?.sampleRate ? `${localInformation.sampleRate} Hz` : ''],
-          ['位深', localInformation?.bitDepth ? `${localInformation.bitDepth} bit` : ''],
-          ['声道', localInformation?.channels?.toString() ?? ''],
-          ['格式', localInformation?.format ?? ''],
-          [
-            '文件大小',
-            localInformation?.fileSize
-              ? `${(localInformation.fileSize / 1024 / 1024).toFixed(2)} MB`
-              : ''
-          ],
-          ['路径', track.source.kind === 'local' ? track.source.path : '']
-        ]
-      : track
-        ? [
-            [
-              '歌手 ID',
-              information?.artists.map((artist) => artist.reference?.id ?? '未知').join(' / ') ?? ''
-            ],
-            ['专辑 ID', information?.albumReference?.id ?? ''],
-            [
-              '歌曲 ID',
-              (track.source.kind === 'local'
-                ? track.source.neteaseId
-                : track.source.track.reference.id
-              )?.toString() ?? ''
-            ],
-            ['时长', formatTime(track.durationMs)],
-            [
-              '发行时间',
-              information?.publishedAt
-                ? new Date(information.publishedAt).toLocaleDateString('sv-SE', {
-                    timeZone: 'Asia/Shanghai'
-                  })
-                : ''
-            ],
-            ['歌曲链接', songLink(track)]
-          ]
-        : []
-  function field(index: number) {
-    const [label, value] = fields[index]
-    return (
-      <div className="song-information-field" key={label}>
-        <span>{label}</span>
-        <p>{value || '未知'}</p>
-      </div>
-    )
-  }
   return (
     <SongActionsContext.Provider
       value={{
@@ -245,10 +120,7 @@ export function SongActionsProvider({
         collect: setCollectTrack,
         collectAggregate: setAggregateTrack,
         collectGroup: setCollectGroup,
-        details: (value) => {
-          setRetry(0)
-          setTrack(value)
-        },
+        details: setTrack,
         edit: setEditTrack,
         run,
         copy: (text) => {
@@ -278,46 +150,7 @@ export function SongActionsProvider({
             <DialogTitle>歌曲详情</DialogTitle>
             <DialogDescription>查看歌曲信息与文件元数据。</DialogDescription>
           </DialogHeader>
-          {track && (
-            <>
-              <div className="song-information-summary">
-                <Cover cover={track.cover} className="song-information-cover" loading="eager" />
-                <div className="song-information-summary-text">
-                  <h3>{track.title}</h3>
-                  <p>{displayArtist || '未知'}</p>
-                  <p>{track.album || '未知'}</p>
-                </div>
-              </div>
-              {local ? (
-                <>
-                  <h3 className="song-information-divider">文件信息</h3>
-                  <div className="song-information-fields">
-                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(field)}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 className="song-information-divider">制作人员</h3>
-                  <div className="song-information-fields">{[0, 1].map(field)}</div>
-                  <h3 className="song-information-divider">歌曲信息</h3>
-                  <div className="song-information-fields">{[2, 3, 4, 5].map(field)}</div>
-                </>
-              )}
-              {busy && <TextSkeleton />}
-              {error && (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <ErrorNotice error={error} />
-                  <ActionButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setRetry((value) => value + 1)}
-                  >
-                    重试
-                  </ActionButton>
-                </div>
-              )}
-            </>
-          )}
+          {track && <SongInformationContent key={track.key} track={track} songLink={songLink} />}
         </DialogContent>
       </Dialog>
       {editTrack && (

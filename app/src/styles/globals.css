@@ -3,6 +3,7 @@
 @import 'shadcn/tailwind.css';
 @import './theme.css';
 @import './base.css';
+@import './panel.css';
 @import './workspace.css';
 @import './titlebar.css';
 @import './playback.css';

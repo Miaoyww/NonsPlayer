@@ -29,8 +29,10 @@ import { LyricLoading } from './lyric-loading'
 import { isAndroid } from '@/lib/platform'
 import { MobileFullscreenPlayer } from '@/features/playback/mobile/mobile-fullscreen-player'
 import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/bar/playback-notice'
+import { NowPlayingInformation } from '@/features/playback/now-playing/now-playing-information'
 import { requestCache, RUNTIME_TTL } from '@/lib/runtime-cache'
 import { useLyricsSettings } from './use-lyrics-settings'
+import { Panel } from '@/components/ui/panel'
 
 function isCurrentPlayback(key: string, revision: number, version: string) {
   const active = getPlayer()
@@ -136,6 +138,7 @@ export default function LyricsView({
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
   const [lyricsSourceOpen, setLyricsSourceOpen] = useState(false)
+  const [panelPage, setPanelPage] = useState<'lyrics' | 'information'>('lyrics')
   const hasTranslation = lines.some((line) => !!line.translatedLyric.trim())
   const hasPronunciation = lines.some(
     (line) =>
@@ -443,7 +446,7 @@ export default function LyricsView({
       ) : (
         <>
           {albumBackground}
-          {lyricControls}
+          {panelPage === 'lyrics' && lyricControls}
           <div
             className={`now-playing-layout relative min-h-0 flex-1 ${showLyrics ? 'has-lyrics' : ''}`}
           >
@@ -473,6 +476,7 @@ export default function LyricsView({
                     source={source}
                     loading={loading}
                     onRefresh={() => void requestLyrics(true)}
+                    onInformation={() => setPanelPage('information')}
                     showCollect={false}
                   />
                 </div>
@@ -481,6 +485,10 @@ export default function LyricsView({
                   quality={state.actualQuality}
                   lyricFormat={currentDisplay?.format}
                   onLyrics={() => setLyricsSourceOpen(true)}
+                  informationActive={panelPage === 'information'}
+                  onInformation={() =>
+                    setPanelPage((value) => (value === 'lyrics' ? 'information' : 'lyrics'))
+                  }
                 />
                 <div className="now-playing-meta">
                   <div className="now-playing-meta-row text-white/75">
@@ -507,8 +515,24 @@ export default function LyricsView({
               </div>
             </div>
             {showLyrics && (
-              <div className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden">
-                {renderLyrics()}
+              <div
+                className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden"
+                data-panel-page={panelPage}
+              >
+                <Panel
+                  className="h-full"
+                  value={panelPage}
+                  pages={[
+                    {
+                      value: 'lyrics',
+                      content: renderLyrics(panelPage === 'lyrics')
+                    },
+                    {
+                      value: 'information',
+                      content: <NowPlayingInformation track={track} />
+                    }
+                  ]}
+                />
               </div>
             )}
             <FullscreenPlaybackBar

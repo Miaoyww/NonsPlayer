@@ -26,6 +26,7 @@ export function NowPlayingMenu({
   source,
   loading,
   onRefresh,
+  onInformation,
   showLike = true,
   showCollect = true
 }: {
@@ -33,6 +34,7 @@ export function NowPlayingMenu({
   source?: string
   loading: boolean
   onRefresh: () => void
+  onInformation?: () => void
   showLike?: boolean
   showCollect?: boolean
 }) {
@@ -142,7 +144,9 @@ export function NowPlayingMenu({
               <Menu.Item
                 disabled={!track || !desktop}
                 onClick={() => {
-                  if (track) actions.details(track)
+                  if (!track) return
+                  if (onInformation) onInformation()
+                  else actions.details(track)
                 }}
               >
                 <Info aria-hidden="true" />

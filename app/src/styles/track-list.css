@@ -177,6 +177,12 @@
   gap: 14px;
   border-radius: 18px;
 }
+.song-information-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
 .song-information-summary {
   display: flex;
   align-items: center;
