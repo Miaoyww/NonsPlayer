@@ -2,11 +2,19 @@
 use super::{identity::SourceId, manager::ResourceProviderStatus, provider::ResourceSearchRequest};
 use crate::{
     application::Backend,
-    model::{AppResult, Track},
+    model::{AppResult, PlaybackMode, Track},
     player::Command,
 };
 use serde::Serialize;
 use tauri::State;
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct LocalPlaybackInfo {
+    track_key: String,
+    available: bool,
+    quality: Option<String>,
+}
 
 #[tauri::command]
 pub(crate) fn resource_provider_list(
@@ -130,9 +138,14 @@ pub(crate) async fn player_select_source(
         return Err("请选择在线歌曲".into());
     }
     let (reply, response) = tokio::sync::oneshot::channel();
+    let streaming = provider.is_some() || track.is_some();
     backend.player.send(Command::SelectSource {
         revision,
-        selection: super::service::PlaybackSelection { provider, track },
+        selection: super::service::PlaybackSelection {
+            provider,
+            track,
+            streaming,
+        },
         reply,
     })?;
     response
@@ -141,4 +154,51 @@ pub(crate) async fn player_select_source(
             crate::infrastructure::diagnostics::warn("music.select_source_reply", error);
         })
         .map_err(|_| "音源切换任务已结束")?
+}
+
+#[tauri::command]
+pub(crate) async fn player_set_playback_mode(
+    revision: u64,
+    mode: String,
+    backend: State<'_, Backend>,
+) -> AppResult<()> {
+    let mode = match mode.as_str() {
+        "local" => PlaybackMode::Local,
+        "stream" => PlaybackMode::Stream,
+        _ => return Err("播放方式无效".into()),
+    };
+    let (reply, response) = tokio::sync::oneshot::channel();
+    backend.player.send(Command::SetPlaybackMode {
+        revision,
+        mode,
+        reply,
+    })?;
+    response
+        .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("music.set_playback_mode_reply", error);
+        })
+        .map_err(|_| "切换播放方式任务已结束")?
+}
+
+#[tauri::command]
+pub(crate) fn player_local_playback(backend: State<'_, Backend>) -> AppResult<LocalPlaybackInfo> {
+    let snapshot = backend.player.snapshot()?;
+    let current = snapshot.current().ok_or("没有正在播放的歌曲")?;
+    if matches!(current.source, crate::model::TrackSource::Local { .. }) {
+        return Ok(LocalPlaybackInfo {
+            track_key: current.key.clone(),
+            available: false,
+            quality: None,
+        });
+    }
+    let local = backend.store.download_local(&current.key)?;
+    let available = local
+        .as_ref()
+        .is_some_and(|local| std::path::Path::new(&local.path).is_file());
+    Ok(LocalPlaybackInfo {
+        track_key: current.key.clone(),
+        available,
+        quality: local.filter(|_| available).and_then(|local| local.quality),
+    })
 }

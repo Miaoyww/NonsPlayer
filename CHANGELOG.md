@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 播放
+
+- 已下载歌曲优先使用本地文件播放，播放栏音质控件新增“本地”选项；可为当前歌曲临时切换流媒体，本地文件不可用时自动退回流媒体并提示原因。
+
 ## [1.11.0] - 2026-11-03
 
 ![NonsPlayer v1.11.0 本地标签编辑与歌曲下载头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.11.0/docs/release-assets/header.png)

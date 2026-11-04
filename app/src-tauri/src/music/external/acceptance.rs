@@ -341,6 +341,7 @@ async fn gdstudio_component_live_resource() {
             Some(crate::music::service::PlaybackSelection {
                 provider: Some("gdstudio".into()),
                 track: None,
+                streaming: true,
             }),
         )
         .await

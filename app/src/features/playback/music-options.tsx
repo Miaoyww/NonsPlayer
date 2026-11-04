@@ -21,6 +21,14 @@ const qualities = [
   { value: 'hires', label: 'Hi-Res' }
 ]
 
+const qualityLabels = Object.fromEntries(qualities.map(({ value, label }) => [value, label]))
+
+interface LocalPlaybackInfo {
+  trackKey: string
+  available: boolean
+  quality?: string | null
+}
+
 export function MusicOptionsProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<Options>({ quality: 'exhigh', allowDowngrade: true })
   const [busy, setBusy] = useState(isTauri())
@@ -44,18 +52,22 @@ export function MusicOptionsProvider({ children }: { children: ReactNode }) {
       disposed = true
     }
   }, [])
-  function update(patch: Partial<Options>) {
-    if (busy) return
+  async function update(patch: Partial<Options>) {
+    if (busy) return false
     const next = { ...options, ...patch }
     setBusy(true)
     setError(undefined)
-    void nativeCall('set_music_options', next)
-      .then(() => setOptions(next))
-      .catch((cause) => {
-        reportCaughtError('app/src/features/playback/music-options.tsx', cause)
-        return setError(errorText(cause))
-      })
-      .finally(() => setBusy(false))
+    try {
+      await nativeCall('set_music_options', next)
+      setOptions(next)
+      return true
+    } catch (cause) {
+      reportCaughtError('app/src/features/playback/music-options.tsx', cause)
+      setError(errorText(cause))
+      return false
+    } finally {
+      setBusy(false)
+    }
   }
   return (
     <OptionsContext.Provider value={{ options, busy, error, update }}>
@@ -72,9 +84,23 @@ export function useMusicOptions() {
 
 export function QualitySelect() {
   const { options, busy, error, update } = useMusicOptions()
-  const state = usePlayer('actualQuality', 'queue', 'index')
+  const state = usePlayer(
+    'revision',
+    'actualQuality',
+    'queue',
+    'index',
+    'playbackMode',
+    'localPlaybackAvailable',
+    'localPlaybackQuality'
+  )
   const [open, setOpen] = useState(false)
+  const [switching, setSwitching] = useState(false)
+  const [switchError, setSwitchError] = useState<string>()
+  const [localInfo, setLocalInfo] = useState<LocalPlaybackInfo>()
   const track = state.index === null ? undefined : state.queue[state.index]
+  useEffect(() => {
+    setLocalInfo(undefined)
+  }, [track?.key, state.revision])
   if (track?.source.kind === 'local') {
     return (
       <div className="quality-control flex flex-col gap-1" data-open={false}>
@@ -90,36 +116,84 @@ export function QualitySelect() {
       </div>
     )
   }
+  const localAvailable = !!track && (localInfo?.available ?? !!state.localPlaybackAvailable)
+  const availableQuality = localInfo ? localInfo.quality : state.localPlaybackQuality
+  const localQuality = availableQuality
+    ? (qualityLabels[availableQuality] ?? availableQuality)
+    : undefined
+  const localLabel = localQuality ? `本地（${localQuality}）` : '本地'
+  const items = localAvailable ? [{ value: 'local', label: localLabel }, ...qualities] : qualities
+  const value = localAvailable && state.playbackMode === 'local' ? 'local' : options.quality
+  const currentLabel = value === 'local' ? localLabel : (qualityLabels[value] ?? value)
+  const actualLabel =
+    state.playbackMode === 'local' ? '本地文件' : (state.actualQuality ?? '尚未播放')
+
+  async function change(next: string) {
+    if (switching) return
+    setSwitching(true)
+    setSwitchError(undefined)
+    try {
+      if (next === 'local') {
+        await nativeCall('player_set_playback_mode', {
+          revision: state.revision,
+          mode: 'local'
+        })
+      } else {
+        if (next !== options.quality && !(await update({ quality: next }))) return
+        await nativeCall('player_set_playback_mode', {
+          revision: state.revision,
+          mode: 'stream'
+        })
+      }
+    } catch (cause) {
+      reportCaughtError('app/src/features/playback/music-options.tsx', cause)
+      setSwitchError(errorText(cause))
+    } finally {
+      setSwitching(false)
+    }
+  }
+
   return (
     <div className="quality-control flex flex-col gap-1" data-open={open}>
       <Select
-        items={qualities}
-        value={options.quality}
-        disabled={busy || !isTauri()}
-        onOpenChange={setOpen}
-        onValueChange={(quality) => {
-          if (quality) update({ quality })
+        items={items}
+        value={value}
+        disabled={busy || switching || !isTauri()}
+        onOpenChange={(next) => {
+          setOpen(next)
+          if (!next || !track) return
+          const key = track.key
+          void nativeCall<LocalPlaybackInfo>('player_local_playback')
+            .then((info) => {
+              if (info.trackKey === key) setLocalInfo(info)
+            })
+            .catch((cause) => {
+              reportCaughtError('app/src/features/playback/music-options.tsx', cause)
+            })
+        }}
+        onValueChange={(next) => {
+          if (next) void change(next)
         }}
       >
         <SelectTrigger
           size="sm"
           className="border-transparent"
           aria-label="音质"
-          title={`偏好音质：${qualities.find((q) => q.value === options.quality)?.label ?? options.quality} · 实际音质：${state.actualQuality ?? '尚未播放'}`}
+          title={`播放方式：${currentLabel} · 偏好音质：${qualityLabels[options.quality] ?? options.quality} · 实际音质：${actualLabel}`}
         >
           <SelectValue />
         </SelectTrigger>
         <SelectContent side="top" alignItemWithTrigger={false}>
           <SelectGroup>
-            {qualities.map(({ value, label }) => (
-              <SelectItem key={value} value={value}>
+            {items.map(({ value: item, label }) => (
+              <SelectItem key={item} value={item}>
                 {label}
               </SelectItem>
             ))}
           </SelectGroup>
         </SelectContent>
       </Select>
-      {error && <ErrorNotice error={error} />}
+      {(switchError || error) && <ErrorNotice error={switchError ?? error} />}
     </div>
   )
 }

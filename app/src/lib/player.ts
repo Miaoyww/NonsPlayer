@@ -61,6 +61,9 @@ export interface PlayerSnapshot {
     title: string
     artist: string
   } | null
+  playbackMode?: 'local' | 'stream' | null
+  localPlaybackAvailable?: boolean
+  localPlaybackQuality?: string | null
   playbackOptions: {
     fades: boolean
     crossfade: boolean
@@ -117,6 +120,9 @@ const initialSnapshot: PlayerSnapshot = {
   volume: isAndroid() ? 1 : 0.8,
   deviceId: null,
   actualQuality: null,
+  playbackMode: null,
+  localPlaybackAvailable: false,
+  localPlaybackQuality: null,
   error: null,
   mediaError: null
 }

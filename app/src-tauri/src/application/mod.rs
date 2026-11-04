@@ -1147,6 +1147,8 @@ pub fn run() {
             crate::music::provider_commands::resource_provider_set_enabled,
             crate::music::provider_commands::resource_search,
             crate::music::provider_commands::player_select_source,
+            crate::music::provider_commands::player_set_playback_mode,
+            crate::music::provider_commands::player_local_playback,
             crate::infrastructure::diagnostics::diagnostic_report,
             #[cfg(target_os = "android")]
             crate::platform::android::window_layout::android_window_layout,

@@ -6,11 +6,11 @@ use crate::model::RepeatMode;
 use crate::{
     media::MediaControls,
     model::{
-        AppResult, PlaybackOptions, PlaybackStatus, PlayerSnapshot, ResolvedTrack, Track,
-        TrackSource,
+        AppResult, PlaybackMode, PlaybackOptions, PlaybackStatus, PlayerSnapshot, ResolvedTrack,
+        Track, TrackSource,
     },
     music::{manager::ResourceTicket, service::MusicService},
-    storage::Store,
+    storage::{DownloadedLocal, Store},
 };
 use std::{
     sync::{
@@ -34,6 +34,11 @@ pub enum Command {
     SelectSource {
         revision: u64,
         selection: crate::music::service::PlaybackSelection,
+        reply: tokio::sync::oneshot::Sender<AppResult<()>>,
+    },
+    SetPlaybackMode {
+        revision: u64,
+        mode: PlaybackMode,
         reply: tokio::sync::oneshot::Sender<AppResult<()>>,
     },
     #[cfg(target_os = "android")]
@@ -150,6 +155,16 @@ fn retry_position(state: &PlayerSnapshot, revision: u64, key: &str) -> Option<(u
     Some((state.index?, state.position_ms))
 }
 
+fn prefers_local(
+    track: &Track,
+    selection: Option<&crate::music::service::PlaybackSelection>,
+    stream_override: bool,
+) -> bool {
+    matches!(track.source, TrackSource::Online { .. })
+        && !stream_override
+        && !selection.is_some_and(|selection| selection.streaming)
+}
+
 fn restore_player(mut state: PlayerSnapshot) -> PlayerSnapshot {
     // Android volume is controlled by the system, including for older saved sessions.
     if cfg!(target_os = "android") {
@@ -162,6 +177,9 @@ fn restore_player(mut state: PlayerSnapshot) -> PlayerSnapshot {
     state.revision = 0;
     state.actual_quality = None;
     state.playback_source = None;
+    state.playback_mode = None;
+    state.local_playback_available = false;
+    state.local_playback_quality = None;
     if let Some(track) = state.current() {
         if track.duration_ms > 0 {
             state.duration_ms = track.duration_ms;
@@ -384,6 +402,7 @@ impl Player {
 struct Actor {
     audio_engine: super::engine::AudioEngine,
     selections: std::collections::BTreeMap<String, crate::music::service::PlaybackSelection>,
+    stream_overrides: std::collections::BTreeSet<String>,
     app: tauri::AppHandle,
     store: Arc<Store>,
     history: Arc<PlaybackHistory>,
@@ -412,6 +431,43 @@ struct Actor {
 }
 
 impl Actor {
+    fn download_mapping(&self, track: &Track) -> Option<DownloadedLocal> {
+        if matches!(track.source, TrackSource::Local { .. }) {
+            return None;
+        }
+        self.store
+            .download_local(&track.key)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("playback.local_download", error);
+            })
+            .ok()
+            .flatten()
+    }
+
+    fn local_playback(&self, track: &Track) -> Option<DownloadedLocal> {
+        self.download_mapping(track)
+            .filter(|local| std::path::Path::new(&local.path).is_file())
+    }
+
+    fn refresh_local_playback(&mut self) {
+        let local = self
+            .state
+            .current()
+            .and_then(|track| self.local_playback(track));
+        self.state.local_playback_available = local.is_some();
+        self.state.local_playback_quality = local.and_then(|local| local.quality);
+    }
+
+    fn local_track(track: &Track, path: &str) -> Track {
+        let mut local = track.clone();
+        local.source = TrackSource::Local {
+            path: path.to_owned(),
+            netease_id: track.netease_id(),
+            cue: None,
+        };
+        local
+    }
+
     fn web_feedback(&mut self, feedback: super::engine::Feedback) -> AppResult<()> {
         use super::engine::FeedbackKind;
         if !self.audio_engine.accepts(&feedback) {
@@ -454,8 +510,16 @@ impl Actor {
                     crate::audio::track_position(self.state.current(), feedback.position_ms);
                 self.state.duration_ms =
                     crate::audio::track_duration(self.state.current(), feedback.duration_ms);
+                self.state.playback_mode = Some(
+                    if matches!(next.resolved.track.source, TrackSource::Local { .. }) {
+                        PlaybackMode::Local
+                    } else {
+                        PlaybackMode::Stream
+                    },
+                );
                 self.state.actual_quality = next.resolved.quality;
                 self.state.playback_source = next.source;
+                self.refresh_local_playback();
                 self.state.status = if self.desired_playing {
                     PlaybackStatus::Playing
                 } else {
@@ -526,13 +590,28 @@ impl Actor {
                 return Ok(());
             }
             FeedbackKind::Error => {
+                let error = feedback
+                    .error
+                    .filter(|e| e.len() <= 256)
+                    .unwrap_or_else(|| "无法解码或播放此音频".into());
+                let local = self.state.current().cloned().filter(|track| {
+                    self.state.playback_mode == Some(PlaybackMode::Local)
+                        && matches!(&track.source, TrackSource::Online { .. })
+                        && self.local_playback(track).is_some()
+                });
+                if let (Some(track), Some(index)) = (local, self.state.index) {
+                    self.stream_overrides.insert(track.key.clone());
+                    let _ = self.app.emit(
+                        "playback-notice",
+                        format!(
+                            "「{}」本地文件播放失败，已切换为流媒体：{error}",
+                            track.title
+                        ),
+                    );
+                    return self.load_at(index, self.desired_playing, self.state.position_ms);
+                }
                 self.audio_engine.stop(&self.app)?;
-                self.skip_failed(
-                    feedback
-                        .error
-                        .filter(|e| e.len() <= 256)
-                        .unwrap_or_else(|| "无法解码或播放此音频".into()),
-                )?;
+                self.skip_failed(error)?;
                 return Ok(());
             }
             #[cfg(not(target_os = "android"))]
@@ -608,6 +687,7 @@ impl Actor {
         Ok(Self {
             audio_engine,
             selections: Default::default(),
+            stream_overrides: Default::default(),
             app,
             store,
             history,
@@ -738,6 +818,7 @@ impl Actor {
                 | Command::Seek(_)
                 | Command::AppendFm { .. }
                 | Command::SelectSource { .. }
+                | Command::SetPlaybackMode { .. }
         ) {
             if let Some(job) = self.next_job.take() {
                 job.abort();
@@ -1005,6 +1086,7 @@ impl Actor {
                 }
                 self.state.private_fm_session = None;
                 self.selections.clear();
+                self.stream_overrides.clear();
                 self.state.queue = queue.into();
                 self.state.index = Some(index);
                 self.state.deduplicate_queue();
@@ -1124,6 +1206,7 @@ impl Actor {
             Command::Remove(index, key) => {
                 let removed_current = self.state.remove_track(index, &key)?;
                 self.selections.remove(&key);
+                self.stream_overrides.remove(&key);
                 let loading = self.state.status == PlaybackStatus::Loading;
                 self.cancel_jobs();
                 if self.state.queue.is_empty() {
@@ -1152,7 +1235,13 @@ impl Actor {
                     if matches!(current.source, crate::model::TrackSource::Local { .. }) {
                         return Err("本地歌曲不切换在线音源".into());
                     }
-                    self.selections.insert(current.key.clone(), selection);
+                    let key = current.key.clone();
+                    if selection.streaming {
+                        self.stream_overrides.insert(key.clone());
+                    } else {
+                        self.stream_overrides.remove(&key);
+                    }
+                    self.selections.insert(key, selection);
                     self.load_at(
                         index,
                         self.desired_playing || self.state.status == PlaybackStatus::Error,
@@ -1162,6 +1251,47 @@ impl Actor {
                 let _ = (reply.send(result.clone())).inspect_err(|_| {
                     crate::infrastructure::diagnostics::warn(
                         "source.reply",
+                        "reply receiver dropped",
+                    );
+                });
+                result?;
+            }
+            Command::SetPlaybackMode {
+                revision,
+                mode,
+                reply,
+            } => {
+                let result = (|| {
+                    if revision != self.state.revision {
+                        return Err("播放歌曲已变化，请重新选择播放方式".into());
+                    }
+                    let index = self.state.index.ok_or("没有正在播放的歌曲")?;
+                    let current = self.state.current().ok_or("没有正在播放的歌曲")?;
+                    if matches!(current.source, TrackSource::Local { .. }) {
+                        return Err("本地音乐无需切换播放方式".into());
+                    }
+                    let key = current.key.clone();
+                    match mode {
+                        PlaybackMode::Local => {
+                            if self.local_playback(current).is_none() {
+                                return Err("当前歌曲没有可用的本地下载".into());
+                            }
+                            self.stream_overrides.remove(&key);
+                            self.selections.remove(&key);
+                        }
+                        PlaybackMode::Stream => {
+                            self.stream_overrides.insert(key);
+                        }
+                    }
+                    self.load_at(
+                        index,
+                        self.desired_playing || self.state.status == PlaybackStatus::Error,
+                        self.state.position_ms,
+                    )
+                })();
+                let _ = reply.send(result.clone()).inspect_err(|_| {
+                    crate::infrastructure::diagnostics::warn(
+                        "playback.mode.reply",
                         "reply receiver dropped",
                     );
                 });
@@ -1247,6 +1377,7 @@ impl Actor {
 
                 if clear {
                     self.selections.clear();
+                    self.stream_overrides.clear();
                     self.state.private_fm_session = None;
                     self.state.queue = Arc::default();
                     self.state.shuffle_order = Arc::default();
@@ -1254,6 +1385,9 @@ impl Actor {
                     self.state.duration_ms = 0;
                     self.state.actual_quality = None;
                     self.state.playback_source = None;
+                    self.state.playback_mode = None;
+                    self.state.local_playback_available = false;
+                    self.state.local_playback_quality = None;
                     self.state.media_error = None;
                     self.state.revision += 1;
                 }
@@ -1356,6 +1490,13 @@ impl Actor {
                     });
                     match result {
                         Ok((resolved, resource, source)) => {
+                            self.state.playback_mode = Some(
+                                if matches!(resolved.track.source, TrackSource::Local { .. }) {
+                                    PlaybackMode::Local
+                                } else {
+                                    PlaybackMode::Stream
+                                },
+                            );
                             self.state.actual_quality = resolved.quality.clone();
                             self.state.playback_source = source;
                             self.publish();
@@ -1471,6 +1612,8 @@ impl Actor {
         self.state.duration_ms = track.duration_ms;
         self.state.actual_quality = None;
         self.state.playback_source = None;
+        self.state.playback_mode = None;
+        self.refresh_local_playback();
         self.state.error = None;
         self.state.status = PlaybackStatus::Loading;
         self.desired_playing = playing;
@@ -1483,8 +1626,26 @@ impl Actor {
         let generation = self.generation.load(Ordering::Acquire);
         let music = self.music.clone();
         let selection = self.selections.get(&track.key).cloned();
+        let local = if prefers_local(
+            &track,
+            selection.as_ref(),
+            self.stream_overrides.contains(&track.key),
+        ) {
+            self.download_mapping(&track)
+        } else {
+            None
+        };
+        let local_track = local
+            .as_ref()
+            .filter(|local| std::path::Path::new(&local.path).is_file())
+            .map(|local| Self::local_track(&track, &local.path));
+        let local_error = local
+            .as_ref()
+            .filter(|local| !std::path::Path::new(&local.path).is_file())
+            .map(|_| "本地文件不存在或无法访问".to_owned());
         let attempt = if next { self.next_attempts } else { 1 };
         let sender = self.sender.clone();
+        let app = self.app.clone();
         let quality = self
             .store
             .setting("quality")
@@ -1524,6 +1685,7 @@ impl Actor {
             );
             log::info!(target: "nons::playback", "operation=playback_resolve stage=start generation={generation} index={index} next={next} attempt={attempt} source={source_id} provider={provider} track_id={track_id} quality={} allow_downgrade={downgrade}", crate::infrastructure::diagnostics::field(&quality));
             let key = track.key.clone();
+            let title = track.title.clone();
             let progress_sender = sender.clone();
             let progress_key = key.clone();
             let notify = move |source| {
@@ -1539,11 +1701,36 @@ impl Actor {
                     });
                 }
             };
-            let result = music
-                .resolve_selected_notifying(
-                    track, &quality, downgrade, generation, selection, &notify,
-                )
-                .await;
+            let result = if let Some(local_track) = local_track {
+                match crate::playback_resource::resolve(local_track).await {
+                    Ok(resolved) => Ok((resolved, None, None)),
+                    Err(error) => {
+                        log::warn!(target: "nons::playback", "operation=playback_resolve stage=local_failed generation={generation} index={index} next={next} source={source_id} track_id={track_id} reason={error}");
+                        let _ = app.emit(
+                            "playback-notice",
+                            format!("「{title}」本地文件播放失败，已切换为流媒体：{error}"),
+                        );
+                        music
+                            .resolve_selected_notifying(
+                                track, &quality, downgrade, generation, selection, &notify,
+                            )
+                            .await
+                    }
+                }
+            } else {
+                if let Some(error) = local_error {
+                    log::warn!(target: "nons::playback", "operation=playback_resolve stage=local_unavailable generation={generation} index={index} next={next} source={source_id} track_id={track_id} reason={error}");
+                    let _ = app.emit(
+                        "playback-notice",
+                        format!("「{title}」本地文件不可用，已切换为流媒体：{error}"),
+                    );
+                }
+                music
+                    .resolve_selected_notifying(
+                        track, &quality, downgrade, generation, selection, &notify,
+                    )
+                    .await
+            };
             match &result {
                 Ok(_) => {
                     log::info!(target: "nons::playback", "operation=playback_resolve stage=complete generation={generation} index={index} next={next} attempt={attempt} elapsed_ms={} source={source_id} provider={provider} track_id={track_id} code=ok", started.elapsed().as_millis())
@@ -1785,6 +1972,43 @@ impl Actor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn local_preference_is_online_only_and_respects_explicit_streaming() {
+        let state = snapshot(0, 0, RepeatMode::Off);
+        let online = &state.queue[0];
+        assert!(prefers_local(online, None, false));
+        assert!(!prefers_local(online, None, true));
+        assert!(!prefers_local(
+            online,
+            Some(&crate::music::service::PlaybackSelection {
+                provider: Some("official".into()),
+                track: None,
+                streaming: true,
+            }),
+            false,
+        ));
+        let mut local = online.clone();
+        local.source = TrackSource::Local {
+            path: r"C:\music\song.flac".into(),
+            netease_id: None,
+            cue: None,
+        };
+        assert!(!prefers_local(&local, None, false));
+    }
+
+    #[test]
+    fn downloaded_audio_keeps_online_track_identity() {
+        let state = snapshot(0, 0, RepeatMode::Off);
+        let online = &state.queue[0];
+        let local = Actor::local_track(online, r"C:\music\song.flac");
+        assert_eq!(local.key, online.key);
+        assert_eq!(local.title, online.title);
+        assert!(matches!(
+            local.source,
+            TrackSource::Local { ref path, .. } if path == r"C:\music\song.flac"
+        ));
+    }
 
     #[test]
     fn retry_is_bound_to_failed_revision_and_keeps_the_current_position() {

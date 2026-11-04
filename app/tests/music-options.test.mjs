@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import * as jsx from 'react/jsx-runtime'
 import ts from 'typescript'
 
-function harness(source = 'online') {
+function harness(source = 'online', snapshot = {}) {
   const cache = new Map()
   const modules = {
     react: React,
@@ -17,7 +17,8 @@ function harness(source = 'online') {
       usePlayer: () => ({
         actualQuality: 'lossless',
         index: 0,
-        queue: [{ source: { kind: source } }]
+        queue: [{ source: { kind: source } }],
+        ...snapshot
       })
     },
     '@/components/error-notice': { ErrorNotice: () => null },
@@ -85,4 +86,25 @@ test('local playback replaces the quality selector with its source label', () =>
   )
   assert.match(markup, /本地音乐/)
   assert.doesNotMatch(markup, /Hi-Res/)
+})
+
+test('the quality selector offers the downloaded file only when it is available', () => {
+  const render = (snapshot) => {
+    const options = harness('online', snapshot)()
+    return renderToStaticMarkup(
+      React.createElement(
+        options.MusicOptionsProvider,
+        null,
+        React.createElement(options.QualitySelect)
+      )
+    )
+  }
+  const downloaded = render({
+    localPlaybackAvailable: true,
+    localPlaybackQuality: 'lossless',
+    playbackMode: 'local'
+  })
+  assert.match(downloaded, /本地（无损）/)
+  assert.match(downloaded, /Hi-Res/)
+  assert.doesNotMatch(render({ localPlaybackAvailable: false }), /本地（/)
 })

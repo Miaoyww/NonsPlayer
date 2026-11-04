@@ -16,6 +16,13 @@ pub enum PlaybackStatus {
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum PlaybackMode {
+    Local,
+    Stream,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct PlaybackOptions {
     pub fades: bool,
@@ -57,6 +64,12 @@ pub struct PlayerSnapshot {
     pub actual_quality: Option<String>,
     #[serde(default, skip_deserializing)]
     pub playback_source: Option<nons_music_adapter_sdk::provider::PlaybackSource>,
+    #[serde(default, skip_deserializing)]
+    pub playback_mode: Option<PlaybackMode>,
+    #[serde(default, skip_deserializing)]
+    pub local_playback_available: bool,
+    #[serde(default, skip_deserializing)]
+    pub local_playback_quality: Option<String>,
     pub error: Option<String>,
     pub media_error: Option<String>,
 }
@@ -83,6 +96,9 @@ impl Default for PlayerSnapshot {
             device_id: None,
             actual_quality: None,
             playback_source: None,
+            playback_mode: None,
+            local_playback_available: false,
+            local_playback_quality: None,
             error: None,
             media_error: None,
         }

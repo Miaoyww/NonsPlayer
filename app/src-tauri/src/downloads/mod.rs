@@ -195,8 +195,29 @@ impl Downloads {
                 task.total = None;
             }
         }
+        for task in &tasks {
+            if task.state == DownloadState::Completed {
+                if let Err(error) = self.link_task(task) {
+                    crate::infrastructure::diagnostics::warn("downloads.restore.link", error);
+                }
+            }
+        }
         self.state.lock().map_err(|_| "下载任务锁不可用")?.tasks = tasks;
         self.persist()
+    }
+
+    fn link_task(&self, task: &DownloadTask) -> AppResult<()> {
+        let name = task.path.as_deref().ok_or("下载记录缺少本地文件")?;
+        let path = self.directory.join(name);
+        if !path.is_file() {
+            return Err("本地下载文件不存在".into());
+        }
+        let path = path
+            .to_string_lossy()
+            .trim_start_matches(r"\\?\")
+            .to_string();
+        self.store
+            .link_download(&task.track.key, &path, task.actual_quality.as_deref())
     }
 
     pub fn enqueue(self: &Arc<Self>, track: Track) -> AppResult<DownloadTask> {
@@ -634,12 +655,23 @@ impl Downloads {
                 return Err(error);
             }
         };
-        let warning = match (cover_warning, self.index_file(&path).await.err()) {
-            (Some(cover), Some(index)) => Some(format!("{cover}；{index}")),
-            (Some(cover), None) => Some(cover),
-            (None, Some(index)) => Some(index),
-            (None, None) => None,
-        };
+        let mut warnings = Vec::new();
+        if let Some(cover) = cover_warning {
+            warnings.push(cover);
+        }
+        let path_text = path
+            .to_string_lossy()
+            .trim_start_matches(r"\\?\")
+            .to_string();
+        if let Err(error) = self
+            .store
+            .link_download(&track.key, &path_text, Some(&actual_quality))
+        {
+            warnings.push(format!("本地播放关联保存失败：{error}"));
+        }
+        if let Err(error) = self.index_file(&path).await {
+            warnings.push(error);
+        }
         Ok(DownloadOutcome {
             bytes,
             total,
@@ -648,7 +680,7 @@ impl Downloads {
                 .file_name()
                 .map(|name| name.to_string_lossy().into_owned())
                 .unwrap_or_default(),
-            warning,
+            warning: (!warnings.is_empty()).then(|| warnings.join("；")),
         })
     }
 

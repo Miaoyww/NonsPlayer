@@ -12,6 +12,7 @@ pub type ResolvedPlayback = (
 pub struct PlaybackSelection {
     pub provider: Option<String>,
     pub track: Option<Track>,
+    pub streaming: bool,
 }
 pub struct CollectionQueue {
     pub tracks: Vec<Track>,

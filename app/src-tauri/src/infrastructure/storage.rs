@@ -15,6 +15,11 @@ pub struct CachedLyrics {
     pub fresh: bool,
 }
 
+pub struct DownloadedLocal {
+    pub path: String,
+    pub quality: Option<String>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LyricCacheScope {
     Persistent,
@@ -97,6 +102,7 @@ impl Store {
             );
             CREATE TABLE IF NOT EXISTS local_playlists (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, playlist_type TEXT NOT NULL DEFAULT 'aggregate');
             CREATE TABLE IF NOT EXISTS local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, manual INTEGER NOT NULL DEFAULT 1, remote INTEGER NOT NULL DEFAULT 0, excluded INTEGER NOT NULL DEFAULT 0, value TEXT NOT NULL, PRIMARY KEY(playlist_id,key));
+            CREATE TABLE IF NOT EXISTS download_local_tracks (track_key TEXT PRIMARY KEY, path TEXT NOT NULL, quality TEXT, updated_at INTEGER NOT NULL);
             CREATE INDEX IF NOT EXISTS local_audio_path ON tracks(json_extract(value,'$.source.path')) WHERE source='local';
             CREATE VIEW IF NOT EXISTS visible_local_tracks AS
                 SELECT t.* FROM tracks t WHERE t.source='local' AND (
@@ -385,6 +391,48 @@ impl Store {
         serde_json::from_str(&value).map_err(|e| e.to_string())
     }
 
+    pub fn link_download(
+        &self,
+        track_key: &str,
+        path: &str,
+        quality: Option<&str>,
+    ) -> AppResult<()> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.link_download.lock", error);
+            })
+            .map_err(|_| "曲库锁不可用")?
+            .execute(
+                "INSERT INTO download_local_tracks(track_key,path,quality,updated_at) VALUES(?1,?2,?3,?4)
+                 ON CONFLICT(track_key) DO UPDATE SET path=excluded.path,quality=excluded.quality,updated_at=excluded.updated_at",
+                params![track_key, path, quality, now_millis()],
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn download_local(&self, track_key: &str) -> AppResult<Option<DownloadedLocal>> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.download_local.lock", error);
+            })
+            .map_err(|_| "曲库锁不可用")?
+            .query_row(
+                "SELECT path,quality FROM download_local_tracks WHERE track_key=?1",
+                [track_key],
+                |row| {
+                    Ok(DownloadedLocal {
+                        path: row.get(0)?,
+                        quality: row.get(1)?,
+                    })
+                },
+            )
+            .optional()
+            .map_err(|e| e.to_string())
+    }
+
     pub fn local_tracks(&self, search: &str, offset: u32) -> AppResult<Vec<Track>> {
         let db = self
             .0
@@ -661,6 +709,25 @@ mod tests {
         );
     }
     use super::*;
+
+    #[test]
+    fn download_links_replace_the_previous_file_and_survive_as_store_data() {
+        let store = Store::initialize(Connection::open_in_memory().unwrap()).unwrap();
+        assert!(store.download_local("netease/track/1").unwrap().is_none());
+        store
+            .link_download("netease/track/1", r"C:\music\first.flac", Some("lossless"))
+            .unwrap();
+        let first = store.download_local("netease/track/1").unwrap().unwrap();
+        assert_eq!(first.path, r"C:\music\first.flac");
+        assert_eq!(first.quality.as_deref(), Some("lossless"));
+        store
+            .link_download("netease/track/1", r"C:\music\second.mp3", Some("higher"))
+            .unwrap();
+        let second = store.download_local("netease/track/1").unwrap().unwrap();
+        assert_eq!(second.path, r"C:\music\second.mp3");
+        assert_eq!(second.quality.as_deref(), Some("higher"));
+    }
+
     #[test]
     fn absence_expiry_and_permanent_results_are_distinct() {
         let store = Store::initialize(Connection::open_in_memory().unwrap()).unwrap();

@@ -17,7 +17,7 @@ import { errorText, getPlayer, nativeCall, usePlayer, type Track } from '@/lib/p
 import { Radio, RotateCcw } from 'lucide-react'
 
 export function SongSourceDialog({ track, onClose }: { track: Track; onClose: () => void }) {
-  const state = usePlayer('revision', 'playbackSource')
+  const state = usePlayer('revision', 'playbackSource', 'playbackMode')
   const openingRevision = useRef(state.revision).current
   useEffect(() => {
     if (state.revision !== openingRevision) onClose()
@@ -80,13 +80,22 @@ export function SongSourceDialog({ track, onClose }: { track: Track; onClose: ()
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-xl bg-muted p-3 text-sm" role="status">
-            <p>播放音源：{state.playbackSource?.displayName ?? '尚未获取播放资源'}</p>
-            {state.playbackSource && (
+            <p>
+              播放音源：
+              {state.playbackMode === 'local'
+                ? '本地文件'
+                : (state.playbackSource?.displayName ?? '尚未获取播放资源')}
+            </p>
+            {state.playbackMode === 'local' ? (
+              <p className="mt-1 text-muted-foreground">
+                {track.title} — {track.artist}
+              </p>
+            ) : state.playbackSource ? (
               <p className="mt-1 text-muted-foreground">
                 {sourceLabel(state.playbackSource.platform, descriptors)} ·{' '}
                 {state.playbackSource.title} — {state.playbackSource.artist}
               </p>
-            )}
+            ) : null}
           </div>
           {(error || providerError) && <ErrorNotice error={error ?? providerError} />}
           <section aria-label="切换当前曲目的音源">

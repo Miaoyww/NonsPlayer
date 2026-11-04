@@ -10,5 +10,5 @@ export const OptionsContext = createContext<{
   options: Options
   busy: boolean
   error?: string
-  update: (patch: Partial<Options>) => void
+  update: (patch: Partial<Options>) => Promise<boolean>
 } | null>(null)
