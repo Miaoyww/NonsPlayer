@@ -113,7 +113,7 @@ pub(crate) fn allows_host(hosts: &[String], host: &str) -> bool {
         })
 }
 
-pub(crate) fn checked_url(hosts: &[String], input: &str) -> AppResult<url::Url> {
+fn checked_url_inner(hosts: &[String], input: &str, allow_port: bool) -> AppResult<url::Url> {
     if input.len() > 2048 {
         return Err("HTTP URL 超过 2048 字节".into());
     }
@@ -125,12 +125,21 @@ pub(crate) fn checked_url(hosts: &[String], input: &str) -> AppResult<url::Url> 
     if !matches!(url.scheme(), "http" | "https")
         || !url.username().is_empty()
         || url.password().is_some()
-        || url.port().is_some()
+        || (!allow_port && url.port().is_some())
         || !url.host_str().is_some_and(|host| allows_host(hosts, host))
     {
         return Err("HTTP 地址不在插件授权范围内".into());
     }
     Ok(url)
+}
+
+pub(crate) fn checked_url(hosts: &[String], input: &str) -> AppResult<url::Url> {
+    checked_url_inner(hosts, input, false)
+}
+
+/// Playback CDNs may allocate explicit non-default ports; the host grant stays authoritative.
+pub(crate) fn checked_playback_url(hosts: &[String], input: &str) -> AppResult<url::Url> {
+    checked_url_inner(hosts, input, true)
 }
 
 #[derive(Deserialize)]
@@ -733,6 +742,25 @@ mod tests {
             assert!(!valid_host(host), "{host}");
         }
         assert!(valid_host("api.example.org"));
+    }
+    #[test]
+    fn playback_urls_allow_explicit_ports_only_within_granted_hosts() {
+        let hosts = vec!["*.bilivideo.cn".into(), "*.mountaintoys.cn".into()];
+        for (input, port) in [
+            ("https://xy1x2xy.mcdn.bilivideo.cn:8082/a", 8082),
+            ("https://b-example.edge.mountaintoys.cn:4483/b", 4483),
+        ] {
+            let url = checked_playback_url(&hosts, input).unwrap();
+            assert_eq!(url.port(), Some(port));
+            assert!(checked_url(&hosts, input).is_err());
+        }
+        for input in [
+            "https://example.org:8082/a",
+            "https://x.bilivideo.cn.evil.test:8082/a",
+            "https://user:secret@x.bilivideo.cn:8082/a",
+        ] {
+            assert!(checked_playback_url(&hosts, input).is_err(), "{input}");
+        }
     }
     #[test]
     fn binary_transport_keeps_bytes_and_each_cookie() {

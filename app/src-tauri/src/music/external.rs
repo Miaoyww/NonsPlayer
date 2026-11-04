@@ -244,11 +244,14 @@ impl ExternalAdapter {
             std::iter::once(wire.url.as_str()).chain(wire.backup_urls.iter().map(String::as_str));
         if let Some(services) = &self.services {
             for url in urls.by_ref() {
-                crate::infrastructure::http::checked_url(&services.permissions.http_hosts, url)
-                    .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn(operation, error);
-                    })
-                    .map_err(|_| ErrorCode::PermissionDenied)?;
+                crate::infrastructure::http::checked_playback_url(
+                    &services.permissions.http_hosts,
+                    url,
+                )
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn(operation, error);
+                })
+                .map_err(|_| ErrorCode::PermissionDenied)?;
             }
         }
         let primary = HttpAccess {
