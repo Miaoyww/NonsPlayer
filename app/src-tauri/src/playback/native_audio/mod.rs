@@ -405,9 +405,10 @@ impl AudioEngine {
         volume: f64,
     ) -> AppResult<()> {
         let device = select_device(self.control.device_id.as_deref())?;
-        let supported = device
-            .default_output_config()
-            .map_err(|error| format!("读取音频设备配置失败：{error}"))?;
+        let supported = device.default_output_config().map_err(|error| {
+            crate::infrastructure::diagnostics::warn_error("playback.audio.output_config", &error);
+            format!("读取音频设备配置失败：{error}")
+        })?;
         if supported.channels() == 0 || supported.channels() > 32 || supported.sample_rate() == 0 {
             return Err("不支持的音频设备配置".into());
         }
