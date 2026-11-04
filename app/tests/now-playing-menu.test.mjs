@@ -34,7 +34,6 @@ function harness() {
   )
   const modules = {
     react: { useState: (initial) => [initial, (value) => calls.push(['sources', value])] },
-    '@/features/lyrics/correction-dialog': { LyricCorrectionDialog: 'LyricCorrectionDialog' },
     './song-source-dialog': { SongSourceDialog: 'SongSourceDialog' },
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({
@@ -104,9 +103,7 @@ function harness() {
         })
       )
       return {
-        source: nodes
-          .find((node) => node.type === 'Item' && node.props.children?.includes('歌词来源'))
-          ?.props.children.at(-1).props.children,
+        root: nodes.find((node) => node.type === 'Root'),
         item: (label) =>
           nodes.find((node) => node.type === 'Item' && node.props.children?.includes(label))
       }
@@ -125,19 +122,19 @@ const local = {
   source: { kind: 'local', path: 'C:/Music/song.flac', neteaseId: 12 }
 }
 
-test('stream menu uses existing favorite, collection, copy and detail actions', () => {
+test('stream menu uses existing favorite, collection and copy actions without lyric or detail entries', () => {
   const app = harness()
-  const menu = app.render(stream, { source: 'AMLL DB' })
-  for (const label of ['取消收藏歌曲', '收藏到歌单', '复制歌曲链接', '歌曲详情', '刷新歌词']) {
+  const menu = app.render(stream)
+  for (const label of ['取消收藏歌曲', '收藏到歌单', '复制歌曲链接', '刷新歌词']) {
     assert.equal(menu.item(label).props.disabled ?? false, false)
     menu.item(label).props.onClick()
   }
-  assert.equal(menu.source, 'AMLL DB')
+  assert.equal(menu.item('歌词来源'), undefined)
+  assert.equal(menu.item('歌曲详情'), undefined)
   assert.deepEqual(app.calls, [
     ['like', '12'],
     ['collect', stream.key],
     ['copy', 'https://music.163.com/#/song?id=12'],
-    ['details', stream.key],
     ['refresh']
   ])
 })
@@ -148,14 +145,12 @@ test('bound local songs expose local actions and never use their lyric associati
   assert.equal(menu.item('取消收藏歌曲'), undefined)
   assert.equal(menu.item('复制歌曲链接'), undefined)
   assert.equal(menu.item('歌曲来源'), undefined)
-  for (const label of ['添加到本地歌单', '复制歌曲名称', '复制文件路径', '歌曲详情'])
+  for (const label of ['添加到本地歌单', '复制歌曲名称', '复制文件路径'])
     menu.item(label).props.onClick()
-  assert.equal(menu.source, '本地')
   assert.deepEqual(app.calls, [
     ['collect', local.key],
     ['copy', 'Song - Artist'],
-    ['copy', local.source.path],
-    ['details', local.key]
+    ['copy', local.source.path]
   ])
 })
 
@@ -167,10 +162,29 @@ test('favorite respects account readiness and pending writes; lyric refresh cann
   app.account.profile = undefined
   assert.equal(app.render(stream).item('收藏歌曲'), undefined)
   const loading = app.render(stream, { loading: true })
-  assert.equal(loading.source, '正在获取…')
   assert.equal(loading.item('正在获取歌词…').props.disabled, true)
-  assert.equal(app.render(stream).source, '暂无歌词')
   assert.equal(app.render(stream).item('刷新歌词').props.disabled, false)
+})
+
+test('MV unlinking is only offered for a bound track and refreshes when the menu opens', () => {
+  const app = harness()
+  assert.equal(app.render(stream).item('解除 MV 绑定'), undefined)
+  let opened = 0
+  const linked = app.render(stream, {
+    mvLinked: true,
+    onMvMenuOpen: () => opened++,
+    onUnlinkMv: () => app.calls.push(['unlink'])
+  })
+  linked.root.props.onOpenChange(true)
+  linked.item('解除 MV 绑定').props.onClick()
+  assert.equal(opened, 1)
+  assert.deepEqual(app.calls, [['unlink']])
+  assert.equal(
+    app
+      .render(stream, { mvLinked: true, mvBusy: true, onUnlinkMv: () => {} })
+      .item('正在解除 MV 绑定…').props.disabled,
+    true
+  )
 })
 
 test('song menu reads the track source and exposes unknown and stale favorite recovery', () => {

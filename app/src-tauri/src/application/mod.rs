@@ -1301,6 +1301,8 @@ pub fn run() {
             crate::lyrics::correction::set_lyric_correction,
             crate::mv::local_mv,
             crate::mv::pick_local_mv,
+            crate::mv::link_local_mv,
+            crate::mv::unlink_local_mv,
             crate::mv::set_local_mv_offset,
             local_track_lyrics,
             lyric_sources,

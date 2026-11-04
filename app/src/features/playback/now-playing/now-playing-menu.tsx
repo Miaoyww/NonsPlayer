@@ -1,18 +1,7 @@
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { Menu } from '@base-ui/react/menu'
 import { favoriteId, onlineReference } from '@/features/music/references'
-import {
-  Copy,
-  Ellipsis,
-  FolderPlus,
-  Heart,
-  Info,
-  RefreshCw,
-  Share2,
-  Radio,
-  FilePenLine
-} from 'lucide-react'
-import { LyricCorrectionDialog } from '@/features/lyrics/correction-dialog'
+import { Copy, Ellipsis, FolderPlus, Heart, Link2Off, RefreshCw, Share2, Radio } from 'lucide-react'
 import { useState } from 'react'
 import { SongSourceDialog } from './song-source-dialog'
 import { ActionButton } from '@/components/music/action-button'
@@ -23,24 +12,27 @@ import type { Track } from '@/lib/player'
 
 export function NowPlayingMenu({
   track,
-  source,
   loading,
   onRefresh,
-  onInformation,
+  mvLinked = false,
+  mvBusy = false,
+  onMvMenuOpen,
+  onUnlinkMv,
   showLike = true,
   showCollect = true
 }: {
   track?: Track
-  source?: string
   loading: boolean
   onRefresh: () => void
-  onInformation?: () => void
+  mvLinked?: boolean
+  mvBusy?: boolean
+  onMvMenuOpen?: () => void
+  onUnlinkMv?: () => void
   showLike?: boolean
   showCollect?: boolean
 }) {
   const actions = useSongActions()
   const [sourcesOpen, setSourcesOpen] = useState(false)
-  const [lyricsOpen, setLyricsOpen] = useState(false)
   const {
     profile,
     favoriteStatus,
@@ -69,7 +61,11 @@ export function NowPlayingMenu({
   const link = track ? actions.songLink(track) : ''
   return (
     <>
-      <Menu.Root>
+      <Menu.Root
+        onOpenChange={(open) => {
+          if (open) onMvMenuOpen?.()
+        }}
+      >
         <Menu.Trigger
           disabled={!track}
           render={
@@ -141,17 +137,6 @@ export function NowPlayingMenu({
                   复制文件路径
                 </Menu.Item>
               )}
-              <Menu.Item
-                disabled={!track || !desktop}
-                onClick={() => {
-                  if (!track) return
-                  if (onInformation) onInformation()
-                  else actions.details(track)
-                }}
-              >
-                <Info aria-hidden="true" />
-                歌曲详情
-              </Menu.Item>
               <Menu.Separator />
               {track && track.source.kind !== 'local' && (
                 <Menu.Item disabled={!desktop} onClick={() => setSourcesOpen(true)}>
@@ -159,14 +144,13 @@ export function NowPlayingMenu({
                   歌曲来源
                 </Menu.Item>
               )}
-              <Menu.Group>
-                <Menu.Item disabled={!track || !desktop} onClick={() => setLyricsOpen(true)}>
-                  <FilePenLine aria-hidden="true" />
-                  歌词来源
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {source ?? (loading ? '正在获取…' : '暂无歌词')}
-                  </span>
+              {track && mvLinked && onUnlinkMv && (
+                <Menu.Item disabled={!desktop || mvBusy} onClick={onUnlinkMv}>
+                  <Link2Off aria-hidden="true" />
+                  {mvBusy ? '正在解除 MV 绑定…' : '解除 MV 绑定'}
                 </Menu.Item>
+              )}
+              <Menu.Group>
                 <Menu.Item disabled={!track || !desktop || loading} onClick={onRefresh}>
                   <RefreshCw aria-hidden="true" />
                   {loading ? '正在获取歌词…' : '刷新歌词'}
@@ -178,9 +162,6 @@ export function NowPlayingMenu({
       </Menu.Root>
       {sourcesOpen && track && (
         <SongSourceDialog key={track.key} track={track} onClose={() => setSourcesOpen(false)} />
-      )}
-      {lyricsOpen && track && (
-        <LyricCorrectionDialog key={track.key} track={track} onClose={() => setLyricsOpen(false)} />
       )}
     </>
   )

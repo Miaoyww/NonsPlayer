@@ -15,7 +15,6 @@ import { PlaybackTransport } from '../controls/playback-transport'
 export function MobileFullscreenPlayer({
   track,
   present,
-  source,
   loading,
   onRefresh,
   onClose,
@@ -26,7 +25,6 @@ export function MobileFullscreenPlayer({
 }: {
   track?: Track
   present: boolean
-  source?: string
   loading: boolean
   onRefresh: () => void
   onClose: () => void
@@ -40,13 +38,7 @@ export function MobileFullscreenPlayer({
   const trackActions = (
     <>
       <CurrentTrackLike track={track} onError={onError} />
-      <NowPlayingMenu
-        track={track}
-        source={source}
-        loading={loading}
-        onRefresh={onRefresh}
-        showLike={false}
-      />
+      <NowPlayingMenu track={track} loading={loading} onRefresh={onRefresh} showLike={false} />
     </>
   )
   return (

@@ -78,8 +78,11 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
       useLocalMv: () => ({
         mode: 'lyrics',
         selection: undefined,
+        linked: false,
         busy: false,
-        toggle: async () => {}
+        toggle: async () => {},
+        refreshBinding: async () => {},
+        unlink: async () => false
       })
     },
     './correction': {
@@ -230,13 +233,12 @@ test('menu refresh bypasses lyric caches, preserves lyrics during loading and re
     { key: streamed.key, refresh: false },
     { key: streamed.key, refresh: true }
   ])
-  assert.equal(menu(app.render()).source, '网易云音乐')
   assert.equal(menu(app.render()).loading, true)
   app.switchTo(local)
   app.pending[1]({ ...streamLyrics, source: 'qq' })
   await Promise.resolve()
   assert.deepEqual(app.parsed, [streamLyrics])
-  assert.equal(menu(app.render()).source, undefined)
+  assert.equal(menu(app.render()).track.key, local.key)
 })
 
 test('a stale menu refresh cannot start a request for the previous playback instance', async () => {
@@ -265,7 +267,6 @@ test('new refresh results win over an older request for the same song', async ()
   app.pending[0](streamLyrics)
   await Promise.resolve()
   assert.deepEqual(app.parsed, [refreshed])
-  assert.equal(menu(app.render()).source, 'AMLL DB')
 })
 
 test('opening a song reserves the same lyrics layout before and after loading starts', async () => {
@@ -435,7 +436,6 @@ test('cache invalidation while closed forces revalidation and preserves existing
   app.invalidate()
   await app.transition(true)
   assert.equal(app.requests.length, 2)
-  assert.equal(menu(app.render()).source, '网易云音乐')
   assert.equal(menu(app.render()).loading, true)
 })
 

@@ -534,6 +534,18 @@ impl Store {
         Ok(())
     }
 
+    pub fn unlink_local_mv(&self, key: &str) -> AppResult<()> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.unlink_local_mv.lock", error);
+            })
+            .map_err(|_| "本地 MV 关联锁不可用")?
+            .execute("DELETE FROM local_mv_links WHERE track_key=?1", [key])
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
     pub fn set_local_mv_offset(&self, key: &str, offset_ms: i64) -> AppResult<()> {
         let updated = self
             .0

@@ -108,10 +108,6 @@ pub async fn pick_local_mv(
         let path = selected.into_path().map_err(|e| e.to_string())?;
         validate_path(&path)?;
         let path_text = path.to_string_lossy().into_owned();
-        app.asset_protocol_scope()
-            .allow_file(&path)
-            .map_err(|error| error.to_string())?;
-        backend.store.link_local_mv(&key, &path_text)?;
         Ok(Some(LocalMv {
             name: name(&path),
             path: path_text,
@@ -124,6 +120,43 @@ pub async fn pick_local_mv(
         let _ = (app, backend);
         Err("当前平台不支持选择本地 MV".into())
     }
+}
+
+#[tauri::command]
+pub fn link_local_mv(
+    key: String,
+    path: String,
+    app: tauri::AppHandle,
+    backend: State<'_, Backend>,
+) -> AppResult<LocalMv> {
+    backend.store.track(&key)?;
+    #[cfg(desktop)]
+    {
+        let path = Path::new(&path);
+        validate_path(path)?;
+        app.asset_protocol_scope()
+            .allow_file(path)
+            .map_err(|error| error.to_string())?;
+        let path_text = path.to_string_lossy().into_owned();
+        backend.store.link_local_mv(&key, &path_text)?;
+        Ok(LocalMv {
+            name: name(path),
+            path: path_text,
+            available: true,
+            offset_ms: 0,
+        })
+    }
+    #[cfg(not(desktop))]
+    {
+        let _ = (path, app);
+        Err("当前平台不支持关联本地 MV".into())
+    }
+}
+
+#[tauri::command]
+pub fn unlink_local_mv(key: String, backend: State<'_, Backend>) -> AppResult<()> {
+    backend.store.track(&key)?;
+    backend.store.unlink_local_mv(&key)
 }
 
 #[tauri::command]
@@ -178,6 +211,9 @@ mod tests {
         assert_eq!(second.path, r"C:\Videos\second.webm");
         assert_eq!(second.offset_ms, 0);
         assert!(store.local_mv_link("track-b").unwrap().is_none());
+        store.unlink_local_mv("track-a").unwrap();
+        assert!(store.local_mv_link("track-a").unwrap().is_none());
+        store.unlink_local_mv("track-a").unwrap();
     }
 
     #[test]

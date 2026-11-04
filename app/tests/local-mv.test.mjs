@@ -85,6 +85,8 @@ async function hookHarness(stored, picked) {
             calls.push({ command, ...args })
             if (command === 'local_mv') return stored
             if (command === 'pick_local_mv') return picked
+            if (command === 'link_local_mv') return picked
+            if (command === 'unlink_local_mv') return
           }
         }
       }
@@ -103,8 +105,27 @@ async function hookHarness(stored, picked) {
       return hook
     },
     async toggle() {
-      await hook.toggle()
+      const result = await hook.toggle()
       hook = render()
+      return result
+    },
+    async choose() {
+      await hook.choose()
+      hook = render()
+    },
+    async apply() {
+      const result = await hook.apply()
+      hook = render()
+      return result
+    },
+    async refreshBinding() {
+      await hook.refreshBinding()
+      hook = render()
+    },
+    async unlink() {
+      const result = await hook.unlink()
+      hook = render()
+      return result
     },
     async setOffset(value) {
       await hook.setOffset(value)
@@ -113,18 +134,37 @@ async function hookHarness(stored, picked) {
   }
 }
 
-test('the first MV click selects a file, later clicks only switch modes', async () => {
+test('an unlinked MV click opens selection without leaving lyrics mode', async () => {
+  const mv = { name: 'live.mp4', path: 'C:/Videos/live.mp4', available: true, offsetMs: 0 }
+  const harness = await hookHarness(null, mv)
+  assert.equal(await harness.toggle(), 'select')
+  assert.equal(harness.current.mode, 'lyrics')
+  assert.deepEqual(
+    harness.calls.map((call) => call.command),
+    ['local_mv']
+  )
+})
+
+test('choosing a video stays pending until apply links the current track', async () => {
   const mv = { name: 'live.mp4', path: 'C:/Videos/live.mp4', available: true, offsetMs: 0 }
   const harness = await hookHarness(null, mv)
   await harness.toggle()
+  await harness.choose()
+  assert.equal(harness.current.mode, 'lyrics')
+  assert.equal(harness.current.selection.name, 'live.mp4')
+  assert.equal(harness.current.linked, false)
+  assert.equal(await harness.apply(), true)
   assert.equal(harness.current.mode, 'mv')
+  assert.equal(harness.current.linked, true)
   assert.deepEqual(
     harness.calls.map((call) => call.command),
-    ['local_mv', 'pick_local_mv']
+    ['local_mv', 'pick_local_mv', 'link_local_mv']
   )
-  await harness.toggle()
-  assert.equal(harness.current.mode, 'lyrics')
-  assert.equal(harness.calls.length, 2)
+  assert.deepEqual(harness.calls.at(-1), {
+    command: 'link_local_mv',
+    key: 'track-a',
+    path: 'C:/Videos/live.mp4'
+  })
 })
 
 test('an existing association switches immediately and cancelling a picker keeps lyrics', async () => {
@@ -135,7 +175,7 @@ test('an existing association switches immediately and cancelling a picker keeps
     offsetMs: 250
   }
   const linked = await hookHarness(existing, existing)
-  await linked.toggle()
+  assert.equal(await linked.toggle(), 'mv')
   assert.equal(linked.current.mode, 'mv')
   assert.deepEqual(
     linked.calls.map((call) => call.command),
@@ -150,10 +190,54 @@ test('an existing association switches immediately and cancelling a picker keeps
   })
 
   const cancelled = await hookHarness(null, null)
-  await cancelled.toggle()
+  assert.equal(await cancelled.toggle(), 'select')
+  await cancelled.choose()
+  assert.equal(await cancelled.apply(), false)
   assert.equal(cancelled.current.mode, 'lyrics')
   assert.deepEqual(
     cancelled.calls.map((call) => call.command),
     ['local_mv', 'pick_local_mv']
+  )
+})
+
+test('an unavailable association opens selection instead of the missing MV', async () => {
+  const missing = {
+    name: 'missing.mp4',
+    path: 'C:/Videos/missing.mp4',
+    available: false,
+    offsetMs: 0
+  }
+  const harness = await hookHarness(missing, missing)
+  assert.equal(await harness.toggle(), 'select')
+  assert.equal(harness.current.mode, 'lyrics')
+  assert.equal(harness.current.linked, true)
+  assert.equal(harness.current.selection.available, false)
+  assert.deepEqual(
+    harness.calls.map((call) => call.command),
+    ['local_mv']
+  )
+})
+
+test('menu lookup finds an existing binding and unlinking resets the MV state', async () => {
+  const existing = {
+    name: 'live.mp4',
+    path: 'C:/Videos/live.mp4',
+    available: true,
+    offsetMs: 250
+  }
+  const harness = await hookHarness(existing, existing)
+  await harness.refreshBinding()
+  assert.equal(harness.current.linked, true)
+  assert.equal(harness.current.mode, 'lyrics')
+  assert.equal(harness.current.selection.offsetMs, 250)
+  assert.equal(await harness.apply(), true)
+  assert.equal(harness.current.mode, 'mv')
+  assert.equal(await harness.unlink(), true)
+  assert.equal(harness.current.linked, false)
+  assert.equal(harness.current.selection, undefined)
+  assert.equal(harness.current.mode, 'lyrics')
+  assert.deepEqual(
+    harness.calls.map((call) => call.command),
+    ['local_mv', 'unlink_local_mv']
   )
 })

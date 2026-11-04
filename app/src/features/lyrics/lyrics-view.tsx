@@ -39,6 +39,7 @@ import { LocalMvStage } from '@/features/mv/local-mv-stage'
 import { localMvSource } from '@/features/mv/local-mv'
 import { useLocalMv } from '@/features/mv/use-local-mv'
 import { MvAlignmentPopover } from '@/features/mv/mv-alignment-popover'
+import { MvPanel } from '@/features/mv/mv-panel'
 import {
   FULLSCREEN_PLAYER_ACTION_SLOT,
   FULLSCREEN_PLAYER_PANEL_SLOT,
@@ -130,7 +131,6 @@ export default function LyricsView({
     key: string
     revision: number
     lines: LyricLine[]
-    source?: string
     format?: Lyrics['format']
     selection: LyricSources
     version: string
@@ -145,7 +145,6 @@ export default function LyricsView({
       ? display
       : undefined
   const lines = currentDisplay?.lines ?? []
-  const source = currentDisplay?.source
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
   const playbackError = error
@@ -236,9 +235,6 @@ export default function LyricsView({
         version: trackVersion,
         preferences: localPreferences,
         lines: parsed,
-        source: value
-          ? { amll: 'AMLL DB', qq: 'QQ 音乐', netease: '网易云音乐', local: '本地' }[value.source]
-          : undefined,
         format: value?.format
       })
     },
@@ -433,6 +429,11 @@ export default function LyricsView({
       </div>
     )
   const showLyrics = !!track
+  const activateMv = async () => {
+    const result = await mv.toggle()
+    if (result === 'select') setPanelPage('mv')
+    else if (result) setPanelPage('lyrics')
+  }
   const albumBackground = (
     <AlbumBackground
       cover={track?.cover}
@@ -477,7 +478,6 @@ export default function LyricsView({
           background={albumBackground}
           track={track}
           present={isPresent}
-          source={source}
           loading={loading}
           onRefresh={() => void requestLyrics(true)}
           onClose={onClose}
@@ -529,10 +529,12 @@ export default function LyricsView({
                     </div>
                     <NowPlayingMenu
                       track={track}
-                      source={source}
                       loading={loading}
                       onRefresh={() => void requestLyrics(true)}
-                      onInformation={() => setPanelPage('information')}
+                      mvLinked={mv.linked}
+                      mvBusy={mv.busy}
+                      onMvMenuOpen={() => void mv.refreshBinding()}
+                      onUnlinkMv={() => void mv.unlink()}
                       showCollect={false}
                     />
                   </div>
@@ -597,6 +599,23 @@ export default function LyricsView({
                           />
                         )
                       },
+                      {
+                        value: 'mv',
+                        content: (
+                          <MvPanel
+                            selection={mv.selection}
+                            linked={mv.linked}
+                            busy={mv.busy}
+                            onChoose={() => void mv.choose()}
+                            onApply={() => {
+                              void mv.apply().then((applied) => {
+                                if (applied) setPanelPage('lyrics')
+                              })
+                            }}
+                            onCancel={() => setPanelPage('lyrics')}
+                          />
+                        )
+                      },
                       ...pluginPanelPages.map((page) => ({
                         value: `plugin:${page.pluginId}:${page.viewId}`,
                         content: (
@@ -634,17 +653,17 @@ export default function LyricsView({
               variant="ghost"
               size="icon"
               className="fullscreen-mode-button"
-              aria-label={mv.busy ? '正在选择本地 MV' : mvActive ? '返回歌词' : '播放本地 MV'}
+              aria-label={mv.busy ? '正在读取本地 MV' : mvActive ? '返回歌词' : '打开本地 MV'}
               aria-pressed={mvActive}
               title={
                 mv.busy
-                  ? '正在选择本地 MV…'
+                  ? '正在读取本地 MV…'
                   : mvActive
                     ? '返回歌词'
-                    : '播放本地 MV；首次点击时选择视频'
+                    : '打开本地 MV；未关联时进入选择页'
               }
               disabled={!track || mv.busy}
-              onClick={() => void mv.toggle()}
+              onClick={() => void activateMv()}
             >
               {mv.busy ? (
                 <Spinner />

@@ -102,8 +102,96 @@
 }
 .now-playing-lyrics[data-panel-page='information'],
 .now-playing-lyrics[data-panel-page='queue'],
+.now-playing-lyrics[data-panel-page='mv'],
 .now-playing-lyrics[data-plugin-panel='true'] {
   mask-image: none;
+}
+.mv-panel {
+  height: 100%;
+  overflow-y: auto;
+  padding: clamp(4px, 1.5vh, 16px) clamp(4px, 1.5vw, 16px) calc(clamp(40px, 7.5vh, 60px) + 16px);
+  scrollbar-width: thin;
+}
+.mv-panel-header {
+  margin-bottom: clamp(14px, 2vh, 22px);
+}
+.mv-panel-header h2 {
+  font-size: clamp(20px, 1.2vw + 0.6vh, 28px);
+  font-weight: 700;
+}
+.mv-panel-header p {
+  margin-top: 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mv-panel-card {
+  padding: clamp(16px, 2vw, 24px);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 20px;
+  background: rgb(255 255 255 / 6%);
+}
+.mv-panel-selection {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 14px;
+}
+.mv-panel-icon {
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 10%);
+}
+.mv-panel-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.mv-panel-file {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+.mv-panel-file strong,
+.mv-panel-file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mv-panel-file strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.mv-panel-file span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.mv-panel-file small {
+  font-size: 12px;
+}
+.mv-panel-file small[data-state='ready'] {
+  color: var(--foreground);
+}
+.mv-panel-file small[data-state='missing'] {
+  color: var(--destructive);
+}
+.mv-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+.mv-panel-hint {
+  margin-top: 14px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
 }
 .fullscreen-plugin-panel {
   height: 100%;
