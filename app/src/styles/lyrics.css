@@ -11,6 +11,9 @@
 .now-playing-lyrics {
   mask-image: linear-gradient(transparent, black 12%, black 85%, transparent);
 }
+.now-playing-layout .now-playing-lyrics {
+  margin-bottom: clamp(40px, 7.5vh, 60px);
+}
 .lyric-loading {
   display: flex;
   height: 100%;

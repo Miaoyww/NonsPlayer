@@ -1,20 +1,19 @@
 import { reportCaughtError } from '@/lib/diagnostics'
 import { useLocalPreferences } from '@/features/local/use-local-preferences'
 import { ErrorNotice } from '@/components/error-notice'
-import { TrackArtists } from '@/components/music/music-links'
+import { TrackAlbum, TrackArtists } from '@/components/music/music-links'
 import type { LyricLine } from '@applemusic-like-lyrics/core'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import { isTauri } from '@tauri-apps/api/core'
 import { motion, useIsPresent, useReducedMotion } from 'motion/react'
-import { AudioLines, Languages } from 'lucide-react'
+import { AudioLines, DiscAlbum, Languages, Music2 } from 'lucide-react'
 import { errorText, getPlayer, nativeCall, usePlayer, type Lyrics, type Track } from '@/lib/player'
 import { offsetLyrics, automaticLyrics, type LyricCorrection } from './correction'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { CoverContextMenu } from '@/features/playback/now-playing/cover-context-menu'
 import { AlbumBackground } from '@/features/lyrics/album-background'
-import { NowPlayingControls } from '@/features/playback/controls/now-playing-controls'
 import { NowPlayingMenu } from '@/features/playback/now-playing/now-playing-menu'
 import {
   getLyricSources,
@@ -60,13 +59,11 @@ function LyricRenderer(props: {
 
 export default function LyricsView({
   open = true,
-  onQueue,
   notice,
   onClose,
   onExitComplete
 }: {
   open?: boolean
-  onQueue: () => void
   notice?: PlaybackNoticeMessage
   onClose: () => void
   onExitComplete?: () => void
@@ -92,6 +89,11 @@ export default function LyricsView({
   const state = usePlayer('error', 'index', 'mediaError', 'queue', 'revision', 'status')
   const track = state.index !== null ? state.queue[state.index] : undefined
   const trackVersion = useMemo(() => lyricTrackVersion(track), [track])
+  const aliasText = track
+    ? [...new Set(track.aliases?.map((alias) => alias.trim()) ?? [])]
+        .filter((alias) => alias && alias !== track.title)
+        .join(' / ')
+    : ''
   const { sources } = useLyricSources()
   const { lyricsOffsetMs } = useLyricsSettings()
   const { options: localPreferences } = useLocalPreferences()
@@ -429,38 +431,57 @@ export default function LyricsView({
           <div
             className={`now-playing-layout relative min-h-0 flex-1 ${showLyrics ? 'has-lyrics' : ''}`}
           >
-            <div className="now-playing-details flex min-h-0 min-w-0 flex-col justify-center gap-5 overflow-y-auto">
+            <div className="now-playing-details flex min-h-0 min-w-0 flex-col overflow-y-auto">
               <CoverContextMenu cover={track?.cover} title={track?.title ?? '封面'}>
                 <div className="now-playing-cover-slot">
                   <Cover
                     size="original"
                     cover={track?.cover}
                     loading="eager"
-                    className="now-playing-cover aspect-square rounded-xl shadow-2xl"
+                    className="now-playing-cover aspect-square"
                   />
                 </div>
               </CoverContextMenu>
-              <div className="flex shrink-0 items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h1 className="truncate text-xl font-semibold tracking-tight">
-                    {track?.title ?? '让音乐开始'}
-                  </h1>
-                  <p className="mt-1 truncate text-muted-foreground">
-                    {track ? <TrackArtists track={track} /> : '选择一首喜欢的音乐'}
-                  </p>
+              <div className="now-playing-identity shrink-0">
+                <div className="now-playing-title-row">
+                  <div className="now-playing-title-block">
+                    <h1 className="now-playing-title">{track?.title ?? '让音乐开始'}</h1>
+                    {aliasText && (
+                      <p className="now-playing-aliases text-white/50" title={aliasText}>
+                        {aliasText}
+                      </p>
+                    )}
+                  </div>
+                  <NowPlayingMenu
+                    track={track}
+                    source={source}
+                    loading={loading}
+                    onRefresh={() => void requestLyrics(true)}
+                  />
                 </div>
-                <NowPlayingMenu
-                  track={track}
-                  source={source}
-                  loading={loading}
-                  onRefresh={() => void requestLyrics(true)}
-                />
+                <div className="now-playing-meta">
+                  <div className="now-playing-meta-row text-white/75">
+                    <Music2 aria-hidden="true" />
+                    <span className="now-playing-meta-text">
+                      {track ? <TrackArtists track={track} /> : '选择一首喜欢的音乐'}
+                    </span>
+                  </div>
+                  <div className="now-playing-meta-row text-white/75">
+                    <DiscAlbum aria-hidden="true" />
+                    <span className="now-playing-meta-text" title={track?.album || '未知专辑'}>
+                      {track ? (
+                        track.album ? (
+                          <TrackAlbum track={track} />
+                        ) : (
+                          '未知专辑'
+                        )
+                      ) : (
+                        '选择一首喜欢的音乐'
+                      )}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <NowPlayingControls
-                onQueue={onQueue}
-                active={isPresent}
-                onError={(cause) => setError(errorText(cause))}
-              />
             </div>
             {showLyrics && (
               <div className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden">

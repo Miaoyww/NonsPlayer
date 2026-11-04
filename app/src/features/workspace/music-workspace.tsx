@@ -346,7 +346,6 @@ export function MusicWorkspace({
             )}
             <FullscreenPlayer
               open={nowPlaying}
-              onQueue={openQueue}
               notice={notice}
               onClose={() => onNowPlayingChange(false)}
               onExitComplete={onPlayerExitComplete}
