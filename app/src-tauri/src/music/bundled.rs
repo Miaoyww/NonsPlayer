@@ -451,6 +451,8 @@ mod tests {
             .find(|descriptor| descriptor.source.as_str() == "bilibili")
             .unwrap();
         assert!(descriptor.capabilities.contains(&Capability::Mv));
+        assert!(descriptor.capabilities.contains(&Capability::Account));
+        assert_eq!(descriptor.login_methods[0].id, "qr");
     }
     impl CredentialStore for Secrets {
         fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>> {

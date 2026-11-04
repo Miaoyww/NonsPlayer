@@ -666,3 +666,101 @@ async fn bilibili_component_live_search_audio_and_mv() {
         video.quality()
     );
 }
+
+#[tokio::test]
+#[ignore = "Requires built Bilibili Component and public internet; set NONS_BILIBILI_QR_WAIT=1 to scan"]
+async fn bilibili_component_live_qr_bootstrap() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let package = root.join("app/src-tauri/bundled-adapters/bilibili");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(package.join("manifest.json")).unwrap()).unwrap();
+    let descriptor: SourceDescriptor =
+        serde_json::from_value(manifest["descriptor"].clone()).unwrap();
+    let source = descriptor.source.clone();
+    let directory = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        crate::storage::Store::open(&directory.path().join("acceptance.sqlite3")).unwrap(),
+    );
+    let accounts =
+        Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets::default())).unwrap());
+    let manager = Arc::new(AdapterManager::default());
+    accounts.bind(&manager);
+    let services = Arc::new(
+        host::Services::new(
+            accounts.clone(),
+            Arc::downgrade(&manager),
+            store,
+            Arc::new(crate::infrastructure::http::Http::new().unwrap()),
+            serde_json::from_value(manifest["permissions"].clone()).unwrap(),
+            descriptor,
+        )
+        .unwrap(),
+    );
+    let adapter = Arc::new(
+        ExternalAdapter::load_with_host(&package.join("adapter.component.wasm"), services)
+            .await
+            .unwrap(),
+    );
+    let current = accounts.clone();
+    let current_source = source.clone();
+    manager
+        .register(
+            adapter.clone(),
+            Arc::new(move || current.session(&current_source)),
+        )
+        .unwrap();
+    let challenge = manager
+        .account(
+            &source,
+            &AccountRequest::BeginLogin {
+                method: Some("qr".into()),
+            },
+            &accounts,
+        )
+        .await
+        .unwrap();
+    let AccountPresentation::Challenge { key, image } = challenge else {
+        panic!("Expected QR challenge")
+    };
+    let data = image
+        .strip_prefix("data:image/svg+xml;base64,")
+        .expect("QR challenge must be an SVG");
+    use base64::Engine;
+    let report = root.join(".local/bilibili-acceptance");
+    std::fs::create_dir_all(&report).unwrap();
+    std::fs::write(
+        report.join("login-qr.svg"),
+        base64::engine::general_purpose::STANDARD
+            .decode(data)
+            .unwrap(),
+    )
+    .unwrap();
+    eprintln!("QR ready: {}", report.join("login-qr.svg").display());
+    if std::env::var("NONS_BILIBILI_QR_WAIT").as_deref() == Ok("1") {
+        let deadline = Instant::now() + std::time::Duration::from_secs(180);
+        loop {
+            assert!(Instant::now() < deadline, "QR login did not finish");
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            let progress = manager
+                .account(
+                    &source,
+                    &AccountRequest::PollLogin { key: key.clone() },
+                    &accounts,
+                )
+                .await
+                .unwrap();
+            let AccountPresentation::Progress { code, message } = progress else {
+                panic!("Expected login progress")
+            };
+            eprintln!("QR status {code}: {message}");
+            assert_ne!(code, 800, "QR expired");
+            if code == 803 {
+                assert!(accounts.session(&source).account.is_some());
+                break;
+            }
+        }
+    } else {
+        manager.cancel_login(&source, &key).unwrap();
+        assert!(adapter.sessions.is_empty());
+    }
+}

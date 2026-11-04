@@ -293,7 +293,7 @@ export function AdapterLoginCard({
 export default function AccountLoginPage() {
   const { page, navigate } = useMusicNavigation()
   const { adapters: allAdapters, loading, error, refresh } = useAccountAdapters()
-  const adapters = allAdapters.filter((item) => hasPersonalPages(item.descriptor))
+  const adapters = allAdapters.filter((item) => item.descriptor.capabilities.includes('account'))
   const [source, setSource] = useState(page.view === 'accounts' ? page.query : '')
   const selected = adapters.find((item) => item.descriptor.source === source) ?? adapters[0]
   useEffect(() => {
