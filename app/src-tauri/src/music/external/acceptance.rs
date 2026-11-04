@@ -538,3 +538,131 @@ async fn qq_component_live_search_and_optional_login() {
     }
     manager.set_enabled(&source, false).unwrap();
 }
+
+#[tokio::test]
+#[ignore = "Requires built Bilibili Component and direct public internet; no credentials"]
+async fn bilibili_component_live_search_audio_and_mv() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let package = root.join("app/src-tauri/bundled-adapters/bilibili");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(package.join("manifest.json")).unwrap()).unwrap();
+    let descriptor: SourceDescriptor =
+        serde_json::from_value(manifest["descriptor"].clone()).unwrap();
+    let source = descriptor.source.clone();
+    let directory = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        crate::storage::Store::open(&directory.path().join("acceptance.sqlite3")).unwrap(),
+    );
+    let accounts =
+        Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets::default())).unwrap());
+    let manager = Arc::new(AdapterManager::default());
+    accounts.bind(&manager);
+    let services = Arc::new(
+        host::Services::new(
+            accounts.clone(),
+            Arc::downgrade(&manager),
+            store,
+            Arc::new(crate::infrastructure::http::Http::new().unwrap()),
+            serde_json::from_value(manifest["permissions"].clone()).unwrap(),
+            descriptor,
+        )
+        .unwrap(),
+    );
+    let adapter = Arc::new(
+        ExternalAdapter::load_with_host(&package.join("adapter.component.wasm"), services)
+            .await
+            .unwrap(),
+    );
+    let current = accounts.clone();
+    let current_source = source.clone();
+    manager
+        .register(adapter, Arc::new(move || current.session(&current_source)))
+        .unwrap();
+    let BusinessResponse::Tracks(page) = manager
+        .business(
+            &source,
+            &BusinessRequest::Search {
+                keyword: "周杰伦 晴天".into(),
+                kind: EntityKind::Track,
+                page: PageRequest {
+                    cursor: None,
+                    limit: 5,
+                },
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!("Expected tracks")
+    };
+    assert!(!page.page.items.is_empty());
+    let mut resolved = None;
+    for candidate in &page.page.items {
+        let track = manager.read_track(&candidate.reference).await.unwrap();
+        assert!(track.duration_ms > 0);
+        eprintln!(
+            "Bilibili search track: {} / {}",
+            track.title,
+            track.reference.id.as_str()
+        );
+        match manager
+            .resolve_playback(
+                &ResolveRequest {
+                    track: track.reference.clone(),
+                    preferred_quality: "exhigh".into(),
+                    allow_downgrade: true,
+                },
+                1,
+            )
+            .await
+        {
+            Ok(audio) => {
+                resolved = Some((track, audio));
+                break;
+            }
+            Err(error) => eprintln!(
+                "Bilibili audio rejected for {}: {:?}",
+                track.reference.id.as_str(),
+                error
+            ),
+        }
+    }
+    let (track, audio) = resolved.expect("at least one public search result must resolve audio");
+    assert!(audio.check(1).is_ok());
+    let mvs = manager
+        .search_mvs(
+            &source,
+            &MvSearchRequest {
+                track: MvTrackQuery {
+                    title: track.title.clone(),
+                    artists: vec![track.artist.clone()],
+                    duration_ms: track.duration_ms,
+                },
+                query: format!("{} {}", track.title, track.artist),
+                page: PageRequest {
+                    cursor: None,
+                    limit: 5,
+                },
+            },
+        )
+        .await
+        .unwrap();
+    assert!(!mvs.items.is_empty());
+    let video = manager
+        .resolve_mv(
+            &MvResolveRequest {
+                mv: mvs.items[0].reference.clone(),
+            },
+            1,
+        )
+        .await
+        .unwrap();
+    assert!(video.check(1).is_ok());
+    eprintln!(
+        "Bilibili live: track={} audio={} mv={} video={}",
+        track.title,
+        audio.quality(),
+        mvs.items[0].title,
+        video.quality()
+    );
+}

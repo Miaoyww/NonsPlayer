@@ -100,7 +100,10 @@ pub(super) fn metadata_reason(code: ErrorCode) -> &'static str {
     }
 }
 pub(super) fn access_reason(access: &ResourceAccess) -> &'static str {
-    let ResourceAccess::Http(http) = access;
+    let http = match access {
+        ResourceAccess::Http(http) => http,
+        ResourceAccess::HttpFallback { primary, .. } => primary,
+    };
     if http.url.len() > 8192 {
         return "audio_url_exceeds_8192_bytes";
     }

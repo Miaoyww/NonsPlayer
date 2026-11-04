@@ -5,6 +5,7 @@ pub mod business;
 pub mod cover;
 pub mod identity;
 pub mod metadata;
+pub mod mv;
 pub mod provider;
 pub mod queue;
 pub mod resource;

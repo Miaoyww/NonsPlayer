@@ -54,6 +54,10 @@ impl std::fmt::Debug for HttpAccess {
 #[derive(Debug)]
 pub enum ResourceAccess {
     Http(HttpAccess),
+    HttpFallback {
+        primary: HttpAccess,
+        backup_urls: Vec<String>,
+    },
 }
 
 /// Returned only to the host. It must never become a queue item or ordinary plugin DTO.

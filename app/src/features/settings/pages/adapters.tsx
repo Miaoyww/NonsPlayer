@@ -99,6 +99,7 @@ const capabilityLabels: Record<string, string> = {
   recommendations: '推荐',
   privateFm: '私人 FM',
   lyrics: '歌词',
+  mv: 'MV',
   download: '下载'
 }
 

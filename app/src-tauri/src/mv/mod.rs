@@ -2,9 +2,12 @@
 //! Remove `local_mv_links` and these commands when MV becomes a first-class media source.
 
 use crate::{application::Backend, model::AppResult};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tauri::{Manager, State};
+
+mod proxy;
+pub(crate) use proxy::MvProxy;
 
 #[cfg(desktop)]
 const MAX_PATH_BYTES: usize = 32 * 1024;
@@ -18,6 +21,34 @@ pub struct LocalMv {
     pub path: String,
     pub available: bool,
     pub offset_ms: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MvBinding {
+    pub source: String,
+    pub id: String,
+    pub title: String,
+    pub offset_ms: i64,
+    pub local: Option<LocalMv>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MvSearchGroup {
+    pub source: String,
+    pub display_name: String,
+    pub items: Vec<crate::music::mv::MvCandidate>,
+    pub next_cursor: Option<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MvSearchInput {
+    pub query: String,
+    #[serde(default)]
+    pub cursor: Option<String>,
 }
 
 fn valid_extension(path: &Path) -> bool {
@@ -78,6 +109,209 @@ pub fn local_mv(
         return Ok(None);
     };
     inspect(&app, Path::new(&link.path), link.offset_ms, true).map(Some)
+}
+
+#[tauri::command]
+pub fn track_mv(
+    key: String,
+    app: tauri::AppHandle,
+    backend: State<'_, Backend>,
+) -> AppResult<Option<MvBinding>> {
+    backend.store.track(&key)?;
+    if let Some(link) = backend.store.mv_link(&key)? {
+        let source = crate::music::identity::SourceId::try_from(link.source.clone())
+            .map_err(|error| error.to_string())?;
+        let source_available = backend
+            .music
+            .adapters
+            .mv_sources()
+            .map_err(|error| error.to_string())?
+            .iter()
+            .any(|descriptor| descriptor.source == source);
+        if source_available {
+            return Ok(Some(MvBinding {
+                source: link.source,
+                id: link.mv_id,
+                title: link.title,
+                offset_ms: link.offset_ms,
+                local: None,
+            }));
+        }
+    }
+    let Some(link) = backend.store.local_mv_link(&key)? else {
+        return Ok(None);
+    };
+    Ok(Some(MvBinding {
+        source: "local".into(),
+        id: String::new(),
+        title: String::new(),
+        offset_ms: link.offset_ms,
+        local: Some(inspect(&app, Path::new(&link.path), link.offset_ms, true)?),
+    }))
+}
+
+#[tauri::command]
+pub async fn search_track_mvs(
+    key: String,
+    input: MvSearchInput,
+    backend: State<'_, Backend>,
+) -> AppResult<Vec<MvSearchGroup>> {
+    let track = backend.store.track(&key)?;
+    let mut query = input.query.trim().to_owned();
+    if query.is_empty() {
+        query = [track.title.as_str(), track.artist.as_str()]
+            .into_iter()
+            .filter(|value| !value.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ");
+    }
+    if query.is_empty() {
+        return Err("当前歌曲缺少可用于搜索 MV 的信息".into());
+    }
+    let cursor = input
+        .cursor
+        .map(crate::music::adapter::Cursor::try_from)
+        .transpose()
+        .map_err(|error| error.to_string())?;
+    let request = crate::music::mv::MvSearchRequest {
+        track: crate::music::mv::MvTrackQuery {
+            title: track.title.clone(),
+            artists: track
+                .artists
+                .iter()
+                .map(|artist| artist.name.clone())
+                .chain((!track.artist.is_empty()).then(|| track.artist.clone()))
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
+                .collect(),
+            duration_ms: track.duration_ms,
+        },
+        query,
+        page: crate::music::adapter::PageRequest { cursor, limit: 20 },
+    };
+    let sources = backend
+        .music
+        .adapters
+        .mv_sources()
+        .map_err(|error| error.to_string())?;
+    let mut groups = Vec::new();
+    for source in sources {
+        let result = backend
+            .music
+            .adapters
+            .search_mvs(&source.source, &request)
+            .await;
+        groups.push(match result {
+            Ok(page) => MvSearchGroup {
+                source: source.source.as_str().to_owned(),
+                display_name: source.display_name,
+                items: page.items,
+                next_cursor: page.next_cursor.map(|cursor| cursor.as_str().to_owned()),
+                error: None,
+            },
+            Err(error) => MvSearchGroup {
+                source: source.source.as_str().to_owned(),
+                display_name: source.display_name,
+                items: vec![],
+                next_cursor: None,
+                error: Some(error.to_string()),
+            },
+        });
+    }
+    Ok(groups)
+}
+
+#[tauri::command]
+pub async fn bind_mv(
+    key: String,
+    source: String,
+    mv_id: String,
+    title: String,
+    backend: State<'_, Backend>,
+) -> AppResult<MvBinding> {
+    backend.store.track(&key)?;
+    if title.trim().is_empty() || title.len() > 512 {
+        return Err("MV 标题无效".into());
+    }
+    let source =
+        crate::music::identity::SourceId::try_from(source).map_err(|error| error.to_string())?;
+    let available = backend
+        .music
+        .adapters
+        .mv_sources()
+        .map_err(|error| error.to_string())?
+        .iter()
+        .any(|descriptor| descriptor.source == source);
+    if !available {
+        return Err("提供该 MV 的适配器当前不可用".into());
+    }
+    let reference = crate::music::identity::EntityRef {
+        source: source.clone(),
+        kind: crate::music::identity::EntityKind::Track,
+        id: mv_id
+            .clone()
+            .try_into()
+            .map_err(|error: crate::music::MusicError| error.to_string())?,
+    };
+    backend
+        .music
+        .adapters
+        .resolve_mv(&crate::music::mv::MvResolveRequest { mv: reference }, 0)
+        .await
+        .map_err(|error| error.to_string())?;
+    backend
+        .store
+        .link_mv(&key, source.as_str(), &mv_id, &title)?;
+    Ok(MvBinding {
+        source: source.as_str().to_owned(),
+        id: mv_id,
+        title,
+        offset_ms: 0,
+        local: None,
+    })
+}
+
+#[tauri::command]
+pub async fn resolve_track_mv(key: String, backend: State<'_, Backend>) -> AppResult<String> {
+    backend.store.track(&key)?;
+    let link = backend.store.mv_link(&key)?.ok_or("当前歌曲未绑定 MV")?;
+    let reference = crate::music::identity::EntityRef {
+        source: link
+            .source
+            .try_into()
+            .map_err(|error: crate::music::MusicError| error.to_string())?,
+        kind: crate::music::identity::EntityKind::Track,
+        id: link
+            .mv_id
+            .try_into()
+            .map_err(|error: crate::music::MusicError| error.to_string())?,
+    };
+    let ticket = backend
+        .music
+        .adapters
+        .resolve_mv(&crate::music::mv::MvResolveRequest { mv: reference }, 0)
+        .await
+        .map_err(|error| error.to_string())?;
+    backend.mv_proxy.issue(ticket, 0)
+}
+
+#[tauri::command]
+pub fn unlink_mv_binding(key: String, backend: State<'_, Backend>) -> AppResult<()> {
+    backend.store.track(&key)?;
+    backend.store.unlink_mv(&key)
+}
+
+#[tauri::command]
+pub fn set_mv_offset(key: String, offset_ms: i64, backend: State<'_, Backend>) -> AppResult<()> {
+    backend.store.track(&key)?;
+    if !(-MAX_OFFSET_MS..=MAX_OFFSET_MS).contains(&offset_ms) {
+        return Err("MV 偏移须在 ±10 分钟之间".into());
+    }
+    if backend.store.mv_link(&key)?.is_some() {
+        backend.store.set_mv_offset(&key, offset_ms)
+    } else {
+        backend.store.set_local_mv_offset(&key, offset_ms)
+    }
 }
 
 #[tauri::command]
@@ -237,5 +471,28 @@ mod tests {
             store.local_mv_link("track-a").unwrap().unwrap().offset_ms,
             400
         );
+    }
+
+    #[test]
+    fn adapter_mv_link_replaces_local_fallback_and_unlinks_both() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = crate::infrastructure::storage::Store::open(
+            &directory.path().join("remote-mv.sqlite3"),
+        )
+        .unwrap();
+        store
+            .link_local_mv("track-a", r"C:\Videos\local.mp4")
+            .unwrap();
+        store
+            .link_mv("track-a", "bilibili", "BV1xx411c7mD", "MV")
+            .unwrap();
+        assert!(store.local_mv_link("track-a").unwrap().is_none());
+        let link = store.mv_link("track-a").unwrap().unwrap();
+        assert_eq!(link.source, "bilibili");
+        assert_eq!(link.mv_id, "BV1xx411c7mD");
+        store.set_mv_offset("track-a", -300).unwrap();
+        assert_eq!(store.mv_link("track-a").unwrap().unwrap().offset_ms, -300);
+        store.unlink_mv("track-a").unwrap();
+        assert!(store.mv_link("track-a").unwrap().is_none());
     }
 }

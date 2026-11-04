@@ -1,6 +1,6 @@
 //! Backend registry, admission budgets and revocable resource ownership.
 use super::{
-    account::SessionContext, adapter::*, identity::*, resource::*, ErrorCode, MusicResult,
+    account::SessionContext, adapter::*, identity::*, mv::*, resource::*, ErrorCode, MusicResult,
 };
 use std::{
     collections::BTreeMap,
@@ -69,6 +69,20 @@ impl std::fmt::Debug for ResourceTicket {
 impl ResourceTicket {
     #[cfg(test)]
     pub(crate) fn for_audio_test(url: String, headers: Vec<(String, String)>) -> Arc<Self> {
+        Self::for_audio_test_access(ResourceAccess::Http(HttpAccess { url, headers }))
+    }
+    #[cfg(test)]
+    pub(crate) fn for_audio_test_fallback(url: String, backups: Vec<String>) -> Arc<Self> {
+        Self::for_audio_test_access(ResourceAccess::HttpFallback {
+            primary: HttpAccess {
+                url,
+                headers: vec![],
+            },
+            backup_urls: backups,
+        })
+    }
+    #[cfg(test)]
+    fn for_audio_test_access(access: ResourceAccess) -> Arc<Self> {
         Arc::new(Self {
             entry: None,
             provider: None,
@@ -85,10 +99,10 @@ impl ResourceTicket {
                     cancellation: Cancellation::default(),
                 },
                 playback_generation: 0,
-                valid_until: Instant::now(),
+                valid_until: Instant::now() + Duration::from_secs(3600),
             },
             resource: PlaybackResource {
-                access: ResourceAccess::Http(HttpAccess { url, headers }),
+                access,
                 metadata: ResourceMetadata {
                     actual_quality: "test".into(),
                     extent: PlaybackExtent::Full,
@@ -102,7 +116,13 @@ impl ResourceTicket {
         if let Some(provider) = &self.provider {
             return provider.check(&self.lease, playback_generation);
         }
-        let entry = self.entry.as_ref().ok_or(ErrorCode::Internal)?;
+        let Some(entry) = self.entry.as_ref() else {
+            return self.lease.check(
+                &self.lease.context.session,
+                self.lease.context.adapter_generation,
+                playback_generation,
+            );
+        };
         if entry.generation.load(Ordering::Acquire).is_multiple_of(2) {
             return Err(ErrorCode::SourceUnavailable.into());
         }
@@ -115,6 +135,18 @@ impl ResourceTicket {
     pub(crate) fn uri(&self) -> &str {
         match &self.resource.access {
             ResourceAccess::Http(http) => &http.url,
+            ResourceAccess::HttpFallback { primary, .. } => &primary.url,
+        }
+    }
+    pub(crate) fn urls(&self) -> Vec<&str> {
+        match &self.resource.access {
+            ResourceAccess::Http(http) => vec![&http.url],
+            ResourceAccess::HttpFallback {
+                primary,
+                backup_urls,
+            } => std::iter::once(primary.url.as_str())
+                .chain(backup_urls.iter().map(String::as_str))
+                .collect(),
         }
     }
     pub(crate) fn quality(&self) -> &str {
@@ -123,6 +155,7 @@ impl ResourceTicket {
     pub(crate) fn headers(&self) -> &[(String, String)] {
         match &self.resource.access {
             ResourceAccess::Http(http) => &http.headers,
+            ResourceAccess::HttpFallback { primary, .. } => &primary.headers,
         }
     }
 }
@@ -936,6 +969,79 @@ impl AdapterManager {
         entry.check(&context)?;
         Ok(track)
     }
+    pub fn mv_sources(&self) -> MusicResult<Vec<SourceDescriptor>> {
+        Ok(self
+            .entries
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("music.mv_sources_lock", error);
+            })
+            .map_err(|_| ErrorCode::Internal)?
+            .values()
+            .filter_map(|entry| {
+                (!entry.generation.load(Ordering::Acquire).is_multiple_of(2)
+                    && entry
+                        .adapter
+                        .descriptor()
+                        .capabilities
+                        .contains(&Capability::Mv))
+                .then(|| entry.adapter.descriptor().clone())
+            })
+            .collect())
+    }
+    pub async fn search_mvs(
+        &self,
+        source: &SourceId,
+        request: &MvSearchRequest,
+    ) -> MusicResult<Page<MvCandidate>> {
+        crate::infrastructure::diagnostics::observe(source.as_str(), "searchMvs", async {
+            request.validate()?;
+            let entry = self.entry(source)?;
+            let context = Self::context(&entry, Duration::from_secs(12));
+            self.run(
+                &entry,
+                &context,
+                retry::rate_limited(|| self.search_mvs_inner(&entry, &context, request)),
+            )
+            .await
+        })
+        .await
+    }
+    async fn search_mvs_inner(
+        &self,
+        entry: &Entry,
+        context: &RequestContext,
+        request: &MvSearchRequest,
+    ) -> MusicResult<Page<MvCandidate>> {
+        entry.check(context)?;
+        if !entry
+            .adapter
+            .descriptor()
+            .capabilities
+            .contains(&Capability::Mv)
+        {
+            return Err(ErrorCode::Unsupported.into());
+        }
+        let _permit = entry
+            .reads
+            .try_acquire()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("music.mv_search_admission", error);
+            })
+            .map_err(|_| ErrorCode::RateLimited)?;
+        let page = self
+            .run(entry, context, entry.adapter.search_mvs(request, context))
+            .await?;
+        page.validate(&request.page)?;
+        for candidate in &page.items {
+            candidate.validate(&entry.adapter.descriptor().source)?;
+            candidate
+                .cover
+                .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
+        }
+        entry.check(context)?;
+        Ok(page)
+    }
     pub async fn resolve_playback(
         &self,
         request: &ResolveRequest,
@@ -964,6 +1070,80 @@ impl AdapterManager {
         )
         .await
     }
+    pub async fn resolve_mv(
+        &self,
+        request: &MvResolveRequest,
+        playback_generation: u64,
+    ) -> MusicResult<Arc<ResourceTicket>> {
+        crate::infrastructure::diagnostics::observe(
+            request.mv.source.as_str(),
+            "resolveMv",
+            async {
+                let entry = self.entry(&request.mv.source)?;
+                let context = Self::context(&entry, Duration::from_secs(12));
+                self.run(
+                    &entry,
+                    &context,
+                    retry::rate_limited(|| {
+                        self.resolve_mv_inner(
+                            entry.clone(),
+                            context.clone(),
+                            request,
+                            playback_generation,
+                        )
+                    }),
+                )
+                .await
+            },
+        )
+        .await
+    }
+    async fn resolve_mv_inner(
+        &self,
+        entry: Arc<Entry>,
+        context: RequestContext,
+        request: &MvResolveRequest,
+        playback_generation: u64,
+    ) -> MusicResult<Arc<ResourceTicket>> {
+        entry.check(&context)?;
+        request.validate(&context)?;
+        if !entry
+            .adapter
+            .descriptor()
+            .capabilities
+            .contains(&Capability::Mv)
+        {
+            return Err(ErrorCode::Unsupported.into());
+        }
+        let permit = entry
+            .playback
+            .try_acquire()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("music.mv_resolution_admission", error);
+            })
+            .map_err(|_| ErrorCode::RateLimited)?;
+        let resource = self
+            .run(
+                &entry,
+                &context,
+                entry.adapter.resolve_mv(request, &context),
+            )
+            .await?;
+        resource.metadata.require_full(now_ms())?;
+        validate_access(&resource.access)?;
+        let ttl = resource
+            .metadata
+            .expires_at_ms
+            .map(|expiry| expiry.saturating_sub(now_ms()))
+            .unwrap_or(2 * 60 * 60 * 1000)
+            .min(2 * 60 * 60 * 1000);
+        if ttl == 0 {
+            return Err(ErrorCode::DeadlineExceeded.into());
+        }
+        entry.check(&context)?;
+        drop(permit);
+        self.register_resource(entry, context, playback_generation, resource, ttl)
+    }
     async fn resolve_playback_inner(
         &self,
         entry: Arc<Entry>,
@@ -973,7 +1153,7 @@ impl AdapterManager {
     ) -> MusicResult<Arc<ResourceTicket>> {
         entry.check(&context)?;
         request.validate(&context)?;
-        let _permit = entry
+        let permit = entry
             .playback
             .try_acquire()
             .inspect_err(|error| {
@@ -999,6 +1179,17 @@ impl AdapterManager {
             return Err(ErrorCode::DeadlineExceeded.into());
         }
         entry.check(&context)?;
+        drop(permit);
+        self.register_resource(entry, context, playback_generation, resource, ttl)
+    }
+    fn register_resource(
+        &self,
+        entry: Arc<Entry>,
+        context: RequestContext,
+        playback_generation: u64,
+        resource: PlaybackResource,
+        ttl: u64,
+    ) -> MusicResult<Arc<ResourceTicket>> {
         let mut resources = self
             .resources
             .lock()
@@ -1107,7 +1298,18 @@ fn encode_cursor(cursor: &mut Option<Cursor>, scope: &str) -> MusicResult<()> {
 }
 
 fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
-    let ResourceAccess::Http(http) = access;
+    let (http, backups) = match access {
+        ResourceAccess::Http(http) => (http, &[][..]),
+        ResourceAccess::HttpFallback {
+            primary,
+            backup_urls,
+        } => {
+            if backup_urls.len() > 8 {
+                return Err(ErrorCode::InvalidData.into());
+            }
+            (primary, backup_urls.as_slice())
+        }
+    };
     if http.url.len() > 8192 {
         return Err(ErrorCode::InvalidData.into());
     }
@@ -1126,6 +1328,24 @@ fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
     }
     if !valid_audio_headers(&http.headers) {
         return Err(ErrorCode::InvalidData.into());
+    }
+    for input in backups {
+        if input.len() > 8192 {
+            return Err(ErrorCode::InvalidData.into());
+        }
+        let url = url::Url::parse(input)
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("music.audio_backup_url_parse", error);
+            })
+            .map_err(|_| ErrorCode::InvalidData)?;
+        if !matches!(url.scheme(), "https" | "http")
+            || url.host_str().is_none()
+            || !url.username().is_empty()
+            || url.password().is_some()
+            || url.fragment().is_some()
+        {
+            return Err(ErrorCode::InvalidData.into());
+        }
     }
     Ok(())
 }
@@ -1341,6 +1561,44 @@ mod tests {
                     },
                     access: ResourceAccess::Http(HttpAccess {
                         url: "https://example.com/audio?secret=hidden".into(),
+                        headers: vec![],
+                    }),
+                })
+            })
+        }
+        fn search_mvs<'a>(
+            &'a self,
+            request: &'a MvSearchRequest,
+            _: &'a RequestContext,
+        ) -> AdapterFuture<'a, Page<MvCandidate>> {
+            Box::pin(async move {
+                assert_eq!(request.query, "song");
+                Ok(Page {
+                    items: vec![MvCandidate {
+                        reference: reference_for("BV1xx411c7mD"),
+                        title: "MV".into(),
+                        uploader: "uploader".into(),
+                        duration_ms: 1000,
+                        cover: Default::default(),
+                    }],
+                    next_cursor: None,
+                })
+            })
+        }
+        fn resolve_mv<'a>(
+            &'a self,
+            _: &MvResolveRequest,
+            _: &'a RequestContext,
+        ) -> AdapterFuture<'a, PlaybackResource> {
+            Box::pin(async move {
+                Ok(PlaybackResource {
+                    metadata: ResourceMetadata {
+                        actual_quality: "1080p".into(),
+                        extent: PlaybackExtent::Full,
+                        expires_at_ms: None,
+                    },
+                    access: ResourceAccess::Http(HttpAccess {
+                        url: "https://example.com/video.m4s".into(),
                         headers: vec![],
                     }),
                 })
@@ -1599,6 +1857,43 @@ mod tests {
         resource.check(7).unwrap();
         assert_eq!(resource.check(8).unwrap_err().code, ErrorCode::StaleContext);
         manager.set_enabled(&source(), false).unwrap();
+    }
+    #[tokio::test]
+    async fn mv_capability_is_filtered_and_resolved_with_its_own_ticket_lifetime() {
+        let mut provider = adapter(false);
+        provider.descriptor.capabilities.insert(Capability::Mv);
+        let (manager, _, _) = setup(provider);
+        assert_eq!(manager.mv_sources().unwrap().len(), 1);
+        let request = MvSearchRequest {
+            track: MvTrackQuery {
+                title: "song".into(),
+                artists: vec![],
+                duration_ms: 1000,
+            },
+            query: "song".into(),
+            page: PageRequest {
+                cursor: None,
+                limit: 1,
+            },
+        };
+        let page = manager.search_mvs(&source(), &request).await.unwrap();
+        assert_eq!(page.items[0].reference.id.as_str(), "BV1xx411c7mD");
+        let ticket = manager
+            .resolve_mv(
+                &MvResolveRequest {
+                    mv: page.items[0].reference.clone(),
+                },
+                7,
+            )
+            .await
+            .unwrap();
+        ticket.check(7).unwrap();
+        manager.set_enabled(&source(), false).unwrap();
+        assert!(manager.mv_sources().unwrap().is_empty());
+        assert_eq!(
+            ticket.check(7).unwrap_err().code,
+            ErrorCode::SourceUnavailable
+        );
     }
     #[tokio::test]
     async fn busy_reads_recover_after_permits_are_released() {

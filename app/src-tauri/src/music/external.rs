@@ -1,5 +1,5 @@
 //! Backend-only v1 adapter bridge. Reuses the Component transport, never PluginManager.
-use super::{adapter::*, business::*, identity::*, resource::*, ErrorCode, MusicResult};
+use super::{adapter::*, business::*, identity::*, mv::*, resource::*, ErrorCode, MusicResult};
 use crate::{
     model::AppResult,
     wasm_runtime::{self as runtime, HostHandler, Runtime},
@@ -41,6 +41,8 @@ struct WireResource {
     metadata: ResourceMetadata,
     url: String,
     headers: Vec<(String, String)>,
+    #[serde(default)]
+    backup_urls: Vec<String>,
 }
 
 pub struct ExternalAdapter {
@@ -234,6 +236,36 @@ impl ExternalAdapter {
         })
         .map_err(|_| ErrorCode::InvalidData.into())
     }
+
+    fn wire_resource(&self, wire: WireResource, operation: &str) -> MusicResult<PlaybackResource> {
+        let mut urls =
+            std::iter::once(wire.url.as_str()).chain(wire.backup_urls.iter().map(String::as_str));
+        if let Some(services) = &self.services {
+            for url in urls.by_ref() {
+                crate::infrastructure::http::checked_url(&services.permissions.http_hosts, url)
+                    .inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn(operation, error);
+                    })
+                    .map_err(|_| ErrorCode::PermissionDenied)?;
+            }
+        }
+        let primary = HttpAccess {
+            url: wire.url,
+            headers: wire.headers,
+        };
+        let access = if wire.backup_urls.is_empty() {
+            ResourceAccess::Http(primary)
+        } else {
+            ResourceAccess::HttpFallback {
+                primary,
+                backup_urls: wire.backup_urls,
+            }
+        };
+        Ok(PlaybackResource {
+            metadata: wire.metadata,
+            access,
+        })
+    }
 }
 
 /// Uses the shared Component executor and Host, without registering a music platform.
@@ -287,22 +319,8 @@ impl super::provider::ResourceProvider for ResourceComponent {
                     Some(context),
                 )
                 .await?;
-            let services = self.runtime.services.as_ref().ok_or(ErrorCode::Internal)?;
-            crate::infrastructure::http::checked_url(&services.permissions.http_hosts, &wire.url)
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn(
-                        "adapter.resource_url_permissions",
-                        error,
-                    );
-                })
-                .map_err(|_| ErrorCode::PermissionDenied)?;
-            Ok(PlaybackResource {
-                metadata: wire.metadata,
-                access: ResourceAccess::Http(HttpAccess {
-                    url: wire.url,
-                    headers: wire.headers,
-                }),
-            })
+            self.runtime
+                .wire_resource(wire, "adapter.resource_url_permissions")
         })
     }
     fn search<'a>(
@@ -356,26 +374,7 @@ impl MusicAdapter for ExternalAdapter {
                     Some(context),
                 )
                 .await?;
-            if let Some(services) = &self.services {
-                crate::infrastructure::http::checked_url(
-                    &services.permissions.http_hosts,
-                    &wire.url,
-                )
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn(
-                        "adapter.alternate_resource_url_permissions",
-                        error,
-                    );
-                })
-                .map_err(|_| ErrorCode::PermissionDenied)?;
-            }
-            Ok(PlaybackResource {
-                metadata: wire.metadata,
-                access: ResourceAccess::Http(HttpAccess {
-                    url: wire.url,
-                    headers: wire.headers,
-                }),
-            })
+            self.wire_resource(wire, "adapter.alternate_resource_url_permissions")
         })
     }
     fn cancel_login(&self, key: &str) {
@@ -425,6 +424,49 @@ impl MusicAdapter for ExternalAdapter {
             .await
         })
     }
+    fn search_mvs<'a>(
+        &'a self,
+        request: &'a MvSearchRequest,
+        context: &'a RequestContext,
+    ) -> AdapterFuture<'a, Page<MvCandidate>> {
+        Box::pin(async move {
+            request.validate()?;
+            let page: Page<MvCandidate> = self
+                .invoke(
+                    "music.search-mvs",
+                    &Self::arguments(request, context)?,
+                    false,
+                    Some(context),
+                )
+                .await?;
+            page.validate(&request.page)?;
+            for candidate in &page.items {
+                candidate.validate(&self.descriptor.source)?;
+                candidate
+                    .cover
+                    .validate_hosts(&self.descriptor.cover_hosts)?;
+            }
+            Ok(page)
+        })
+    }
+    fn resolve_mv<'a>(
+        &'a self,
+        request: &'a MvResolveRequest,
+        context: &'a RequestContext,
+    ) -> AdapterFuture<'a, PlaybackResource> {
+        Box::pin(async move {
+            request.validate(context)?;
+            let wire: WireResource = self
+                .invoke(
+                    "music.resolve-mv",
+                    &Self::arguments(request, context)?,
+                    true,
+                    Some(context),
+                )
+                .await?;
+            self.wire_resource(wire, "adapter.mv_url_permissions")
+        })
+    }
     fn resolve_playback<'a>(
         &'a self,
         request: &'a ResolveRequest,
@@ -440,26 +482,7 @@ impl MusicAdapter for ExternalAdapter {
                     Some(context),
                 )
                 .await?;
-            if let Some(services) = &self.services {
-                crate::infrastructure::http::checked_url(
-                    &services.permissions.http_hosts,
-                    &wire.url,
-                )
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn(
-                        "adapter.playback_url_permissions",
-                        error,
-                    );
-                })
-                .map_err(|_| ErrorCode::PermissionDenied)?;
-            }
-            Ok(PlaybackResource {
-                metadata: wire.metadata,
-                access: ResourceAccess::Http(HttpAccess {
-                    url: wire.url,
-                    headers: wire.headers,
-                }),
-            })
+            self.wire_resource(wire, "adapter.playback_url_permissions")
         })
     }
 }

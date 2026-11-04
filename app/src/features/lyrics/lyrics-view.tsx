@@ -36,7 +36,6 @@ import { useLyricsSettings } from './use-lyrics-settings'
 import { Panel } from '@/components/ui/panel'
 import { Spinner } from '@/components/ui/spinner'
 import { LocalMvStage } from '@/features/mv/local-mv-stage'
-import { localMvSource } from '@/features/mv/local-mv'
 import { useLocalMv } from '@/features/mv/use-local-mv'
 import { MvAlignmentPopover } from '@/features/mv/mv-alignment-popover'
 import { MvPanel } from '@/features/mv/mv-panel'
@@ -149,11 +148,7 @@ export default function LyricsView({
   const [error, setError] = useState<string>()
   const playbackError = error
   const mv = useLocalMv(track?.key, setError)
-  const localMvUrl = useMemo(
-    () => (mv.selection?.available ? localMvSource(mv.selection) : undefined),
-    [mv.selection]
-  )
-  const mvActive = !mobile && mv.mode === 'mv' && !!localMvUrl
+  const mvActive = !mobile && mv.mode === 'mv' && !!mv.selection?.url
   const showMv = mvActive && (open || !hidden)
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
@@ -487,10 +482,10 @@ export default function LyricsView({
         />
       ) : (
         <>
-          {showMv && localMvUrl && (
+          {showMv && mv.selection && (
             <LocalMvStage
-              key={mv.selection?.path}
-              source={localMvUrl}
+              key={mv.selection.url}
+              source={mv.selection.url}
               active={isPresent}
               offsetMs={mv.selection?.offsetMs ?? 0}
               onError={(cause) => setError(errorText(cause))}
@@ -603,13 +598,22 @@ export default function LyricsView({
                         value: 'mv',
                         content: (
                           <MvPanel
+                            trackKey={track.key}
+                            defaultQuery={[track.title, track.artist].filter(Boolean).join(' ')}
                             selection={mv.selection}
                             linked={mv.linked}
                             busy={mv.busy}
+                            onError={setError}
                             onChoose={() => void mv.choose()}
                             onApply={() => {
                               void mv.apply().then((applied) => {
                                 if (applied) setPanelPage('lyrics')
+                              })
+                            }}
+                            onBind={(source, id, title) => {
+                              return mv.bindRemote(source, id, title).then((applied) => {
+                                if (applied) setPanelPage('lyrics')
+                                return applied
                               })
                             }}
                             onCancel={() => setPanelPage('lyrics')}

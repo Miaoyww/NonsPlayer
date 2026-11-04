@@ -25,6 +25,13 @@ pub struct LocalMvLink {
     pub offset_ms: i64,
 }
 
+pub struct MvLink {
+    pub source: String,
+    pub mv_id: String,
+    pub title: String,
+    pub offset_ms: i64,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LyricCacheScope {
     Persistent,
@@ -108,6 +115,7 @@ impl Store {
             CREATE TABLE IF NOT EXISTS local_playlists (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, playlist_type TEXT NOT NULL DEFAULT 'aggregate');
             CREATE TABLE IF NOT EXISTS local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, manual INTEGER NOT NULL DEFAULT 1, remote INTEGER NOT NULL DEFAULT 0, excluded INTEGER NOT NULL DEFAULT 0, value TEXT NOT NULL, PRIMARY KEY(playlist_id,key));
             CREATE TABLE IF NOT EXISTS local_mv_links (track_key TEXT PRIMARY KEY, path TEXT NOT NULL, offset_ms INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS mv_links (track_key TEXT PRIMARY KEY, source TEXT NOT NULL, mv_id TEXT NOT NULL, title TEXT NOT NULL, offset_ms INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS download_local_tracks (track_key TEXT PRIMARY KEY, path TEXT NOT NULL, quality TEXT, updated_at INTEGER NOT NULL);
             CREATE INDEX IF NOT EXISTS local_audio_path ON tracks(json_extract(value,'$.source.path')) WHERE source='local';
             CREATE VIEW IF NOT EXISTS visible_local_tracks AS
@@ -519,19 +527,23 @@ impl Store {
     }
 
     pub fn link_local_mv(&self, key: &str, path: &str) -> AppResult<()> {
-        self.0
+        let mut db = self
+            .0
             .lock()
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn("storage.link_local_mv.lock", error);
             })
-            .map_err(|_| "本地 MV 关联锁不可用")?
-            .execute(
+            .map_err(|_| "本地 MV 关联锁不可用")?;
+        let tx = db.transaction().map_err(|e| e.to_string())?;
+        tx.execute("DELETE FROM mv_links WHERE track_key=?1", [key])
+            .map_err(|e| e.to_string())?;
+        tx.execute(
                 "INSERT INTO local_mv_links(track_key,path,offset_ms,updated_at) VALUES(?1,?2,0,?3)
                  ON CONFLICT(track_key) DO UPDATE SET path=excluded.path,offset_ms=0,updated_at=excluded.updated_at",
                 params![key, path, now_seconds()],
             )
             .map_err(|e| e.to_string())?;
-        Ok(())
+        tx.commit().map_err(|e| e.to_string())
     }
 
     pub fn unlink_local_mv(&self, key: &str) -> AppResult<()> {
@@ -561,6 +573,84 @@ impl Store {
             .map_err(|e| e.to_string())?;
         if updated == 0 {
             return Err("本地 MV 关联不存在".into());
+        }
+        Ok(())
+    }
+
+    pub fn mv_link(&self, key: &str) -> AppResult<Option<MvLink>> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.mv_link.lock", error);
+            })
+            .map_err(|_| "MV 关联锁不可用")?
+            .query_row(
+                "SELECT source,mv_id,title,offset_ms FROM mv_links WHERE track_key=?1",
+                [key],
+                |row| {
+                    Ok(MvLink {
+                        source: row.get(0)?,
+                        mv_id: row.get(1)?,
+                        title: row.get(2)?,
+                        offset_ms: row.get(3)?,
+                    })
+                },
+            )
+            .optional()
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn link_mv(&self, key: &str, source: &str, mv_id: &str, title: &str) -> AppResult<()> {
+        let mut db = self
+            .0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.link_mv.lock", error);
+            })
+            .map_err(|_| "MV 关联锁不可用")?;
+        let tx = db.transaction().map_err(|e| e.to_string())?;
+        tx.execute("DELETE FROM local_mv_links WHERE track_key=?1", [key])
+            .map_err(|e| e.to_string())?;
+        tx.execute(
+            "INSERT INTO mv_links(track_key,source,mv_id,title,offset_ms,updated_at) VALUES(?1,?2,?3,?4,0,?5)
+             ON CONFLICT(track_key) DO UPDATE SET source=excluded.source,mv_id=excluded.mv_id,title=excluded.title,offset_ms=0,updated_at=excluded.updated_at",
+            params![key, source, mv_id, title, now_seconds()],
+        )
+        .map_err(|e| e.to_string())?;
+        tx.commit().map_err(|e| e.to_string())
+    }
+
+    pub fn unlink_mv(&self, key: &str) -> AppResult<()> {
+        let mut db = self
+            .0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.unlink_mv.lock", error);
+            })
+            .map_err(|_| "MV 关联锁不可用")?;
+        let tx = db.transaction().map_err(|e| e.to_string())?;
+        tx.execute("DELETE FROM local_mv_links WHERE track_key=?1", [key])
+            .map_err(|e| e.to_string())?;
+        tx.execute("DELETE FROM mv_links WHERE track_key=?1", [key])
+            .map_err(|e| e.to_string())?;
+        tx.commit().map_err(|e| e.to_string())
+    }
+
+    pub fn set_mv_offset(&self, key: &str, offset_ms: i64) -> AppResult<()> {
+        let updated = self
+            .0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.set_mv_offset.lock", error);
+            })
+            .map_err(|_| "MV 关联锁不可用")?
+            .execute(
+                "UPDATE mv_links SET offset_ms=?2,updated_at=?3 WHERE track_key=?1",
+                params![key, offset_ms, now_seconds()],
+            )
+            .map_err(|e| e.to_string())?;
+        if updated == 0 {
+            return Err("MV 关联不存在".into());
         }
         Ok(())
     }

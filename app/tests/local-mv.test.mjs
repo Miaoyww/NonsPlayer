@@ -65,6 +65,16 @@ async function hookHarness(stored, picked) {
     }
   }
   const exports = {}
+  const storedBinding =
+    stored && stored.source
+      ? stored
+      : stored && {
+          source: 'local',
+          id: '',
+          title: stored.name,
+          offsetMs: stored.offsetMs,
+          local: stored
+        }
   runInNewContext(
     ts.transpileModule(
       readFileSync(new URL('../src/features/mv/use-local-mv.ts', import.meta.url), 'utf8'),
@@ -78,15 +88,17 @@ async function hookHarness(stored, picked) {
           return {
             clampLocalMvOffset: (value) => Math.max(-600_000, Math.min(600_000, Math.round(value)))
           }
+        if (name === './local-mv') return { localMvSource: (mv) => `asset://${mv.path}` }
         assert.equal(name, '@/lib/player')
         return {
           errorText: String,
           nativeCall: async (command, args) => {
             calls.push({ command, ...args })
-            if (command === 'local_mv') return stored
+            if (command === 'track_mv') return storedBinding
             if (command === 'pick_local_mv') return picked
             if (command === 'link_local_mv') return picked
-            if (command === 'unlink_local_mv') return
+            if (command === 'unlink_mv_binding') return
+            if (command === 'resolve_track_mv') return 'http://127.0.0.1/mv'
           }
         }
       }
@@ -141,7 +153,7 @@ test('an unlinked MV click opens selection without leaving lyrics mode', async (
   assert.equal(harness.current.mode, 'lyrics')
   assert.deepEqual(
     harness.calls.map((call) => call.command),
-    ['local_mv']
+    ['track_mv']
   )
 })
 
@@ -151,14 +163,14 @@ test('choosing a video stays pending until apply links the current track', async
   await harness.toggle()
   await harness.choose()
   assert.equal(harness.current.mode, 'lyrics')
-  assert.equal(harness.current.selection.name, 'live.mp4')
+  assert.equal(harness.current.selection.title, 'live.mp4')
   assert.equal(harness.current.linked, false)
   assert.equal(await harness.apply(), true)
   assert.equal(harness.current.mode, 'mv')
   assert.equal(harness.current.linked, true)
   assert.deepEqual(
     harness.calls.map((call) => call.command),
-    ['local_mv', 'pick_local_mv', 'link_local_mv']
+    ['track_mv', 'pick_local_mv', 'link_local_mv']
   )
   assert.deepEqual(harness.calls.at(-1), {
     command: 'link_local_mv',
@@ -179,12 +191,12 @@ test('an existing association switches immediately and cancelling a picker keeps
   assert.equal(linked.current.mode, 'mv')
   assert.deepEqual(
     linked.calls.map((call) => call.command),
-    ['local_mv']
+    ['track_mv']
   )
   await linked.setOffset(1_000)
   assert.equal(linked.current.selection.offsetMs, 1_000)
   assert.deepEqual(linked.calls.at(-1), {
-    command: 'set_local_mv_offset',
+    command: 'set_mv_offset',
     key: 'track-a',
     offsetMs: 1_000
   })
@@ -196,7 +208,7 @@ test('an existing association switches immediately and cancelling a picker keeps
   assert.equal(cancelled.current.mode, 'lyrics')
   assert.deepEqual(
     cancelled.calls.map((call) => call.command),
-    ['local_mv', 'pick_local_mv']
+    ['track_mv', 'pick_local_mv']
   )
 })
 
@@ -211,10 +223,10 @@ test('an unavailable association opens selection instead of the missing MV', asy
   assert.equal(await harness.toggle(), 'select')
   assert.equal(harness.current.mode, 'lyrics')
   assert.equal(harness.current.linked, true)
-  assert.equal(harness.current.selection.available, false)
+  assert.equal(harness.current.selection, undefined)
   assert.deepEqual(
     harness.calls.map((call) => call.command),
-    ['local_mv']
+    ['track_mv']
   )
 })
 
@@ -238,6 +250,26 @@ test('menu lookup finds an existing binding and unlinking resets the MV state', 
   assert.equal(harness.current.mode, 'lyrics')
   assert.deepEqual(
     harness.calls.map((call) => call.command),
-    ['local_mv', 'unlink_local_mv']
+    ['track_mv', 'unlink_mv_binding']
   )
+})
+
+test('adapter MV resolves through the host proxy and uses the unified offset command', async () => {
+  const binding = {
+    source: 'bilibili',
+    id: 'BV1xx411c7mD',
+    title: 'Official MV',
+    offsetMs: 0
+  }
+  const harness = await hookHarness(binding, null)
+  assert.equal(await harness.toggle(), 'mv')
+  assert.equal(harness.current.mode, 'mv')
+  assert.equal(harness.current.selection.url, 'http://127.0.0.1/mv')
+  assert.equal(harness.current.selection.local, false)
+  await harness.setOffset(200)
+  assert.deepEqual(harness.calls.at(-1), {
+    command: 'set_mv_offset',
+    key: 'track-a',
+    offsetMs: 200
+  })
 })

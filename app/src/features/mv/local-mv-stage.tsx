@@ -61,7 +61,7 @@ export function LocalMvStage({
         errorHandler.current(new Error('本地 MV 无法开始播放。'))
       })
     }
-  }, [offsetMs, playing])
+  }, [source, offsetMs, playing])
 
   useEffect(() => {
     if (playing) return

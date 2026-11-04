@@ -409,6 +409,49 @@ mod tests {
             .iter()
             .any(|status| status.descriptor.source == qq && status.enabled));
     }
+    #[tokio::test]
+    #[ignore = "Requires the built bundled Bilibili Component; no credentials or network needed"]
+    async fn built_bilibili_component_registers_from_the_real_startup_directory() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Arc::new(
+            crate::storage::Store::open(&directory.path().join("accounts.sqlite3")).unwrap(),
+        );
+        let accounts =
+            Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets::default())).unwrap());
+        let (music, _) = service(accounts).unwrap();
+        let music = Arc::new(music);
+        let settings =
+            super::super::settings::AdapterSettings::new(store.clone(), music.adapters.clone())
+                .unwrap();
+        let packages = prepare_components(
+            &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bundled-adapters"),
+            &music.adapters,
+        )
+        .unwrap();
+        assert!(music
+            .adapters
+            .statuses()
+            .unwrap()
+            .iter()
+            .any(|status| { status.descriptor.source.as_str() == "bilibili" && status.loading }));
+        load_components(
+            packages,
+            &music,
+            store,
+            Arc::new(crate::infrastructure::http::Http::new().unwrap()),
+            &settings,
+        )
+        .await
+        .expect("哔哩哔哩必须经真实启动加载路径注册");
+        let descriptor = music
+            .adapters
+            .descriptors()
+            .unwrap()
+            .into_iter()
+            .find(|descriptor| descriptor.source.as_str() == "bilibili")
+            .unwrap();
+        assert!(descriptor.capabilities.contains(&Capability::Mv));
+    }
     impl CredentialStore for Secrets {
         fn read(&self, key: &str) -> MusicResult<Option<Vec<u8>>> {
             Ok(self.0.lock().unwrap().get(key).cloned())

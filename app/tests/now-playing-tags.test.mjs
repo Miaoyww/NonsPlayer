@@ -43,8 +43,10 @@ function harness() {
         })
       )
       return {
-        sourceTag: nodes.find((node) =>
-          String(node.props?.['aria-label'] ?? node.props?.title ?? '').includes('歌曲来源')
+        sourceTag: nodes.find(
+          (node) =>
+            (node.type === 'button' || node.type === 'span') &&
+            String(node.props?.['aria-label'] ?? node.props?.title ?? '').includes('歌曲来源')
         ),
         dialog: nodes.find((node) => node.type === 'SongSourceDialog')
       }

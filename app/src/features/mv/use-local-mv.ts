@@ -1,14 +1,41 @@
 import { errorText, nativeCall } from '@/lib/player'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { LocalMv } from './local-mv'
 import { clampLocalMvOffset } from './sync'
+import { localMvSource, type LocalMv, type MvBinding, type MvSelection } from './local-mv'
 
 export type FullscreenDisplayMode = 'lyrics' | 'mv'
 export type MvActivation = FullscreenDisplayMode | 'select'
 
+async function remoteSource(binding: MvBinding, key: string) {
+  const url = await nativeCall<string>('resolve_track_mv', { key })
+  return {
+    source: binding.source,
+    id: binding.id,
+    title: binding.title,
+    offsetMs: binding.offsetMs,
+    url,
+    local: false
+  } satisfies MvSelection
+}
+
+async function view(binding: MvBinding, key: string) {
+  if (binding.source === 'local' && binding.local?.available)
+    return {
+      source: 'local',
+      id: '',
+      title: binding.local.name,
+      offsetMs: binding.offsetMs,
+      url: localMvSource(binding.local),
+      local: true,
+      localPath: binding.local.path
+    } satisfies MvSelection
+  if (binding.source !== 'local') return remoteSource(binding, key)
+  return undefined
+}
+
 export function useLocalMv(trackKey: string | undefined, onError: (message: string) => void) {
   const [mode, setMode] = useState<FullscreenDisplayMode>('lyrics')
-  const [selection, setSelection] = useState<LocalMv>()
+  const [selection, setSelection] = useState<MvSelection>()
   const [linked, setLinked] = useState(false)
   const [busy, setBusy] = useState(false)
   const generation = useRef(0)
@@ -35,6 +62,36 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
     []
   )
 
+  const activate = useCallback(
+    async (binding: MvBinding) => {
+      if (!trackKey) return undefined
+      const serial = ++generation.current
+      picking.current = true
+      setBusy(true)
+      try {
+        const value = await view(binding, trackKey)
+        if (serial !== generation.current) return undefined
+        if (!value) {
+          setLinked(true)
+          return 'select'
+        }
+        setSelection(value)
+        setLinked(true)
+        setMode('mv')
+        return 'mv'
+      } catch (cause) {
+        if (serial === generation.current) onError(errorText(cause))
+        return 'select'
+      } finally {
+        if (serial === generation.current) {
+          picking.current = false
+          setBusy(false)
+        }
+      }
+    },
+    [onError, trackKey]
+  )
+
   const toggle = useCallback(async (): Promise<MvActivation | undefined> => {
     if (!trackKey || picking.current) return undefined
     if (mode === 'mv') {
@@ -45,15 +102,13 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
     picking.current = true
     setBusy(true)
     try {
-      const value = await nativeCall<LocalMv | null>('local_mv', { key: trackKey })
+      const value = await nativeCall<MvBinding | null>('track_mv', { key: trackKey })
       if (serial !== generation.current) return undefined
-      setSelection(value ?? undefined)
-      setLinked(!!value)
-      if (value?.available) {
-        setMode('mv')
-        return 'mv'
+      if (!value) {
+        setLinked(false)
+        return 'select'
       }
-      return 'select'
+      return await activate(value)
     } catch (cause) {
       if (serial === generation.current) onError(errorText(cause))
       return undefined
@@ -63,7 +118,7 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
         setBusy(false)
       }
     }
-  }, [mode, onError, trackKey])
+  }, [activate, mode, onError, trackKey])
 
   const choose = useCallback(async () => {
     if (!trackKey || picking.current) return
@@ -73,7 +128,15 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
     try {
       const value = await nativeCall<LocalMv | null>('pick_local_mv', { key: trackKey })
       if (serial !== generation.current || !value) return
-      setSelection(value)
+      setSelection({
+        source: 'local',
+        id: '',
+        title: value.name,
+        offsetMs: value.offsetMs,
+        url: localMvSource(value),
+        local: true,
+        localPath: value.path
+      })
       setLinked(false)
     } catch (cause) {
       if (serial === generation.current) onError(errorText(cause))
@@ -85,8 +148,36 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
     }
   }, [onError, trackKey])
 
+  const bindRemote = useCallback(
+    async (source: string, id: string, title: string) => {
+      if (!trackKey || picking.current) return false
+      const serial = ++generation.current
+      picking.current = true
+      setBusy(true)
+      try {
+        const binding = await nativeCall<MvBinding>('bind_mv', {
+          key: trackKey,
+          source,
+          mvId: id,
+          title
+        })
+        if (serial !== generation.current) return false
+        return (await activate(binding)) === 'mv'
+      } catch (cause) {
+        if (serial === generation.current) onError(errorText(cause))
+        return false
+      } finally {
+        if (serial === generation.current) {
+          picking.current = false
+          setBusy(false)
+        }
+      }
+    },
+    [activate, onError, trackKey]
+  )
+
   const apply = useCallback(async () => {
-    if (!trackKey || !selection?.available || picking.current) return false
+    if (!trackKey || !selection || picking.current) return false
     const serial = ++generation.current
     picking.current = true
     setBusy(true)
@@ -95,13 +186,20 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
         setMode('mv')
         return true
       }
-      const value = await nativeCall<LocalMv>('link_local_mv', {
+      if (!selection.localPath) return false
+      const local = await nativeCall<LocalMv>('link_local_mv', {
         key: trackKey,
-        path: selection.path
+        path: selection.localPath
       })
       if (serial !== generation.current) return false
-      setSelection(value)
       setLinked(true)
+      setSelection({
+        ...selection,
+        title: local.name,
+        offsetMs: local.offsetMs,
+        url: localMvSource(local),
+        localPath: local.path
+      })
       setMode('mv')
       return true
     } catch (cause) {
@@ -116,25 +214,35 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
   }, [linked, onError, selection, trackKey])
 
   const refreshBinding = useCallback(async () => {
-    if (!trackKey || linked || picking.current) return
+    if (!trackKey || picking.current) return
     const serial = ++generation.current
     try {
-      const value = await nativeCall<LocalMv | null>('local_mv', { key: trackKey })
+      const value = await nativeCall<MvBinding | null>('track_mv', { key: trackKey })
       if (serial !== generation.current) return
-      setSelection(value ?? undefined)
       setLinked(!!value)
+      if (value?.source === 'local' && value.local?.available) {
+        setSelection({
+          source: 'local',
+          id: '',
+          title: value.local.name,
+          offsetMs: value.local.offsetMs,
+          url: localMvSource(value.local),
+          local: true,
+          localPath: value.local.path
+        })
+      }
     } catch (cause) {
       if (serial === generation.current) onError(errorText(cause))
     }
-  }, [linked, onError, trackKey])
+  }, [onError, trackKey])
 
   const unlink = useCallback(async () => {
-    if (!trackKey || !linked || picking.current) return false
+    if (!trackKey || picking.current) return false
     const serial = ++generation.current
     picking.current = true
     setBusy(true)
     try {
-      await nativeCall('unlink_local_mv', { key: trackKey })
+      await nativeCall('unlink_mv_binding', { key: trackKey })
       if (serial !== generation.current) return false
       offsetWrite.current++
       setSelection(undefined)
@@ -150,18 +258,18 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
         setBusy(false)
       }
     }
-  }, [linked, onError, trackKey])
+  }, [onError, trackKey])
 
   const setOffset = useCallback(
     async (value: number) => {
-      if (!trackKey || !linked || !selection?.available) return
+      if (!trackKey || !linked || !selection) return
       const next = clampLocalMvOffset(value)
       if (next === selection.offsetMs) return
       const previous = selection.offsetMs
       const write = ++offsetWrite.current
       setSelection((current) => (current ? { ...current, offsetMs: next } : current))
       try {
-        await nativeCall('set_local_mv_offset', { key: trackKey, offsetMs: next })
+        await nativeCall('set_mv_offset', { key: trackKey, offsetMs: next })
       } catch (cause) {
         if (write === offsetWrite.current && currentTrack.current === trackKey) {
           setSelection((current) => (current ? { ...current, offsetMs: previous } : current))
@@ -180,6 +288,7 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
     toggle,
     choose,
     apply,
+    bindRemote,
     refreshBinding,
     unlink,
     setOffset

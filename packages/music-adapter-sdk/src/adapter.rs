@@ -29,6 +29,7 @@ pub enum Capability {
     Recommendations,
     PrivateFm,
     Lyrics,
+    Mv,
     Download,
 }
 
@@ -336,6 +337,20 @@ pub trait MusicAdapter: Send + Sync {
         _request: &'a super::business::BusinessRequest,
         _context: &'a RequestContext,
     ) -> AdapterFuture<'a, super::business::BusinessResponse> {
+        Box::pin(async { Err(ErrorCode::Unsupported.into()) })
+    }
+    fn search_mvs<'a>(
+        &'a self,
+        _request: &'a super::mv::MvSearchRequest,
+        _context: &'a RequestContext,
+    ) -> AdapterFuture<'a, Page<super::mv::MvCandidate>> {
+        Box::pin(async { Err(ErrorCode::Unsupported.into()) })
+    }
+    fn resolve_mv<'a>(
+        &'a self,
+        _request: &'a super::mv::MvResolveRequest,
+        _context: &'a RequestContext,
+    ) -> AdapterFuture<'a, PlaybackResource> {
         Box::pin(async { Err(ErrorCode::Unsupported.into()) })
     }
     fn account<'a>(

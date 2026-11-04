@@ -35,6 +35,7 @@ pub(crate) struct Backend {
     pub(crate) cover_client: reqwest::Client,
     pub(crate) cover_requests: Arc<tokio::sync::Semaphore>,
     pub(crate) online_covers: Arc<crate::infrastructure::covers::CoverCache>,
+    pub(crate) mv_proxy: crate::mv::MvProxy,
 }
 
 #[tauri::command]
@@ -1066,6 +1067,7 @@ pub fn run() {
                 data.join("temp").join("downloads"),
             )?;
             let downloads_startup = downloads.clone();
+            let mv_proxy = crate::mv::MvProxy::new()?;
             let plugins_startup = tauri::async_runtime::spawn(async move {
                 plugin_manager.startup().await;
             });
@@ -1086,6 +1088,7 @@ pub fn run() {
                 cover_client,
                 cover_requests,
                 online_covers,
+                mv_proxy,
             });
             let telemetry_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -1300,6 +1303,12 @@ pub fn run() {
             crate::lyrics::correction::preview_local_ttml,
             crate::lyrics::correction::set_lyric_correction,
             crate::mv::local_mv,
+            crate::mv::track_mv,
+            crate::mv::search_track_mvs,
+            crate::mv::bind_mv,
+            crate::mv::resolve_track_mv,
+            crate::mv::unlink_mv_binding,
+            crate::mv::set_mv_offset,
             crate::mv::pick_local_mv,
             crate::mv::link_local_mv,
             crate::mv::unlink_local_mv,
