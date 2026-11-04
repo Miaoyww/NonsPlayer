@@ -1,4 +1,5 @@
 import { CurrentTrackLike } from '@/features/playback/now-playing/current-track-like'
+import { CurrentTrackCollect } from '@/features/playback/now-playing/current-track-collect'
 import { statusLabels, usePlayer } from '@/lib/player'
 import { PlaybackTimeline } from '@/features/playback/controls/playback-timeline'
 import { PlaybackTransport } from '@/features/playback/controls/playback-transport'
@@ -18,10 +19,15 @@ export function FullscreenPlaybackBar({
   return (
     <footer className="fullscreen-playback-bar" aria-label="全屏播放控制">
       <div className="fullscreen-playback-bar-surface">
-        <PlaybackTimeline layout="edge" showTimeOnHover onError={onError} />
-        <PlaybackTransport withModes onError={onError} />
-        <div className="persistent-options">
+        <div className="fullscreen-playback-left">
           <CurrentTrackLike track={track} onError={onError} />
+          <CurrentTrackCollect track={track} />
+        </div>
+        <div className="fullscreen-playback-main">
+          <PlaybackTransport withModes onError={onError} />
+          <PlaybackTimeline layout="inline" onError={onError} />
+        </div>
+        <div className="persistent-options">
           <DesktopLyricsButton onError={onError} />
           <VolumeControl onError={onError} />
           <QueuePopover onPage={onQueue} onError={onError} />

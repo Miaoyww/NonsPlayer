@@ -473,6 +473,7 @@ export default function LyricsView({
                     source={source}
                     loading={loading}
                     onRefresh={() => void requestLyrics(true)}
+                    showCollect={false}
                   />
                 </div>
                 <NowPlayingTags

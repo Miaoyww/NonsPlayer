@@ -1,4 +1,5 @@
 .now-playing {
+  --background: oklch(0.23 0.015 260);
   --foreground: oklch(0.99 0 0);
   --muted-foreground: oklch(0.99 0 0 / 76%);
   --primary: oklch(0.99 0 0);
@@ -886,7 +887,7 @@ button.now-playing-tag:focus-visible {
   z-index: 20;
   display: flex;
   justify-content: center;
-  padding: 24px 32px 12px;
+  padding: 0;
   opacity: 0;
   transition: opacity 180ms ease;
 }
@@ -899,18 +900,40 @@ button.now-playing-tag:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 24px;
-  width: min(1120px, 100%);
-  padding: 8px 20px 10px;
+  column-gap: 24px;
+  width: 100%;
+  padding: 8px 20px 0;
   background: transparent;
   opacity: 0.72;
 }
-.fullscreen-playback-bar-surface > .now-playing-transport {
+.fullscreen-playback-left {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.fullscreen-playback-main {
   grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+}
+.fullscreen-playback-main > .now-playing-transport {
   gap: 4px;
+  zoom: 0.75;
 }
 .fullscreen-playback-bar-surface > .persistent-options {
   grid-column: 3;
+}
+.fullscreen-playback-main > .playback-timeline {
+  width: max-content;
+  margin-block: 4px;
+}
+.fullscreen-playback-main > .playback-timeline-inline {
+  grid-template-columns: max-content 380px max-content;
 }
 .fullscreen-playback-bar .playback-like[aria-pressed='true'] {
   color: rgb(255 255 255);

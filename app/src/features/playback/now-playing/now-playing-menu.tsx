@@ -26,13 +26,15 @@ export function NowPlayingMenu({
   source,
   loading,
   onRefresh,
-  showLike = true
+  showLike = true,
+  showCollect = true
 }: {
   track?: Track
   source?: string
   loading: boolean
   onRefresh: () => void
   showLike?: boolean
+  showCollect?: boolean
 }) {
   const actions = useSongActions()
   const [sourcesOpen, setSourcesOpen] = useState(false)
@@ -115,7 +117,7 @@ export function NowPlayingMenu({
                     {likesRefreshing ? '正在读取收藏状态…' : '重新读取收藏状态'}
                   </Menu.Item>
                 )}
-              {track && (track.source.kind === 'local' || canCollect) && (
+              {showCollect && track && (track.source.kind === 'local' || canCollect) && (
                 <Menu.Item disabled={!desktop} onClick={() => actions.collect(track)}>
                   <FolderPlus aria-hidden="true" />
                   {track.source.kind === 'local' ? '添加到本地歌单' : '收藏到歌单'}
