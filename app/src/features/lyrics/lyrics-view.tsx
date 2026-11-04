@@ -16,6 +16,8 @@ import { CoverContextMenu } from '@/features/playback/now-playing/cover-context-
 import { AlbumBackground } from '@/features/lyrics/album-background'
 import { FullscreenPlaybackBar } from '@/features/playback/bar/fullscreen-playback-bar'
 import { NowPlayingMenu } from '@/features/playback/now-playing/now-playing-menu'
+import { NowPlayingTags } from '@/features/playback/now-playing/now-playing-tags'
+import { LyricCorrectionDialog } from '@/features/lyrics/correction-dialog'
 import {
   getLyricSources,
   useLyricSources,
@@ -89,7 +91,15 @@ export default function LyricsView({
       reportCaughtError('app/src/features/lyrics/lyrics-view.tsx', cause)
     })
   }, [])
-  const state = usePlayer('error', 'index', 'mediaError', 'queue', 'revision', 'status')
+  const state = usePlayer(
+    'actualQuality',
+    'error',
+    'index',
+    'mediaError',
+    'queue',
+    'revision',
+    'status'
+  )
   const track = state.index !== null ? state.queue[state.index] : undefined
   const trackVersion = useMemo(() => lyricTrackVersion(track), [track])
   const aliasText = track
@@ -105,6 +115,7 @@ export default function LyricsView({
     revision: number
     lines: LyricLine[]
     source?: string
+    format?: Lyrics['format']
     selection: LyricSources
     version: string
     preferences: typeof localPreferences
@@ -124,6 +135,7 @@ export default function LyricsView({
   const playbackError = error
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
+  const [lyricsSourceOpen, setLyricsSourceOpen] = useState(false)
   const hasTranslation = lines.some((line) => !!line.translatedLyric.trim())
   const hasPronunciation = lines.some(
     (line) =>
@@ -182,7 +194,8 @@ export default function LyricsView({
         lines: parsed,
         source: value
           ? { amll: 'AMLL DB', qq: 'QQ 音乐', netease: '网易云音乐', local: '本地' }[value.source]
-          : undefined
+          : undefined,
+        format: value?.format
       })
     },
     [sources, trackVersion, localPreferences, lyricsOffsetMs]
@@ -462,6 +475,12 @@ export default function LyricsView({
                     onRefresh={() => void requestLyrics(true)}
                   />
                 </div>
+                <NowPlayingTags
+                  track={track}
+                  quality={state.actualQuality}
+                  lyricFormat={currentDisplay?.format}
+                  onLyrics={() => setLyricsSourceOpen(true)}
+                />
                 <div className="now-playing-meta">
                   <div className="now-playing-meta-row text-white/75">
                     <Music2 aria-hidden="true" />
@@ -495,6 +514,13 @@ export default function LyricsView({
               onQueue={onQueue}
               onError={(cause) => setError(errorText(cause))}
             />
+            {lyricsSourceOpen && track && (
+              <LyricCorrectionDialog
+                key={track.key}
+                track={track}
+                onClose={() => setLyricsSourceOpen(false)}
+              />
+            )}
           </div>
         </>
       )}

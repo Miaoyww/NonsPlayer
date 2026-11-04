@@ -95,6 +95,42 @@
   gap: 7px;
   min-width: 0;
 }
+.now-playing-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.now-playing-tag {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  border: 1px solid rgb(255 255 255 / 30%);
+  border-radius: 6px;
+  color: rgb(255 255 255 / 66%);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+button.now-playing-tag {
+  cursor: pointer;
+  transition:
+    border-color 160ms,
+    color 160ms;
+}
+button.now-playing-tag:is(:hover, :focus-visible) {
+  border-color: rgb(255 255 255 / 60%);
+  color: rgb(255 255 255 / 90%);
+}
+button.now-playing-tag:focus-visible {
+  outline: 2px solid rgb(255 255 255 / 75%);
+  outline-offset: 2px;
+}
 .now-playing-meta-row {
   display: flex;
   align-items: flex-start;
