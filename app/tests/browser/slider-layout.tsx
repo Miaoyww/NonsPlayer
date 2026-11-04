@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { PlayerSlider } from '../../src/features/playback/player-slider'
+import { PlayerSlider } from '../../src/features/playback/controls/player-slider'
 import { Slider } from '../../src/components/ui/slider'
 import '../../src/styles/globals.css'
 

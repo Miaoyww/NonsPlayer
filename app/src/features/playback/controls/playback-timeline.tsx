@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { currentPosition, formatTime, getProgress, nativeCall, useProgress } from '@/lib/player'
-import { PlayerSlider } from '@/features/playback/player-slider'
+import { PlayerSlider } from '@/features/playback/controls/player-slider'
 
 export function PlaybackTimeline({
   onError,

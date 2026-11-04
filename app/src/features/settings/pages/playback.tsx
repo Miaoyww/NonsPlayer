@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall, usePlayer, type OutputDevice } from '@/lib/player'
 import { isAndroid } from '@/lib/platform'
-import { useMusicOptions } from '@/features/playback/music-options'
+import { useMusicOptions } from '@/features/playback/now-playing/music-options'
 import {
   Select,
   SelectContent,
@@ -51,7 +51,7 @@ export function PlaybackPage() {
     }
     let disposed = false
     const fetchDevices = android
-      ? import('@/features/playback/audio-output').then(async (module) => {
+      ? import('@/features/playback/audio/audio-output').then(async (module) => {
           if (disposed) return []
           const supported = module.browserOutput().supportsDevices
           if (!disposed) setBrowserDevicesSupported(supported)
@@ -101,7 +101,7 @@ export function PlaybackPage() {
             if (open)
               void (
                 android
-                  ? import('@/features/playback/audio-output').then((module) =>
+                  ? import('@/features/playback/audio/audio-output').then((module) =>
                       module.browserOutputDevices()
                     )
                   : nativeCall<OutputDevice[]>('player_devices')
@@ -116,7 +116,9 @@ export function PlaybackPage() {
             setSwitching(true)
             setError(undefined)
             void (async () => {
-              const module = android ? await import('@/features/playback/audio-output') : undefined
+              const module = android
+                ? await import('@/features/playback/audio/audio-output')
+                : undefined
               if (module) await module.selectBrowserOutput(deviceId)
               try {
                 await nativeCall('player_device', { deviceId })
@@ -162,7 +164,7 @@ export function PlaybackPage() {
               void chooseAudioOutput
                 .call(navigator.mediaDevices)
                 .then(async (selected) => {
-                  const module = await import('@/features/playback/audio-output')
+                  const module = await import('@/features/playback/audio/audio-output')
                   await module.selectBrowserOutput(selected.deviceId)
                   try {
                     await nativeCall('player_device', { deviceId: selected.deviceId })

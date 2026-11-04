@@ -183,7 +183,9 @@ test('the global player connection replenishes without mounting the discovery pa
   }
   const player = load('../src/lib/player.ts', {
     '@/lib/platform': { isAndroid: () => false },
-    '@/features/playback/player-store': load('../src/features/playback/player-store.ts'),
+    '@/features/playback/state/player-store': load(
+      '../src/features/playback/state/player-store.ts'
+    ),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
     '@/features/discovery/private-fm': load('../src/features/discovery/private-fm.ts', {
       '@/features/music/references': musicReference,

@@ -1,7 +1,7 @@
 import { usePlayer } from '@/lib/player'
 import { useEffect, useState } from 'react'
 import { ErrorNoticeViewport } from '@/components/error-notice'
-import { NOTICE_DURATION_MS } from './error-notices'
+import { NOTICE_DURATION_MS } from '../recovery/error-notices'
 
 export interface PlaybackNoticeMessage {
   id: number

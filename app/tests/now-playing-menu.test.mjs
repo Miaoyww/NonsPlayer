@@ -74,7 +74,10 @@ function harness() {
   }
   const exports = {}
   const { outputText } = ts.transpileModule(
-    readFileSync(new URL('../src/features/playback/now-playing-menu.tsx', import.meta.url), 'utf8'),
+    readFileSync(
+      new URL('../src/features/playback/now-playing/now-playing-menu.tsx', import.meta.url),
+      'utf8'
+    ),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
   )
   runInNewContext(outputText, {

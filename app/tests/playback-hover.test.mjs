@@ -38,9 +38,9 @@ test('left hover opens the player and moving to right controls holds it until le
       ActionButton: ({ size, variant, ...props }) => React.createElement('button', props)
     },
     '@/components/music/track-title': { trackDisplayTitle: (track) => track.title },
-    '@/features/playback/playback-notice': { PlaybackNotice: () => null },
-    '@/features/playback/playback-timeline': { PlaybackTimeline: () => null },
-    '@/features/playback/current-track-like': {
+    '@/features/playback/bar/playback-notice': { PlaybackNotice: () => null },
+    '@/features/playback/controls/playback-timeline': { PlaybackTimeline: () => null },
+    '@/features/playback/now-playing/current-track-like': {
       CurrentTrackLike: () => React.createElement('button', { id: 'like' }, 'Like')
     },
     '@/features/desktop-lyrics/desktop-lyrics-button': {
@@ -50,7 +50,7 @@ test('left hover opens the player and moving to right controls holds it until le
     '@/features/queue/queue-popover': {
       QueuePopover: () => React.createElement('button', { id: 'queue' }, 'Queue')
     },
-    '@/features/playback/volume-control': {
+    '@/features/playback/controls/volume-control': {
       VolumeControl: () =>
         React.createElement(
           'div',
@@ -63,7 +63,10 @@ test('left hover opens the player and moving to right controls holds it until le
   const exports = {}
   runInNewContext(
     ts.transpileModule(
-      readFileSync(new URL('../src/features/playback/playback-bar.tsx', import.meta.url), 'utf8'),
+      readFileSync(
+        new URL('../src/features/playback/bar/playback-bar.tsx', import.meta.url),
+        'utf8'
+      ),
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
     ).outputText,
     {

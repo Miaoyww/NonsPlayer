@@ -7,7 +7,7 @@ import ts from 'typescript'
 const exports = {}
 runInNewContext(
   ts.transpileModule(
-    readFileSync(new URL('../src/features/playback/web-audio.ts', import.meta.url), 'utf8'),
+    readFileSync(new URL('../src/features/playback/audio/web-audio.ts', import.meta.url), 'utf8'),
     {
       compilerOptions: { module: ts.ModuleKind.CommonJS }
     }

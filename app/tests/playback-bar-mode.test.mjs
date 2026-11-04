@@ -5,7 +5,7 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
 const source = readFileSync(
-  new URL('../src/features/playback/use-playback-bar-mode.ts', import.meta.url),
+  new URL('../src/features/playback/bar/use-playback-bar-mode.ts', import.meta.url),
   'utf8'
 )
 function session(saved, unavailable = false, android = false) {

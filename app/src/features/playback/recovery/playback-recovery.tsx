@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { errorText, getPlayer, nativeCall, usePlayer, type Track } from '@/lib/player'
 import { errorNotices, type NoticeAction } from './error-notices'
 import { failedPlayback, samePlayback } from './recovery'
-import { SongSourceDialog } from './song-source-dialog'
+import { SongSourceDialog } from '../now-playing/song-source-dialog'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { trackSource } from '@/features/music/source-label'
-import { PlaybackNotice } from './playback-notice'
+import { PlaybackNotice } from '../bar/playback-notice'
 
 /** One producer for playback failures; existing notice slots render the actions. */
 export function PlaybackRecovery({

@@ -15,7 +15,7 @@ function load(path) {
   return exports
 }
 test('recovery targets the failed playback instance and login is offered for explicit expiry only', () => {
-  const { failedPlayback, samePlayback } = load('../src/features/playback/recovery.ts')
+  const { failedPlayback, samePlayback } = load('../src/features/playback/recovery/recovery.ts')
   const track = { key: 'qq:1', title: 'Song', source: { kind: 'online' } }
   const state = {
     error: '账号会话已过期',
@@ -33,9 +33,11 @@ test('recovery targets the failed playback instance and login is offered for exp
 })
 test('actionable failures stay available and retiring one playback does not clear unrelated errors', () => {
   let scheduled = 0
-  const store = load('../src/features/playback/error-notices.ts').createErrorNotices(() => {
-    scheduled++
-  })
+  const store = load('../src/features/playback/recovery/error-notices.ts').createErrorNotices(
+    () => {
+      scheduled++
+    }
+  )
   store.push('其他页面错误')
   store.push('播放失败', [{ label: '重试', run() {} }], 'playback-recovery')
   assert.equal(scheduled, 1)

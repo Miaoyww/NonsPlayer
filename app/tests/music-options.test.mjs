@@ -48,7 +48,7 @@ function harness(source = 'online', snapshot = {}) {
     cache.set(url.href, exports)
     return exports
   }
-  return () => load('../src/features/playback/music-options.tsx', true)
+  return () => load('../src/features/playback/now-playing/music-options.tsx', true)
 }
 
 test('a reloaded quality control still reads the mounted provider context', () => {

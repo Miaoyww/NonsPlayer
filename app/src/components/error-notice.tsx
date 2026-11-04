@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { errorNotices } from '@/features/playback/error-notices'
+import { errorNotices } from '@/features/playback/recovery/error-notices'
 
 function hasVisiblePlayback() {
   return [...document.querySelectorAll('[data-playback-notices]')].some((slot) => {

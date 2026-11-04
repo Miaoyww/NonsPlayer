@@ -5,7 +5,7 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
 const sources = Object.fromEntries(
-  ['lib/player.ts', 'lib/platform.ts', 'features/playback/player-store.ts'].map((path) => [
+  ['lib/player.ts', 'lib/platform.ts', 'features/playback/state/player-store.ts'].map((path) => [
     path,
     ts.transpileModule(readFileSync(new URL(`../src/${path}`, import.meta.url), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS }
@@ -84,7 +84,7 @@ function harness({ platform = 'Windows', tauri = true, readyError } = {}) {
   }
   const modules = {
     '@/lib/platform': compile('lib/platform.ts'),
-    '@/features/playback/player-store': compile('features/playback/player-store.ts'),
+    '@/features/playback/state/player-store': compile('features/playback/state/player-store.ts'),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
     '@/features/music/cover-image': { coverOriginal: (value) => value },
     '@/features/library/shared/library-preview': { clearLibraryPreviews() {} },
@@ -97,7 +97,7 @@ function harness({ platform = 'Windows', tauri = true, readyError } = {}) {
         }
       }
     },
-    '@/features/playback/web-audio': {
+    '@/features/playback/audio/web-audio': {
       createWebAudio(send) {
         executors++
         sendFeedback = send
@@ -162,7 +162,7 @@ for (const platform of ['Windows', 'Macintosh', 'Linux'])
     const disconnect = await app.player.connectPlayer()
     try {
       assert.equal(app.executors(), 0)
-      assert.equal(app.required.includes('@/features/playback/web-audio'), false)
+      assert.equal(app.required.includes('@/features/playback/audio/web-audio'), false)
       assert.equal(app.registered.includes('web-audio-control'), false)
       assert.deepEqual(
         app.calls.map(([command]) => command),
@@ -191,7 +191,7 @@ test('Android initializes WebAudio, forwards controls and feedback, and disposes
   let listener
   try {
     assert.equal(app.executors(), 1)
-    assert.equal(app.required.includes('@/features/playback/web-audio'), true)
+    assert.equal(app.required.includes('@/features/playback/audio/web-audio'), true)
     assert.deepEqual(
       app.calls.map(([command]) => command),
       ['web_audio_ready', 'player_snapshot']
@@ -229,7 +229,7 @@ for (const platform of ['Windows', 'Android'])
     const disconnect = await app.player.connectPlayer({ observerOnly: true })
     try {
       assert.equal(app.executors(), 0)
-      assert.equal(app.required.includes('@/features/playback/web-audio'), false)
+      assert.equal(app.required.includes('@/features/playback/audio/web-audio'), false)
       assert.equal(app.listeners.has('web-audio-control'), false)
       assert.deepEqual(
         app.calls.map(([command]) => command),

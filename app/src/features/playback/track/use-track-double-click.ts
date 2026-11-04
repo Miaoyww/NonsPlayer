@@ -32,7 +32,7 @@ try {
     }
   }
 } catch (cause) {
-  reportCaughtError('app/src/features/playback/use-track-double-click.ts', cause)
+  reportCaughtError('app/src/features/playback/track/use-track-double-click.ts', cause)
 }
 
 const subscribe = (listener: () => void) => {
@@ -52,7 +52,7 @@ function updateSettings(value: Partial<TrackDoubleClickSettings>) {
   try {
     localStorage.setItem(storageKey, JSON.stringify(settings))
   } catch (cause) {
-    reportCaughtError('app/src/features/playback/use-track-double-click.ts', cause)
+    reportCaughtError('app/src/features/playback/track/use-track-double-click.ts', cause)
   }
   listeners.forEach((notify) => notify())
 }

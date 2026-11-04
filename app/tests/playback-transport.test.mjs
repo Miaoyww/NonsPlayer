@@ -13,10 +13,10 @@ function harness(state) {
     '@tauri-apps/api/core': { isTauri: () => true },
     '@/lib/platform': { isAndroid: () => false },
     '@/components/music/action-button': { ActionButton: 'button' },
-    '@/features/playback/music-options': {},
-    '@/features/playback/playback-timeline': {},
-    '@/features/playback/player-slider': {},
-    '@/features/playback/playback-transport': { PlaybackTransport: 'transport' },
+    '@/features/playback/now-playing/music-options': {},
+    '@/features/playback/controls/playback-timeline': {},
+    '@/features/playback/controls/player-slider': {},
+    '@/features/playback/controls/playback-transport': { PlaybackTransport: 'transport' },
     '@/features/desktop-lyrics/desktop-lyrics-button': {
       DesktopLyricsButton: 'desktop-lyrics-button'
     },
@@ -33,13 +33,15 @@ function harness(state) {
   }
   function load(file) {
     const exports = {}
+    const paths = {
+      'playback-transport': '../src/features/playback/controls/playback-transport.tsx',
+      'now-playing-controls': '../src/features/playback/controls/now-playing-controls.tsx',
+      'playback-bar': '../src/features/playback/bar/playback-bar.tsx'
+    }
     runInNewContext(
-      ts.transpileModule(
-        readFileSync(new URL(`../src/features/playback/${file}.tsx`, import.meta.url), 'utf8'),
-        {
-          compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
-        }
-      ).outputText,
+      ts.transpileModule(readFileSync(new URL(paths[file], import.meta.url), 'utf8'), {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
+      }).outputText,
       { exports, require: (name) => modules[name] ?? {} }
     )
     return exports
@@ -92,7 +94,10 @@ test('frontend shuffle navigation wraps both ends even when the repeat button is
   const store = {}
   runInNewContext(
     ts.transpileModule(
-      readFileSync(new URL('../src/features/playback/player-store.ts', import.meta.url), 'utf8'),
+      readFileSync(
+        new URL('../src/features/playback/state/player-store.ts', import.meta.url),
+        'utf8'
+      ),
       { compilerOptions: { module: ts.ModuleKind.CommonJS } }
     ).outputText,
     { exports: store }
@@ -108,7 +113,7 @@ test('frontend shuffle navigation wraps both ends even when the repeat button is
           ? { isAndroid: () => false }
           : name === '@/features/music/scoped-query'
             ? { ScopedMusicQueries: class {} }
-            : name === '@/features/playback/player-store'
+            : name === '@/features/playback/state/player-store'
               ? store
               : {}
     }

@@ -6,11 +6,11 @@ import { Cover } from '@/components/music/cover'
 import { TrackArtists } from '@/components/music/music-links'
 import { useMobileLyricsPage } from '@/features/lyrics/use-mobile-lyrics-page'
 import type { Track } from '@/lib/player'
-import { CurrentTrackLike } from './current-track-like'
-import { QualitySelect } from './music-options'
-import { NowPlayingMenu } from './now-playing-menu'
-import { PlaybackTimeline } from './playback-timeline'
-import { PlaybackTransport } from './playback-transport'
+import { CurrentTrackLike } from '../now-playing/current-track-like'
+import { QualitySelect } from '../now-playing/music-options'
+import { NowPlayingMenu } from '../now-playing/now-playing-menu'
+import { PlaybackTimeline } from '../controls/playback-timeline'
+import { PlaybackTransport } from '../controls/playback-transport'
 
 export function MobileFullscreenPlayer({
   track,

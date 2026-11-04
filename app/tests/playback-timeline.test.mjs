@@ -48,7 +48,7 @@ function harness(options = { layout: 'edge', showTimeOnHover: true }) {
       }
     },
     '@tauri-apps/api/core': { isTauri: () => true },
-    '@/features/playback/player-slider': { PlayerSlider: 'slider' },
+    '@/features/playback/controls/player-slider': { PlayerSlider: 'slider' },
     '@/lib/player': {
       useProgress: (enabled) => {
         progressEnabled.push(enabled)
@@ -73,7 +73,7 @@ function harness(options = { layout: 'edge', showTimeOnHover: true }) {
   runInNewContext(
     ts.transpileModule(
       readFileSync(
-        new URL('../src/features/playback/playback-timeline.tsx', import.meta.url),
+        new URL('../src/features/playback/controls/playback-timeline.tsx', import.meta.url),
         'utf8'
       ),
       {

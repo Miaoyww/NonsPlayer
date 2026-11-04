@@ -41,7 +41,7 @@ export function MusicOptionsProvider({ children }: { children: ReactNode }) {
         if (!disposed) setOptions(value)
       })
       .catch((cause) => {
-        reportCaughtError('app/src/features/playback/music-options.tsx', cause)
+        reportCaughtError('app/src/features/playback/now-playing/music-options.tsx', cause)
 
         if (!disposed) setError(errorText(cause))
       })
@@ -62,7 +62,7 @@ export function MusicOptionsProvider({ children }: { children: ReactNode }) {
       setOptions(next)
       return true
     } catch (cause) {
-      reportCaughtError('app/src/features/playback/music-options.tsx', cause)
+      reportCaughtError('app/src/features/playback/now-playing/music-options.tsx', cause)
       setError(errorText(cause))
       return false
     } finally {
@@ -146,7 +146,7 @@ export function QualitySelect() {
         })
       }
     } catch (cause) {
-      reportCaughtError('app/src/features/playback/music-options.tsx', cause)
+      reportCaughtError('app/src/features/playback/now-playing/music-options.tsx', cause)
       setSwitchError(errorText(cause))
     } finally {
       setSwitching(false)
@@ -168,7 +168,7 @@ export function QualitySelect() {
               if (info.trackKey === key) setLocalInfo(info)
             })
             .catch((cause) => {
-              reportCaughtError('app/src/features/playback/music-options.tsx', cause)
+              reportCaughtError('app/src/features/playback/now-playing/music-options.tsx', cause)
             })
         }}
         onValueChange={(next) => {

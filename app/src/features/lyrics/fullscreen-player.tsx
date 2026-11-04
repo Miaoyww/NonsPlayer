@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import type { PlaybackNoticeMessage } from '@/features/playback/playback-notice'
+import type { PlaybackNoticeMessage } from '@/features/playback/bar/playback-notice'
 
 const LyricsView = lazy(() => import('./lyrics-view'))
 

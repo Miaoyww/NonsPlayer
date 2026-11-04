@@ -1,5 +1,5 @@
 import { ArtistLinks } from '@/components/music/music-links'
-import { CurrentTrackLike } from '@/features/playback/current-track-like'
+import { CurrentTrackLike } from '@/features/playback/now-playing/current-track-like'
 import { TrackIdentity } from '@/components/music/track-identity'
 import type { PluginMenuSong } from './sdk'
 import type { Track } from '@/lib/player'

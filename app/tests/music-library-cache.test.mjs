@@ -47,7 +47,10 @@ function harness() {
   const scoped = load('../src/features/music/scoped-query.ts', { '@/lib/runtime-cache': cache })
   const player = load('../src/lib/player.ts', {
     '@/lib/platform': { isAndroid: () => false },
-    '@/features/playback/player-store': load('../src/features/playback/player-store.ts', {}),
+    '@/features/playback/state/player-store': load(
+      '../src/features/playback/state/player-store.ts',
+      {}
+    ),
     '@/features/music/scoped-query': scoped,
     '@/lib/runtime-cache': cache,
     '@/features/discovery/private-fm': {},

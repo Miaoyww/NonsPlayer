@@ -41,17 +41,17 @@ function harness() {
       })
     },
     '@/lib/player': { usePlayer: () => ({ repeatMode: 'off', shuffle: false }) },
-    './current-track-like': { CurrentTrackLike: 'like' },
-    './music-options': { QualitySelect: 'quality' },
-    './now-playing-menu': { NowPlayingMenu: 'menu' },
-    './playback-timeline': { PlaybackTimeline: 'timeline' },
-    './playback-transport': { PlaybackTransport: 'transport' }
+    '../now-playing/current-track-like': { CurrentTrackLike: 'like' },
+    '../now-playing/music-options': { QualitySelect: 'quality' },
+    '../now-playing/now-playing-menu': { NowPlayingMenu: 'menu' },
+    '../controls/playback-timeline': { PlaybackTimeline: 'timeline' },
+    '../controls/playback-transport': { PlaybackTransport: 'transport' }
   }
   const exports = {}
   runInNewContext(
     ts.transpileModule(
       readFileSync(
-        new URL('../src/features/playback/mobile-fullscreen-player.tsx', import.meta.url),
+        new URL('../src/features/playback/mobile/mobile-fullscreen-player.tsx', import.meta.url),
         'utf8'
       ),
       {

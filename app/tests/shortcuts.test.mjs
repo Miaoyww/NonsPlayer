@@ -203,7 +203,7 @@ function playbackHarness() {
         calls.push({ command, args })
       }
     },
-    '../use-volume-control': {
+    '../controls/use-volume-control': {
       playerVolume: () => state.volume,
       changePlayerVolume: (volume) =>
         calls.push({ command: 'player_volume', args: { volume: Math.max(0, Math.min(1, volume)) } })

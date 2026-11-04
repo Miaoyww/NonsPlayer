@@ -1,5 +1,5 @@
 import { reportCaughtError } from '@/lib/diagnostics'
-import { errorNotices } from '@/features/playback/error-notices'
+import { errorNotices } from '@/features/playback/recovery/error-notices'
 import { useListFind } from './list-find'
 import { Skeleton } from '@/components/ui/skeleton'
 import { favoriteId, onlineReference } from '@/features/music/references'
@@ -40,7 +40,7 @@ import type { ReactNode } from 'react'
 import { useInterfaceDensity } from '@/features/settings/use-interface-density'
 import { isAndroid } from '@/lib/platform'
 import { isTauri } from '@tauri-apps/api/core'
-import { playTrackOnDoubleClick } from '@/features/playback/track-double-click'
+import { playTrackOnDoubleClick } from '@/features/playback/track/track-double-click'
 
 type SortKey = 'default' | 'title' | 'artist' | 'album' | 'duration'
 

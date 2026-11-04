@@ -60,8 +60,13 @@ function harness({
   }
   function load(file) {
     const exports = {}
+    const paths = {
+      'current-track-like': '../src/features/playback/now-playing/current-track-like.tsx',
+      'persistent-playback-bar': '../src/features/playback/bar/persistent-playback-bar.tsx',
+      'playback-bar': '../src/features/playback/bar/playback-bar.tsx'
+    }
     const { outputText } = ts.transpileModule(
-      readFileSync(new URL(`../src/features/playback/${file}.tsx`, import.meta.url), 'utf8'),
+      readFileSync(new URL(paths[file], import.meta.url), 'utf8'),
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
     )
     runInNewContext(outputText, {
@@ -72,8 +77,8 @@ function harness({
     return exports
   }
   const like = load('current-track-like')
-  modules['@/features/playback/current-track-like'] = like
-  modules['@/features/playback/music-options'] = { QualitySelect: 'quality' }
+  modules['@/features/playback/now-playing/current-track-like'] = like
+  modules['@/features/playback/now-playing/music-options'] = { QualitySelect: 'quality' }
   const exports = load(bar === 'persistent' ? 'persistent-playback-bar' : 'playback-bar')
   function find(node) {
     if (!node || typeof node !== 'object') return

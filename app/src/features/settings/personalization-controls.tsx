@@ -4,7 +4,10 @@ import { FontPicker } from '@/features/settings/font-picker'
 import { useFontSettings } from '@/features/settings/use-font-settings'
 import { SettingsCard } from '@/features/settings/settings-card'
 import { isAndroid } from '@/lib/platform'
-import { usePlaybackBarMode, type PlaybackBarMode } from '@/features/playback/use-playback-bar-mode'
+import {
+  usePlaybackBarMode,
+  type PlaybackBarMode
+} from '@/features/playback/bar/use-playback-bar-mode'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   useInterfaceDensity,

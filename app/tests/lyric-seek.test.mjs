@@ -70,8 +70,8 @@ function lyricControl({ failure, desktop = true, android = false } = {}) {
     '@/components/music/action-button': {},
     '@/components/music/cover': {},
     '@/features/lyrics/album-background': {},
-    '@/features/playback/now-playing-controls': {},
-    '@/features/playback/now-playing-menu': {}
+    '@/features/playback/controls/now-playing-controls': {},
+    '@/features/playback/now-playing/now-playing-menu': {}
   }
   const source = readFileSync(
     new URL('../src/features/lyrics/lyric-renderer.tsx', import.meta.url),

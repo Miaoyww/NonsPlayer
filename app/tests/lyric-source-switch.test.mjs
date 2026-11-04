@@ -96,7 +96,7 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
           })
         })
     },
-    '@/features/playback/now-playing-menu': { NowPlayingMenu: 'NowPlayingMenu' },
+    '@/features/playback/now-playing/now-playing-menu': { NowPlayingMenu: 'NowPlayingMenu' },
     '@/features/lyrics/parse-lyrics': {
       EmptyLyricsError: class extends Error {},
       parseLyrics: (value) => {

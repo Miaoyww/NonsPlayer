@@ -100,10 +100,10 @@ async function harness({
           children
         )
     },
-    '@/features/playback/music-options': {
+    '@/features/playback/now-playing/music-options': {
       useMusicOptions: () => ({ options: { allowDowngrade: true }, busy: false, update() {} })
     },
-    '@/features/playback/audio-output': {
+    '@/features/playback/audio/audio-output': {
       browserOutput: () => {
         browserCalls.push(['browserOutput'])
         return { supportsDevices }
@@ -291,7 +291,7 @@ for (const platform of ['Windows', 'Macintosh', 'Linux'])
       assert.equal(app.select().options[3].value, connected.id)
       assert.equal(chooserCalls, 0)
       assert.deepEqual(app.browserCalls, [])
-      assert.equal(app.required.includes('@/features/playback/audio-output'), false)
+      assert.equal(app.required.includes('@/features/playback/audio/audio-output'), false)
     } finally {
       await app.dispose()
     }

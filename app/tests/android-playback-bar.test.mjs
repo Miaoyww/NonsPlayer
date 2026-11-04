@@ -35,13 +35,13 @@ function harness(android) {
     },
     '@/components/music/action-button': { ActionButton: 'button' },
     '@/components/music/cover': { Cover: 'cover' },
-    '@/features/playback/current-track-like': { CurrentTrackLike: 'like' },
+    '@/features/playback/now-playing/current-track-like': { CurrentTrackLike: 'like' },
     '@/features/queue/queue-popover': { QueuePopover: 'queue' },
-    '@/features/playback/music-options': { QualitySelect: 'quality' },
-    '@/features/playback/volume-control': { VolumeControl: 'volume' },
-    '@/features/playback/playback-timeline': { PlaybackTimeline: 'timeline' },
-    '@/features/playback/playback-transport': { PlaybackTransport: 'transport' },
-    '@/features/playback/playback-notice': { PlaybackNotice: 'notice' },
+    '@/features/playback/now-playing/music-options': { QualitySelect: 'quality' },
+    '@/features/playback/controls/volume-control': { VolumeControl: 'volume' },
+    '@/features/playback/controls/playback-timeline': { PlaybackTimeline: 'timeline' },
+    '@/features/playback/controls/playback-transport': { PlaybackTransport: 'transport' },
+    '@/features/playback/bar/playback-notice': { PlaybackNotice: 'notice' },
     '@/features/desktop-lyrics/desktop-lyrics-button': {
       DesktopLyricsButton: 'desktop-lyrics-button'
     }
@@ -50,7 +50,7 @@ function harness(android) {
   runInNewContext(
     ts.transpileModule(
       readFileSync(
-        new URL('../src/features/playback/persistent-playback-bar.tsx', import.meta.url),
+        new URL('../src/features/playback/bar/persistent-playback-bar.tsx', import.meta.url),
         'utf8'
       ),
       {

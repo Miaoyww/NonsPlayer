@@ -18,7 +18,8 @@ function load(path, modules, storage) {
     window: {},
     localStorage: storage,
     require(name) {
-      if (name === '@/features/playback/playback-recovery') return { PlaybackRecovery: () => null }
+      if (name === '@/features/playback/recovery/playback-recovery')
+        return { PlaybackRecovery: () => null }
       if (name === '@/components/error-notice') return errorNoticeModule
       if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx }
       assert.ok(name in modules, `unexpected dependency: ${name}`)
@@ -88,7 +89,9 @@ function harness(initialMode = 'collapsible', storage) {
         hasCompletedWelcome: () => true,
         openWelcomeEvent: 'nons-open-welcome'
       },
-      '@/features/playback/music-options': { MusicOptionsProvider: 'MusicOptionsProvider' },
+      '@/features/playback/now-playing/music-options': {
+        MusicOptionsProvider: 'MusicOptionsProvider'
+      },
       '@/features/workspace/music-navigation': {
         MusicNavigationProvider: 'MusicNavigationProvider'
       },
@@ -140,11 +143,13 @@ function harness(initialMode = 'collapsible', storage) {
     '@/features/local/folder-manager': { FolderManager: 'FolderManager' },
     '@/lib/runtime-cache': {},
     '@/features/lyrics/fullscreen-player': { FullscreenPlayer: 'FullscreenPlayer' },
-    '@/features/playback/use-playback-bar-mode': { usePlaybackBarMode: () => [barMode, () => {}] },
+    '@/features/playback/bar/use-playback-bar-mode': {
+      usePlaybackBarMode: () => [barMode, () => {}]
+    },
     '@/features/settings/use-interface-density': {
       useInterfaceDensity: () => ['standard', () => {}]
     },
-    '@/features/playback/persistent-playback-bar': {
+    '@/features/playback/bar/persistent-playback-bar': {
       PersistentPlaybackBar: 'PersistentPlaybackBar'
     },
     '@/features/playback/shortcuts/use-playback-shortcuts': { usePlaybackShortcuts() {} },
@@ -153,7 +158,7 @@ function harness(initialMode = 'collapsible', storage) {
     '@/lib/player': { usePlayer: () => ({ index: null, queue: [] }) },
     '@/components/music/action-button': { ActionButton: 'ActionButton' },
     '@/components/music/music-page': { MusicPage: 'MusicPage' },
-    '@/features/playback/playback-bar': { PlaybackBar: 'PlaybackBar' },
+    '@/features/playback/bar/playback-bar': { PlaybackBar: 'PlaybackBar' },
     '@/features/tools/tools-page': { ToolsPage: 'ToolsPage' },
     '@/plugins/host': { PluginPageHost: 'PluginPageHost' },
     '@/features/workspace/music-navigation': {
@@ -161,7 +166,7 @@ function harness(initialMode = 'collapsible', storage) {
     },
     '@/components/music/infinite-load': {},
     '@/lib/use-paged-list': { usePagedList: () => ({ items: [], more: false, busy: false }) },
-    '@/features/playback/music-options': { QualitySelect: 'QualitySelect' },
+    '@/features/playback/now-playing/music-options': { QualitySelect: 'QualitySelect' },
     '@/components/music/track-list': {},
     '@/features/queue/queue-page': { QueuePage: 'QueuePage' },
     '@/features/library/collection/collection-actions': {

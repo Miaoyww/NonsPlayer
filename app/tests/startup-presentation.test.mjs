@@ -29,7 +29,7 @@ const react = {
   Suspense: 'Suspense'
 }
 const base = {
-  '@/features/playback/playback-recovery': { PlaybackRecovery: () => null },
+  '@/features/playback/recovery/playback-recovery': { PlaybackRecovery: () => null },
   react,
   'react/jsx-runtime': { jsx, jsxs: jsx },
   '@tauri-apps/api/core': { isTauri: () => true },
@@ -59,7 +59,7 @@ test('unresolved startup source renders the actual library shell instead of the 
     '@/features/music/source-label': { sourceLabel: String },
     '@/lib/player': { usePlayer: () => ({}) },
     '@/features/settings/use-interface-density': { useInterfaceDensity: () => ['standard'] },
-    '@/features/playback/use-playback-bar-mode': { usePlaybackBarMode: () => ['off'] },
+    '@/features/playback/bar/use-playback-bar-mode': { usePlaybackBarMode: () => ['off'] },
     '@/features/playback/shortcuts/use-playback-shortcuts': { usePlaybackShortcuts() {} },
     '@/features/lyrics/fullscreen-player': { FullscreenPlayer: 'FullscreenPlayer' },
     '@/features/library/collection/collection-actions': {
@@ -75,10 +75,10 @@ test('unresolved startup source renders the actual library shell instead of the 
     '@/components/music/action-button': { ActionButton: 'ActionButton' },
     '@/components/music/music-page': { MusicPage: 'MusicPage' },
     '@/features/lyrics/lyrics-view': { default: 'LyricsView' },
-    '@/features/playback/music-options': {},
+    '@/features/playback/now-playing/music-options': {},
     '@/plugins/host': {},
-    '@/features/playback/playback-bar': {},
-    '@/features/playback/persistent-playback-bar': {},
+    '@/features/playback/bar/playback-bar': {},
+    '@/features/playback/bar/persistent-playback-bar': {},
     '@/features/queue/queue-page': {},
     '@/features/tools/tools-page': {}
   }

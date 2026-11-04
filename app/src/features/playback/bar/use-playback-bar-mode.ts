@@ -13,7 +13,7 @@ try {
   const saved = localStorage.getItem(storageKey)
   if (isMode(saved)) mode = saved
 } catch (cause) {
-  reportCaughtError('app/src/features/playback/use-playback-bar-mode.ts', cause)
+  reportCaughtError('app/src/features/playback/bar/use-playback-bar-mode.ts', cause)
 
   /* Storage is optional. */
 }
@@ -30,7 +30,7 @@ function setMode(value: PlaybackBarMode) {
   try {
     localStorage.setItem(storageKey, value)
   } catch (cause) {
-    reportCaughtError('app/src/features/playback/use-playback-bar-mode.ts', cause)
+    reportCaughtError('app/src/features/playback/bar/use-playback-bar-mode.ts', cause)
 
     /* Keep the current session usable. */
   }

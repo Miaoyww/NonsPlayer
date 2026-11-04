@@ -52,15 +52,15 @@ function volumeControl({ failure, desktop = true, fullscreen = false } = {}) {
     '@/components/music/action-button': {},
     '@/components/ui/slider': { Slider: 'slider' },
     '@/components/music/cover': {},
-    '@/features/playback/music-options': {},
-    '@/features/playback/playback-timeline': {},
-    '@/features/playback/player-slider': { PlayerSlider: 'slider' },
-    '@/features/playback/playback-transport': {}
+    '@/features/playback/now-playing/music-options': {},
+    '@/features/playback/controls/playback-timeline': {},
+    '@/features/playback/controls/player-slider': { PlayerSlider: 'slider' },
+    '@/features/playback/controls/playback-transport': {}
   }
   function load(file) {
     const exports = {}
     const source = readFileSync(
-      new URL(`../src/features/playback/${file}`, import.meta.url),
+      new URL(`../src/features/playback/controls/${file}`, import.meta.url),
       'utf8'
     )
     runInNewContext(

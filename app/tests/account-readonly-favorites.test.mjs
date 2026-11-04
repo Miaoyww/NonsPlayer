@@ -150,7 +150,10 @@ async function readonlyFavoritesScenario(scenario = 'complete') {
       Button: ({ variant, size, children, ...props }) =>
         React.createElement('button', props, children)
     }
-    const { CurrentTrackLike } = load('../src/features/playback/current-track-like.tsx', modules)
+    const { CurrentTrackLike } = load(
+      '../src/features/playback/now-playing/current-track-like.tsx',
+      modules
+    )
     function View() {
       snapshot = account.useAccount()
       return React.createElement(CurrentTrackLike, {
@@ -288,7 +291,10 @@ test('page source selection preserves every platform account and routes favorite
       Button: ({ variant, size, children, ...props }) =>
         React.createElement('button', props, children)
     }
-    const { CurrentTrackLike } = load('../src/features/playback/current-track-like.tsx', modules)
+    const { CurrentTrackLike } = load(
+      '../src/features/playback/now-playing/current-track-like.tsx',
+      modules
+    )
     function View() {
       accounts = account.useAccount()
       return React.createElement(CurrentTrackLike, {

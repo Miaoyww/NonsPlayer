@@ -4,7 +4,7 @@ import { coverOriginal, type CoverInput } from '@/features/music/cover-image'
 import { ScopedMusicQueries } from '@/features/music/scoped-query'
 import { isAndroid } from '@/lib/platform'
 import { createPrivateFm } from '@/features/discovery/private-fm'
-import type { AudioControl } from '@/features/playback/web-audio'
+import type { AudioControl } from '@/features/playback/audio/web-audio'
 import { isTauri, convertFileSrc } from '@tauri-apps/api/core'
 import { diagnosticInvoke as invoke } from '@/lib/diagnostics'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
@@ -16,7 +16,7 @@ import {
   type PlayerStateEvent,
   type PlayerQueueEvent,
   type PlayerProgressEvent
-} from '@/features/playback/player-store'
+} from '@/features/playback/state/player-store'
 import {
   cachedCommands,
   coverCache,
@@ -352,10 +352,10 @@ export async function connectPlayer(options: { observerOnly?: boolean } = {}): P
   }
   try {
     if (!options.observerOnly && isAndroid() && typeof navigator !== 'undefined') {
-      const { createWebAudio } = await import('@/features/playback/web-audio')
+      const { createWebAudio } = await import('@/features/playback/audio/web-audio')
       const webAudio = createWebAudio(
         (feedback) => invoke('web_audio_feedback', { feedback }),
-        (cause) => reportCaughtError('app/src/features/playback/web-audio.ts', cause)
+        (cause) => reportCaughtError('app/src/features/playback/audio/web-audio.ts', cause)
       )
       listeners.push(() => webAudio.dispose())
       listeners.push(

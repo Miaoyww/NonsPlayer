@@ -67,7 +67,7 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
   }
   const trackSearchContext = React.createContext(undefined)
   const modules = {
-    '@/features/playback/error-notices': {
+    '@/features/playback/recovery/error-notices': {
       errorNotices: { push: (message, actions) => floatingErrors.push({ message, actions }) }
     },
     '@/features/local/use-local-preferences': {
@@ -80,7 +80,7 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     '@/lib/platform': { isAndroid: () => android },
     '@tauri-apps/api/core': { isTauri: () => true },
-    '@/features/playback/track-double-click': {
+    '@/features/playback/track/track-double-click': {
       playTrackOnDoubleClick: async (...args) => {
         doublePlays.push(args)
         return doubleClickPlayback(...args)
@@ -217,7 +217,7 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
     return exports
   }
   const doubleClickPlayback = load(
-    '../src/features/playback/track-double-click.ts'
+    '../src/features/playback/track/track-double-click.ts'
   ).playTrackOnDoubleClick
   modules['@/components/music/music-links'] = load('../src/components/music/music-links.tsx')
   modules['./track-column-sizing'] = load('../src/components/music/track-column-sizing.tsx')

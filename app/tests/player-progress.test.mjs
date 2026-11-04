@@ -74,7 +74,9 @@ async function harness({ delayed = false } = {}) {
       saveLibraryPreview() {}
     },
     '@/lib/platform': { isAndroid: () => false },
-    '@/features/playback/player-store': compile('../src/features/playback/player-store.ts'),
+    '@/features/playback/state/player-store': compile(
+      '../src/features/playback/state/player-store.ts'
+    ),
     '@/features/music/scoped-query': { ScopedMusicQueries: class {} },
     '@/features/discovery/private-fm': { createPrivateFm: () => ({ update() {}, dispose() {} }) },
     '@tauri-apps/api/core': {

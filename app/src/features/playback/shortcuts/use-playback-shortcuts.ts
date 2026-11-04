@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { useAccount } from '@/features/account/account'
 import { getPlayer, nativeCall, usePlayer } from '@/lib/player'
-import { changePlayerVolume, playerVolume } from '../use-volume-control'
+import { changePlayerVolume, playerVolume } from '../controls/use-volume-control'
 import {
   initializeShortcuts,
   isPlaybackSpace,

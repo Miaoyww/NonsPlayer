@@ -136,7 +136,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
         useMusicNavigation: () => ({ navigate: (...args) => navigations.push(args) })
       }
     })
-    const likeButton = load('../src/features/playback/current-track-like.tsx', {
+    const likeButton = load('../src/features/playback/now-playing/current-track-like.tsx', {
       'react/jsx-runtime': jsx,
       'lucide-react': { Heart: () => React.createElement('svg') },
       '@tauri-apps/api/core': { isTauri: () => true },
@@ -160,7 +160,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
       './scope': scopeModule,
       '@/components/music/music-links': artistLinks,
       '@/components/music/track-identity': {},
-      '@/features/playback/current-track-like': likeButton
+      '@/features/playback/now-playing/current-track-like': likeButton
     })
     let finish
     const sdk = load('../src/plugins/sdk.ts', {

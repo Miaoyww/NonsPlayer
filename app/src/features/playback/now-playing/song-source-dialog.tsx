@@ -56,7 +56,7 @@ export function SongSourceDialog({ track, onClose }: { track: Track; onClose: ()
       })
       onClose()
     } catch (cause) {
-      reportCaughtError('app/src/features/playback/song-source-dialog.tsx', cause)
+      reportCaughtError('app/src/features/playback/now-playing/song-source-dialog.tsx', cause)
 
       setError(errorText(cause))
     } finally {

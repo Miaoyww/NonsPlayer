@@ -54,7 +54,7 @@ export function createVolumeSender(
     void Promise.resolve()
       .then(() => send(request.volume))
       .catch((error) => {
-        reportCaughtError('app/src/features/playback/volume-sender.ts', error)
+        reportCaughtError('app/src/features/playback/controls/volume-sender.ts', error)
 
         if (request.serial === serial) {
           optimistic = null

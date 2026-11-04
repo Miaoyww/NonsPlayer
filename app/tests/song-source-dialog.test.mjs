@@ -108,7 +108,7 @@ test('song source selection keeps queue identity, sends explicit alternate keys,
   runInNewContext(
     ts.transpileModule(
       readFileSync(
-        new URL('../src/features/playback/song-source-dialog.tsx', import.meta.url),
+        new URL('../src/features/playback/now-playing/song-source-dialog.tsx', import.meta.url),
         'utf8'
       ),
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }

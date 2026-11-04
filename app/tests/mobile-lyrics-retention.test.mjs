@@ -47,17 +47,19 @@ test('reopening lyrics retains the same mounted renderer and pauses it while the
       }
     },
     '@/lib/player': { usePlayer: () => ({ repeatMode: 'off', shuffle: false }) },
-    './current-track-like': { CurrentTrackLike: () => null },
-    './music-options': { QualitySelect: () => null },
-    './now-playing-menu': { NowPlayingMenu: () => null },
-    './playback-timeline': { PlaybackTimeline: () => null },
-    './playback-transport': { PlaybackTransport: ({ leadingControl }) => leadingControl ?? null }
+    '../now-playing/current-track-like': { CurrentTrackLike: () => null },
+    '../now-playing/music-options': { QualitySelect: () => null },
+    '../now-playing/now-playing-menu': { NowPlayingMenu: () => null },
+    '../controls/playback-timeline': { PlaybackTimeline: () => null },
+    '../controls/playback-transport': {
+      PlaybackTransport: ({ leadingControl }) => leadingControl ?? null
+    }
   }
   const exports = {}
   runInNewContext(
     ts.transpileModule(
       readFileSync(
-        new URL('../src/features/playback/mobile-fullscreen-player.tsx', import.meta.url),
+        new URL('../src/features/playback/mobile/mobile-fullscreen-player.tsx', import.meta.url),
         'utf8'
       ),
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }

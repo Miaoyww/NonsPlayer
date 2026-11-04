@@ -12,10 +12,10 @@ import { errorText, getPlayer, nativeCall, usePlayer, type Lyrics, type Track } 
 import { offsetLyrics, automaticLyrics, type LyricCorrection } from './correction'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
-import { CoverContextMenu } from '@/features/playback/cover-context-menu'
+import { CoverContextMenu } from '@/features/playback/now-playing/cover-context-menu'
 import { AlbumBackground } from '@/features/lyrics/album-background'
-import { NowPlayingControls } from '@/features/playback/now-playing-controls'
-import { NowPlayingMenu } from '@/features/playback/now-playing-menu'
+import { NowPlayingControls } from '@/features/playback/controls/now-playing-controls'
+import { NowPlayingMenu } from '@/features/playback/now-playing/now-playing-menu'
 import {
   getLyricSources,
   useLyricSources,
@@ -25,8 +25,8 @@ import { loadLyrics, lyricTrackVersion } from '@/features/lyrics/load-lyrics'
 import { EmptyLyricsError, parseLyrics } from '@/features/lyrics/parse-lyrics'
 import { LyricLoading } from './lyric-loading'
 import { isAndroid } from '@/lib/platform'
-import { MobileFullscreenPlayer } from '@/features/playback/mobile-fullscreen-player'
-import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/playback-notice'
+import { MobileFullscreenPlayer } from '@/features/playback/mobile/mobile-fullscreen-player'
+import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/bar/playback-notice'
 import { requestCache, RUNTIME_TTL } from '@/lib/runtime-cache'
 import { useLyricsSettings } from './use-lyrics-settings'
 

@@ -23,7 +23,7 @@ test('playback errors expire independently after 3 seconds and active duplicates
   const timers = new Map()
   let clock = 0
   const store = load(
-    '../src/features/playback/error-notices.ts',
+    '../src/features/playback/recovery/error-notices.ts',
     {},
     { setTimeout, clearTimeout }
   ).createErrorNotices(
@@ -71,7 +71,7 @@ test('visible playback slots own transient errors; dialogs and pages without a b
   }
   const clearTimer = (fn) => callbacks.delete(fn)
   const storeModule = load(
-    '../src/features/playback/error-notices.ts',
+    '../src/features/playback/recovery/error-notices.ts',
     {},
     { setTimeout: timer, clearTimeout: clearTimer }
   )
@@ -80,7 +80,7 @@ test('visible playback slots own transient errors; dialogs and pages without a b
     {
       react: React,
       'react/jsx-runtime': jsx,
-      '@/features/playback/error-notices': storeModule
+      '@/features/playback/recovery/error-notices': storeModule
     },
     { document, window }
   )
@@ -90,13 +90,13 @@ test('visible playback slots own transient errors; dialogs and pages without a b
     playbackSource: { changed: true, displayName: 'GD', title: 'Song', artist: 'Artist' }
   }
   const playback = load(
-    '../src/features/playback/playback-notice.tsx',
+    '../src/features/playback/bar/playback-notice.tsx',
     {
       react: React,
       'react/jsx-runtime': jsx,
       '@/lib/player': { usePlayer: () => state },
       '@/components/error-notice': notices,
-      './error-notices': storeModule
+      '../recovery/error-notices': storeModule
     },
     { window: { setTimeout: timer, clearTimeout: clearTimer } }
   )
