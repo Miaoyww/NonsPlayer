@@ -1,6 +1,7 @@
 //! Backend registry, admission budgets and revocable resource ownership.
 use super::{
-    account::SessionContext, adapter::*, identity::*, mv::*, resource::*, ErrorCode, MusicResult,
+    account::SessionContext, adapter::*, identity::*, lyric::*, mv::*, resource::*, ErrorCode,
+    MusicResult,
 };
 use std::{
     collections::BTreeMap,
@@ -411,6 +412,18 @@ impl AdapterManager {
             .get(source)
             .cloned()
             .ok_or_else(|| ErrorCode::SourceUnavailable.into())
+    }
+    pub fn supports(&self, source: &str, capability: Capability) -> bool {
+        SourceId::try_from(source.to_owned())
+            .ok()
+            .and_then(|source| self.entry(&source).ok())
+            .is_some_and(|entry| {
+                entry
+                    .adapter
+                    .descriptor()
+                    .capabilities
+                    .contains(&capability)
+            })
     }
     pub fn stamp(&self, source: &SourceId) -> MusicResult<(SessionContext, u64)> {
         if let Some(stamp) = self.provider_stamp(source)? {
@@ -1041,6 +1054,46 @@ impl AdapterManager {
         }
         entry.check(context)?;
         Ok(page)
+    }
+    pub async fn lyric_match(
+        &self,
+        source: &str,
+        track: &MusicTrack,
+    ) -> MusicResult<LyricMatchSubject> {
+        let source = SourceId::try_from(source.to_owned())?;
+        let entry = self.entry(&source)?;
+        let context = Self::context(&entry, Duration::from_secs(2));
+        self.run(&entry, &context, async {
+            entry.check(&context)?;
+            if !entry
+                .adapter
+                .descriptor()
+                .capabilities
+                .contains(&Capability::LyricMatch)
+            {
+                return Err(ErrorCode::Unsupported.into());
+            }
+            let _permit = entry
+                .reads
+                .try_acquire()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("music.lyric_match_admission", error);
+                })
+                .map_err(|_| ErrorCode::RateLimited)?;
+            let subject = entry
+                .adapter
+                .lyric_match(
+                    &LyricMatchRequest {
+                        track: track.clone(),
+                    },
+                    &context,
+                )
+                .await?;
+            subject.validate()?;
+            entry.check(&context)?;
+            Ok(subject)
+        })
+        .await
     }
     pub async fn resolve_playback(
         &self,

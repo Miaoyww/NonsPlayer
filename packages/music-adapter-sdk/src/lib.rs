@@ -4,6 +4,7 @@ pub mod adapter;
 pub mod business;
 pub mod cover;
 pub mod identity;
+pub mod lyric;
 pub mod metadata;
 pub mod mv;
 pub mod provider;

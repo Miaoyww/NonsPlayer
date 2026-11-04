@@ -44,6 +44,14 @@ export interface MusicTrack {
   /** Typed IDs within reference.source; at most eight. */
   lyricIdentifiers?: { kind: string; id: string }[]
 }
+
+/** Query input derived by an adapter; never a track identity. */
+export interface LyricMatchSubject {
+  title: string
+  artists?: string[]
+  album?: string | null
+  durationMs?: number | null
+}
 export interface MusicEntity {
   reference: EntityRef
   name: string

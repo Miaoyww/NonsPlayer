@@ -151,13 +151,14 @@ struct Candidate {
 pub async fn lookup(
     client: &reqwest::Client,
     track: &Track,
+    subject: &crate::lyric_matching::Subject,
     skip_qrc: bool,
     separators: &[String],
 ) -> AppResult<Option<Lyrics>> {
     // A single bounded stage; timeout and transport errors must remain retryable.
     tokio::time::timeout(
         Duration::from_secs(6),
-        lookup_inner(client, track, skip_qrc, separators),
+        lookup_inner(client, track, subject, skip_qrc, separators),
     )
     .await
     .inspect_err(|error| {
@@ -169,6 +170,7 @@ pub async fn lookup(
 async fn lookup_inner(
     client: &reqwest::Client,
     track: &Track,
+    subject: &crate::lyric_matching::Subject,
     skip_qrc: bool,
     separators: &[String],
 ) -> AppResult<Option<Lyrics>> {
@@ -177,19 +179,20 @@ async fn lookup_inner(
     if !exact.is_empty() {
         return fetch_exact(client, exact, skip_qrc, &LYRIC_ENDPOINTS).await;
     }
-    if track.title.trim().is_empty() || track.artist.trim().is_empty() {
+    if subject.title.trim().is_empty() {
         return Ok(None);
     }
-    if [&track.title, &track.artist, &track.album]
+    if [&subject.title, &subject.album]
         .iter()
         .any(|s| s.len() > 1024)
+        || subject.artists.iter().any(|artist| artist.len() > 1024)
     {
         return Err("QQ 匹配元数据过长".into());
     }
     let mut best: Option<(Candidate, u32)> = None;
     let mut failed = false;
     let mut limited = false;
-    for query in queries(track, separators) {
+    for query in queries(track, subject, separators) {
         let response = match read_json(search_request(client, &query, 20))
             .await
             .and_then(candidates)
@@ -211,7 +214,7 @@ async fn lookup_inner(
         };
         for candidate in response {
             let score = crate::lyric_matching::score(
-                track,
+                subject,
                 &candidate.title,
                 &candidate.artists,
                 &candidate.album,
@@ -734,8 +737,9 @@ fn decode_lyrics(value: Value) -> AppResult<Option<Lyrics>> {
 
 #[cfg(test)]
 fn metadata_score(track: &Track, candidate: &Candidate) -> u32 {
+    let subject = crate::lyric_matching::Subject::from_track(track, &[" / ".into()]);
     crate::lyric_matching::score(
-        track,
+        &subject,
         &candidate.title,
         &candidate.artists,
         &candidate.album,
@@ -832,17 +836,21 @@ mod tests {
             .connect_timeout(Duration::from_millis(500))
             .build()
             .unwrap();
+        let track = track();
+        let separators = vec![" / ".to_owned()];
+        let subject = crate::lyric_matching::Subject::from_track(&track, &separators);
         let value =
-            tauri::async_runtime::block_on(lookup(&client, &track(), false, &[" / ".into()]))
+            tauri::async_runtime::block_on(lookup(&client, &track, &subject, false, &separators))
                 .unwrap()
                 .expect("晴天 should have matched QQ lyrics");
         assert_eq!(value.source, "qq");
         assert_eq!(value.format, "qrc");
         assert!(value.content.contains("["));
         println!("QQ live lookup: {} UTF-8 bytes", value.content.len());
-        let lrc = tauri::async_runtime::block_on(lookup(&client, &track(), true, &[" / ".into()]))
-            .unwrap()
-            .unwrap();
+        let lrc =
+            tauri::async_runtime::block_on(lookup(&client, &track, &subject, true, &separators))
+                .unwrap()
+                .unwrap();
         assert_eq!(lrc.format, "lrc");
     }
     pub(super) fn track() -> Track {

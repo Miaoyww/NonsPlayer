@@ -50,6 +50,12 @@
 
 平台取词、评分、缓存和回退仍归独立歌词服务；本字段不表示适配器实现了 `Lyrics` 能力方法。配置和缓存失效见[缓存约定](cache-and-local.md#运行时缓存的接入)。
 
+### 歌词匹配主体
+
+描述符可声明可选 `lyricMatch` 能力，供平台把视频标题等容器元数据转换为真正的歌曲匹配输入。能力方法为 `music.lyric-match`，输入完整 `MusicTrack`，返回 `LyricMatchSubject { title, artists?, album?, durationMs? }`：`title` 必填且最多 256 字符，歌手最多 8 项、每项最多 128 字符，专辑最多 256 字符，`durationMs` 缺省表示沿用曲目时长。主体只用于查询和评分，不替换曲目引用、标题、歌手或关联。
+
+宿主仅在曲目在线且适配器声明能力时调用，设 2.5 秒预算；未声明、失败、超时或返回空标题均回退到曲目原始元数据。返回主体缺少歌手或专辑时，对应评分权重不参与并重新归一化，避免部分能力来源因容器元数据被固定扣分。主体参与歌词缓存摘要，变化后旧匹配自动失效。哔哩哔哩使用视频播放器信息中的 BGM 曲名作为主体标题；取不到 BGM 信息时回退视频标题。
+
 适配器描述符支持可选 `description`，内容须为非空白文本、最多 1024 个 Unicode 字符；旧描述符省略时兼容读取，管理页面展示并加入本地搜索。功能插件已有的 `description` 规则保持不变。
 
 2026-10-16：完整平台适配器与音源适配器共用 `platforms` 声明可提供音频的原始曲目平台。完整适配器省略时兼容自身平台；自身平台的必选解析能力始终保留。跨平台音源能力通过 `MusicAdapter::resolve_resource(ResourceRequest, RequestContext)` 实现，默认仅转发自身平台的 `resolve_playback`。外部完整适配器为其他平台取址时导出 `music.resolve-resource`，输入和音源适配器相同，收到原曲完整元数据及自身账号上下文；不得借用目标平台凭据。声明仅授权宿主调度，实现仍须提供相应协议，不能将网易云 ID 直接当作 QQ ID。
@@ -66,7 +72,7 @@ read_track(EntityRef, RequestContext) -> MusicTrack
 resolve_playback(ResolveRequest, RequestContext) -> PlaybackResource
 ```
 
-返回异步 `Send` future，不依赖 WebUI 挂载，不在音频线程运行。`SourceDescriptor` 声明版本与可选能力组：搜索、浏览、账号、用户曲库、收藏、歌单写入、推荐、私人 FM、歌词和下载。可选组的方法随业务迁移确定；声明能力并不表示阶段一已实现该业务。描述符版本必须与宿主契约版本完全一致；当前拒绝未知版本，不套用功能插件的 `pluginApi` 版本。外部包 Manifest、WIT/ABI 及升级协商留到阶段四，内部和外部将共用语义与契约测试。
+返回异步 `Send` future，不依赖 WebUI 挂载，不在音频线程运行。`SourceDescriptor` 声明版本与可选能力组：搜索、浏览、账号、用户曲库、收藏、歌单写入、推荐、私人 FM、歌词、歌词匹配和下载。可选组的方法随业务迁移确定；声明能力并不表示阶段一已实现该业务。描述符版本必须与宿主契约版本完全一致；当前拒绝未知版本，不套用功能插件的 `pluginApi` 版本。外部包 Manifest、WIT/ABI 及升级协商留到阶段四，内部和外部将共用语义与契约测试。
 
 `OperationAvailability` 单独表达当前账号/曲目是否可执行及不可用错误码。缺少能力返回 `unsupported`；支持收藏但未登录返回 `unauthenticated`，不能把“平台支持”当作“当前可以操作”。平台特有能力作为后续可选扩展，不扩大基础接口。
 

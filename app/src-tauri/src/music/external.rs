@@ -1,5 +1,7 @@
 //! Backend-only v1 adapter bridge. Reuses the Component transport, never PluginManager.
-use super::{adapter::*, business::*, identity::*, mv::*, resource::*, ErrorCode, MusicResult};
+use super::{
+    adapter::*, business::*, identity::*, lyric::*, mv::*, resource::*, ErrorCode, MusicResult,
+};
 use crate::{
     model::AppResult,
     wasm_runtime::{self as runtime, HostHandler, Runtime},
@@ -447,6 +449,28 @@ impl MusicAdapter for ExternalAdapter {
                     .validate_hosts(&self.descriptor.cover_hosts)?;
             }
             Ok(page)
+        })
+    }
+    fn lyric_match<'a>(
+        &'a self,
+        request: &'a LyricMatchRequest,
+        context: &'a RequestContext,
+    ) -> AdapterFuture<'a, LyricMatchSubject> {
+        Box::pin(async move {
+            request.validate(&request.track.reference)?;
+            if request.track.reference.source != self.descriptor.source {
+                return Err(ErrorCode::Unsupported.into());
+            }
+            let subject: LyricMatchSubject = self
+                .invoke(
+                    "music.lyric-match",
+                    &Self::arguments(request, context)?,
+                    false,
+                    Some(context),
+                )
+                .await?;
+            subject.validate()?;
+            Ok(subject)
         })
     }
     fn resolve_mv<'a>(

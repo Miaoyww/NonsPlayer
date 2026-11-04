@@ -9,27 +9,32 @@ use std::time::Duration;
 pub(crate) async fn lookup(
     api: &Netease,
     track: &Track,
+    subject: &lyric_matching::Subject,
     separators: &[String],
 ) -> AppResult<Option<Lyrics>> {
-    tokio::time::timeout(Duration::from_secs(6), lookup_inner(api, track, separators))
-        .await
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn_error("lyrics.netease.search.timeout", error);
-        })
-        .map_err(|_| "网易云歌词搜索超时".to_string())?
+    tokio::time::timeout(
+        Duration::from_secs(6),
+        lookup_inner(api, track, subject, separators),
+    )
+    .await
+    .inspect_err(|error| {
+        crate::infrastructure::diagnostics::warn_error("lyrics.netease.search.timeout", error);
+    })
+    .map_err(|_| "网易云歌词搜索超时".to_string())?
 }
 
 async fn lookup_inner(
     api: &Netease,
     track: &Track,
+    subject: &lyric_matching::Subject,
     separators: &[String],
 ) -> AppResult<Option<Lyrics>> {
-    if track.title.trim().is_empty() || track.artist.trim().is_empty() {
+    if subject.title.trim().is_empty() {
         return Ok(None);
     }
     let mut best = None;
     let mut failed = false;
-    for query in lyric_matching::queries(track, separators) {
+    for query in lyric_matching::queries(track, subject, separators) {
         let candidates = match api.search(&query, 0).await {
             Ok(value) => value,
             Err(error) => {
@@ -49,7 +54,7 @@ async fn lookup_inner(
                     .collect()
             };
             let score = lyric_matching::score(
-                track,
+                subject,
                 &candidate.title,
                 &artists,
                 &candidate.album,

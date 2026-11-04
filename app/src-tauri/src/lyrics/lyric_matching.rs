@@ -1,6 +1,8 @@
 //! AF-Media-Bar metadata score and query policy (MIT); see notices/.
 use crate::model::{Lyrics, Track};
+use nons_music_adapter_sdk::lyric::LyricMatchSubject;
 use regex::Regex;
+use serde::Serialize;
 use std::sync::LazyLock;
 
 pub(crate) const MINIMUM_SCORE: u32 = 60;
@@ -35,26 +37,94 @@ pub(crate) fn without_translation(text: &str) -> String {
     text.trim().into()
 }
 
-pub(crate) fn queries(track: &Track, separators: &[String]) -> Vec<String> {
-    let title = without_translation(&track.title);
-    let artist = split_artists(&track.artist, separators)
-        .into_iter()
-        .map(|artist| without_translation(&artist))
-        .collect::<Vec<_>>()
-        .join(" ");
-    let mut result = Vec::new();
-    for query in [
-        format!("{title} {artist}"),
-        format!("{} {}", track.title, track.artist),
-    ]
-    .into_iter()
-    .chain(
-        split_artists(&track.artist, separators)
-            .into_iter()
-            .map(|a| format!("{title} {}", without_translation(&a))),
-    )
-    .chain(std::iter::once(title.clone()))
+fn clean_title(text: &str) -> String {
+    static PRIORITY: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"《(.+?)》|「(.+?)」").unwrap());
+    static DECORATION: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"【.*?】|“.*?”").unwrap());
+    let title = if let Some(value) = PRIORITY
+        .captures(text)
+        .and_then(|captures| captures.get(1).or_else(|| captures.get(2)))
     {
+        value.as_str().to_owned()
+    } else {
+        let title = DECORATION.replace_all(text, "");
+        let title = title.trim();
+        if title.is_empty() {
+            text.trim().to_owned()
+        } else {
+            title.to_owned()
+        }
+    };
+    without_translation(&title)
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Subject {
+    pub title: String,
+    pub artists: Vec<String>,
+    pub album: String,
+    pub duration_ms: u64,
+}
+
+impl Subject {
+    pub fn from_track(track: &Track, separators: &[String]) -> Self {
+        Self {
+            title: clean_title(&track.title),
+            artists: split_artists(&track.artist, separators)
+                .into_iter()
+                .map(|artist| without_translation(&artist))
+                .collect(),
+            album: track.album.clone(),
+            duration_ms: track.duration_ms,
+        }
+    }
+
+    pub fn from_match(track: &Track, value: &LyricMatchSubject, separators: &[String]) -> Self {
+        let title = clean_title(&value.title);
+        let artists = value
+            .artists
+            .iter()
+            .flat_map(|artist| split_artists(artist, separators))
+            .map(|artist| without_translation(&artist))
+            .filter(|artist| !artist.is_empty())
+            .collect();
+        Self {
+            title: if title.is_empty() {
+                clean_title(&track.title)
+            } else {
+                title
+            },
+            artists,
+            album: value.album.clone().unwrap_or_else(|| track.album.clone()),
+            duration_ms: value.duration_ms.unwrap_or(track.duration_ms),
+        }
+    }
+}
+
+pub(crate) fn queries(track: &Track, subject: &Subject, _separators: &[String]) -> Vec<String> {
+    let mut titles = vec![subject.title.clone()];
+    let raw = without_translation(track.title.trim());
+    if !raw.is_empty() && raw != subject.title {
+        titles.push(raw);
+    }
+    let artist = subject.artists.join(" ");
+    let raw_artist = track.artist.trim();
+    let mut result = Vec::new();
+    let mut queries = Vec::new();
+    for title in &titles {
+        if !artist.is_empty() {
+            queries.push(format!("{title} {artist}"));
+        }
+        if !raw_artist.is_empty() {
+            queries.push(format!("{title} {raw_artist}"));
+        }
+    }
+    for artist in &subject.artists {
+        queries.extend(titles.iter().map(|title| format!("{title} {artist}")));
+    }
+    queries.extend(titles.iter().cloned());
+    for query in queries {
         let query = query.trim().to_owned();
         if !query.is_empty() && !result.contains(&query) {
             result.push(query);
@@ -84,24 +154,24 @@ fn fingerprint(text: &str) -> String {
 }
 
 pub(crate) fn score(
-    track: &Track,
+    subject: &Subject,
     title: &str,
     candidate_names: &[String],
     album: &str,
     duration: f64,
     separators: &[String],
 ) -> u32 {
-    let request_artists = split_artists(&track.artist, separators);
+    let request_artists = &subject.artists;
     let candidate_artists: Vec<_> = candidate_names
         .iter()
         .flat_map(|a| split_artists(a, separators))
         .collect();
-    let total = if track.title.trim().is_empty() || title.trim().is_empty() {
-        request_artists
+    let total = if subject.title.trim().is_empty() || title.trim().is_empty() {
+        let value = request_artists
             .iter()
             .flat_map(|a| {
                 candidate_artists.iter().map(move |b| {
-                    let left = fingerprint(&format!("{} {a}", track.title));
+                    let left = fingerprint(&format!("{} {a}", subject.title));
                     let right = fingerprint(&format!("{} {b}", title));
                     if left.is_empty() || right.is_empty() {
                         0.0
@@ -110,23 +180,36 @@ pub(crate) fn score(
                     }
                 })
             })
-            .fold(0.0, f64::max)
-    } else {
-        let artist = request_artists
-            .iter()
-            .flat_map(|a| candidate_artists.iter().map(move |b| compare(a, b)))
             .fold(0.0, f64::max);
-        let local = track.duration_ms as f64 / 1000.0;
+        value
+    } else {
+        let artist = (!request_artists.is_empty() && !candidate_artists.is_empty()).then(|| {
+            request_artists
+                .iter()
+                .flat_map(|a| candidate_artists.iter().map(move |b| compare(a, b)))
+                .fold(0.0, f64::max)
+        });
+        let local = subject.duration_ms as f64 / 1000.0;
         let remote = duration;
-        let duration = if local <= 0.0 || remote <= 0.0 || !remote.is_finite() {
-            0.0
-        } else {
-            (1.0 - ((local - remote).abs() - 1.0).max(0.0) / 9.0).max(0.0)
-        };
-        0.4 * compare(&track.title, title)
-            + 0.4 * artist
-            + 0.1 * compare(&track.album, album)
-            + 0.1 * duration
+        let duration = (local > 0.0 && remote > 0.0 && remote.is_finite())
+            .then(|| (1.0 - ((local - remote).abs() - 1.0).max(0.0) / 9.0).max(0.0));
+        let album = (!subject.album.trim().is_empty() && !album.trim().is_empty())
+            .then(|| compare(&subject.album, album));
+        let mut weight = 0.4;
+        let mut value = 0.4 * compare(&subject.title, title);
+        if let Some(artist) = artist {
+            weight += 0.4;
+            value += 0.4 * artist;
+        }
+        if let Some(album) = album {
+            weight += 0.1;
+            value += 0.1 * album;
+        }
+        if let Some(duration) = duration {
+            weight += 0.1;
+            value += 0.1 * duration;
+        }
+        value / weight
     };
     (100.0 * total).round_ties_even() as u32
 }
@@ -276,13 +359,14 @@ mod tests {
     #[test]
     fn custom_separators_apply_to_both_sides_with_longest_literal_and_case_insensitive_dedup() {
         let separators = vec![" & ".into(), "&".into(), " feat. ".into()];
+        let subject = Subject::from_track(&track(), &separators);
         assert_eq!(
             split_artists("Sarah Kang FEAT. Sam Ock & sam ock", &separators),
             ["Sarah Kang", "Sam Ock"]
         );
         assert_eq!(
             score(
-                &track(),
+                &subject,
                 "Home",
                 &["Other & Sam Ock".into()],
                 "Home",
@@ -298,8 +382,9 @@ mod tests {
     fn search_preserves_original_and_all_individual_artist_queries_then_title_only() {
         let mut request = track();
         request.artist = "A & B & C & D".into();
+        let subject = Subject::from_track(&request, &[" & ".into()]);
         assert_eq!(
-            queries(&request, &[" & ".into()]),
+            queries(&request, &subject, &[" & ".into()]),
             [
                 "Home A B C D",
                 "Home A & B & C & D",
@@ -316,14 +401,53 @@ mod tests {
     fn weights_preview_duration_empty_title_and_empty_fields_follow_af_policy() {
         let mut request = track();
         request.artist = "Sam Ock".into();
+        let mut subject = Subject::from_track(&request, &[]);
         let names = vec!["Sam Ock".into()];
-        assert_eq!(score(&request, "Home", &names, "Home", 342.4, &[]), 100);
-        assert_eq!(score(&request, "Home", &names, "Home", 30.0, &[]), 90);
-        assert_eq!(score(&request, "Home", &names, "Home", 347.9, &[]), 95);
-        request.title.clear();
-        request.artist = "Sam Ock Home".into();
-        assert_eq!(score(&request, "Home", &names, "Other", 1.0, &[]), 100);
+        assert_eq!(score(&subject, "Home", &names, "Home", 342.4, &[]), 100);
+        assert_eq!(score(&subject, "Home", &names, "Home", 30.0, &[]), 90);
+        assert_eq!(score(&subject, "Home", &names, "Home", 347.9, &[]), 95);
+        subject.title.clear();
+        subject.artists = vec!["Sam Ock Home".into()];
+        assert_eq!(score(&subject, "Home", &names, "Other", 1.0, &[]), 100);
         assert_eq!(compare("", ""), 1.0);
         assert_eq!(compare("", "Home"), 0.0);
+    }
+
+    #[test]
+    fn titles_prefer_bracketed_song_names_and_remove_decorations() {
+        assert_eq!(clean_title("【MV】《Home》官方版"), "Home");
+        assert_eq!(clean_title("【翻唱】「Home」"), "Home");
+        assert_eq!(clean_title("“Home” 现场"), "现场");
+        assert_eq!(clean_title("【MV】"), "【MV】");
+    }
+
+    #[test]
+    fn missing_subject_fields_do_not_lose_weight() {
+        let request = track();
+        let subject = Subject::from_match(
+            &request,
+            &LyricMatchSubject {
+                title: "《Home》".into(),
+                artists: vec![],
+                album: Some(String::new()),
+                duration_ms: Some(request.duration_ms),
+            },
+            &[],
+        );
+        assert_eq!(subject.title, "Home");
+        assert_eq!(
+            score(&subject, "Home", &["Unknown".into()], "Other", 342.4, &[]),
+            100
+        );
+        assert!(
+            score(
+                &subject,
+                "Different",
+                &["Unknown".into()],
+                "Other",
+                342.4,
+                &[]
+            ) >= 50
+        );
     }
 }

@@ -956,6 +956,7 @@ pub fn run() {
             let lyrics = Arc::new(lyrics::LyricService::new(
                 store.clone(),
                 netease.clone(),
+                music.adapters.clone(),
                 cache.clone(),
             )?);
             let folders = local_folders::LocalFolders::new(

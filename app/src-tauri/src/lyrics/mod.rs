@@ -11,6 +11,7 @@ pub(crate) mod qrc_decrypt;
 
 use crate::{
     model::{AppResult, Lyrics, Track, TrackSource},
+    music::manager::AdapterManager,
     netease::Netease,
     storage::{now_seconds, Store, MAX_LYRIC_BYTES},
 };
@@ -57,6 +58,7 @@ impl Default for LyricSources {
 pub struct LyricService {
     store: Arc<Store>,
     netease: Arc<Netease>,
+    adapters: Arc<AdapterManager>,
     client: reqwest::Client,
     refreshing: Mutex<HashSet<String>>,
     retry_after: Mutex<HashMap<String, i64>>,
@@ -122,6 +124,7 @@ impl LyricService {
     pub fn new(
         store: Arc<Store>,
         netease: Arc<Netease>,
+        adapters: Arc<AdapterManager>,
         cache: Arc<LyricCache>,
     ) -> AppResult<Self> {
         let client = reqwest::Client::builder()
@@ -134,6 +137,7 @@ impl LyricService {
         Ok(Self {
             store,
             netease,
+            adapters,
             client,
             refreshing: Mutex::new(HashSet::new()),
             retry_after: Mutex::new(HashMap::new()),
@@ -231,6 +235,7 @@ impl LyricService {
             .transpose()?
             .flatten();
         let sources = self.sources()?;
+        let subject = self.subject(&track, &separators).await;
         let amll_key = amll_request
             .as_ref()
             .map(amll::Request::key)
@@ -247,7 +252,9 @@ impl LyricService {
         // Metadata belongs in the key: local bindings and corrected tags can change matching.
         let digest = format!(
             "{:x}",
-            Sha256::digest(serde_json::to_vec(&(&track, &separators)).map_err(|e| e.to_string())?)
+            Sha256::digest(
+                serde_json::to_vec(&(&track, &separators, &subject)).map_err(|e| e.to_string())?
+            )
         );
         let mode = if qq_lyrics::has_exact_identity(&track) {
             "exact-v4"
@@ -338,13 +345,20 @@ impl LyricService {
             }
         }
         let preferred = if sources.qq && !skips.qq {
-            self.get_qq(&track, qq_key, skips.qrc, &separators, app.clone())
-                .await
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("lyrics.qq.lookup", error);
-                })
-                .ok()
-                .flatten()
+            self.get_qq(
+                &track,
+                &subject,
+                qq_key,
+                skips.qrc,
+                &separators,
+                app.clone(),
+            )
+            .await
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("lyrics.qq.lookup", error);
+            })
+            .ok()
+            .flatten()
         } else {
             None
         };
@@ -420,7 +434,7 @@ impl LyricService {
                 .min(Duration::from_secs(6));
             tokio::time::timeout(
                 budget,
-                self.get_searched_netease(&track, &search_key, &separators, app),
+                self.get_searched_netease(&track, &subject, &search_key, &separators, app),
             )
             .await
             .inspect_err(|error| {
@@ -444,9 +458,40 @@ impl LyricService {
         })
     }
 
+    async fn subject(&self, track: &Track, separators: &[String]) -> lyric_matching::Subject {
+        let fallback = lyric_matching::Subject::from_track(track, separators);
+        let TrackSource::Online { track: online } = &track.source else {
+            return fallback;
+        };
+        let source = online.reference.source.as_str();
+        if !self.adapters.supports(
+            source,
+            nons_music_adapter_sdk::adapter::Capability::LyricMatch,
+        ) {
+            return fallback;
+        }
+        match tokio::time::timeout(
+            Duration::from_millis(2500),
+            self.adapters.lyric_match(source, online),
+        )
+        .await
+        {
+            Ok(Ok(value)) => lyric_matching::Subject::from_match(track, &value, separators),
+            Ok(Err(error)) => {
+                crate::infrastructure::diagnostics::warn("lyrics.match_subject", error);
+                fallback
+            }
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn("lyrics.match_subject.timeout", error);
+                fallback
+            }
+        }
+    }
+
     async fn get_searched_netease(
         self: &Arc<Self>,
         track: &Track,
+        subject: &lyric_matching::Subject,
         key: &str,
         separators: &[String],
         app: tauri::AppHandle,
@@ -470,11 +515,12 @@ impl LyricService {
                     let this = Arc::clone(self);
                     let generation = self.cache.generation();
                     let track = track.clone();
+                    let subject = subject.clone();
                     let key = key.to_owned();
                     let separators = separators.to_vec();
                     tauri::async_runtime::spawn(async move {
                         if let Ok(Some(lyrics)) = (this
-                            .update_searched_netease(&track, &key, &separators)
+                            .update_searched_netease(&track, &subject, &key, &separators)
                             .await)
                             .inspect_err(|error| {
                                 crate::infrastructure::diagnostics::warn(
@@ -498,12 +544,14 @@ impl LyricService {
                 return Ok(Some(value));
             }
         }
-        self.update_searched_netease(track, key, separators).await
+        self.update_searched_netease(track, subject, key, separators)
+            .await
     }
 
     async fn update_searched_netease(
         &self,
         track: &Track,
+        subject: &lyric_matching::Subject,
         key: &str,
         separators: &[String],
     ) -> AppResult<Option<Lyrics>> {
@@ -520,7 +568,7 @@ impl LyricService {
         {
             return Ok(None);
         }
-        match crate::netease_lyrics::lookup(&self.netease, track, separators).await {
+        match crate::netease_lyrics::lookup(&self.netease, track, subject, separators).await {
             Ok(value) => {
                 let _ = (self.cache.cache_result(
                     key,
@@ -563,6 +611,7 @@ impl LyricService {
     async fn get_qq(
         self: &Arc<Self>,
         track: &Track,
+        subject: &lyric_matching::Subject,
         key: &str,
         skip_qrc: bool,
         separators: &[String],
@@ -587,11 +636,12 @@ impl LyricService {
                     let this = Arc::clone(self);
                     let generation = self.cache.generation();
                     let track = track.clone();
+                    let subject = subject.clone();
                     let cache_key = key.to_owned();
                     let separators = separators.to_vec();
                     tauri::async_runtime::spawn(async move {
                         if let Ok(Some(lyrics)) = (this
-                            .update_qq(&track, &cache_key, skip_qrc, &separators)
+                            .update_qq(&track, &subject, &cache_key, skip_qrc, &separators)
                             .await)
                             .inspect_err(|error| {
                                 crate::infrastructure::diagnostics::warn(
@@ -615,12 +665,14 @@ impl LyricService {
                 return Ok(Some(value));
             }
         }
-        self.update_qq(track, key, skip_qrc, separators).await
+        self.update_qq(track, subject, key, skip_qrc, separators)
+            .await
     }
 
     async fn update_qq(
         &self,
         track: &Track,
+        subject: &lyric_matching::Subject,
         key: &str,
         skip_qrc: bool,
         separators: &[String],
@@ -638,7 +690,7 @@ impl LyricService {
         {
             return Ok(None);
         }
-        match crate::qq_lyrics::lookup(&self.client, track, skip_qrc, separators).await {
+        match crate::qq_lyrics::lookup(&self.client, track, subject, skip_qrc, separators).await {
             Ok(value) => {
                 let _ = (self.cache.cache_result(
                     key,

@@ -1,6 +1,6 @@
 //! Host-owned music routing, lifecycle and accounts.
 pub use nons_music_adapter_sdk::{
-    account, adapter, business, identity, mv, provider, resource, ErrorCode, MusicError,
+    account, adapter, business, identity, lyric, mv, provider, resource, ErrorCode, MusicError,
     MusicResult, CONTRACT_VERSION,
 };
 pub mod accounts;
