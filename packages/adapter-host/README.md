@@ -3,7 +3,7 @@
 `wit/host.wit` 定义 `nons:host/transport@1.0.0`。宿主同时复用功能插件的 Component runtime 和 HTTP 基础设施；加载上下文分别绑定，音乐协议不进入宿主。
 
 - HTTP：GET／HEAD／POST，合法自定义头，原始字节与逐条 Set-Cookie。请求正文 64KiB、响应正文 2MiB、头 16KiB、期限最多 15 秒；宿主管理 framing，不跟随重定向。
-- 网络：按包声明域名授权，拒绝私网、回环、保留地址、未授权端口和 URL 凭据。HTTP／WSS 直连，不继承代理。WSS 每上下文最多 2 连接、帧 16KiB、发送队列 16、事件队列 32；宿主处理 TLS／Ping／Pong，guest 处理应用协议。
+- 网络：目标不限主机、IP、端口和 URL 凭证，私网与回环地址可用；域名声明仅用于展示。HTTP／WS 直连，不继承代理。WS／WSS 每上下文最多 2 连接、帧 16KiB、发送队列 16、事件队列 32；宿主处理 TLS／Ping／Pong，guest 处理应用协议。
 - 凭据：read／replace／invalidate 绑定 Store 中账号与实例代次，不能指定别人的账号。replace 推进账号代次，旧业务结果失效；invalidate 持久化失败返回错误。publish 只供登录挑战完成，交由 AccountManager 保存，凭据不返回 WebUI。
 - 非敏感状态：按来源隔离，最多 16 个键，每值 8KiB、总量 64KiB；取消或代次变化拒绝交付／写入。
 - 标准能力：选定 WASI clocks、random、io 子集，不提供文件系统、进程、环境变量或原始 sockets。

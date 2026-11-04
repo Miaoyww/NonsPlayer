@@ -16,7 +16,7 @@ use std::{
 };
 
 fn input(platform: &str, id: &str) -> Value {
-    json!({"request":{"track":{"reference":{"source":platform,"kind":"track","id":id},"title":"Test track","aliases":[],"artist":"Test artist","artists":[],"album":"","albumReference":null,"durationMs":180000,"cover":"","associations":[]},"preferredQuality":"exhigh","allowDowngrade":false}})
+    json!({"request":{"track":{"reference":{"source":platform,"kind":"track","id":id},"title":"Test track","aliases":[],"artist":"Test artist","artists":[],"album":"","albumReference":null,"durationMs":180000,"cover":{"original":"","small":"","normal":"","large":"","exlarge":""},"associations":[]},"preferredQuality":"exhigh","allowDowngrade":false}})
 }
 fn mp3() -> Vec<u8> {
     let mut data = vec![0; 6890 * 1044];
@@ -213,7 +213,7 @@ fn search_descriptor_and_invalid_requests_do_no_network() {
     assert!(fixture.requests.borrow().is_empty());
 }
 #[test]
-fn rejects_wrong_identity_preview_short_audio_and_forbidden_redirects() {
+fn rejects_wrong_identity_preview_and_short_audio_but_accepts_other_hosts() {
     let mut fixture = Fixture::new("2");
     assert_eq!(
         invoke(&fixture, &input("netease", "1"))["data"]["code"],
@@ -225,10 +225,7 @@ fn rejects_wrong_identity_preview_short_audio_and_forbidden_redirects() {
         "permissionDenied"
     );
     fixture.row = json!({"songid":1,"url":"https://evil.invalid/audio"});
-    assert_eq!(
-        invoke(&fixture, &input("netease", "1"))["data"]["code"],
-        "permissionDenied"
-    );
+    assert_eq!(invoke(&fixture, &input("netease", "1"))["status"], "ok");
     fixture.row = json!({"songid":1,"url":"api.php?get=url&id=1"});
     fixture.media.truncate(1150 * 1044);
     assert_eq!(
@@ -285,16 +282,16 @@ fn remote_reader_bounds_network_reads_and_seeks() {
     assert!(reader.seek(SeekFrom::End(1)).is_err());
 }
 #[test]
-fn url_authorization_checks_suffix_credentials_and_scheme() {
+fn url_authorization_keeps_http_scheme_only() {
     for url in [
         "https://music.126.net.evil.invalid/a",
         "https://127.0.0.1/a",
-        "file:///audio",
         "https://user@fixture.music.invalid/a",
         "https://fixture.music.invalid:8443/a",
     ] {
-        assert!(protocol::allowed(url, BASE, CONFIG).is_err(), "{url}");
+        assert!(protocol::allowed(url, BASE, CONFIG).is_ok(), "{url}");
     }
+    assert!(protocol::allowed("file:///audio", BASE, CONFIG).is_err());
 }
 
 #[test]
@@ -335,7 +332,7 @@ fn adapter_manifests_keep_site_headers_and_permissions_separate() {
                 .iter()
                 .any(|(k, v)| k == "Referer" && v == config.base));
             let other = "https://other.music.invalid/api.php";
-            assert!(protocol::allowed(other, config.base, config).is_err());
+            assert!(protocol::allowed(other, config.base, config).is_ok());
         }
     }
 }

@@ -733,7 +733,6 @@ impl Downloads {
                 crate::infrastructure::diagnostics::warn("downloads.http.send", &error);
                 "连接下载资源失败".to_owned()
             })?;
-        self.http.check_target(&response)?;
         if !response.status().is_success() {
             return Err(format!(
                 "下载服务器返回 HTTP {}",

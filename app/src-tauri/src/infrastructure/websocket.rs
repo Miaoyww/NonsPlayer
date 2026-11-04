@@ -1,6 +1,6 @@
 //! Authorized, bounded WebSocket transport. Application protocols stay in guests.
 use super::{
-    http::{checked_url, public_addresses, public_ip},
+    http::{checked_url, resolve_addresses},
     wasm_runtime::host_io::{Event, Message},
 };
 use crate::model::AppResult;
@@ -17,6 +17,13 @@ use tokio::sync::{mpsc, Mutex};
 use tokio_tungstenite::tungstenite::{
     client::IntoClientRequest, protocol::WebSocketConfig, Message as Frame,
 };
+
+fn ensure_crypto_provider() {
+    static INSTALL: std::sync::Once = std::sync::Once::new();
+    INSTALL.call_once(|| {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    });
+}
 
 enum Command {
     Send(Vec<u8>),
@@ -53,13 +60,7 @@ impl Sockets {
             active,
         }
     }
-    pub async fn open(
-        &self,
-        hosts: &[String],
-        input: String,
-        protocol: String,
-        timeout_ms: u32,
-    ) -> AppResult<u32> {
+    pub async fn open(&self, input: String, protocol: String, timeout_ms: u32) -> AppResult<u32> {
         if !self.active.load(Ordering::Acquire)
             || !(1..=15000).contains(&timeout_ms)
             || protocol.len() > 128
@@ -71,15 +72,20 @@ impl Sockets {
                 crate::infrastructure::diagnostics::warn("websocket.url.parse", error);
             })
             .map_err(|_| "WebSocket 地址无效")?;
-        if url.scheme() != "wss" {
-            return Err("WebSocket 仅支持 WSS".into());
+        let secure = match url.scheme() {
+            "wss" => true,
+            "ws" => false,
+            _ => return Err("WebSocket 仅支持 WS 或 WSS".into()),
+        };
+        if secure {
+            ensure_crypto_provider();
         }
-        url.set_scheme("https")
+        url.set_scheme(if secure { "https" } else { "http" })
             .inspect_err(|_| {
                 super::diagnostics::warn("websocket.set_scheme", "invalid scheme transition");
             })
             .map_err(|_| "WebSocket 地址无效")?;
-        let url = checked_url(hosts, url.as_str())?;
+        let url = checked_url(url.as_str())?;
         let mut connections = self.connections.lock().await;
         if connections.len() >= 2 {
             return Err("WebSocket 连接数超过额度".into());
@@ -92,24 +98,17 @@ impl Sockets {
             })
             .map_err(|_| "WebSocket 句柄耗尽")?;
         let socket = tokio::time::timeout(Duration::from_millis(timeout_ms as u64), async {
-            let addresses =
-                public_addresses(url.host_str().ok_or("WebSocket 目标无效")?, 443).await?;
+            let addresses = resolve_addresses(
+                url.host_str().ok_or("WebSocket 目标无效")?,
+                url.port_or_known_default().ok_or("WebSocket 目标无效")?,
+            )
+            .await?;
             let tcp = tokio::net::TcpStream::connect(addresses.as_slice())
                 .await
                 .inspect_err(|error| {
                     crate::infrastructure::diagnostics::warn("websocket.tcp.connect", error);
                 })
                 .map_err(|_| "WebSocket 连接失败")?;
-            if !public_ip(
-                tcp.peer_addr()
-                    .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("websocket.peer.verify", error);
-                    })
-                    .map_err(|_| "WebSocket 目标不可验证")?
-                    .ip(),
-            ) {
-                return Err("WebSocket 连接目标不是公网".into());
-            }
             let mut request = input
                 .into_client_request()
                 .inspect_err(|error| {
@@ -263,17 +262,13 @@ mod tests {
     async fn unauthorized_sockets_and_stale_handles_fail_without_network() {
         let active = Arc::new(AtomicBool::new(true));
         let sockets = Sockets::new(active.clone());
-        let hosts = vec!["example.org".into()];
         for url in [
             "ws://example.org/",
             "wss://127.0.0.1/",
             "wss://example.org.evil.test/",
             "wss://user:secret@example.org/",
         ] {
-            assert!(sockets
-                .open(&hosts, url.into(), String::new(), 100)
-                .await
-                .is_err());
+            assert!(sockets.open(url.into(), String::new(), 100).await.is_err());
         }
         assert!(sockets.send(1, vec![0]).await.is_err());
         assert!(sockets.send(1, vec![0; 16385]).await.is_err());
@@ -282,7 +277,7 @@ mod tests {
         active.store(false, Ordering::Release);
         assert!(sockets.next_event(1).await.is_err());
         assert!(sockets
-            .open(&hosts, "wss://example.org/".into(), String::new(), 100)
+            .open("wss://example.org/".into(), String::new(), 100)
             .await
             .is_err());
         sockets.clear().await;

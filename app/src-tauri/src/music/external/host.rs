@@ -18,7 +18,9 @@ use std::sync::{
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct Permissions {
+    #[serde(default)]
     pub http_hosts: Vec<String>,
+    #[serde(default)]
     pub websocket_hosts: Vec<String>,
     pub system: bool,
     pub state: bool,
@@ -45,7 +47,7 @@ impl Services {
         for hosts in [&permissions.http_hosts, &permissions.websocket_hosts] {
             if hosts.len() > 32
                 || hosts.iter().any(|host| {
-                    !nons_music_adapter_sdk::cover::valid_host_rule(host) || host == "*"
+                    host != "*" && !nons_music_adapter_sdk::cover::valid_host_rule(host)
                 })
             {
                 return Err("适配器网络授权范围无效".into());
@@ -208,7 +210,6 @@ impl HostHandler for Context {
                 .services
                 .http
                 .binary_request(
-                    &self.services.permissions.http_hosts,
                     BinaryRequest {
                         url: value.url,
                         method: value.method,
@@ -243,15 +244,7 @@ impl HostHandler for Context {
     ) -> Pin<Box<dyn Future<Output = AppResult<u32>> + Send + '_>> {
         Box::pin(async move {
             self.check()?;
-            let id = self
-                .sockets
-                .open(
-                    &self.services.permissions.websocket_hosts,
-                    url,
-                    protocol,
-                    timeout,
-                )
-                .await?;
+            let id = self.sockets.open(url, protocol, timeout).await?;
             self.check()?;
             Ok(id)
         })

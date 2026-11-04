@@ -94,10 +94,15 @@ export function permissionLines(entry: StoreEntry): string[] {
     ? [...permissions]
     : Object.entries(permissions ?? {}).flatMap(([key, value]) => {
         if (value === false || value == null) return []
-        if (Array.isArray(value)) return value.length ? [`${key}：${value.join('、')}`] : []
+        if (Array.isArray(value)) {
+          if (!value.length) return []
+          if (key === 'httpHosts') return [`网络请求：任意地址（声明：${value.join('、')}）`]
+          if (key === 'websocketHosts') return [`长连接：任意地址（声明：${value.join('、')}）`]
+          return [`${key}：${value.join('、')}`]
+        }
         return [`${key}：${typeof value === 'object' ? JSON.stringify(value) : String(value)}`]
       })
-  if (entry.httpHosts?.length) lines.push(`网络域名：${entry.httpHosts.join('、')}`)
+  if (entry.httpHosts?.length) lines.push(`网络声明：${entry.httpHosts.join('、')}（不限目标）`)
   if (entry.fileRoots?.length) lines.push(`文件范围：${entry.fileRoots.join('、')}`)
   return lines
 }

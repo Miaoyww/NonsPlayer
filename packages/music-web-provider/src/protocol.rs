@@ -1,4 +1,4 @@
-use crate::{manifest, AdapterResult, Config, Http, Request, Response};
+use crate::{AdapterResult, Config, Http, Request, Response};
 use nons_music_adapter_sdk::identity::MusicTrack;
 use serde_json::Value;
 use url::Url;
@@ -61,29 +61,11 @@ impl Target {
     }
 }
 
-pub(crate) fn allowed(input: &str, base: &str, config: Config) -> AdapterResult<Url> {
+pub(crate) fn allowed(input: &str, base: &str, _config: Config) -> AdapterResult<Url> {
     let url = Url::parse(base)
         .and_then(|b| b.join(input))
         .map_err(|_| "invalidData")?;
-    let host = url.host_str().ok_or("invalidData")?;
-    let matches = manifest(config)["permissions"]["httpHosts"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|rule| {
-            let rule = rule.as_str().unwrap();
-            rule == host
-                || rule
-                    .strip_prefix("*.")
-                    .is_some_and(|suffix| host.ends_with(&format!(".{suffix}")))
-        });
-    if !matches
-        || !matches!(url.scheme(), "http" | "https")
-        || !url.username().is_empty()
-        || url.password().is_some()
-        || url.port().is_some()
-        || url.fragment().is_some()
-    {
+    if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
         return Err("permissionDenied");
     }
     Ok(url)

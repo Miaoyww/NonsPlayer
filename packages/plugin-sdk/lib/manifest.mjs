@@ -85,12 +85,7 @@ function validateSemantics(manifest) {
     if (!safeRelative(manifest.configuration) || !manifest.configuration.endsWith('.json'))
       errors.push('configuration 必须是包内相对 JSON 路径')
   }
-  const httpPermissions = manifest.permissions.some((permission) =>
-    ['http:request', 'http:transfer'].includes(permission)
-  )
   const hosts = manifest.httpHosts ?? []
-  if (httpPermissions !== hosts.length > 0)
-    errors.push('http:request/http:transfer 权限与 httpHosts 必须同时声明')
   if (hosts.length > 32 || new Set(hosts).size !== hosts.length)
     errors.push('httpHosts 最多 32 个且不能重复')
   for (const host of hosts)

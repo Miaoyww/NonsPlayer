@@ -242,17 +242,12 @@ impl ExternalAdapter {
     fn wire_resource(&self, wire: WireResource, operation: &str) -> MusicResult<PlaybackResource> {
         let mut urls =
             std::iter::once(wire.url.as_str()).chain(wire.backup_urls.iter().map(String::as_str));
-        if let Some(services) = &self.services {
-            for url in urls.by_ref() {
-                crate::infrastructure::http::checked_playback_url(
-                    &services.permissions.http_hosts,
-                    url,
-                )
+        for url in urls.by_ref() {
+            crate::infrastructure::http::checked_url(url)
                 .inspect_err(|error| {
                     crate::infrastructure::diagnostics::warn(operation, error);
                 })
                 .map_err(|_| ErrorCode::PermissionDenied)?;
-            }
         }
         let primary = HttpAccess {
             url: wire.url,

@@ -116,12 +116,6 @@ pub(super) fn access_reason(access: &ResourceAccess) -> &'static str {
     if url.host_str().is_none() {
         return "audio_url_host_missing";
     }
-    if !url.username().is_empty() || url.password().is_some() {
-        return "audio_url_contains_userinfo";
-    }
-    if url.fragment().is_some() {
-        return "audio_url_contains_fragment";
-    }
     if !super::super::valid_audio_headers(&http.headers) {
         return "audio_headers_invalid_or_reserved";
     }
@@ -173,14 +167,9 @@ mod tests {
                 "audio_url_scheme_not_http_or_https",
             ),
             (
-                "https://user:SECRET@example.com",
+                "https://user:SECRET@example.com/#SECRET",
                 vec![],
-                "audio_url_contains_userinfo",
-            ),
-            (
-                "https://example.com/#SECRET",
-                vec![],
-                "audio_url_contains_fragment",
+                "resource_access_invalid",
             ),
             (
                 "https://example.com/",

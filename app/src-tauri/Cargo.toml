@@ -69,6 +69,7 @@ wasmtime = { version = "=46.0.1", default-features = false, features = ["std", "
 wasmtime-wasi = { version = "=46.0.1", default-features = false, features = ["p2"] }
 rayon = "1.11"
 tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 futures-util = { version = "0.3", features = ["sink"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
 tower-http = { version = "0.6", features = ["fs"] }

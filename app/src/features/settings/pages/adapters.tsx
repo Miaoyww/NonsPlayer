@@ -106,10 +106,12 @@ const capabilityLabels: Record<string, string> = {
 
 function permissionLabels(permissions: AdapterPermissions) {
   return [
-    permissions.httpHosts.length ? `网络请求：${permissions.httpHosts.join('、')}` : undefined,
+    permissions.httpHosts.length
+      ? `网络请求：任意地址（声明：${permissions.httpHosts.join('、')}）`
+      : '网络请求：任意地址',
     permissions.websocketHosts.length
-      ? `长连接：${permissions.websocketHosts.join('、')}`
-      : undefined,
+      ? `长连接：任意地址（声明：${permissions.websocketHosts.join('、')}）`
+      : '长连接：任意地址',
     permissions.credentials ? '读取当前平台账号凭据' : undefined,
     permissions.state ? '保存适配器专属状态' : undefined,
     permissions.system ? '访问宿主系统能力' : undefined

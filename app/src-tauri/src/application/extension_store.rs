@@ -302,7 +302,9 @@ fn parse_catalog(bytes: &[u8]) -> AppResult<Catalog> {
                             .and_then(Value::as_object)
                             .ok_or("适配器权限声明无效")?;
                         for key in ["httpHosts", "websocketHosts"] {
-                            strings(permissions.get(key).ok_or("适配器缺少网络域名声明")?)?;
+                            if let Some(value) = permissions.get(key) {
+                                strings(value)?;
+                            }
                         }
                         for key in ["system", "state", "credentials"] {
                             if permissions.get(key).and_then(Value::as_bool).is_none() {
@@ -523,7 +525,6 @@ impl ExtensionStore {
                 .send()
                 .await
                 .map_err(|error| network_error(error, artifact))?;
-            self.http.check_target(&response)?;
             if response.status().is_redirection() {
                 let location = response
                     .headers()
@@ -703,12 +704,17 @@ impl ExtensionStore {
                     }
                     Kind::Adapter => {
                         let preview = this.adapters.preview(&path)?;
-                        let mut permissions: Vec<_> = preview
-                            .permissions
-                            .http_hosts
-                            .iter()
-                            .map(|h| format!("http:{h}"))
-                            .collect();
+                        let mut permissions: Vec<_> = vec!["http".into()];
+                        if !preview.permissions.websocket_hosts.is_empty() {
+                            permissions.push("websocket".into());
+                        }
+                        permissions.extend(
+                            preview
+                                .permissions
+                                .http_hosts
+                                .iter()
+                                .map(|h| format!("http:{h}")),
+                        );
                         permissions.extend(
                             preview
                                 .permissions
@@ -985,17 +991,19 @@ fn http_error(status: u16, artifact: bool) -> String {
     format!("{resource}暂不可用（HTTP {status}）")
 }
 fn permission_label(kind: Kind, permission: &str) -> String {
+    if permission == "http" {
+        return "网络请求：任意地址".into();
+    }
+    if permission == "websocket" {
+        return "网络长连接：任意地址".into();
+    }
     if let Some(host) = permission.strip_prefix("http:") {
         if host != "request" && host != "transfer" {
-            return if host == "*" {
-                "敏感权限：请求任意网络域名".into()
-            } else {
-                format!("网络请求：{host}")
-            };
+            return format!("网络声明：{host}");
         }
     }
     if let Some(host) = permission.strip_prefix("websocket:") {
-        return format!("网络长连接：{host}");
+        return format!("长连接声明：{host}");
     }
     if let Some(root) = permission.strip_prefix("files:") {
         if !matches!(root, "data" | "selected") {
@@ -1004,8 +1012,8 @@ fn permission_label(kind: Kind, permission: &str) -> String {
     }
     match permission {
         "clipboard:read" => "读取剪贴板文本及监听变化",
-        "http:request" => "请求已声明的网络域名",
-        "http:transfer" => "将授权域名的资源传输到授权目录",
+        "http:request" => "网络请求：任意地址",
+        "http:transfer" => "从任意网络地址传输资源到授权目录",
         "secrets" => "管理插件自己的系统凭据",
         "account:credentials" => "敏感权限：读取音乐平台账户凭证",
         "music:metadata" => "读取音乐来源的公开音乐信息",
@@ -1272,8 +1280,7 @@ mod tests {
                     .send()
                     .await
                     .map_err(|error| format!("NETWORK: {error:?}"))?;
-                http.check_target(&response)
-                    .map_err(|error| format!("NETWORK_POLICY: {error}"))?;
+                Ok::<_, String>(()).map_err(|error| format!("NETWORK_POLICY: {error}"))?;
                 if response.status() != reqwest::StatusCode::OK {
                     return Err(format!("HTTP: {}", response.status()));
                 }
@@ -1575,7 +1582,7 @@ mod tests {
         );
         assert_eq!(
             permission_label(Kind::Adapter, "http:example.org"),
-            "网络请求：example.org"
+            "网络声明：example.org"
         );
     }
 
@@ -1635,7 +1642,6 @@ mod tests {
         );
         let url = Url::parse(&format!("http://{address}/asset.zip")).unwrap();
         let response = http.client(&url).get(url).send().await.unwrap();
-        http.check_target(&response).unwrap();
         server.join().unwrap();
         response
     }

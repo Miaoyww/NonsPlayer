@@ -88,7 +88,7 @@ impl Transfers {
             .map_err(|e| e.to_string());
         }
         let url = args.get("url").and_then(Value::as_str).ok_or("缺少 URL")?;
-        let url = checked_url(&context.http_hosts, url)?;
+        let url = checked_url(url)?;
         let root = args
             .get("root")
             .and_then(Value::as_str)
@@ -289,7 +289,6 @@ async fn run(
             );
         })
         .map_err(|_| "连接资源失败")?;
-        context.http.check_target(&response)?;
         if !response.status().is_success() {
             log::warn!(target: "nons::plugins", "operation=plugins.transfers.download stage=http_status plugin={} generation={} status={}", context.id, context.generation, response.status().as_u16());
             return Err("资源服务器拒绝传输或返回重定向".into());

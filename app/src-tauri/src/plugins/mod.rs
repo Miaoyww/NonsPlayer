@@ -307,7 +307,6 @@ impl PluginManager {
             id: manifest.id.clone(),
             generation,
             permissions: manifest.permissions.iter().cloned().collect(),
-            http_hosts: manifest.http_hosts.clone(),
             file_roots: manifest.file_roots.clone(),
             http: self.http.clone(),
             transfers: self.transfers.clone(),

@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
     collections::BTreeMap,
-    net::{IpAddr, SocketAddr},
+    net::SocketAddr,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -16,13 +16,26 @@ pub struct Http {
     direct: reqwest::Client,
     system: reqwest::Client,
     proxies: Matcher,
-    enforce_public: bool,
 }
 
-/// Public-only addresses; reject transition/tunnel ranges which may hide a private target.
-pub(crate) fn public_ip(ip: IpAddr) -> bool {
+pub(crate) async fn resolve_addresses(host: &str, port: u16) -> AppResult<Vec<SocketAddr>> {
+    let mut addresses: Vec<_> = tokio::net::lookup_host((host, port))
+        .await
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("http.dns.resolve", error);
+        })
+        .map_err(|_| "网络目标解析失败")?
+        .take(33)
+        .collect();
+    if addresses.is_empty() || addresses.len() > 32 {
+        return Err("网络目标地址数量无效".into());
+    }
+    addresses.sort_by_key(|address| !public_ip(address.ip()));
+    Ok(addresses)
+}
+fn public_ip(ip: std::net::IpAddr) -> bool {
     match ip {
-        IpAddr::V4(ip) => {
+        std::net::IpAddr::V4(ip) => {
             let [a, b, c, _] = ip.octets();
             !(a == 0
                 || a == 10
@@ -35,9 +48,9 @@ pub(crate) fn public_ip(ip: IpAddr) -> bool {
                 || (a == 198 && (b == 18 || b == 19 || (b == 51 && c == 100)))
                 || (a == 203 && b == 0 && c == 113))
         }
-        IpAddr::V6(ip) => {
+        std::net::IpAddr::V6(ip) => {
             if let Some(ip) = ip.to_ipv4_mapped() {
-                return public_ip(IpAddr::V4(ip));
+                return public_ip(std::net::IpAddr::V4(ip));
             }
             let s = ip.segments();
             (s[0] & 0xe000) == 0x2000
@@ -46,26 +59,11 @@ pub(crate) fn public_ip(ip: IpAddr) -> bool {
         }
     }
 }
-pub(crate) async fn public_addresses(host: &str, port: u16) -> AppResult<Vec<SocketAddr>> {
-    let addresses: Vec<_> = tokio::net::lookup_host((host, port))
-        .await
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("http.dns.resolve", error);
-        })
-        .map_err(|_| "网络目标解析失败")?
-        .take(33)
-        .collect();
-    if addresses.is_empty() || addresses.len() > 32 || addresses.iter().any(|a| !public_ip(a.ip()))
-    {
-        return Err("网络目标不是可授权的公网地址".into());
-    }
-    Ok(addresses)
-}
-struct PublicResolver;
-impl reqwest::dns::Resolve for PublicResolver {
+struct Resolver;
+impl reqwest::dns::Resolve for Resolver {
     fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
         Box::pin(async move {
-            let addresses = public_addresses(name.as_str(), 0)
+            let addresses = resolve_addresses(name.as_str(), 0)
                 .await
                 .map_err(std::io::Error::other)?;
             Ok(Box::new(addresses.into_iter()) as reqwest::dns::Addrs)
@@ -101,7 +99,8 @@ pub fn valid_host(host: &str) -> bool {
         })
         && matches!(url::Host::parse(host), Ok(url::Host::Domain(domain)) if domain == host)
 }
-pub(crate) fn allows_host(hosts: &[String], host: &str) -> bool {
+#[cfg(test)]
+fn allows_host(hosts: &[String], host: &str) -> bool {
     valid_host(host)
         && hosts.iter().any(|rule| {
             rule == host
@@ -112,8 +111,7 @@ pub(crate) fn allows_host(hosts: &[String], host: &str) -> bool {
                 })
         })
 }
-
-fn checked_url_inner(hosts: &[String], input: &str, allow_port: bool) -> AppResult<url::Url> {
+pub(crate) fn checked_url(input: &str) -> AppResult<url::Url> {
     if input.len() > 2048 {
         return Err("HTTP URL 超过 2048 字节".into());
     }
@@ -122,24 +120,10 @@ fn checked_url_inner(hosts: &[String], input: &str, allow_port: bool) -> AppResu
             crate::infrastructure::diagnostics::warn("http.url.parse", error);
         })
         .map_err(|_| "HTTP URL 无效")?;
-    if !matches!(url.scheme(), "http" | "https")
-        || !url.username().is_empty()
-        || url.password().is_some()
-        || (!allow_port && url.port().is_some())
-        || !url.host_str().is_some_and(|host| allows_host(hosts, host))
-    {
-        return Err("HTTP 地址不在插件授权范围内".into());
+    if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
+        return Err("HTTP 地址不是有效网络地址".into());
     }
     Ok(url)
-}
-
-pub(crate) fn checked_url(hosts: &[String], input: &str) -> AppResult<url::Url> {
-    checked_url_inner(hosts, input, false)
-}
-
-/// Playback CDNs may allocate explicit non-default ports; the host grant stays authoritative.
-pub(crate) fn checked_playback_url(hosts: &[String], input: &str) -> AppResult<url::Url> {
-    checked_url_inner(hosts, input, true)
 }
 
 #[derive(Deserialize)]
@@ -174,14 +158,13 @@ impl Http {
         // Only system bypass rules use this client; proxy requests use reqwest defaults.
         let direct = Self::builder()
             .no_proxy()
-            .dns_resolver(Arc::new(PublicResolver))
+            .dns_resolver(Arc::new(Resolver))
             .build()
             .map_err(|e| e.to_string())?;
         Ok(Self {
             direct,
             system,
             proxies,
-            enforce_public: true,
         })
     }
     fn uses_proxy(&self, url: &url::Url) -> bool {
@@ -203,31 +186,17 @@ impl Http {
             system: client.clone(),
             direct: client,
             proxies: Matcher::builder().build(),
-            enforce_public: false,
         }
-    }
-    pub(crate) fn check_target(&self, response: &reqwest::Response) -> AppResult<()> {
-        // With a proxy the transport peer is the configured proxy, not the origin.
-        if self.enforce_public
-            && !self.uses_proxy(response.url())
-            && !response
-                .remote_addr()
-                .is_some_and(|address| public_ip(address.ip()))
-        {
-            return Err("网络连接目标不是授权公网地址".into());
-        }
-        Ok(())
     }
     pub(crate) async fn binary_request(
         &self,
-        hosts: &[String],
         request: BinaryRequest,
         active: &AtomicBool,
     ) -> AppResult<BinaryResponse> {
         if !active.load(Ordering::Acquire) {
             return Err("调用上下文已失效".into());
         }
-        let url = checked_url(hosts, &request.url)?;
+        let url = checked_url(&request.url)?;
         let method = match request.method.as_str() {
             "GET" => reqwest::Method::GET,
             "HEAD" => reqwest::Method::HEAD,
@@ -249,12 +218,6 @@ impl Http {
         for (name, value) in &request.headers {
             header_bytes += name.len() + value.len();
             let lower = name.to_ascii_lowercase();
-            if lower == "host" {
-                if !value.eq_ignore_ascii_case(url.host_str().unwrap_or("")) {
-                    return Err("HTTP Host 与授权目标不符".into());
-                }
-                continue;
-            }
             if header_bytes > 16384
                 || matches!(
                     lower.as_str(),
@@ -296,7 +259,6 @@ impl Http {
                         crate::infrastructure::diagnostics::warn_error("http.send", error);
                     })
                     .map_err(|_| "HTTP 请求失败")?;
-                self.check_target(&response)?;
                 let status = response.status().as_u16();
                 let mut headers = Vec::new();
                 let mut count = 0;
@@ -345,7 +307,6 @@ impl Http {
     }
     pub async fn request(
         &self,
-        hosts: &[String],
         args: &Value,
         active: &std::sync::atomic::AtomicBool,
     ) -> AppResult<Value> {
@@ -354,7 +315,7 @@ impl Http {
                 crate::infrastructure::diagnostics::warn("http.request.decode", error);
             })
             .map_err(|_| "HTTP 请求参数无效")?;
-        let url = checked_url(hosts, &request.url)?;
+        let url = checked_url(&request.url)?;
         let method = match request.method.as_deref().unwrap_or("GET") {
             "GET" => reqwest::Method::GET,
             "HEAD" => reqwest::Method::HEAD,
@@ -409,7 +370,6 @@ impl Http {
                     crate::infrastructure::diagnostics::warn_error("http.send", error);
                 })
                 .map_err(|_| "HTTP 请求失败")?;
-            self.check_target(&response)?;
             let status = response.status().as_u16();
             let cookies: Vec<String> = response
                 .headers()
@@ -534,7 +494,6 @@ mod tests {
                 let url = url::Url::parse("http://unresolvable.invalid/index.json").unwrap();
                 assert!(http.uses_proxy(&url));
                 let response = http.client(&url).get(url).send().await.unwrap();
-                http.check_target(&response).unwrap();
                 assert_eq!(response.text().await.unwrap(), "proxied");
                 let url = url::Url::parse("https://unresolvable.invalid/index.json").unwrap();
                 assert!(http.uses_proxy(&url));
@@ -543,7 +502,7 @@ mod tests {
                 let bypass = url::Url::parse("http://bypass.invalid/").unwrap();
                 assert!(!http.uses_proxy(&bypass));
                 assert!(std::ptr::eq(http.client(&bypass), &http.direct));
-                assert!(public_addresses("localhost", 80).await.is_err());
+                assert!(resolve_addresses("localhost", 80).await.is_ok());
             });
             return;
         }
@@ -612,33 +571,24 @@ mod tests {
         server_result.unwrap();
     }
     #[test]
-    fn direct_response_cannot_bypass_public_target_check() {
+    fn direct_connections_accept_private_resolved_addresses() {
         run(async {
             let (fixture, server) = fixture(
                 "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".into(),
                 Duration::ZERO,
             );
             let url = url::Url::parse("http://example.org/").unwrap();
-            let response = fixture.client(&url).get(url).send().await.unwrap();
-            let http =
-                Http::with_system(Http::builder().build().unwrap(), Matcher::builder().build())
-                    .unwrap();
-            assert_eq!(
-                http.check_target(&response).unwrap_err(),
-                "网络连接目标不是授权公网地址"
-            );
+            assert!(fixture.client(&url).get(url).send().await.is_ok());
             server.join().unwrap();
         });
     }
     #[test]
     fn returns_redirect_without_following_and_bounds_text_body() {
         run(async {
-            let hosts = vec!["example.org".into()];
             let active = AtomicBool::new(true);
             let (http, server) = fixture("HTTP/1.1 302 Found\r\nLocation: https://unauthorized.test/private\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".into(), Duration::ZERO);
             let result = http
                 .request(
-                    &hosts,
                     &json!({"url":"http://example.org/","responseType":"none"}),
                     &active,
                 )
@@ -658,7 +608,7 @@ mod tests {
                 Duration::ZERO,
             );
             assert!(http
-                .request(&hosts, &json!({"url":"http://example.org/"}), &active)
+                .request(&json!({"url":"http://example.org/"}), &active)
                 .await
                 .unwrap_err()
                 .contains("8KiB"));
@@ -668,13 +618,11 @@ mod tests {
     #[test]
     fn requests_timeout_or_cancel_when_the_instance_is_disabled() {
         run(async {
-            let hosts = vec!["example.org".into()];
             let response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
             let (http, server) = fixture(response.into(), Duration::from_millis(100));
             let active = AtomicBool::new(true);
             assert!(http
                 .request(
-                    &hosts,
                     &json!({"url":"http://example.org/","timeoutMs":25}),
                     &active
                 )
@@ -690,7 +638,7 @@ mod tests {
                 cancelled.store(false, Ordering::SeqCst);
             });
             assert!(http
-                .request(&hosts, &json!({"url":"http://example.org/"}), &active)
+                .request(&json!({"url":"http://example.org/"}), &active)
                 .await
                 .unwrap_err()
                 .contains("禁用"));
@@ -699,36 +647,30 @@ mod tests {
         });
     }
     #[test]
-    fn wildcard_host_grants_match_domains_and_keep_url_restrictions() {
-        let hosts = vec!["*".into()];
-        for input in ["https://example.org/a", "http://sub.other.test/b"] {
-            assert!(checked_url(&hosts, input).is_ok(), "{input}");
-        }
+    fn network_urls_allow_arbitrary_hosts_ports_credentials_and_ips() {
         for input in [
+            "https://example.org/a",
+            "http://sub.other.test/b",
             "https://user:secret@example.org/",
             "https://example.org:444/",
-            "file:///example.org",
             "https://127.0.0.1/",
             "http://[::1]/",
             "http://localhost/",
+            "http://[::1]:8080/a",
         ] {
-            assert!(checked_url(&hosts, input).is_err(), "{input}");
+            assert!(checked_url(input).is_ok(), "{input}");
+        }
+        for input in ["file:///example.org", "ftp://example.org/a"] {
+            assert!(checked_url(input).is_err(), "{input}");
         }
     }
     #[test]
-    fn exact_host_grants_reject_credentials_ports_and_lookalikes() {
-        let hosts = vec!["example.org".into()];
-        assert!(checked_url(&hosts, "https://example.org/a").is_ok());
-        for input in [
-            "https://example.org.evil.test/",
-            "https://sub.example.org/",
-            "https://user:secret@example.org/",
-            "https://example.org:444/",
-            "file:///example.org",
-            "https://127.0.0.1/",
-        ] {
-            assert!(checked_url(&hosts, input).is_err(), "{input}");
-        }
+    fn host_metadata_keeps_exact_domain_rules() {
+        let hosts = vec!["*.example.org".into()];
+        assert!(allows_host(&hosts, "media.example.org"));
+        assert!(!allows_host(&hosts, "example.org"));
+        assert!(!allows_host(&hosts, "badexample.org"));
+        assert!(!allows_host(&hosts, "example.org.evil.test"));
         for host in [
             "*.example.org",
             "Example.org",
@@ -744,23 +686,15 @@ mod tests {
         assert!(valid_host("api.example.org"));
     }
     #[test]
-    fn playback_urls_allow_explicit_ports_only_within_granted_hosts() {
-        let hosts = vec!["*.bilivideo.cn".into(), "*.mountaintoys.cn".into()];
+    fn playback_urls_allow_explicit_ports_and_credentials() {
         for (input, port) in [
             ("https://xy1x2xy.mcdn.bilivideo.cn:8082/a", 8082),
             ("https://b-example.edge.mountaintoys.cn:4483/b", 4483),
         ] {
-            let url = checked_playback_url(&hosts, input).unwrap();
+            let url = checked_url(input).unwrap();
             assert_eq!(url.port(), Some(port));
-            assert!(checked_url(&hosts, input).is_err());
         }
-        for input in [
-            "https://example.org:8082/a",
-            "https://x.bilivideo.cn.evil.test:8082/a",
-            "https://user:secret@x.bilivideo.cn:8082/a",
-        ] {
-            assert!(checked_playback_url(&hosts, input).is_err(), "{input}");
-        }
+        assert!(checked_url("https://user:secret@x.bilivideo.cn:8082/a").is_ok());
     }
     #[test]
     fn binary_transport_keeps_bytes_and_each_cookie() {
@@ -768,7 +702,6 @@ mod tests {
             let (http, server) = fixture("HTTP/1.1 200 OK\r\nSet-Cookie: first=one; HttpOnly\r\nSet-Cookie: second=two; Secure\r\nContent-Length: 4\r\nConnection: close\r\n\r\na\0bc".into(), Duration::ZERO);
             let response = http
                 .binary_request(
-                    &["example.org".into()],
                     BinaryRequest {
                         url: "http://example.org/".into(),
                         method: "POST".into(),
@@ -824,7 +757,6 @@ mod tests {
     fn binary_transport_rejects_framing_and_oversize_requests_before_connecting() {
         run(async {
             let http = Http::new().unwrap();
-            let hosts = vec!["example.org".into()];
             for header in [
                 "Content-Length",
                 "Transfer-Encoding",
@@ -833,7 +765,6 @@ mod tests {
             ] {
                 let result = http
                     .binary_request(
-                        &hosts,
                         BinaryRequest {
                             url: "https://example.org/".into(),
                             method: "POST".into(),
@@ -848,7 +779,6 @@ mod tests {
             }
             assert!(http
                 .binary_request(
-                    &hosts,
                     BinaryRequest {
                         url: "https://example.org/".into(),
                         method: "POST".into(),

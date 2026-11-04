@@ -19,7 +19,6 @@ pub struct Context {
     pub id: String,
     pub generation: u64,
     pub permissions: HashSet<String>,
-    pub http_hosts: Vec<String>,
     pub file_roots: Vec<String>,
     pub http: Arc<super::http::Http>,
     pub transfers: Arc<super::transfers::Transfers>,
@@ -102,9 +101,7 @@ impl Context {
             }
             "http.request" => {
                 self.check(Some("http:request"))?;
-                self.http
-                    .request(&self.http_hosts, &args, &self.active)
-                    .await?
+                self.http.request(&args, &self.active).await?
             }
             op if op.starts_with("secrets.") => {
                 self.check(Some("secrets"))?;

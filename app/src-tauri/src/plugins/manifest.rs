@@ -341,13 +341,8 @@ impl Manifest {
                 .http_hosts
                 .iter()
                 .any(|host| (host != "*" && !super::http::valid_host(host)) || !hosts.insert(host))
-            || (self
-                .permissions
-                .iter()
-                .any(|p| p == "http:request" || p == "http:transfer")
-                == self.http_hosts.is_empty())
         {
-            return Err("HTTP 权限需要 1 至 32 个不重复的精确域名或 *".into());
+            return Err("httpHosts 最多 32 个、不能重复且必须是精确域名或 *".into());
         }
         if let Some(path) = &self.configuration {
             safe_relative(path)?;
@@ -651,10 +646,9 @@ mod tests {
         let valid: Manifest = serde_json::from_value(value.clone()).unwrap();
         assert!(valid.validate().is_ok());
         for hosts in [
-            serde_json::json!([]),
-            serde_json::json!(["*.example.org"]),
             serde_json::json!(["*", "*"]),
             serde_json::json!(["example.org", "example.org"]),
+            serde_json::json!(["*.example.org"]),
         ] {
             let mut candidate = value.clone();
             candidate["httpHosts"] = hosts;
@@ -664,10 +658,11 @@ mod tests {
                 .is_err());
         }
         let mut different_scope = valid.clone();
-        different_scope.http_hosts = vec!["*".into()];
+        different_scope.http_hosts = Vec::new();
         assert!(different_scope.validate().is_ok());
         assert_ne!(valid.authorization(), different_scope.authorization());
-        different_scope.http_hosts.push("example.org".into());
+        different_scope.http_hosts = vec!["*".into()];
+        assert!(different_scope.validate().is_ok());
         assert_ne!(valid.authorization(), different_scope.authorization());
         for (pointer, invalid) in [
             ("/id", serde_json::json!("../bad")),

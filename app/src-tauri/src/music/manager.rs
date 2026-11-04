@@ -1371,12 +1371,7 @@ fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
             crate::infrastructure::diagnostics::warn("music.audio_url_parse", error);
         })
         .map_err(|_| ErrorCode::InvalidData)?;
-    if !matches!(url.scheme(), "https" | "http")
-        || url.host_str().is_none()
-        || !url.username().is_empty()
-        || url.password().is_some()
-        || url.fragment().is_some()
-    {
+    if !matches!(url.scheme(), "https" | "http") || url.host_str().is_none() {
         return Err(ErrorCode::InvalidData.into());
     }
     if !valid_audio_headers(&http.headers) {
@@ -1391,12 +1386,7 @@ fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
                 crate::infrastructure::diagnostics::warn("music.audio_backup_url_parse", error);
             })
             .map_err(|_| ErrorCode::InvalidData)?;
-        if !matches!(url.scheme(), "https" | "http")
-            || url.host_str().is_none()
-            || !url.username().is_empty()
-            || url.password().is_some()
-            || url.fragment().is_some()
-        {
+        if !matches!(url.scheme(), "https" | "http") || url.host_str().is_none() {
             return Err(ErrorCode::InvalidData.into());
         }
     }
@@ -1759,7 +1749,7 @@ mod tests {
     }
 
     #[test]
-    fn cover_permissions_follow_declared_hosts_and_adapter_instances_not_accounts() {
+    fn cover_access_follows_adapter_instances_not_declared_hosts_or_accounts() {
         let mut provider = adapter(false);
         provider.descriptor.cover_hosts = ["*.art.example".into()].into_iter().collect();
         let (manager, accounts, _) = setup(provider);
@@ -1767,7 +1757,7 @@ mod tests {
         let initial = manager.cover_access(url).unwrap();
         assert!(manager
             .cover_access("https://other.example/cover.jpg")
-            .is_err());
+            .is_ok());
         accounts.fetch_add(1, Ordering::AcqRel);
         assert_eq!(manager.cover_access(url).unwrap(), initial);
         manager.set_enabled(&source(), false).unwrap();
@@ -2102,11 +2092,7 @@ mod tests {
     }
     #[test]
     fn unsafe_or_unimplemented_access_is_rejected() {
-        for url in [
-            "file:///tmp/music",
-            "https://user:secret@example.com/a",
-            "https://example.com/a#fragment",
-        ] {
+        for url in ["file:///tmp/music"] {
             assert_eq!(
                 validate_access(&ResourceAccess::Http(HttpAccess {
                     url: url.into(),
@@ -2122,6 +2108,16 @@ mod tests {
             headers: vec![("Authorization".into(), "secret".into())],
         }))
         .unwrap();
+        for url in [
+            "https://user:secret@example.com/a",
+            "https://example.com/a#fragment",
+        ] {
+            validate_access(&ResourceAccess::Http(HttpAccess {
+                url: url.into(),
+                headers: vec![],
+            }))
+            .unwrap();
+        }
         for (name, value) in [
             ("Range", "bytes=0-"),
             ("X-Token", "secret\r\nInjected: yes"),

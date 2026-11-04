@@ -23,8 +23,8 @@ import { LocalPluginUpgrade } from '../extensions/local-plugin-upgrade'
 
 const permissionLabels: Record<string, string> = {
   'clipboard:read': '读取剪贴板文本及监听变化',
-  'http:request': '请求已声明的网络域名',
-  'http:transfer': '将授权域名的资源传输到授权目录',
+  'http:request': '请求任意网络地址',
+  'http:transfer': '从任意网络地址传输资源到授权目录',
   secrets: '管理插件自己的系统凭据',
   'account:credentials': '敏感权限：读取 NonsPlayer 的网易云账户凭证',
   'music:metadata': '读取音乐来源的公开音乐信息',
@@ -450,24 +450,22 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                           p === 'account:credentials' ||
                           p === 'process:spawn' ||
                           p === 'music:write' ||
-                          (p === 'files:selected' && plugin.manifest.fileRoots?.includes('*')) ||
-                          (['http:request', 'http:transfer'].includes(p) &&
-                            plugin.manifest.httpHosts?.includes('*'))
+                          ['http:request', 'http:transfer'].includes(p) ||
+                          (p === 'files:selected' && plugin.manifest.fileRoots?.includes('*'))
                             ? 'font-semibold text-destructive'
                             : undefined
                         }
                       >
                         {p === 'files:selected' && plugin.manifest.fileRoots?.includes('*')
                           ? '敏感权限：读写任意文件'
-                          : ['http:request', 'http:transfer'].includes(p) &&
-                              plugin.manifest.httpHosts?.includes('*')
+                          : ['http:request', 'http:transfer'].includes(p)
                             ? p === 'http:request'
                               ? '敏感权限：会请求任意 URL'
-                              : '敏感权限：会请求任意 URL 并传输资源到授权目录'
+                              : '敏感权限：会从任意 URL 传输资源到授权目录'
                             : (permissionLabels[p] ?? p)}
                         {['http:request', 'http:transfer'].includes(p) &&
-                          !plugin.manifest.httpHosts?.includes('*') &&
-                          `：${plugin.manifest.httpHosts?.join('、') ?? ''}`}
+                          !!plugin.manifest.httpHosts?.length &&
+                          `（声明域名：${plugin.manifest.httpHosts.join('、')}）`}
                       </li>
                     ))}
                   </ul>
@@ -488,12 +486,14 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                       Cookie，并以你的账号身份请求网易云服务。请仅授权你信任的插件。
                     </p>
                   )}
-                  {plugin.manifest.httpHosts?.includes('*') && (
+                  {plugin.manifest.permissions.some((p) =>
+                    ['http:request', 'http:transfer'].includes(p)
+                  ) && (
                     <p
                       role="alert"
                       className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
                     >
-                      此插件会请求任意 URL，向任意域名发送其可读取的数据。若同时授权账户凭证，登录
+                      此插件可请求任意 URL，向任意域名发送其可读取的数据。若同时授权账户凭证，登录
                       Cookie 也可能被发送到其他网站。请仅授权你信任的插件。
                     </p>
                   )}

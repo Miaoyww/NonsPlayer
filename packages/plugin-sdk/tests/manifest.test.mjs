@@ -29,8 +29,15 @@ test('rejects incompatible plugin and UI API ranges', async () => {
   assert.match(errors.join(), /不兼容/)
 })
 
-test('requires matching HTTP permissions and hosts', async () => {
-  assert.match((await check((m) => (m.httpHosts = ['example.com']))).join(), /httpHosts/)
+test('accepts optional HTTP host metadata and validates declared hosts', async () => {
+  assert.deepEqual(await check((m) => (m.httpHosts = ['example.com'])), [])
+  assert.deepEqual(
+    await check((m) => {
+      m.permissions.push('http:request')
+      m.httpHosts = []
+    }),
+    []
+  )
   assert.match(
     (
       await check((m) => {

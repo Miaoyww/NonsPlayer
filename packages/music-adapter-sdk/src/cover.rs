@@ -67,20 +67,8 @@ impl PartialEq<&str> for CoverImage {
     }
 }
 impl CoverImage {
-    pub fn validate_hosts(&self, hosts: &std::collections::BTreeSet<String>) -> MusicResult<()> {
+    pub fn validate_hosts(&self, _hosts: &std::collections::BTreeSet<String>) -> MusicResult<()> {
         self.validate_adapter()?;
-        if self.is_empty() {
-            return Ok(());
-        }
-        for size in [
-            CoverSize::Small,
-            CoverSize::Normal,
-            CoverSize::Large,
-            CoverSize::Exlarge,
-            CoverSize::Original,
-        ] {
-            checked_url(self.url(size), hosts)?;
-        }
         Ok(())
     }
     pub fn url(&self, size: CoverSize) -> &str {
@@ -121,8 +109,6 @@ impl CoverImage {
                     if input.len() > 2048
                         || !matches!(url.scheme(), "http" | "https")
                         || url.host_str().is_none()
-                        || !url.username().is_empty()
-                        || url.password().is_some()
                     {
                         return Err(ErrorCode::InvalidData.into());
                     }
@@ -174,25 +160,10 @@ pub fn valid_host_rule(rule: &str) -> bool {
 }
 pub fn checked_url(
     input: &str,
-    hosts: &std::collections::BTreeSet<String>,
+    _hosts: &std::collections::BTreeSet<String>,
 ) -> MusicResult<url::Url> {
     let url = url::Url::parse(input).map_err(|_| ErrorCode::InvalidData)?;
-    if input.len() > 2048
-        || !matches!(url.scheme(), "http" | "https")
-        || !url.username().is_empty()
-        || url.password().is_some()
-        || url.port().is_some()
-        || !url.host_str().is_some_and(|host| {
-            hosts.iter().any(|rule| {
-                valid_host_rule(rule)
-                    && (rule == host
-                        || rule.strip_prefix("*.").is_some_and(|suffix| {
-                            host.strip_suffix(suffix)
-                                .is_some_and(|prefix| prefix.ends_with('.') && prefix.len() > 1)
-                        }))
-            })
-        })
-    {
+    if input.len() > 2048 || !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
         return Err(ErrorCode::PermissionDenied.into());
     }
     Ok(url)
@@ -202,26 +173,23 @@ pub fn checked_url(
 mod host_tests {
     use super::*;
     #[test]
-    fn explicit_cover_hosts_do_not_allow_lookalikes_credentials_ips_or_redirect_targets() {
+    fn cover_urls_allow_any_host_and_port_but_keep_http_syntax() {
         let hosts = ["*.cdn.example".into(), "images.example".into()]
             .into_iter()
             .collect();
         for url in [
             "https://p1.cdn.example/a.jpg",
             "https://images.example/a.jpg",
-        ] {
-            assert!(checked_url(url, &hosts).is_ok());
-        }
-        for url in [
-            "https://cdn.example/a.jpg",
             "https://fakecdn.example/a.jpg",
             "https://p1.cdn.example.evil/a.jpg",
             "https://user:secret@images.example/a.jpg",
             "https://images.example:444/a.jpg",
             "https://127.0.0.1/a.jpg",
-            "file:///a.jpg",
             "https://other.example/a.jpg",
         ] {
+            assert!(checked_url(url, &hosts).is_ok());
+        }
+        for url in ["file:///a.jpg", "ftp://example.org/a.jpg"] {
             assert!(checked_url(url, &hosts).is_err(), "{url}");
         }
         for rule in ["*", "*.127.0.0.1", "localhost", "*.bad..example"] {

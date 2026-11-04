@@ -575,7 +575,7 @@ impl ResourceProvider for DiagnosticAudio {
                 },
                 access: ResourceAccess::Http(HttpAccess {
                     url: if self.failure == "access" {
-                        "https://user:SECRET@example.com/audio?token=SECRET".into()
+                        "file:///tmp/audio".into()
                     } else {
                         "https://example.com/audio".into()
                     },
@@ -606,7 +606,7 @@ async fn resolver_logs_actual_request_provider_metadata_and_access_failure_stage
         (
             "access",
             "resource_access",
-            "audio_url_contains_userinfo",
+            "audio_url_scheme_not_http_or_https",
             1,
         ),
     ] {

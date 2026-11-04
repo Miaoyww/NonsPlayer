@@ -45,7 +45,7 @@ export function LocalPluginUpgrade({
               <li key={permission}>{permission}</li>
             ))}
             {!!packageInfo?.httpHosts?.length && (
-              <li>网络域名：{packageInfo.httpHosts.join('、')}</li>
+              <li>网络声明：{packageInfo.httpHosts.join('、')}（不限目标）</li>
             )}
             {!!packageInfo?.fileRoots?.length && (
               <li>文件范围：{packageInfo.fileRoots.join('、')}</li>
