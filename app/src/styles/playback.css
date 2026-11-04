@@ -903,6 +903,7 @@ button.now-playing-tag:focus-visible {
   width: min(1120px, 100%);
   padding: 8px 20px 10px;
   background: transparent;
+  opacity: 0.72;
 }
 .fullscreen-playback-bar-surface > .now-playing-transport {
   grid-column: 2;
