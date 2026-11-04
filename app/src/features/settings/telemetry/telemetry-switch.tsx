@@ -1,12 +1,12 @@
 import { reportCaughtError } from '@/lib/diagnostics'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { Switch } from '@/components/ui/switch'
 import { ErrorNotice } from '@/components/error-notice'
+import { SettingsCard } from '../shell/settings-card'
 import { nativeCall, errorText } from '@/lib/player'
-import { SettingsCard } from './settings-card'
 
-export function BackgroundWebviewReleaseSwitch() {
+export function TelemetrySwitch() {
   const [enabled, setEnabled] = useState<boolean>()
   const [error, setError] = useState<string>()
   const [saving, setSaving] = useState(false)
@@ -14,45 +14,45 @@ export function BackgroundWebviewReleaseSwitch() {
   useEffect(() => {
     if (!isTauri()) return
     let disposed = false
-    void nativeCall<boolean>('background_webview_release_enabled')
+    void nativeCall<boolean>('telemetry_enabled')
       .then((value) => {
         if (!disposed) setEnabled(value)
       })
       .catch((cause) => {
-        reportCaughtError('app/src/features/settings/background-webview-release-switch.tsx', cause)
+        reportCaughtError('app/src/features/settings/telemetry/telemetry-switch.tsx', cause)
+
         if (!disposed) setError(errorText(cause))
       })
     return () => {
       disposed = true
     }
   }, [])
-
   async function change(value: boolean) {
     if (busy.current) return
     busy.current = true
     setSaving(true)
     setError(undefined)
     try {
-      setEnabled(await nativeCall<boolean>('set_background_webview_release', { enabled: value }))
+      setEnabled(await nativeCall<boolean>('set_telemetry_enabled', { enabled: value }))
     } catch (cause) {
-      reportCaughtError('app/src/features/settings/background-webview-release-switch.tsx', cause)
+      reportCaughtError('app/src/features/settings/telemetry/telemetry-switch.tsx', cause)
+
       setError(errorText(cause))
     } finally {
       busy.current = false
       setSaving(false)
     }
   }
-
   return (
     <SettingsCard
-      searchId="background-webview-release"
-      title="后台释放 WebView"
-      description="主窗口隐藏或最小化 30 秒后释放界面内存和主窗口前端插件；关闭后后台保留界面，占用更多内存。"
+      searchId="telemetry"
+      title="匿名使用统计"
+      description="默认开启。每次启动上报随机安装标识、平台、应用版本和本地累计播放次数，用于统计启动次数和累计播放量。不采集账号、歌曲、文件路径、播放历史或硬件标识。关闭后停止本次待重试和后续启动上报，但本地播放记录继续保存；重新开启后从下次启动补报累计值。"
     >
       <div className="flex flex-col items-end gap-2">
         <Switch
-          aria-label="后台释放 WebView"
-          checked={enabled ?? true}
+          aria-label="匿名使用统计"
+          checked={enabled ?? false}
           disabled={enabled === undefined || saving}
           onCheckedChange={(value) => void change(value)}
         />

@@ -15,10 +15,10 @@ import { RefreshCw } from 'lucide-react'
 import { nativeCall, errorText } from '@/lib/player'
 import { useLocalOptions } from '@/features/local/use-local-options'
 import { Button } from '@/components/ui/button'
-import { SettingsCard } from '@/features/settings/settings-card'
+import { SettingsCard } from '@/features/settings/shell/settings-card'
 import { FolderManager } from '@/features/local/folder-manager'
 import { ArtistSeparatorsDialog } from '@/features/local/artist-separators-dialog'
-import { OtherCacheSettings } from '@/features/settings/other-cache-settings'
+import { OtherCacheSettings } from '@/features/settings/cache/other-cache-settings'
 import { CoverRebuildSettings } from '@/features/local/cover-rebuild-settings'
 
 interface CacheOptions {

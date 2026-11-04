@@ -83,7 +83,7 @@ test('shortcut page hides disabled bindings, automatically saves four-key chords
         return true
       }
     },
-    '@/features/settings/settings-card': {
+    '@/features/settings/shell/settings-card': {
       SettingsCard: ({ title, children }) => React.createElement('div', {}, title, children)
     }
   }).ShortcutsPage

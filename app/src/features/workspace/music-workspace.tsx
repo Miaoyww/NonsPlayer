@@ -26,14 +26,14 @@ import { SongActionsProvider } from '@/components/music/song-actions'
 import { QueuePage } from '@/features/queue/queue-page'
 import { ToolsPage } from '@/features/tools/tools-page'
 import { PluginPageHost } from '@/plugins/host'
-import { useInterfaceDensity } from '@/features/settings/use-interface-density'
+import { useInterfaceDensity } from '@/features/settings/appearance/use-interface-density'
 import { useMusicSources } from '@/features/music/use-music-sources'
 import { sourceLabel } from '@/features/music/source-label'
 import { useAndroidBack } from './use-android-back'
 import { isAndroid } from '@/lib/platform'
 import { usePrimaryMusicPage } from './use-primary-music-page'
 import { MobilePageHeader } from './mobile-page-header'
-import { settingsSections } from '@/features/settings/settings-sections'
+import { settingsSections } from '@/features/settings/shell/settings-sections'
 import { PlaybackRecovery } from '@/features/playback/recovery/playback-recovery'
 import { TrackSearchContext } from '@/components/music/track-search-context'
 
@@ -41,7 +41,7 @@ const PerformanceProbe = lazy(() => import('@/features/performance/performance-p
 const LocalPage = lazy(() => import('@/features/local/local-page'))
 const LocalPlaylistPage = lazy(() => import('@/features/local/local-playlist-page'))
 const SearchPage = lazy(() => import('@/features/search/search-page'))
-const SettingsPage = lazy(() => import('@/features/settings/settings-page'))
+const SettingsPage = lazy(() => import('@/features/settings/shell/settings-page'))
 const ArtistPage = lazy(() => import('@/features/library/artist/artist-page'))
 const AlbumPage = lazy(() => import('@/features/library/album/album-page'))
 const Discovery = lazy(() => import('@/features/discovery/discovery'))

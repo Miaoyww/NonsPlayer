@@ -38,7 +38,7 @@ test('cover rebuild restores progress, rejects late snapshots and cleans up its 
       Button: ({ variant, children, ...props }) => React.createElement('button', props, children)
     },
     '@/components/error-notice': errorNoticeModule,
-    '@/features/settings/settings-card': {
+    '@/features/settings/shell/settings-card': {
       SettingsCard: ({ title, description, children }) =>
         React.createElement('div', null, title, description, children)
     },

@@ -3,12 +3,12 @@ import { useState } from 'react'
 import appIcon from '../../../app-icon.png'
 import { Button } from '@/components/ui/button'
 import { ExtensionStore } from '@/features/settings/extensions/extension-store'
-import { PersonalizationControls } from '@/features/settings/personalization-controls'
+import { PersonalizationControls } from '@/features/settings/appearance/personalization-controls'
 import {
   unavailableReason,
   type StoreEntry
 } from '@/features/settings/extensions/extension-store-state'
-import { useTheme } from '@/features/settings/use-theme'
+import { useTheme } from '@/features/settings/appearance/use-theme'
 import { PrivacyPolicyStep } from './privacy-policy'
 import { markWelcomeCompleted } from './welcome-state'
 

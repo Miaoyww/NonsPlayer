@@ -16,7 +16,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { ErrorNotice } from '@/components/error-notice'
-import { SettingsCard } from '@/features/settings/settings-card'
+import { SettingsCard } from '@/features/settings/shell/settings-card'
 import { errorText, nativeCall } from '@/lib/player'
 import { isAndroid } from '@/lib/platform'
 

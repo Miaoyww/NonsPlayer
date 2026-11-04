@@ -13,7 +13,7 @@ try {
   const saved = localStorage.getItem(storageKey)
   if (isMode(saved)) mode = saved
 } catch (cause) {
-  reportCaughtError('app/src/features/settings/use-interface-density.ts', cause)
+  reportCaughtError('app/src/features/settings/appearance/use-interface-density.ts', cause)
 
   /* Storage is optional. */
 }
@@ -29,7 +29,7 @@ function setMode(value: InterfaceDensity) {
   try {
     localStorage.setItem(storageKey, value)
   } catch (cause) {
-    reportCaughtError('app/src/features/settings/use-interface-density.ts', cause)
+    reportCaughtError('app/src/features/settings/appearance/use-interface-density.ts', cause)
 
     /* Keep the current session usable. */
   }

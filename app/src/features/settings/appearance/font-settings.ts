@@ -32,7 +32,7 @@ function readSettings(): FontSettings {
       }
     }
   } catch (cause) {
-    reportCaughtError('app/src/features/settings/font-settings.ts', cause)
+    reportCaughtError('app/src/features/settings/appearance/font-settings.ts', cause)
 
     /* Invalid or unavailable storage uses the default font. */
   }
@@ -70,7 +70,7 @@ export function setFont(target: keyof FontSettings, family: string) {
   try {
     localStorage.setItem(fontSettingsKey, JSON.stringify(settings))
   } catch (cause) {
-    reportCaughtError('app/src/features/settings/font-settings.ts', cause)
+    reportCaughtError('app/src/features/settings/appearance/font-settings.ts', cause)
 
     /* Selection remains effective for this session. */
   }

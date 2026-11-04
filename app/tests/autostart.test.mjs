@@ -28,7 +28,9 @@ test('autostart reflects system veto, refreshes on focus and re-reads partial wr
         return React.createElement('input', { ...props, type: 'checkbox', readOnly: true })
       }
     },
-    './settings-card': { SettingsCard: ({ children }) => React.createElement('div', {}, children) },
+    '../shell/settings-card': {
+      SettingsCard: ({ children }) => React.createElement('div', {}, children)
+    },
     '@/lib/player': {
       errorText: (e) => e.message,
       nativeCall: async (command, args) => {
@@ -45,7 +47,7 @@ test('autostart reflects system veto, refreshes on focus and re-reads partial wr
   runInNewContext(
     ts.transpileModule(
       readFileSync(
-        new URL('../src/features/settings/autostart-switch.tsx', import.meta.url),
+        new URL('../src/features/settings/general/autostart-switch.tsx', import.meta.url),
         'utf8'
       ),
       {

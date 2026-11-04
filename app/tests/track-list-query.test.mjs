@@ -171,7 +171,9 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
       trackSource: (track) =>
         track.source.kind === 'online' ? track.source.track.reference.source : track.source.kind
     },
-    '@/features/settings/use-interface-density': { useInterfaceDensity: () => ['compact'] },
+    '@/features/settings/appearance/use-interface-density': {
+      useInterfaceDensity: () => ['compact']
+    },
     '@/lib/player': {
       errorText: String,
       formatTime: String,

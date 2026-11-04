@@ -122,7 +122,7 @@ function harness(initialMode = 'collapsible', storage) {
     '@/components/music/track-search-context': {
       TrackSearchContext: { Provider: 'TrackSearchContext' }
     },
-    '@/features/settings/settings-sections': { settingsSections: [] },
+    '@/features/settings/shell/settings-sections': { settingsSections: [] },
     '@/lib/platform': { isAndroid: () => false },
     '@/components/music/loading': {
       MusicPageSkeleton: 'MusicPageSkeleton',
@@ -146,7 +146,7 @@ function harness(initialMode = 'collapsible', storage) {
     '@/features/playback/bar/use-playback-bar-mode': {
       usePlaybackBarMode: () => [barMode, () => {}]
     },
-    '@/features/settings/use-interface-density': {
+    '@/features/settings/appearance/use-interface-density': {
       useInterfaceDensity: () => ['standard', () => {}]
     },
     '@/features/playback/bar/persistent-playback-bar': {

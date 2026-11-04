@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { SettingsCard } from './settings-card'
+import { SettingsCard } from '../shell/settings-card'
 
 type CloseBehavior = 'close' | 'minimize'
 const options = [
@@ -34,7 +34,7 @@ export function CloseBehaviorSelect() {
         }
       })
       .catch((cause) => {
-        reportCaughtError('app/src/features/settings/close-behavior-select.tsx', cause)
+        reportCaughtError('app/src/features/settings/general/close-behavior-select.tsx', cause)
 
         if (!disposed) setError(errorText(cause))
       })
@@ -51,7 +51,7 @@ export function CloseBehaviorSelect() {
       await nativeCall('set_close_behavior', { behavior: value })
       setBehavior(value)
     } catch (cause) {
-      reportCaughtError('app/src/features/settings/close-behavior-select.tsx', cause)
+      reportCaughtError('app/src/features/settings/general/close-behavior-select.tsx', cause)
 
       setError(errorText(cause))
     } finally {

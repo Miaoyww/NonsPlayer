@@ -123,7 +123,7 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
       }
     }
   }
-  modules['../extension-list'] = loadExtensionList(modules)
+  modules['../extensions/extension-list'] = loadExtensionList(modules)
   const exports = {}
   runInNewContext(
     ts.transpileModule(

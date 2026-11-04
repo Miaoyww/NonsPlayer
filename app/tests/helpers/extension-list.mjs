@@ -8,7 +8,7 @@ export function loadExtensionList(modules) {
   runInNewContext(
     ts.transpileModule(
       readFileSync(
-        new URL('../../src/features/settings/extension-list.tsx', import.meta.url),
+        new URL('../../src/features/settings/extensions/extension-list.tsx', import.meta.url),
         'utf8'
       ),
       { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }

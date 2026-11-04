@@ -1,5 +1,5 @@
-import type { Theme } from '@/features/settings/use-theme'
-import { PersonalizationControls } from '@/features/settings/personalization-controls'
+import type { Theme } from '@/features/settings/appearance/use-theme'
+import { PersonalizationControls } from '@/features/settings/appearance/personalization-controls'
 
 export function PersonalizationPage({
   theme,

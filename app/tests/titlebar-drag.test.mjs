@@ -23,7 +23,7 @@ function harness(playerMode = false) {
     },
     'lucide-react': {},
     '@/components/ui/button': { Button: 'button' },
-    '@/features/settings/settings-dialog': { SettingsDialog: 'settings' },
+    '@/features/settings/shell/settings-dialog': { SettingsDialog: 'settings' },
     '@/features/tools/tools-dialog': { ToolsDialog: 'tools' },
     '@/features/downloads/download-progress-button': { DownloadProgressButton: () => null },
     '@/features/account/account-menu': { AccountMenu: 'account' },

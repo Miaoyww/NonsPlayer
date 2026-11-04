@@ -9,8 +9,8 @@ import { CountingNumber } from '@animate-ui/react/primitives/texts/counting-numb
 import appIcon from '../../../../app-icon.png'
 import { Button } from '@/components/ui/button'
 import { errorText, nativeCall } from '@/lib/player'
-import { SettingsCard } from '@/features/settings/settings-card'
-import { useTelemetryStatistics } from '@/features/settings/use-telemetry-statistics'
+import { SettingsCard } from '@/features/settings/shell/settings-card'
+import { useTelemetryStatistics } from '@/features/settings/telemetry/use-telemetry-statistics'
 
 const repository = 'https://github.com/Miaoyww/Nons'
 const thanks = [

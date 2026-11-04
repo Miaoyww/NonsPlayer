@@ -186,7 +186,7 @@ test('real dynamic ui.mjs uses host React and scoped events, renders and cleans 
           })
         }
       },
-      '@/features/settings/use-theme': {},
+      '@/features/settings/appearance/use-theme': {},
       '@/components/music/use-cover-source': { useCoverSource: () => undefined },
       '@/features/workspace/music-navigation': {},
       '@/components/music/music-page': { MusicPageHeader: 'header' },

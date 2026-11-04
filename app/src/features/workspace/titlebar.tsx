@@ -16,7 +16,7 @@ import {
   X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { SettingsDialog } from '@/features/settings/settings-dialog'
+import { SettingsDialog } from '@/features/settings/shell/settings-dialog'
 import { ToolsDialog } from '@/features/tools/tools-dialog'
 import { DownloadProgressButton } from '@/features/downloads/download-progress-button'
 import { AccountMenu } from '@/features/account/account-menu'

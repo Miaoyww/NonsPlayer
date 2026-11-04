@@ -12,7 +12,7 @@ import {
   ComboboxItem,
   ComboboxList
 } from '@/components/ui/combobox'
-import { fontStack } from '@/features/settings/font-settings'
+import { fontStack } from '@/features/settings/appearance/font-settings'
 import { errorText, nativeCall } from '@/lib/player'
 
 type FontOption = { value: string; label: string }
@@ -52,7 +52,7 @@ export function FontPicker({
         if (!disposed) setFamilies(fonts)
       })
       .catch((cause) => {
-        reportCaughtError('app/src/features/settings/font-picker.tsx', cause)
+        reportCaughtError('app/src/features/settings/appearance/font-picker.tsx', cause)
 
         if (!disposed) setError(errorText(cause))
       })

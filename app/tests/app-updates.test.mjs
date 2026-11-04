@@ -81,7 +81,7 @@ test('updates require a download click and separate installation confirmation; p
       DialogTitle: container
     },
     '@/components/error-notice': errorNoticeModule,
-    '@/features/settings/settings-card': { SettingsCard: container },
+    '@/features/settings/shell/settings-card': { SettingsCard: container },
     '@/lib/platform': { isAndroid: () => false },
     'react-markdown': { __esModule: true, default: Markdown },
     'remark-gfm': { __esModule: true, default: remarkGfm },

@@ -44,7 +44,7 @@ function harness(
     './song-components': {},
     '@tauri-apps/api/event': { listen },
     '@/lib/player': { nativeCall },
-    '@/features/settings/use-theme': {},
+    '@/features/settings/appearance/use-theme': {},
     '@/components/music/use-cover-source': {},
     '@/features/workspace/music-navigation': {},
     '@/components/music/music-page': { MusicPageHeader: 'header' },

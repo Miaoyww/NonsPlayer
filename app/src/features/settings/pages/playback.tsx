@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { SettingsCard } from '@/features/settings/settings-card'
+import { SettingsCard } from '@/features/settings/shell/settings-card'
 
 export function PlaybackPage() {
   const state = usePlayer('deviceId', 'playbackOptions')

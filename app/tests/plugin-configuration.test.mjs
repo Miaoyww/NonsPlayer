@@ -288,7 +288,7 @@ test('SDK keeps configuration navigation local and rejects stale configuration r
             finish = resolve
           })
       },
-      '@/features/settings/use-theme': {},
+      '@/features/settings/appearance/use-theme': {},
       '@/components/music/use-cover-source': {},
       '@/features/workspace/music-navigation': {
         useMusicNavigation: () => ({

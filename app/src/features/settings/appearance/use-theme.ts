@@ -9,7 +9,7 @@ try {
   const saved = localStorage.getItem(storageKey)
   if (saved === 'light' || saved === 'dark') theme = saved
 } catch (cause) {
-  reportCaughtError('app/src/features/settings/use-theme.ts', cause)
+  reportCaughtError('app/src/features/settings/appearance/use-theme.ts', cause)
 
   /* Storage is optional. */
 }
@@ -24,7 +24,7 @@ function setTheme(value: Theme) {
   try {
     localStorage.setItem(storageKey, value)
   } catch (cause) {
-    reportCaughtError('app/src/features/settings/use-theme.ts', cause)
+    reportCaughtError('app/src/features/settings/appearance/use-theme.ts', cause)
 
     /* Storage is optional. */
   }

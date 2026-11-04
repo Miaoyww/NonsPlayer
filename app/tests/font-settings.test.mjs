@@ -5,7 +5,7 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
 const source = readFileSync(
-  new URL('../src/features/settings/font-settings.ts', import.meta.url),
+  new URL('../src/features/settings/appearance/font-settings.ts', import.meta.url),
   'utf8'
 )
 function session(saved, storageFailure = false) {

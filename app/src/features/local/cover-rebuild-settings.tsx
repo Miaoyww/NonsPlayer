@@ -4,7 +4,7 @@ import { listen } from '@tauri-apps/api/event'
 import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ErrorNotice } from '@/components/error-notice'
-import { SettingsCard } from '@/features/settings/settings-card'
+import { SettingsCard } from '@/features/settings/shell/settings-card'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { errorText, nativeCall } from '@/lib/player'
 

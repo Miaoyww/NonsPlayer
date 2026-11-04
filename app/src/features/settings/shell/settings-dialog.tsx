@@ -20,7 +20,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/animate-ui/components/base/dialog'
 import { WorkspaceDialogPopup } from '@/components/workspace-dialog'
-import { useTheme } from '@/features/settings/use-theme'
+import { useTheme } from '@/features/settings/appearance/use-theme'
 import { SettingsContent } from './settings-content'
 import { nativeCall } from '@/lib/player'
 import { isWindows } from '@/lib/platform'
@@ -72,7 +72,9 @@ export function SettingsDialog({
             )
         }
       })
-      .catch((cause) => reportCaughtError('app/src/features/settings/settings-dialog.tsx', cause))
+      .catch((cause) =>
+        reportCaughtError('app/src/features/settings/shell/settings-dialog.tsx', cause)
+      )
     return () => {
       disposed = true
       stop?.()

@@ -1,8 +1,8 @@
 import { Monitor, Moon, Sun } from 'lucide-react'
-import type { Theme } from '@/features/settings/use-theme'
-import { FontPicker } from '@/features/settings/font-picker'
-import { useFontSettings } from '@/features/settings/use-font-settings'
-import { SettingsCard } from '@/features/settings/settings-card'
+import type { Theme } from '@/features/settings/appearance/use-theme'
+import { FontPicker } from '@/features/settings/appearance/font-picker'
+import { useFontSettings } from '@/features/settings/appearance/use-font-settings'
+import { SettingsCard } from '@/features/settings/shell/settings-card'
 import { isAndroid } from '@/lib/platform'
 import {
   usePlaybackBarMode,
@@ -12,7 +12,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   useInterfaceDensity,
   type InterfaceDensity
-} from '@/features/settings/use-interface-density'
+} from '@/features/settings/appearance/use-interface-density'
 
 const themes = [
   { value: 'light', label: '浅色', icon: Sun },

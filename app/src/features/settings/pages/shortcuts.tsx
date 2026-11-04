@@ -14,7 +14,7 @@ import {
   type ShortcutAction,
   type ShortcutSettings
 } from '@/features/playback/shortcuts/shortcuts'
-import { SettingsCard } from '@/features/settings/settings-card'
+import { SettingsCard } from '@/features/settings/shell/settings-card'
 
 export function ShortcutsPage() {
   const { settings, busy, error } = useSyncExternalStore(subscribeShortcuts, getShortcutStatus)

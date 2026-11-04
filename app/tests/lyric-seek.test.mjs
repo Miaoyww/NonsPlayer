@@ -44,7 +44,7 @@ function lyricControl({ failure, desktop = true, android = false } = {}) {
     },
     '@applemusic-like-lyrics/react': { LyricPlayer: 'lyric-player' },
     './manual-lyric-player': { ManualLyricPlayer: 'manual-lyric-player' },
-    '@/features/settings/use-font-settings': {
+    '@/features/settings/appearance/use-font-settings': {
       useFontSettings: () => ({ fonts: { app: '', lyrics: '' } })
     },
     './use-lyrics-settings': {

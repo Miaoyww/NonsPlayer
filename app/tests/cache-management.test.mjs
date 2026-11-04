@@ -6,7 +6,10 @@ import ts from 'typescript'
 import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 
 const code = ts.transpileModule(
-  readFileSync(new URL('../src/features/settings/cache-management.ts', import.meta.url), 'utf8'),
+  readFileSync(
+    new URL('../src/features/settings/cache/cache-management.ts', import.meta.url),
+    'utf8'
+  ),
   { compilerOptions: { module: ts.ModuleKind.CommonJS } }
 ).outputText
 

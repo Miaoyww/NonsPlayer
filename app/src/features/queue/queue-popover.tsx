@@ -11,7 +11,7 @@ import { SongContextMenu } from '@/components/music/song-actions'
 import { QueueControls } from '@/features/queue/queue-controls'
 import { trackDisplayTitle } from '@/components/music/track-title'
 import { TrackIdentity } from '@/components/music/track-identity'
-import { useInterfaceDensity } from '@/features/settings/use-interface-density'
+import { useInterfaceDensity } from '@/features/settings/appearance/use-interface-density'
 
 export const QueueTrackCard = memo(function QueueTrackCard({
   track,

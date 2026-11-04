@@ -2,7 +2,7 @@ import { MusicPage } from '@/components/music/music-page'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { SettingsContent } from './settings-content'
 import { settingsSections } from './settings-sections'
-import { useTheme } from './use-theme'
+import { useTheme } from '../appearance/use-theme'
 import { SettingsHome } from './settings-home'
 import { isAndroid, isWindows } from '@/lib/platform'
 

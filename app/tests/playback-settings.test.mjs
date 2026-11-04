@@ -91,7 +91,7 @@ async function harness({
       SelectTrigger: () => null,
       SelectValue: () => null
     },
-    '@/features/settings/settings-card': {
+    '@/features/settings/shell/settings-card': {
       SettingsCard: ({ title, description, children }) =>
         React.createElement(
           'section',

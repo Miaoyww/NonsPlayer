@@ -2,7 +2,7 @@ import { Component, useEffect, useState, type ComponentType, type ReactNode } fr
 import { listen } from '@tauri-apps/api/event'
 import { connectPlayer, errorText, nativeCall } from '@/lib/player'
 import { reportCaughtError } from '@/lib/diagnostics'
-import { useTheme } from '@/features/settings/use-theme'
+import { useTheme } from '@/features/settings/appearance/use-theme'
 import { MusicNavigationStateProvider } from '@/features/workspace/music-navigation'
 import { pluginResourceUrl } from './host'
 import { PluginScope, type Scope } from './scope'

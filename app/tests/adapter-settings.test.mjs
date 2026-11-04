@@ -136,7 +136,7 @@ test('adapter settings persist changes and guard package operations and drag lif
           onClick: () => onCheckedChange(!checked)
         })
     },
-    '@/features/settings/settings-card': {
+    '@/features/settings/shell/settings-card': {
       SettingsCard: ({ title, description, children }) =>
         React.createElement('div', {}, title, description, children)
     },
@@ -157,7 +157,7 @@ test('adapter settings persist changes and guard package operations and drag lif
       }
     }
   }
-  modules['../extension-list'] = loadExtensionList(modules)
+  modules['../extensions/extension-list'] = loadExtensionList(modules)
   const exports = {}
   const code = ts.transpileModule(
     readFileSync(new URL('../src/features/settings/pages/adapters.tsx', import.meta.url), 'utf8'),

@@ -8,7 +8,7 @@ import { sourceLabel, trackSource } from '@/features/music/source-label'
 import {
   useInterfaceDensity,
   type InterfaceDensity
-} from '@/features/settings/use-interface-density'
+} from '@/features/settings/appearance/use-interface-density'
 
 export function TrackIdentity({
   track,

@@ -22,7 +22,7 @@ import {
   ExtensionTabs,
   ExtensionListHeader,
   ExtensionListToolbar
-} from '../extension-list'
+} from '../extensions/extension-list'
 import { Switch } from '@/components/ui/switch'
 import { AdapterLoginCard } from '@/features/account/account-login-page'
 import { useAccountAdapters } from '@/features/account/use-account-adapters'

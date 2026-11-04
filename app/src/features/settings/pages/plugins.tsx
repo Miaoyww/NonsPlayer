@@ -13,7 +13,7 @@ import {
   ExtensionTabs,
   ExtensionListHeader,
   ExtensionListToolbar
-} from '../extension-list'
+} from '../extensions/extension-list'
 import { errorText, nativeCall } from '@/lib/player'
 import { usePlugins } from '@/plugins/host'
 import type { PluginDescriptor, PluginManifest } from '@/plugins/types'

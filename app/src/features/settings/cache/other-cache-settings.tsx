@@ -6,7 +6,7 @@ import { ErrorNotice } from '@/components/error-notice'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { errorText, nativeCall } from '@/lib/player'
 import { isAndroid } from '@/lib/platform'
-import { SettingsCard } from './settings-card'
+import { SettingsCard } from '../shell/settings-card'
 import {
   clearOtherCache,
   otherCacheStatus,

@@ -15,10 +15,10 @@ import {
 } from '@/features/lyrics/use-lyrics-settings'
 import { useLyricSources } from '@/features/lyrics/use-lyric-sources'
 import { DesktopLyricsSwitch } from '@/features/desktop-lyrics/desktop-lyrics-switch'
-import { SettingsCard } from '@/features/settings/settings-card'
-import { LyricFontWeightControl } from '@/features/settings/lyric-font-weight-control'
-import { FontPicker } from '@/features/settings/font-picker'
-import { useFontSettings } from '@/features/settings/use-font-settings'
+import { SettingsCard } from '@/features/settings/shell/settings-card'
+import { LyricFontWeightControl } from '@/features/settings/appearance/lyric-font-weight-control'
+import { FontPicker } from '@/features/settings/appearance/font-picker'
+import { useFontSettings } from '@/features/settings/appearance/use-font-settings'
 
 export function LyricsPage() {
   const { fonts, setFont } = useFontSettings()

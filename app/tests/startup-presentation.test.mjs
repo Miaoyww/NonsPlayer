@@ -52,13 +52,15 @@ test('unresolved startup source renders the actual library shell instead of the 
     },
     './use-primary-music-page': { usePrimaryMusicPage: () => true },
     './use-android-back': { useAndroidBack() {} },
-    '@/features/settings/settings-sections': { settingsSections: [] },
+    '@/features/settings/shell/settings-sections': { settingsSections: [] },
     '@/features/music/use-music-sources': {
       useMusicSources: () => ({ statuses: [], loading: true, revision: 0, error: '' })
     },
     '@/features/music/source-label': { sourceLabel: String },
     '@/lib/player': { usePlayer: () => ({}) },
-    '@/features/settings/use-interface-density': { useInterfaceDensity: () => ['standard'] },
+    '@/features/settings/appearance/use-interface-density': {
+      useInterfaceDensity: () => ['standard']
+    },
     '@/features/playback/bar/use-playback-bar-mode': { usePlaybackBarMode: () => ['off'] },
     '@/features/playback/shortcuts/use-playback-shortcuts': { usePlaybackShortcuts() {} },
     '@/features/lyrics/fullscreen-player': { FullscreenPlayer: 'FullscreenPlayer' },

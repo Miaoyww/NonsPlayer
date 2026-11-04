@@ -4,7 +4,7 @@ import { isTauri } from '@tauri-apps/api/core'
 import { FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ErrorNotice } from '@/components/error-notice'
-import { SettingsCard } from '@/features/settings/settings-card'
+import { SettingsCard } from '@/features/settings/shell/settings-card'
 import {
   Select,
   SelectContent,
