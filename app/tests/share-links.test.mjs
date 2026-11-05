@@ -83,7 +83,6 @@ test('missing sources, unsupported entities and invalid templates yield no share
   assert.equal(exports.entityShareLink({ ...reference, kind: 'artist' }, sources), '')
   for (const template of [
     'javascript:{id}',
-    'https://user:secret@example.com/{id}',
     'https://example.com/{id}/{id}',
     'https://example.com/'
   ])
@@ -93,4 +92,10 @@ test('missing sources, unsupported entities and invalid templates yield no share
       ]),
       ''
     )
+  assert.equal(
+    exports.entityShareLink(reference, [
+      { source: 'first', shareLinkTemplates: { track: 'https://user:secret@example.com/{id}' } }
+    ]),
+    'https://user:secret@example.com/1'
+  )
 })

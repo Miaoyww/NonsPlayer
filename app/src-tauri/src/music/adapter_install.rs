@@ -676,9 +676,9 @@ fn validate_permissions(permissions: &Permissions) -> AppResult<()> {
         if hosts.len() > 32
             || hosts
                 .iter()
-                .any(|host| host != "*" && !nons_music_adapter_sdk::cover::valid_host_rule(host))
+                .any(|host| !nons_music_adapter_sdk::cover::valid_host_rule(host))
         {
-            return Err("适配器网络授权范围无效".into());
+            return Err("适配器网络声明无效".into());
         }
     }
     Ok(())

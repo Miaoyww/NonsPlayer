@@ -161,11 +161,7 @@ fn address(template: &str, id: &str) -> Option<String> {
         return None;
     }
     let url = url::Url::parse(&template.replace("{id}", id)).ok()?;
-    (url.scheme() == "https"
-        && url.host_str().is_some()
-        && url.username().is_empty()
-        && url.password().is_none())
-    .then(|| url.to_string())
+    (matches!(url.scheme(), "http" | "https") && url.host_str().is_some()).then(|| url.to_string())
 }
 
 pub(super) fn validate_endpoints(endpoints: &[String]) -> AppResult<()> {
@@ -175,7 +171,7 @@ pub(super) fn validate_endpoints(endpoints: &[String]) -> AppResult<()> {
             .iter()
             .any(|v| v.len() > 2048 || !v.contains("{id}") || address(v, "1").is_none())
     {
-        return Err("设置 1–3 个 HTTPS 歌词地址，使用路径中的 {id} 表示歌曲 ID".into());
+        return Err("设置 1–3 个歌词地址，使用路径中的 {id} 表示歌曲 ID".into());
     }
     Ok(())
 }
@@ -245,13 +241,11 @@ mod tests {
         };
         assert_eq!(request.addresses().len(), 3);
         assert_eq!(request.addresses()[1], "https://a.example/qq/001mid");
-        for template in [
-            "https://{id}.example/a",
-            "https://example/a?id={id}",
-            "https://user:pass@example/{id}",
-            "http://example/{id}",
-        ] {
+        for template in ["https://{id}.example/a", "https://example/a?id={id}"] {
             assert!(validate_endpoints(&[template.into()]).is_err());
+        }
+        for template in ["https://user:pass@example/{id}", "http://example:8080/{id}"] {
+            assert!(validate_endpoints(&[template.into()]).is_ok());
         }
         for id in ["../a", ".", "a/b", "a?b", "%2e%2e", ""] {
             assert!(address("https://example/qq/{id}", id).is_none());

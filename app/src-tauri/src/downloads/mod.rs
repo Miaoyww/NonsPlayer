@@ -950,11 +950,7 @@ fn download_url(input: &str) -> AppResult<url::Url> {
         return Err("下载地址超过 2048 字节".into());
     }
     let url = url::Url::parse(input).map_err(|_| "下载地址无效")?;
-    if !matches!(url.scheme(), "http" | "https")
-        || url.host_str().is_none()
-        || !url.username().is_empty()
-        || url.password().is_some()
-    {
+    if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
         return Err("下载地址无效".into());
     }
     Ok(url)
@@ -1173,6 +1169,19 @@ mod tests {
             }
         }))
         .unwrap()
+    }
+
+    #[test]
+    fn download_urls_allow_credentials_ports_and_private_hosts() {
+        for input in [
+            "https://user:secret@example.com/a",
+            "http://example.com:8080/a",
+            "https://127.0.0.1/a",
+            "http://localhost/a",
+        ] {
+            assert!(download_url(input).is_ok(), "{input}");
+        }
+        assert!(download_url("file:///tmp/a").is_err());
     }
 
     #[test]

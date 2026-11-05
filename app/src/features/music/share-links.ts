@@ -11,9 +11,7 @@ export function entityShareLink(reference: EntityRef, sources: SourceDescriptor[
   try {
     const link = template.replace('{id}', encodeURIComponent(reference.id))
     const parsed = new URL(link)
-    return ['https:', 'http:'].includes(parsed.protocol) && !parsed.username && !parsed.password
-      ? link
-      : ''
+    return ['https:', 'http:'].includes(parsed.protocol) ? link : ''
   } catch (cause) {
     reportCaughtError('app/src/features/music/share-links.ts', cause)
 

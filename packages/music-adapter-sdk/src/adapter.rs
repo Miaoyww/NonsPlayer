@@ -136,8 +136,6 @@ impl SourceDescriptor {
                 .map_err(|_| ErrorCode::InvalidData)?;
             if !matches!(parsed.scheme(), "http" | "https")
                 || parsed.host_str().is_none()
-                || !parsed.username().is_empty()
-                || parsed.password().is_some()
                 || parsed
                     .host_str()
                     .is_some_and(|host| host.contains("entity-id"))
@@ -424,6 +422,7 @@ mod share_link_tests {
         for template in [
             "https://example.com/song/{id}",
             "https://example.com/#/song?id={id}",
+            "https://user:secret@example.com/{id}",
         ] {
             descriptor
                 .share_link_templates
@@ -434,7 +433,6 @@ mod share_link_tests {
             "https://example.com/song",
             "https://example.com/{id}/{id}",
             "file:///{id}",
-            "https://user:secret@example.com/{id}",
             "https://{id}.example.com/song",
         ] {
             descriptor

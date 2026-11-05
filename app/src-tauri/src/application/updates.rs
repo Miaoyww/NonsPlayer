@@ -252,8 +252,8 @@ impl Updates {
         app: &tauri::AppHandle,
         update: &mut Update,
     ) -> AppResult<Vec<u8>> {
-        if update.download_url.scheme() != "https" {
-            return Err("更新包必须使用 HTTPS".into());
+        if !matches!(update.download_url.scheme(), "http" | "https") {
+            return Err("更新包必须使用 HTTP(S) 地址".into());
         }
         update.timeout = Some(Duration::from_secs(900));
         self.change(app, |inner| {

@@ -27,11 +27,15 @@ export function safeRelative(path) {
 }
 
 export function validHost(host) {
-  if (host.length > 253 || !host.includes('.')) return false
-  if (!host.split('.').every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)))
+  if (host === '*') return true
+  const value = host.startsWith('*.') ? host.slice(2) : host
+  if (!value || value.length > 260) return false
+  try {
+    const url = new URL(`http://${value}`)
+    return !!url.hostname && url.pathname === '/' && !url.search && !url.hash
+  } catch {
     return false
-  // The host rejects IP literals; WHATWG URL parsing accepts dotted numeric hosts as IPv4.
-  return !host.split('.').every((label) => /^\d+$/.test(label))
+  }
 }
 
 /** Rejects missing files, symlinks and paths escaping the plugin root. */

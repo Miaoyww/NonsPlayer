@@ -19,7 +19,7 @@ pub struct Http {
 }
 
 pub(crate) async fn resolve_addresses(host: &str, port: u16) -> AppResult<Vec<SocketAddr>> {
-    let mut addresses: Vec<_> = tokio::net::lookup_host((host, port))
+    let addresses: Vec<_> = tokio::net::lookup_host((host, port))
         .await
         .inspect_err(|error| {
             crate::infrastructure::diagnostics::warn("http.dns.resolve", error);
@@ -30,9 +30,9 @@ pub(crate) async fn resolve_addresses(host: &str, port: u16) -> AppResult<Vec<So
     if addresses.is_empty() || addresses.len() > 32 {
         return Err("网络目标地址数量无效".into());
     }
-    addresses.sort_by_key(|address| !public_ip(address.ip()));
     Ok(addresses)
 }
+#[cfg(test)]
 fn public_ip(ip: std::net::IpAddr) -> bool {
     match ip {
         std::net::IpAddr::V4(ip) => {
@@ -86,18 +86,19 @@ pub(crate) struct BinaryResponse {
 }
 
 pub fn valid_host(host: &str) -> bool {
-    host.len() <= 253
-        && host.contains('.')
-        && host.split('.').all(|label| {
-            !label.is_empty()
-                && label.len() <= 63
-                && !label.starts_with('-')
-                && !label.ends_with('-')
-                && label
-                    .bytes()
-                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
-        })
-        && matches!(url::Host::parse(host), Ok(url::Host::Domain(domain)) if domain == host)
+    if host == "*" {
+        return true;
+    }
+    let host = host.strip_prefix("*.").unwrap_or(host);
+    let Ok(url) = url::Url::parse(&format!("http://{host}")) else {
+        return false;
+    };
+    !host.is_empty()
+        && host.len() <= 260
+        && url.host_str().is_some()
+        && url.path() == "/"
+        && url.query().is_none()
+        && url.fragment().is_none()
 }
 #[cfg(test)]
 fn allows_host(hosts: &[String], host: &str) -> bool {
@@ -665,7 +666,7 @@ mod tests {
         }
     }
     #[test]
-    fn host_metadata_keeps_exact_domain_rules() {
+    fn host_metadata_accepts_dns_ips_ports_and_wildcards() {
         let hosts = vec!["*.example.org".into()];
         assert!(allows_host(&hosts, "media.example.org"));
         assert!(!allows_host(&hosts, "example.org"));
@@ -675,12 +676,16 @@ mod tests {
             "*.example.org",
             "Example.org",
             "127.0.0.1",
-            "example.org/",
-            "example.org:443",
             "localhost",
-            "-a.org",
-            "a..org",
+            "example.org:443",
+            "user:secret@example.org:443",
+            "example.org/",
+            "[::1]:8080",
+            "*",
         ] {
+            assert!(valid_host(host), "{host}");
+        }
+        for host in ["example.org?query", "host with space", "*."] {
             assert!(!valid_host(host), "{host}");
         }
         assert!(valid_host("api.example.org"));

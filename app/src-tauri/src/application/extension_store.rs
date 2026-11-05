@@ -352,46 +352,20 @@ fn higher_version(version: &str, installed: Option<&str>) -> AppResult<()> {
     Ok(())
 }
 
-// Redirects are manual: every hop is checked before it reaches the shared client.
+// Redirects are manual: every hop is checked for a valid HTTP(S) URL.
 fn secure_url(raw: &str) -> AppResult<Url> {
     let url = Url::parse(raw).map_err(|_| "商店链接无效")?;
     if raw.len() > 8192
-        || url.scheme() != "https"
-        || !url.username().is_empty()
-        || url.password().is_some()
-        || url.port().is_some()
-        || url.fragment().is_some()
+        || !matches!(url.scheme(), "http" | "https")
+        || url.host_str().is_none()
         || raw.contains(['\\', '\r', '\n'])
     {
         return Err("商店链接不符合安全要求".into());
     }
     Ok(url)
 }
-fn release_url(raw: &str, redirected: bool) -> AppResult<Url> {
-    let url = secure_url(raw)?;
-    let valid = match url.host_str() {
-        Some("github.com") => {
-            let parts: Vec<_> = url.path().split('/').collect();
-            parts.len() == 7
-                && parts[3] == "releases"
-                && parts[4] == "download"
-                && parts
-                    .iter()
-                    .skip(1)
-                    .all(|p| !p.is_empty() && *p != "." && *p != "..")
-                && url.query().is_none()
-        }
-        Some(
-            "release-assets.githubusercontent.com"
-            | "objects.githubusercontent.com"
-            | "github-releases.githubusercontent.com",
-        ) => redirected,
-        _ => false,
-    };
-    if !valid {
-        return Err("安装包及其跳转仅允许使用 GitHub Release 资产链接".into());
-    }
-    Ok(url)
+fn release_url(raw: &str, _redirected: bool) -> AppResult<Url> {
+    secure_url(raw)
 }
 
 #[derive(Default)]
@@ -513,8 +487,6 @@ impl ExtensionStore {
         for hop in 0..=5 {
             if artifact {
                 release_url(url.as_str(), hop > 0)?;
-            } else if ![CDN, GITHUB].contains(&url.as_str()) {
-                return Err("商店索引跳转地址未获允许".into());
             }
             let response = self
                 .http
@@ -1529,18 +1501,9 @@ mod tests {
     }
 
     #[test]
-    fn release_urls_restrict_initial_downloads_and_every_redirect() {
+    fn release_urls_accept_any_http_host_and_redirect() {
         let url = artifact(b"package").url;
         assert!(release_url(&url, false).is_ok());
-        for host in [
-            "release-assets.githubusercontent.com",
-            "objects.githubusercontent.com",
-            "github-releases.githubusercontent.com",
-        ] {
-            let url = format!("https://{host}/asset?signature=opaque");
-            assert!(release_url(&url, true).is_ok());
-            assert!(release_url(&url, false).is_err());
-        }
         for url in [
             "http://github.com/a/b/releases/download/v1/a.zip",
             "https://github.com.evil.test/a/b/releases/download/v1/a.zip",
@@ -1551,12 +1514,12 @@ mod tests {
             "https://raw.githubusercontent.com/a/b/main/a.zip",
             "https://127.0.0.1/a.zip",
             "https://release-assets.githubusercontent.com.evil.test/asset",
-            "file:///tmp/package.zip",
             "https://github.com/a/b/releases/download/v1/a.zip#fragment",
         ] {
-            assert!(release_url(url, false).is_err(), "accepted initial {url}");
-            assert!(release_url(url, true).is_err(), "accepted redirect {url}");
+            assert!(release_url(url, false).is_ok(), "rejected {url}");
+            assert!(release_url(url, true).is_ok(), "rejected redirect {url}");
         }
+        assert!(release_url("file:///tmp/package.zip", false).is_err());
     }
 
     #[test]
@@ -1596,7 +1559,7 @@ mod tests {
             ),
             (
                 "bad-url",
-                json!({"url": "https://evil.test/asset.zip", "size": 4, "sha256": "0".repeat(64)}),
+                json!({"url": "file:///asset.zip", "size": 4, "sha256": "0".repeat(64)}),
                 "安装包链接无效，暂不可安装",
             ),
             (

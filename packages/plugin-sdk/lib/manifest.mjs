@@ -49,7 +49,7 @@ function validateSemantics(manifest) {
   )
     errors.push('description 必须是 1 至 1024 个字符的非空文本')
   if (manifest.repository != null && !validRepository(manifest.repository))
-    errors.push('repository 必须是不含凭证的 HTTP(S) 链接，最多 2048 个字符')
+    errors.push('repository 必须是 HTTP(S) 链接，最多 2048 个字符')
   if (!semver.valid(manifest.version, { loose: false }))
     errors.push('version 必须是 SemVer，例如 1.0.0')
   const engines = manifest.engines ?? {}
@@ -88,8 +88,7 @@ function validateSemantics(manifest) {
   const hosts = manifest.httpHosts ?? []
   if (hosts.length > 32 || new Set(hosts).size !== hosts.length)
     errors.push('httpHosts 最多 32 个且不能重复')
-  for (const host of hosts)
-    if (host !== '*' && !validHost(host)) errors.push(`httpHosts 包含无效域名：${host}`)
+  for (const host of hosts) if (!validHost(host)) errors.push(`httpHosts 包含无效主机：${host}`)
 
   const hasUiContributions =
     c.views?.length ||
@@ -197,9 +196,7 @@ function validRepository(repository) {
   return (
     /^https?:\/\/\S+$/.test(repository) &&
     ['http:', 'https:'].includes(url.protocol) &&
-    url.hostname.length > 0 &&
-    url.username.length === 0 &&
-    url.password.length === 0
+    url.hostname.length > 0
   )
 }
 

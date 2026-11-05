@@ -38,14 +38,21 @@ test('accepts optional HTTP host metadata and validates declared hosts', async (
     }),
     []
   )
+  assert.deepEqual(
+    await check((m) => {
+      m.permissions.push('http:request')
+      m.httpHosts = ['*.example.com', 'localhost', '127.0.0.1', '[::1]:8080']
+    }),
+    []
+  )
   assert.match(
     (
       await check((m) => {
         m.permissions.push('http:request')
-        m.httpHosts = ['*.example.com']
+        m.httpHosts = ['example.com/path']
       })
     ).join(),
-    /无效域名/
+    /无效主机/
   )
   assert.deepEqual(
     await check((m) => {
@@ -107,12 +114,9 @@ test('validates fullscreen player panel pages and action slots', async () => {
   )
 })
 
-test('rejects unsafe entry paths and repositories with credentials', async () => {
+test('rejects unsafe entry paths and accepts credential repositories', async () => {
   assert.match((await check((m) => (m.frontend = '../ui.mjs'))).join(), /frontend/)
   assert.match((await check((m) => (m.frontend = 'ui.js'))).join(), /frontend/)
-  assert.match(
-    (await check((m) => (m.repository = 'https://user:pass@example.com/repo'))).join(),
-    /repository/
-  )
+  assert.deepEqual(await check((m) => (m.repository = 'https://user:pass@example.com/repo')), [])
   assert.deepEqual(await check((m) => (m.repository = 'https://example.com/repo')), [])
 })

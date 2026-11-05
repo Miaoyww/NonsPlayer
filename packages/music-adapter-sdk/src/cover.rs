@@ -142,21 +142,21 @@ mod tests {
     }
 }
 
-/// Exact DNS names or explicit subdomain suffixes; no unrestricted `*`, IPs or credentials.
+/// Host declarations may be exact hosts, IPs, explicit subdomain suffixes or `*`.
 pub fn valid_host_rule(rule: &str) -> bool {
+    if rule == "*" {
+        return true;
+    }
     let host = rule.strip_prefix("*.").unwrap_or(rule);
-    host.len() <= 253
-        && host.contains('.')
-        && host.split('.').all(|label| {
-            !label.is_empty()
-                && label.len() <= 63
-                && !label.starts_with('-')
-                && !label.ends_with('-')
-                && label
-                    .bytes()
-                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
-        })
-        && matches!(url::Host::parse(host), Ok(url::Host::Domain(domain)) if domain == host)
+    let Ok(url) = url::Url::parse(&format!("http://{host}")) else {
+        return false;
+    };
+    !host.is_empty()
+        && host.len() <= 260
+        && url.host_str().is_some()
+        && url.path() == "/"
+        && url.query().is_none()
+        && url.fragment().is_none()
 }
 pub fn checked_url(
     input: &str,
@@ -192,8 +192,18 @@ mod host_tests {
         for url in ["file:///a.jpg", "ftp://example.org/a.jpg"] {
             assert!(checked_url(url, &hosts).is_err(), "{url}");
         }
-        for rule in ["*", "*.127.0.0.1", "localhost", "*.bad..example"] {
-            assert!(!valid_host_rule(rule));
+        for rule in [
+            "*",
+            "*.127.0.0.1",
+            "localhost",
+            "[::1]:8080",
+            "images.example:443",
+            "user:secret@images.example:443",
+        ] {
+            assert!(valid_host_rule(rule), "{rule}");
+        }
+        for rule in ["*.", "bad host", "images.example/path"] {
+            assert!(!valid_host_rule(rule), "{rule}");
         }
     }
 }

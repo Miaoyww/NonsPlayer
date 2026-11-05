@@ -70,7 +70,7 @@ function EntryMetadata({ entry }: { entry: StoreEntry }) {
         <dt className="text-muted-foreground">仓库</dt>
         <dd className="break-all">{entry.repository || '未提供'}</dd>
         <dt className="text-muted-foreground">安装包来源</dt>
-        <dd>GitHub Release</dd>
+        <dd>索引声明地址</dd>
       </dl>
       <div>
         <h4 className="font-medium">权限与范围</h4>
@@ -192,7 +192,7 @@ export function ExtensionStore({
           <Store aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
           <div>
             <h3 className="text-sm font-semibold">{noun}商店</h3>
-            <p className="mt-1 text-xs text-muted-foreground">安装包来源：GitHub Release</p>
+            <p className="mt-1 text-xs text-muted-foreground">安装包来源：索引声明地址</p>
           </div>
         </div>
         <Button
@@ -331,7 +331,7 @@ export function ExtensionStore({
               <p className="break-all text-xs text-muted-foreground">
                 {preview.id}
                 {preview.installedVersion ? ` · 当前版本 ${preview.installedVersion}` : ''} · 索引：
-                {state.review?.source === 'github' ? 'GitHub meta' : 'CDN'} · 安装包：GitHub Release
+                {state.review?.source === 'github' ? 'GitHub meta' : 'CDN'} · 安装包：索引声明地址
               </p>
               <div>
                 <h4 className="text-sm font-medium">安装包请求的权限</h4>

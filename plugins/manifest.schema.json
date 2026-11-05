@@ -251,7 +251,7 @@
         "type": "string",
         "maxLength": 253
       },
-      "description": "可选的网络域名声明，仅用于展示；请求本身允许任意地址。支持精确域名或 *，不含协议、端口、IP 或子域通配符，由 Rust 校验。"
+      "description": "可选的网络主机声明，仅用于展示；请求本身允许任意地址。接受主机、localhost、IPv4、IPv6、可选凭证与端口、*.domain 或 *，由 Rust 校验。"
     },
     "description": {
       "type": ["string", "null"],

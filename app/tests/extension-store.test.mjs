@@ -521,7 +521,7 @@ test('React store renders bounded searchable list, index source, details and exp
     const detail = document.querySelector('[role="dialog"]')
     assert.match(
       detail.textContent,
-      /Miaoyww.*MIT.*GitHub Release.*account:credentials.*music.example.org/
+      /Miaoyww.*MIT.*索引声明地址.*account:credentials.*music.example.org/
     )
     assert.match(document.body.textContent, /https:\/\/cdn.example\/index.json/)
     assert.equal(document.querySelectorAll('img').length, 0)

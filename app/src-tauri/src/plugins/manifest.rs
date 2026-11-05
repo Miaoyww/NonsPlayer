@@ -283,10 +283,8 @@ impl Manifest {
                     .any(|c| c.is_whitespace() || c.is_control())
                 || !matches!(url.scheme(), "https" | "http")
                 || url.host_str().is_none()
-                || !url.username().is_empty()
-                || url.password().is_some()
             {
-                return Err("插件代码仓库必须是最多 2048 个字符且不含凭证的 HTTP(S) 链接".into());
+                return Err("插件代码仓库必须是最多 2048 个字符的 HTTP(S) 链接".into());
             }
         }
         Version::parse(&self.version)
@@ -340,9 +338,9 @@ impl Manifest {
             || self
                 .http_hosts
                 .iter()
-                .any(|host| (host != "*" && !super::http::valid_host(host)) || !hosts.insert(host))
+                .any(|host| !super::http::valid_host(host) || !hosts.insert(host))
         {
-            return Err("httpHosts 最多 32 个、不能重复且必须是精确域名或 *".into());
+            return Err("httpHosts 最多 32 个、不能重复且必须是不含路径的主机或通配声明".into());
         }
         if let Some(path) = &self.configuration {
             safe_relative(path)?;
@@ -602,10 +600,6 @@ mod tests {
             ("repository", "javascript:alert(1)".to_string()),
             ("repository", "file:///tmp/repo".to_string()),
             ("repository", "git@github.com:example/repo.git".to_string()),
-            (
-                "repository",
-                "https://user:secret@example.org/repo".to_string(),
-            ),
             ("repository", "https://example.org/\nrepo".to_string()),
             (
                 "repository",
@@ -624,7 +618,7 @@ mod tests {
         }
         let mut candidate = valid;
         candidate.description = Some("文".repeat(1024));
-        candidate.repository = Some("http://example.org/repo".into());
+        candidate.repository = Some("http://user:secret@example.org/repo".into());
         assert!(candidate.validate().is_ok());
     }
     #[test]
@@ -648,7 +642,7 @@ mod tests {
         for hosts in [
             serde_json::json!(["*", "*"]),
             serde_json::json!(["example.org", "example.org"]),
-            serde_json::json!(["*.example.org"]),
+            serde_json::json!(["example.org/path"]),
         ] {
             let mut candidate = value.clone();
             candidate["httpHosts"] = hosts;
@@ -657,6 +651,14 @@ mod tests {
                 .validate()
                 .is_err());
         }
+        let mut declarations = valid.clone();
+        declarations.http_hosts = vec![
+            "*.example.org".into(),
+            "localhost".into(),
+            "127.0.0.1".into(),
+            "[::1]:8080".into(),
+        ];
+        assert!(declarations.validate().is_ok());
         let mut different_scope = valid.clone();
         different_scope.http_hosts = Vec::new();
         assert!(different_scope.validate().is_ok());
