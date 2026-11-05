@@ -252,14 +252,14 @@ function ArtistAvatarCompletionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="flex h-[85dvh] max-h-[85dvh] flex-col overflow-hidden sm:max-w-3xl">
+        <DialogHeader className="shrink-0">
           <DialogTitle>补齐艺术家头像</DialogTitle>
           <DialogDescription>
             从音乐来源匹配本地艺术家头像。自动匹配在后台执行，不阻塞扫描、页面浏览或播放；手动选择的结果不会被自动任务覆盖。
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-muted/40 p-3">
+        <div className="flex shrink-0 flex-wrap items-center gap-3 rounded-2xl bg-muted/40 p-3">
           <div className="min-w-56 flex-1">
             <div className="flex items-center gap-1.5 text-sm font-medium">
               <TriangleAlert
@@ -295,7 +295,7 @@ function ArtistAvatarCompletionDialog({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <form
             className="flex min-w-48 flex-1 gap-2"
             onSubmit={(event) => {
@@ -325,7 +325,7 @@ function ArtistAvatarCompletionDialog({
             {running ? '正在补齐…' : keyword ? '补齐筛选结果' : '全部补齐'}
           </ActionButton>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex shrink-0 flex-col gap-2">
           <p className="text-xs text-muted-foreground" role="status">
             {keyword ? `筛选「${keyword}」 · ` : ''}共 {total} 位本地艺术家
           </p>
@@ -358,7 +358,7 @@ function ArtistAvatarCompletionDialog({
             </div>
           )}
         </div>
-        <div className="max-h-[48dvh] min-h-32 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           {list.busy && !list.items.length ? (
             <div className="flex items-center justify-center py-10 text-muted-foreground">
               <Spinner className="size-5" />
@@ -437,8 +437,12 @@ function ArtistAvatarCompletionDialog({
             onLoad={list.loadMore}
           />
         </div>
-        {(error || list.error) && <ErrorNotice error={error ?? list.error} />}
-        <DialogFooter>
+        {(error || list.error) && (
+          <div className="shrink-0">
+            <ErrorNotice error={error ?? list.error} />
+          </div>
+        )}
+        <DialogFooter className="shrink-0">
           <ActionButton variant="outline" disabled={running} onClick={() => onOpenChange(false)}>
             关闭
           </ActionButton>
