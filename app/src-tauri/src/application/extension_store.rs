@@ -29,6 +29,12 @@ const INDEX_TIMEOUT: Duration = Duration::from_secs(20);
 const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(120);
 const UNFINISHED: &str = "作者尚未完成，暂不可安装";
 
+fn token_expiry() -> Instant {
+    Instant::now()
+        .checked_add(TOKEN_TTL)
+        .unwrap_or_else(Instant::now)
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Source {
@@ -480,7 +486,7 @@ pub(crate) struct Review {
     warnings: Vec<String>,
 }
 struct Pending {
-    created: Instant,
+    expires: Instant,
     source: Source,
     artifact: Artifact,
     file: tempfile::TempPath,
@@ -490,7 +496,8 @@ struct Pending {
 struct Tickets(BTreeMap<String, Pending>);
 impl Tickets {
     fn prune(&mut self) {
-        self.0.retain(|_, p| p.created.elapsed() < TOKEN_TTL);
+        let now = Instant::now();
+        self.0.retain(|_, p| now < p.expires);
     }
     fn take(&mut self, token: &str) -> AppResult<Pending> {
         self.prune();
@@ -817,7 +824,7 @@ impl ExtensionStore {
             .insert(
                 review.token.clone(),
                 Pending {
-                    created: Instant::now(),
+                    expires: token_expiry(),
                     source,
                     artifact,
                     file,
@@ -1894,7 +1901,7 @@ mod tests {
         tickets.0.insert(
             "one".into(),
             Pending {
-                created: Instant::now(),
+                expires: token_expiry(),
                 source: Source::Cdn,
                 artifact: artifact(b"package"),
                 file: path,
@@ -1911,7 +1918,9 @@ mod tests {
         tickets.0.insert(
             "expired".into(),
             Pending {
-                created: Instant::now() - TOKEN_TTL,
+                expires: Instant::now()
+                    .checked_sub(TOKEN_TTL)
+                    .unwrap_or_else(Instant::now),
                 source: Source::Cdn,
                 artifact: artifact(b"package"),
                 file: path,
