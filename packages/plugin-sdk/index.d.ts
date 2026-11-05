@@ -19,10 +19,13 @@ export function usePluginClipboard(): {
 }
 export interface PluginHttpRequest {
   url: string
-  method?: 'GET' | 'HEAD' | 'POST'
+  method?: string
   headers?: Record<string, string>
   body?: string
+  /** Omitted or zero waits without a deadline; positive integers set one. */
   timeoutMs?: number
+  /** Follow redirects; defaults to true. */
+  followRedirects?: boolean
   responseType?: 'text' | 'none'
 }
 export interface PluginHttpResponse {
@@ -30,6 +33,8 @@ export interface PluginHttpResponse {
   headers: Record<string, string>
   body: string
   cookies?: string[]
+  /** Final URL after redirects. */
+  finalUrl: string
 }
 export function usePluginHttp(): {
   request(request: PluginHttpRequest): Promise<PluginHttpResponse>

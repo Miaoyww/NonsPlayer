@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
-import { validateManifest } from '../lib/manifest.mjs'
+import {
+  PLUGIN_API_VERSION,
+  SDK_VERSION,
+  UI_API_VERSION,
+  validateManifest
+} from '../lib/manifest.mjs'
 
 const template = JSON.parse(
   await readFile(new URL('../template/manifest.json', import.meta.url), 'utf8')
@@ -12,6 +17,12 @@ function check(change) {
   change(manifest)
   return validateManifest(manifest)
 }
+
+test('SDK, plugin API and UI API versions stay aligned', () => {
+  assert.equal(SDK_VERSION, '3.0.0')
+  assert.equal(PLUGIN_API_VERSION, SDK_VERSION)
+  assert.equal(UI_API_VERSION, SDK_VERSION)
+})
 
 test('template manifest passes validation', async () => {
   assert.deepEqual(await validateManifest(template), [])
@@ -29,38 +40,10 @@ test('rejects incompatible plugin and UI API ranges', async () => {
   assert.match(errors.join(), /不兼容/)
 })
 
-test('accepts optional HTTP host metadata and validates declared hosts', async () => {
-  assert.deepEqual(await check((m) => (m.httpHosts = ['example.com'])), [])
-  assert.deepEqual(
-    await check((m) => {
-      m.permissions.push('http:request')
-      m.httpHosts = []
-    }),
-    []
-  )
-  assert.deepEqual(
-    await check((m) => {
-      m.permissions.push('http:request')
-      m.httpHosts = ['*.example.com', 'localhost', '127.0.0.1', '[::1]:8080']
-    }),
-    []
-  )
-  assert.match(
-    (
-      await check((m) => {
-        m.permissions.push('http:request')
-        m.httpHosts = ['example.com/path']
-      })
-    ).join(),
-    /无效主机/
-  )
-  assert.deepEqual(
-    await check((m) => {
-      m.permissions.push('http:request')
-      m.httpHosts = ['example.com', '*']
-    }),
-    []
-  )
+test('network capabilities need no legacy host or HTTP permission fields', async () => {
+  assert.ok((await check((m) => (m.httpHosts = ['example.com']))).length)
+  assert.ok((await check((m) => (m.permissions = ['ui', 'http:request']))).length)
+  assert.deepEqual(await check((m) => (m.permissions = ['ui'])), [])
 })
 
 test('checks file roots, UI permissions and contribution references', async () => {

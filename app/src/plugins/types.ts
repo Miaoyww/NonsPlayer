@@ -9,7 +9,6 @@ export interface PluginManifest {
   frontend: string | null
   configuration?: string | null
   permissions: string[]
-  httpHosts?: string[]
   fileRoots?: string[]
   engines: { app: string; pluginApi: string; uiApi: string }
   contributes: {

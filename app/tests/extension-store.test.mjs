@@ -342,22 +342,47 @@ test('unmount during install cancels retained token and prevents stale completio
   assert.equal(calls.length, 4)
 })
 
-test('search covers name, id, description and labels; permission domains survive formatting', () => {
+test('search covers name, id, description and labels; network permissions omit domains', () => {
   const entries = [entry()]
   for (const query of ['下载', 'DOWNLOAD', '保存音乐', 'download 保存'])
     assert.equal(model.searchEntries(entries, query).length, 1)
   assert.equal(model.searchEntries(entries, 'missing').length, 0)
+  assert.match(model.permissionLines(entries[0]).join(' '), /读取当前平台账号凭据/)
+  assert.doesNotMatch(model.permissionLines(entries[0]).join(' '), /http:request/)
   assert.match(
-    model.permissionLines(entries[0]).join(' '),
-    /account:credentials.*music.example.org/
+    model
+      .permissionLines(entry({ permissions: ['http:request', 'http:transfer', 'websocket'] }))
+      .join(' '),
+    /WebSocket 长连接：可访问任意地址/
   )
+  assert.doesNotMatch(model.permissionLines(entries[0]).join(' '), /music\.example\.org/)
   assert.match(
     model
       .permissionLines(
-        entry({ permissions: { httpHosts: ['api.example.org'], credentials: true } })
+        entry({
+          permissions: {
+            httpHosts: ['api.example.org'],
+            websocketHosts: ['socket.example.org'],
+            credentials: true
+          }
+        })
       )
       .join(' '),
-    /api.example.org.*credentials/
+    /可访问任意 HTTP\(S\) 地址.*读取当前平台账号凭据/
+  )
+  assert.doesNotMatch(
+    model
+      .permissionLines(
+        entry({
+          permissions: {
+            httpHosts: ['api.example.org'],
+            websocketHosts: ['socket.example.org'],
+            credentials: true
+          }
+        })
+      )
+      .join(' '),
+    /(?:api|socket)\.example\.org/
   )
 })
 
@@ -519,10 +544,7 @@ test('React store renders bounded searchable list, index source, details and exp
     })
     await click('下载管理')
     const detail = document.querySelector('[role="dialog"]')
-    assert.match(
-      detail.textContent,
-      /Miaoyww.*MIT.*索引声明地址.*account:credentials.*music.example.org/
-    )
+    assert.match(detail.textContent, /Miaoyww.*MIT.*索引声明地址.*读取当前平台账号凭据/)
     assert.match(document.body.textContent, /https:\/\/cdn.example\/index.json/)
     assert.equal(document.querySelectorAll('img').length, 0)
     await click('安装', detail)

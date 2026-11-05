@@ -26,18 +26,6 @@ export function safeRelative(path) {
   )
 }
 
-export function validHost(host) {
-  if (host === '*') return true
-  const value = host.startsWith('*.') ? host.slice(2) : host
-  if (!value || value.length > 260) return false
-  try {
-    const url = new URL(`http://${value}`)
-    return !!url.hostname && url.pathname === '/' && !url.search && !url.hash
-  } catch {
-    return false
-  }
-}
-
 /** Rejects missing files, symlinks and paths escaping the plugin root. */
 export async function checkedFile(root, relative) {
   if (!safeRelative(relative)) throw new Error(`资源路径无效：${relative}`)

@@ -190,9 +190,12 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
             'account:credentials',
             'http:request',
             'http:transfer',
+            'websocket',
             'files:selected'
           ],
           httpHosts: ['*', 'example.org', 'api.example.org'],
+          websocketHosts: ['socket.example.org'],
+          coverHosts: ['images.example.org'],
           fileRoots: ['*']
         },
         enabled: false,
@@ -311,17 +314,16 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     )
     assert.ok(warning.className.includes('text-destructive'))
     assert.match(document.body.textContent, /当前用户能够访问的任意文件/)
-    assert.match(document.body.textContent, /敏感权限：会请求任意 URL/)
-    assert.match(
+    assert.doesNotMatch(document.body.textContent, /http:request|http:transfer/)
+    assert.doesNotMatch(document.body.textContent, /敏感权限：会请求任意 HTTP\(S\) 地址/)
+    assert.doesNotMatch(
       document.body.textContent,
-      /敏感权限：会请求任意 URL（声明域名：\*、example\.org、api\.example\.org）/
+      /敏感权限：会从任意 HTTP\(S\) 地址传输资源到授权目录/
     )
-    assert.match(
-      document.body.textContent,
-      /敏感权限：会从任意 URL 传输资源到授权目录（声明域名：\*、example\.org、api\.example\.org）/
-    )
+    assert.match(document.body.textContent, /敏感权限：会建立任意 WebSocket 长连接/)
+    assert.doesNotMatch(document.body.textContent, /example\.org/)
     const networkWarning = [...document.querySelectorAll('[role="alert"]')].find((element) =>
-      element.textContent.includes('此插件可请求任意 URL')
+      element.textContent.includes('此插件可访问任意网络地址')
     )
     assert.ok(networkWarning.className.includes('text-destructive'))
     assert.match(networkWarning.textContent, /Cookie 也可能被发送到其他网站/)

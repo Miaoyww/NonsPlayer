@@ -313,6 +313,8 @@ test('adapter settings persist changes and guard package operations and drag lif
     assert.match(document.querySelector('[role="alert"]').textContent, /音源列表不可用/)
     assert.match(list().textContent, /网易云音乐/)
     const permissions = {
+      http: true,
+      websocket: false,
       httpHosts: ['music.example.com'],
       websocketHosts: [],
       credentials: true,
@@ -378,7 +380,11 @@ test('adapter settings persist changes and guard package operations and drag lif
         assert.doesNotMatch(document.body.textContent, /松开即可预览/)
         await resolvePreview()
         assert.equal(surface.getAttribute('aria-busy'), 'false')
-        assert.match(dialog().textContent, /测试适配器.*music.example.com.*读取当前平台账号凭据/s)
+        assert.match(
+          dialog().textContent,
+          /测试适配器.*网络请求：可访问任意 HTTP\(S\) 地址.*读取当前平台账号凭据/s
+        )
+        assert.doesNotMatch(dialog().textContent, /music\.example\.com/)
         await click(dialogButton('取消'))
         assert.equal(dialog(), null)
         assert.equal(dragListeners.length, 1)

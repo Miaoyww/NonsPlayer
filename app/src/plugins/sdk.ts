@@ -125,10 +125,13 @@ export function useMusicSource(): import('@/features/music/types').MusicSourceCl
 }
 export interface PluginHttpRequest {
   url: string
-  method?: 'GET' | 'HEAD' | 'POST'
+  method?: string
   headers?: Record<string, string>
   body?: string
+  /** Omitted or zero waits without a deadline; positive integers set one. */
   timeoutMs?: number
+  /** Follow redirects; defaults to true. */
+  followRedirects?: boolean
   responseType?: 'text' | 'none'
 }
 export interface PluginHttpResponse {
@@ -136,9 +139,10 @@ export interface PluginHttpResponse {
   headers: Record<string, string>
   body: string
   cookies?: string[]
+  finalUrl: string
 }
 export function usePluginHttp() {
-  const scope = useScope('http:request')
+  const scope = useScope()
   return useMemo(
     () => ({
       request: (request: PluginHttpRequest) =>

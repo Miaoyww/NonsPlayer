@@ -152,10 +152,10 @@ test('clipboard subscription filters identity and generation and cleans up witho
   assert.deepEqual(received, ['plain text without a link', ''])
 })
 
-test('new capabilities reject missing permission and late subscription or read results', async () => {
+test('clipboard capability rejects missing permission and later results stay scoped', async () => {
   const denied = harness([]).sdk
   assert.throws(() => denied.usePluginClipboard(), /clipboard:read/)
-  assert.throws(() => denied.usePluginHttp(), /http:request/)
+  assert.doesNotThrow(() => denied.usePluginHttp())
   let finishListen,
     finishRead,
     disposed = 0
@@ -182,7 +182,7 @@ test('new capabilities reject missing permission and late subscription or read r
 
 test('HTTP and music facades bind host requests to the plugin instance', async () => {
   const calls = []
-  const { sdk } = harness(['http:request', 'music:metadata', 'player:control'], {
+  const { sdk } = harness(['music:metadata', 'player:control'], {
     nativeCall: async (command, args) => {
       calls.push({ command, ...args })
       return args.operation === 'http.request'

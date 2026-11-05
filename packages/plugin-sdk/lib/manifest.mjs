@@ -2,7 +2,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import Ajv2020 from 'ajv/dist/2020.js'
 import semver from 'semver'
-import { checkedFile, safeRelative, validHost, validId } from './util.mjs'
+import { checkedFile, safeRelative, validId } from './util.mjs'
 
 const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
 export const SDK_VERSION = packageJson.version
@@ -85,11 +85,6 @@ function validateSemantics(manifest) {
     if (!safeRelative(manifest.configuration) || !manifest.configuration.endsWith('.json'))
       errors.push('configuration 必须是包内相对 JSON 路径')
   }
-  const hosts = manifest.httpHosts ?? []
-  if (hosts.length > 32 || new Set(hosts).size !== hosts.length)
-    errors.push('httpHosts 最多 32 个且不能重复')
-  for (const host of hosts) if (!validHost(host)) errors.push(`httpHosts 包含无效主机：${host}`)
-
   const hasUiContributions =
     c.views?.length ||
     c.pages?.length ||

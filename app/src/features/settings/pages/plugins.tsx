@@ -23,8 +23,7 @@ import { LocalPluginUpgrade } from '../extensions/local-plugin-upgrade'
 
 const permissionLabels: Record<string, string> = {
   'clipboard:read': '读取剪贴板文本及监听变化',
-  'http:request': '请求任意网络地址',
-  'http:transfer': '从任意网络地址传输资源到授权目录',
+  websocket: 'WebSocket 长连接：可访问任意地址',
   secrets: '管理插件自己的系统凭据',
   'account:credentials': '敏感权限：读取 NonsPlayer 的网易云账户凭证',
   'music:metadata': '读取音乐来源的公开音乐信息',
@@ -39,6 +38,11 @@ const permissionLabels: Record<string, string> = {
   config: '管理独立插件配置',
   'files:data': '读写插件专属数据目录',
   'files:selected': '申请访问用户选择的外部目录'
+}
+function visiblePermissions(permissions: readonly string[]) {
+  return permissions.filter(
+    (permission) => permission !== 'http:request' && permission !== 'http:transfer'
+  )
 }
 const statusFilters = [
   ['all', '全部'],
@@ -443,14 +447,14 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                 <div className="mt-4 rounded-lg bg-muted/50 p-4 text-sm">
                   <h4 className="font-semibold">启用前确认</h4>
                   <ul className="my-3 list-disc space-y-1 pl-5">
-                    {plugin.manifest.permissions.map((p) => (
+                    {visiblePermissions(plugin.manifest.permissions).map((p) => (
                       <li
                         key={p}
                         className={
                           p === 'account:credentials' ||
                           p === 'process:spawn' ||
                           p === 'music:write' ||
-                          ['http:request', 'http:transfer'].includes(p) ||
+                          p === 'websocket' ||
                           (p === 'files:selected' && plugin.manifest.fileRoots?.includes('*'))
                             ? 'font-semibold text-destructive'
                             : undefined
@@ -458,14 +462,9 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                       >
                         {p === 'files:selected' && plugin.manifest.fileRoots?.includes('*')
                           ? '敏感权限：读写任意文件'
-                          : ['http:request', 'http:transfer'].includes(p)
-                            ? p === 'http:request'
-                              ? '敏感权限：会请求任意 URL'
-                              : '敏感权限：会从任意 URL 传输资源到授权目录'
+                          : p === 'websocket'
+                            ? '敏感权限：会建立任意 WebSocket 长连接'
                             : (permissionLabels[p] ?? p)}
-                        {['http:request', 'http:transfer'].includes(p) &&
-                          !!plugin.manifest.httpHosts?.length &&
-                          `（声明域名：${plugin.manifest.httpHosts.join('、')}）`}
                       </li>
                     ))}
                   </ul>
@@ -486,17 +485,13 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                       Cookie，并以你的账号身份请求网易云服务。请仅授权你信任的插件。
                     </p>
                   )}
-                  {plugin.manifest.permissions.some((p) =>
-                    ['http:request', 'http:transfer'].includes(p)
-                  ) && (
-                    <p
-                      role="alert"
-                      className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
-                    >
-                      此插件可请求任意 URL，向任意域名发送其可读取的数据。若同时授权账户凭证，登录
-                      Cookie 也可能被发送到其他网站。请仅授权你信任的插件。
-                    </p>
-                  )}
+                  <p
+                    role="alert"
+                    className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive"
+                  >
+                    此插件可访问任意网络地址，发送其可读取的数据。若同时授权账户凭证，登录 Cookie
+                    也可能被发送到其他网站。请仅授权你信任的插件。
+                  </p>
                   {plugin.manifest.fileRoots?.includes('*') && (
                     <p
                       role="alert"

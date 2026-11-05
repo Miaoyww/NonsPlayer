@@ -19,7 +19,6 @@ export interface StoreEntry {
   releaseNotes?: string
   total_download_count?: number | null
   permissions?: readonly string[] | Record<string, unknown>
-  httpHosts?: readonly string[]
   fileRoots?: readonly string[]
   compatible: boolean
   unavailableReason?: string
@@ -88,21 +87,48 @@ export function searchEntries(entries: readonly StoreEntry[], query: string) {
   })
 }
 
+const permissionLabels: Record<string, string> = {
+  http: '网络请求：可访问任意 HTTP(S) 地址',
+  websocket: 'WebSocket 长连接：可访问任意地址',
+  'account:credentials': '读取当前平台账号凭据',
+  credentials: '读取当前平台账号凭据',
+  'process:spawn': '启动任意程序并管理其输入输出',
+  'music:write': '更改当前账号的收藏、歌单和推荐',
+  'files:selected': '访问用户选择的外部目录',
+  system: '访问宿主系统能力',
+  state: '保存适配器专属状态'
+}
+
+const legacyNetworkPermissions = new Set(['http:request', 'http:transfer'])
+const legacyHostFields = new Set(['httpHosts', 'websocketHosts', 'coverHosts'])
+
 export function permissionLines(entry: StoreEntry): string[] {
   const permissions = entry.permissions
-  const lines = Array.isArray(permissions)
-    ? [...permissions]
-    : Object.entries(permissions ?? {}).flatMap(([key, value]) => {
-        if (value === false || value == null) return []
-        if (Array.isArray(value)) {
-          if (!value.length) return []
-          if (key === 'httpHosts') return [`网络请求：任意地址（声明：${value.join('、')}）`]
-          if (key === 'websocketHosts') return [`长连接：任意地址（声明：${value.join('、')}）`]
-          return [`${key}：${value.join('、')}`]
-        }
+  let lines: string[]
+  if (Array.isArray(permissions)) {
+    lines = permissions
+      .filter((permission) => !legacyNetworkPermissions.has(permission))
+      .map((permission) => permissionLabels[permission] ?? permission)
+  } else {
+    const fields = permissions as Record<string, unknown> | undefined
+    lines = []
+    if (fields?.http !== false) lines.push(permissionLabels.http)
+    if (fields?.websocket === true) lines.push(permissionLabels.websocket)
+    lines.push(
+      ...Object.entries(fields ?? {}).flatMap(([key, value]) => {
+        if (
+          value === false ||
+          value == null ||
+          key === 'http' ||
+          key === 'websocket' ||
+          legacyHostFields.has(key)
+        )
+          return []
+        if (value === true && permissionLabels[key]) return [permissionLabels[key]]
         return [`${key}：${typeof value === 'object' ? JSON.stringify(value) : String(value)}`]
       })
-  if (entry.httpHosts?.length) lines.push(`网络声明：${entry.httpHosts.join('、')}（不限目标）`)
+    )
+  }
   if (entry.fileRoots?.length) lines.push(`文件范围：${entry.fileRoots.join('、')}`)
   return lines
 }

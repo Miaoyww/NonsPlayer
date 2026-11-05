@@ -73,9 +73,8 @@ cd my-plugin && pnpm install && pnpm build
   "version": "1.0.0",
   "backend": "backend.wasm",
   "frontend": "ui.mjs",
-  "permissions": ["clipboard:read", "http:request", "music:metadata", "ui"],
-  "httpHosts": ["music.163.com", "y.music.163.com", "m.music.163.com", "163cn.tv"],
-  "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" },
+  "permissions": ["clipboard:read", "music:metadata", "ui"],
+  "engines": { "app": "^1.0.0", "pluginApi": "^3.0.0", "uiApi": "^3.0.0" },
   "contributes": {
     "views": [{ "id": "island", "slot": "main.overlay", "export": "DynamicIsland" }],
     "pages": [],
@@ -88,7 +87,7 @@ cd my-plugin && pnpm install && pnpm build
 
 backend／frontend 可独立省略，但至少有一个入口。UI 贡献必须声明 frontend 与 `ui`。未知字段或权限拒绝加载；改动已安装插件的版本或权限需要重新安装并确认。commands、menus、settings、shortcuts 仅保留声明字段，当前不执行。contextMenus 的歌曲入口已执行，见下节。
 
-`http:request` 与 `http:transfer` 只申请网络能力，目标不限：任意 HTTP(S) 主机、IP、端口和 URL 凭证均可使用，私网与回环地址也可访问。`httpHosts` 可省略，仅作为展示用声明；声明时最多 32 个，接受任意主机、`localhost`、IPv4、IPv6、可选凭证与端口、`*.example.org` 子域声明或单独的 `*`。启用前以敏感权限高亮网络能力，并警告插件可向任意地址发送其可读取的数据，与账户凭证同时授权时 Cookie 也可能被发送到其他网站。授权记录绑定插件版本、权限与声明主机，声明变化需要重新确认。`clipboard:music-links` 已移除，不再识别该权限。
+HTTP 请求与传输默认可用，`websocket` 表示 WebSocket 长连接能力；目标不限任意主机、IP、端口、HTTP(S)／WS(S) 地址和 URL 凭证均可使用，私网与回环地址也可访问。启用前以敏感权限高亮 WebSocket，并警告插件可向任意地址发送其可读取的数据，与账户凭证同时授权时 Cookie 也可能被发送到其他网站。权限展示说明能力本身，不列出主机，也不显示已移除的 `http:request`／`http:transfer`。旧 manifest 的 `httpHosts`、`websocketHosts`、`coverHosts` 可继续读取但不再参与校验和授权；新 manifest 可省略，授权记录只绑定版本、稳定权限、文件范围与窗口声明。`clipboard:music-links` 已移除，不再识别该权限。
 
 ## Host Capability 与 SDK
 
@@ -96,16 +95,16 @@ backend／frontend 可独立省略，但至少有一个入口。UI 贡献必须�
 
 WIT Host 的 `call(operation, args-json)` 返回 JSON 或业务错误，身份来自 Store，Guest 不能指定另一个 pluginId。当前操作：
 
-| 操作                     | 权限             | 行为                                                                                    |
-| ------------------------ | ---------------- | --------------------------------------------------------------------------------------- |
-| `clipboard.read-text`    | `clipboard:read` | `{}` 读取当前剪贴板文本；变化通过 `event:clipboard-text` 的 `{text}` 交付后端           |
-| `http.request`           | `http:request`   | `{url,method?,timeoutMs?,responseType?}` 请求任意网络地址，返回 `{status,headers,body}` |
-| `music.read-track`       | `music:metadata` | `{reference: EntityRef}` 返回统一 `MusicTrack`，ID 是来源内不透明字符串                 |
-| `events.emit`            | 活跃加载实例     | `{event,payload}` 发布自己的事件                                                        |
-| `storage.get/set/delete` | `storage`        | 操作自身的 JSON 键值空间                                                                |
-| `player.read`            | `player:read`    | 读取经过裁剪的播放状态，不提供本地文件路径                                              |
-| `player.control`         | `player:control` | pause、resume、next、previous、stop，进入既有播放命令队列                               |
-| `music.play-track`       | `player:control` | `{reference: EntityRef, mode: "now" 或 "next"}` 经统一曲目服务展开并交给播放核心        |
+| 操作                     | 权限             | 行为                                                                                                                 |
+| ------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `clipboard.read-text`    | `clipboard:read` | `{}` 读取当前剪贴板文本；变化通过 `event:clipboard-text` 的 `{text}` 交付后端                                        |
+| `http.request`           | 默认可用         | `{url,method?,headers?,body?,timeoutMs?,followRedirects?,responseType?}`；返回状态、响应头、正文、cookies 与最终地址 |
+| `music.read-track`       | `music:metadata` | `{reference: EntityRef}` 返回统一 `MusicTrack`，ID 是来源内不透明字符串                                              |
+| `events.emit`            | 活跃加载实例     | `{event,payload}` 发布自己的事件                                                                                     |
+| `storage.get/set/delete` | `storage`        | 操作自身的 JSON 键值空间                                                                                             |
+| `player.read`            | `player:read`    | 读取经过裁剪的播放状态，不提供本地文件路径                                                                           |
+| `player.control`         | `player:control` | pause、resume、next、previous、stop，进入既有播放命令队列                                                            |
+| `music.play-track`       | `player:control` | `{reference: EntityRef, mode: "now" 或 "next"}` 经统一曲目服务展开并交给播放核心                                     |
 
 `netease.get-song`、`music.get-song`、`netease.play-song`、`player.play-song` 已移除，不提供转发别名。配置与文件操作见 [插件配置开发](plugin-configuration.md)。
 
@@ -115,7 +114,7 @@ WIT Host 的 `call(operation, args-json)` 返回 JSON 或业务错误，身份�
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `usePluginBackend()`                     | `call<T>(method, args?)`；自动绑定身份与加载代次                                                                                           |
 | `usePluginClipboard()`                   | `readText()` 读取文本；`subscribe(callback)` 订阅文本变化并返回清理函数；需 `clipboard:read`                                               |
-| `usePluginHttp()`                        | `request({url,method?,timeoutMs?,responseType?})`；需 `http:request`                                                                       |
+| `usePluginHttp()`                        | `request({url,method?,headers?,body?,timeoutMs?,followRedirects?,responseType?})`；默认可用                                                |
 | `useMusicSource()` / `useSongPlayback()` | `getTrack(reference)` 返回统一曲目；`useSongPlayback()` 返回 `(reference, mode)` 播放函数，权限分别是 `music:metadata` 与 `player:control` |
 | `usePluginEvent<T>(event)`               | 当前事件最新 payload；订阅随组件卸载清理                                                                                                   |
 | `usePluginStorage()`                     | 异步 get／set／delete；缺失值为 null                                                                                                       |
@@ -181,7 +180,7 @@ Host 自动观察新变化，不在启动时重放旧内容；插件可以显式
 
 应用内歌曲信息、分享链接的文本复制，以及桌面封面图片复制，均使用官方 clipboard-manager 插件。主窗口仅获文本写入权限；插件窗口没有直接读写剪贴板的 Tauri 权限，读取仍经过宿主按插件授权。封面继续复用原有资源读取与 64MiB 图片解码预算，转换为 RGBA 后交给官方插件写入，不自行管理系统剪贴板句柄或图片格式。
 
-通用 HTTP 复用独立连接池，当前支持 GET／HEAD、UTF-8 文本或仅响应头；每次请求最多 3 秒、响应头 4KiB、文本正文 8KiB、URL 2048 字节。目标不限主机、IP、端口或 URL 凭证。宿主不附带网易云 Cookie，不自动跳转，不缓存响应；收到跳转后由插件决定是否继续请求，每次只校验 HTTP(S) 语法。停用后取消正在等待的请求；接口上限仍受现有 IPC 总大小约束。
+通用 HTTP 复用独立连接池，支持任意合法方法与文本／二进制正文，默认自动跟随重定向，可显式关闭。省略 `timeoutMs` 或设为 `0` 时等待到请求完成，正数才设置期限。目标不限主机、IP、端口或 URL 凭证；宿主不附带网易云 Cookie，也不缓存响应。停用后取消正在等待的请求。
 
 网易云域名、歌曲 URL 格式和跳转规则全部在独立 `netease-island` 仓库的 `backend/src/links.rs`。插件最多提取 4 个候选，优先直接歌曲链接；短链共享最多 3 次请求，每次 500 毫秒，以给后续 3 秒元数据查询留出时间；WASM 调用本身已无执行期限。每一步检查网易云域名，支持 HTTP redirect 和相对跳转，不执行网页脚本；选取首个可识别的歌曲。HTTP 和查询失败保留实例，等待后续复制。
 
@@ -249,7 +248,7 @@ export function DetailsAction() {
 
 ## 边界与资源预算
 
-- WASM：不限制线性内存、memory 数量、fuel、执行期限或 JSON 大小；Engine 每 10 毫秒递增 epoch，让 guest 计算回到异步执行器，避免死循环独占线程。Host 网络查询 3 秒；异步等待可取消。最多同时加载 4 个 WASM 插件，单实例最多 16 个待处理请求。
+- WASM：不限制线性内存、memory 数量、fuel、执行期限或 JSON 大小；Engine 每 10 毫秒递增 epoch，让 guest 计算回到异步执行器，避免死循环独占线程。Host 网络等待可由调用方设置期限，省略时不设默认期限；异步等待可取消。最多同时加载 4 个 WASM 插件，单实例最多 16 个待处理请求。
 - IPC／事件／存储单值最多 64KiB；事件最多 32 次／秒；插件存储不设总量或 key 长度上限；安装最多 1024 文件、64MiB 解压总量，UI／资源单文件 8MiB（WASM 后端不设大小上限）。
 - SDK、元数据和资源都校验加载代次。trap／超时／资源耗尽撤销该实例，普通 Guest 业务错误保留实例。原播放队列及音频线程不承担插件执行。
 - `plugin://` 服务只允许活跃插件的前端入口、assets 和合成 Host 模块；规范化路径、拒绝链接／junction、单资源最多 8 MiB，按文件扩展名推断 Web MIME（未知类型回退 `application/octet-stream`）。静态资源支持 GET、HEAD 和单区间 Range，以供浏览器媒体加载与定位；无效区间返回 416，多区间回退完整响应。响应设置 `no-store` 和有限 CORS，不开放通用 filesystem scope。
@@ -340,20 +339,20 @@ cd ..
 
 新增通用操作：
 
-| 操作                     | 权限与限制                                                                                                                                                              |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `secrets.get/set/delete` | `secrets`；`{key,value?}`，系统凭据库隔离为插件 ID／键，每插件 16 键、每值 16KiB；不访问播放器账号。卸载即使保留普通数据也清理凭据。                                    |
-| `http.request`           | 增加 POST、可选 body 和有限请求头；正文 32KiB、请求头 16KiB、POST 响应头 16KiB，返回 cookies 数组。仍不自动携带宿主凭据、不跳转、不缓存，正文仍最多 8KiB、总期限 3 秒。 |
-| `transfers.start`        | `http:transfer` 和目标根文件权限；`{url,root,path,maxBytes?}` 返回 `{id}`。仅 GET，任意网络地址，无账号头、无跳转，直接流式写新文件。                                   |
-| `transfers.get/cancel`   | `http:transfer`；`{id}` 返回 `{id,state,bytes,total,error}`；ID 绑定插件与代次，不包含 URL。                                                                            |
-| `files.publish`          | 目标根文件权限；`{root,path,to}`，使用同根 hard link 后移除临时文件，目标存在时失败，避免覆盖。文件系统须支持硬链接（Windows 推荐 NTFS）。                              |
+| 操作                     | 权限与限制                                                                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `secrets.get/set/delete` | `secrets`；`{key,value?}`，系统凭据库隔离为插件 ID／键，每插件 16 键、每值 16KiB；不访问播放器账号。卸载即使保留普通数据也清理凭据。                                       |
+| `http.request`           | 支持任意合法方法、可选 body、请求头和 `followRedirects`，返回状态、响应头、正文与 cookies；默认自动跳转。不自动携带宿主凭据、不缓存；`timeoutMs` 省略或为 `0` 时不设期限。 |
+| `transfers.start`        | 目标根文件权限；`{url,root,path,maxBytes?}` 返回 `{id}`。仅 GET，任意网络地址，无账号头、无跳转，直接流式写新文件。                                                        |
+| `transfers.get/cancel`   | `{id}` 返回 `{id,state,bytes,total,error}`；ID 绑定插件与代次，不包含 URL。                                                                                                |
+| `files.publish`          | 目标根文件权限；`{root,path,to}`，使用同根 hard link 后移除临时文件，目标存在时失败，避免覆盖。文件系统须支持硬链接（Windows 推荐 NTFS）。                                 |
 
-传输每插件最多 2 个、全局最多 8 个，最多保留 128 个状态；单文件上限 512MiB、累计网络读取等待 10 分钟、连接／单次读取期限 30 秒；暂停不计入读取等待，单连接最多保留 24 小时。文件块在阻塞线程写入，文件权限撤销会关闭句柄，后续写入和发布被拒绝。实例停用取消网络操作；授权撤销或停用后可能保留未完成 `.part`，不越权清理外部目录。
+传输每插件最多 2 个、全局最多 8 个，最多保留 128 个状态；单文件不设固定大小上限。暂停不计入网络读取等待；连接与单次读取仍有期限。文件块在阻塞线程写入，文件权限撤销会关闭句柄，后续写入和发布被拒绝。实例停用取消网络操作；授权撤销或停用后可能保留未完成 `.part`，不越权清理外部目录。
 
 ### API 1.2.0 下载管理能力
 
 - `accounts.credential-read`：需显式授权 `account:credentials`；参数 `{source,offset,length,scope?}`，每块最多 4096 字节，返回 `{data:base64,offset,total,generation,scope}`。总量最多 64KiB，后续分块必须携带首块 scope；宿主核对当前账号与适配器代次。空账号返回 total=0，宿主不解释平台凭据。平台插件负责协议与凭据格式，禁止存入插件普通配置、任务记录或日志。
-- `transfers.pause/resume`：需 `http:transfer`，参数 `{id}`；暂停保持文件与连接，停止读取／写入，继续使用同一传输。停用、目录撤权或删除仍取消传输；重启后的中断下载重新解析并从头重试。
+- `transfers.pause/resume`：参数 `{id}`；暂停保持文件与连接，停止读取／写入，继续使用同一传输。停用、目录撤权或删除仍取消传输；重启后的中断下载重新解析并从头重试。
 - `files.resolve`：按目录文件权限与 `{root,path}` 校验授权文件，返回该授权目录内的 `{path}`；不接受未授权绝对路径。
 - `files.play`：另需 `player:control`；`{root,path,track}` 在宿主重新解析文件位置，强制以本地文件来源进入既有播放队列，不信任传入的 source 路径。
 - `files.open-directory`：按目录权限校验 `{root}`，打开对应根目录，不接受外部路径。
