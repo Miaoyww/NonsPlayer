@@ -1268,6 +1268,8 @@ pub fn run() {
             crate::local::cover_rebuild::local_cover_rebuild,
             crate::local::cover_rebuild::local_cover_rebuild_status,
             crate::local::artist_avatar::local_artist_avatars,
+            crate::local::artist_avatar::local_artist_avatar_options,
+            crate::local::artist_avatar::local_artist_avatar_set_delay,
             crate::local::artist_avatar::local_artist_avatar_status,
             crate::local::artist_avatar::local_artist_avatar_candidates,
             crate::local::artist_avatar::local_artist_avatar_start,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { ImagePlus, ListChecks, Search, Sparkles } from 'lucide-react'
+import { ImagePlus, ListChecks, Search, Sparkles, TriangleAlert } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { ErrorNotice } from '@/components/error-notice'
@@ -9,6 +9,14 @@ import { InfiniteLoad } from '@/components/music/infinite-load'
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -28,9 +36,19 @@ import {
   artistAvatarStatusLabel,
   artistAvatarStatusTone,
   type ArtistAvatarItem,
+  type ArtistAvatarOptions,
   type ArtistAvatarPage,
   type ArtistAvatarProgress
 } from './types'
+
+const DELAY_OPTIONS = [
+  { value: '500', label: '0.5 秒' },
+  { value: '1000', label: '1 秒' },
+  { value: '1500', label: '1.5 秒' },
+  { value: '2000', label: '2 秒' },
+  { value: '3000', label: '3 秒' },
+  { value: '5000', label: '5 秒' }
+]
 
 export function ArtistAvatarCompletionButton({
   onError,
@@ -74,6 +92,7 @@ function ArtistAvatarCompletionDialog({
   const [revision, setRevision] = useState(0)
   const [progress, setProgress] = useState<ArtistAvatarProgress>()
   const [starting, setStarting] = useState(false)
+  const [delayMs, setDelayMs] = useState<number>()
   const [error, setError] = useState<string>()
   const [working, setWorking] = useState<string>()
   const generation = useRef(0)
@@ -127,8 +146,14 @@ function ArtistAvatarCompletionDialog({
         stopProgress = unlistenProgress
         stopLibrary = unlistenLibrary
         try {
-          const status = await nativeCall<ArtistAvatarProgress>('local_artist_avatar_status')
-          if (!disposed && current === generation.current) setProgress(status)
+          const [status, options] = await Promise.all([
+            nativeCall<ArtistAvatarProgress>('local_artist_avatar_status'),
+            nativeCall<ArtistAvatarOptions>('local_artist_avatar_options')
+          ])
+          if (!disposed && current === generation.current) {
+            setProgress(status)
+            setDelayMs(options.delayMs)
+          }
         } catch (cause) {
           reportCaughtError('app/src/features/local/artist-avatar/completion-dialog.tsx', cause)
           if (!disposed && current === generation.current) setError(errorText(cause))
@@ -156,7 +181,8 @@ function ArtistAvatarCompletionDialog({
         all,
         keyword: all ? keyword : undefined,
         source: ARTIST_AVATAR_SOURCE,
-        force
+        force,
+        delayMs
       })
       setProgress(value)
       onNotice(all ? '已开始补齐艺术家头像。' : '已开始匹配艺术家头像。')
@@ -167,6 +193,23 @@ function ArtistAvatarCompletionDialog({
       onError(cause)
     } finally {
       setStarting(false)
+    }
+  }
+
+  async function changeDelay(value: string) {
+    const next = Number(value)
+    if (!Number.isFinite(next) || next === delayMs) return
+    const previous = delayMs
+    setDelayMs(next)
+    setError(undefined)
+    try {
+      await nativeCall<ArtistAvatarOptions>('local_artist_avatar_set_delay', {
+        delayMs: next
+      })
+    } catch (cause) {
+      reportCaughtError('app/src/features/local/artist-avatar/completion-dialog.tsx', cause)
+      if (previous !== undefined) setDelayMs(previous)
+      setError(errorText(cause))
     }
   }
 
@@ -201,6 +244,42 @@ function ArtistAvatarCompletionDialog({
             从音乐来源匹配本地艺术家头像。自动匹配在后台执行，不阻塞扫描、页面浏览或播放；手动选择的结果不会被自动任务覆盖。
           </DialogDescription>
         </DialogHeader>
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-muted/40 p-3">
+          <div className="min-w-56 flex-1">
+            <div className="flex items-center gap-1.5 text-sm font-medium">
+              <TriangleAlert
+                aria-hidden="true"
+                className="size-4 text-amber-600 dark:text-amber-400"
+              />
+              请求间隔
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              每次来源请求之间等待该时长。间隔越短速度越快，但短时间请求过多可能触发来源限流；建议保持
+              1.5 秒以上。
+            </p>
+          </div>
+          <Select
+            items={DELAY_OPTIONS}
+            value={delayMs?.toString()}
+            disabled={!isTauri() || running || delayMs === undefined}
+            onValueChange={(value) => {
+              if (value) void changeDelay(value)
+            }}
+          >
+            <SelectTrigger className="w-32" aria-label="艺术家头像请求间隔">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {DELAY_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <form
             className="flex min-w-48 flex-1 gap-2"
@@ -253,6 +332,7 @@ function ArtistAvatarCompletionDialog({
                 自动匹配 {progress.matched} · 待确认 {progress.pending} · 未找到 {progress.notFound}{' '}
                 · 失败 {progress.failed}
                 {progress.skipped > 0 ? ` · 跳过 ${progress.skipped}` : ''}
+                {progress.delayMs > 0 ? ` · 间隔 ${progress.delayMs / 1000} 秒` : ''}
               </p>
               {progress.current && progress.running && (
                 <p className="mt-1 truncate text-xs text-muted-foreground">

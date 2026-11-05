@@ -27,6 +27,7 @@ export interface ArtistAvatarPage {
 
 export interface ArtistAvatarProgress {
   running: boolean
+  delayMs: number
   total: number
   processed: number
   matched: number
@@ -36,6 +37,10 @@ export interface ArtistAvatarProgress {
   skipped: number
   current?: string | null
   error?: string | null
+}
+
+export interface ArtistAvatarOptions {
+  delayMs: number
 }
 
 export interface ArtistAvatarCandidate {

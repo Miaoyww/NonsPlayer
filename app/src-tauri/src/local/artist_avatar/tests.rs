@@ -287,10 +287,37 @@ fn batch_targets_skip_locked_and_already_filled_artists_unless_forced() {
 fn duplicate_job_start_is_rejected_and_status_can_restart() {
     let job = ArtistAvatarJob::default();
     assert!(!job.status().unwrap().running);
-    assert!(job.begin(3).unwrap().running);
-    assert!(job.begin(1).is_err());
+    assert!(job.begin(3, 1500).unwrap().running);
+    assert!(job.begin(1, 1500).is_err());
     job.0.lock().unwrap().progress.running = false;
-    assert!(job.begin(1).unwrap().running);
+    let progress = job.begin(1, 500).unwrap();
+    assert!(progress.running);
+    assert_eq!(progress.delay_ms, 500);
+}
+
+#[test]
+fn request_delay_defaults_clamps_and_roundtrips() {
+    let fixture = Fixture::new();
+    assert_eq!(request_delay(&fixture.store).unwrap(), DEFAULT_DELAY_MS);
+    fixture.store.set_setting(DELAY_KEY, "invalid").unwrap();
+    assert_eq!(request_delay(&fixture.store).unwrap(), DEFAULT_DELAY_MS);
+    fixture.store.set_setting(DELAY_KEY, "9000").unwrap();
+    assert_eq!(request_delay(&fixture.store).unwrap(), MAX_DELAY_MS);
+    fixture.store.set_setting(DELAY_KEY, "2000").unwrap();
+    assert_eq!(request_delay(&fixture.store).unwrap(), 2_000);
+    assert!(validate_delay(MAX_DELAY_MS).is_ok());
+    assert!(validate_delay(MAX_DELAY_MS + 1).is_err());
+}
+
+#[tokio::test]
+async fn request_pacer_leaves_the_configured_interval_between_requests() {
+    let mut pacer = RequestPacer::new(Duration::from_millis(100));
+    let first = Instant::now();
+    pacer.wait().await;
+    assert!(first.elapsed() < Duration::from_millis(80));
+    let second = Instant::now();
+    pacer.wait().await;
+    assert!(second.elapsed() >= Duration::from_millis(80));
 }
 
 #[test]

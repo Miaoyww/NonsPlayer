@@ -24,6 +24,9 @@ use std::{
 use tauri::{Emitter, State};
 
 const DEFAULT_SOURCE: &str = "netease";
+const DELAY_KEY: &str = "localArtistAvatarRequestDelayMs";
+const DEFAULT_DELAY_MS: u64 = 1_500;
+const MAX_DELAY_MS: u64 = 5_000;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -121,10 +124,17 @@ pub(crate) struct ArtistAvatarCandidate {
     pub cover: CoverImage,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ArtistAvatarOptions {
+    pub delay_ms: u64,
+}
+
 #[derive(Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ArtistAvatarProgress {
     pub running: bool,
+    pub delay_ms: u64,
     pub total: u64,
     pub processed: u64,
     pub matched: u64,
@@ -153,7 +163,7 @@ impl ArtistAvatarJob {
             .map_err(|_| "艺术家头像任务状态不可用".into())
     }
 
-    fn begin(&self, total: u64) -> AppResult<ArtistAvatarProgress> {
+    fn begin(&self, total: u64, delay_ms: u64) -> AppResult<ArtistAvatarProgress> {
         let mut state = self.0.lock().map_err(|_| "艺术家头像任务状态不可用")?;
         if state.progress.running {
             return Err("艺术家头像补齐任务正在进行".into());
@@ -161,6 +171,7 @@ impl ArtistAvatarJob {
         state.generation = state.generation.wrapping_add(1);
         state.progress = ArtistAvatarProgress {
             running: true,
+            delay_ms,
             total,
             ..Default::default()
         };
@@ -175,6 +186,27 @@ impl ArtistAvatarJob {
             crate::infrastructure::diagnostics::warn("local.artist_avatar.progress", error);
         }
     }
+}
+
+#[tauri::command]
+pub(crate) fn local_artist_avatar_options(
+    backend: State<'_, Backend>,
+) -> AppResult<ArtistAvatarOptions> {
+    Ok(ArtistAvatarOptions {
+        delay_ms: request_delay(&backend.store)?,
+    })
+}
+
+#[tauri::command]
+pub(crate) fn local_artist_avatar_set_delay(
+    delay_ms: u64,
+    backend: State<'_, Backend>,
+) -> AppResult<ArtistAvatarOptions> {
+    validate_delay(delay_ms)?;
+    backend
+        .store
+        .set_setting(DELAY_KEY, &delay_ms.to_string())?;
+    Ok(ArtistAvatarOptions { delay_ms })
 }
 
 #[tauri::command]
@@ -236,6 +268,7 @@ pub(crate) async fn local_artist_avatar_start(
     keyword: Option<String>,
     source: Option<String>,
     force: Option<bool>,
+    delay_ms: Option<u64>,
     app: tauri::AppHandle,
     backend: State<'_, Backend>,
 ) -> AppResult<ArtistAvatarProgress> {
@@ -243,6 +276,14 @@ pub(crate) async fn local_artist_avatar_start(
     validate_source(&backend.music, &source)?;
     let force = force.unwrap_or(false);
     let store = backend.store.clone();
+    let delay_ms = match delay_ms {
+        Some(value) => {
+            validate_delay(value)?;
+            store.set_setting(DELAY_KEY, &value.to_string())?;
+            value
+        }
+        None => request_delay(&store)?,
+    };
     let keyword = keyword.unwrap_or_default().trim().to_owned();
     if keyword.len() > 256 {
         return Err("艺术家筛选词过长".into());
@@ -259,7 +300,9 @@ pub(crate) async fn local_artist_avatar_start(
     if targets.is_empty() {
         return Err("没有需要补齐头像的艺术家".into());
     }
-    let initial = backend.artist_avatars.begin(targets.len() as u64)?;
+    let initial = backend
+        .artist_avatars
+        .begin(targets.len() as u64, delay_ms)?;
     let response = initial.clone();
     let job = backend.artist_avatars.clone();
     let music = backend.music.clone();
@@ -349,6 +392,7 @@ async fn run_job(
     mut progress: ArtistAvatarProgress,
 ) {
     let mut last_publish = Instant::now();
+    let mut pacer = RequestPacer::new(Duration::from_millis(progress.delay_ms));
     for artist_id in targets {
         let started_at = crate::storage::now_millis();
         progress.current = Some(artist_id.clone());
@@ -357,7 +401,7 @@ async fn run_job(
             last_publish = Instant::now();
         }
         match process_auto(
-            app, store, music, runtime, avatars, source, &artist_id, force, started_at,
+            app, store, music, runtime, avatars, source, &artist_id, force, started_at, &mut pacer,
         )
         .await
         {
@@ -390,6 +434,31 @@ async fn run_job(
     emit_library_changed(app);
 }
 
+struct RequestPacer {
+    interval: Duration,
+    last: Instant,
+}
+
+impl RequestPacer {
+    fn new(interval: Duration) -> Self {
+        Self {
+            interval,
+            last: Instant::now() - interval,
+        }
+    }
+
+    async fn wait(&mut self) {
+        if self.interval.is_zero() {
+            return;
+        }
+        let elapsed = self.last.elapsed();
+        if elapsed < self.interval {
+            tokio::time::sleep(self.interval - elapsed).await;
+        }
+        self.last = Instant::now();
+    }
+}
+
 enum Outcome {
     Matched,
     Pending,
@@ -407,10 +476,12 @@ async fn process_auto(
     artist_id: &str,
     force: bool,
     started_at: i64,
+    pacer: &mut RequestPacer,
 ) -> AppResult<Outcome> {
     let name = store
         .artist_avatar_name(artist_id)?
         .ok_or("本地艺术家不存在")?;
+    pacer.wait().await;
     let candidates = matching::search_candidates(music, source, &name).await?;
     match matching::decide_match(candidates, &name) {
         matching::MatchDecision::NotFound => {
@@ -443,10 +514,12 @@ async fn process_auto(
         }
         matching::MatchDecision::Exact(candidate) => {
             let platform_id = candidate.reference.id.as_str().to_owned();
+            pacer.wait().await;
             let detail = matching::artist_detail(music, source, candidate.reference).await?;
             let cover = detail.cover;
             match matching::preferred_cover(&cover) {
                 Some((url, size)) => {
+                    pacer.wait().await;
                     let bytes = runtime.read(url.to_owned(), app).await?;
                     let (path, width, height) = store_avatar(avatars, bytes).await?;
                     let record = ArtistAvatarRecord {
@@ -670,6 +743,22 @@ fn size_name(size: CoverSize) -> &'static str {
 fn source_id(source: Option<String>) -> AppResult<SourceId> {
     SourceId::try_from(source.unwrap_or_else(|| DEFAULT_SOURCE.to_owned()))
         .map_err(|_| "音乐来源无效".to_owned())
+}
+
+fn request_delay(store: &Store) -> AppResult<u64> {
+    let value = store
+        .setting(DELAY_KEY)?
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_DELAY_MS)
+        .min(MAX_DELAY_MS);
+    Ok(value)
+}
+
+fn validate_delay(delay_ms: u64) -> AppResult<()> {
+    if delay_ms > MAX_DELAY_MS {
+        return Err(format!("请求间隔不能超过 {MAX_DELAY_MS} 毫秒").into());
+    }
+    Ok(())
 }
 
 fn validate_source(music: &MusicService, source: &SourceId) -> AppResult<()> {
