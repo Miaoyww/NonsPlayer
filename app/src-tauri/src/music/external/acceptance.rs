@@ -598,6 +598,7 @@ async fn bilibili_component_live_search_audio_and_mv() {
     assert!(!page.page.items.is_empty());
     let mut resolved = None;
     for candidate in &page.page.items {
+        assert!(!candidate.artist.trim().is_empty());
         let track = manager.read_track(&candidate.reference).await.unwrap();
         assert!(track.duration_ms > 0);
         eprintln!(
