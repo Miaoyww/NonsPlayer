@@ -49,7 +49,6 @@ const entry = (overrides = {}) => ({
   bundled: false,
   artifact: { url: 'https://github.com/example/download/releases/download/v2/plugin.zip' },
   permissions: ['account:credentials'],
-  httpHosts: ['music.example.org'],
   ...overrides
 })
 const index = (source = 'cdn', entries = [entry()]) => ({
@@ -342,47 +341,15 @@ test('unmount during install cancels retained token and prevents stale completio
   assert.equal(calls.length, 4)
 })
 
-test('search covers name, id, description and labels; network permissions omit domains', () => {
+test('search covers name, id, description and labels; permissions use stable fields', () => {
   const entries = [entry()]
   for (const query of ['下载', 'DOWNLOAD', '保存音乐', 'download 保存'])
     assert.equal(model.searchEntries(entries, query).length, 1)
   assert.equal(model.searchEntries(entries, 'missing').length, 0)
   assert.match(model.permissionLines(entries[0]).join(' '), /读取当前平台账号凭据/)
-  assert.doesNotMatch(model.permissionLines(entries[0]).join(' '), /http:request/)
-  assert.match(
-    model
-      .permissionLines(entry({ permissions: ['http:request', 'http:transfer', 'websocket'] }))
-      .join(' '),
-    /WebSocket 长连接：可访问任意地址/
-  )
-  assert.doesNotMatch(model.permissionLines(entries[0]).join(' '), /music\.example\.org/)
-  assert.match(
-    model
-      .permissionLines(
-        entry({
-          permissions: {
-            httpHosts: ['api.example.org'],
-            websocketHosts: ['socket.example.org'],
-            credentials: true
-          }
-        })
-      )
-      .join(' '),
-    /可访问任意 HTTP\(S\) 地址.*读取当前平台账号凭据/
-  )
-  assert.doesNotMatch(
-    model
-      .permissionLines(
-        entry({
-          permissions: {
-            httpHosts: ['api.example.org'],
-            websocketHosts: ['socket.example.org'],
-            credentials: true
-          }
-        })
-      )
-      .join(' '),
-    /(?:api|socket)\.example\.org/
+  assert.equal(
+    model.permissionLines(entry({ permissions: { credentials: true, state: true } })).join(' '),
+    '读取当前平台账号凭据 保存适配器专属状态'
   )
 })
 

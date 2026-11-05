@@ -12,17 +12,10 @@ import {
 import type { PluginManifest } from '@/plugins/types'
 
 const permissionLabels: Record<string, string> = {
-  websocket: 'WebSocket 长连接：可访问任意地址',
   'account:credentials': '读取当前平台账号凭据',
   'process:spawn': '启动任意程序并管理其输入输出',
   'music:write': '更改当前账号的收藏、歌单和推荐',
   'files:selected': '访问用户选择的外部目录'
-}
-
-function visiblePermissions(permissions: readonly string[]) {
-  return permissions.filter(
-    (permission) => permission !== 'http:request' && permission !== 'http:transfer'
-  )
 }
 
 export function LocalPluginUpgrade({
@@ -55,7 +48,7 @@ export function LocalPluginUpgrade({
         <div className="space-y-3 text-sm">
           <p>请确认新版本的权限范围：</p>
           <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-            {visiblePermissions(packageInfo?.permissions ?? []).map((permission) => (
+            {(packageInfo?.permissions ?? []).map((permission) => (
               <li key={permission}>{permissionLabels[permission] ?? permission}</li>
             ))}
             {!!packageInfo?.fileRoots?.length && (

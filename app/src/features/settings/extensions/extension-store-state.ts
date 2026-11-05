@@ -88,8 +88,6 @@ export function searchEntries(entries: readonly StoreEntry[], query: string) {
 }
 
 const permissionLabels: Record<string, string> = {
-  http: '网络请求：可访问任意 HTTP(S) 地址',
-  websocket: 'WebSocket 长连接：可访问任意地址',
   'account:credentials': '读取当前平台账号凭据',
   credentials: '读取当前平台账号凭据',
   'process:spawn': '启动任意程序并管理其输入输出',
@@ -99,31 +97,17 @@ const permissionLabels: Record<string, string> = {
   state: '保存适配器专属状态'
 }
 
-const legacyNetworkPermissions = new Set(['http:request', 'http:transfer'])
-const legacyHostFields = new Set(['httpHosts', 'websocketHosts', 'coverHosts'])
-
 export function permissionLines(entry: StoreEntry): string[] {
   const permissions = entry.permissions
   let lines: string[]
   if (Array.isArray(permissions)) {
-    lines = permissions
-      .filter((permission) => !legacyNetworkPermissions.has(permission))
-      .map((permission) => permissionLabels[permission] ?? permission)
+    lines = permissions.map((permission) => permissionLabels[permission] ?? permission)
   } else {
     const fields = permissions as Record<string, unknown> | undefined
     lines = []
-    if (fields?.http !== false) lines.push(permissionLabels.http)
-    if (fields?.websocket === true) lines.push(permissionLabels.websocket)
     lines.push(
       ...Object.entries(fields ?? {}).flatMap(([key, value]) => {
-        if (
-          value === false ||
-          value == null ||
-          key === 'http' ||
-          key === 'websocket' ||
-          legacyHostFields.has(key)
-        )
-          return []
+        if (value === false || value == null) return []
         if (value === true && permissionLabels[key]) return [permissionLabels[key]]
         return [`${key}：${typeof value === 'object' ? JSON.stringify(value) : String(value)}`]
       })

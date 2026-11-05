@@ -185,17 +185,7 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
           description: '保存歌曲与管理下载队列。',
           repository: 'https://github.com/Miaoyww/Nons',
           version: '1.1.0',
-          permissions: [
-            'ui',
-            'account:credentials',
-            'http:request',
-            'http:transfer',
-            'websocket',
-            'files:selected'
-          ],
-          httpHosts: ['*', 'example.org', 'api.example.org'],
-          websocketHosts: ['socket.example.org'],
-          coverHosts: ['images.example.org'],
+          permissions: ['ui', 'account:credentials', 'files:selected'],
           fileRoots: ['*']
         },
         enabled: false,
@@ -314,13 +304,6 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     )
     assert.ok(warning.className.includes('text-destructive'))
     assert.match(document.body.textContent, /当前用户能够访问的任意文件/)
-    assert.doesNotMatch(document.body.textContent, /http:request|http:transfer/)
-    assert.doesNotMatch(document.body.textContent, /敏感权限：会请求任意 HTTP\(S\) 地址/)
-    assert.doesNotMatch(
-      document.body.textContent,
-      /敏感权限：会从任意 HTTP\(S\) 地址传输资源到授权目录/
-    )
-    assert.match(document.body.textContent, /敏感权限：会建立任意 WebSocket 长连接/)
     assert.doesNotMatch(document.body.textContent, /example\.org/)
     const networkWarning = [...document.querySelectorAll('[role="alert"]')].find((element) =>
       element.textContent.includes('此插件可访问任意网络地址')

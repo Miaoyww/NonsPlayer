@@ -23,7 +23,6 @@ import { LocalPluginUpgrade } from '../extensions/local-plugin-upgrade'
 
 const permissionLabels: Record<string, string> = {
   'clipboard:read': '读取剪贴板文本及监听变化',
-  websocket: 'WebSocket 长连接：可访问任意地址',
   secrets: '管理插件自己的系统凭据',
   'account:credentials': '敏感权限：读取 NonsPlayer 的网易云账户凭证',
   'music:metadata': '读取音乐来源的公开音乐信息',
@@ -38,11 +37,6 @@ const permissionLabels: Record<string, string> = {
   config: '管理独立插件配置',
   'files:data': '读写插件专属数据目录',
   'files:selected': '申请访问用户选择的外部目录'
-}
-function visiblePermissions(permissions: readonly string[]) {
-  return permissions.filter(
-    (permission) => permission !== 'http:request' && permission !== 'http:transfer'
-  )
 }
 const statusFilters = [
   ['all', '全部'],
@@ -447,14 +441,13 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                 <div className="mt-4 rounded-lg bg-muted/50 p-4 text-sm">
                   <h4 className="font-semibold">启用前确认</h4>
                   <ul className="my-3 list-disc space-y-1 pl-5">
-                    {visiblePermissions(plugin.manifest.permissions).map((p) => (
+                    {plugin.manifest.permissions.map((p) => (
                       <li
                         key={p}
                         className={
                           p === 'account:credentials' ||
                           p === 'process:spawn' ||
                           p === 'music:write' ||
-                          p === 'websocket' ||
                           (p === 'files:selected' && plugin.manifest.fileRoots?.includes('*'))
                             ? 'font-semibold text-destructive'
                             : undefined
@@ -462,9 +455,7 @@ export function PluginsPage({ initialPluginId }: { initialPluginId?: string } = 
                       >
                         {p === 'files:selected' && plugin.manifest.fileRoots?.includes('*')
                           ? '敏感权限：读写任意文件'
-                          : p === 'websocket'
-                            ? '敏感权限：会建立任意 WebSocket 长连接'
-                            : (permissionLabels[p] ?? p)}
+                          : (permissionLabels[p] ?? p)}
                       </li>
                     ))}
                   </ul>
