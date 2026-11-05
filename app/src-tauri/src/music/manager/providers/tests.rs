@@ -95,10 +95,9 @@ fn audio(blocked: bool, wrong_platform: bool, preview: bool) -> Arc<Audio> {
             id: id("audio-test"),
             display_name: "Audio".into(),
             description: None,
-            contract_version: 1,
+            contract_version: 2,
             platforms: [id("catalog")].into(),
             search_platforms: [id("catalog")].into(),
-            cover_hosts: Default::default(),
         },
         calls: AtomicU64::new(0),
         busy_for: AtomicU64::new(0),
@@ -158,10 +157,9 @@ fn make_manager(error: ErrorCode, audio: Arc<Audio>) -> Arc<AdapterManager> {
                     display_name: "Catalog".into(),
                     description: None,
                     platforms: Default::default(),
-                    contract_version: 1,
+                    contract_version: 2,
                     login_methods: vec![],
                     capabilities: Default::default(),
-                    cover_hosts: Default::default(),
                     share_link_templates: Default::default(),
                 },
                 error,
@@ -216,7 +214,7 @@ fn register_replacement(
     generation: Arc<AtomicU64>,
 ) {
     let descriptor: SourceDescriptor = serde_json::from_value(serde_json::json!({
-        "source": "replacement", "displayName": "Replacement", "contractVersion": 1,
+        "source": "replacement", "displayName": "Replacement", "contractVersion": 2,
         "capabilities": ["search", "account"], "platforms": if declared { vec!["replacement", "catalog"] } else { vec!["replacement"] }
     })).unwrap();
     manager

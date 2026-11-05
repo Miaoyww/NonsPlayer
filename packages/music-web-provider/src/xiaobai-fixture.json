@@ -3,23 +3,11 @@
     "id": "xiaobai",
     "displayName": "小白音乐",
     "description": "按网易云、QQ音乐、酷狗和酷我的歌曲 ID 提供备用音源，不参与搜索；可用性取决于上游与歌曲。",
-    "contractVersion": 1,
+    "contractVersion": 2,
     "platforms": ["netease", "qqmusic", "kugou", "kuwo"],
-    "searchPlatforms": [],
-    "coverHosts": []
+    "searchPlatforms": []
   },
   "permissions": {
-    "httpHosts": [
-      "music.90svip.cn",
-      "*.music.126.net",
-      "*.music.163.com",
-      "*.tc.qq.com",
-      "*.stream.qqmusic.qq.com",
-      "*.kugou.com",
-      "*.kugou.net",
-      "*.kuwo.cn"
-    ],
-    "websocketHosts": [],
     "system": false,
     "state": false,
     "credentials": false

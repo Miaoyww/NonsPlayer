@@ -104,9 +104,6 @@ pub(super) fn access_reason(access: &ResourceAccess) -> &'static str {
         ResourceAccess::Http(http) => http,
         ResourceAccess::HttpFallback { primary, .. } => primary,
     };
-    if http.url.len() > 8192 {
-        return "audio_url_exceeds_8192_bytes";
-    }
     let Ok(url) = url::Url::parse(&http.url) else {
         return "audio_url_parse_failed";
     };

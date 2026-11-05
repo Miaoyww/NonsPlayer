@@ -6,7 +6,7 @@
 
 2026-10-16：两类适配器描述符均支持可选 `description`（非空白、最多 1024 个 Unicode 字符），在统一适配器列表展示并参与搜索。`platforms` 对两类适配器表达相同含义：能够按哪些原始平台的曲目引用提供音频。完整平台适配器也可声明其他平台，并实现同一 `music.resolve-resource` 取址方法；宿主以通用 ResourceProvider 包装其能力，共用备用调度、手动选择及资源校验。完整平台适配器保留自己的账号上下文与并发预算，原平台账号／实例与提供者账号／实例任一变化都使旧请求与资源租约失效。平台业务注册与纯音源注册仍然独立，搜索仍按已声明、已实现的搜索接口运行，`platforms` 不授予跨平台搜索。
 
-Rust 契约位于 `packages/music-adapter-sdk/src/provider.rs`。`ResourceProviderDescriptor` 包含独立 `id`、显示名称、契约版本、支持解析的 `platforms`、支持搜索的 `searchPlatforms` 和公开封面域名。搜索平台必须是解析平台的子集；本地音乐不参与在线音源解析。
+Rust 契约位于 `packages/music-adapter-sdk/src/provider.rs`。`ResourceProviderDescriptor` 包含独立 `id`、显示名称、契约版本、支持解析的 `platforms` 和支持搜索的 `searchPlatforms`。搜索平台必须是解析平台的子集；本地音乐不参与在线音源解析。
 
 Component 继续使用现有 initialize／shutdown／call transport；独立音源导出以下方法：
 
@@ -18,9 +18,9 @@ Component 继续使用现有 initialize／shutdown／call transport；独立音�
 
 返回沿用 `{status:"ok",data}`／`{status:"error",data:MusicError}`。`session` 是 Host 绑定的音源执行身份，不是被解析歌曲的平台账号；歌曲真实平台在 `request.track.reference.source`。资源请求包含完整通用曲目元数据、首选音质和是否允许降级，不向音源交付原平台账号凭据。
 
-随包描述使用 `resourceProvider` 与 `permissions`，和完整平台包的 `descriptor` 互斥。`manifest.json` 可声明顶层 `version`（SemVer），供插件目录校验 tag 与包内容；宿主只校验格式，不使用该值。当前独立音源可使用通用 HTTP、系统时间与随机数，不授予账号凭据、状态存储或 WebSocket。外部任意包安装和原始洛雪脚本导入不在本次实现范围。实例加载中／加载失败在适配器设置中分别显示；失败不阻止其它有效包加载。
+随包描述使用 `resourceProvider` 与 `permissions`，和完整平台包的 `descriptor` 互斥。`manifest.json` 可声明顶层 `version`（SemVer），供插件目录校验 tag 与包内容；宿主只校验格式，不使用该值。当前独立音源可使用默认启用的 HTTP 与 WebSocket、系统时间与随机数，不授予账号凭据或状态存储。网络等待与正文大小默认不设限制，由调用方按需约束。外部任意包安装和原始洛雪脚本导入不在本次实现范围。实例加载中／加载失败在适配器设置中分别显示；失败不阻止其它有效包加载。
 
-每个音源最多 4 个搜索、2 个解析并发，最多注册 16 个；沿用适配器 Component 大小、内存与 transport 预算。启停设置保存为 `resourceProviderEnabledV1:<id>`，停用推进实例代次；在途请求和预加载资源检查音源实例及可用平台的账号／实例代次，取消或失效不再发起后续尝试。
+每个音源最多 4 个搜索、2 个解析并发，最多注册 16 个；沿用适配器 Component 执行器与 transport 规则。启停设置保存为 `resourceProviderEnabledV1:<id>`，停用推进实例代次；在途请求和预加载资源检查音源实例及可用平台的账号／实例代次，取消或失效不再发起后续尝试。
 
 ## 播放选择
 

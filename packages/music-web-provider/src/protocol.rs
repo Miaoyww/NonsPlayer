@@ -61,7 +61,10 @@ impl Target {
     }
 }
 
-pub(crate) fn allowed(input: &str, base: &str, _config: Config) -> AdapterResult<Url> {
+pub(crate) fn checked_url(input: &str, base: &str) -> AdapterResult<Url> {
+    if input.is_empty() {
+        return Err("invalidData");
+    }
     let url = Url::parse(base)
         .and_then(|b| b.join(input))
         .map_err(|_| "invalidData")?;
@@ -75,7 +78,6 @@ pub(crate) struct Client<'a, H> {
     pub http: &'a H,
     config: Config,
     cookies: Vec<(String, String)>,
-    redirects: u8,
 }
 impl<'a, H: Http> Client<'a, H> {
     pub fn new(http: &'a H, config: Config) -> Self {
@@ -83,7 +85,6 @@ impl<'a, H: Http> Client<'a, H> {
             http,
             config,
             cookies: vec![],
-            redirects: 0,
         }
     }
     pub fn headers(&self, url: &Url) -> Vec<(String, String)> {
@@ -108,8 +109,6 @@ impl<'a, H: Http> Client<'a, H> {
     }
     fn set_cookie(&mut self, name: &str, value: &str) -> AdapterResult<()> {
         if name.is_empty()
-            || name.len() > 64
-            || value.len() > 2048
             || !name
                 .bytes()
                 .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
@@ -120,46 +119,29 @@ impl<'a, H: Http> Client<'a, H> {
             return Err("invalidData");
         }
         self.cookies.retain(|(key, _)| key != name);
-        if self.cookies.len() >= 8 {
-            return Err("invalidData");
-        }
         self.cookies.push((name.into(), value.into()));
         Ok(())
     }
     pub fn get(&mut self, url: &mut Url, extra: &[(String, String)]) -> AdapterResult<Response> {
-        loop {
-            *url = allowed(url.as_str(), self.config.base, self.config)?;
-            let mut headers = self.headers(url);
-            headers.extend_from_slice(extra);
-            let response = self.http.send(Request {
-                url: url.to_string(),
-                method: "GET",
-                headers,
-                body: vec![],
-            })?;
-            if matches!(response.status, 301 | 302 | 303 | 307 | 308) {
-                if self.redirects >= 3 {
-                    return Err("network");
-                }
-                self.redirects += 1;
-                *url = allowed(
-                    response.header("location").ok_or("invalidData")?,
-                    url.as_str(),
-                    self.config,
-                )?;
-                continue;
-            }
-            response.check()?;
-            return Ok(response);
-        }
+        *url = checked_url(url.as_str(), self.config.base)?;
+        let mut headers = self.headers(url);
+        headers.extend_from_slice(extra);
+        let response = self.http.send(Request {
+            url: url.to_string(),
+            method: "GET",
+            headers,
+            body: vec![],
+            follow_redirects: true,
+            timeout_ms: 0,
+        })?;
+        *url = checked_url(&response.url, self.config.base)?;
+        response.check()?;
+        Ok(response)
     }
     pub fn locate(&mut self, target: &Target) -> AdapterResult<Url> {
         // Each invocation owns its anonymous session; no persistent cookie or URL cache.
         for _ in 0..2 {
             let response = self.get(&mut Url::parse(self.config.base).unwrap(), &[])?;
-            if response.body.len() > 128 * 1024 {
-                return Err("invalidData");
-            }
             for (_, value) in response
                 .headers
                 .iter()
@@ -207,11 +189,11 @@ impl<'a, H: Http> Client<'a, H> {
             method: "POST",
             headers,
             body,
+            follow_redirects: true,
+            timeout_ms: 0,
         })?;
+        checked_url(&response.url, self.config.base)?;
         response.check()?;
-        if response.body.len() > 64 * 1024 {
-            return Err("invalidData");
-        }
         let data: Value = serde_json::from_slice(&response.body).map_err(|_| "invalidData")?;
         match data["code"].as_u64() {
             Some(200) => {}
@@ -238,6 +220,6 @@ impl<'a, H: Http> Client<'a, H> {
             .as_str()
             .filter(|u| !u.is_empty())
             .ok_or("notFound")?;
-        allowed(url, self.config.base, self.config)
+        checked_url(url, self.config.base)
     }
 }

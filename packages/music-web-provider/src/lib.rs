@@ -1,4 +1,4 @@
-//! Shared ID-only music website protocol and bounded media validation for WASM guests.
+//! Shared ID-only music website protocol and media validation for WASM guests.
 #![cfg_attr(not(any(target_arch = "wasm32", test)), allow(dead_code))]
 mod audio;
 mod protocol;
@@ -9,7 +9,7 @@ use nons_music_adapter_sdk::provider::{ResourceProviderDescriptor, ResourceReque
 use serde_json::{json, Value};
 
 pub type AdapterResult<T> = std::result::Result<T, &'static str>;
-/// Site identity and permissions remain owned by each adapter package.
+/// Site identity and the embedded manifest remain owned by each adapter package.
 #[derive(Clone, Copy)]
 pub struct Config {
     pub base: &'static str,
@@ -23,11 +23,14 @@ pub struct Request {
     pub method: &'static str,
     pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
+    pub follow_redirects: bool,
+    pub timeout_ms: u32,
 }
 pub struct Response {
     pub status: u16,
     pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
+    pub url: String,
 }
 impl Response {
     pub fn header(&self, name: &str) -> Option<&str> {
@@ -67,9 +70,6 @@ pub fn call(http: &impl Http, method: &str, args: &str, config: Config) -> Strin
     }
 }
 fn resolve(http: &impl Http, args: &str, config: Config) -> AdapterResult<Value> {
-    if args.len() > 128 * 1024 {
-        return Err("invalidData");
-    }
     let input: Value = serde_json::from_str(args).map_err(|_| "invalidData")?;
     let request: ResourceRequest =
         serde_json::from_value(input["request"].clone()).map_err(|_| "invalidData")?;

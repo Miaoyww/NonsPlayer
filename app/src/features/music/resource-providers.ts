@@ -14,7 +14,6 @@ export interface ResourceProviderStatus {
     platforms: string[]
     searchPlatforms: string[]
     contractVersion: number
-    coverHosts: string[]
   }
   enabled: boolean
   loading?: boolean

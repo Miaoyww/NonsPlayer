@@ -10,8 +10,6 @@ pub(super) struct ProviderEntry {
     pub adapter: Arc<dyn ResourceProvider>,
     pub generation: Arc<AtomicU64>,
     catalog: Option<Arc<Entry>>,
-    reads: Semaphore,
-    playback: Semaphore,
 }
 impl ProviderEntry {
     fn session(&self) -> SessionContext {
@@ -87,11 +85,6 @@ impl ResourceProvider for CatalogAudio {
         context: &'a RequestContext,
     ) -> AdapterFuture<'a, PlaybackResource> {
         Box::pin(async move {
-            let _permit = self
-                .entry
-                .playback
-                .try_acquire()
-                .map_err(|_| ErrorCode::RateLimited)?;
             crate::infrastructure::diagnostics::observe(
                 self.descriptor.id.as_str(),
                 if request.track.reference.source == self.descriptor.id {
@@ -124,13 +117,10 @@ impl AdapterManager {
                         .chain(std::iter::once(descriptor.source.clone()))
                         .collect(),
                     search_platforms: Default::default(),
-                    cover_hosts: descriptor.cover_hosts.clone(),
                 },
             }),
             generation: entry.generation.clone(),
             catalog: Some(entry.clone()),
-            reads: Semaphore::new(4),
-            playback: Semaphore::new(2),
         })
     }
 
@@ -227,8 +217,6 @@ impl AdapterManager {
                 adapter,
                 generation: Arc::new(AtomicU64::new(if enabled { 1 } else { 2 })),
                 catalog: None,
-                reads: Semaphore::new(4),
-                playback: Semaphore::new(2),
             }),
         );
         self.provider_loading
@@ -255,8 +243,6 @@ impl AdapterManager {
                 adapter,
                 generation: Arc::new(AtomicU64::new(if enabled { 1 } else { 2 })),
                 catalog: None,
-                reads: Semaphore::new(4),
-                playback: Semaphore::new(2),
             }),
         );
         self.provider_loading
@@ -357,8 +343,6 @@ impl AdapterManager {
         future: impl Future<Output = MusicResult<T>>,
     ) -> MusicResult<T> {
         tokio::pin!(future);
-        let deadline = tokio::time::sleep_until(context.deadline.into());
-        tokio::pin!(deadline);
         let mut checks = tokio::time::interval(Duration::from_millis(10));
         loop {
             entry.check(context)?;
@@ -367,7 +351,6 @@ impl AdapterManager {
             }
             tokio::select! {
                 biased;
-                _ = &mut deadline => return Err(ErrorCode::DeadlineExceeded.into()),
                 _ = checks.tick() => {},
                 result = &mut future => {
                     entry.check(context)?;
@@ -392,7 +375,7 @@ impl AdapterManager {
         let context = RequestContext {
             session: entry.session(),
             adapter_generation: entry.generation.load(Ordering::Acquire),
-            deadline: Instant::now() + Duration::from_secs(12),
+            deadline: None,
             cancellation: Default::default(),
         };
         self.run_provider(
@@ -414,10 +397,6 @@ impl AdapterManager {
     ) -> MusicResult<Page<MusicTrack>> {
         entry.check(context)?;
         request.validate(entry.adapter.descriptor())?;
-        let _permit = entry
-            .reads
-            .try_acquire()
-            .map_err(|_| ErrorCode::RateLimited)?;
         let scope = serde_json::to_string(&(
             id,
             context.adapter_generation,
@@ -449,9 +428,7 @@ impl AdapterManager {
                 return Err(ErrorCode::InvalidData.into());
             }
             track.validate(&track.reference)?;
-            track
-                .cover
-                .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
+            track.cover.validate_adapter()?;
         }
         encode_cursor(&mut page.next_cursor, &scope)?;
         // Account for the cursor envelope as well as the guest's page.
@@ -498,10 +475,9 @@ impl AdapterManager {
                 );
                 diagnostic.finish::<()>(&Err(error.clone()));
             })?;
-        let deadline = Instant::now() + Duration::from_secs(24);
         let origin = match self.entry(platform) {
             Ok(entry) => {
-                let context = Self::context(&entry, Duration::from_secs(24));
+                let context = Self::context(&entry);
                 entry.check(&context)?;
                 Some((entry, context))
             }
@@ -534,9 +510,6 @@ impl AdapterManager {
         }
         let mut last = ErrorCode::SourceUnavailable.into();
         for (attempt, id) in attempts.into_iter().enumerate() {
-            if Instant::now() >= deadline {
-                return Err(ErrorCode::DeadlineExceeded.into());
-            }
             if let Some((entry, scope)) = &origin {
                 entry.check(scope)?;
             }
@@ -574,7 +547,6 @@ impl AdapterManager {
                     entry,
                     request,
                     origin.clone(),
-                    deadline,
                     generation,
                     request_id,
                     attempt + 1,
@@ -586,7 +558,6 @@ impl AdapterManager {
                     Self::catalog_audio(entry),
                     request,
                     origin.clone(),
-                    deadline,
                     generation,
                     request_id,
                     attempt + 1,
@@ -620,7 +591,6 @@ impl AdapterManager {
         entry: Arc<ProviderEntry>,
         request: &ResourceRequest,
         origin: Option<(Arc<Entry>, RequestContext)>,
-        deadline: Instant,
         generation: u64,
         request_id: u64,
         attempt: usize,
@@ -634,7 +604,7 @@ impl AdapterManager {
         let context = RequestContext {
             session: entry.session(),
             adapter_generation: entry.generation.load(Ordering::Acquire),
-            deadline: deadline.min(Instant::now() + Duration::from_secs(12)),
+            deadline: None,
             cancellation: Default::default(),
         };
         let result = self
@@ -681,11 +651,6 @@ impl AdapterManager {
                     diagnostics::request_reason(request, entry.adapter.descriptor()),
                 );
             })?;
-        diagnostic.stage("playback_admission", "provider_playback_budget_exhausted");
-        let _permit = entry
-            .playback
-            .try_acquire()
-            .map_err(|_| ErrorCode::RateLimited)?;
         diagnostic.stage("provider_resolve", "provider_request_failed");
         let resource = self
             .run_provider(

@@ -10,7 +10,6 @@ use std::io::{self, Read, Seek, SeekFrom};
 use url::Url;
 
 const CHUNK: u64 = 65536;
-const MAX_SIZE: u64 = 512 * 1024 * 1024;
 pub(crate) fn requested_quality(quality: &str) -> AdapterResult<u32> {
     match quality {
         "standard" | "128k" | "low" => Ok(128),
@@ -26,9 +25,7 @@ pub(crate) struct Remote<'a, 'b, H> {
     url: Url,
     size: u64,
     position: u64,
-    chunks: Vec<(u64, Vec<u8>)>,
-    requests: u8,
-    bytes: usize,
+    chunk: Option<(u64, Vec<u8>)>,
     error: Option<&'static str>,
     etag: Option<String>,
 }
@@ -39,9 +36,7 @@ impl<'a, 'b, H: Http> Remote<'a, 'b, H> {
             url,
             size: 0,
             position: 0,
-            chunks: vec![],
-            requests: 0,
-            bytes: 0,
+            chunk: None,
             error: None,
             etag: None,
         };
@@ -49,14 +44,11 @@ impl<'a, 'b, H: Http> Remote<'a, 'b, H> {
         Ok(reader)
     }
     fn fetch(&mut self, start: u64) -> AdapterResult<()> {
-        if self.requests >= 8 || self.bytes >= 256 * 1024 {
-            return Err("invalidData");
-        }
-        self.requests += 1;
+        let initial = self.size == 0;
         let end = if self.size == 0 {
             CHUNK - 1
         } else {
-            (start + CHUNK - 1).min(self.size - 1)
+            start.saturating_add(CHUNK - 1).min(self.size - 1)
         };
         let mut headers = vec![
             ("Range".into(), format!("bytes={start}-{end}")),
@@ -66,7 +58,7 @@ impl<'a, 'b, H: Http> Remote<'a, 'b, H> {
             headers.push(("If-Range".into(), etag.clone()));
         }
         let response = self.client.get(&mut self.url, &headers)?;
-        if response.status != 206 || response.body.len() > CHUNK as usize {
+        if response.status != 206 || response.body.is_empty() {
             return Err("invalidData");
         }
         let range = response
@@ -77,16 +69,17 @@ impl<'a, 'b, H: Http> Remote<'a, 'b, H> {
         let (from, to) = bounds.split_once('-').ok_or("invalidData")?;
         let parse = |s: &str| s.parse::<u64>().map_err(|_| "invalidData");
         let (from, to, size) = (parse(from)?, parse(to)?, parse(size)?);
-        if !(513..=MAX_SIZE).contains(&size)
+        if size < 513
             || from != start
             || to != end.min(size - 1)
             || from > to
-            || to - from + 1 != response.body.len() as u64
+            || to >= size
+            || to.saturating_sub(from) + 1 != response.body.len() as u64
             || (self.size != 0 && size != self.size)
         {
             return Err("invalidData");
         }
-        if self.requests == 1 {
+        if initial {
             self.etag = response
                 .header("etag")
                 .filter(|s| !s.starts_with("W/"))
@@ -96,33 +89,21 @@ impl<'a, 'b, H: Http> Remote<'a, 'b, H> {
                 return Err("invalidData");
             }
         }
-        self.bytes += response.body.len();
-        if self.bytes > 256 * 1024 {
-            return Err("invalidData");
-        }
         self.size = size;
-        self.chunks.push((start, response.body));
+        self.chunk = Some((start, response.body));
         Ok(())
     }
     fn read_inner(&mut self, buffer: &mut [u8]) -> AdapterResult<usize> {
         if buffer.is_empty() || self.position == self.size {
             return Ok(0);
         }
-        if buffer.len() > CHUNK as usize {
-            return Err("invalidData");
-        }
-        if !self.chunks.iter().any(|(offset, bytes)| {
+        let cached = self.chunk.as_ref().is_some_and(|(offset, bytes)| {
             self.position >= *offset && self.position < offset + bytes.len() as u64
-        }) {
+        });
+        if !cached {
             self.fetch(self.position)?;
         }
-        let (offset, bytes) = self
-            .chunks
-            .iter()
-            .find(|(offset, bytes)| {
-                self.position >= *offset && self.position < offset + bytes.len() as u64
-            })
-            .ok_or("invalidData")?;
+        let (offset, bytes) = self.chunk.as_ref().ok_or("invalidData")?;
         let offset = (self.position - offset) as usize;
         let count = buffer.len().min(bytes.len() - offset);
         buffer[..count].copy_from_slice(&bytes[offset..offset + count]);
