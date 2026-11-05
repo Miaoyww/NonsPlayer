@@ -30,6 +30,13 @@
   display: grid;
   grid-template-columns: minmax(280px, 0.85fr) minmax(320px, 1.2fr);
   gap: clamp(40px, 7vw, 120px);
+  transition:
+    grid-template-columns 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    gap 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.now-playing-layout.has-lyrics[data-panel-hidden='true'] {
+  grid-template-columns: minmax(280px, 1fr) 0px;
+  gap: 0;
 }
 .now-playing-details {
   --now-playing-cover-gap: clamp(64px, 6vh, 80px);
@@ -39,6 +46,7 @@
   gap: var(--now-playing-cover-gap);
   padding-bottom: calc(var(--now-playing-cover-gap) + clamp(4px, 1vh, 8px));
   justify-content: center;
+  transition: max-width 360ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .now-playing-cover-slot {
   container-type: size;
@@ -200,6 +208,10 @@ button.now-playing-tag:focus-visible {
   .album-background-canvas {
     transition: none;
   }
+  .now-playing-layout.has-lyrics,
+  .now-playing-details {
+    transition: none;
+  }
 }
 @media (max-width: 850px) {
   .now-playing-layout {
@@ -215,6 +227,9 @@ button.now-playing-tag:focus-visible {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+  }
+  .now-playing-layout.has-lyrics[data-panel-hidden='true'] .now-playing-lyrics {
+    display: none;
   }
   .now-playing-details {
     flex-shrink: 0;

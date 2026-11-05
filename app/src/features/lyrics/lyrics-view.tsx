@@ -48,6 +48,7 @@ import { useLocalMv } from '@/features/mv/use-local-mv'
 import { MvAlignmentPopover } from '@/features/mv/mv-alignment-popover'
 import { MvPanel } from '@/features/mv/mv-panel'
 import { MvLyricCard } from '@/features/mv/mv-lyric-card'
+import { usePanelHidden } from './panel-visibility'
 import {
   FULLSCREEN_PLAYER_ACTION_SLOT,
   FULLSCREEN_PLAYER_PANEL_SLOT,
@@ -164,6 +165,7 @@ export default function LyricsView({
   const [showMvLyrics, setShowMvLyrics] = useState(true)
   const [lyricsSourceOpen, setLyricsSourceOpen] = useState(false)
   const [panelPage, setPanelPage] = useState('lyrics')
+  const [panelHidden, setPanelHidden] = usePanelHidden()
   const pluginPanelPages = usePluginViews(FULLSCREEN_PLAYER_PANEL_SLOT)
   const activePluginPanel = pluginPanelPages.find(
     (page) => `plugin:${page.pluginId}:${page.viewId}` === panelPage
@@ -173,7 +175,10 @@ export default function LyricsView({
       active: activePluginPanel
         ? { pluginId: activePluginPanel.pluginId, viewId: activePluginPanel.viewId }
         : null,
-      showPage: (pluginId, viewId) => setPanelPage(`plugin:${pluginId}:${viewId}`)
+      showPage: (pluginId, viewId) => {
+        setPanelPage(`plugin:${pluginId}:${viewId}`)
+        setPanelHidden(false)
+      }
     }),
     [activePluginPanel?.pluginId, activePluginPanel?.viewId]
   )
@@ -510,6 +515,7 @@ export default function LyricsView({
             {albumBackground}
             <div
               className={`now-playing-layout relative min-h-0 flex-1 ${showLyrics ? 'has-lyrics' : ''}`}
+              data-panel-hidden={showLyrics && panelHidden ? 'true' : undefined}
             >
               <div className="now-playing-details flex min-h-0 min-w-0 flex-col overflow-y-auto">
                 <CoverContextMenu cover={track?.cover} title={track?.title ?? '封面'}>
@@ -549,9 +555,10 @@ export default function LyricsView({
                     lyricFormat={currentDisplay?.format}
                     onLyrics={() => setLyricsSourceOpen(true)}
                     informationActive={panelPage === 'information'}
-                    onInformation={() =>
+                    onInformation={() => {
+                      setPanelHidden(false)
                       setPanelPage((value) => (value === 'information' ? 'lyrics' : 'information'))
-                    }
+                    }}
                   />
                   <div className="now-playing-meta">
                     <div className="now-playing-meta-row text-white/75">
@@ -582,6 +589,9 @@ export default function LyricsView({
                   className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden"
                   data-panel-page={panelPage}
                   data-plugin-panel={activePluginPanel ? 'true' : undefined}
+                  data-hidden={panelHidden ? 'true' : undefined}
+                  aria-hidden={panelHidden}
+                  inert={panelHidden}
                 >
                   <Panel
                     className="h-full"
@@ -709,7 +719,10 @@ export default function LyricsView({
             />
           )}
           <FullscreenPlaybackBar
-            onQueuePanel={() => setPanelPage((value) => (value === 'queue' ? 'lyrics' : 'queue'))}
+            onQueuePanel={() => {
+              setPanelHidden(false)
+              setPanelPage((value) => (value === 'queue' ? 'lyrics' : 'queue'))
+            }}
             queueActive={panelPage === 'queue'}
             onError={(cause) => setError(errorText(cause))}
             pluginActions={

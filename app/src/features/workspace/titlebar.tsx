@@ -11,6 +11,8 @@ import {
   Copy,
   Maximize,
   Minus,
+  PanelRightClose,
+  PanelRightOpen,
   Square,
   Search,
   Wrench,
@@ -28,6 +30,7 @@ import { pluginPath } from '@/plugins/types'
 import { isAndroid } from '@/lib/platform'
 import { usePrimaryMusicPage } from './use-primary-music-page'
 import { MusicNavButtons } from './music-nav-buttons'
+import { setPanelHidden, usePanelHidden } from '@/features/lyrics/panel-visibility'
 
 export function Titlebar({
   playerMode = false,
@@ -55,6 +58,7 @@ export function Titlebar({
       ))
   const [maximized, setMaximized] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
+  const [panelHidden] = usePanelHidden()
   const [focused, setFocused] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -175,6 +179,10 @@ export function Titlebar({
     return () => window.removeEventListener('keydown', keydown, true)
   }, [fullscreen, native, playerMode])
 
+  useEffect(() => {
+    if (!playerMode) setPanelHidden(false)
+  }, [playerMode])
+
   if (playerMode && isAndroid()) return null
 
   return (
@@ -197,25 +205,43 @@ export function Titlebar({
             onMouseDown={playerMode ? drag : undefined}
           >
             {playerMode ? (
-              <Button
-                autoFocus
-                variant="ghost"
-                size="icon-lg"
-                className="now-playing-back"
-                aria-label="返回音乐"
-                title="返回音乐"
-                onMouseDown={(event) => event.stopPropagation()}
-                onClick={() => {
-                  if (isAndroid()) {
-                    const event = new Event('nons-android-back', { cancelable: true })
-                    window.dispatchEvent(event)
-                    if (event.defaultPrevented) return
-                  }
-                  onBack?.()
-                }}
-              >
-                <ChevronDown aria-hidden="true" />
-              </Button>
+              <>
+                <Button
+                  autoFocus
+                  variant="ghost"
+                  size="icon-lg"
+                  className="now-playing-back"
+                  aria-label="返回音乐"
+                  title="返回音乐"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={() => {
+                    if (isAndroid()) {
+                      const event = new Event('nons-android-back', { cancelable: true })
+                      window.dispatchEvent(event)
+                      if (event.defaultPrevented) return
+                    }
+                    onBack?.()
+                  }}
+                >
+                  <ChevronDown aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="titlebar-control"
+                  aria-label={panelHidden ? '显示右侧面板' : '隐藏右侧面板'}
+                  aria-pressed={panelHidden}
+                  title={panelHidden ? '显示右侧面板' : '隐藏右侧面板'}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={() => setPanelHidden(!panelHidden)}
+                >
+                  {panelHidden ? (
+                    <PanelRightOpen aria-hidden="true" />
+                  ) : (
+                    <PanelRightClose aria-hidden="true" />
+                  )}
+                </Button>
+              </>
             ) : null}
           </div>
 

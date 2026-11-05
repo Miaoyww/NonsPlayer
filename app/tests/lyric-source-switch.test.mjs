@@ -30,6 +30,7 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
   let sources = { localSource, amll: true, qq: true }
   let present = true
   let open = true
+  let panelHidden = false
   let exits = 0
   let player = { queue: [track], index: 0, status: 'playing', revision: 0 }
   const states = []
@@ -139,6 +140,14 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
       useIsPresent: () => present,
       useReducedMotion: () => false
     },
+    './panel-visibility': {
+      usePanelHidden: () => [
+        panelHidden,
+        (value) => {
+          panelHidden = typeof value === 'function' ? value(panelHidden) : value
+        }
+      ]
+    },
     '@/plugins/host': {
       FULLSCREEN_PLAYER_ACTION_SLOT: 'fullscreen.player.actions',
       FULLSCREEN_PLAYER_PANEL_SLOT: 'fullscreen.player.panel',
@@ -210,6 +219,9 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
     },
     updateMetadata: (next) => {
       player = { ...player, queue: [next] }
+    },
+    setPanelHidden: (value) => {
+      panelHidden = value
     }
   }
 }
@@ -222,6 +234,35 @@ function menu(node) {
     if (found) return found
   }
 }
+
+function find(node, predicate) {
+  if (!node || typeof node !== 'object') return
+  if (predicate(node)) return node
+  for (const child of [node.props?.children].flat()) {
+    const found = find(child, predicate)
+    if (found) return found
+  }
+}
+
+test('panel toggle hides and restores the right panel without unmounting song details', async () => {
+  const app = await harness(local)
+  const layout = (tree) =>
+    find(tree, (node) => node.props?.className?.includes('now-playing-layout'))
+  const panel = (tree) =>
+    find(tree, (node) => node.props?.className?.includes('now-playing-lyrics'))
+
+  app.setPanelHidden(true)
+  const hidden = app.render()
+  assert.equal(layout(hidden).props['data-panel-hidden'], 'true')
+  assert.equal(panel(hidden).props['aria-hidden'], true)
+  assert.equal(panel(hidden).props.inert, true)
+  assert.ok(find(hidden, (node) => node.props?.className?.includes('now-playing-details')))
+
+  app.setPanelHidden(false)
+  const shown = app.render()
+  assert.equal(layout(shown).props['data-panel-hidden'], undefined)
+  assert.equal(panel(shown).props['aria-hidden'], false)
+})
 
 test('menu refresh bypasses lyric caches, preserves lyrics during loading and rejects late delivery after a switch', async () => {
   const app = await harness(streamed)

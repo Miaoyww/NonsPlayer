@@ -15,6 +15,13 @@ function findDragRegion(node) {
   return undefined
 }
 
+function collectLabels(node, labels = []) {
+  if (!node || typeof node !== 'object') return labels
+  if (node.props?.['aria-label']) labels.push(node.props['aria-label'])
+  for (const child of [node.props?.children].flat()) collectLabels(child, labels)
+  return labels
+}
+
 function harness(playerMode = false, initialFullscreen = false) {
   const actions = []
   const listeners = new Map()
@@ -66,7 +73,11 @@ function harness(playerMode = false, initialFullscreen = false) {
     '@/features/search/music-search': { MusicSearch: 'search' },
     './music-nav-buttons': { MusicNavButtons: 'nav-buttons' },
     '@/plugins/host': { usePlugins: () => ({ plugins: [], loaded: new Set() }) },
-    '@/plugins/types': {}
+    '@/plugins/types': {},
+    '@/features/lyrics/panel-visibility': {
+      setPanelHidden() {},
+      usePanelHidden: () => [false, () => {}]
+    }
   }
   const exports = {}
   runInNewContext(
@@ -109,6 +120,11 @@ test('fullscreen window controls keep their existing compact layout', async () =
   controls.at(1).props.onClick()
   await new Promise((resolve) => setTimeout(resolve, 0))
   assert.deepEqual(actions, ['fullscreen:true'])
+})
+
+test('panel toggle sits directly right of the player back button', () => {
+  const { header } = harness(true)
+  assert.deepEqual(collectLabels(findDragRegion(header)), ['返回音乐', '隐藏右侧面板'])
 })
 
 test('escape exits fullscreen before closing the player', async () => {

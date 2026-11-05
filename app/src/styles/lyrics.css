@@ -152,6 +152,14 @@
 }
 .now-playing-layout .now-playing-lyrics {
   margin-bottom: clamp(40px, 7.5vh, 60px);
+  transition:
+    opacity 180ms ease,
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.now-playing-layout .now-playing-lyrics[data-hidden='true'] {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(24px);
 }
 .now-playing-lyrics[data-panel-page='information'],
 .now-playing-lyrics[data-panel-page='queue'],
@@ -406,7 +414,8 @@
     animation: none;
   }
   .now-playing-content,
-  .fullscreen-display-controls {
+  .fullscreen-display-controls,
+  .now-playing-layout .now-playing-lyrics {
     transition: none;
   }
 }
