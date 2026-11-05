@@ -130,6 +130,51 @@ export function MvPanel({
         </Button>
       </div>
 
+      <div className="mv-panel-card">
+        <div className="mv-panel-selection">
+          <span className="mv-panel-icon" aria-hidden="true">
+            <FolderOpen />
+          </span>
+          <div className="mv-panel-file">
+            {selection?.local ? (
+              <>
+                <strong>{selection.title}</strong>
+                <span title={selection.localPath}>{selection.localPath}</span>
+                <small data-state={linked ? 'linked' : 'ready'}>
+                  {linked ? '已关联' : '尚未应用'}
+                </small>
+              </>
+            ) : (
+              <>
+                <strong>本地视频</strong>
+                <span>支持 MP4、M4V、WebM</span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="mv-panel-actions">
+          <Button type="button" variant="outline" disabled={busy} onClick={onChoose}>
+            <FolderOpen aria-hidden="true" />
+            {selection?.local ? '更换视频' : '选择本地'}
+          </Button>
+          {selection?.local && (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy || !selection.localPath}
+              onClick={onApply}
+            >
+              <Check aria-hidden="true" />
+              {linked ? '进入 MV' : '应用'}
+            </Button>
+          )}
+          <Button type="button" variant="ghost" disabled={busy} onClick={onCancel}>
+            <X aria-hidden="true" />
+            返回
+          </Button>
+        </div>
+      </div>
+
       <div className="mv-panel-results" aria-live="polite">
         {groups.map((group) => (
           <section key={group.source} aria-label={`${group.displayName} 的 MV`}>
@@ -180,50 +225,6 @@ export function MvPanel({
         )}
       </div>
 
-      <div className="mv-panel-card">
-        <div className="mv-panel-selection">
-          <span className="mv-panel-icon" aria-hidden="true">
-            <FolderOpen />
-          </span>
-          <div className="mv-panel-file">
-            {selection?.local ? (
-              <>
-                <strong>{selection.title}</strong>
-                <span title={selection.localPath}>{selection.localPath}</span>
-                <small data-state={linked ? 'linked' : 'ready'}>
-                  {linked ? '已关联' : '尚未应用'}
-                </small>
-              </>
-            ) : (
-              <>
-                <strong>本地视频</strong>
-                <span>支持 MP4、M4V、WebM</span>
-              </>
-            )}
-          </div>
-        </div>
-        <div className="mv-panel-actions">
-          <Button type="button" variant="outline" disabled={busy} onClick={onChoose}>
-            <FolderOpen aria-hidden="true" />
-            {selection?.local ? '更换视频' : '选择本地'}
-          </Button>
-          {selection?.local && (
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy || !selection.localPath}
-              onClick={onApply}
-            >
-              <Check aria-hidden="true" />
-              {linked ? '进入 MV' : '应用'}
-            </Button>
-          )}
-          <Button type="button" variant="ghost" disabled={busy} onClick={onCancel}>
-            <X aria-hidden="true" />
-            返回
-          </Button>
-        </div>
-      </div>
       <p className="mv-panel-hint">MV 静音播放，并跟随当前歌曲进度对齐。</p>
     </section>
   )

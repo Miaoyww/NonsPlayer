@@ -110,7 +110,10 @@
   height: 100%;
   overflow-y: auto;
   padding: clamp(4px, 1.5vh, 16px) clamp(4px, 1.5vw, 16px) calc(clamp(40px, 7.5vh, 60px) + 16px);
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+.mv-panel::-webkit-scrollbar {
+  display: none;
 }
 .mv-panel-header {
   margin-bottom: clamp(14px, 2vh, 22px);
@@ -211,6 +214,7 @@
   padding: 14px 4px;
 }
 .mv-panel-card {
+  margin-bottom: 16px;
   padding: clamp(16px, 2vw, 24px);
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 20px;
