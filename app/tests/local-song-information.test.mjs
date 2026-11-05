@@ -13,7 +13,7 @@ function harness(writeText = async () => {}) {
     errors = [],
     notices = []
   let cursor = 0
-  const jsx = (type, props) => ({ type, props })
+  const jsx = (type, props) => (typeof type === 'function' ? type(props) : { type, props })
   const modules = {
     '@/features/music/queries': {
       readTrackInformation: async () => {
@@ -28,6 +28,7 @@ function harness(writeText = async () => {}) {
     '@/features/music/use-music-sources': {},
     '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses: [] }) },
     '@/features/music/share-links': { trackShareLink: () => '' },
+    '@/lib/utils': { cn: (...values) => values.filter(Boolean).join(' ') },
     '@/components/music/loading': { TextSkeleton: 'div' },
     '@/components/music/cover': { Cover: 'Cover' },
     '@/features/local/tag-editor-dialog': { LocalTagEditorDialog: 'LocalTagEditorDialog' },
@@ -112,6 +113,18 @@ function harness(writeText = async () => {}) {
       }
     }
   }
+  const informationExports = {}
+  runInNewContext(
+    ts.transpileModule(
+      readFileSync(
+        new URL('../src/components/music/song-information.tsx', import.meta.url),
+        'utf8'
+      ),
+      { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }
+    ).outputText,
+    { exports: informationExports, require: (name) => modules[name] }
+  )
+  modules['./song-information'] = informationExports
   const exports = {}
   const code = ts.transpileModule(
     readFileSync(new URL('../src/components/music/song-actions.tsx', import.meta.url), 'utf8'),
