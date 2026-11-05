@@ -175,3 +175,18 @@ test('dragging the player titlebar exits fullscreen first', async () => {
   await new Promise((resolve) => setTimeout(resolve, 0))
   assert.deepEqual(actions, ['fullscreen:false', 'drag'])
 })
+
+test('an open dialog owns Escape and F instead of the fullscreen window shortcuts', () => {
+  const { actions, listeners } = harness(true, true)
+  for (const key of ['Escape', 'f']) {
+    const event = {
+      key,
+      code: key === 'f' ? 'KeyF' : 'Escape',
+      target: { closest: (selector) => (selector.includes('[role="dialog"]') ? {} : null) },
+      preventDefault: () => assert.fail('window shortcuts must not consume dialog keys'),
+      stopPropagation: () => assert.fail('window shortcuts must not block dialog handlers')
+    }
+    listeners.get('keydown')[0](event)
+  }
+  assert.deepEqual(actions, [])
+})

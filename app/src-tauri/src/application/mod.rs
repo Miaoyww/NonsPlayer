@@ -1160,6 +1160,10 @@ pub fn run() {
             #[cfg(desktop)]
             desktop::set_close_behavior,
             #[cfg(desktop)]
+            desktop::take_main_close_request,
+            #[cfg(desktop)]
+            desktop::confirm_main_close,
+            #[cfg(desktop)]
             desktop_lyrics::desktop_lyrics_state,
             #[cfg(desktop)]
             desktop_lyrics::desktop_lyrics_hover_state,

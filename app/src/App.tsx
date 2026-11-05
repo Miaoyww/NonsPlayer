@@ -16,6 +16,7 @@ import { DownloadProvider } from '@/features/downloads/download-provider'
 import { WelcomePage } from '@/features/onboarding/welcome-page'
 import { hasCompletedWelcome, openWelcomeEvent } from '@/features/onboarding/welcome-state'
 import { useEffect } from 'react'
+import { CloseBehaviorDialog } from '@/features/settings/general/close-behavior-dialog'
 
 function App() {
   const [welcomeOpen, setWelcomeOpen] = useState(() => !hasCompletedWelcome())
@@ -41,6 +42,7 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
       <UpdateProvider>
+        <CloseBehaviorDialog />
         {isAndroid() && <AndroidMediaLyrics />}
         <AccountProvider>
           <MusicOptionsProvider>

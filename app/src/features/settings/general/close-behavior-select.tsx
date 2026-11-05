@@ -2,6 +2,7 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { errorText, nativeCall } from '@/lib/player'
 import {
   Select,
@@ -12,26 +13,40 @@ import {
 } from '@/components/ui/select'
 import { SettingsCard } from '../shell/settings-card'
 
-type CloseBehavior = 'close' | 'minimize'
+type CloseBehavior = 'undecided' | 'close' | 'minimize'
 const options = [
+  { value: 'undecided', label: '未定' },
   { value: 'close', label: '关闭' },
   { value: 'minimize', label: '最小化' }
 ]
 
 export function CloseBehaviorSelect() {
-  const [behavior, setBehavior] = useState<CloseBehavior>('close')
+  const [behavior, setBehavior] = useState<CloseBehavior>('undecided')
   const [ready, setReady] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string>()
   useEffect(() => {
     if (!isTauri()) return
     let disposed = false
-    void nativeCall<CloseBehavior>('close_behavior')
-      .then((value) => {
-        if (!disposed) {
-          setBehavior(value)
-          setReady(true)
+    let stop: (() => void) | undefined
+    let revision = 0
+    void listen<CloseBehavior>('close-behavior-changed', ({ payload }) => {
+      if (!disposed) {
+        revision++
+        setBehavior(payload)
+      }
+    })
+      .then(async (unlisten) => {
+        if (disposed) {
+          unlisten()
+          return
         }
+        stop = unlisten
+        const current = revision
+        const value = await nativeCall<CloseBehavior>('close_behavior')
+        if (disposed) return
+        if (current === revision) setBehavior(value)
+        setReady(true)
       })
       .catch((cause) => {
         reportCaughtError('app/src/features/settings/general/close-behavior-select.tsx', cause)
@@ -40,11 +55,12 @@ export function CloseBehaviorSelect() {
       })
     return () => {
       disposed = true
+      stop?.()
     }
   }, [])
 
   async function change(value: string | null) {
-    if (value !== 'close' && value !== 'minimize') return
+    if (value !== 'undecided' && value !== 'close' && value !== 'minimize') return
     setSaving(true)
     setError(undefined)
     try {
@@ -63,7 +79,7 @@ export function CloseBehaviorSelect() {
     <SettingsCard
       searchId="close-behavior"
       title="关闭主面板时"
-      description="关闭会退出应用；最小化会收起到托盘并继续播放。"
+      description="未定会在关闭时询问；关闭会退出应用；最小化会收起到托盘并继续播放。"
     >
       <div className="flex flex-col gap-2">
         <Select

@@ -155,6 +155,11 @@ export function Titlebar({
     if (!native || (!playerMode && !fullscreen)) return
     const keydown = (event: KeyboardEvent) => {
       const target = event.target as Element | null
+      if (
+        typeof target?.closest === 'function' &&
+        target.closest('[role="dialog"], [role="alertdialog"]')
+      )
+        return
       const editing =
         typeof target?.closest === 'function' &&
         target.closest(
