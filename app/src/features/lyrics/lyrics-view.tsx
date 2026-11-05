@@ -7,7 +7,15 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { listen } from '@tauri-apps/api/event'
 import { isTauri } from '@tauri-apps/api/core'
 import { motion, useIsPresent, useReducedMotion } from 'motion/react'
-import { AudioLines, Captions, Clapperboard, DiscAlbum, Languages, Music2 } from 'lucide-react'
+import {
+  AudioLines,
+  Captions,
+  Clapperboard,
+  DiscAlbum,
+  Languages,
+  MessageSquareText,
+  Music2
+} from 'lucide-react'
 import { errorText, getPlayer, nativeCall, usePlayer, type Lyrics, type Track } from '@/lib/player'
 import { offsetLyrics, automaticLyrics, type LyricCorrection } from './correction'
 import { ActionButton } from '@/components/music/action-button'
@@ -153,6 +161,7 @@ export default function LyricsView({
   const showMv = mvActive && (open || !hidden)
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
+  const [showMvLyrics, setShowMvLyrics] = useState(true)
   const [lyricsSourceOpen, setLyricsSourceOpen] = useState(false)
   const [panelPage, setPanelPage] = useState('lyrics')
   const pluginPanelPages = usePluginViews(FULLSCREEN_PLAYER_PANEL_SLOT)
@@ -654,6 +663,19 @@ export default function LyricsView({
                 onChange={(value) => void mv.setOffset(value)}
               />
             )}
+            {mvActive && (
+              <ActionButton
+                variant="ghost"
+                size="icon"
+                className="fullscreen-mode-button"
+                aria-label={showMvLyrics ? '隐藏 MV 歌词卡片' : '显示 MV 歌词卡片'}
+                aria-pressed={showMvLyrics}
+                title={showMvLyrics ? '隐藏 MV 歌词卡片' : '显示 MV 歌词卡片'}
+                onClick={() => setShowMvLyrics((value) => !value)}
+              >
+                <MessageSquareText aria-hidden="true" />
+              </ActionButton>
+            )}
             <ActionButton
               variant="ghost"
               size="icon"
@@ -679,7 +701,7 @@ export default function LyricsView({
               )}
             </ActionButton>
           </div>
-          {mvActive && (
+          {mvActive && showMvLyrics && (
             <MvLyricCard
               lines={lines}
               showTranslation={showTranslation && hasTranslation}
