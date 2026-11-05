@@ -668,6 +668,126 @@ async fn bilibili_component_live_search_audio_and_mv() {
 }
 
 #[tokio::test]
+#[ignore = "Requires built Bilibili Component and direct public internet; no credentials"]
+async fn bilibili_component_live_pcdn_range_probe() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let package = root.join("app/src-tauri/bundled-adapters/bilibili");
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(package.join("manifest.json")).unwrap()).unwrap();
+    let descriptor: SourceDescriptor =
+        serde_json::from_value(manifest["descriptor"].clone()).unwrap();
+    let source = descriptor.source.clone();
+    let directory = tempfile::tempdir().unwrap();
+    let store = Arc::new(
+        crate::storage::Store::open(&directory.path().join("acceptance.sqlite3")).unwrap(),
+    );
+    let accounts =
+        Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets::default())).unwrap());
+    let manager = Arc::new(AdapterManager::default());
+    accounts.bind(&manager);
+    let services = Arc::new(
+        host::Services::new(
+            accounts.clone(),
+            Arc::downgrade(&manager),
+            store,
+            Arc::new(crate::infrastructure::http::Http::new().unwrap()),
+            serde_json::from_value(manifest["permissions"].clone()).unwrap(),
+            descriptor,
+        )
+        .unwrap(),
+    );
+    let adapter = Arc::new(
+        ExternalAdapter::load_with_host(&package.join("adapter.component.wasm"), services)
+            .await
+            .unwrap(),
+    );
+    let current = accounts.clone();
+    let current_source = source.clone();
+    manager
+        .register(adapter, Arc::new(move || current.session(&current_source)))
+        .unwrap();
+    let reference = EntityRef {
+        source,
+        kind: EntityKind::Track,
+        id: "BV1JThqzwEGq".to_string().try_into().unwrap(),
+    };
+    let track = manager.read_track(&reference).await.unwrap();
+    let ticket = manager
+        .resolve_playback(
+            &ResolveRequest {
+                track: reference,
+                preferred_quality: "exhigh".into(),
+                allow_downgrade: true,
+            },
+            1,
+        )
+        .await
+        .unwrap();
+    eprintln!(
+        "track={} duration={} headers={:?}",
+        track.reference.id.as_str(),
+        track.duration_ms,
+        ticket
+            .headers()
+            .iter()
+            .map(|(name, _)| name.as_str())
+            .collect::<Vec<_>>()
+    );
+    for (index, url) in ticket.urls().iter().enumerate() {
+        let client = reqwest::Client::new();
+        let mut request = client
+            .get(*url)
+            .header(reqwest::header::RANGE, "bytes=1024-")
+            .header(reqwest::header::ACCEPT_ENCODING, "identity");
+        for (name, value) in ticket.headers() {
+            request = request.header(name, value);
+        }
+        let response = request.send().await.unwrap();
+        eprintln!(
+            "index={index} host={:?} status={} content_range={:?} content_length={:?}",
+            url::Url::parse(url).unwrap().host_str(),
+            response.status(),
+            response
+                .headers()
+                .get(reqwest::header::CONTENT_RANGE)
+                .map(|value| value.to_str().unwrap().to_string()),
+            response
+                .headers()
+                .get(reqwest::header::CONTENT_LENGTH)
+                .and_then(|value| value.to_str().ok())
+        );
+    }
+    let mut audio = crate::playback::web_audio::WebAudio::new().unwrap();
+    let local = audio
+        .install_source(
+            crate::model::ResolvedTrack {
+                decoded_audio: None,
+                uri: ticket.uri().into(),
+                quality: Some(ticket.quality().into()),
+                track: crate::model::Track::from_music(track.clone()).unwrap(),
+            },
+            Some(ticket),
+            false,
+        )
+        .unwrap();
+    tokio::task::spawn_blocking(move || {
+        let mut source = ffmpeg_audio::HttpAudioSource::new(&local).unwrap();
+        let mut first = [0; 4096];
+        std::io::Read::read_exact(&mut source, &mut first).unwrap();
+        std::io::Seek::seek(&mut source, std::io::SeekFrom::Start(1_000_000)).unwrap();
+        let mut second = [0; 4096];
+        std::io::Read::read_exact(&mut source, &mut second).unwrap();
+        eprintln!(
+            "proxy playback read {} + {} bytes",
+            first.len(),
+            second.len()
+        );
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
 #[ignore = "Requires built Bilibili Component and public internet; set NONS_BILIBILI_QR_WAIT=1 to scan"]
 async fn bilibili_component_live_qr_bootstrap() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");

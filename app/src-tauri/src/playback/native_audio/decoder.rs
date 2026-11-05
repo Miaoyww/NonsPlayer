@@ -90,7 +90,7 @@ fn decode(
     } else {
         AudioReader::new(
             HttpAudioSource::new_with_cancel_handle(uri, &shared.cancel)
-                .map_err(|_| "打开在线音频失败".to_owned())?,
+                .map_err(|error| format!("打开在线音频失败：{error}"))?,
         )
     }
     .map_err(|error| format!("解析音频失败：{error}"))?;

@@ -192,7 +192,7 @@ impl WebAudio {
         Ok(())
     }
 
-    pub(super) fn install_source(
+    pub(crate) fn install_source(
         &mut self,
         resolved: ResolvedTrack,
         resource: super::engine::Resource,
@@ -487,6 +487,7 @@ async fn stream(
         .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     let mut cancelled = source.cancelled.subscribe();
     let uri = url::Url::parse(&source.resolved.uri).map_err(|_| StatusCode::BAD_GATEWAY)?;
+    let requested_range = requested_range(request.headers().get(header::RANGE));
     let mut response = if uri.scheme() == "file" {
         let path = uri.to_file_path().map_err(|_| StatusCode::BAD_GATEWAY)?;
         tower_http::services::ServeFile::new(path)
@@ -510,30 +511,82 @@ async fn stream(
                 .map_err(|_| StatusCode::NOT_FOUND)?;
         super::local_stream::response(file, request.headers(), request.method(), &path).await?
     } else if matches!(uri.scheme(), "http" | "https") {
-        let mut upstream = state
-            .client
-            .request(request.method().clone(), uri)
-            .header(header::ACCEPT_ENCODING, "identity");
+        let mut urls = vec![source.resolved.uri.as_str()];
         if let Some(resource) = &source.resource {
-            for (name, value) in resource.headers() {
-                if let (Ok(name), Ok(value)) = (
-                    header::HeaderName::try_from(name),
-                    header::HeaderValue::try_from(value),
-                ) {
+            urls.extend(
+                resource
+                    .urls()
+                    .into_iter()
+                    .filter(|url| *url != source.resolved.uri.as_str()),
+            );
+        }
+        let mut last = None;
+        for (index, url) in urls.iter().enumerate() {
+            let uri = url::Url::parse(url).map_err(|_| StatusCode::BAD_GATEWAY)?;
+            let mut upstream = state
+                .client
+                .request(request.method().clone(), uri)
+                .header(header::ACCEPT_ENCODING, "identity");
+            if let Some(resource) = &source.resource {
+                for (name, value) in resource.headers() {
+                    if let (Ok(name), Ok(value)) = (
+                        header::HeaderName::try_from(name),
+                        header::HeaderValue::try_from(value),
+                    ) {
+                        upstream = upstream.header(name, value);
+                    }
+                }
+            }
+            for name in [header::RANGE, header::IF_RANGE] {
+                if let Some(value) = request.headers().get(&name) {
                     upstream = upstream.header(name, value);
                 }
             }
-        }
-        for name in [header::RANGE, header::IF_RANGE] {
-            if let Some(value) = request.headers().get(&name) {
-                upstream = upstream.header(name, value);
+            let response = tokio::select! {
+                _ = cancelled.changed() => return Err(StatusCode::GONE),
+                result = upstream.send() => result.map_err(|_| StatusCode::BAD_GATEWAY)?,
+            };
+            if can_retry(response.status()) && index + 1 < urls.len() {
+                log::debug!(target: "nons::audio", "operation=audio_stream.retry index={index} status={}", response.status());
+                continue;
             }
+            last = Some(response);
+            break;
         }
-        let upstream = tokio::select! {
-            _ = cancelled.changed() => return Err(StatusCode::GONE),
-            result = upstream.send() => result.map_err(|_| StatusCode::BAD_GATEWAY)?,
+        let upstream = last.ok_or(StatusCode::BAD_GATEWAY)?;
+        let ignored_range = (upstream.status() == StatusCode::OK)
+            .then_some(requested_range)
+            .flatten()
+            .and_then(|(start, end)| {
+                let total = upstream
+                    .headers()
+                    .get(header::CONTENT_RANGE)
+                    .and_then(|value| value.to_str().ok())
+                    .and_then(|value| value.rsplit_once('/'))
+                    .and_then(|(_, total)| total.parse::<u64>().ok())
+                    .or_else(|| {
+                        upstream
+                            .headers()
+                            .get(header::CONTENT_LENGTH)
+                            .and_then(|value| value.to_str().ok())
+                            .and_then(|value| value.parse().ok())
+                    })?;
+                Some((
+                    start,
+                    end.unwrap_or(total.saturating_sub(1))
+                        .min(total.saturating_sub(1)),
+                    total,
+                ))
+            });
+        let satisfiable = ignored_range.filter(|(start, _, total)| start < total);
+        let status = if satisfiable.is_some() {
+            StatusCode::PARTIAL_CONTENT
+        } else if ignored_range.is_some() {
+            StatusCode::RANGE_NOT_SATISFIABLE
+        } else {
+            upstream.status()
         };
-        let mut response = Response::builder().status(upstream.status());
+        let mut response = Response::builder().status(status);
         for name in [
             header::CONTENT_TYPE,
             header::CONTENT_LENGTH,
@@ -541,12 +594,62 @@ async fn stream(
             header::ACCEPT_RANGES,
         ] {
             if let Some(value) = upstream.headers().get(&name) {
+                if ignored_range.is_some()
+                    && matches!(name, header::CONTENT_LENGTH | header::CONTENT_RANGE)
+                {
+                    continue;
+                }
                 response = response.header(name, value);
             }
         }
-        response
-            .body(Body::from_stream(upstream.bytes_stream()))
-            .map_err(|_| StatusCode::BAD_GATEWAY)?
+        if let Some((start, end, total)) = ignored_range {
+            log::debug!(target: "nons::audio", "operation=audio_stream.range_restore status=200 start={start} end={end} total={total}");
+            response = if status == StatusCode::RANGE_NOT_SATISFIABLE {
+                response.header(header::CONTENT_RANGE, format!("bytes */{total}"))
+            } else {
+                response
+                    .header(header::ACCEPT_RANGES, "bytes")
+                    .header(
+                        header::CONTENT_RANGE,
+                        format!("bytes {start}-{end}/{total}"),
+                    )
+                    .header(header::CONTENT_LENGTH, end - start + 1)
+            };
+        }
+        let body = if let Some((start, end, _)) = satisfiable {
+            let stream = futures_util::stream::unfold(
+                (upstream.bytes_stream(), start, end - start + 1),
+                |(mut upstream, mut skip, mut take)| async move {
+                    loop {
+                        if take == 0 {
+                            return None;
+                        }
+                        match upstream.next().await? {
+                            Ok(chunk) => {
+                                let length = chunk.len() as u64;
+                                if skip >= length {
+                                    skip -= length;
+                                    continue;
+                                }
+                                let chunk = chunk.slice(skip as usize..);
+                                skip = 0;
+                                let count = chunk.len().min(take as usize);
+                                take -= count as u64;
+                                return Some((
+                                    Ok::<_, reqwest::Error>(chunk.slice(..count)),
+                                    (upstream, skip, take),
+                                ));
+                            }
+                            Err(error) => return Some((Err(error), (upstream, skip, take))),
+                        }
+                    }
+                },
+            );
+            Body::from_stream(stream)
+        } else {
+            Body::from_stream(upstream.bytes_stream())
+        };
+        response.body(body).map_err(|_| StatusCode::BAD_GATEWAY)?
     } else {
         return Err(StatusCode::BAD_GATEWAY);
     };
@@ -571,6 +674,24 @@ async fn stream(
         },
     );
     Ok(Response::from_parts(parts, Body::from_stream(stream)))
+}
+
+fn requested_range(value: Option<&header::HeaderValue>) -> Option<(u64, Option<u64>)> {
+    let value = value?.to_str().ok()?.strip_prefix("bytes=")?;
+    if value.contains(',') {
+        return None;
+    }
+    let (start, end) = value.split_once('-')?;
+    let start = start.parse().ok()?;
+    let end = (!end.is_empty())
+        .then(|| end.parse().ok())
+        .flatten()
+        .filter(|end| *end >= start);
+    Some((start, end))
+}
+
+fn can_retry(status: StatusCode) -> bool {
+    matches!(status.as_u16(), 403 | 404 | 408 | 410 | 429 | 500..=599)
 }
 
 #[cfg(test)]
@@ -741,5 +862,108 @@ mod tests {
         assert!(response.headers().get("location").is_none());
         assert_eq!(response.bytes().await.unwrap().as_ref(), b"4567");
         upstream.abort();
+    }
+
+    #[tokio::test]
+    async fn online_stream_restores_ranges_ignored_by_the_upstream() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let upstream = tauri::async_runtime::spawn(async move {
+            axum::serve(
+                listener,
+                Router::new().fallback(|_: Request| async {
+                    Response::builder()
+                        .status(200)
+                        .header("content-type", "audio/mpeg")
+                        .header("content-length", "10")
+                        .body(Body::from("0123456789"))
+                        .unwrap()
+                }),
+            )
+            .await
+            .unwrap();
+        });
+        let audio = WebAudio::new().unwrap();
+        let (cancelled, _) = tokio::sync::watch::channel(false);
+        *audio.streams.source.write().unwrap() = Some(Arc::new(Source {
+            token: "range".into(),
+            resolved: resolved(format!("http://{address}/full"), None),
+            resource: None,
+            cancelled,
+        }));
+        for (range, expected_range, expected_body) in [
+            ("bytes=0-2", "bytes 0-2/10", "012"),
+            ("bytes=4-7", "bytes 4-7/10", "4567"),
+        ] {
+            let response = reqwest::Client::new()
+                .get(format!("http://{}/range", audio.streams.authority))
+                .header("Range", range)
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+            assert_eq!(response.headers()["content-range"], expected_range);
+            assert_eq!(
+                response.bytes().await.unwrap().as_ref(),
+                expected_body.as_bytes()
+            );
+        }
+        upstream.abort();
+    }
+
+    #[tokio::test]
+    async fn online_stream_retries_a_backup_when_the_primary_is_unavailable() {
+        let primary = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let primary_url = format!("http://{}/primary", primary.local_addr().unwrap());
+        let primary = tauri::async_runtime::spawn(async move {
+            axum::serve(
+                primary,
+                Router::new().fallback(|| async { StatusCode::FORBIDDEN }),
+            )
+            .await
+            .unwrap();
+        });
+        let backup = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let backup_url = format!("http://{}/backup", backup.local_addr().unwrap());
+        let backup = tauri::async_runtime::spawn(async move {
+            axum::serve(
+                backup,
+                Router::new().fallback(|request: Request| async move {
+                    assert_eq!(request.headers()["range"], "bytes=4-7");
+                    Response::builder()
+                        .status(206)
+                        .header("content-range", "bytes 4-7/10")
+                        .header("content-length", "4")
+                        .body(Body::from("4567"))
+                        .unwrap()
+                }),
+            )
+            .await
+            .unwrap();
+        });
+        let audio = WebAudio::new().unwrap();
+        let (cancelled, _) = tokio::sync::watch::channel(false);
+        *audio.streams.source.write().unwrap() = Some(Arc::new(Source {
+            token: "fallback".into(),
+            resolved: resolved(primary_url.clone(), None),
+            resource: Some(
+                crate::music::manager::ResourceTicket::for_audio_test_fallback(
+                    primary_url,
+                    vec![backup_url],
+                ),
+            ),
+            cancelled,
+        }));
+        let response = reqwest::Client::new()
+            .get(format!("http://{}/fallback", audio.streams.authority))
+            .header("Range", "bytes=4-7")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+        assert_eq!(response.headers()["content-range"], "bytes 4-7/10");
+        assert_eq!(response.bytes().await.unwrap().as_ref(), b"4567");
+        primary.abort();
+        backup.abort();
     }
 }
