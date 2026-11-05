@@ -2,6 +2,8 @@
 
 `wit/host.wit` 定义 `nons:host/transport@1.1.0`。契约版本 1.1.0。宿主同时复用功能插件的 Component runtime 和 HTTP 基础设施；加载上下文分别绑定，音乐协议不进入宿主。
 
+适配器构建应直接使用本目录的 `host.wit`；record 字段顺序参与 Component ABI，副本不一致时会出现导入名称相同但实例化失败。
+
 - HTTP：任意合法方法、合法自定义头、原始字节正文与逐条 Set-Cookie；宿主原样交付，不限制主机，由共享 HTTP 实现处理 framing。请求与响应正文默认不设大小限制，调用方按需检查；`follow-redirects` 控制是否跟随重定向，跟随不设帧数上限但遇到重复实际 URL 时终止，响应返回实际最终 URL；`timeout-ms` 为 0 时不设期限，正值设置显式期限。
 - 网络：目标不限主机、IP、端口和 URL 凭证，私网与回环地址可用；适配器 Manifest 不含网络权限或目标主机字段。HTTP／WS 直连，不继承代理。WS／WSS 帧与消息大小默认不限；发送队列 16、事件队列 32，连接和事件等待由调用方通过 `timeout-ms` 显式约束，0 表示一直等待。宿主处理 TLS／Ping／Pong，guest 处理应用协议。
 - 凭据：read／replace／invalidate 绑定 Store 中账号与实例代次，不能指定别人的账号。replace 推进账号代次，旧业务结果失效；invalidate 持久化失败返回错误。publish 只供登录挑战完成，交由 AccountManager 保存，凭据不返回 WebUI。

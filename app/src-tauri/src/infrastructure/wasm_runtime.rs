@@ -482,4 +482,73 @@ mod tests {
             .unwrap()
             .block_on(future);
     }
+    #[test]
+    fn adapter_components_match_host_transport_layout() {
+        use wasmtime::component::types::{ComponentItem, Type};
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        // Built adapters are optional in CI, so only check the artifacts present.
+        let mut components = Vec::new();
+        for directory in [
+            root.join("app/src-tauri/bundled-adapters"),
+            root.join(".local/adapters"),
+        ] {
+            let Ok(entries) = std::fs::read_dir(directory) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                for path in [
+                    entry.path().join("adapter.component.wasm"),
+                    entry.path().join("dist/adapter.component.wasm"),
+                ] {
+                    if path.is_file() {
+                        components.push(path);
+                    }
+                }
+            }
+        }
+        let engine = engine().unwrap();
+        for path in components {
+            let bytes = std::fs::read(&path).unwrap();
+            let component = Component::new(&engine, &bytes).unwrap();
+            let ty = component.component_type();
+            let (_, transport) = ty
+                .imports(&engine)
+                .find(|(name, _)| *name == "nons:host/transport@1.1.0")
+                .unwrap_or_else(|| panic!("{} 未导入 transport 1.1.0", path.display()));
+            let ComponentItem::ComponentInstance(instance) = transport.ty else {
+                panic!("{} 的 transport 导入不是实例", path.display());
+            };
+            let fields = |name: &str| {
+                let member = instance
+                    .get_export(&engine, name)
+                    .unwrap_or_else(|| panic!("{} 缺少 {name}", path.display()));
+                let ComponentItem::Type(Type::Record(record)) = member.ty else {
+                    panic!("{} 的 {name} 不是 record", path.display());
+                };
+                record
+                    .fields()
+                    .map(|field| field.name.to_owned())
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(
+                fields("request"),
+                [
+                    "url",
+                    "method",
+                    "headers",
+                    "body",
+                    "follow-redirects",
+                    "timeout-ms"
+                ],
+                "{}",
+                path.display()
+            );
+            assert_eq!(
+                fields("response"),
+                ["status", "headers", "body", "url"],
+                "{}",
+                path.display()
+            );
+        }
+    }
 }
