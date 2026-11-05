@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ChevronDown,
   Copy,
+  Maximize,
   Minus,
   Square,
   Search,
@@ -53,6 +54,7 @@ export function Titlebar({
           page.query.startsWith(`/plugins/${plugin.manifest.id}/`)
       ))
   const [maximized, setMaximized] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
   const [focused, setFocused] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -69,7 +71,14 @@ export function Titlebar({
       const value = await appWindow.isMaximized()
       if (!disposed) setMaximized(value)
     }
+    const updateFullscreen = async () => {
+      const value = await appWindow.isFullscreen()
+      if (!disposed) setFullscreen(value)
+    }
     void updateMaximized().catch((cause) =>
+      reportCaughtError('app/src/features/workspace/titlebar.tsx', cause)
+    )
+    void updateFullscreen().catch((cause) =>
       reportCaughtError('app/src/features/workspace/titlebar.tsx', cause)
     )
     void appWindow
@@ -81,6 +90,9 @@ export function Titlebar({
     void appWindow
       .onResized(() => {
         void updateMaximized().catch((cause) =>
+          reportCaughtError('app/src/features/workspace/titlebar.tsx', cause)
+        )
+        void updateFullscreen().catch((cause) =>
           reportCaughtError('app/src/features/workspace/titlebar.tsx', cause)
         )
       })
@@ -98,12 +110,19 @@ export function Titlebar({
     }
   }, [native])
 
-  async function windowAction(action: 'minimize' | 'toggleMaximize' | 'close' | 'startDragging') {
+  async function windowAction(
+    action: 'minimize' | 'toggleMaximize' | 'toggleFullscreen' | 'close' | 'startDragging'
+  ) {
     if (!native) return
     try {
       setError(null)
       const appWindow = getCurrentWindow()
-      await appWindow[action]()
+      if (action === 'toggleFullscreen') {
+        await appWindow.setFullscreen(!fullscreen)
+        setFullscreen(await appWindow.isFullscreen())
+      } else {
+        await appWindow[action]()
+      }
       if (action === 'toggleMaximize') setMaximized(await appWindow.isMaximized())
     } catch (cause) {
       reportCaughtError(`window.${action}`, cause)
@@ -247,6 +266,20 @@ export function Titlebar({
             </div>
 
             {!playerMode && <span className="mx-1.5 h-4 w-px bg-border" aria-hidden="true" />}
+            {playerMode && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="titlebar-control"
+                aria-label={fullscreen ? '退出全屏' : '进入全屏'}
+                aria-pressed={fullscreen}
+                title={fullscreen ? '退出全屏' : '进入全屏'}
+                disabled={!native}
+                onClick={() => void windowAction('toggleFullscreen')}
+              >
+                <Maximize aria-hidden="true" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon-sm"

@@ -18,7 +18,9 @@ function harness(playerMode = false) {
       getCurrentWindow: () => ({
         startDragging: async () => actions.push('drag'),
         toggleMaximize: async () => actions.push('maximize'),
-        isMaximized: async () => false
+        isMaximized: async () => false,
+        isFullscreen: async () => false,
+        setFullscreen: async (value) => actions.push(`fullscreen:${value}`)
       })
     },
     'lucide-react': {},
@@ -64,7 +66,15 @@ test('blank space to the right of music navigation drags and double-clicks maxim
   assert.equal(children.at(-1).props.onMouseDown, undefined)
 })
 
-test('fullscreen window controls keep their existing compact layout', () => {
-  const { right } = harness(true)
-  assert.equal([right.props.children].flat().filter(Boolean).length, 1)
+test('fullscreen window controls keep their existing compact layout', async () => {
+  const { actions, right } = harness(true)
+  const children = [right.props.children].flat().filter(Boolean)
+  assert.equal(children.length, 1)
+  const controls = [children[0].props.children].flat().filter(Boolean)
+  const labels = controls.map((control) => control.props['aria-label'])
+  assert.equal(labels.at(1), '进入全屏')
+  assert.equal(labels.at(2), '最小化')
+  controls.at(1).props.onClick()
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  assert.deepEqual(actions, ['fullscreen:true'])
 })
