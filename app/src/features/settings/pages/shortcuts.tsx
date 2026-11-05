@@ -121,6 +121,13 @@ export function ShortcutsPage() {
             <Kbd>F</Kbd>
           </KbdGroup>
         </SettingsCard>
+        <SettingsCard
+          searchId="shortcut-app-fullscreen"
+          title="切换全屏"
+          description="全屏播放器内生效，固定不可更改；Esc 优先退出全屏。"
+        >
+          <Kbd>F</Kbd>
+        </SettingsCard>
       </section>
       <section className="flex flex-col gap-4" aria-labelledby="global-shortcuts">
         <h3 id="global-shortcuts" className="text-base font-semibold">

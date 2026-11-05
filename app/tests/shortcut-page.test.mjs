@@ -104,6 +104,7 @@ test('shortcut page hides disabled bindings, automatically saves four-key chords
   try {
     await React.act(async () => root.render(React.createElement(page)))
     assert.equal(document.querySelector('kbd').textContent, 'Space')
+    assert.match(document.body.textContent, /切换全屏/)
     assert.equal(document.querySelectorAll('[data-shortcut-recorder]').length, 0)
     await click(document.querySelector('[role="switch"]'))
     assert.equal(document.querySelectorAll('[data-shortcut-recorder]').length, 6)

@@ -127,6 +127,31 @@ test('escape exits fullscreen before closing the player', async () => {
   assert.deepEqual(actions, ['fullscreen:false'])
 })
 
+test('F toggles fullscreen in player mode unless a field or modifier handles it', async () => {
+  const { actions, listeners } = harness(true)
+  const keydown = listeners.get('keydown')[0]
+  const press = (overrides = {}) => {
+    const event = {
+      code: 'KeyF',
+      key: 'f',
+      defaultPrevented: false,
+      isComposing: false,
+      preventDefault() {
+        this.defaultPrevented = true
+      },
+      stopPropagation() {},
+      ...overrides
+    }
+    keydown(event)
+  }
+  press({ ctrlKey: true })
+  press({ target: { closest: () => ({}) } })
+  assert.deepEqual(actions, [])
+  press()
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  assert.deepEqual(actions, ['fullscreen:true'])
+})
+
 test('dragging the player titlebar exits fullscreen first', async () => {
   const { actions, header } = harness(true, true)
   const dragRegion = findDragRegion(header)

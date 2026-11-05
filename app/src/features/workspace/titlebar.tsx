@@ -148,16 +148,32 @@ export function Titlebar({
   }
 
   useEffect(() => {
-    if (!native || !fullscreen) return
-    const exit = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
+    if (!native || (!playerMode && !fullscreen)) return
+    const keydown = (event: KeyboardEvent) => {
+      const target = event.target as Element | null
+      const editing =
+        typeof target?.closest === 'function' &&
+        target.closest(
+          'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="slider"], [role="spinbutton"], [data-shortcut-recorder]'
+        )
+      const fullscreenShortcut =
+        playerMode &&
+        event.code === 'KeyF' &&
+        !event.isComposing &&
+        !event.defaultPrevented &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !editing
+      const exitShortcut = fullscreen && event.key === 'Escape'
+      if (!exitShortcut && !fullscreenShortcut) return
       event.preventDefault()
       event.stopPropagation()
-      void windowAction('exitFullscreen')
+      void windowAction(fullscreenShortcut ? 'toggleFullscreen' : 'exitFullscreen')
     }
-    window.addEventListener('keydown', exit, true)
-    return () => window.removeEventListener('keydown', exit, true)
-  }, [fullscreen, native])
+    window.addEventListener('keydown', keydown, true)
+    return () => window.removeEventListener('keydown', keydown, true)
+  }, [fullscreen, native, playerMode])
 
   if (playerMode && isAndroid()) return null
 

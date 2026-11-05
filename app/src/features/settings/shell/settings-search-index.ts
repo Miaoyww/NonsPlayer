@@ -79,7 +79,8 @@ const groups: SearchGroup[] = [
     path: '快捷键设置 / 应用内快捷键',
     items: [
       ['shortcut-app-toggle', '播放/暂停音乐', 'Space 空格'],
-      ['shortcut-app-search', '快捷搜索歌曲', 'Ctrl F Command 查找']
+      ['shortcut-app-search', '快捷搜索歌曲', 'Ctrl F Command 查找'],
+      ['shortcut-app-fullscreen', '切换全屏', 'F 全屏播放器 Esc 退出']
     ]
   },
   {
