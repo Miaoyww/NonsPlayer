@@ -186,8 +186,8 @@ impl Entry {
             let engines = &self.fields["engines"];
             [
                 ("app", env!("CARGO_PKG_VERSION")),
-                ("pluginApi", crate::plugins::manifest::API_VERSION),
-                ("uiApi", crate::plugins::manifest::API_VERSION),
+                ("pluginApi", crate::plugins::manifest::PLUGIN_API_VERSION),
+                ("uiApi", crate::plugins::manifest::UI_API_VERSION),
             ]
             .iter()
             .all(|(key, current)| {
@@ -334,14 +334,7 @@ fn parse_catalog(bytes: &[u8]) -> AppResult<Catalog> {
             if fields.get("installable").is_some_and(|v| !v.is_boolean()) {
                 return Err("商店安装状态无效".into());
             }
-            for key in [
-                "platforms",
-                "searchPlatforms",
-                "coverHosts",
-                "httpHosts",
-                "fileRoots",
-                "labels",
-            ] {
+            for key in ["platforms", "searchPlatforms", "fileRoots", "labels"] {
                 if let Some(value) = fields.get(key) {
                     strings(value)?;
                 }
@@ -371,11 +364,6 @@ fn parse_catalog(bytes: &[u8]) -> AppResult<Catalog> {
                             .get("permissions")
                             .and_then(Value::as_object)
                             .ok_or("适配器权限声明无效")?;
-                        for key in ["httpHosts", "websocketHosts"] {
-                            if let Some(value) = permissions.get(key) {
-                                strings(value)?;
-                            }
-                        }
                         for key in ["system", "state", "credentials"] {
                             if permissions.get(key).and_then(Value::as_bool).is_none() {
                                 return Err("适配器权限字段无效".into());
@@ -624,8 +612,8 @@ impl ExtensionStore {
                             if bytes.len() > 16384 {
                                 return Err("随包适配器描述超过大小上限".into());
                             }
-                            let package: crate::music::adapter_install::Package =
-                                serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+                            let package = crate::music::adapter_install::parse_package(&bytes)
+                                .map_err(|e| e.to_string())?;
                             let id = match (&package.descriptor, &package.resource_provider) {
                                 (Some(d), None) => {
                                     d.validate().map_err(|e| e.to_string())?;
@@ -698,7 +686,6 @@ impl ExtensionStore {
                             .find(|p| p.manifest.id == manifest.id)
                             .map(|p| p.manifest.version);
                         let mut permissions = manifest.permissions.clone();
-                        permissions.extend(manifest.http_hosts.iter().map(|h| format!("http:{h}")));
                         permissions
                             .extend(manifest.file_roots.iter().map(|h| format!("files:{h}")));
                         let warnings = plugin_review_warnings(&manifest);
@@ -713,24 +700,7 @@ impl ExtensionStore {
                     }
                     Kind::Adapter => {
                         let preview = this.adapters.preview(&path)?;
-                        let mut permissions: Vec<_> = vec!["http".into()];
-                        if !preview.permissions.websocket_hosts.is_empty() {
-                            permissions.push("websocket".into());
-                        }
-                        permissions.extend(
-                            preview
-                                .permissions
-                                .http_hosts
-                                .iter()
-                                .map(|h| format!("http:{h}")),
-                        );
-                        permissions.extend(
-                            preview
-                                .permissions
-                                .websocket_hosts
-                                .iter()
-                                .map(|h| format!("websocket:{h}")),
-                        );
+                        let mut permissions = Vec::new();
                         for (enabled, name) in [
                             (preview.permissions.system, "system"),
                             (preview.permissions.state, "state"),
@@ -758,12 +728,10 @@ impl ExtensionStore {
             {
                 warnings.push("此扩展可读取账号凭据，请确认信任作者".into());
             }
-            if permissions
-                .iter()
-                .any(|p| p == "http:*" || p == "process:spawn")
-            {
-                warnings.push("此扩展申请敏感系统或网络权限，请确认信任作者".into());
+            if permissions.iter().any(|p| p == "process:spawn") {
+                warnings.push("此扩展申请敏感系统权限，请确认信任作者".into());
             }
+            warnings.push("此扩展可访问任意网络地址，请确认信任作者".into());
             let permissions = permissions
                 .iter()
                 .map(|permission| permission_label(kind, permission))
@@ -1077,18 +1045,10 @@ fn http_error(status: u16, artifact: bool) -> String {
 }
 fn permission_label(kind: Kind, permission: &str) -> String {
     if permission == "http" {
-        return "网络请求：任意地址".into();
+        return "网络请求：可访问任意 HTTP(S) 地址".into();
     }
     if permission == "websocket" {
-        return "网络长连接：任意地址".into();
-    }
-    if let Some(host) = permission.strip_prefix("http:") {
-        if host != "request" && host != "transfer" {
-            return format!("网络声明：{host}");
-        }
-    }
-    if let Some(host) = permission.strip_prefix("websocket:") {
-        return format!("长连接声明：{host}");
+        return "WebSocket 长连接：可访问任意地址".into();
     }
     if let Some(root) = permission.strip_prefix("files:") {
         if !matches!(root, "data" | "selected") {
@@ -1097,8 +1057,6 @@ fn permission_label(kind: Kind, permission: &str) -> String {
     }
     match permission {
         "clipboard:read" => "读取剪贴板文本及监听变化",
-        "http:request" => "网络请求：任意地址",
-        "http:transfer" => "从任意网络地址传输资源到授权目录",
         "secrets" => "管理插件自己的系统凭据",
         "account:credentials" => "敏感权限：读取音乐平台账户凭证",
         "music:metadata" => "读取音乐来源的公开音乐信息",
@@ -1288,7 +1246,7 @@ mod tests {
         let mut manifest: crate::plugins::manifest::Manifest = serde_json::from_value(json!({
             "id": "review-test", "name": "Review test", "version": "1.0.0",
             "frontend": "ui.mjs", "permissions": ["ui", "files:selected"], "fileRoots": ["*"],
-            "engines": {"app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0"}
+            "engines": {"app": "^1.0.0", "pluginApi": "^3.0.0", "uiApi": "^3.0.0"}
         }))
         .unwrap();
         let warnings = plugin_review_warnings(&manifest);
@@ -1464,7 +1422,7 @@ mod tests {
             "repository": "https://github.com/NonsPlayer/example",
             "release": {"tag": "v1.2.0", "created_at": "2026-10-30T12:00:00Z"},
             "blocked": false, "unavailable": false, "deprecated": false,
-            "engines": {"app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0"},
+            "engines": {"app": "^1.0.0", "pluginApi": "^3.0.0", "uiApi": "^3.0.0"},
             "permissions": ["ui"], "artifact": {
                 "url": artifact.url, "size": artifact.size, "sha256": artifact.sha256
             }, "futureMetadata": {"preserved": true}
@@ -1476,7 +1434,7 @@ mod tests {
         value["distribution"] = json!("component");
         value["contractVersion"] = json!(crate::music::CONTRACT_VERSION);
         value["platforms"] = json!(["netease", "qqmusic"]);
-        value["permissions"] = json!({"httpHosts": [], "websocketHosts": [], "system": true, "state": false, "credentials": false});
+        value["permissions"] = json!({"system": true, "state": false, "credentials": false});
         value
     }
     fn catalog(plugin: Vec<Value>, adapters: Vec<Value>) -> AppResult<Catalog> {
@@ -1505,8 +1463,17 @@ mod tests {
         assert!(incompatible.review(None, false, "1.2.0").is_err());
         let mut value = adapter();
         assert!(entry(value.clone()).compatible());
+        value["permissions"] = json!({
+            "system": true,
+            "state": false,
+            "credentials": false
+        });
+        assert!(entry(value.clone()).compatible());
         value["contractVersion"] = json!(999);
         assert!(!entry(value).compatible());
+        let mut invalid = adapter();
+        invalid["permissions"]["system"] = json!("yes");
+        assert!(catalog(vec![], vec![invalid]).is_err());
     }
 
     #[test]
@@ -1696,8 +1663,12 @@ mod tests {
             "敏感权限：读取当前平台账号凭据"
         );
         assert_eq!(
-            permission_label(Kind::Adapter, "http:example.org"),
-            "网络声明：example.org"
+            permission_label(Kind::Adapter, "http"),
+            "网络请求：可访问任意 HTTP(S) 地址"
+        );
+        assert_eq!(
+            permission_label(Kind::Adapter, "websocket"),
+            "WebSocket 长连接：可访问任意地址"
         );
     }
 

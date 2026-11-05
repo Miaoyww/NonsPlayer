@@ -97,19 +97,7 @@ fn music_queue_tracks(
     tracks: Vec<crate::music::identity::MusicTrack>,
     backend: State<'_, Backend>,
 ) -> Result<Vec<Track>, crate::infrastructure::diagnostics::CommandError> {
-    if tracks.len() > 100
-        || tracks.iter().any(|track| track.reference.source != source)
-        || serde_json::to_vec(&tracks)
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn(
-                    "music.queue_tracks.serialize_batch",
-                    error,
-                );
-            })
-            .map_err(|_| crate::music::ErrorCode::InvalidData)?
-            .len()
-            > 2 * 1024 * 1024
-    {
+    if tracks.len() > 100 || tracks.iter().any(|track| track.reference.source != source) {
         return Err(crate::music::ErrorCode::InvalidData.into());
     }
     if backend.music.adapters.cache_identity(&source)? != scope {

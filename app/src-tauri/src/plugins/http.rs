@@ -1,3 +1,3 @@
-//! Functional plugin binding to shared HTTP infrastructure and plugin budgets.
+//! Functional plugin binding to the shared HTTP infrastructure.
 pub(super) use crate::infrastructure::http::checked_url;
-pub use crate::infrastructure::http::{valid_host, Http};
+pub use crate::infrastructure::http::Http;

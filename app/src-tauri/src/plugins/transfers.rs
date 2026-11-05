@@ -11,7 +11,6 @@ use std::{
     time::Duration,
 };
 
-const MAX_BYTES: u64 = 512 * 1024 * 1024;
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Snapshot {
@@ -24,9 +23,42 @@ struct Snapshot {
 struct Task {
     plugin: String,
     generation: u64,
+    started: std::time::Instant,
     cancel: Arc<AtomicBool>,
     paused: Arc<AtomicBool>,
     snapshot: Arc<Mutex<Snapshot>>,
+}
+const MAX_COMPLETED: usize = 128;
+fn parse_max_bytes(args: &Value) -> AppResult<Option<u64>> {
+    args.get("maxBytes")
+        .map(|value| {
+            value
+                .as_u64()
+                .filter(|bytes| *bytes > 0)
+                .ok_or_else(|| "maxBytes 必须为正整数".to_string())
+        })
+        .transpose()
+}
+fn running(task: &Task) -> bool {
+    task.snapshot
+        .lock()
+        .map(|snapshot| matches!(snapshot.state.as_str(), "running" | "paused"))
+        .unwrap_or(true)
+}
+fn prune_completed(tasks: &mut BTreeMap<u64, Task>, plugin: &str, generation: u64) {
+    tasks.retain(|_, task| {
+        running(task) || (task.plugin == plugin && task.generation == generation)
+    });
+    let mut completed: Vec<_> = tasks
+        .iter()
+        .filter(|(_, task)| !running(task))
+        .map(|(id, task)| (*id, task.started))
+        .collect();
+    completed.sort_by_key(|(id, started)| (*started, *id));
+    let excess = completed.len().saturating_sub(MAX_COMPLETED);
+    for (id, _) in completed.into_iter().take(excess) {
+        tasks.remove(&id);
+    }
 }
 #[derive(Default)]
 pub struct Transfers {
@@ -104,53 +136,8 @@ impl Transfers {
             .and_then(Value::as_str)
             .ok_or("缺少文件路径")?
             .to_string();
-        let max_bytes = args
-            .get("maxBytes")
-            .and_then(Value::as_u64)
-            .unwrap_or(MAX_BYTES);
-        if max_bytes == 0 || max_bytes > MAX_BYTES {
-            return Err("传输大小上限必须在 1 字节至 512MiB 之间".into());
-        }
-        let running = |t: &&Task| {
-            t.snapshot
-                .lock()
-                .map(|s| matches!(s.state.as_str(), "running" | "paused"))
-                .unwrap_or(true)
-        };
-        if tasks.values().filter(running).count() >= 8
-            || tasks
-                .values()
-                .filter(|t| t.plugin == context.id)
-                .filter(running)
-                .count()
-                >= 2
-        {
-            return Err("传输并发已达上限".into());
-        }
-        // Finished snapshots are disposable; never retain unbounded URLs or request bodies.
-        tasks.retain(|_, t| {
-            t.generation == context.generation
-                || t.plugin != context.id
-                || t.snapshot
-                    .lock()
-                    .map(|s| matches!(s.state.as_str(), "running" | "paused"))
-                    .unwrap_or(true)
-        });
-        if tasks.len() >= 128 {
-            let old = tasks
-                .iter()
-                .find(|(_, t)| {
-                    t.snapshot
-                        .lock()
-                        .is_ok_and(|s| !matches!(s.state.as_str(), "running" | "paused"))
-                })
-                .map(|(id, _)| *id);
-            if let Some(id) = old {
-                tasks.remove(&id);
-            } else {
-                return Err("传输任务过多".into());
-            }
-        }
+        let max_bytes = parse_max_bytes(args)?;
+        prune_completed(&mut tasks, &context.id, context.generation);
         let id = fastrand::u64(1..(1u64 << 53));
         let snapshot = Arc::new(Mutex::new(Snapshot {
             id,
@@ -166,6 +153,7 @@ impl Transfers {
             Task {
                 plugin: context.id.clone(),
                 generation: context.generation,
+                started: std::time::Instant::now(),
                 cancel: cancel.clone(),
                 paused: paused.clone(),
                 snapshot: snapshot.clone(),
@@ -228,7 +216,7 @@ async fn run(
     url: url::Url,
     root: &str,
     path: &str,
-    max: u64,
+    max: Option<u64>,
     snapshot: &Arc<Mutex<Snapshot>>,
     controls: (&AtomicBool, &AtomicBool),
 ) -> AppResult<()> {
@@ -265,37 +253,26 @@ async fn run(
     .map_err(|_| "创建文件失败")??;
     let handle = opened["handle"].as_u64().ok_or("文件句柄无效")?;
     let transfer = async {
-        let mut response = tokio::time::timeout(
-            Duration::from_secs(30),
-            context
-                .http
-                .client(&url)
-                .get(url)
-                .timeout(Duration::from_secs(24 * 60 * 60))
-                .send(),
-        )
-        .await
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn(
-                "plugins.transfers.download.connect_timeout",
-                error,
-            );
-        })
-        .map_err(|_| "连接资源超时")?
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn_error(
-                "plugins.transfers.download.http_send",
-                error,
-            );
-        })
-        .map_err(|_| "连接资源失败")?;
+        let mut response = context
+            .http
+            .client_with_redirects(&url, false)
+            .get(url)
+            .send()
+            .await
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn_error(
+                    "plugins.transfers.download.http_send",
+                    error,
+                );
+            })
+            .map_err(|_| "连接资源失败")?;
         if !response.status().is_success() {
             log::warn!(target: "nons::plugins", "operation=plugins.transfers.download stage=http_status plugin={} generation={} status={}", context.id, context.generation, response.status().as_u16());
             return Err("资源服务器拒绝传输或返回重定向".into());
         }
         let total = response.content_length();
-        if total.is_some_and(|n| n > max) {
-            log::warn!(target: "nons::plugins", "operation=plugins.transfers.download stage=content_length plugin={} generation={} declared_bytes={} limit_bytes={max}", context.id, context.generation, total.unwrap_or_default());
+        if max.is_some_and(|max| total.is_some_and(|total| total > max)) {
+            log::warn!(target: "nons::plugins", "operation=plugins.transfers.download stage=content_length plugin={} generation={} declared_bytes={} limit_bytes={}", context.id, context.generation, total.unwrap_or_default(), max.unwrap_or_default());
             return Err("资源超过传输大小上限".into());
         }
         snapshot
@@ -309,21 +286,13 @@ async fn run(
             .map_err(|_| "传输状态不可用")?
             .total = total;
         let mut bytes = 0u64;
-        let mut network_time = Duration::ZERO;
         loop {
             while paused.load(Ordering::SeqCst) {
                 tokio::time::sleep(Duration::from_millis(50)).await;
             }
-            let started = std::time::Instant::now();
-            let chunk = tokio::time::timeout(Duration::from_secs(30), response.chunk())
+            let chunk = response
+                .chunk()
                 .await
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn(
-                        "plugins.transfers.download.read_chunk_timeout",
-                        error,
-                    );
-                })
-                .map_err(|_| "传输停滞超过 30 秒")?
                 .inspect_err(|error| {
                     crate::infrastructure::diagnostics::warn_error(
                         "plugins.transfers.download.read_chunk",
@@ -331,39 +300,33 @@ async fn run(
                     );
                 })
                 .map_err(|_| "读取资源失败")?;
-            network_time += started.elapsed();
-            if network_time > Duration::from_secs(600) {
-                return Err("传输网络等待超过 10 分钟".into());
-            }
             let Some(chunk) = chunk else {
                 break;
             };
             bytes += chunk.len() as u64;
-            if bytes > max {
-                log::warn!(target: "nons::plugins", "operation=plugins.transfers.download stage=body_limit plugin={} generation={} received_bytes={bytes} limit_bytes={max}", context.id, context.generation);
+            if max.is_some_and(|max| bytes > max) {
+                log::warn!(target: "nons::plugins", "operation=plugins.transfers.download stage=body_limit plugin={} generation={} received_bytes={bytes} limit_bytes={}", context.id, context.generation, max.unwrap_or_default());
                 return Err("资源超过传输大小上限".into());
             }
-            for block in chunk.chunks(32768) {
-                while paused.load(Ordering::SeqCst) {
-                    tokio::time::sleep(Duration::from_millis(50)).await;
-                }
-                let data = block.to_vec();
-                let files = context.files.clone();
-                let plugin = context.id.clone();
-                let generation = context.generation;
-                let active = context.active.clone();
-                tauri::async_runtime::spawn_blocking(move || {
-                    files.write_transfer(&plugin, generation, handle, &data, &active)
-                })
-                .await
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn(
-                        "plugins.transfers.download.write_file.worker_join",
-                        error,
-                    );
-                })
-                .map_err(|_| "文件写入失败")??;
+            while paused.load(Ordering::SeqCst) {
+                tokio::time::sleep(Duration::from_millis(50)).await;
             }
+            let data = chunk.to_vec();
+            let files = context.files.clone();
+            let plugin = context.id.clone();
+            let generation = context.generation;
+            let active = context.active.clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                files.write_transfer(&plugin, generation, handle, &data, &active)
+            })
+            .await
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn(
+                    "plugins.transfers.download.write_file.worker_join",
+                    error,
+                );
+            })
+            .map_err(|_| "文件写入失败")??;
             snapshot
                 .lock()
                 .inspect_err(|error| {
@@ -428,9 +391,6 @@ mod tests {
         let address = listener.local_addr().unwrap();
         let server = std::thread::spawn(move || {
             let (mut socket, _) = listener.accept().unwrap();
-            socket
-                .set_read_timeout(Some(Duration::from_secs(2)))
-                .unwrap();
             let mut request = [0; 4096];
             let _ = socket.read(&mut request);
             let _ = write!(
@@ -448,10 +408,123 @@ mod tests {
         let client = reqwest::Client::builder()
             .no_proxy()
             .resolve("example.org", address)
-            .redirect(reqwest::redirect::Policy::none())
             .build()
             .unwrap();
         (Arc::new(super::super::http::Http::for_test(client)), server)
+    }
+    fn generated_fixture(
+        total: u64,
+    ) -> (Arc<super::super::http::Http>, std::thread::JoinHandle<()>) {
+        const CHUNK: usize = 1024 * 1024;
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            let mut request = [0; 4096];
+            let _ = socket.read(&mut request);
+            let _ = write!(
+                socket,
+                "HTTP/1.1 200 OK\r\nContent-Length: {total}\r\nConnection: close\r\n\r\n"
+            );
+            let chunk = vec![0x5a; CHUNK];
+            let mut remaining = total;
+            while remaining > 0 {
+                let size = remaining.min(CHUNK as u64) as usize;
+                if socket.write_all(&chunk[..size]).is_err() {
+                    break;
+                }
+                remaining -= size as u64;
+            }
+        });
+        let client = reqwest::Client::builder()
+            .no_proxy()
+            .resolve("example.org", address)
+            .build()
+            .unwrap();
+        (Arc::new(super::super::http::Http::for_test(client)), server)
+    }
+    fn task(plugin: &str, generation: u64, state: &str, started: std::time::Instant) -> Task {
+        let snapshot = Arc::new(Mutex::new(Snapshot {
+            id: 1,
+            state: state.into(),
+            bytes: 0,
+            total: None,
+            error: None,
+        }));
+        Task {
+            plugin: plugin.into(),
+            generation,
+            started,
+            cancel: Arc::new(AtomicBool::new(false)),
+            paused: Arc::new(AtomicBool::new(false)),
+            snapshot,
+        }
+    }
+    #[test]
+    fn max_bytes_is_optional_and_must_be_positive_when_present() {
+        assert_eq!(parse_max_bytes(&json!({})).unwrap(), None);
+        assert_eq!(parse_max_bytes(&json!({"maxBytes":1})).unwrap(), Some(1));
+        assert_eq!(
+            parse_max_bytes(&json!({"maxBytes":0})).unwrap_err(),
+            "maxBytes 必须为正整数"
+        );
+        assert_eq!(
+            parse_max_bytes(&json!({"maxBytes":"1"})).unwrap_err(),
+            "maxBytes 必须为正整数"
+        );
+    }
+    #[test]
+    fn completed_history_is_lru_capped_without_evicting_running_tasks() {
+        let mut tasks = BTreeMap::new();
+        let started = std::time::Instant::now();
+        for id in 0..130 {
+            tasks.insert(
+                id,
+                task("other", 1, "completed", started + Duration::from_millis(id)),
+            );
+        }
+        for id in 0..130 {
+            tasks.insert(
+                1000 + id,
+                task("current", 2, "running", started + Duration::from_millis(id)),
+            );
+        }
+        for id in 0..3 {
+            tasks.insert(
+                2000 + id,
+                task(
+                    "current",
+                    2,
+                    "completed",
+                    started + Duration::from_millis(id),
+                ),
+            );
+        }
+        prune_completed(&mut tasks, "current", 2);
+        assert_eq!(tasks.len(), 133);
+        assert!((1000..1130).all(|id| tasks.contains_key(&id)));
+        assert!((2000..2003).all(|id| tasks.contains_key(&id)));
+
+        for id in 0..130 {
+            tasks.insert(
+                3000 + id,
+                task(
+                    "current",
+                    2,
+                    "completed",
+                    started + Duration::from_millis(10 + id),
+                ),
+            );
+        }
+        prune_completed(&mut tasks, "current", 2);
+        assert_eq!(
+            tasks.values().filter(|task| !running(task)).count(),
+            MAX_COMPLETED
+        );
+        assert_eq!(tasks.values().filter(|task| running(task)).count(), 130);
+        assert!(!tasks.contains_key(&3000));
+        assert!(!tasks.contains_key(&3001));
+        assert!(tasks.contains_key(&3002));
     }
     #[test]
     fn wildcard_transfer_writes_selected_absolute_path_without_directory_grant() {
@@ -487,7 +560,7 @@ mod tests {
                     url::Url::parse("http://example.org/file").unwrap(),
                     "*",
                     path.to_str().unwrap(),
-                    1000,
+                    Some(1000),
                     &state,
                     (&AtomicBool::new(false), &AtomicBool::new(false)),
                 )
@@ -546,7 +619,7 @@ mod tests {
                         url::Url::parse("http://example.org/file").unwrap(),
                         &grant.id,
                         "pause.part",
-                        100_000,
+                        Some(100_000),
                         &snapshot,
                         (&cancel, &paused),
                     )
@@ -565,6 +638,61 @@ mod tests {
                         std::fs::remove_file(tmp.path().join("pause.part")).unwrap();
                     }
                 }
+            });
+    }
+    #[test]
+    fn unlimited_transfer_streams_past_the_old_512_mib_limit() {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                const TOTAL: u64 = 513 * 1024 * 1024;
+                let tmp = tempfile::tempdir().unwrap();
+                let db = Arc::new(
+                    super::super::database::Database::open(Path::new(":memory:")).unwrap(),
+                );
+                let files = Arc::new(super::super::files::Files::new(tmp.path().join("data"), db));
+                let grant = files.grant("one", tmp.path().into(), true).unwrap();
+                let (http, server) = generated_fixture(TOTAL);
+                let context = TransferContext {
+                    unrestricted: false,
+                    id: "one".into(),
+                    generation: 1,
+                    files,
+                    http,
+                    active: Arc::new(AtomicBool::new(true)),
+                };
+                let snapshot = Arc::new(Mutex::new(Snapshot {
+                    id: 1,
+                    state: "running".into(),
+                    bytes: 0,
+                    total: None,
+                    error: None,
+                }));
+                let result = tokio::time::timeout(
+                    Duration::from_secs(120),
+                    run(
+                        &context,
+                        url::Url::parse("http://example.org/large").unwrap(),
+                        &grant.id,
+                        "large.bin",
+                        None,
+                        &snapshot,
+                        (&AtomicBool::new(false), &AtomicBool::new(false)),
+                    ),
+                )
+                .await
+                .unwrap();
+                result.unwrap();
+                server.join().unwrap();
+                assert_eq!(
+                    std::fs::metadata(tmp.path().join("large.bin"))
+                        .unwrap()
+                        .len(),
+                    TOTAL
+                );
+                assert_eq!(snapshot.lock().unwrap().bytes, TOTAL);
             });
     }
     #[test]
@@ -603,7 +731,7 @@ mod tests {
                     url.clone(),
                     &grant.id,
                     "good.part",
-                    100_000,
+                    Some(100_000),
                     &state,
                     (&AtomicBool::new(false), &AtomicBool::new(false)),
                 )
@@ -622,7 +750,7 @@ mod tests {
                     url.clone(),
                     &grant.id,
                     "large.part",
-                    99,
+                    Some(99),
                     &state,
                     (&AtomicBool::new(false), &AtomicBool::new(false))
                 )
@@ -644,7 +772,7 @@ mod tests {
                     url.clone(),
                     &grant.id,
                     "cancel.part",
-                    100_000,
+                    Some(100_000),
                     &state,
                     (&cancel, &AtomicBool::new(false))
                 )
@@ -666,7 +794,7 @@ mod tests {
                     url,
                     &grant.id,
                     "revoke.part",
-                    100_000,
+                    Some(100_000),
                     &state,
                     (&AtomicBool::new(false), &AtomicBool::new(false))
                 )
