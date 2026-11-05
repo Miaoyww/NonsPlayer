@@ -9,6 +9,7 @@ use std::{
 };
 
 #[cfg(target_os = "android")]
+#[path = "source/android.rs"]
 pub(crate) mod android;
 
 const DOCUMENT_PREFIX: &str = "nons-saf";

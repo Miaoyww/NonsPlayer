@@ -8,3 +8,8 @@ pub(crate) fn warn(operation: &str, error: impl std::fmt::Display) {
 pub(crate) fn warn_error(operation: &str, error: &(dyn std::error::Error + 'static)) {
     warn(operation, error);
 }
+
+#[track_caller]
+pub(crate) fn report_error(operation: &str, error: &anyhow::Error) {
+    warn(operation, error);
+}

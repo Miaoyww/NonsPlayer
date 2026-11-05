@@ -101,7 +101,8 @@ async fn main() -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
     let separators = vec!["/".into(), "、".into(), ";".into()];
-    let preferred = qq_lyrics::lookup(&client, &track, false, &separators).await?;
+    let subject = lyric_matching::Subject::from_track(&track, &separators);
+    let preferred = qq_lyrics::lookup(&client, &track, &subject, false, &separators).await?;
     if let Some(lyrics) = &preferred {
         println!(
             "QQ matched: {} score={:?} ({} bytes)",
@@ -111,7 +112,7 @@ async fn main() -> Result<(), String> {
         );
     }
     let api = netease::probe_client()?;
-    let fallback = netease_lyrics::lookup(&api, &track, &separators).await?;
+    let fallback = netease_lyrics::lookup(&api, &track, &subject, &separators).await?;
     if let Some(lyrics) = &fallback {
         println!(
             "NetEase matched: {} score={:?} ({} bytes)",

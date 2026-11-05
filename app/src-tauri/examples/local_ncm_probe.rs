@@ -5,6 +5,9 @@ mod encoded_audio;
 #[path = "support/infrastructure.rs"]
 #[allow(dead_code)]
 mod infrastructure;
+#[path = "../src/local/source.rs"]
+#[allow(dead_code)]
+mod source;
 // Standalone probes do not redirect storage into the app performance workspace.
 mod performance {
     pub fn root() -> Option<std::path::PathBuf> {
