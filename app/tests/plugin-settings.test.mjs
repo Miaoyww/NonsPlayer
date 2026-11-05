@@ -312,11 +312,16 @@ test('plugin settings scopes native drops, serializes ZIP installs and removes i
     assert.ok(warning.className.includes('text-destructive'))
     assert.match(document.body.textContent, /当前用户能够访问的任意文件/)
     assert.match(document.body.textContent, /敏感权限：会请求任意 URL/)
-    assert.match(document.body.textContent, /敏感权限：会请求任意 URL 并传输资源到授权目录/)
-    assert.ok(!document.body.textContent.includes('example.org'))
-    assert.ok(!document.body.textContent.includes('：*'))
+    assert.match(
+      document.body.textContent,
+      /敏感权限：会请求任意 URL（声明域名：\*、example\.org、api\.example\.org）/
+    )
+    assert.match(
+      document.body.textContent,
+      /敏感权限：会从任意 URL 传输资源到授权目录（声明域名：\*、example\.org、api\.example\.org）/
+    )
     const networkWarning = [...document.querySelectorAll('[role="alert"]')].find((element) =>
-      element.textContent.includes('此插件会请求任意 URL')
+      element.textContent.includes('此插件可请求任意 URL')
     )
     assert.ok(networkWarning.className.includes('text-destructive'))
     assert.match(networkWarning.textContent, /Cookie 也可能被发送到其他网站/)
