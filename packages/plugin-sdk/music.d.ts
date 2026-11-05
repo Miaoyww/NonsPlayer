@@ -8,7 +8,7 @@ export interface CoverImage {
 }
 /** Display helpers also accept direct URLs and local paths. */
 export type CoverInput = CoverImage | string
-/** ADR 0006 v1 source-neutral music DTOs; IDs and cursors are opaque strings. */
+/** ADR 0006 v2 source-neutral music DTOs; IDs and cursors are opaque strings. */
 export type EntityKind = 'track' | 'playlist' | 'album' | 'artist'
 export interface EntityRef {
   source: string
@@ -163,7 +163,6 @@ export interface SourceDescriptor {
   platforms?: string[]
   contractVersion: number
   loginMethods?: { id: string; label: string }[]
-  coverHosts?: string[]
   shareLinkTemplates?: Partial<Record<EntityKind, string>>
   capabilities: string[]
 }

@@ -73,7 +73,7 @@ pub async fn plugin_probe_report(
         assert!(snapshot.queue.is_empty());
         let source = directory().join("probe-source");
         std::fs::create_dir_all(&source).map_err(|e| e.to_string())?;
-        std::fs::write(source.join("manifest.json"), serde_json::json!({"id":"probe-page","name":"Probe Page","version":"1.0.0","frontend":"ui.mjs","permissions":["ui","storage"],"engines":{"app":"^1.0.0","pluginApi":"^2.0.0","uiApi":"^2.0.0"},"contributes":{"pages":[{"id":"root","path":"/","export":"Page"}],"navigation":[{"id":"entry","label":"Probe Page","page":"root"}]}}).to_string()).map_err(|e| e.to_string())?;
+        std::fs::write(source.join("manifest.json"), serde_json::json!({"id":"probe-page","name":"Probe Page","version":"1.0.0","frontend":"ui.mjs","permissions":["ui","storage"],"engines":{"app":"^1.0.0","pluginApi":"^3.0.0","uiApi":"^3.0.0"},"contributes":{"pages":[{"id":"root","path":"/","export":"Page"}],"navigation":[{"id":"entry","label":"Probe Page","page":"root"}]}}).to_string()).map_err(|e| e.to_string())?;
         std::fs::write(source.join("ui.mjs"), r#"import{createElement as h,useState}from'./_host/react.mjs';import{usePluginRoute,usePluginNavigate}from'./_host/sdk.mjs';export function Page(){const{pathname}=usePluginRoute();const navigate=usePluginNavigate();const[count,setCount]=useState(0);return h('div',{'data-probe-page':true},h('span',{'data-probe-state':true},`${count}:${pathname}`),h('button',{'data-probe-increment':true,onClick:()=>setCount(v=>v+1)},'Increment'),h('button',{'data-probe-child':true,onClick:()=>navigate('/child')},'Child'));}"#).map_err(|e| e.to_string())?;
         manager.inner().install(source).await?;
         manager.inner().action("probe-page", "enable", true).await?;
@@ -192,7 +192,7 @@ pub async fn plugin_probe_report(
             serde_json::json!({
                 "id":"probe-window", "name":"Probe Window", "version":"1.0.0", "frontend":"ui.mjs",
                 "permissions":["ui","window:manage","player:read"],
-                "engines":{"app":"^1.0.0","pluginApi":"^2.0.0","uiApi":"^2.0.0"},
+                "engines":{"app":"^1.0.0","pluginApi":"^3.0.0","uiApi":"^3.0.0"},
                 "contributes":{"windows":[{"id":"lyrics","export":"Lyrics"}]}
             })
             .to_string(),

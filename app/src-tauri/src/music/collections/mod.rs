@@ -93,10 +93,7 @@ impl Collections {
         scope: &str,
         tracks: Vec<identity::MusicTrack>,
     ) -> MusicResult<Vec<Track>> {
-        if tracks.len() > 100
-            || tracks.iter().any(|track| track.reference.source != *source)
-            || serde_json::to_vec(&tracks).map_err(store::failure)?.len() > 2 * 1024 * 1024
-        {
+        if tracks.len() > 100 || tracks.iter().any(|track| track.reference.source != *source) {
             return Err(ErrorCode::InvalidData.into());
         }
         if self.adapters.cache_identity(source)? != scope {
@@ -298,16 +295,10 @@ impl Collections {
             refresh,
             diagnostic,
         ));
-        let deadline = tokio::time::sleep(Duration::from_secs(12));
-        tokio::pin!(deadline);
         let mut checks = tokio::time::interval(Duration::from_millis(10));
         loop {
             tokio::select! {
                 biased;
-                _=&mut deadline => {
-                    diagnostic.details(format_args!("timeout_ms=12000"));
-                    return Err(ErrorCode::DeadlineExceeded.into());
-                },
                 _=checks.tick()=>self.check(&key,&scope,&state,epoch).inspect_err(|_| diagnostic.stage("context_check", "collection_context_changed"))?,
                 result=&mut work=> { self.check(&key,&scope,&state,epoch).inspect_err(|_| diagnostic.stage("context_check", "collection_context_changed"))?; return result; }
             }
@@ -571,15 +562,7 @@ impl Collections {
         };
         diagnostic.stage("response_validate", "collection_response_contract_invalid");
         result.validate(&request, &key.entity.source)?;
-        diagnostic.stage("descriptor", "source_descriptor_unavailable");
-        let descriptor = self
-            .adapters
-            .descriptors()?
-            .into_iter()
-            .find(|descriptor| descriptor.source == key.entity.source)
-            .ok_or(ErrorCode::SourceUnavailable)?;
         diagnostic.stage("cover_validate", "collection_cover_host_invalid");
-        result.validate_cover_hosts(&descriptor.cover_hosts)?;
         diagnostic.stage("context_check", "collection_context_changed");
         self.check(&key, &scope, &state, epoch)?;
         if self.stale(&snapshot) {

@@ -12,7 +12,10 @@ pub mod queue;
 pub mod resource;
 use serde::{Deserialize, Serialize};
 
-pub const CONTRACT_VERSION: u32 = 1;
+pub const CONTRACT_VERSION: u32 = 2;
+pub fn supports_contract_version(version: u32) -> bool {
+    version == CONTRACT_VERSION
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

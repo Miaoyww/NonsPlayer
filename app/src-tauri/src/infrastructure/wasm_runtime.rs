@@ -33,6 +33,7 @@ pub(crate) trait HostHandler: Send + Sync {
     fn http_request(&self, _value: host_io::Request) -> HostFuture<'_, host_io::Response> {
         Box::pin(async { Err("permissionDenied".into()) })
     }
+    /// `timeout` is forwarded unchanged: zero means no deadline, positives are not capped.
     fn websocket_open(
         &self,
         _url: String,
@@ -351,6 +352,110 @@ mod tests {
                 .unwrap();
                 assert_eq!(healthy.call("healthy", "null").await.unwrap(), "null");
             }
+        });
+    }
+    #[test]
+    fn transport_contract_passes_bytes_and_zero_timeouts_unchanged() {
+        use std::sync::Mutex;
+        #[derive(Default)]
+        struct RecordingHost {
+            http: Mutex<Option<host_io::Request>>,
+            socket: Mutex<Option<(String, String, u32)>>,
+            event_timeout: Mutex<Option<u32>>,
+        }
+        impl HostHandler for RecordingHost {
+            fn http_request(&self, value: host_io::Request) -> HostFuture<'_, host_io::Response> {
+                *self.http.lock().unwrap() = Some(value);
+                Box::pin(async {
+                    Ok(host_io::Response {
+                        status: 201,
+                        headers: vec![host_io::Header {
+                            name: "x-reply".into(),
+                            value: "yes".into(),
+                        }],
+                        body: b"reply".to_vec(),
+                        url: "https://arbitrary.example:8443/final".into(),
+                    })
+                })
+            }
+            fn websocket_open(
+                &self,
+                url: String,
+                protocol: String,
+                timeout: u32,
+            ) -> HostFuture<'_, u32> {
+                *self.socket.lock().unwrap() = Some((url, protocol, timeout));
+                Box::pin(async { Ok(7) })
+            }
+            fn next_event(&self, timeout: u32) -> HostFuture<'_, Option<host_io::Event>> {
+                *self.event_timeout.lock().unwrap() = Some(timeout);
+                Box::pin(async { Ok(None) })
+            }
+            fn call<'a>(
+                &'a self,
+                _: &'a str,
+                _: &'a str,
+            ) -> Pin<Box<dyn Future<Output = AppResult<String>> + Send + 'a>> {
+                Box::pin(async { Ok("null".into()) })
+            }
+        }
+        run(async {
+            let host = Arc::new(RecordingHost::default());
+            let mut state = State {
+                host: host.clone(),
+                wasi: wasmtime_wasi::WasiCtxBuilder::new().build(),
+                table: wasmtime::component::ResourceTable::new(),
+            };
+            let response = host_io::TransportHost::http_request(
+                &mut state,
+                host_io::Request {
+                    url: "https://arbitrary.example:8443/path".into(),
+                    method: "PATCH".into(),
+                    headers: vec![
+                        host_io::Header {
+                            name: "X-Custom".into(),
+                            value: "value".into(),
+                        },
+                        host_io::Header {
+                            name: "X-Second".into(),
+                            value: "two".into(),
+                        },
+                    ],
+                    body: vec![0, 255, 1, 2],
+                    follow_redirects: false,
+                    timeout_ms: 0,
+                },
+            )
+            .await
+            .unwrap();
+            assert_eq!(response.status, 201);
+            assert_eq!(response.body, b"reply");
+            assert_eq!(response.url, "https://arbitrary.example:8443/final");
+            let request = host.http.lock().unwrap().take().unwrap();
+            assert_eq!(request.method, "PATCH");
+            assert_eq!(request.headers.len(), 2);
+            assert_eq!(request.headers[1].name, "X-Second");
+            assert_eq!(request.body, vec![0, 255, 1, 2]);
+            assert!(!request.follow_redirects);
+            assert_eq!(request.timeout_ms, 0);
+
+            assert_eq!(
+                host_io::TransportHost::websocket_open(
+                    &mut state,
+                    "wss://arbitrary.example/socket".into(),
+                    "fixture".into(),
+                    0,
+                )
+                .await
+                .unwrap(),
+                7
+            );
+            assert_eq!(host.socket.lock().unwrap().as_ref().unwrap().2, 0);
+            assert!(host_io::TransportHost::next_event(&mut state, 0)
+                .await
+                .unwrap()
+                .is_none());
+            assert_eq!(*host.event_timeout.lock().unwrap(), Some(0));
         });
     }
     #[derive(Default)]

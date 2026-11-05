@@ -297,7 +297,7 @@ mod tests {
             serde_json::json!({
                 "id": "upgrade-test", "name": "Upgrade test", "version": version,
                 "frontend": "ui.mjs", "permissions": ["ui", "storage"],
-                "engines": {"app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0"}
+                "engines": {"app": "^1.0.0", "pluginApi": "^3.0.0", "uiApi": "^3.0.0"}
             })
             .to_string(),
         )
@@ -324,7 +324,6 @@ mod tests {
             .contains("确认"));
         assert!(check_upgrade(&old.manifest, &new.manifest, true).is_ok());
         new.manifest.permissions.push("account:credentials".into());
-        new.manifest.http_hosts.push("*".into());
         new.manifest.file_roots.push("*".into());
         assert!(check_upgrade(&old.manifest, &new.manifest, false).is_err());
         assert!(check_upgrade(&old.manifest, &new.manifest, true).is_ok());
@@ -336,13 +335,12 @@ mod tests {
         let package = Package::prepare(temp.path(), &source(temp.path(), "1.1.0")).unwrap();
         let expected = package.manifest;
         check_reviewed(&expected, Some(&expected)).unwrap();
-        for change in ["id", "version", "permissions", "hosts", "roots", "windows"] {
+        for change in ["id", "version", "permissions", "roots", "windows"] {
             let mut actual = expected.clone();
             match change {
                 "id" => actual.id = "swapped".into(),
                 "version" => actual.version = "1.2.0".into(),
                 "permissions" => actual.permissions.push("account:credentials".into()),
-                "hosts" => actual.http_hosts.push("*".into()),
                 "roots" => actual.file_roots.push("*".into()),
                 "windows" => {
                     actual

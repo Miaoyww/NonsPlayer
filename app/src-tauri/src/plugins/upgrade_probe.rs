@@ -38,7 +38,7 @@ fn prepare(version: &str, variant: &str, activation: &str) -> AppResult<PathBuf>
         serde_json::json!({
             "id": ID, "name": "Probe Page", "version": version, "frontend": "ui.mjs",
             "permissions": ["ui", "storage"],
-            "engines": {"app":"^1.0.0", "pluginApi":"^2.0.0", "uiApi":"^2.0.0"},
+            "engines": {"app":"^1.0.0", "pluginApi":"^3.0.0", "uiApi":"^3.0.0"},
             "contributes": {
                 "pages":[{"id":"root", "path":"/", "export":"Page"}],
                 "navigation":[{"id":"entry", "label":"Probe Page", "page":"root"}]

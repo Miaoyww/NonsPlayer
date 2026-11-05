@@ -6,13 +6,12 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-pub const API_VERSION: &str = "2.2.0";
+pub const PLUGIN_API_VERSION: &str = "3.0.0";
+pub const UI_API_VERSION: &str = "3.0.0";
 const FULLSCREEN_PLAYER_PANEL_SLOT: &str = "fullscreen.player.panel";
 const FULLSCREEN_PLAYER_ACTION_SLOT: &str = "fullscreen.player.actions";
 pub const PERMISSIONS: &[&str] = &[
     "clipboard:read",
-    "http:request",
-    "http:transfer",
     "secrets",
     "account:credentials",
     "storage",
@@ -30,7 +29,7 @@ pub const PERMISSIONS: &[&str] = &[
 ];
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct Manifest {
     pub id: String,
     pub name: String,
@@ -41,8 +40,6 @@ pub struct Manifest {
     pub frontend: Option<String>,
     pub configuration: Option<String>,
     pub permissions: Vec<String>,
-    #[serde(default, rename = "httpHosts")]
-    pub http_hosts: Vec<String>,
     #[serde(default, rename = "fileRoots")]
     pub file_roots: Vec<String>,
     pub engines: Engines,
@@ -209,13 +206,16 @@ pub fn is_link(meta: &std::fs::Metadata) -> bool {
     }
 }
 impl Manifest {
-    pub fn authorization(&self) -> String {
+    pub fn authorization_permissions(&self) -> Vec<String> {
         let mut permissions = self.permissions.clone();
-        let mut hosts = self.http_hosts.clone();
         permissions.sort();
-        hosts.sort();
-        let mut authorization =
-            serde_json::json!({"version":self.version,"permissions":permissions,"httpHosts":hosts});
+        permissions
+    }
+    pub fn authorization(&self) -> String {
+        let mut authorization = serde_json::json!({
+            "version": self.version,
+            "permissions": self.authorization_permissions(),
+        });
         if !self.file_roots.is_empty() {
             authorization["fileRoots"] = serde_json::json!(self.file_roots);
         }
@@ -297,8 +297,8 @@ impl Manifest {
             .map_err(|_| "插件版本必须是 SemVer")?;
         for (range, version) in [
             (&self.engines.app, env!("CARGO_PKG_VERSION")),
-            (&self.engines.plugin_api, API_VERSION),
-            (&self.engines.ui_api, API_VERSION),
+            (&self.engines.plugin_api, PLUGIN_API_VERSION),
+            (&self.engines.ui_api, UI_API_VERSION),
         ] {
             if !VersionReq::parse(range)
                 .inspect_err(|error| {
@@ -325,23 +325,12 @@ impl Manifest {
             }
         }
         let mut permissions = HashSet::new();
-        if self
-            .permissions
-            .iter()
-            .any(|p| !PERMISSIONS.contains(&p.as_str()) || !permissions.insert(p))
-        {
+        if self.permissions.iter().any(|permission| {
+            !PERMISSIONS.contains(&permission.as_str()) || !permissions.insert(permission)
+        }) {
             return Err("未知或重复的插件权限".into());
         }
         let c = &self.contributes;
-        let mut hosts = HashSet::new();
-        if self.http_hosts.len() > 32
-            || self
-                .http_hosts
-                .iter()
-                .any(|host| !super::http::valid_host(host) || !hosts.insert(host))
-        {
-            return Err("httpHosts 最多 32 个、不能重复且必须是不含路径的主机或通配声明".into());
-        }
         if let Some(path) = &self.configuration {
             safe_relative(path)?;
             if !path.ends_with(".json") {
@@ -489,7 +478,7 @@ mod tests {
                 "frontend": "ui.mjs",
                 "permissions": ["ui", "files:selected"],
                 "fileRoots": ["*"],
-                "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" },
+                "engines": { "app": "^1.0.0", "pluginApi": "^3.0.0", "uiApi": "^3.0.0" },
                 "contributes": {
                     "pages": [{ "id": "convert", "path": "/", "export": "ConverterPage" }],
                     "navigation": [{
@@ -540,9 +529,8 @@ mod tests {
                 "version": "1.1.0",
                 "frontend": "ui.mjs",
                 "configuration": "configuration.json",
-                "permissions": ["ui", "config", "storage", "account:credentials", "player:control", "http:request", "http:transfer", "files:selected"],
-                "httpHosts": ["*"],
-                "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" },
+                "permissions": ["ui", "config", "storage", "account:credentials", "player:control", "files:selected"],
+                "engines": { "app": "^1.0.0", "pluginApi": "^3.0.0", "uiApi": "^3.0.0" },
                 "contributes": {
                     "contextMenus": [{
                         "id": "download",
@@ -633,39 +621,33 @@ mod tests {
         assert!(valid_id("netease-island"));
     }
     #[test]
-    fn manifest_checks_compatibility_permissions_and_contribution_references() {
+    fn manifest_ignores_unknown_fields_and_checks_contribution_references() {
         let value: serde_json::Value =
             serde_json::from_str(include_str!("../../../../plugins/ui-fixture/manifest.json"))
                 .unwrap();
         let valid: Manifest = serde_json::from_value(value.clone()).unwrap();
         assert!(valid.validate().is_ok());
-        for hosts in [
-            serde_json::json!(["*", "*"]),
-            serde_json::json!(["example.org", "example.org"]),
-            serde_json::json!(["example.org/path"]),
-        ] {
+        for field in ["httpHosts", "websocketHosts", "coverHosts"] {
             let mut candidate = value.clone();
-            candidate["httpHosts"] = hosts;
-            assert!(serde_json::from_value::<Manifest>(candidate)
-                .unwrap()
-                .validate()
-                .is_err());
+            candidate[field] = serde_json::json!(["example.org"]);
+            let parsed = serde_json::from_value::<Manifest>(candidate).unwrap();
+            assert_eq!(parsed.authorization(), valid.authorization(), "{field}");
         }
-        let mut declarations = valid.clone();
-        declarations.http_hosts = vec![
-            "*.example.org".into(),
-            "localhost".into(),
-            "127.0.0.1".into(),
-            "[::1]:8080".into(),
-        ];
-        assert!(declarations.validate().is_ok());
-        let mut different_scope = valid.clone();
-        different_scope.http_hosts = Vec::new();
-        assert!(different_scope.validate().is_ok());
-        assert_ne!(valid.authorization(), different_scope.authorization());
-        different_scope.http_hosts = vec!["*".into()];
-        assert!(different_scope.validate().is_ok());
-        assert_ne!(valid.authorization(), different_scope.authorization());
+        let mut legacy_permissions = value.clone();
+        legacy_permissions["permissions"]
+            .as_array_mut()
+            .unwrap()
+            .extend([
+                serde_json::json!("http:request"),
+                serde_json::json!("http:transfer"),
+                serde_json::json!("websocket"),
+            ]);
+        let legacy_permissions = serde_json::from_value::<Manifest>(legacy_permissions).unwrap();
+        assert_eq!(
+            legacy_permissions.permissions.len(),
+            valid.permissions.len() + 3
+        );
+        assert_ne!(legacy_permissions.authorization(), valid.authorization());
         for (pointer, invalid) in [
             ("/id", serde_json::json!("../bad")),
             ("/version", serde_json::json!("latest")),
@@ -686,6 +668,9 @@ mod tests {
         }
         let mut unknown = value;
         unknown["network"] = serde_json::json!(true);
-        assert!(serde_json::from_value::<Manifest>(unknown).is_err());
+        serde_json::from_value::<Manifest>(unknown)
+            .unwrap()
+            .validate()
+            .unwrap();
     }
 }

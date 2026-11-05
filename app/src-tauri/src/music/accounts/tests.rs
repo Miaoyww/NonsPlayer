@@ -215,7 +215,6 @@ fn scoped_access_rejects_cross_source_stale_accounts_and_disabled_instances() {
                     platforms: Default::default(),
                     contract_version: super::super::CONTRACT_VERSION,
                     login_methods: Vec::new(),
-                    cover_hosts: Default::default(),
                     share_link_templates: Default::default(),
                     capabilities: Default::default(),
                 })),
@@ -235,7 +234,7 @@ fn scoped_access_rejects_cross_source_stale_accounts_and_disabled_instances() {
         RequestContext {
             session,
             adapter_generation: generation,
-            deadline: Instant::now() + Duration::from_secs(10),
+            deadline: Some(Instant::now() + Duration::from_secs(10)),
             cancellation: Default::default(),
         }
     };
@@ -301,7 +300,6 @@ async fn logout_preserves_credentials_and_can_reselect_after_restart() {
         platforms: Default::default(),
         contract_version: super::super::CONTRACT_VERSION,
         login_methods: Vec::new(),
-        cover_hosts: Default::default(),
         share_link_templates: Default::default(),
         capabilities: [super::super::adapter::Capability::Account]
             .into_iter()
@@ -401,7 +399,6 @@ fn refresh_after_instance_revocation_restores_previous_secret_without_publicatio
                 platforms: Default::default(),
                 contract_version: super::super::CONTRACT_VERSION,
                 login_methods: Vec::new(),
-                cover_hosts: Default::default(),
                 share_link_templates: Default::default(),
                 capabilities: Default::default(),
             })),
@@ -419,7 +416,7 @@ fn refresh_after_instance_revocation_restores_previous_secret_without_publicatio
     let context = RequestContext {
         session: session.clone(),
         adapter_generation,
-        deadline: Instant::now() + Duration::from_secs(10),
+        deadline: Some(Instant::now() + Duration::from_secs(10)),
         cancellation: Default::default(),
     };
     let access = manager.scoped_access(&context).unwrap();

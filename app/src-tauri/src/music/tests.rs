@@ -105,7 +105,7 @@ fn context() -> RequestContext {
             generation: 3,
         },
         adapter_generation: 7,
-        deadline: Instant::now() + Duration::from_secs(10),
+        deadline: Some(Instant::now() + Duration::from_secs(10)),
         cancellation: Cancellation::default(),
     }
 }
@@ -139,7 +139,6 @@ fn capability_and_account_restrictions_are_separate() {
         platforms: Default::default(),
         contract_version: CONTRACT_VERSION,
         login_methods: Vec::new(),
-        cover_hosts: Default::default(),
         share_link_templates: Default::default(),
         capabilities: BTreeSet::from([Capability::Favorites]),
     };
@@ -195,7 +194,7 @@ fn stale_scope_cancellation_and_deadlines_reject_results() {
         ErrorCode::Cancelled
     );
     request.cancellation = Cancellation::default();
-    request.deadline = Instant::now();
+    request.deadline = Some(Instant::now());
     assert_eq!(
         request.check(&request.session, 7).unwrap_err().code,
         ErrorCode::DeadlineExceeded
@@ -203,7 +202,7 @@ fn stale_scope_cancellation_and_deadlines_reject_results() {
 }
 
 #[test]
-fn cursor_pagination_has_count_and_payload_bounds() {
+fn cursor_pagination_has_bounded_pages_and_opaque_cursor_length() {
     let request = PageRequest {
         cursor: Some(Cursor::try_from("offset=30&token=abc".to_owned()).unwrap()),
         limit: 2,
@@ -216,7 +215,7 @@ fn cursor_pagination_has_count_and_payload_bounds() {
     page.items.push("c".into());
     assert!(page.validate(&request).is_err());
     page.items = vec!["a".repeat(2 * 1024 * 1024)];
-    assert!(page.validate(&request).is_err());
+    assert!(page.validate(&request).is_ok());
     for limit in [0, 101] {
         assert!(PageRequest {
             cursor: None,
@@ -311,7 +310,7 @@ fn cache_identity_isolated_by_source_account_operation_and_generations() {
 #[test]
 fn prepared_resource_lease_uses_its_own_lifetime_after_request_completion() {
     let mut request = context();
-    request.deadline = Instant::now();
+    request.deadline = Some(Instant::now());
     let lease = ResourceLease {
         handle: ResourceHandle::try_from("prepared-resource".to_owned()).unwrap(),
         context: request.clone(),

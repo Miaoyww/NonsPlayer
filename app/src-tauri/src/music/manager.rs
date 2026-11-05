@@ -12,7 +12,7 @@ use std::{
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, SemaphorePermit};
 mod providers;
 mod retry;
 pub use super::provider::PlaybackSource;
@@ -31,10 +31,8 @@ struct Entry {
     adapter: Arc<dyn MusicAdapter>,
     session: SessionProvider,
     generation: Arc<AtomicU64>,
-    reads: Semaphore,
-    playback: Semaphore,
     accounts: Semaphore,
-    account_waiters: Semaphore,
+    reads: Semaphore,
     login_challenges: Mutex<BTreeMap<String, (SessionContext, u64, Instant)>>,
     revision: AtomicU64,
 }
@@ -44,6 +42,28 @@ impl Entry {
             return Err(ErrorCode::SourceUnavailable.into());
         }
         context.check(&(self.session)(), self.generation.load(Ordering::Acquire))
+    }
+    async fn admit<'a>(
+        &self,
+        gate: &'a Semaphore,
+        context: &RequestContext,
+        operation: &'static str,
+    ) -> MusicResult<SemaphorePermit<'a>> {
+        self.check(context)?;
+        let mut checks = tokio::time::interval(Duration::from_millis(10));
+        loop {
+            tokio::select! {
+                biased;
+                _ = checks.tick() => self.check(context)?,
+                permit = gate.acquire() => {
+                    let permit = permit.inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn(operation, error);
+                    }).map_err(|_| ErrorCode::Internal)?;
+                    self.check(context)?;
+                    return Ok(permit);
+                }
+            }
+        }
     }
 }
 #[derive(Default)]
@@ -96,7 +116,7 @@ impl ResourceTicket {
                         generation: 1,
                     },
                     adapter_generation: 1,
-                    deadline: Instant::now(),
+                    deadline: None,
                     cancellation: Cancellation::default(),
                 },
                 playback_generation: 0,
@@ -279,10 +299,8 @@ impl AdapterManager {
                 adapter,
                 session,
                 generation: Arc::new(AtomicU64::new(1)),
-                reads: Semaphore::new(4),
-                playback: Semaphore::new(2),
                 accounts: Semaphore::new(1),
-                account_waiters: Semaphore::new(4),
+                reads: Semaphore::new(4),
                 login_challenges: Default::default(),
                 revision: AtomicU64::new(0),
             }),
@@ -313,10 +331,8 @@ impl AdapterManager {
             adapter,
             session,
             generation: Arc::new(AtomicU64::new(1)),
-            reads: Semaphore::new(4),
-            playback: Semaphore::new(2),
             accounts: Semaphore::new(1),
-            account_waiters: Semaphore::new(4),
+            reads: Semaphore::new(4),
             login_challenges: Default::default(),
             revision: AtomicU64::new(0),
         });
@@ -435,11 +451,11 @@ impl AdapterManager {
         }
         Ok(((entry.session)(), entry.generation.load(Ordering::Acquire)))
     }
-    fn context(entry: &Entry, budget: Duration) -> RequestContext {
+    fn context(entry: &Entry) -> RequestContext {
         RequestContext {
             session: (entry.session)(),
             adapter_generation: entry.generation.load(Ordering::Acquire),
-            deadline: Instant::now() + budget,
+            deadline: None,
             cancellation: Cancellation::default(),
         }
     }
@@ -451,13 +467,10 @@ impl AdapterManager {
     ) -> MusicResult<T> {
         entry.check(context)?;
         tokio::pin!(future);
-        let deadline = tokio::time::sleep_until(context.deadline.into());
-        tokio::pin!(deadline);
         let mut checks = tokio::time::interval(Duration::from_millis(10));
         loop {
             tokio::select! {
                 biased;
-                _ = &mut deadline => return Err(ErrorCode::DeadlineExceeded.into()),
                 _ = checks.tick() => entry.check(context)?,
                 result = &mut future => { entry.check(context)?; return result; }
             }
@@ -480,7 +493,7 @@ impl AdapterManager {
     ) -> MusicResult<String> {
         request.validate(source)?;
         let entry = self.entry(source)?;
-        let context = Self::context(&entry, Duration::from_secs(12));
+        let context = Self::context(&entry);
         entry.check(&context)?;
         if !entry
             .adapter
@@ -510,8 +523,7 @@ impl AdapterManager {
                 let generation = entry.generation.load(Ordering::Acquire);
                 let descriptor = entry.adapter.descriptor();
                 (!generation.is_multiple_of(2)
-                    && nons_music_adapter_sdk::cover::checked_url(url, &descriptor.cover_hosts)
-                        .is_ok())
+                    && nons_music_adapter_sdk::cover::checked_url(url).is_ok())
                 .then(|| (descriptor.source.clone(), generation))
             })
             .collect::<Vec<_>>();
@@ -527,7 +539,7 @@ impl AdapterManager {
             let generation = provider.generation.load(Ordering::Acquire);
             let descriptor = provider.adapter.descriptor();
             if !generation.is_multiple_of(2)
-                && nons_music_adapter_sdk::cover::checked_url(url, &descriptor.cover_hosts).is_ok()
+                && nons_music_adapter_sdk::cover::checked_url(url).is_ok()
             {
                 owners.push((descriptor.id.clone(), generation));
             }
@@ -561,7 +573,7 @@ impl AdapterManager {
     ) -> MusicResult<super::business::BusinessResponse> {
         crate::infrastructure::diagnostics::observe(source.as_str(), request.operation(), async {
             let entry = self.entry(source)?;
-            let context = Self::context(&entry, Duration::from_secs(12));
+            let context = Self::context(&entry);
             if request.is_write() {
                 return self.business_inner(&entry, &context, source, request).await;
             }
@@ -602,12 +614,8 @@ impl AdapterManager {
             return Err(ErrorCode::Unauthenticated.into());
         }
         let _permit = entry
-            .reads
-            .try_acquire()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("music.business_read_admission", error);
-            })
-            .map_err(|_| ErrorCode::RateLimited)?;
+            .admit(&entry.reads, &context, "music.business_read_admission")
+            .await?;
         let revision = entry.revision.load(Ordering::Acquire);
         let scope = format!("{}-{revision}", cursor_scope(request, &context)?);
         let internal = decode_cursor(request, &scope)?;
@@ -619,7 +627,6 @@ impl AdapterManager {
             )
             .await?;
         result.validate(request, source)?;
-        result.validate_cover_hosts(&entry.adapter.descriptor().cover_hosts)?;
         if let BusinessResponse::Summary(summary) = &result {
             if context.session.account.as_ref() != Some(&summary.account.reference.id) {
                 return Err(ErrorCode::InvalidData.into());
@@ -668,37 +675,11 @@ impl AdapterManager {
     ) -> MusicResult<super::business::AccountPresentation> {
         use super::business::*;
         let entry = self.entry(source)?;
-        if serde_json::to_vec(request)
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("music.account_request_encode", error);
-            })
-            .map_err(|_| ErrorCode::InvalidData)?
-            .len()
-            > 16 * 1024
-        {
-            return Err(ErrorCode::InvalidData.into());
-        }
-        let deadline = Instant::now() + Duration::from_secs(12);
-        let _waiter = entry
-            .account_waiters
-            .try_acquire()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("music.account_waiter_admission", error);
-            })
-            .map_err(|_| ErrorCode::RateLimited)?;
-        let _permit = tokio::time::timeout_at(deadline.into(), entry.accounts.acquire())
-            .await
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("music.account_admission_timeout", error);
-            })
-            .map_err(|_| ErrorCode::DeadlineExceeded)?
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("music.account_admission_closed", error);
-            })
-            .map_err(|_| ErrorCode::Internal)?;
-        let mut context = Self::context(&entry, Duration::from_secs(12));
-        context.deadline = deadline;
+        let context = Self::context(&entry);
         entry.check(&context)?;
+        let _permit = entry
+            .admit(&entry.accounts, &context, "music.account_admission")
+            .await?;
         if !entry
             .adapter
             .descriptor()
@@ -795,29 +776,12 @@ impl AdapterManager {
         let outcome = self
             .run(&entry, &context, entry.adapter.account(request, &context))
             .await?;
-        if serde_json::to_vec(&outcome.presentation)
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn(
-                    "music.account_presentation_encode",
-                    error,
-                );
-            })
-            .map_err(|_| ErrorCode::InvalidData)?
-            .len()
-            > 64 * 1024
-        {
-            return Err(ErrorCode::InvalidData.into());
-        }
         entry.check(&context)?;
         if let AccountPresentation::Profile(Some(record)) = &outcome.presentation {
-            record
-                .avatar
-                .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
+            record.avatar.validate_adapter()?;
         }
         if let Some((record, _)) = &outcome.credential {
-            record
-                .avatar
-                .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
+            record.avatar.validate_adapter()?;
         }
         let valid = match (request, &outcome.presentation) {
             (AccountRequest::BeginLogin { .. }, AccountPresentation::Challenge { key, image }) => {
@@ -938,7 +902,7 @@ impl AdapterManager {
     pub async fn read_track(&self, reference: &EntityRef) -> MusicResult<MusicTrack> {
         crate::infrastructure::diagnostics::observe(reference.source.as_str(), "readTrack", async {
             let entry = self.entry(&reference.source)?;
-            let context = Self::context(&entry, Duration::from_secs(12));
+            let context = Self::context(&entry);
             self.run(
                 &entry,
                 &context,
@@ -954,20 +918,12 @@ impl AdapterManager {
         original: &RequestContext,
         reference: &EntityRef,
     ) -> MusicResult<MusicTrack> {
-        let mut context = original.clone();
-        context.deadline = context
-            .deadline
-            .min(Instant::now() + Duration::from_secs(3));
+        let context = original.clone();
         entry.check(&context)?;
         context.check_reference(reference)?;
-        // Reject overload rather than create an unbounded waiting queue.
         let _permit = entry
-            .reads
-            .try_acquire()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("music.track_read_admission", error);
-            })
-            .map_err(|_| ErrorCode::RateLimited)?;
+            .admit(&entry.reads, &context, "music.track_read_admission")
+            .await?;
         let track = self
             .run(
                 &entry,
@@ -976,9 +932,7 @@ impl AdapterManager {
             )
             .await?;
         track.validate(reference)?;
-        track
-            .cover
-            .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
+        track.cover.validate_adapter()?;
         entry.check(&context)?;
         Ok(track)
     }
@@ -1010,7 +964,7 @@ impl AdapterManager {
         crate::infrastructure::diagnostics::observe(source.as_str(), "searchMvs", async {
             request.validate()?;
             let entry = self.entry(source)?;
-            let context = Self::context(&entry, Duration::from_secs(12));
+            let context = Self::context(&entry);
             self.run(
                 &entry,
                 &context,
@@ -1036,21 +990,15 @@ impl AdapterManager {
             return Err(ErrorCode::Unsupported.into());
         }
         let _permit = entry
-            .reads
-            .try_acquire()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("music.mv_search_admission", error);
-            })
-            .map_err(|_| ErrorCode::RateLimited)?;
+            .admit(&entry.reads, context, "music.mv_search_admission")
+            .await?;
         let page = self
             .run(entry, context, entry.adapter.search_mvs(request, context))
             .await?;
         page.validate(&request.page)?;
         for candidate in &page.items {
             candidate.validate(&entry.adapter.descriptor().source)?;
-            candidate
-                .cover
-                .validate_hosts(&entry.adapter.descriptor().cover_hosts)?;
+            candidate.cover.validate_adapter()?;
         }
         entry.check(context)?;
         Ok(page)
@@ -1062,7 +1010,7 @@ impl AdapterManager {
     ) -> MusicResult<LyricMatchSubject> {
         let source = SourceId::try_from(source.to_owned())?;
         let entry = self.entry(&source)?;
-        let context = Self::context(&entry, Duration::from_secs(2));
+        let context = Self::context(&entry);
         self.run(&entry, &context, async {
             entry.check(&context)?;
             if !entry
@@ -1074,12 +1022,8 @@ impl AdapterManager {
                 return Err(ErrorCode::Unsupported.into());
             }
             let _permit = entry
-                .reads
-                .try_acquire()
-                .inspect_err(|error| {
-                    crate::infrastructure::diagnostics::warn("music.lyric_match_admission", error);
-                })
-                .map_err(|_| ErrorCode::RateLimited)?;
+                .admit(&entry.reads, &context, "music.lyric_match_admission")
+                .await?;
             let subject = entry
                 .adapter
                 .lyric_match(
@@ -1105,7 +1049,7 @@ impl AdapterManager {
             "resolvePlayback",
             async {
                 let entry = self.entry(&request.track.source)?;
-                let context = Self::context(&entry, Duration::from_secs(12));
+                let context = Self::context(&entry);
                 self.run(
                     &entry,
                     &context,
@@ -1133,7 +1077,7 @@ impl AdapterManager {
             "resolveMv",
             async {
                 let entry = self.entry(&request.mv.source)?;
-                let context = Self::context(&entry, Duration::from_secs(12));
+                let context = Self::context(&entry);
                 self.run(
                     &entry,
                     &context,
@@ -1168,13 +1112,6 @@ impl AdapterManager {
         {
             return Err(ErrorCode::Unsupported.into());
         }
-        let permit = entry
-            .playback
-            .try_acquire()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("music.mv_resolution_admission", error);
-            })
-            .map_err(|_| ErrorCode::RateLimited)?;
         let resource = self
             .run(
                 &entry,
@@ -1194,7 +1131,6 @@ impl AdapterManager {
             return Err(ErrorCode::DeadlineExceeded.into());
         }
         entry.check(&context)?;
-        drop(permit);
         self.register_resource(entry, context, playback_generation, resource, ttl)
     }
     async fn resolve_playback_inner(
@@ -1206,13 +1142,6 @@ impl AdapterManager {
     ) -> MusicResult<Arc<ResourceTicket>> {
         entry.check(&context)?;
         request.validate(&context)?;
-        let permit = entry
-            .playback
-            .try_acquire()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("music.playback_admission", error);
-            })
-            .map_err(|_| ErrorCode::RateLimited)?;
         let resource = self
             .run(
                 &entry,
@@ -1232,7 +1161,6 @@ impl AdapterManager {
             return Err(ErrorCode::DeadlineExceeded.into());
         }
         entry.check(&context)?;
-        drop(permit);
         self.register_resource(entry, context, playback_generation, resource, ttl)
     }
     fn register_resource(
@@ -1356,16 +1284,8 @@ fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
         ResourceAccess::HttpFallback {
             primary,
             backup_urls,
-        } => {
-            if backup_urls.len() > 8 {
-                return Err(ErrorCode::InvalidData.into());
-            }
-            (primary, backup_urls.as_slice())
-        }
+        } => (primary, backup_urls.as_slice()),
     };
-    if http.url.len() > 8192 {
-        return Err(ErrorCode::InvalidData.into());
-    }
     let url = url::Url::parse(&http.url)
         .inspect_err(|error| {
             crate::infrastructure::diagnostics::warn("music.audio_url_parse", error);
@@ -1378,9 +1298,6 @@ fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
         return Err(ErrorCode::InvalidData.into());
     }
     for input in backups {
-        if input.len() > 8192 {
-            return Err(ErrorCode::InvalidData.into());
-        }
         let url = url::Url::parse(input)
             .inspect_err(|error| {
                 crate::infrastructure::diagnostics::warn("music.audio_backup_url_parse", error);
@@ -1394,27 +1311,24 @@ fn validate_access(access: &ResourceAccess) -> MusicResult<()> {
 }
 
 fn valid_audio_headers(headers: &[(String, String)]) -> bool {
-    headers.len() <= 32
-        && headers.iter().all(|(name, value)| {
-            name.len() <= 128
-                && value.len() <= 4096
-                && http::header::HeaderName::from_bytes(name.as_bytes()).is_ok()
-                && http::header::HeaderValue::from_str(value).is_ok()
-                && ![
-                    "host",
-                    "range",
-                    "content-length",
-                    "transfer-encoding",
-                    "connection",
-                    "accept-encoding",
-                    "if-range",
-                    "proxy-authorization",
-                    "proxy-connection",
-                    "upgrade",
-                ]
-                .iter()
-                .any(|reserved| name.eq_ignore_ascii_case(reserved))
-        })
+    headers.iter().all(|(name, value)| {
+        http::header::HeaderName::from_bytes(name.as_bytes()).is_ok()
+            && http::header::HeaderValue::from_str(value).is_ok()
+            && ![
+                "host",
+                "range",
+                "content-length",
+                "transfer-encoding",
+                "connection",
+                "accept-encoding",
+                "if-range",
+                "proxy-authorization",
+                "proxy-connection",
+                "upgrade",
+            ]
+            .iter()
+            .any(|reserved| name.eq_ignore_ascii_case(reserved))
+    })
 }
 
 #[cfg(test)]
@@ -1667,7 +1581,6 @@ mod tests {
                 platforms: Default::default(),
                 contract_version: super::super::CONTRACT_VERSION,
                 login_methods: Vec::new(),
-                cover_hosts: Default::default(),
                 share_link_templates: Default::default(),
                 capabilities: Default::default(),
             },
@@ -1750,8 +1663,7 @@ mod tests {
 
     #[test]
     fn cover_access_follows_adapter_instances_not_declared_hosts_or_accounts() {
-        let mut provider = adapter(false);
-        provider.descriptor.cover_hosts = ["*.art.example".into()].into_iter().collect();
+        let provider = adapter(false);
         let (manager, accounts, _) = setup(provider);
         let url = "https://images.art.example/cover.jpg";
         let initial = manager.cover_access(url).unwrap();
@@ -1891,14 +1803,15 @@ mod tests {
     async fn playback_has_a_reserved_budget_when_reads_are_full() {
         let (manager, _, _) = setup(adapter(false));
         let entry = manager.entry(&source()).unwrap();
-        let _reads = entry.reads.try_acquire_many(4).unwrap();
-        assert_eq!(
-            manager.read_track(&request().track).await.unwrap_err().code,
-            ErrorCode::RateLimited
-        );
+        let reads = entry.reads.try_acquire_many(4).unwrap();
+        let track = request().track;
+        let read = manager.read_track(&track);
+        tokio::pin!(read);
         let resource = manager.resolve_playback(&request(), 7).await.unwrap();
         resource.check(7).unwrap();
         assert_eq!(resource.check(8).unwrap_err().code, ErrorCode::StaleContext);
+        drop(reads);
+        read.await.unwrap();
         manager.set_enabled(&source(), false).unwrap();
     }
     #[tokio::test]
@@ -1990,6 +1903,81 @@ mod tests {
         assert_eq!(provider.calls.load(Ordering::Acquire), 0);
     }
     #[tokio::test]
+    async fn busy_backoff_is_cancelled_on_disable() {
+        let (manager, _, provider) = setup(adapter(false));
+        let entry = manager.entry(&source()).unwrap();
+        let permits = entry.reads.try_acquire_many(4).unwrap();
+        let query = async { manager.read_track(&request().track).await };
+        let disable = async {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            manager.set_enabled(&source(), false).unwrap();
+            drop(permits);
+        };
+        let (result, _) = tokio::time::timeout(Duration::from_millis(400), async {
+            tokio::join!(query, disable)
+        })
+        .await
+        .unwrap();
+        assert_eq!(result.unwrap_err().code, ErrorCode::SourceUnavailable);
+        assert_eq!(provider.calls.load(Ordering::Acquire), 0);
+    }
+    #[tokio::test]
+    async fn account_lock_wait_is_cancelled_on_account_change_or_disable() {
+        use super::super::{accounts::*, business::*};
+        struct Secrets;
+        impl CredentialStore for Secrets {
+            fn read(&self, _: &str) -> MusicResult<Option<Vec<u8>>> {
+                Ok(None)
+            }
+            fn write(&self, _: &str, _: &[u8]) -> MusicResult<()> {
+                Ok(())
+            }
+            fn delete(&self, _: &str) -> MusicResult<()> {
+                Ok(())
+            }
+        }
+        for disable in [false, true] {
+            let directory = tempfile::tempdir().unwrap();
+            let store = Arc::new(
+                crate::storage::Store::open(&directory.path().join("accounts.sqlite3")).unwrap(),
+            );
+            let accounts = Arc::new(AccountManager::new(store, Arc::new(Secrets)).unwrap());
+            let mut provider = adapter(false);
+            provider.descriptor.capabilities.insert(Capability::Account);
+            let (manager, session, _) = setup(provider);
+            accounts.bind(&manager);
+            let entry = manager.entry(&source()).unwrap();
+            let held = entry.accounts.try_acquire().unwrap();
+            let source = source();
+            let wait = manager.account(
+                &source,
+                &AccountRequest::BeginLogin { method: None },
+                &accounts,
+            );
+            tokio::pin!(wait);
+            assert!(tokio::time::timeout(Duration::from_millis(50), &mut wait)
+                .await
+                .is_err());
+            if disable {
+                manager.set_enabled(&source, false).unwrap();
+            } else {
+                session.fetch_add(1, Ordering::AcqRel);
+            }
+            let result = tokio::time::timeout(Duration::from_millis(400), &mut wait)
+                .await
+                .unwrap();
+            assert_eq!(
+                result.unwrap_err().code,
+                if disable {
+                    ErrorCode::SourceUnavailable
+                } else {
+                    ErrorCode::StaleContext
+                }
+            );
+            drop(held);
+        }
+    }
+    #[tokio::test]
     async fn busy_writes_are_not_automatically_replayed() {
         use super::super::business::*;
         let manager = AdapterManager::default();
@@ -2010,33 +1998,31 @@ mod tests {
             track: request().track,
             liked: true,
         };
-        let result = tokio::time::timeout(
-            Duration::from_millis(200),
-            manager.business(&source(), &request),
-        )
-        .await
-        .unwrap();
-        assert_eq!(result.unwrap_err().code, ErrorCode::RateLimited);
+        let source = source();
+        let write = manager.business(&source, &request);
+        tokio::pin!(write);
+        tokio::time::sleep(Duration::from_millis(50)).await;
         assert_eq!(provider.calls.load(Ordering::Acquire), 0);
         drop(permits);
-        manager.business(&source(), &request).await.unwrap();
+        tokio::time::timeout(Duration::from_millis(400), &mut write)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(provider.calls.load(Ordering::Acquire), 1);
     }
     #[tokio::test]
-    async fn deadline_and_explicit_cancellation_drop_pending_futures() {
+    async fn explicit_cancellation_drops_pending_futures() {
         let (manager, _, _) = setup(adapter(false));
         let entry = manager.entry(&source()).unwrap();
-        let context = AdapterManager::context(&entry, Duration::from_millis(20));
-        let result = manager
-            .run::<()>(&entry, &context, std::future::pending())
-            .await;
-        assert_eq!(result.unwrap_err().code, ErrorCode::DeadlineExceeded);
-        let context = AdapterManager::context(&entry, Duration::from_secs(1));
+        let context = AdapterManager::context(&entry);
+        let run = manager.run::<()>(&entry, &context, std::future::pending());
+        tokio::pin!(run);
+        tokio::time::sleep(Duration::from_millis(50)).await;
         context.cancellation.cancel();
         assert_eq!(
-            manager
-                .run::<()>(&entry, &context, std::future::pending())
+            tokio::time::timeout(Duration::from_millis(400), &mut run)
                 .await
+                .unwrap()
                 .unwrap_err()
                 .code,
             ErrorCode::Cancelled
@@ -2118,6 +2104,22 @@ mod tests {
             }))
             .unwrap();
         }
+        let long_url = format!("https://example.com/{}", "a".repeat(16 * 1024));
+        validate_access(&ResourceAccess::Http(HttpAccess {
+            url: long_url.clone(),
+            headers: (0..33)
+                .map(|index| (format!("X-Header-{index}"), "v".repeat(4 * 1024)))
+                .collect(),
+        }))
+        .unwrap();
+        validate_access(&ResourceAccess::HttpFallback {
+            primary: HttpAccess {
+                url: long_url.clone(),
+                headers: vec![],
+            },
+            backup_urls: (0..9).map(|_| long_url.clone()).collect(),
+        })
+        .unwrap();
         for (name, value) in [
             ("Range", "bytes=0-"),
             ("X-Token", "secret\r\nInjected: yes"),

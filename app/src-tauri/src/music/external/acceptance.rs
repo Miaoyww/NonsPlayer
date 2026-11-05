@@ -28,6 +28,7 @@ async fn gdstudio_component_resolves_under_native_host() {
                         status: 200,
                         headers: vec![],
                         body: b"1792158848".to_vec(),
+                        url: request.url,
                     });
                 }
                 if request
@@ -39,6 +40,7 @@ async fn gdstudio_component_resolves_under_native_host() {
                         status: 200,
                         headers: vec![],
                         body: br#"{"code":0,"url":"https://m1.music.126.net/test.mp3"}"#.to_vec(),
+                        url: request.url,
                     });
                 }
                 assert!(!request.headers.iter().any(|h| h.name == "X-Request-Key"));
@@ -69,6 +71,7 @@ async fn gdstudio_component_resolves_under_native_host() {
                         value: range,
                     }],
                     body,
+                    url: request.url,
                 })
             })
         }
@@ -137,6 +140,7 @@ async fn qq_component_large_playlist_reads_one_page() {
                         value: "application/json".into(),
                     }],
                     body,
+                    url: request.url,
                 })
             })
         }
@@ -216,7 +220,6 @@ async fn xiaobai_component_live_lemon() {
                 contract_version: descriptor.contract_version,
                 login_methods: vec![],
                 capabilities: Default::default(),
-                cover_hosts: descriptor.cover_hosts.clone(),
                 share_link_templates: Default::default(),
             },
         )
@@ -265,7 +268,7 @@ async fn xiaobai_component_live_lemon() {
     let context = RequestContext {
         session,
         adapter_generation,
-        deadline: Instant::now() + std::time::Duration::from_secs(12),
+        deadline: Some(Instant::now() + std::time::Duration::from_secs(12)),
         cancellation: Default::default(),
     };
     request.allow_downgrade = false;
@@ -308,7 +311,6 @@ async fn gdstudio_component_live_resource() {
                 contract_version: descriptor.contract_version,
                 login_methods: vec![],
                 capabilities: Default::default(),
-                cover_hosts: descriptor.cover_hosts.clone(),
                 share_link_templates: Default::default(),
             },
         )

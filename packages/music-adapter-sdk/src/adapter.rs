@@ -50,9 +50,6 @@ pub struct SourceDescriptor {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub login_methods: Vec<LoginMethod>,
     pub capabilities: BTreeSet<Capability>,
-    /// Public artwork hosts, independent of playback resource/HTTP permissions.
-    #[serde(default)]
-    pub cover_hosts: BTreeSet<String>,
     /// Public entity links; the host URL-encodes the opaque ID into `{id}`.
     #[serde(default)]
     pub share_link_templates: BTreeMap<super::identity::EntityKind, String>,
@@ -85,7 +82,7 @@ impl SourceDescriptor {
         {
             return Err(ErrorCode::InvalidData.into());
         }
-        if self.contract_version != super::CONTRACT_VERSION {
+        if !super::supports_contract_version(self.contract_version) {
             return Err(ErrorCode::Unsupported.into());
         }
         if self.login_methods.len() > 8
@@ -117,14 +114,6 @@ impl SourceDescriptor {
                 .description
                 .as_ref()
                 .is_some_and(|text| text.trim().is_empty() || text.chars().count() > 1024)
-        {
-            return Err(ErrorCode::InvalidData.into());
-        }
-        if self.cover_hosts.len() > 32
-            || self
-                .cover_hosts
-                .iter()
-                .any(|host| !crate::cover::valid_host_rule(host))
         {
             return Err(ErrorCode::InvalidData.into());
         }
@@ -176,13 +165,13 @@ impl Cancellation {
 pub struct RequestContext {
     pub session: SessionContext,
     pub adapter_generation: u64,
-    pub deadline: Instant,
+    pub deadline: Option<Instant>,
     pub cancellation: Cancellation,
 }
 
 impl RequestContext {
-    /// Admission and publication checks. Managers must also enforce an async timeout
-    /// and cancellation while awaiting work, rather than relying on cooperative checks.
+    /// Admission and publication checks. Managers must also wake awaiting work when
+    /// cancellation, account, or instance changes make the context stale.
     pub fn check(
         &self,
         current_session: &SessionContext,
@@ -191,7 +180,10 @@ impl RequestContext {
         if self.cancellation.is_cancelled() {
             return Err(ErrorCode::Cancelled.into());
         }
-        if Instant::now() >= self.deadline {
+        if self
+            .deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
+        {
             return Err(ErrorCode::DeadlineExceeded.into());
         }
         if &self.session != current_session || self.adapter_generation != current_adapter_generation
@@ -253,12 +245,7 @@ pub struct Page<T> {
 impl<T: Serialize> Page<T> {
     pub fn validate(&self, request: &PageRequest) -> MusicResult<()> {
         request.validate()?;
-        if self.items.len() > usize::from(request.limit)
-            || serde_json::to_vec(self)
-                .map_err(|_| super::MusicError::from(ErrorCode::InvalidData))?
-                .len()
-                > 2 * 1024 * 1024
-        {
+        if self.items.len() > usize::from(request.limit) {
             return Err(ErrorCode::InvalidData.into());
         }
         Ok(())
@@ -386,7 +373,7 @@ mod share_link_tests {
     #[test]
     fn optional_description_and_audio_platforms_preserve_legacy_descriptors() {
         let mut descriptor: SourceDescriptor = serde_json::from_str(
-            r#"{"source":"fixture","displayName":"Fixture","contractVersion":1,"capabilities":[]}"#,
+            r#"{"source":"fixture","displayName":"Fixture","contractVersion":2,"capabilities":[]}"#,
         )
         .unwrap();
         assert!(descriptor.description.is_none());
@@ -414,7 +401,7 @@ mod share_link_tests {
     #[test]
     fn validates_public_templates_and_defaults_legacy_descriptors() {
         let mut descriptor: SourceDescriptor = serde_json::from_str(
-            r#"{"source":"fixture","displayName":"Fixture","contractVersion":1,"capabilities":[]}"#,
+            r#"{"source":"fixture","displayName":"Fixture","contractVersion":2,"capabilities":[]}"#,
         )
         .unwrap();
         assert!(descriptor.share_link_templates.is_empty());
@@ -440,5 +427,32 @@ mod share_link_tests {
                 .insert(EntityKind::Track, template.into());
             assert!(descriptor.validate().is_err(), "{template}");
         }
+    }
+
+    #[test]
+    fn descriptor_construction_uses_only_current_fields() {
+        let source = SourceId::try_from("fixture".to_owned()).unwrap();
+        let descriptor = SourceDescriptor {
+            source: source.clone(),
+            display_name: "Fixture".to_owned(),
+            description: None,
+            platforms: BTreeSet::new(),
+            contract_version: crate::CONTRACT_VERSION,
+            login_methods: Vec::new(),
+            capabilities: BTreeSet::from([Capability::Search]),
+            share_link_templates: BTreeMap::new(),
+        };
+        assert!(descriptor.validate().is_ok());
+        assert!(descriptor.supports_resource_platform(&source));
+        assert_eq!(
+            descriptor.availability(Capability::Search, None),
+            OperationAvailability::Available
+        );
+        assert_eq!(
+            descriptor.availability(Capability::Browse, None),
+            OperationAvailability::Unavailable {
+                reason: ErrorCode::Unsupported
+            }
+        );
     }
 }

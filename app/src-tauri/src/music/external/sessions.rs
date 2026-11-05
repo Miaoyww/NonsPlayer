@@ -20,7 +20,6 @@ struct Slot {
     template: RequestContext,
     expires: Instant,
     closed: AtomicBool,
-    _permit: tokio::sync::OwnedSemaphorePermit,
 }
 impl Slot {
     fn close(&self) {
@@ -91,8 +90,7 @@ impl Sessions {
                 if slot.closed.load(Ordering::Acquire) || Instant::now() >= slot.expires {
                     break;
                 }
-                let mut context = slot.template.clone();
-                context.deadline = (Instant::now() + Duration::from_secs(15)).min(slot.expires);
+                let context = slot.template.clone();
                 if let Err(error) = slot.host.renew(context).and_then(|_| slot.host.check()) {
                     log::info!(target: "nons::adapter", "operation=login.renew reason={error}");
                     break;
@@ -153,14 +151,6 @@ impl ExternalAdapter {
         match request {
             AccountRequest::BeginLogin { .. } => {
                 let expires = Instant::now() + Duration::from_secs(180);
-                let permit = self
-                    .reads
-                    .clone()
-                    .try_acquire_owned()
-                    .inspect_err(|error| {
-                        crate::infrastructure::diagnostics::warn("adapter.login_admission", error);
-                    })
-                    .map_err(|_| ErrorCode::RateLimited)?;
                 let host = host::Context::new(services, context.clone(), true);
                 let mut runtime =
                     Runtime::from_component(self.engine.clone(), &self.component, host.clone())
@@ -223,7 +213,6 @@ impl ExternalAdapter {
                         template: context.clone(),
                         expires,
                         closed: AtomicBool::new(false),
-                        _permit: permit,
                     },
                 )?;
                 Ok(AccountOutcome {
@@ -299,7 +288,6 @@ impl ExternalAdapter {
                     .invoke(
                         "music.account",
                         &Self::arguments(request, context)?,
-                        false,
                         Some(context),
                     )
                     .await?;

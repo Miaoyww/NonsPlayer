@@ -67,10 +67,6 @@ impl PartialEq<&str> for CoverImage {
     }
 }
 impl CoverImage {
-    pub fn validate_hosts(&self, _hosts: &std::collections::BTreeSet<String>) -> MusicResult<()> {
-        self.validate_adapter()?;
-        Ok(())
-    }
     pub fn url(&self, size: CoverSize) -> &str {
         match self {
             Self::Variants(value) => match size {
@@ -106,10 +102,7 @@ impl CoverImage {
                     &value.exlarge,
                 ] {
                     let url = url::Url::parse(input).map_err(|_| ErrorCode::InvalidData)?;
-                    if input.len() > 2048
-                        || !matches!(url.scheme(), "http" | "https")
-                        || url.host_str().is_none()
-                    {
+                    if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
                         return Err(ErrorCode::InvalidData.into());
                     }
                 }
@@ -142,28 +135,9 @@ mod tests {
     }
 }
 
-/// Host declarations may be exact hosts, IPs, explicit subdomain suffixes or `*`.
-pub fn valid_host_rule(rule: &str) -> bool {
-    if rule == "*" {
-        return true;
-    }
-    let host = rule.strip_prefix("*.").unwrap_or(rule);
-    let Ok(url) = url::Url::parse(&format!("http://{host}")) else {
-        return false;
-    };
-    !host.is_empty()
-        && host.len() <= 260
-        && url.host_str().is_some()
-        && url.path() == "/"
-        && url.query().is_none()
-        && url.fragment().is_none()
-}
-pub fn checked_url(
-    input: &str,
-    _hosts: &std::collections::BTreeSet<String>,
-) -> MusicResult<url::Url> {
+pub fn checked_url(input: &str) -> MusicResult<url::Url> {
     let url = url::Url::parse(input).map_err(|_| ErrorCode::InvalidData)?;
-    if input.len() > 2048 || !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
+    if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
         return Err(ErrorCode::PermissionDenied.into());
     }
     Ok(url)
@@ -174,9 +148,6 @@ mod host_tests {
     use super::*;
     #[test]
     fn cover_urls_allow_any_host_and_port_but_keep_http_syntax() {
-        let hosts = ["*.cdn.example".into(), "images.example".into()]
-            .into_iter()
-            .collect();
         for url in [
             "https://p1.cdn.example/a.jpg",
             "https://images.example/a.jpg",
@@ -187,23 +158,14 @@ mod host_tests {
             "https://127.0.0.1/a.jpg",
             "https://other.example/a.jpg",
         ] {
-            assert!(checked_url(url, &hosts).is_ok());
+            assert!(checked_url(url).is_ok());
+            assert!(CoverImage::from(url).validate_adapter().is_ok());
         }
         for url in ["file:///a.jpg", "ftp://example.org/a.jpg"] {
-            assert!(checked_url(url, &hosts).is_err(), "{url}");
+            assert!(checked_url(url).is_err(), "{url}");
         }
-        for rule in [
-            "*",
-            "*.127.0.0.1",
-            "localhost",
-            "[::1]:8080",
-            "images.example:443",
-            "user:secret@images.example:443",
-        ] {
-            assert!(valid_host_rule(rule), "{rule}");
-        }
-        for rule in ["*.", "bad host", "images.example/path"] {
-            assert!(!valid_host_rule(rule), "{rule}");
-        }
+        let long = format!("https://example.org/{}", "a".repeat(3000));
+        assert!(checked_url(&long).is_ok());
+        assert!(checked_url("https://localhost:8080/a").is_ok());
     }
 }

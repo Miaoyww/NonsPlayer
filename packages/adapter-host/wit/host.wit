@@ -1,4 +1,4 @@
-package nons:host@1.0.0;
+package nons:host@1.1.0;
 
 interface transport {
     record header { name: string, value: string }
@@ -7,15 +7,19 @@ interface transport {
         method: string,
         headers: list<header>,
         body: list<u8>,
+        follow-redirects: bool,
+        /// Zero waits without a deadline; positive values are an explicit limit.
         timeout-ms: u32,
     }
-    record response { status: u16, headers: list<header>, body: list<u8> }
+    record response { status: u16, headers: list<header>, body: list<u8>, url: string }
     record message { socket: u32, data: list<u8> }
     variant event { binary(message), closed(u32) }
     http-request: func(value: request) -> result<response, string>;
+    /// Zero waits without a connect deadline; positive values are an explicit limit.
     websocket-open: func(url: string, protocol: string, timeout-ms: u32) -> result<u32, string>;
     websocket-send: func(socket: u32, data: list<u8>) -> result<_, string>;
     websocket-close: func(socket: u32) -> result<_, string>;
+    /// Zero waits until an event arrives; positive values are an explicit limit.
     next-event: func(timeout-ms: u32) -> result<option<event>, string>;
     /// All identity and generation scope comes from the Store, never guest parameters.
     credential-read: func() -> result<list<u8>, string>;

@@ -34,7 +34,6 @@ pub struct Context {
     pub app: tauri::AppHandle,
     pub event_budget: Arc<std::sync::Mutex<(Instant, usize)>>,
     pub diagnostic_budget: Arc<std::sync::Mutex<(Instant, usize)>>,
-    pub requests: Arc<tokio::sync::Semaphore>,
 }
 impl Context {
     async fn file_location(&self, args: Value) -> AppResult<Value> {
@@ -99,10 +98,7 @@ impl Context {
                 self.check(Some("clipboard:read"))?;
                 Value::String(text)
             }
-            "http.request" => {
-                self.check(Some("http:request"))?;
-                self.http.request(&args, &self.active).await?
-            }
+            "http.request" => self.http.request(&args, &self.active).await?,
             op if op.starts_with("secrets.") => {
                 self.check(Some("secrets"))?;
                 let id = self.id.clone();
@@ -125,10 +121,7 @@ impl Context {
                 .map_err(|_| "凭据操作失败")??
             }
             "transfers.start" | "transfers.get" | "transfers.cancel" | "transfers.pause"
-            | "transfers.resume" => {
-                self.check(Some("http:transfer"))?;
-                self.transfers.call(self.clone(), operation, &args)?
-            }
+            | "transfers.resume" => self.transfers.call(self.clone(), operation, &args)?,
             "config.get" | "config.update" | "config.reset" => {
                 self.check(Some("config"))?;
                 let snapshot = if operation == "config.get" {

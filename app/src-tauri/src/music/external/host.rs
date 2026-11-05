@@ -16,12 +16,8 @@ use std::sync::{
 };
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct Permissions {
-    #[serde(default)]
-    pub http_hosts: Vec<String>,
-    #[serde(default)]
-    pub websocket_hosts: Vec<String>,
     pub system: bool,
     pub state: bool,
     pub credentials: bool,
@@ -44,15 +40,6 @@ impl Services {
         permissions: Permissions,
         descriptor: SourceDescriptor,
     ) -> AppResult<Self> {
-        for hosts in [&permissions.http_hosts, &permissions.websocket_hosts] {
-            if hosts.len() > 32
-                || hosts
-                    .iter()
-                    .any(|host| !nons_music_adapter_sdk::cover::valid_host_rule(host))
-            {
-                return Err("适配器网络声明无效".into());
-            }
-        }
         Ok(Self {
             accounts,
             adapters,
@@ -200,12 +187,7 @@ impl HostHandler for Context {
         value: host_io::Request,
     ) -> Pin<Box<dyn Future<Output = AppResult<host_io::Response>> + Send + '_>> {
         Box::pin(async move {
-            let context = self.check()?;
-            let remaining = context
-                .deadline
-                .saturating_duration_since(std::time::Instant::now())
-                .as_millis()
-                .min(15000) as u32;
+            self.check()?;
             let response = self
                 .services
                 .http
@@ -219,7 +201,8 @@ impl HostHandler for Context {
                             .map(|h| (h.name, h.value))
                             .collect(),
                         body: value.body,
-                        timeout_ms: value.timeout_ms.min(remaining),
+                        follow_redirects: value.follow_redirects,
+                        timeout_ms: value.timeout_ms,
                     },
                     &self.active,
                 )
@@ -233,6 +216,7 @@ impl HostHandler for Context {
                     .map(|(name, value)| host_io::Header { name, value })
                     .collect(),
                 body: response.body,
+                url: response.url,
             })
         })
     }
@@ -263,7 +247,10 @@ impl HostHandler for Context {
         &self,
         socket: u32,
     ) -> Pin<Box<dyn Future<Output = AppResult<()>> + Send + '_>> {
-        Box::pin(async move { self.sockets.close(socket).await })
+        Box::pin(async move {
+            self.check()?;
+            self.sockets.close(socket).await
+        })
     }
     fn next_event(
         &self,
@@ -362,7 +349,7 @@ impl HostHandler for Context {
             }
             record
                 .avatar
-                .validate_hosts(&self.services.descriptor.cover_hosts)
+                .validate_adapter()
                 .map_err(|e| e.to_string())?;
             let credential = OpaqueCredential::new(data).map_err(|e| e.to_string())?;
             let mut pending = self
@@ -520,5 +507,21 @@ impl HostHandler for Context {
             self.check()?;
             Ok(())
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn removed_network_permissions_deserialize_without_policy() {
+        let permissions: Permissions = serde_json::from_str(
+            r#"{"http":false,"websocket":true,"httpHosts":["bad host"],"websocketHosts":["wss host"],"system":false,"state":false,"credentials":false}"#,
+        )
+        .unwrap();
+        assert!(!permissions.system);
+        assert!(!permissions.state);
+        assert!(!permissions.credentials);
     }
 }

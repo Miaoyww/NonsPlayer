@@ -3,7 +3,7 @@ use crate::{
     adapter::{AdapterFuture, Page, PageRequest, RequestContext},
     identity::{EntityKind, MusicTrack, SourceId},
     resource::PlaybackResource,
-    ErrorCode, MusicResult, CONTRACT_VERSION,
+    ErrorCode, MusicResult,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -22,7 +22,7 @@ pub struct PlaybackSource {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct ResourceProviderDescriptor {
     pub id: SourceId,
     pub display_name: String,
@@ -33,12 +33,10 @@ pub struct ResourceProviderDescriptor {
     /// Only these platforms participate in search; results retain their platform IDs.
     #[serde(default)]
     pub search_platforms: BTreeSet<SourceId>,
-    #[serde(default)]
-    pub cover_hosts: BTreeSet<String>,
 }
 impl ResourceProviderDescriptor {
     pub fn validate(&self) -> MusicResult<()> {
-        if self.contract_version != CONTRACT_VERSION {
+        if !crate::supports_contract_version(self.contract_version) {
             return Err(ErrorCode::Unsupported.into());
         }
         if matches!(self.id.as_str(), "local" | "official")
@@ -52,11 +50,6 @@ impl ResourceProviderDescriptor {
             || self.platforms.len() > 16
             || self.platforms.iter().any(|s| s.as_str() == "local")
             || !self.search_platforms.is_subset(&self.platforms)
-            || self.cover_hosts.len() > 32
-            || self
-                .cover_hosts
-                .iter()
-                .any(|h| !crate::cover::valid_host_rule(h))
         {
             return Err(ErrorCode::InvalidData.into());
         }
@@ -128,7 +121,7 @@ mod tests {
     #[test]
     fn rejects_search_outside_supported_platforms_and_identity_aliases() {
         let mut descriptor: ResourceProviderDescriptor = serde_json::from_str(
-            r#"{"id":"test-audio","displayName":"Test","contractVersion":1,"platforms":["netease"],"searchPlatforms":["qqmusic"]}"#,
+            r#"{"id":"test-audio","displayName":"Test","contractVersion":2,"platforms":["netease"],"searchPlatforms":["qqmusic"]}"#,
         ).unwrap();
         assert!(descriptor.validate().is_err());
         descriptor.search_platforms.clear();

@@ -140,14 +140,14 @@ mod native {
                 .map(|v| v.as_u64().ok_or("读取大小无效"))
                 .transpose()?
                 .unwrap_or(CHUNK_BYTES as u64);
-            if max == 0 || max > CHUNK_BYTES as u64 {
-                return Err("单次输出读取须为 1 至 16384 字节".into());
+            if max == 0 {
+                return Err("单次输出读取必须为正整数".into());
             }
             let bytes: Vec<u8> = self
                 .bytes
                 .iter()
                 .skip((cursor - first) as usize)
-                .take(max as usize)
+                .take(usize::try_from(max).unwrap_or(usize::MAX))
                 .copied()
                 .collect();
             let next = cursor + bytes.len() as u64;
@@ -792,7 +792,7 @@ mod native {
                 "process.read",
                 &json!({"id":id,"stream":"stdout","maxBytes":CHUNK_BYTES+1})
             )
-            .is_err());
+            .is_ok());
         }
     }
 }

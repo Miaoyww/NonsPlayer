@@ -14,9 +14,8 @@ fn descriptor() -> SourceDescriptor {
         display_name: "外部测试来源".into(),
         description: Some("验证通用音源能力的测试平台".into()),
         platforms: [source(), SourceId::try_from("netease".to_owned()).unwrap()].into(),
-        contract_version: 1,
+        contract_version: 2,
         login_methods: Vec::new(),
-        cover_hosts: Default::default(),
         share_link_templates: Default::default(),
         capabilities: [Capability::Search, Capability::Browse]
             .into_iter()
@@ -34,19 +33,20 @@ async fn load(expected: SourceDescriptor) -> MusicResult<ExternalAdapter> {
 }
 
 #[tokio::test]
-async fn external_loading_rejects_compile_overload_and_invalid_components() {
+async fn external_loading_waits_for_compile_capacity_and_rejects_invalid_components() {
     let _guard = LOADS.lock().await;
     let one = COMPILATIONS.try_acquire().unwrap();
     let two = COMPILATIONS.try_acquire().unwrap();
-    assert_eq!(
-        ExternalAdapter::load(&path(), descriptor())
+    let fixture = path();
+    let loading = ExternalAdapter::load(&fixture, descriptor());
+    tokio::pin!(loading);
+    assert!(
+        tokio::time::timeout(Duration::from_millis(50), &mut loading)
             .await
-            .err()
-            .unwrap()
-            .code,
-        ErrorCode::RateLimited
+            .is_err()
     );
     drop((one, two));
+    loading.await.unwrap();
     let file = tempfile::NamedTempFile::new().unwrap();
     assert_eq!(
         ExternalAdapter::load(file.path(), descriptor())
@@ -280,28 +280,12 @@ async fn real_component_faults_do_not_poison_next_request() {
 }
 
 #[tokio::test]
-async fn external_reserved_playback_budget_and_drop_release_stores() {
+async fn external_dropped_requests_release_stores() {
     let (manager, _, adapter) = setup().await;
-    let permits = (0..4)
-        .map(|_| adapter.reads.try_acquire().unwrap())
-        .collect::<Vec<_>>();
-    assert_eq!(
-        manager
-            .read_track(&reference("busy"))
-            .await
-            .unwrap_err()
-            .code,
-        ErrorCode::RateLimited
-    );
-    manager
-        .resolve_playback(&resolve("healthy"), 1)
-        .await
-        .unwrap();
-    drop(permits);
     let context = RequestContext {
         session: manager.stamp(&source()).unwrap().0,
         adapter_generation: 1,
-        deadline: Instant::now() + Duration::from_secs(3),
+        deadline: Some(Instant::now() + Duration::from_secs(3)),
         cancellation: Cancellation::default(),
     };
     let reference = reference("loop");
@@ -313,7 +297,6 @@ async fn external_reserved_playback_budget_and_drop_release_stores() {
     })
     .await;
     drop(future);
-    assert_eq!(adapter.reads.available_permits(), 4);
     manager
         .read_track(&self::reference("healthy"))
         .await
@@ -329,7 +312,7 @@ async fn external_descriptor_version_and_identity_are_verified_before_registrati
         ErrorCode::InvalidData
     );
     let mut wrong = descriptor();
-    wrong.contract_version = 2;
+    wrong.contract_version = 3;
     assert_eq!(
         load(wrong).await.err().unwrap().code,
         ErrorCode::Unsupported

@@ -117,7 +117,7 @@ mod tests {
                 generation: 1,
             },
             adapter_generation: 1,
-            deadline: Instant::now() + Duration::from_secs(10),
+            deadline: Some(Instant::now() + Duration::from_secs(10)),
             cancellation: Cancellation::default(),
         }
     }

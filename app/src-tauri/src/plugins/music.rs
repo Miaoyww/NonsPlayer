@@ -56,7 +56,7 @@ impl SongService {
         let context = RequestContext {
             session: stamp.0.clone(),
             adapter_generation: stamp.1,
-            deadline: Instant::now() + Duration::from_secs(3),
+            deadline: None,
             cancellation: Default::default(),
         };
         let credential = accounts
@@ -131,18 +131,12 @@ impl SongService {
                 return Ok(track.clone());
             }
         }
-        let track = tokio::time::timeout(Duration::from_secs(3), async {
-            self.music
-                .adapters
-                .read_track(reference)
-                .await
-                .map_err(|e| e.to_string())
-        })
-        .await
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("plugins.music.read_track.timeout", error);
-        })
-        .map_err(|_| "歌曲信息查询超时")??;
+        let track = self
+            .music
+            .adapters
+            .read_track(reference)
+            .await
+            .map_err(|e| e.to_string())?;
         if generation != self.generation.load(Ordering::SeqCst)
             || stamp
                 != self

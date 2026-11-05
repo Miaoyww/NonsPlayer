@@ -119,7 +119,6 @@ impl MusicService {
         let mut seen = std::collections::BTreeSet::new();
         let mut cursor = None;
         let mut more = false;
-        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(12);
         for _ in 0..100 {
             let page = PageRequest {
                 cursor: cursor.clone(),
@@ -136,11 +135,10 @@ impl MusicService {
                     page,
                 }
             };
-            let BusinessResponse::Tracks(response) =
-                tokio::time::timeout_at(deadline, self.query(&entity.source, &request, false))
-                    .await
-                    .map_err(|_| "歌单准备超时".to_owned())?
-                    .map_err(|e| e.to_string())?
+            let BusinessResponse::Tracks(response) = self
+                .query(&entity.source, &request, false)
+                .await
+                .map_err(|e| e.to_string())?
             else {
                 return Err("收藏曲目响应无效".into());
             };

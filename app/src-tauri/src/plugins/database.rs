@@ -273,8 +273,7 @@ mod tests {
         "version": "1.1.0",
         "frontend": "ui.mjs",
         "permissions": ["ui", "config", "storage", "account:credentials", "player:control", "http:request", "http:transfer", "files:selected"],
-        "httpHosts": ["*"],
-        "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" }
+        "engines": { "app": "^1.0.0", "pluginApi": "^3.0.0", "uiApi": "^3.0.0" }
     }"#;
     #[test]
     fn wildcard_file_roots_require_new_authorization() {
@@ -287,7 +286,7 @@ mod tests {
                 "frontend": "ui.mjs",
                 "permissions": ["ui", "files:selected"],
                 "fileRoots": ["*"],
-                "engines": { "app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0" }
+                "engines": { "app": "^1.0.0", "pluginApi": "^3.0.0", "uiApi": "^3.0.0" }
             }"#,
         )
         .unwrap();
@@ -328,14 +327,16 @@ mod tests {
         assert!(db.enabled(&new.id, &new.authorization()).unwrap());
     }
     #[test]
-    fn http_hosts_require_new_authorization() {
+    fn changed_non_network_permissions_require_new_authorization() {
         let db = Database::open(Path::new(":memory:")).unwrap();
         let mut manifest: super::super::manifest::Manifest =
             serde_json::from_str(DOWNLOAD_MANIFEST).unwrap();
-        manifest.http_hosts = vec!["interface.music.163.com".into()];
+        manifest
+            .permissions
+            .retain(|permission| permission != "account:credentials");
         db.authorize(&manifest.id, &manifest.authorization())
             .unwrap();
-        manifest.http_hosts = vec!["*".into()];
+        manifest.permissions.push("account:credentials".into());
         assert!(!db.enabled(&manifest.id, &manifest.authorization()).unwrap());
         db.authorize(&manifest.id, &manifest.authorization())
             .unwrap();

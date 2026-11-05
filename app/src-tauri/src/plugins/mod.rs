@@ -327,7 +327,6 @@ impl PluginManager {
             app: self.app.clone(),
             event_budget: Arc::new(Mutex::new((Instant::now(), 0))),
             diagnostic_budget: Arc::new(Mutex::new((Instant::now(), 0))),
-            requests: Arc::new(tokio::sync::Semaphore::new(16)),
         }
     }
     pub fn discover(&self) -> AppResult<()> {
@@ -536,8 +535,7 @@ impl PluginManager {
             .manifest
             .clone();
         if manifest.id != id
-            || manifest.permissions != old.permissions
-            || manifest.http_hosts != old.http_hosts
+            || manifest.authorization_permissions() != old.authorization_permissions()
             || manifest.file_roots != old.file_roots
             || manifest.version != old.version
         {
@@ -644,14 +642,6 @@ impl PluginManager {
     ) -> AppResult<String> {
         let context = self.scoped(id, generation)?;
         let started = std::time::Instant::now();
-        let _permit = context
-            .requests
-            .clone()
-            .try_acquire_owned()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("plugins.invoke.admission", error);
-            })
-            .map_err(|_| "插件调用过于频繁")?;
         let runtime = self
             .lock()?
             .get(id)
@@ -987,14 +977,6 @@ pub async fn plugin_host_call(
 ) -> AppResult<String> {
     let context = manager.scoped(&id, generation)?;
     let started = std::time::Instant::now();
-    let _permit = context
-        .requests
-        .clone()
-        .try_acquire_owned()
-        .inspect_err(|error| {
-            crate::infrastructure::diagnostics::warn("plugins.host_call.admission", error);
-        })
-        .map_err(|_| "插件调用过于频繁")?;
     context.call(&operation, &args).await.inspect_err(|error| {
         log::warn!(target: "nons::plugins", "operation=plugins.host_call stage=capability_call plugin={} generation={} capability={} elapsed_ms={} reason={}", id, generation, crate::infrastructure::diagnostics::redact(&operation), started.elapsed().as_millis(), error);
     })

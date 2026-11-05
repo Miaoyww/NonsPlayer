@@ -51,8 +51,6 @@ pub struct ExternalAdapter {
     descriptor: SourceDescriptor,
     engine: Engine,
     component: Component,
-    reads: Arc<tokio::sync::Semaphore>,
-    playback: tokio::sync::Semaphore,
     services: Option<Arc<host::Services>>,
     sessions: Arc<sessions::Sessions>,
 }
@@ -83,12 +81,10 @@ impl ExternalAdapter {
         {
             return Err(ErrorCode::Unsupported.into());
         }
-        let permit = COMPILATIONS
-            .try_acquire()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("adapter.compile_admission", error);
-            })
-            .map_err(|_| ErrorCode::RateLimited)?;
+        let permit = COMPILATIONS.acquire().await.map_err(|error| {
+            crate::infrastructure::diagnostics::warn("adapter.compile_admission", error);
+            ErrorCode::RateLimited
+        })?;
         let engine_started = std::time::Instant::now();
         let engine = runtime::engine().map_err(|error| {
             log::error!(target: "nons::adapter", "runtime_failure reason={error}");
@@ -118,15 +114,13 @@ impl ExternalAdapter {
             descriptor: expected,
             engine,
             component,
-            reads: Arc::new(tokio::sync::Semaphore::new(4)),
-            playback: tokio::sync::Semaphore::new(2),
             services,
             sessions: Arc::new(sessions::Sessions::default()),
         };
         let initialize_started = std::time::Instant::now();
         let (actual, expected) = if let Some(descriptor) = resource_descriptor {
             let actual: super::provider::ResourceProviderDescriptor = adapter
-                .invoke("music.resource-descriptor", "null", false, None)
+                .invoke("music.resource-descriptor", "null", None)
                 .await?;
             actual.validate()?;
             (
@@ -134,9 +128,7 @@ impl ExternalAdapter {
                 serde_json::to_value(descriptor),
             )
         } else {
-            let actual: SourceDescriptor = adapter
-                .invoke("music.descriptor", "null", false, None)
-                .await?;
+            let actual: SourceDescriptor = adapter.invoke("music.descriptor", "null", None).await?;
             actual.validate()?;
             (
                 serde_json::to_value(actual),
@@ -167,23 +159,11 @@ impl ExternalAdapter {
         &self,
         method: &str,
         args: &str,
-        playback: bool,
         context: Option<&RequestContext>,
     ) -> MusicResult<T> {
-        let budget = if playback {
-            &self.playback
-        } else {
-            self.reads.as_ref()
-        };
-        let _permit = budget
-            .try_acquire()
-            .inspect_err(|error| {
-                crate::infrastructure::diagnostics::warn("adapter.invoke_admission", error);
-            })
-            .map_err(|_| ErrorCode::RateLimited)?;
         // Each request owns a fresh Store. Cancellation drops it, so no poisoned instance,
         // credentials, guest state or suspended execution survive into another session.
-        // Compilation is shared; initialization and execution remain in the manager deadline.
+        // Compilation is shared; cancellation and generation checks remain around each Store.
         let handler: Arc<dyn HostHandler> = match (&self.services, context) {
             (Some(services), Some(context)) => {
                 host::Context::new(services.clone(), context.clone(), false)
@@ -193,7 +173,7 @@ impl ExternalAdapter {
                 RequestContext {
                     session: services.accounts.session(&services.descriptor.source),
                     adapter_generation: 1,
-                    deadline: std::time::Instant::now() + std::time::Duration::from_secs(15),
+                    deadline: None,
                     cancellation: Default::default(),
                 },
                 false,
@@ -225,7 +205,10 @@ impl ExternalAdapter {
         if context.cancellation.is_cancelled() {
             return Err(ErrorCode::Cancelled.into());
         }
-        if std::time::Instant::now() >= context.deadline {
+        if context
+            .deadline
+            .is_some_and(|deadline| std::time::Instant::now() >= deadline)
+        {
             return Err(ErrorCode::DeadlineExceeded.into());
         }
         serde_json::to_string(&serde_json::json!({
@@ -280,10 +263,7 @@ impl ResourceComponent {
         services: Arc<host::Services>,
     ) -> MusicResult<Self> {
         descriptor.validate()?;
-        if services.permissions.credentials
-            || services.permissions.state
-            || !services.permissions.websocket_hosts.is_empty()
-        {
+        if services.permissions.credentials || services.permissions.state {
             return Err(ErrorCode::PermissionDenied.into());
         }
         let runtime = ExternalAdapter::load_inner(
@@ -315,7 +295,6 @@ impl super::provider::ResourceProvider for ResourceComponent {
                 .invoke(
                     "music.resolve-resource",
                     &ExternalAdapter::arguments(request, context)?,
-                    true,
                     Some(context),
                 )
                 .await?;
@@ -334,7 +313,6 @@ impl super::provider::ResourceProvider for ResourceComponent {
                 .invoke(
                     "music.search-resources",
                     &ExternalAdapter::arguments(request, context)?,
-                    false,
                     Some(context),
                 )
                 .await
@@ -370,7 +348,6 @@ impl MusicAdapter for ExternalAdapter {
                 .invoke(
                     "music.resolve-resource",
                     &Self::arguments(request, context)?,
-                    true,
                     Some(context),
                 )
                 .await?;
@@ -403,7 +380,6 @@ impl MusicAdapter for ExternalAdapter {
             self.invoke(
                 "music.read-track",
                 &Self::arguments(reference, context)?,
-                false,
                 Some(context),
             )
             .await
@@ -418,7 +394,6 @@ impl MusicAdapter for ExternalAdapter {
             self.invoke(
                 "music.business",
                 &Self::arguments(request, context)?,
-                false,
                 Some(context),
             )
             .await
@@ -435,16 +410,13 @@ impl MusicAdapter for ExternalAdapter {
                 .invoke(
                     "music.search-mvs",
                     &Self::arguments(request, context)?,
-                    false,
                     Some(context),
                 )
                 .await?;
             page.validate(&request.page)?;
             for candidate in &page.items {
                 candidate.validate(&self.descriptor.source)?;
-                candidate
-                    .cover
-                    .validate_hosts(&self.descriptor.cover_hosts)?;
+                candidate.cover.validate_adapter()?;
             }
             Ok(page)
         })
@@ -463,7 +435,6 @@ impl MusicAdapter for ExternalAdapter {
                 .invoke(
                     "music.lyric-match",
                     &Self::arguments(request, context)?,
-                    false,
                     Some(context),
                 )
                 .await?;
@@ -482,7 +453,6 @@ impl MusicAdapter for ExternalAdapter {
                 .invoke(
                     "music.resolve-mv",
                     &Self::arguments(request, context)?,
-                    true,
                     Some(context),
                 )
                 .await?;
@@ -500,7 +470,6 @@ impl MusicAdapter for ExternalAdapter {
                 .invoke(
                     "music.resolve-playback",
                     &Self::arguments(request, context)?,
-                    true,
                     Some(context),
                 )
                 .await?;

@@ -24,7 +24,7 @@ impl Guest for Fixture {
     fn call(method: String, args: String) -> Result<String, String> {
         if method == "music.descriptor" {
             return ok(
-                json!({"source":"fixture-radio","displayName":"外部测试来源","description":"验证通用音源能力的测试平台","platforms":["fixture-radio","netease"],"contractVersion":1,"capabilities":["search","browse"]}),
+                json!({"source":"fixture-radio","displayName":"外部测试来源","description":"验证通用音源能力的测试平台","platforms":["fixture-radio","netease"],"contractVersion":2,"capabilities":["search","browse"]}),
             );
         }
         let args: Value = serde_json::from_str(&args).map_err(|_| "bad args")?;

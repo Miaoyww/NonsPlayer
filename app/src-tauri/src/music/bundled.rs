@@ -126,7 +126,6 @@ pub(crate) async fn load_components(
                     contract_version: descriptor.contract_version,
                     login_methods: vec![],
                     capabilities: Default::default(),
-                    cover_hosts: descriptor.cover_hosts.clone(),
                     share_link_templates: Default::default(),
                 };
                 let services = Arc::new(super::external::host::Services::new(
@@ -325,7 +324,7 @@ mod tests {
         let packages = directory.path().join("packages");
         let package = packages.join("fixture");
         std::fs::create_dir_all(&package).unwrap();
-        std::fs::write(package.join("manifest.json"), serde_json::to_vec(&serde_json::json!({ "descriptor": descriptor, "permissions": { "httpHosts": [], "websocketHosts": [], "system": false, "state": false, "credentials": false } })).unwrap()).unwrap();
+        std::fs::write(package.join("manifest.json"), serde_json::to_vec(&serde_json::json!({ "descriptor": descriptor, "permissions": { "system": false, "state": false, "credentials": false } })).unwrap()).unwrap();
         let prepared = prepare_components(&packages, &music.adapters).unwrap();
         let pending = settings
             .list()
@@ -500,7 +499,7 @@ mod tests {
         let mut context = RequestContext {
             session,
             adapter_generation: generation,
-            deadline: std::time::Instant::now() + std::time::Duration::from_secs(10),
+            deadline: Some(std::time::Instant::now() + std::time::Duration::from_secs(10)),
             cancellation: Cancellation::default(),
         };
         assert_eq!(

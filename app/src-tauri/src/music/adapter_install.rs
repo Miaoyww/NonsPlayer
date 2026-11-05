@@ -35,12 +35,9 @@ pub(crate) struct Package {
     pub(crate) resource_provider: Option<ResourceProviderDescriptor>,
     pub(crate) permissions: Permissions,
 }
-
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct PermissionView {
-    pub http_hosts: Vec<String>,
-    pub websocket_hosts: Vec<String>,
     pub system: bool,
     pub state: bool,
     pub credentials: bool,
@@ -48,8 +45,6 @@ pub(crate) struct PermissionView {
 impl From<&Permissions> for PermissionView {
     fn from(value: &Permissions) -> Self {
         Self {
-            http_hosts: value.http_hosts.clone(),
-            websocket_hosts: value.websocket_hosts.clone(),
             system: value.system,
             state: value.state,
             credentials: value.credentials,
@@ -479,7 +474,6 @@ impl AdapterInstaller {
                 contract_version: descriptor.contract_version,
                 login_methods: vec![],
                 capabilities: Default::default(),
-                cover_hosts: descriptor.cover_hosts.clone(),
                 share_link_templates: Default::default(),
             };
             let services = Arc::new(super::external::host::Services::new(
@@ -578,7 +572,6 @@ fn source_descriptor(package: &Package) -> Option<super::adapter::SourceDescript
                 contract_version: d.contract_version,
                 login_methods: vec![],
                 capabilities: Default::default(),
-                cover_hosts: d.cover_hosts.clone(),
                 share_link_templates: Default::default(),
             })
     })
@@ -587,17 +580,16 @@ fn auth_key(id: &SourceId) -> String {
     format!("{AUTH_PREFIX}{}", id.as_str())
 }
 fn permission_fingerprint(permissions: &Permissions) -> AppResult<String> {
-    let bytes = serde_json::to_vec(permissions).map_err(|e| e.to_string())?;
+    let bytes = serde_json::to_vec(&serde_json::json!({
+        "system": permissions.system,
+        "state": permissions.state,
+        "credentials": permissions.credentials,
+    }))
+    .map_err(|e| e.to_string())?;
     Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
 }
 fn permission_changes(old: &Permissions, new: &Permissions) -> Vec<String> {
     let mut changes = Vec::new();
-    if old.http_hosts != new.http_hosts {
-        changes.push("网络请求".to_owned());
-    }
-    if old.websocket_hosts != new.websocket_hosts {
-        changes.push("长连接".to_owned());
-    }
     if old.credentials != new.credentials {
         changes.push("账号凭据".to_owned());
     }
@@ -616,6 +608,10 @@ fn restore_setting(store: &Store, key: &str, value: Option<&str>) -> AppResult<(
     }
 }
 
+pub(crate) fn parse_package(bytes: &[u8]) -> Result<Package, serde_json::Error> {
+    serde_json::from_slice(bytes)
+}
+
 fn read_package(directory: &Path) -> AppResult<PackageWithPath> {
     let meta =
         fs::symlink_metadata(directory).map_err(|error| format!("适配器包目录不可读：{error}"))?;
@@ -632,19 +628,15 @@ fn read_package(directory: &Path) -> AppResult<PackageWithPath> {
     if bytes.len() > MANIFEST_BYTES {
         return Err("适配器描述过大".into());
     }
-    let package: Package = serde_json::from_slice(&bytes).map_err(|_| "适配器描述无效")?;
-    validate_permissions(&package.permissions)?;
+    let package = parse_package(&bytes).map_err(|_| "适配器描述无效")?;
     let version = package.version.as_deref().ok_or("适配器版本缺失")?;
     semver::Version::parse(version).map_err(|_| "适配器版本无效")?;
     match (&package.descriptor, &package.resource_provider) {
         (Some(d), None) => d.validate().map_err(|e| e.to_string())?,
         (None, Some(d)) => {
             d.validate().map_err(|e| e.to_string())?;
-            if package.permissions.credentials
-                || package.permissions.state
-                || !package.permissions.websocket_hosts.is_empty()
-            {
-                return Err("音源适配器不能申请账号、状态或长连接权限".into());
+            if package.permissions.credentials || package.permissions.state {
+                return Err("音源适配器不能申请账号或状态权限".into());
             }
         }
         _ => return Err("适配器必须声明一种描述".into()),
@@ -670,18 +662,6 @@ fn component_path(directory: &Path) -> AppResult<PathBuf> {
         return Ok(dist);
     }
     Err("适配器包缺少 adapter.component.wasm（应位于包根或 dist/）".into())
-}
-fn validate_permissions(permissions: &Permissions) -> AppResult<()> {
-    for hosts in [&permissions.http_hosts, &permissions.websocket_hosts] {
-        if hosts.len() > 32
-            || hosts
-                .iter()
-                .any(|host| !nons_music_adapter_sdk::cover::valid_host_rule(host))
-        {
-            return Err("适配器网络声明无效".into());
-        }
-    }
-    Ok(())
 }
 fn is_link(meta: &fs::Metadata) -> bool {
     meta.file_type().is_symlink()
@@ -930,23 +910,43 @@ mod tests {
     #[test]
     fn permission_changes_identify_each_changed_capability() {
         let old = Permissions {
-            http_hosts: vec!["old.example".into()],
-            websocket_hosts: vec![],
             system: false,
             state: false,
             credentials: false,
         };
         let new = Permissions {
-            http_hosts: vec!["new.example".into()],
-            websocket_hosts: vec!["socket.example".into()],
             system: true,
             state: true,
             credentials: true,
         };
         assert_eq!(
             permission_changes(&old, &new),
-            vec!["网络请求", "长连接", "账号凭据", "专属状态", "系统能力"]
+            vec!["账号凭据", "专属状态", "系统能力"]
         );
+    }
+
+    #[test]
+    fn removed_network_fields_do_not_affect_authorization() {
+        let legacy: Permissions = serde_json::from_value(serde_json::json!({
+            "http": false,
+            "websocket": true,
+            "httpHosts": ["old.example"],
+            "websocketHosts": ["socket.example"],
+            "system": false,
+            "state": false,
+            "credentials": false
+        }))
+        .unwrap();
+        let current = Permissions {
+            system: false,
+            state: false,
+            credentials: false,
+        };
+        assert_eq!(
+            permission_fingerprint(&legacy).unwrap(),
+            permission_fingerprint(&current).unwrap()
+        );
+        assert!(permission_changes(&legacy, &current).is_empty());
     }
 
     #[test]
@@ -961,14 +961,11 @@ mod tests {
                 "resourceProvider": {
                     "id": "fixture",
                     "displayName": "Fixture",
-                    "contractVersion": 1,
+                    "contractVersion": crate::music::CONTRACT_VERSION,
                     "platforms": ["netease"],
-                    "searchPlatforms": [],
-                    "coverHosts": []
+                    "searchPlatforms": []
                 },
                 "permissions": {
-                    "httpHosts": [],
-                    "websocketHosts": [],
                     "system": false,
                     "state": false,
                     "credentials": false
@@ -1018,9 +1015,9 @@ mod tests {
         fs::create_dir(&package).unwrap();
         fs::write(package.join("manifest.json"), serde_json::json!({
             "version": "1.0.0",
-            "resourceProvider": { "id": "fixture", "displayName": "Fixture", "contractVersion": 1,
-                "platforms": ["netease"], "searchPlatforms": [], "coverHosts": [] },
-            "permissions": { "httpHosts": [], "websocketHosts": [], "system": false,
+            "resourceProvider": { "id": "fixture", "displayName": "Fixture", "contractVersion": crate::music::CONTRACT_VERSION,
+                "platforms": ["netease"], "searchPlatforms": [] },
+            "permissions": { "system": false,
                 "state": false, "credentials": false }
         }).to_string()).unwrap();
         fs::write(package.join("adapter.component.wasm"), b"invalid component").unwrap();
