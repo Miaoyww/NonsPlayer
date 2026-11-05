@@ -24,17 +24,17 @@ export function MvLyricCard({
   const pronunciation = showPronunciation ? lyricPronunciation(line).trim() : ''
   return (
     <div className="mv-lyric-overlay">
-      <motion.div
-        className="mv-lyric-card"
-        role="status"
-        aria-live="polite"
-        layout={reduced ? false : 'size'}
-        transition={{ layout: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } }}
-      >
+      <div className="mv-lyric-card" role="status" aria-live="polite">
+        <motion.div
+          className="mv-lyric-card-surface"
+          aria-hidden="true"
+          layout={reduced ? false : 'size'}
+          transition={{ layout: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } }}
+        />
         <MorphingText className="mv-lyric-original" text={lyricText(line)} />
         {translation && <MorphingText className="mv-lyric-auxiliary" text={translation} />}
         {pronunciation && <MorphingText className="mv-lyric-auxiliary" text={pronunciation} />}
-      </motion.div>
+      </div>
     </div>
   )
 }

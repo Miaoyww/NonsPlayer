@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>MV lyric card text layout</title>
+    <style>
+      body {
+        display: flex;
+        gap: 24px;
+        padding: 24px;
+        background: #111;
+      }
+      .probe {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: fit-content;
+        max-width: 800px;
+        padding: 10px 18px;
+        color: white;
+        font-family: sans-serif;
+        text-align: center;
+      }
+      .surface {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        border-radius: 13px;
+        background: rgb(10 10 12 / 60%);
+      }
+      .text {
+        position: relative;
+        z-index: 1;
+        display: block;
+        font-size: 18px;
+        line-height: 1.45;
+      }
+      .translation {
+        position: relative;
+        z-index: 1;
+        display: block;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./mv-lyric-card.tsx"></script>
+  </body>
+</html>

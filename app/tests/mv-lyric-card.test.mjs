@@ -57,14 +57,14 @@ function harness() {
 function rows(card) {
   const children = card.props.children
   return (Array.isArray(children) ? Array.from(children) : [children]).filter(
-    (row) => row && typeof row === 'object'
+    (row) => row && typeof row === 'object' && row.type === 'MorphingText'
   )
 }
 
 test('the MV card keeps the original line above enabled auxiliary rows', () => {
   const h = harness()
   const card = h.render(true, true).props.children
-  assert.equal(card.props.layout, 'size')
+  assert.equal(card.props.children[0].props.layout, 'size')
   const rendered = rows(card)
   assert.deepEqual(
     rendered.map((row) => row.props.text),
