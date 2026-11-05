@@ -5,11 +5,39 @@ import { test } from 'node:test'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
-function harness(playerMode = false) {
+function findDragRegion(node) {
+  if (!node || typeof node !== 'object') return undefined
+  if (node.props?.onMouseDown) return node
+  for (const child of [node.props?.children].flat()) {
+    const found = findDragRegion(child)
+    if (found) return found
+  }
+  return undefined
+}
+
+function harness(playerMode = false, initialFullscreen = false) {
   const actions = []
+  const listeners = new Map()
+  const window = {
+    addEventListener(type, listener) {
+      listeners.set(type, [...(listeners.get(type) ?? []), listener])
+    },
+    removeEventListener(type, listener) {
+      listeners.set(
+        type,
+        (listeners.get(type) ?? []).filter((candidate) => candidate !== listener)
+      )
+    }
+  }
   const jsx = (type, props) => ({ type, props })
+  let stateIndex = 0
   const modules = {
-    react: { useState: (value) => [value, () => {}], useEffect() {} },
+    react: {
+      useState: (value) => [stateIndex++ === 1 ? initialFullscreen : value, () => {}],
+      useEffect(callback) {
+        callback()
+      }
+    },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@tauri-apps/api/core': { isTauri: () => true },
     '@/lib/platform': { isAndroid: () => false },
@@ -20,7 +48,10 @@ function harness(playerMode = false) {
         toggleMaximize: async () => actions.push('maximize'),
         isMaximized: async () => false,
         isFullscreen: async () => false,
-        setFullscreen: async (value) => actions.push(`fullscreen:${value}`)
+        setFullscreen: async (value) => actions.push(`fullscreen:${value}`),
+        isFocused: async () => true,
+        onResized: async () => () => {},
+        onFocusChanged: async () => () => {}
       })
     },
     'lucide-react': {},
@@ -45,12 +76,13 @@ function harness(playerMode = false) {
     ).outputText,
     {
       exports,
+      window,
       require: (name) => (name === '@/components/error-notice' ? errorNoticeModule : modules[name])
     }
   )
   const header = exports.Titlebar({ playerMode }).props.children[0]
   const right = header.props.children.at(-1)
-  return { actions, right }
+  return { actions, header, listeners, right }
 }
 
 test('blank space to the right of music navigation drags and double-clicks maximize', () => {
@@ -77,4 +109,28 @@ test('fullscreen window controls keep their existing compact layout', async () =
   controls.at(1).props.onClick()
   await new Promise((resolve) => setTimeout(resolve, 0))
   assert.deepEqual(actions, ['fullscreen:true'])
+})
+
+test('escape exits fullscreen before closing the player', async () => {
+  const { actions, listeners } = harness(true, true)
+  const event = {
+    key: 'Escape',
+    defaultPrevented: false,
+    preventDefault() {
+      this.defaultPrevented = true
+    },
+    stopPropagation() {}
+  }
+  listeners.get('keydown')[0](event)
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  assert.equal(event.defaultPrevented, true)
+  assert.deepEqual(actions, ['fullscreen:false'])
+})
+
+test('dragging the player titlebar exits fullscreen first', async () => {
+  const { actions, header } = harness(true, true)
+  const dragRegion = findDragRegion(header)
+  dragRegion.props.onMouseDown({ button: 0, detail: 1 })
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  assert.deepEqual(actions, ['fullscreen:false', 'drag'])
 })

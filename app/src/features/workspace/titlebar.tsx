@@ -111,15 +111,27 @@ export function Titlebar({
   }, [native])
 
   async function windowAction(
-    action: 'minimize' | 'toggleMaximize' | 'toggleFullscreen' | 'close' | 'startDragging'
+    action:
+      | 'minimize'
+      | 'toggleMaximize'
+      | 'toggleFullscreen'
+      | 'exitFullscreen'
+      | 'close'
+      | 'startDragging'
   ) {
     if (!native) return
     try {
       setError(null)
       const appWindow = getCurrentWindow()
-      if (action === 'toggleFullscreen') {
-        await appWindow.setFullscreen(!fullscreen)
+      if (action === 'toggleFullscreen' || action === 'exitFullscreen') {
+        await appWindow.setFullscreen(action === 'toggleFullscreen' ? !fullscreen : false)
         setFullscreen(await appWindow.isFullscreen())
+      } else if (action === 'startDragging') {
+        if (fullscreen) {
+          await appWindow.setFullscreen(false)
+          setFullscreen(await appWindow.isFullscreen())
+        }
+        await appWindow.startDragging()
       } else {
         await appWindow[action]()
       }
@@ -134,6 +146,18 @@ export function Titlebar({
     if (event.button !== 0) return
     void windowAction(event.detail === 2 ? 'toggleMaximize' : 'startDragging')
   }
+
+  useEffect(() => {
+    if (!native || !fullscreen) return
+    const exit = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      void windowAction('exitFullscreen')
+    }
+    window.addEventListener('keydown', exit, true)
+    return () => window.removeEventListener('keydown', exit, true)
+  }, [fullscreen, native])
 
   if (playerMode && isAndroid()) return null
 
