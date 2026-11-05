@@ -49,6 +49,21 @@ const DELAY_OPTIONS = [
   { value: '3000', label: '3 秒' },
   { value: '5000', label: '5 秒' }
 ]
+const DEFAULT_DELAY_MS = 1_500
+
+function delayLabel(value: number) {
+  return (
+    DELAY_OPTIONS.find((option) => Number(option.value) === value)?.label ?? `${value / 1000} 秒`
+  )
+}
+
+function normalizeDelay(value: number) {
+  if (DELAY_OPTIONS.some((option) => Number(option.value) === value)) return value
+  return DELAY_OPTIONS.reduce((nearest, option) => {
+    const distance = Math.abs(Number(option.value) - value)
+    return distance < Math.abs(nearest - value) ? Number(option.value) : nearest
+  }, DEFAULT_DELAY_MS)
+}
 
 export function ArtistAvatarCompletionButton({
   onError,
@@ -92,7 +107,7 @@ function ArtistAvatarCompletionDialog({
   const [revision, setRevision] = useState(0)
   const [progress, setProgress] = useState<ArtistAvatarProgress>()
   const [starting, setStarting] = useState(false)
-  const [delayMs, setDelayMs] = useState<number>()
+  const [delayMs, setDelayMs] = useState(DEFAULT_DELAY_MS)
   const [error, setError] = useState<string>()
   const [working, setWorking] = useState<string>()
   const generation = useRef(0)
@@ -152,7 +167,7 @@ function ArtistAvatarCompletionDialog({
           ])
           if (!disposed && current === generation.current) {
             setProgress(status)
-            setDelayMs(options.delayMs)
+            setDelayMs(normalizeDelay(options.delayMs))
           }
         } catch (cause) {
           reportCaughtError('app/src/features/local/artist-avatar/completion-dialog.tsx', cause)
@@ -200,7 +215,7 @@ function ArtistAvatarCompletionDialog({
     const next = Number(value)
     if (!Number.isFinite(next) || next === delayMs) return
     const previous = delayMs
-    setDelayMs(next)
+    setDelayMs(normalizeDelay(next))
     setError(undefined)
     try {
       await nativeCall<ArtistAvatarOptions>('local_artist_avatar_set_delay', {
@@ -260,14 +275,14 @@ function ArtistAvatarCompletionDialog({
           </div>
           <Select
             items={DELAY_OPTIONS}
-            value={delayMs?.toString()}
-            disabled={!isTauri() || running || delayMs === undefined}
+            value={delayMs.toString()}
+            disabled={!isTauri() || running}
             onValueChange={(value) => {
               if (value) void changeDelay(value)
             }}
           >
             <SelectTrigger className="w-32" aria-label="艺术家头像请求间隔">
-              <SelectValue />
+              <SelectValue>{() => delayLabel(delayMs)}</SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
