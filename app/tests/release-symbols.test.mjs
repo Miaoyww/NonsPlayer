@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -89,4 +89,39 @@ test('installer symbols use Cargo target directory and reject missing or empty P
   assert.deepEqual(await symbolConfig(root, triple, 'Nons'), {
     bundle: { resources: { [symbols]: 'Nons.pdb' } }
   })
+})
+
+test('Windows installer resources retain both taskbar palettes when symbols are added', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'nons-taskbar-resources-'))
+  context.after(() => rm(root, { recursive: true, force: true }))
+  await mkdir(join(root, 'release'))
+  await writeFile(join(root, 'release', 'Nons.pdb'), 'matching-link-fixture')
+  const configs = await Promise.all(
+    ['tauri.conf.json', 'tauri.windows.conf.json'].map(async (name) =>
+      JSON.parse(await readFile(new URL(`../src-tauri/${name}`, import.meta.url), 'utf8'))
+    )
+  )
+  configs.push(await symbolConfig(root, undefined, 'Nons'))
+  let resources
+  for (const config of configs) {
+    const patch = config.bundle.resources
+    resources = Array.isArray(patch)
+      ? patch
+      : { ...(Array.isArray(resources) ? {} : resources), ...patch }
+  }
+  const icons = await readdir(new URL('../src-tauri/icons/taskbar/', import.meta.url))
+  assert.equal(icons.filter((name) => name.endsWith('.ico')).length, 8)
+  for (const control of ['previous', 'next', 'play', 'pause']) {
+    for (const color of ['white', 'black']) {
+      const icon = `${control}-${color}.ico`
+      assert.ok(icons.includes(icon), `Missing taskbar icon: ${icon}`)
+      const bundled = Object.entries(resources).some(
+        ([source, destination]) =>
+          (source === 'icons/taskbar/' && destination === 'icons/taskbar/') ||
+          (source === `icons/taskbar/${icon}` && destination === `icons/taskbar/${icon}`)
+      )
+      assert.ok(bundled, `icons/taskbar/${icon} was not found as a bundled resource`)
+    }
+  }
+  assert.equal(resources[join(root, 'release', 'Nons.pdb')], 'Nons.pdb')
 })
