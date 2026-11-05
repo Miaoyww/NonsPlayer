@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { ErrorNotice } from '@/components/error-notice'
 import { SettingsCard } from '@/features/settings/shell/settings-card'
 import {
@@ -35,8 +36,14 @@ interface DownloadSettings {
   filenameFormat: string
 }
 
+interface MvSaveSettings {
+  directory: string
+  enabled: boolean
+}
+
 export function DownloadPage() {
   const [settings, setSettings] = useState<DownloadSettings>()
+  const [mvSettings, setMvSettings] = useState<MvSaveSettings>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   useEffect(() => {
@@ -45,6 +52,21 @@ export function DownloadPage() {
     void nativeCall<DownloadSettings>('download_settings')
       .then((value) => {
         if (!disposed) setSettings(value)
+      })
+      .catch((cause) => {
+        reportCaughtError('app/src/features/settings/pages/download.tsx', cause)
+        if (!disposed) setError(errorText(cause))
+      })
+    return () => {
+      disposed = true
+    }
+  }, [])
+  useEffect(() => {
+    if (!isTauri()) return
+    let disposed = false
+    void nativeCall<MvSaveSettings>('mv_save_settings')
+      .then((value) => {
+        if (!disposed) setMvSettings(value)
       })
       .catch((cause) => {
         reportCaughtError('app/src/features/settings/pages/download.tsx', cause)
@@ -93,13 +115,38 @@ export function DownloadPage() {
       setBusy(false)
     }
   }
+  async function updateMvSaving(enabled: boolean) {
+    if (busy) return
+    setBusy(true)
+    setError(undefined)
+    try {
+      setMvSettings(await nativeCall<MvSaveSettings>('set_mv_save_enabled', { enabled }))
+    } catch (cause) {
+      reportCaughtError('app/src/features/settings/pages/download.tsx', cause)
+      setError(errorText(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function openMvDirectory() {
+    if (busy) return
+    setBusy(true)
+    setError(undefined)
+    try {
+      await nativeCall('open_mv_directory')
+    } catch (cause) {
+      reportCaughtError('app/src/features/settings/pages/download.tsx', cause)
+      setError(errorText(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
     <div className="flex flex-col gap-8">
       <div>
         <h2 className="text-xl font-bold">下载设置</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          设置下载音质与文件名格式；下载文件保存在应用数据目录的 downloads
-          文件夹，并自动加入本地音乐库。
+          设置下载音质、文件名格式与在线 MV 保存；歌曲下载会自动加入本地音乐库。
         </p>
       </div>
       <SettingsCard
@@ -176,6 +223,45 @@ export function DownloadPage() {
           </SelectContent>
         </Select>
       </SettingsCard>
+      <section aria-labelledby="mv-download-heading" className="flex flex-col gap-8">
+        <h3 id="mv-download-heading" className="text-base font-semibold">
+          MV
+        </h3>
+        <SettingsCard
+          searchId="mv-save-enabled"
+          title="保存在线 MV"
+          description="播放或确认适配器 MV 后保存到本地，之后优先使用本地文件；关闭后不再保存新的 MV，已保存文件保留。"
+        >
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={mvSettings?.enabled ?? true}
+              disabled={busy || !isTauri() || !mvSettings}
+              onCheckedChange={(checked) => void updateMvSaving(checked)}
+            />
+            保存在线 MV
+          </label>
+        </SettingsCard>
+        <SettingsCard
+          searchId="mv-save-directory"
+          title="MV 保存目录"
+          description="固定为应用数据目录下的 mvs，清理其它缓存不会删除。"
+        >
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <code className="min-w-0 break-all rounded-lg bg-muted px-3 py-2 text-xs">
+              {mvSettings?.directory ?? '正在读取…'}
+            </code>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy || !isTauri()}
+              onClick={() => void openMvDirectory()}
+            >
+              <FolderOpen aria-hidden="true" />
+              打开目录
+            </Button>
+          </div>
+        </SettingsCard>
+      </section>
       {error && <ErrorNotice error={error} />}
     </div>
   )

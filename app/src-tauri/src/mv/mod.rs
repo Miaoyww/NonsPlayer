@@ -7,7 +7,9 @@ use std::path::Path;
 use tauri::{Manager, State};
 
 mod proxy;
+pub(crate) mod saved;
 pub(crate) use proxy::MvProxy;
+pub(crate) use saved::SavedMvs;
 
 #[cfg(desktop)]
 const MAX_PATH_BYTES: usize = 32 * 1024;
@@ -49,6 +51,13 @@ pub struct MvSearchInput {
     pub query: String,
     #[serde(default)]
     pub cursor: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedMv {
+    pub source: String,
+    pub local: bool,
 }
 
 fn valid_extension(path: &Path) -> bool {
@@ -121,6 +130,10 @@ pub fn track_mv(
     if let Some(link) = backend.store.mv_link(&key)? {
         let source = crate::music::identity::SourceId::try_from(link.source.clone())
             .map_err(|error| error.to_string())?;
+        let saved = backend
+            .saved_mvs
+            .saved_path(&source, &link.mv_id)?
+            .is_some();
         let source_available = backend
             .music
             .adapters
@@ -128,7 +141,7 @@ pub fn track_mv(
             .map_err(|error| error.to_string())?
             .iter()
             .any(|descriptor| descriptor.source == source);
-        if source_available {
+        if saved || source_available {
             return Ok(Some(MvBinding {
                 source: link.source,
                 id: link.mv_id,
@@ -235,33 +248,42 @@ pub async fn bind_mv(
     }
     let source =
         crate::music::identity::SourceId::try_from(source).map_err(|error| error.to_string())?;
-    let available = backend
-        .music
-        .adapters
-        .mv_sources()
-        .map_err(|error| error.to_string())?
-        .iter()
-        .any(|descriptor| descriptor.source == source);
-    if !available {
-        return Err("提供该 MV 的适配器当前不可用".into());
+    let saved = backend.saved_mvs.saved_path(&source, &mv_id)?.is_some();
+    let mut ticket = None;
+    if !saved {
+        let available = backend
+            .music
+            .adapters
+            .mv_sources()
+            .map_err(|error| error.to_string())?
+            .iter()
+            .any(|descriptor| descriptor.source == source);
+        if !available {
+            return Err("提供该 MV 的适配器当前不可用".into());
+        }
+        let reference = crate::music::identity::EntityRef {
+            source: source.clone(),
+            kind: crate::music::identity::EntityKind::Track,
+            id: mv_id
+                .clone()
+                .try_into()
+                .map_err(|error: crate::music::MusicError| error.to_string())?,
+        };
+        ticket = Some(
+            backend
+                .music
+                .adapters
+                .resolve_mv(&crate::music::mv::MvResolveRequest { mv: reference }, 0)
+                .await
+                .map_err(|error| error.to_string())?,
+        );
     }
-    let reference = crate::music::identity::EntityRef {
-        source: source.clone(),
-        kind: crate::music::identity::EntityKind::Track,
-        id: mv_id
-            .clone()
-            .try_into()
-            .map_err(|error: crate::music::MusicError| error.to_string())?,
-    };
-    backend
-        .music
-        .adapters
-        .resolve_mv(&crate::music::mv::MvResolveRequest { mv: reference }, 0)
-        .await
-        .map_err(|error| error.to_string())?;
     backend
         .store
         .link_mv(&key, source.as_str(), &mv_id, &title)?;
+    if let Some(ticket) = ticket {
+        backend.saved_mvs.start_save(&source, &mv_id, ticket);
+    }
     Ok(MvBinding {
         source: source.as_str().to_owned(),
         id: mv_id,
@@ -272,17 +294,25 @@ pub async fn bind_mv(
 }
 
 #[tauri::command]
-pub async fn resolve_track_mv(key: String, backend: State<'_, Backend>) -> AppResult<String> {
+pub async fn resolve_track_mv(key: String, backend: State<'_, Backend>) -> AppResult<ResolvedMv> {
     backend.store.track(&key)?;
     let link = backend.store.mv_link(&key)?.ok_or("当前歌曲未绑定 MV")?;
+    let source = link
+        .source
+        .try_into()
+        .map_err(|error: crate::music::MusicError| error.to_string())?;
+    if let Some(path) = backend.saved_mvs.saved_path(&source, &link.mv_id)? {
+        return Ok(ResolvedMv {
+            source: path,
+            local: true,
+        });
+    }
     let reference = crate::music::identity::EntityRef {
-        source: link
-            .source
-            .try_into()
-            .map_err(|error: crate::music::MusicError| error.to_string())?,
+        source: source.clone(),
         kind: crate::music::identity::EntityKind::Track,
         id: link
             .mv_id
+            .clone()
             .try_into()
             .map_err(|error: crate::music::MusicError| error.to_string())?,
     };
@@ -292,7 +322,13 @@ pub async fn resolve_track_mv(key: String, backend: State<'_, Backend>) -> AppRe
         .resolve_mv(&crate::music::mv::MvResolveRequest { mv: reference }, 0)
         .await
         .map_err(|error| error.to_string())?;
-    backend.mv_proxy.issue(ticket, 0)
+    backend
+        .saved_mvs
+        .start_save(&source, &link.mv_id, ticket.clone());
+    Ok(ResolvedMv {
+        source: backend.mv_proxy.issue(ticket, 0)?,
+        local: false,
+    })
 }
 
 #[tauri::command]

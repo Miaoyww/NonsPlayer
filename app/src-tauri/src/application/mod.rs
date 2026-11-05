@@ -36,6 +36,7 @@ pub(crate) struct Backend {
     pub(crate) cover_requests: Arc<tokio::sync::Semaphore>,
     pub(crate) online_covers: Arc<crate::infrastructure::covers::CoverCache>,
     pub(crate) mv_proxy: crate::mv::MvProxy,
+    pub(crate) saved_mvs: Arc<crate::mv::SavedMvs>,
 }
 
 #[tauri::command]
@@ -910,6 +911,9 @@ pub fn run() {
             let online_covers = cache_directory.join("online-covers-v1");
             std::fs::create_dir_all(&online_covers)?;
             app.asset_protocol_scope().allow_directory(&online_covers, true)?;
+            let mvs = data.join("mvs");
+            std::fs::create_dir_all(&mvs)?;
+            app.asset_protocol_scope().allow_directory(&mvs, true)?;
             let online_covers = Arc::new(crate::infrastructure::covers::CoverCache::new(online_covers));
             let fallback = covers.join("default.png");
             if !fallback.exists() {
@@ -1069,6 +1073,8 @@ pub fn run() {
             )?;
             let downloads_startup = downloads.clone();
             let mv_proxy = crate::mv::MvProxy::new()?;
+            let saved_mvs =
+                crate::mv::SavedMvs::new(store.clone(), plugin_manager.shared_http(), mvs)?;
             let plugins_startup = tauri::async_runtime::spawn(async move {
                 plugin_manager.startup().await;
             });
@@ -1090,6 +1096,7 @@ pub fn run() {
                 cover_requests,
                 online_covers,
                 mv_proxy,
+                saved_mvs,
             });
             let telemetry_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -1314,6 +1321,9 @@ pub fn run() {
             crate::mv::link_local_mv,
             crate::mv::unlink_local_mv,
             crate::mv::set_local_mv_offset,
+            crate::mv::saved::mv_save_settings,
+            crate::mv::saved::set_mv_save_enabled,
+            crate::mv::saved::open_mv_directory,
             local_track_lyrics,
             lyric_sources,
             android_media_lyrics,

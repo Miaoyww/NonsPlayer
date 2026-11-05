@@ -25,6 +25,15 @@ export interface MvSelection {
   localPath?: string
 }
 
+export interface ResolvedMv {
+  source: string
+  local: boolean
+}
+
 export function localMvSource(mv: LocalMv) {
   return convertFileSrc(mv.path)
+}
+
+export function resolvedMvSource(mv: ResolvedMv) {
+  return mv.local ? convertFileSrc(mv.source) : mv.source
 }

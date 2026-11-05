@@ -36,7 +36,11 @@ test('local MV only seeks after drift exceeds the playback tolerance', () => {
   assert.equal(exports.localMvNeedsSync(Number.NaN, 30), false)
 })
 
-async function hookHarness(stored, picked) {
+async function hookHarness(
+  stored,
+  picked,
+  resolved = { source: 'http://127.0.0.1/mv', local: false }
+) {
   const calls = []
   const slots = []
   const effects = []
@@ -88,7 +92,11 @@ async function hookHarness(stored, picked) {
           return {
             clampLocalMvOffset: (value) => Math.max(-600_000, Math.min(600_000, Math.round(value)))
           }
-        if (name === './local-mv') return { localMvSource: (mv) => `asset://${mv.path}` }
+        if (name === './local-mv')
+          return {
+            localMvSource: (mv) => `asset://${mv.path}`,
+            resolvedMvSource: (mv) => (mv.local ? `asset://${mv.source}` : mv.source)
+          }
         assert.equal(name, '@/lib/player')
         return {
           errorText: String,
@@ -98,7 +106,7 @@ async function hookHarness(stored, picked) {
             if (command === 'pick_local_mv') return picked
             if (command === 'link_local_mv') return picked
             if (command === 'unlink_mv_binding') return
-            if (command === 'resolve_track_mv') return 'http://127.0.0.1/mv'
+            if (command === 'resolve_track_mv') return resolved
           }
         }
       }
@@ -272,4 +280,20 @@ test('adapter MV resolves through the host proxy and uses the unified offset com
     key: 'track-a',
     offsetMs: 200
   })
+})
+
+test('a saved adapter MV uses the asset protocol without becoming a local fallback', async () => {
+  const binding = {
+    source: 'bilibili',
+    id: 'BV1xx411c7mD',
+    title: 'Official MV',
+    offsetMs: 0
+  }
+  const harness = await hookHarness(binding, null, {
+    source: 'C:/data/mvs/saved.mp4',
+    local: true
+  })
+  assert.equal(await harness.toggle(), 'mv')
+  assert.equal(harness.current.selection.url, 'asset://C:/data/mvs/saved.mp4')
+  assert.equal(harness.current.selection.local, false)
 })

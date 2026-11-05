@@ -116,6 +116,7 @@ impl Store {
             CREATE TABLE IF NOT EXISTS local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, manual INTEGER NOT NULL DEFAULT 1, remote INTEGER NOT NULL DEFAULT 0, excluded INTEGER NOT NULL DEFAULT 0, value TEXT NOT NULL, PRIMARY KEY(playlist_id,key));
             CREATE TABLE IF NOT EXISTS local_mv_links (track_key TEXT PRIMARY KEY, path TEXT NOT NULL, offset_ms INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS mv_links (track_key TEXT PRIMARY KEY, source TEXT NOT NULL, mv_id TEXT NOT NULL, title TEXT NOT NULL, offset_ms INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS saved_mvs (source TEXT NOT NULL, mv_id TEXT NOT NULL, path TEXT NOT NULL, bytes INTEGER NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(source,mv_id));
             CREATE TABLE IF NOT EXISTS download_local_tracks (track_key TEXT PRIMARY KEY, path TEXT NOT NULL, quality TEXT, updated_at INTEGER NOT NULL);
             CREATE INDEX IF NOT EXISTS local_audio_path ON tracks(json_extract(value,'$.source.path')) WHERE source='local';
             CREATE VIEW IF NOT EXISTS visible_local_tracks AS
@@ -652,6 +653,53 @@ impl Store {
         if updated == 0 {
             return Err("MV 关联不存在".into());
         }
+        Ok(())
+    }
+
+    pub fn saved_mv(&self, source: &str, mv_id: &str) -> AppResult<Option<String>> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.saved_mv.lock", error);
+            })
+            .map_err(|_| "MV 保存记录锁不可用")?
+            .query_row(
+                "SELECT path FROM saved_mvs WHERE source=?1 AND mv_id=?2",
+                params![source, mv_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn save_mv(&self, source: &str, mv_id: &str, path: &str, bytes: u64) -> AppResult<()> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.save_mv.lock", error);
+            })
+            .map_err(|_| "MV 保存记录锁不可用")?
+            .execute(
+                "INSERT INTO saved_mvs(source,mv_id,path,bytes,updated_at) VALUES(?1,?2,?3,?4,?5)
+                 ON CONFLICT(source,mv_id) DO UPDATE SET path=excluded.path,bytes=excluded.bytes,updated_at=excluded.updated_at",
+                params![source, mv_id, path, bytes as i64, now_seconds()],
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn remove_saved_mv(&self, source: &str, mv_id: &str) -> AppResult<()> {
+        self.0
+            .lock()
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("storage.remove_saved_mv.lock", error);
+            })
+            .map_err(|_| "MV 保存记录锁不可用")?
+            .execute(
+                "DELETE FROM saved_mvs WHERE source=?1 AND mv_id=?2",
+                params![source, mv_id],
+            )
+            .map_err(|e| e.to_string())?;
         Ok(())
     }
 

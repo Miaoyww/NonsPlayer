@@ -1,19 +1,26 @@
 import { errorText, nativeCall } from '@/lib/player'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clampLocalMvOffset } from './sync'
-import { localMvSource, type LocalMv, type MvBinding, type MvSelection } from './local-mv'
+import {
+  localMvSource,
+  resolvedMvSource,
+  type LocalMv,
+  type MvBinding,
+  type MvSelection,
+  type ResolvedMv
+} from './local-mv'
 
 export type FullscreenDisplayMode = 'lyrics' | 'mv'
 export type MvActivation = FullscreenDisplayMode | 'select'
 
 async function remoteSource(binding: MvBinding, key: string) {
-  const url = await nativeCall<string>('resolve_track_mv', { key })
+  const resolved = await nativeCall<ResolvedMv>('resolve_track_mv', { key })
   return {
     source: binding.source,
     id: binding.id,
     title: binding.title,
     offsetMs: binding.offsetMs,
-    url,
+    url: resolvedMvSource(resolved),
     local: false
   } satisfies MvSelection
 }

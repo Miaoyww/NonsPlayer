@@ -20,7 +20,12 @@ export const settingsSections = [
     icon: SlidersHorizontal
   },
   { id: 'playback', label: '播放设置', description: '调整音质与播放行为。', icon: Volume2 },
-  { id: 'download', label: '下载设置', description: '设置下载音质与保存目录。', icon: Download },
+  {
+    id: 'download',
+    label: '下载设置',
+    description: '设置下载音质、MV 保存与保存目录。',
+    icon: Download
+  },
   { id: 'shortcuts', label: '快捷键设置', description: '配置播放快捷键。', icon: Keyboard },
   { id: 'lyrics', label: '歌词设置', description: '调整歌词显示与来源。', icon: Mic2 },
   {
