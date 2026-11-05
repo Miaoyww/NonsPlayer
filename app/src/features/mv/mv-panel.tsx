@@ -224,8 +224,6 @@ export function MvPanel({
           <p className="mv-panel-empty">没有可用的适配器 MV 结果，可选择本地视频。</p>
         )}
       </div>
-
-      <p className="mv-panel-hint">MV 静音播放，并跟随当前歌曲进度对齐。</p>
     </section>
   )
 }

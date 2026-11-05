@@ -66,6 +66,51 @@
   color: var(--foreground);
   background: var(--accent);
 }
+.mv-lyric-overlay {
+  position: absolute;
+  inset-inline: 0;
+  bottom: clamp(92px, 10.5vh, 116px);
+  z-index: 15;
+  display: flex;
+  justify-content: center;
+  padding-inline: clamp(16px, 4vw, 48px);
+  pointer-events: none;
+}
+.mv-lyric-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: min(860px, 100%);
+  padding: clamp(11px, 1.6vh, 17px) clamp(18px, 2.6vw, 30px);
+  overflow-wrap: anywhere;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 18px;
+  background: rgb(10 10 12 / 52%);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 32%);
+  color: white;
+  font-family: var(--nons-lyrics-font, var(--nons-app-font));
+  text-align: center;
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+.mv-lyric-original,
+.mv-lyric-auxiliary {
+  display: block;
+  max-width: 100%;
+  line-height: 1.45;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 48%);
+}
+.mv-lyric-original {
+  font-size: clamp(18px, 1.1vw + 0.7vh, 27px);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.mv-lyric-auxiliary {
+  color: rgb(255 255 255 / 72%);
+  font-size: clamp(13px, 0.65vw + 0.45vh, 17px);
+  font-weight: 500;
+}
 .mv-alignment-popover {
   width: min(360px, calc(100vw - 32px));
   padding: 16px;
@@ -275,12 +320,6 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 18px;
-}
-.mv-panel-hint {
-  margin-top: 14px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 1.5;
 }
 .fullscreen-plugin-panel {
   height: 100%;

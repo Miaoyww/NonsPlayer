@@ -39,6 +39,7 @@ import { LocalMvStage } from '@/features/mv/local-mv-stage'
 import { useLocalMv } from '@/features/mv/use-local-mv'
 import { MvAlignmentPopover } from '@/features/mv/mv-alignment-popover'
 import { MvPanel } from '@/features/mv/mv-panel'
+import { MvLyricCard } from '@/features/mv/mv-lyric-card'
 import {
   FULLSCREEN_PLAYER_ACTION_SLOT,
   FULLSCREEN_PLAYER_PANEL_SLOT,
@@ -678,6 +679,13 @@ export default function LyricsView({
               )}
             </ActionButton>
           </div>
+          {mvActive && (
+            <MvLyricCard
+              lines={lines}
+              showTranslation={showTranslation && hasTranslation}
+              showPronunciation={showPronunciation && hasPronunciation}
+            />
+          )}
           <FullscreenPlaybackBar
             onQueuePanel={() => setPanelPage((value) => (value === 'queue' ? 'lyrics' : 'queue'))}
             queueActive={panelPage === 'queue'}
