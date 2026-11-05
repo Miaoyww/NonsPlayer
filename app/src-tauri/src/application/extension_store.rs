@@ -71,6 +71,8 @@ struct Artifact {
     url: String,
     size: Option<u64>,
     sha256: String,
+    #[serde(default, skip)]
+    fallbacks: Vec<String>,
 }
 impl Artifact {
     fn issue(&self) -> Option<&'static str> {
@@ -95,6 +97,68 @@ impl Artifact {
     fn size(&self) -> AppResult<u64> {
         self.size.ok_or_else(|| "缺大小暂不可安装".into())
     }
+}
+
+fn github_fallbacks(fields: &Map<String, Value>, kind: Kind) -> Vec<String> {
+    let Some(repository) = fields.get("repository").and_then(Value::as_str) else {
+        return Vec::new();
+    };
+    let Ok(mut url) = Url::parse(repository) else {
+        return Vec::new();
+    };
+    if url.scheme() != "https" || url.host_str() != Some("github.com") {
+        return Vec::new();
+    }
+    let Some(mut repository_segments) = url.path_segments().map(|s| s.collect::<Vec<_>>()) else {
+        return Vec::new();
+    };
+    if repository_segments
+        .last()
+        .is_some_and(|segment| segment.is_empty())
+    {
+        repository_segments.pop();
+    }
+    if repository_segments.len() != 2
+        || repository_segments
+            .iter()
+            .any(|segment| segment.is_empty() || matches!(*segment, "." | ".."))
+    {
+        return Vec::new();
+    }
+    let Some(tag) = fields
+        .get("release")
+        .and_then(|value| value.get("tag"))
+        .and_then(Value::as_str)
+    else {
+        return Vec::new();
+    };
+    let Some(id) = fields.get("id").and_then(Value::as_str) else {
+        return Vec::new();
+    };
+    let Some(version) = fields.get("version").and_then(Value::as_str) else {
+        return Vec::new();
+    };
+    url.set_query(None);
+    url.set_fragment(None);
+    let mut names = vec![format!("{id}-{version}.zip"), format!("{id}-{tag}.zip")];
+    if kind == Kind::Adapter {
+        names.swap(0, 1);
+    }
+    names.dedup();
+    names
+        .into_iter()
+        .filter_map(|name| {
+            let mut candidate = url.clone();
+            let mut segments = candidate.path_segments_mut().ok()?;
+            segments.pop_if_empty();
+            segments.push("releases");
+            segments.push("download");
+            segments.push(tag);
+            segments.push(&name);
+            drop(segments);
+            Some(candidate.to_string())
+        })
+        .collect()
 }
 
 #[derive(Clone, Debug)]
@@ -323,10 +387,19 @@ fn parse_catalog(bytes: &[u8]) -> AppResult<Catalog> {
                         .map_err(|_| "安装包声明无效".to_owned())
                 })
                 .transpose();
-            let (artifact, artifact_error) = match artifact {
+            let (mut artifact, artifact_error) = match artifact {
                 Ok(artifact) => (artifact, None),
                 Err(_) => (None, Some("安装包声明无效，暂不可安装")),
             };
+            if artifact.as_ref().is_some_and(|artifact| {
+                Url::parse(&artifact.url)
+                    .ok()
+                    .is_none_or(|url| url.host_str() != Some("github.com"))
+            }) {
+                if let Some(artifact) = &mut artifact {
+                    artifact.fallbacks = github_fallbacks(&fields, kind);
+                }
+            }
             entries.push(Entry {
                 kind,
                 fields,
@@ -477,50 +550,13 @@ impl ExtensionStore {
     fn source(&self, source: Option<Source>) -> AppResult<Source> {
         select_source(&self.store, source)
     }
-    async fn response(
-        &self,
-        raw: &str,
-        artifact: bool,
-        timeout: Duration,
-    ) -> AppResult<reqwest::Response> {
-        let mut url = secure_url(raw)?;
-        for hop in 0..=5 {
-            if artifact {
-                release_url(url.as_str(), hop > 0)?;
-            }
-            let response = self
-                .http
-                .client(&url)
-                .get(url.clone())
-                .timeout(timeout)
-                .header(reqwest::header::ACCEPT_ENCODING, "identity")
-                .send()
-                .await
-                .map_err(|error| network_error(error, artifact))?;
-            if response.status().is_redirection() {
-                let location = response
-                    .headers()
-                    .get(reqwest::header::LOCATION)
-                    .ok_or("下载跳转缺少目标地址")?
-                    .to_str()
-                    .map_err(|_| "下载跳转地址无效")?;
-                url = url.join(location).map_err(|_| "下载跳转地址无效")?;
-                continue;
-            }
-            if response.status() != reqwest::StatusCode::OK {
-                return Err(http_error(response.status().as_u16(), artifact));
-            }
-            return Ok(response);
-        }
-        Err("下载跳转次数超过上限".into())
-    }
     async fn catalog(&self, source: Source) -> AppResult<Catalog> {
         let _slot = self
             .requests
             .try_acquire()
             .map_err(|_| "商店请求繁忙，请稍后重试")?;
         tokio::time::timeout(INDEX_TIMEOUT, async {
-            let mut response = self.response(source.url(), false, INDEX_TIMEOUT).await?;
+            let mut response = fetch(&self.http, source.url(), false, INDEX_TIMEOUT).await?;
             if response
                 .content_length()
                 .is_some_and(|n| n > INDEX_BYTES as u64)
@@ -633,13 +669,7 @@ impl ExtensionStore {
         Ok(index)
     }
     async fn download(&self, artifact: &Artifact) -> AppResult<tempfile::TempPath> {
-        artifact.validate()?;
-        tokio::time::timeout(DOWNLOAD_TIMEOUT, async {
-            let response = self.response(&artifact.url, true, DOWNLOAD_TIMEOUT).await?;
-            download_response(response, artifact).await
-        })
-        .await
-        .map_err(|_| "安装包下载超时，请重试".to_owned())?
+        download_artifact(&self.http, artifact).await
     }
     async fn package_review(
         self: &Arc<Self>,
@@ -912,6 +942,82 @@ fn unchanged_artifact(current: &Artifact, reviewed: &Artifact) -> AppResult<()> 
         return Err("商店安装包已变化，请重新准备并确认".into());
     }
     Ok(())
+}
+async fn fetch(
+    http: &Http,
+    raw: &str,
+    artifact: bool,
+    timeout: Duration,
+) -> AppResult<reqwest::Response> {
+    let mut url = secure_url(raw)?;
+    for hop in 0..=5 {
+        if artifact {
+            release_url(url.as_str(), hop > 0)?;
+        }
+        let response = http
+            .client(&url)
+            .get(url.clone())
+            .timeout(timeout)
+            .header(reqwest::header::ACCEPT_ENCODING, "identity")
+            .send()
+            .await
+            .map_err(|error| network_error(error, artifact))?;
+        if response.status().is_redirection() {
+            let location = response
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .ok_or("下载跳转缺少目标地址")?
+                .to_str()
+                .map_err(|_| "下载跳转地址无效")?;
+            url = url.join(location).map_err(|_| "下载跳转地址无效")?;
+            continue;
+        }
+        if response.status() != reqwest::StatusCode::OK {
+            return Err(http_error(response.status().as_u16(), artifact));
+        }
+        return Ok(response);
+    }
+    Err("下载跳转次数超过上限".into())
+}
+async fn download_once(
+    http: &Http,
+    url: &str,
+    artifact: &Artifact,
+) -> AppResult<tempfile::TempPath> {
+    tokio::time::timeout(DOWNLOAD_TIMEOUT, async {
+        let response = fetch(http, url, true, DOWNLOAD_TIMEOUT).await?;
+        download_response(response, artifact).await
+    })
+    .await
+    .map_err(|_| "安装包下载超时，请重试".to_owned())?
+}
+async fn download_artifact(http: &Http, artifact: &Artifact) -> AppResult<tempfile::TempPath> {
+    artifact.validate()?;
+    let error = match download_once(http, &artifact.url, artifact).await {
+        Ok(path) => return Ok(path),
+        Err(error) => error,
+    };
+    crate::infrastructure::diagnostics::warn("extension_store.download", &error);
+    let mut last_error = error;
+    for url in &artifact.fallbacks {
+        match download_once(http, url, artifact).await {
+            Ok(path) => {
+                crate::infrastructure::diagnostics::warn(
+                    "extension_store.download.github_fallback",
+                    format!("{last_error}; 已改用 GitHub Release：{url}"),
+                );
+                return Ok(path);
+            }
+            Err(error) => {
+                crate::infrastructure::diagnostics::warn(
+                    "extension_store.download.fallback",
+                    &error,
+                );
+                last_error = error;
+            }
+        }
+    }
+    Err(last_error)
 }
 async fn download_response(
     mut response: reqwest::Response,
@@ -1335,16 +1441,21 @@ mod tests {
 
     fn artifact(bytes: &[u8]) -> Artifact {
         Artifact {
-            url: "https://github.com/NonsPlayer/example/releases/download/v1.2.0/example.zip"
-                .into(),
+            url: "https://nons-dist.example/plugin-example-1.2.0-0123456789abcdef.zip".into(),
             size: Some(bytes.len() as u64),
             sha256: hex::encode(Sha256::digest(bytes)),
+            fallbacks: vec![
+                "https://github.com/NonsPlayer/example/releases/download/v1.2.0/example-1.2.0.zip"
+                    .into(),
+            ],
         }
     }
     fn plugin() -> Value {
         let artifact = artifact(b"package");
         json!({
             "id": "example", "kind": "plugin", "name": "Example", "version": "1.2.0",
+            "repository": "https://github.com/NonsPlayer/example",
+            "release": {"tag": "v1.2.0", "created_at": "2026-10-30T12:00:00Z"},
             "blocked": false, "unavailable": false, "deprecated": false,
             "engines": {"app": "^1.0.0", "pluginApi": "^2.0.0", "uiApi": "^2.0.0"},
             "permissions": ["ui"], "artifact": {
@@ -1523,6 +1634,40 @@ mod tests {
     }
 
     #[test]
+    fn cdn_artifacts_derive_github_release_fallbacks() {
+        let plugin_entry = entry(plugin());
+        assert_eq!(
+            plugin_entry.artifact.unwrap().fallbacks,
+            [
+                "https://github.com/NonsPlayer/example/releases/download/v1.2.0/example-1.2.0.zip",
+                "https://github.com/NonsPlayer/example/releases/download/v1.2.0/example-v1.2.0.zip"
+            ]
+        );
+        let adapter = entry(adapter());
+        assert_eq!(
+            adapter.artifact.unwrap().fallbacks,
+            [
+                "https://github.com/NonsPlayer/example/releases/download/v1.2.0/example-v1.2.0.zip",
+                "https://github.com/NonsPlayer/example/releases/download/v1.2.0/example-1.2.0.zip"
+            ]
+        );
+        let mut github = plugin();
+        github["artifact"]["url"] = json!(
+            "https://github.com/NonsPlayer/example/releases/download/v1.2.0/example-1.2.0.zip"
+        );
+        assert!(entry(github).artifact.unwrap().fallbacks.is_empty());
+        let mut other = plugin();
+        other["repository"] = json!("https://gitlab.com/NonsPlayer/example");
+        assert!(entry(other).artifact.unwrap().fallbacks.is_empty());
+        let mut missing = plugin();
+        missing.as_object_mut().unwrap().remove("release");
+        assert!(entry(missing).artifact.unwrap().fallbacks.is_empty());
+        let mut nested = plugin();
+        nested["repository"] = json!("https://github.com/NonsPlayer/example/tree/main");
+        assert!(entry(nested).artifact.unwrap().fallbacks.is_empty());
+    }
+
+    #[test]
     fn unavailable_reasons_and_download_failures_are_localized() {
         assert_eq!(http_error(404, true), "安装包暂不可用（HTTP 404）");
         assert_eq!(http_error(503, false), "商店索引暂不可用（HTTP 503）");
@@ -1654,6 +1799,7 @@ mod tests {
         );
         let oversized = Artifact {
             size: Some(PACKAGE_BYTES + 1),
+            fallbacks: vec![],
             ..expected
         };
         let response =
@@ -1663,6 +1809,44 @@ mod tests {
             .await
             .unwrap_err()
             .contains("大小超过"));
+    }
+
+    #[tokio::test]
+    async fn failed_cdn_download_falls_back_and_verifies_the_same_digest() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            for response in [
+                b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                    .as_slice(),
+                b"HTTP/1.1 200 OK\r\nContent-Length: 7\r\nConnection: close\r\n\r\npackage"
+                    .as_slice(),
+            ] {
+                let (mut socket, _) = listener.accept().unwrap();
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(3)))
+                    .unwrap();
+                let mut request = [0; 4096];
+                assert!(socket.read(&mut request).unwrap() > 0);
+                socket.write_all(response).unwrap();
+            }
+        });
+        let http = Http::for_test(
+            reqwest::Client::builder()
+                .no_proxy()
+                .redirect(reqwest::redirect::Policy::none())
+                .timeout(Duration::from_secs(3))
+                .build()
+                .unwrap(),
+        );
+        let artifact = Artifact {
+            url: format!("http://{address}/missing.zip"),
+            fallbacks: vec![format!("http://{address}/asset.zip")],
+            ..artifact(b"package")
+        };
+        let package = download_artifact(&http, &artifact).await.unwrap();
+        assert_eq!(std::fs::read(&package).unwrap(), b"package");
+        server.join().unwrap();
     }
 
     #[test]
