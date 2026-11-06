@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall, usePlayer, type OutputDevice } from '@/lib/player'
-import { isAndroid } from '@/lib/platform'
+import { isAndroid, isWindows } from '@/lib/platform'
 import { qualities, useMusicOptions } from '@/features/playback/now-playing/music-options'
 import {
   Select,
@@ -20,6 +20,7 @@ import { SettingsCard } from '@/features/settings/shell/settings-card'
 export function PlaybackPage() {
   const state = usePlayer('deviceId', 'playbackOptions')
   const android = isAndroid()
+  const windows = isWindows()
   const chooseAudioOutput =
     !android || typeof navigator === 'undefined'
       ? undefined
@@ -276,6 +277,22 @@ export function PlaybackPage() {
           </Select>
         </label>
       </SettingsCard>
+      {windows && (
+        <SettingsCard
+          searchId="taskbar-cover"
+          title="任务栏封面"
+          description="任务栏悬停缩略图显示当前歌曲封面。"
+        >
+          <label className="flex items-center gap-2 text-sm">
+            <Switch
+              checked={state.playbackOptions.taskbarCover}
+              disabled={!isTauri() || savingTransitions}
+              onCheckedChange={(checked) => updateTransitions({ taskbarCover: checked })}
+            />
+            显示歌曲封面
+          </label>
+        </SettingsCard>
+      )}
       {savingTransitions && (
         <p role="status" className="text-sm text-muted-foreground">
           正在保存播放设置…

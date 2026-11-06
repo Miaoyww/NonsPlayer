@@ -68,6 +68,7 @@ export interface PlayerSnapshot {
     fades: boolean
     crossfade: boolean
     crossfadeDurationMs: number
+    taskbarCover: boolean
   }
   privateFmSession: number | null
   privateFmError?: string
@@ -106,7 +107,12 @@ export interface OutputDevice {
 }
 
 const initialSnapshot: PlayerSnapshot = {
-  playbackOptions: { fades: false, crossfade: false, crossfadeDurationMs: 3000 },
+  playbackOptions: {
+    fades: false,
+    crossfade: false,
+    crossfadeDurationMs: 3000,
+    taskbarCover: false
+  },
   privateFmSession: null,
   shuffle: false,
   shuffleOrder: [],

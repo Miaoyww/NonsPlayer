@@ -151,15 +151,7 @@ impl ThumbarControls {
     }
 
     fn sync_cover(&mut self, state: &PlayerSnapshot) {
-        let current = state.current().map(|track| {
-            (
-                track.key.clone(),
-                track
-                    .cover
-                    .url(nons_music_adapter_sdk::cover::CoverSize::Exlarge)
-                    .to_owned(),
-            )
-        });
+        let current = cover_for(state);
         if self.cover == current {
             return;
         }
@@ -258,6 +250,22 @@ impl ThumbarControls {
             .update(&self.window, update)
             .map_err(|error| format!("thumbar.update: {error}"))
     }
+}
+
+#[cfg(windows)]
+fn cover_for(state: &PlayerSnapshot) -> Option<(String, String)> {
+    if !state.playback_options.taskbar_cover {
+        return None;
+    }
+    state.current().map(|track| {
+        (
+            track.key.clone(),
+            track
+                .cover
+                .url(nons_music_adapter_sdk::cover::CoverSize::Exlarge)
+                .to_owned(),
+        )
+    })
 }
 
 #[cfg(windows)]
@@ -368,6 +376,21 @@ mod tests {
             progress_for(&snapshot(PlaybackStatus::Stopped, 10_000, 180_000)),
             None
         );
+    }
+
+    #[test]
+    fn cover_requires_the_enabled_setting_and_a_track() {
+        let mut state = snapshot(PlaybackStatus::Playing, 0, 180_000);
+        assert_eq!(cover_for(&state), None);
+
+        state.playback_options.taskbar_cover = true;
+        assert_eq!(
+            cover_for(&state),
+            Some((state.queue[0].key.clone(), String::new()))
+        );
+
+        state.index = None;
+        assert_eq!(cover_for(&state), None);
     }
 
     #[test]

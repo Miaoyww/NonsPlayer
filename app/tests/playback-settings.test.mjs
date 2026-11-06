@@ -34,7 +34,12 @@ async function harness({
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   let state = {
     deviceId,
-    playbackOptions: { fades: false, crossfade: false, crossfadeDurationMs: 3000 }
+    playbackOptions: {
+      fades: false,
+      crossfade: false,
+      crossfadeDurationMs: 3000,
+      taskbarCover: false
+    }
   }
   let musicOptions = { quality: 'exhigh', allowDowngrade: true }
   const musicUpdates = []
@@ -47,7 +52,10 @@ async function harness({
     react: React,
     'react/jsx-runtime': jsx,
     '@tauri-apps/api/core': { isTauri: () => true },
-    '@/lib/platform': { isAndroid: () => platform === 'Android' },
+    '@/lib/platform': {
+      isAndroid: () => platform === 'Android',
+      isWindows: () => platform === 'Windows'
+    },
     '@/components/error-notice': errorNoticeModule,
     '@/components/ui/button': {
       Button: ({ variant: _variant, size: _size, ...props }) => React.createElement('button', props)
@@ -225,6 +233,25 @@ test('quality preference persists the selected streaming quality', async () => {
   }
 })
 
+test('taskbar cover is opt-in and Windows only', async () => {
+  const windows = await harness()
+  try {
+    assert.equal(windows.input('显示歌曲封面').checked, false)
+    await React.act(async () => windows.input('显示歌曲封面').click())
+    const [, args] = windows.calls.find(([command]) => command === 'set_playback_options')
+    assert.equal(args.options.taskbarCover, true)
+  } finally {
+    await windows.dispose()
+  }
+
+  const android = await harness({ platform: 'Android' })
+  try {
+    assert.equal(android.card('任务栏封面'), null)
+  } finally {
+    await android.dispose()
+  }
+})
+
 test('playback fades and crossfade wait for persistence and retain the previous setting on failure', async () => {
   let pending
   const app = await harness({
@@ -257,7 +284,9 @@ test('playback fades and crossfade wait for persistence and retain the previous 
     assert.equal(duration.value, '6000')
     assert.deepEqual(JSON.parse(JSON.stringify(app.calls.at(-1))), [
       'set_playback_options',
-      { options: { fades: true, crossfade: true, crossfadeDurationMs: 6000 } }
+      {
+        options: { fades: true, crossfade: true, crossfadeDurationMs: 6000, taskbarCover: false }
+      }
     ])
   } finally {
     await app.dispose()

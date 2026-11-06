@@ -2121,6 +2121,7 @@ mod tests {
             fades: true,
             crossfade: true,
             crossfade_duration_ms: 5000,
+            ..PlaybackOptions::default()
         };
         assert_eq!(stored_options(&store, fallback).unwrap(), fallback);
     }
