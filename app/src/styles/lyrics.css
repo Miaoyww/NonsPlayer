@@ -350,7 +350,10 @@
   height: 100%;
   overflow-y: auto;
   padding: clamp(4px, 1.5vh, 16px) clamp(4px, 1.5vw, 16px) calc(clamp(40px, 7.5vh, 60px) + 16px);
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+.now-playing-information::-webkit-scrollbar {
+  display: none;
 }
 .now-playing-information-card {
   padding: clamp(16px, 2vw, 28px);
