@@ -3,7 +3,7 @@ use super::{qq_lyrics, LyricService};
 use crate::{
     application::Backend,
     model::{AppResult, Lyrics},
-    storage::MAX_LYRIC_BYTES,
+    storage::{Store, MAX_LYRIC_BYTES},
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -111,12 +111,32 @@ fn setting_key(key: &str) -> String {
     format!("lyricCorrectionV1:{:x}", Sha256::digest(key.as_bytes()))
 }
 
+fn read_correction(store: &Store, key: &str) -> AppResult<Correction> {
+    store
+        .setting(&setting_key(key))?
+        .map(|value| serde_json::from_str(&value).map_err(|e| e.to_string()))
+        .unwrap_or_else(|| Ok(Correction::default()))
+}
+
+fn save_offset(store: &Store, key: &str, offset_ms: i32) -> AppResult<()> {
+    if !(-60000..=60000).contains(&offset_ms) {
+        return Err("歌词偏移须在 -60 至 60 秒之间".into());
+    }
+    let mut correction = read_correction(store, key)?;
+    correction.offset_ms = Some(offset_ms);
+    store.set_setting(
+        &setting_key(key),
+        &serde_json::to_string(&correction).map_err(|e| e.to_string())?,
+    )
+}
+
 impl LyricService {
+    pub fn set_offset(&self, key: &str, offset_ms: i32) -> AppResult<()> {
+        save_offset(&self.store, key, offset_ms)
+    }
+
     pub fn correction(&self, key: &str) -> AppResult<Correction> {
-        self.store
-            .setting(&setting_key(key))?
-            .map(|value| serde_json::from_str(&value).map_err(|e| e.to_string()))
-            .unwrap_or_else(|| Ok(Correction::default()))
+        read_correction(&self.store, key)
     }
 
     pub async fn candidate_lyrics(
@@ -278,6 +298,22 @@ pub async fn preview_local_ttml(path: String) -> AppResult<Lyrics> {
 }
 
 #[tauri::command]
+pub fn set_lyric_offset(
+    key: String,
+    offset_ms: i32,
+    app: tauri::AppHandle,
+    backend: State<'_, Backend>,
+) -> AppResult<()> {
+    backend.store.track(&key)?;
+    backend.lyrics.set_offset(&key, offset_ms)?;
+    app.emit(
+        "lyric-offset-changed",
+        serde_json::json!({ "key": key, "offsetMs": offset_ms }),
+    )
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn set_lyric_correction(
     key: String,
     correction: Correction,
@@ -304,6 +340,52 @@ pub fn set_lyric_correction(
 mod tests {
     use super::*;
     use crate::storage::Store;
+    #[test]
+    fn offset_updates_preserve_selection_cache_and_other_tracks() {
+        use super::super::lyric_cache::LyricCache;
+        use std::sync::Arc;
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("library.sqlite3");
+        {
+            let store = Arc::new(Store::open(&path).unwrap());
+            let cache = LyricCache::new(store.clone()).unwrap();
+            let generation = cache.generation();
+            cache
+                .cache_result("cached-lyrics", None, None, generation)
+                .unwrap();
+            let choice = Correction {
+                source: Some(Source::Qq),
+                ..Default::default()
+            };
+            store
+                .set_setting(
+                    &setting_key("song:1"),
+                    &serde_json::to_string(&choice).unwrap(),
+                )
+                .unwrap();
+            for offset in [100, 0, -100, -60000, 60000] {
+                save_offset(&store, "song:1", offset).unwrap();
+                let saved = read_correction(&store, "song:1").unwrap();
+                assert_eq!(saved.source, choice.source);
+                assert_eq!(saved.offset_ms, Some(offset));
+            }
+            assert!(save_offset(&store, "song:1", 60001).is_err());
+            assert!(save_offset(&store, "song:1", -60001).is_err());
+            assert_eq!(cache.generation(), generation);
+            assert!(cache.get("cached-lyrics").unwrap().is_some());
+            assert_eq!(
+                read_correction(&store, "song:2").unwrap(),
+                Correction::default()
+            );
+        }
+        let store = Store::open(&path).unwrap();
+        assert_eq!(
+            read_correction(&store, "song:1").unwrap().offset_ms,
+            Some(60000)
+        );
+    }
+
     #[test]
     fn choices_are_persistent_settings_and_track_keys_are_isolated() {
         let dir = tempfile::tempdir().unwrap();
@@ -343,7 +425,7 @@ mod tests {
             .is_none());
     }
     #[test]
-    fn correction_offset_can_follow_global_or_override_it_with_zero() {
+    fn correction_offset_preserves_zero_and_an_unset_adjustment() {
         let follows_global = Correction {
             source: None,
             candidate: None,

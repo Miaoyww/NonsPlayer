@@ -36,6 +36,7 @@ import {
 import { loadLyrics, lyricTrackVersion } from '@/features/lyrics/load-lyrics'
 import { EmptyLyricsError, parseLyrics } from '@/features/lyrics/parse-lyrics'
 import { LyricLoading } from './lyric-loading'
+import { LyricOffsetControl } from './lyric-offset-control'
 import { isAndroid } from '@/lib/platform'
 import { MobileFullscreenPlayer } from '@/features/playback/mobile/mobile-fullscreen-player'
 import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/bar/playback-notice'
@@ -142,6 +143,7 @@ export default function LyricsView({
     key: string
     revision: number
     lines: LyricLine[]
+    offsetMs: number
     format?: Lyrics['format']
     selection: LyricSources
     version: string
@@ -155,7 +157,15 @@ export default function LyricsView({
     display?.preferences === localPreferences
       ? display
       : undefined
-  const lines = currentDisplay?.lines ?? []
+  const lines = useMemo(
+    () =>
+      currentDisplay?.lines.length
+        ? offsetLyrics(currentDisplay.lines, lyricsOffsetMs + currentDisplay.offsetMs)
+        : [],
+    [currentDisplay, lyricsOffsetMs]
+  )
+  const [offsetSaving, setOffsetSaving] = useState(false)
+  const offsetBusy = useRef(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
   const playbackError = error
@@ -199,6 +209,7 @@ export default function LyricsView({
   const generation = useRef(0)
   const appliedSource = useRef<string | undefined>(undefined)
   const correction = useRef<LyricCorrection>(automaticLyrics)
+  const offsetRevision = useRef(0)
   const reusable = useRef<
     | {
         version: string
@@ -220,12 +231,7 @@ export default function LyricsView({
       revision: number,
       cue?: { startMs: number; endMs: number }
     ) => {
-      const parsed = value
-        ? offsetLyrics(
-            parseLyrics(value, duration, cue),
-            correction.current.offsetMs ?? lyricsOffsetMs
-          )
-        : []
+      const parsed = value ? parseLyrics(value, duration, cue) : []
       appliedSource.current = value?.source
       reusable.current = value
         ? {
@@ -246,6 +252,7 @@ export default function LyricsView({
         version: trackVersion,
         preferences: localPreferences,
         lines: parsed,
+        offsetMs: correction.current.offsetMs ?? 0,
         format: value?.format
       })
     },
@@ -288,9 +295,16 @@ export default function LyricsView({
         getLyricSources() === sources &&
         isCurrentPlayback(track.key, state.revision, trackVersion)
       try {
+        const readingOffsetRevision = offsetRevision.current
         const selected = await nativeCall<LyricCorrection>('lyric_correction', { key: track.key })
         if (!isCurrent()) return
-        correction.current = selected
+        correction.current = {
+          ...selected,
+          offsetMs:
+            readingOffsetRevision === offsetRevision.current
+              ? selected.offsetMs
+              : correction.current.offsetMs
+        }
         await loadLyrics(
           track,
           refresh || !!selected.localTtml,
@@ -397,6 +411,69 @@ export default function LyricsView({
       stop?.()
     }
   }, [requestLyrics, track?.key])
+
+  useEffect(() => {
+    if (!isTauri() || !track) return
+    let disposed = false
+    let stop: (() => void) | undefined
+    void listen<{ key: string; offsetMs: number }>('lyric-offset-changed', ({ payload }) => {
+      if (
+        disposed ||
+        payload.key !== track.key ||
+        !isCurrentPlayback(track.key, state.revision, trackVersion)
+      )
+        return
+      offsetRevision.current++
+      correction.current = { ...correction.current, offsetMs: payload.offsetMs }
+      setDisplay((previous) =>
+        previous?.key === track.key && previous.revision === state.revision
+          ? { ...previous, offsetMs: payload.offsetMs }
+          : previous
+      )
+    })
+      .then((cleanup) => {
+        if (disposed) cleanup()
+        else stop = cleanup
+      })
+      .catch((cause) => {
+        reportCaughtError('lyrics.offset.listen', cause)
+        if (!disposed) setError(errorText(cause))
+      })
+    return () => {
+      disposed = true
+      stop?.()
+    }
+  }, [trackVersion, state.revision])
+
+  async function saveOffset(offsetMs: number) {
+    if (
+      !track ||
+      !currentDisplay ||
+      offsetBusy.current ||
+      !isCurrentPlayback(track.key, state.revision, trackVersion)
+    )
+      return
+    offsetBusy.current = true
+    setOffsetSaving(true)
+    try {
+      await nativeCall('set_lyric_offset', { key: track.key, offsetMs })
+      if (!isCurrentPlayback(track.key, state.revision, trackVersion)) return
+      offsetRevision.current++
+      correction.current = { ...correction.current, offsetMs }
+      setDisplay((previous) =>
+        previous?.key === track.key && previous.revision === state.revision
+          ? { ...previous, offsetMs }
+          : previous
+      )
+      setError(undefined)
+    } catch (cause) {
+      reportCaughtError('lyrics.offset.save', cause)
+      if (isCurrentPlayback(track.key, state.revision, trackVersion)) setError(errorText(cause))
+    } finally {
+      offsetBusy.current = false
+      setOffsetSaving(false)
+    }
+  }
 
   const lyricControls = (
     <div className="lyrics-display-controls" role="group" aria-label="歌词显示">
@@ -603,91 +680,96 @@ export default function LyricsView({
                 </div>
               </div>
               {showLyrics && (
-                <div
-                  className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden"
-                  data-panel-page={panelPage}
-                  data-plugin-panel={activePluginPanel ? 'true' : undefined}
-                  data-hidden={panelHidden ? 'true' : undefined}
-                  aria-hidden={panelHidden}
-                  inert={panelHidden}
-                >
-                  <Panel
-                    className="h-full"
-                    value={panelHidden ? 'lyrics' : panelPage}
-                    pages={[
-                      {
-                        value: 'lyrics',
-                        content: renderLyrics(panelPage === 'lyrics' && !panelHidden),
-                        keepMounted: true
-                      },
-                      {
-                        value: 'information',
-                        content: <NowPlayingInformation track={track} />
-                      },
-                      {
-                        value: 'source',
-                        content: (
-                          <NowPlayingSource track={track} onClose={() => setPanelPage('lyrics')} />
-                        )
-                      },
-                      {
-                        value: 'lyric-source',
-                        content: (
-                          <NowPlayingLyricSource
-                            track={track}
-                            onClose={() => setPanelPage('lyrics')}
-                          />
-                        )
-                      },
-                      {
-                        value: 'queue',
-                        content: (
-                          <QueuePanel
-                            onPage={onQueue}
-                            onError={(cause) => setError(errorText(cause))}
-                          />
-                        )
-                      },
-                      {
-                        value: 'mv',
-                        content: (
-                          <MvPanel
-                            trackKey={track.key}
-                            defaultQuery={[track.title, track.artist].filter(Boolean).join(' ')}
-                            selection={mv.selection}
-                            linked={mv.linked}
-                            busy={mv.busy}
-                            onError={setError}
-                            onChoose={() => void mv.choose()}
-                            onApply={() => {
-                              void mv.apply().then((applied) => {
-                                if (applied) setPanelPage('lyrics')
-                              })
-                            }}
-                            onBind={(source, id, title) => {
-                              return mv.bindRemote(source, id, title).then((applied) => {
-                                if (applied) setPanelPage('lyrics')
-                                return applied
-                              })
-                            }}
-                            onCancel={() => setPanelPage('lyrics')}
-                          />
-                        )
-                      },
-                      ...pluginPanelPages.map((page) => ({
-                        value: `plugin:${page.pluginId}:${page.viewId}`,
-                        content: (
-                          <div className="fullscreen-plugin-panel">
-                            <PluginView
-                              pluginId={page.pluginId}
-                              viewId={page.viewId}
-                              fullscreenPlayer={pluginPanelBinding}
+                <div className="now-playing-panel-region" data-panel-page={panelPage}>
+                  <div
+                    className="now-playing-lyrics min-h-0 min-w-0 overflow-hidden"
+                    data-panel-page={panelPage}
+                    data-plugin-panel={activePluginPanel ? 'true' : undefined}
+                    data-hidden={panelHidden ? 'true' : undefined}
+                    aria-hidden={panelHidden}
+                    inert={panelHidden}
+                  >
+                    <Panel
+                      className="h-full"
+                      value={panelHidden ? 'lyrics' : panelPage}
+                      pages={[
+                        {
+                          value: 'lyrics',
+                          content: renderLyrics(panelPage === 'lyrics' && !panelHidden),
+                          keepMounted: true
+                        },
+                        {
+                          value: 'information',
+                          content: <NowPlayingInformation track={track} />
+                        },
+                        {
+                          value: 'source',
+                          content: (
+                            <NowPlayingSource
+                              track={track}
+                              onClose={() => setPanelPage('lyrics')}
                             />
-                          </div>
-                        )
-                      }))
-                    ]}
-                  />
+                          )
+                        },
+                        {
+                          value: 'lyric-source',
+                          content: (
+                            <NowPlayingLyricSource
+                              track={track}
+                              onClose={() => setPanelPage('lyrics')}
+                            />
+                          )
+                        },
+                        {
+                          value: 'queue',
+                          content: (
+                            <QueuePanel
+                              onPage={onQueue}
+                              onError={(cause) => setError(errorText(cause))}
+                            />
+                          )
+                        },
+                        {
+                          value: 'mv',
+                          content: (
+                            <MvPanel
+                              trackKey={track.key}
+                              defaultQuery={[track.title, track.artist].filter(Boolean).join(' ')}
+                              selection={mv.selection}
+                              linked={mv.linked}
+                              busy={mv.busy}
+                              onError={setError}
+                              onChoose={() => void mv.choose()}
+                              onApply={() => {
+                                void mv.apply().then((applied) => {
+                                  if (applied) setPanelPage('lyrics')
+                                })
+                              }}
+                              onBind={(source, id, title) => {
+                                return mv.bindRemote(source, id, title).then((applied) => {
+                                  if (applied) setPanelPage('lyrics')
+                                  return applied
+                                })
+                              }}
+                              onCancel={() => setPanelPage('lyrics')}
+                            />
+                          )
+                        },
+                        ...pluginPanelPages.map((page) => ({
+                          value: `plugin:${page.pluginId}:${page.viewId}`,
+                          content: (
+                            <div className="fullscreen-plugin-panel">
+                              <PluginView
+                                pluginId={page.pluginId}
+                                viewId={page.viewId}
+                                fullscreenPlayer={pluginPanelBinding}
+                              />
+                            </div>
+                          )
+                        }))
+                      ]}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -738,6 +820,13 @@ export default function LyricsView({
               )}
             </ActionButton>
           </div>
+          {!mvActive && !panelHidden && panelPage === 'lyrics' && track && (
+            <LyricOffsetControl
+              offsetMs={currentDisplay?.offsetMs ?? 0}
+              disabled={!currentDisplay || offsetSaving}
+              onChange={(value) => void saveOffset(value)}
+            />
+          )}
           {mvActive && showMvLyrics && (
             <MvLyricCard
               lines={lines}

@@ -39,6 +39,8 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
   const pending = []
   const parsed = []
   const requests = []
+  const savedOffsets = []
+  let saveError
   const localPreferences = {}
   const cache = { revision: 0 }
   let rendererLoads = 0
@@ -72,6 +74,7 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@/components/ui/panel': { Panel: 'Panel' },
     '@/components/ui/spinner': { Spinner: 'Spinner' },
+    './lyric-offset-control': { LyricOffsetControl: 'LyricOffsetControl' },
     '@/features/mv/local-mv-stage': { LocalMvStage: 'LocalMvStage' },
     '@/features/mv/local-mv': { localMvSource: (mv) => mv.path },
     '@/features/mv/mv-alignment-popover': { MvAlignmentPopover: 'MvAlignmentPopover' },
@@ -100,7 +103,14 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
       usePlayer: () => player,
       getPlayer: () => player,
       errorText: String,
-      nativeCall: async () => ({ candidate: null, localTtml: null, offsetMs })
+      nativeCall: async (command, args) => {
+        if (command === 'set_lyric_offset') {
+          if (saveError) throw saveError
+          savedOffsets.push(args)
+          return
+        }
+        return { candidate: null, localTtml: null, offsetMs }
+      }
     },
     '@/features/lyrics/load-lyrics': {
       lyricTrackVersion: (track) => JSON.stringify(track),
@@ -195,6 +205,10 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
     parsed,
     pending,
     requests,
+    savedOffsets,
+    failOffsetSave: (cause) => {
+      saveError = cause
+    },
     rendererLoads: () => rendererLoads,
     events,
     render,
@@ -529,20 +543,63 @@ test('lyrics follow the global offset and recalculate when it changes', async ()
   const app = await harness(streamed)
   app.pending[0](streamLyrics)
   await Promise.resolve()
+  app.render()
   assert.deepEqual(app.offsets, [-200])
   app.setGlobalOffset(-150)
   await app.transition(true)
   assert.equal(app.requests.length, 2)
   app.pending[1](streamLyrics)
   await Promise.resolve()
-  assert.deepEqual(app.offsets, [-200, -150])
+  app.render()
+  assert.equal(app.offsets.at(-1), -150)
 })
 
-test('saved single-song offsets, including zero, override the global offset', async () => {
+test('saved single-song offsets, including zero, add to the global offset', async () => {
   for (const offset of [0, 500, -300]) {
     const app = await harness(streamed, true, 'online', offset)
     app.pending[0](streamLyrics)
     await Promise.resolve()
-    assert.deepEqual(app.offsets, [offset])
+    app.render()
+    assert.deepEqual(app.offsets, [-200 + offset])
   }
+})
+
+test('offset events recalculate existing lines without fetching or parsing lyrics again', async () => {
+  const app = await harness(streamed)
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  app.events[2]({ payload: { key: streamed.key, offsetMs: 100 } })
+  app.render()
+  assert.equal(app.offsets.at(-1), -100)
+  assert.equal(app.requests.length, 1)
+  assert.equal(app.parsed.length, 1)
+  app.switchTo(local)
+  app.events[2]({ payload: { key: streamed.key, offsetMs: 500 } })
+  assert.equal(app.requests.length, 1)
+})
+
+test('the quick control saves only the song adjustment and rejects stale track callbacks', async () => {
+  const app = await harness(streamed)
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
+  const control = (tree) => find(tree, (node) => node.type === 'LyricOffsetControl').props
+  const firstControl = control(app.render())
+  assert.equal(firstControl.offsetMs, 0)
+  firstControl.onChange(100)
+  await new Promise(setImmediate)
+  assert.deepEqual(JSON.parse(JSON.stringify(app.savedOffsets)), [
+    { key: streamed.key, offsetMs: 100 }
+  ])
+  assert.equal(control(app.render()).offsetMs, 100)
+  assert.equal(app.offsets.at(-1), -100)
+  assert.equal(app.requests.length, 1)
+  assert.equal(app.parsed.length, 1)
+  app.failOffsetSave(new Error('offset persistence failed'))
+  control(app.render()).onChange(200)
+  await new Promise(setImmediate)
+  assert.equal(control(app.render()).offsetMs, 100)
+  app.switchTo(local)
+  firstControl.onChange(300)
+  await new Promise(setImmediate)
+  assert.equal(app.savedOffsets.length, 1)
 })

@@ -8,34 +8,18 @@ import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 
-for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
+for (const { name, songOffset } of [
   {
-    name: 'an unset song offset follows the default global offset',
-    globalOffset: -200,
-    songOffset: null,
-    displayedOffset: -200,
-    savedOffset: -300
+    name: 'the song has no extra offset',
+    songOffset: null
   },
   {
-    name: 'an unset song offset follows a custom global offset',
-    globalOffset: -350,
-    songOffset: null,
-    displayedOffset: -350,
-    savedOffset: -450
+    name: 'the song has a positive extra offset',
+    songOffset: 500
   },
   {
-    name: 'a numeric song offset overrides the global offset',
-    globalOffset: -350,
-    songOffset: 500,
-    displayedOffset: 500,
-    savedOffset: 400
-  },
-  {
-    name: 'a zero song offset overrides the global offset',
-    globalOffset: -350,
-    songOffset: 0,
-    displayedOffset: 0,
-    savedOffset: -100
+    name: 'the song has a zero extra offset',
+    songOffset: 0
   }
 ]) {
   test(`the source panel saves platforms without searching or displaying previews when ${name}`, async () => {
@@ -89,10 +73,6 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
         }
       },
       '@/lib/platform': { isAndroid: () => false },
-      './use-lyrics-settings': {
-        defaultLyricsOffsetMs: -200,
-        useLyricsSettings: () => ({ lyricsOffsetMs: globalOffset })
-      },
       './parse-lyrics': { parseLyrics: () => [{ words: [{ word: 'Validated TTML' }] }] },
       './correction': {
         automaticLyrics: { source: null, candidate: null, localTtml: null, offsetMs: null }
@@ -129,33 +109,24 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
           })
         )
       )
-      assert.equal(document.querySelector('#lyric-offset').value, String(displayedOffset))
+      assert.equal(document.querySelector('#lyric-offset'), null)
       assert.equal(document.querySelector('form'), null)
       assert.equal(document.querySelector('[aria-label="歌词候选"]'), null)
       assert.equal(document.querySelector('[aria-label="歌词预览"]'), null)
       assert.equal(button('网易云音乐').getAttribute('aria-pressed'), 'true')
       await click(button('QQ 音乐'))
-      if (songOffset === 0) {
-        await click(button('保存'))
-        assert.equal(saved[0].correction.offsetMs, 0)
-        assert.equal(closed, 1)
-        saved.length = 0
-        closed = 0
-      }
-      await click(document.querySelector('[aria-label="歌词提前 100 毫秒"]'))
-      assert.equal(document.querySelector('#lyric-offset').value, String(savedOffset))
       await click(button('保存'))
       assert.equal(saved[0].key, 'original:1')
       assert.equal(saved[0].correction.candidate, null)
       assert.equal(saved[0].correction.source, 'qq')
-      assert.equal(saved[0].correction.offsetMs, savedOffset)
+      assert.equal(saved[0].correction.offsetMs, songOffset)
       assert.equal(closed, 1)
       await click(button('网易云音乐'))
       await click(button('保存'))
       assert.equal(saved[1].correction.candidate, null)
       assert.equal(saved[1].correction.localTtml, null)
       assert.equal(saved[1].correction.source, 'netease')
-      assert.equal(saved[1].correction.offsetMs, savedOffset)
+      assert.equal(saved[1].correction.offsetMs, songOffset)
       await click(button('本地歌词'))
       assert.equal(button('保存').disabled, true)
       await click(button('选择 TTML 文件'))
@@ -164,7 +135,7 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
       await click(button('保存'))
       assert.equal(saved[2].correction.source, null)
       assert.equal(saved[2].correction.localTtml.path, 'C:/Lyrics/song.ttml')
-      assert.equal(saved[2].correction.offsetMs, savedOffset)
+      assert.equal(saved[2].correction.offsetMs, songOffset)
       await click(button('恢复自动匹配'))
       assert.equal(saved[3].correction.source, null)
       assert.equal(saved[3].correction.candidate, null)

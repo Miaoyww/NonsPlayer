@@ -55,7 +55,7 @@ function useDesktopLyrics(track: Track | undefined) {
     let disposed = false
     const cleanups: (() => void)[] = []
     const bind = async () => {
-      for (const event of ['lyrics-updated', 'lyric-correction-changed']) {
+      for (const event of ['lyrics-updated', 'lyric-correction-changed', 'lyric-offset-changed']) {
         const cleanup = await listen<{ key: string } | string>(event, ({ payload }) => {
           const key = typeof payload === 'string' ? payload : payload.key
           if (!disposed && key === track.key) setRevision((value) => value + 1)
@@ -101,7 +101,7 @@ function useDesktopLyrics(track: Track | undefined) {
                         track.durationMs,
                         track.source.kind === 'local' ? track.source.cue : undefined
                       ),
-                      correction.offsetMs ?? lyricsOffsetMs
+                      lyricsOffsetMs + (correction.offsetMs ?? 0)
                     )
                   : [],
               () => !disposed,

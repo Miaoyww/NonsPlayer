@@ -21,7 +21,7 @@ export function AndroidMediaLyrics() {
     let disposed = false
     const cleanups: (() => void)[] = []
     const bind = async () => {
-      for (const event of ['lyrics-updated', 'lyric-correction-changed']) {
+      for (const event of ['lyrics-updated', 'lyric-correction-changed', 'lyric-offset-changed']) {
         const cleanup = await listen<{ key: string } | string>(event, ({ payload }) => {
           if (!disposed && (typeof payload === 'string' ? payload : payload.key) === track?.key)
             setRevision((value) => value + 1)
@@ -61,7 +61,7 @@ export function AndroidMediaLyrics() {
                           track.durationMs,
                           track.source.kind === 'local' ? track.source.cue : undefined
                         ),
-                        correction.offsetMs ?? lyricsOffsetMs
+                        lyricsOffsetMs + (correction.offsetMs ?? 0)
                       )
                     )
                   : [],

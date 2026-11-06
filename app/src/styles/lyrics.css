@@ -11,6 +11,62 @@
 .now-playing-lyrics {
   mask-image: linear-gradient(transparent, black 12%, black 85%, transparent);
 }
+.now-playing-panel-region {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  margin-block: calc(-1 * var(--now-playing-layout-block-padding));
+  margin-inline-end: calc(-1 * var(--now-playing-layout-inline-padding));
+  padding-block: var(--now-playing-layout-block-padding);
+  padding-inline-end: var(--now-playing-layout-inline-padding);
+}
+.now-playing-panel-region > .now-playing-lyrics {
+  flex: 1;
+}
+.lyric-offset-control {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  z-index: 12;
+  display: flex;
+  width: 48px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-block: 8px;
+  color: var(--foreground);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity 160ms ease;
+}
+.now-playing:has(.now-playing-panel-region[data-panel-page='lyrics']:hover) > .lyric-offset-control,
+.lyric-offset-control:hover,
+.lyric-offset-control:has(:focus-visible) {
+  opacity: 1;
+  pointer-events: auto;
+}
+.lyric-offset-control button {
+  width: 44px;
+  height: 44px;
+  color: inherit;
+}
+.lyric-offset-value {
+  padding: 2px 4px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--background) 25%, transparent);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lyric-offset-control {
+    transition: none;
+  }
+}
 .now-playing-content {
   position: absolute;
   inset: 0;

@@ -8,7 +8,6 @@ import { isAndroid } from '@/lib/platform'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { cn } from '@/lib/utils'
 import { automaticLyrics, type LyricCorrection } from './correction'
-import { useLyricsSettings } from './use-lyrics-settings'
 import { parseLyrics } from './parse-lyrics'
 
 function fileName(path: string) {
@@ -25,7 +24,6 @@ export function LyricCorrectionContent({
   className?: string
 }) {
   const { revision } = usePlayer('revision')
-  const { lyricsOffsetMs } = useLyricsSettings()
   const openingRevision = useRef(revision).current
   const alive = useRef(true)
   const [choice, setChoice] = useState<LyricCorrection>(automaticLyrics)
@@ -163,46 +161,48 @@ export function LyricCorrectionContent({
             )}
           </div>
         )}
-        <div className="space-y-2">
-          <label htmlFor="lyric-offset" className="font-medium">
-            单曲时间偏移
-          </label>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="歌词提前 100 毫秒"
-              disabled={!ready || saving}
-              onClick={() => offset((choice.offsetMs ?? lyricsOffsetMs) - 100)}
-            >
-              <Minus aria-hidden="true" />
-            </Button>
-            <Input
-              id="lyric-offset"
-              className="w-28"
-              type="number"
-              min={-60000}
-              max={60000}
-              step={1}
-              value={choice.offsetMs ?? lyricsOffsetMs}
-              disabled={!ready || saving}
-              onChange={(event) => offset(event.currentTarget.valueAsNumber)}
-            />
-            <span>毫秒</span>
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="歌词延后 100 毫秒"
-              disabled={!ready || saving}
-              onClick={() => offset((choice.offsetMs ?? lyricsOffsetMs) + 100)}
-            >
-              <Plus aria-hidden="true" />
-            </Button>
+        {isAndroid() && (
+          <div className="space-y-2">
+            <label htmlFor="lyric-offset" className="font-medium">
+              单曲时间偏移
+            </label>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="歌词提前 100 毫秒"
+                disabled={!ready || saving}
+                onClick={() => offset((choice.offsetMs ?? 0) - 100)}
+              >
+                <Minus aria-hidden="true" />
+              </Button>
+              <Input
+                id="lyric-offset"
+                className="w-28"
+                type="number"
+                min={-60000}
+                max={60000}
+                step={1}
+                value={choice.offsetMs ?? 0}
+                disabled={!ready || saving}
+                onChange={(event) => offset(event.currentTarget.valueAsNumber)}
+              />
+              <span>毫秒</span>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label="歌词延后 100 毫秒"
+                disabled={!ready || saving}
+                onClick={() => offset((choice.offsetMs ?? 0) + 100)}
+              >
+                <Plus aria-hidden="true" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              在全局偏移上额外调整，负数提前，正数延后，范围 ±60 秒。
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            负数提前，正数延后，范围 ±60 秒；默认跟随全局偏移，保存后覆盖全局值。
-          </p>
-        </div>
+        )}
         <ErrorNotice error={error} />
       </div>
       <div className="flex shrink-0 flex-wrap justify-between gap-2">
