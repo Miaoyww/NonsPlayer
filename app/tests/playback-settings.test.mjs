@@ -36,6 +36,8 @@ async function harness({
     deviceId,
     playbackOptions: { fades: false, crossfade: false, crossfadeDurationMs: 3000 }
   }
+  let musicOptions = { quality: 'exhigh', allowDowngrade: true }
+  const musicUpdates = []
   let devices = deviceList
   const listeners = new Set()
   const calls = []
@@ -101,7 +103,23 @@ async function harness({
         )
     },
     '@/features/playback/now-playing/music-options': {
-      useMusicOptions: () => ({ options: { allowDowngrade: true }, busy: false, update() {} })
+      qualities: [
+        { value: 'standard', label: '标准' },
+        { value: 'higher', label: '较高' },
+        { value: 'exhigh', label: '极高' },
+        { value: 'lossless', label: '无损' },
+        { value: 'hires', label: 'Hi-Res' }
+      ],
+      useMusicOptions: () => ({
+        options: musicOptions,
+        busy: false,
+        update: async (patch) => {
+          musicUpdates.push(patch)
+          musicOptions = { ...musicOptions, ...patch }
+          listeners.forEach((listener) => listener())
+          return true
+        }
+      })
     },
     '@/features/playback/audio/audio-output': {
       browserOutput: () => {
@@ -166,6 +184,7 @@ async function harness({
     select,
     change,
     calls,
+    musicUpdates,
     browserCalls,
     required,
     state: () => state,
@@ -189,6 +208,22 @@ async function harness({
     }
   }
 }
+
+test('quality preference persists the selected streaming quality', async () => {
+  const app = await harness()
+  try {
+    const quality = app.card('音质偏好').querySelector('select')
+    assert.equal(quality.value, 'exhigh')
+    assert.deepEqual(
+      [...quality.options].map((option) => option.value),
+      ['standard', 'higher', 'exhigh', 'lossless', 'hires']
+    )
+    await app.change(quality, 'lossless')
+    assert.deepEqual(JSON.parse(JSON.stringify(app.musicUpdates)), [{ quality: 'lossless' }])
+  } finally {
+    await app.dispose()
+  }
+})
 
 test('playback fades and crossfade wait for persistence and retain the previous setting on failure', async () => {
   let pending

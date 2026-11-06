@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall, usePlayer, type OutputDevice } from '@/lib/player'
 import { isAndroid } from '@/lib/platform'
-import { useMusicOptions } from '@/features/playback/now-playing/music-options'
+import { qualities, useMusicOptions } from '@/features/playback/now-playing/music-options'
 import {
   Select,
   SelectContent,
@@ -181,6 +181,33 @@ export function PlaybackPage() {
             选择其他设备
           </Button>
         )}
+      </SettingsCard>
+      <SettingsCard
+        searchId="quality-preference"
+        title="音质偏好"
+        description="流媒体优先请求该音质，不可用时按下方设置处理。"
+      >
+        <Select
+          items={qualities}
+          value={options.quality}
+          disabled={!isTauri() || busy}
+          onValueChange={(quality) => {
+            if (quality) void update({ quality })
+          }}
+        >
+          <SelectTrigger className="w-40" aria-label="音质偏好">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            <SelectGroup>
+              {qualities.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </SettingsCard>
       <SettingsCard
         searchId="quality-downgrade"

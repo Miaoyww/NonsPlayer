@@ -13,7 +13,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 
-const qualities = [
+export const qualities = [
   { value: 'standard', label: '标准' },
   { value: 'higher', label: '较高' },
   { value: 'exhigh', label: '极高' },

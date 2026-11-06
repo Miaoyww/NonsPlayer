@@ -21,7 +21,6 @@ import { PersistentPlaybackBar } from '@/features/playback/bar/persistent-playba
 import { usePlaybackBarMode } from '@/features/playback/bar/use-playback-bar-mode'
 import type { PlaybackNoticeMessage } from '@/features/playback/bar/playback-notice'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
-import { QualitySelect } from '@/features/playback/now-playing/music-options'
 import { SongActionsProvider } from '@/components/music/song-actions'
 import { QueuePage } from '@/features/queue/queue-page'
 import { ToolsPage } from '@/features/tools/tools-page'
@@ -572,7 +571,6 @@ export function MusicWorkspace({
               ) : barMode === 'collapsible' ? (
                 <PlaybackBar
                   notice={notice}
-                  qualityControl={<QualitySelect />}
                   onLyrics={() => onNowPlayingChange(true)}
                   onQueue={openQueue}
                   onError={onError}

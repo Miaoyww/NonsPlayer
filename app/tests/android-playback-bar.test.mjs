@@ -111,11 +111,11 @@ test('desktop retains track details, timeline and volume without the mobile expa
   const tree = harness(false).render()
   assert.equal(find(tree, toggle), undefined)
   assert.equal(find(tree, details), undefined)
-  for (const type of ['transport', 'like', 'queue', 'timeline', 'volume', 'quality'])
+  for (const type of ['transport', 'like', 'queue', 'timeline', 'volume'])
     assert.ok(find(tree, byType(type)))
   const options = find(tree, (node) => node.props?.className === 'persistent-options')
   assert.deepEqual(
     Array.from(options.props.children, (child) => child.type),
-    ['quality', 'like', 'desktop-lyrics-button', 'volume', 'queue']
+    ['like', 'desktop-lyrics-button', 'volume', 'queue']
   )
 })

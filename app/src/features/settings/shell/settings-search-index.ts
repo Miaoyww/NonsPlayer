@@ -58,6 +58,7 @@ const groups: SearchGroup[] = [
     path: '播放设置',
     items: [
       ['output-device', '输出设备', '扬声器 耳机 声卡 系统默认'],
+      ['quality-preference', '音质偏好', '标准 较高 极高 无损 Hi-Res 流媒体'],
       ['quality-downgrade', '允许音质降级', '不可用'],
       ['playback-fades', '播放/暂停渐变', '淡入 淡出 过渡'],
       ['crossfade', '交叉淡入淡出', 'WebAudio 自动切歌 重叠 过渡时长']

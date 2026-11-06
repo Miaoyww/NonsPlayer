@@ -143,7 +143,7 @@ test('frontend shuffle navigation wraps both ends even when the repeat button is
 test('collapsible player places shuffle beside repeat and desktop lyrics after repeat', () => {
   for (const shuffle of [false, true]) {
     const app = harness({ queue: [], index: null, status: 'stopped', shuffle, repeatMode: 'all' })
-    const tree = app.bar({ onLyrics() {}, onQueue() {}, onError() {}, qualityControl: 'quality' })
+    const tree = app.bar({ onLyrics() {}, onQueue() {}, onError() {} })
     function find(node) {
       if (!node || typeof node !== 'object') return
       if (node.props?.className === 'capsule-playback-options') return node.props.children
@@ -153,13 +153,12 @@ test('collapsible player places shuffle beside repeat and desktop lyrics after r
       }
     }
     const options = find(tree)
-    assert.equal(options[0], 'quality')
-    assert.equal(options[1].props['aria-label'], '随机播放')
-    assert.equal(options[1].props['aria-pressed'], shuffle)
-    assert.equal(options[2].props['aria-pressed'], !shuffle)
-    assert.equal(options[3].type, 'desktop-lyrics-button')
+    assert.equal(options[0].props['aria-label'], '随机播放')
+    assert.equal(options[0].props['aria-pressed'], shuffle)
+    assert.equal(options[1].props['aria-pressed'], !shuffle)
+    assert.equal(options[2].type, 'desktop-lyrics-button')
+    options[0].props.onClick()
     options[1].props.onClick()
-    options[2].props.onClick()
     assert.deepEqual(
       app.calls.map((call) => call.action),
       ['shuffle', 'repeat']

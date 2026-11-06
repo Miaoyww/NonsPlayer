@@ -164,7 +164,7 @@ test('unknown favorites are not announced as unliked and failed refresh retains 
   assert.match(known.render().props.title, /读取失败.*重新读取/)
 })
 
-test('persistent player puts the shared favorite directly after quality and uses the same like state', async () => {
+test('persistent player puts the shared favorite first without quality and uses the same like state', async () => {
   const app = harness({ bar: 'persistent' })
   const surface = app
     .renderBar()
@@ -172,8 +172,7 @@ test('persistent player puts the shared favorite directly after quality and uses
   const options = surface.props.children.find(
     (child) => child.props?.className === 'persistent-options'
   )
-  assert.equal(options.props.children[0].type, 'quality')
-  assert.equal(options.props.children[1].type, app.like)
+  assert.equal(options.props.children[0].type, app.like)
   app.render().props.onClick()
   await Promise.resolve()
   assert.deepEqual(app.calls, ['7'])

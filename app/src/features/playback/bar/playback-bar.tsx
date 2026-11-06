@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Pause, Play, Repeat, Repeat1, Shuffle } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { adjacentIndex, nativeCall, statusLabels, usePlayer } from '@/lib/player'
 import { ActionButton } from '@/components/music/action-button'
@@ -15,11 +15,9 @@ export function PlaybackBar({
   onLyrics,
   onQueue,
   onError,
-  qualityControl,
   notice
 }: {
   notice?: PlaybackNoticeMessage
-  qualityControl?: ReactNode
   onLyrics: () => void
   onQueue: () => void
   onError: (error: unknown) => void
@@ -112,7 +110,6 @@ export function PlaybackBar({
             <PlaybackTimeline layout="inline" onError={onError} />
           </div>
           <div className="capsule-playback-options">
-            {qualityControl}
             <ActionButton
               variant="ghost"
               size="icon-sm"

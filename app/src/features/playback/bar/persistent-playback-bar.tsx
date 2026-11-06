@@ -1,7 +1,6 @@
 import { CurrentTrackLike } from '@/features/playback/now-playing/current-track-like'
 import { statusLabels, usePlayer } from '@/lib/player'
 import { Cover } from '@/components/music/cover'
-import { QualitySelect } from '@/features/playback/now-playing/music-options'
 import { PlaybackTimeline } from '@/features/playback/controls/playback-timeline'
 import { PlaybackTransport } from '@/features/playback/controls/playback-transport'
 import { PlaybackNotice, type PlaybackNoticeMessage } from '@/features/playback/bar/playback-notice'
@@ -95,7 +94,6 @@ export function PersistentPlaybackBar({
           </ActionButton>
         ) : (
           <div className="persistent-options">
-            {!isAndroid() && <QualitySelect />}
             <CurrentTrackLike track={track} onError={onError} />
             <DesktopLyricsButton onError={onError} />
             {!isAndroid() && <VolumeControl onError={onError} />}
