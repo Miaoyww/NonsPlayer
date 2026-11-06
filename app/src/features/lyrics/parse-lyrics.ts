@@ -3,6 +3,7 @@ import type { LyricLine } from '@applemusic-like-lyrics/core'
 import type { Lyrics } from '@/lib/player'
 import { matchAuxiliary } from './auxiliary-matching'
 import { parseLocalLrc } from './local-lrc'
+import { stripNeteaseMetadata } from './netease-metadata'
 
 export class EmptyLyricsError extends Error {
   readonly code = 'emptyLyrics'
@@ -13,11 +14,13 @@ export function parseLyricsContent(value: Lyrics): LyricLine[] {
     case 'ttml':
       return parseTTML(value.content).lines
     case 'yrc':
-      return parseYrc(value.content)
+      return parseYrc(stripNeteaseMetadata(value.content))
     case 'qrc':
       return parseQrc(value.content)
     case 'lrc':
-      return value.source === 'local' ? parseLocalLrc(value.content) : parseLrc(value.content)
+      return value.source === 'local'
+        ? parseLocalLrc(stripNeteaseMetadata(value.content))
+        : parseLrc(stripNeteaseMetadata(value.content))
   }
 }
 
@@ -56,36 +59,37 @@ export function parseLyrics(
   const translations = matchAuxiliary(starts, value.translation ? auxiliary(value.translation) : [])
   const romans = matchAuxiliary(starts, value.romanization ? auxiliary(value.romanization) : [])
   if (!result.length) throw new EmptyLyricsError()
+  const nextDistinct = new Array<number | undefined>(result.length)
+  let greaterStart: number | undefined
+  for (let index = result.length - 1; index >= 0; index--) {
+    const start = result[index].startTime
+    if (greaterStart !== undefined && greaterStart > start) nextDistinct[index] = greaterStart
+    if (greaterStart === undefined || start < greaterStart) greaterStart = start
+  }
   const parsed = result.map((line, index) => {
     const end =
       Number.isFinite(line.endTime) && line.endTime > line.startTime
         ? line.endTime
-        : (result[index + 1]?.startTime ?? Math.max(duration, line.startTime + 5000))
+        : (nextDistinct[index] ?? Math.max(duration, line.startTime + 5000))
     if (!Number.isFinite(line.startTime) || line.startTime < 0 || end < line.startTime)
       throw new Error('歌词时间轴无效。')
-    if (
-      line.words.some(
-        (word) =>
-          !Number.isFinite(word.startTime) ||
-          word.startTime < 0 ||
-          !Number.isFinite(word.endTime) ||
-          word.endTime < word.startTime
-      )
-    )
+    if (line.words.some((word) => !Number.isFinite(word.startTime) || word.startTime < 0))
       throw new Error('歌词逐词时间轴无效。')
+    const lineEnd = Math.max(end, ...line.words.map((word) => word.startTime))
     return {
       ...line,
-      endTime: end,
+      endTime: lineEnd,
       words: line.words.map((word, wordIndex) => {
         const nextStart = line.words[wordIndex + 1]?.startTime
         const wordEnd =
-          Number.isFinite(word.endTime) && word.endTime > word.startTime ? word.endTime : end
+          Number.isFinite(word.endTime) && word.endTime > word.startTime ? word.endTime : lineEnd
+        const endTime =
+          Number.isFinite(nextStart) && nextStart >= word.startTime && wordEnd > nextStart
+            ? nextStart
+            : wordEnd
         return {
           ...word,
-          endTime:
-            Number.isFinite(nextStart) && nextStart >= word.startTime && wordEnd > nextStart
-              ? nextStart
-              : wordEnd
+          endTime: Math.max(word.startTime, endTime)
         }
       }),
       translatedLyric: cleanAuxiliary(line.translatedLyric).trim()

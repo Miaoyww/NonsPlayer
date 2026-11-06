@@ -24,6 +24,15 @@ runInNewContext(
   { exports: localLrc, require: () => amll }
 )
 
+const metadata = {}
+runInNewContext(
+  ts.transpileModule(
+    readFileSync(new URL('../src/features/lyrics/netease-metadata.ts', import.meta.url), 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS } }
+  ).outputText,
+  { exports: metadata, require: () => ({}) }
+)
+
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/qrc.json', import.meta.url), 'utf8'))
 const exports = {}
 const { outputText } = ts.transpileModule(
@@ -33,7 +42,13 @@ const { outputText } = ts.transpileModule(
 runInNewContext(outputText, {
   exports,
   require: (name) =>
-    name === './auxiliary-matching' ? matching : name === './local-lrc' ? localLrc : amll
+    name === './auxiliary-matching'
+      ? matching
+      : name === './local-lrc'
+        ? localLrc
+        : name === './netease-metadata'
+          ? metadata
+          : amll
 })
 const lyrics = {
   source: 'qq',
