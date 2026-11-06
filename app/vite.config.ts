@@ -159,7 +159,7 @@ export default defineConfig(({ mode }) => ({
       : undefined,
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ['**/src-tauri/**']
+      ignored: ['**/src-tauri/**', '**/dist/**', '**/target/**']
     },
     fs: {
       // 4. PRIVACY.md sits at the repository root and is imported as text.
