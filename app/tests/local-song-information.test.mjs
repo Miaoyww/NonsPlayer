@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import { test } from 'node:test'
 import ts from 'typescript'
-function harness(writeText = async () => {}) {
+function harness(writeText = async () => {}, { linked = null, onlineError } = {}) {
   const slots = [],
     effects = [],
     calls = [],
@@ -18,6 +18,7 @@ function harness(writeText = async () => {}) {
     '@/features/music/queries': {
       readTrackInformation: async () => {
         calls.push({ command: 'music_query' })
+        if (onlineError) throw onlineError
         return {
           artists: [{ name: 'Singer', reference: { source: 'netease', kind: 'artist', id: '42' } }],
           albumReference: { source: 'netease', kind: 'album', id: '99' },
@@ -30,6 +31,7 @@ function harness(writeText = async () => {}) {
     '@/features/music/share-links': { trackShareLink: () => '' },
     '@/lib/utils': { cn: (...values) => values.filter(Boolean).join(' ') },
     '@/components/music/loading': { TextSkeleton: 'div' },
+    '@/components/error-notice': errorNoticeModule,
     '@/components/music/cover': { Cover: 'Cover' },
     '@/features/local/tag-editor-dialog': { LocalTagEditorDialog: 'LocalTagEditorDialog' },
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
@@ -64,6 +66,7 @@ function harness(writeText = async () => {}) {
     },
     '@/lib/platform': { isAndroid: () => false, isWindows: () => true },
     '@tauri-apps/api/core': { isTauri: () => true },
+    '@tauri-apps/api/event': { listen: async () => () => {} },
     '@tauri-apps/plugin-clipboard-manager': {
       writeText: async (value) => {
         await writeText(value)
@@ -92,6 +95,7 @@ function harness(writeText = async () => {}) {
       formatTime: () => '2:00',
       nativeCall: async (command, args) => {
         calls.push({ command, args })
+        if (command === 'linked_local_track_information') return linked
         return command === 'local_track_information'
           ? {
               trackNumber: 3,
@@ -213,7 +217,10 @@ test('streaming details retain structured artist and album IDs', async () => {
   h.render()
   await settle()
   const tree = h.render()
-  assert.equal(h.calls[0].command, 'music_query')
+  assert.equal(
+    h.calls.some(({ command }) => command === 'music_query'),
+    true
+  )
   const information = h.information(tree)
   assert.equal(information['歌手 ID'], '42')
   assert.equal(information['专辑 ID'], '99')
@@ -225,6 +232,55 @@ test('streaming details retain structured artist and album IDs', async () => {
   assert.equal(h.nodes(tree, 'Cover').length, 1)
   assert.equal(h.nodes(tree, 'input').length, 0)
   assert.equal(h.nodes(tree, 'ActionButton').length, 0)
+})
+
+test('linked streaming details show online IDs and local file information together', async () => {
+  const h = harness(undefined, {
+    linked: {
+      path: 'C:/Music/download.flac',
+      title: 'Local Song',
+      artist: 'Local Artist',
+      album: 'Local Album',
+      sampleRate: 96000,
+      bitDepth: 24,
+      format: 'FLAC'
+    }
+  })
+  h.render().props.value.details({
+    ...track,
+    key: 'netease:1',
+    source: { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id: '1' } } }
+  })
+  h.render()
+  await settle()
+  const info = h.information(h.render())
+  assert.equal(info['歌曲 ID'], '1')
+  assert.equal(info['歌曲名称'], 'Local Song')
+  assert.equal(info['艺术家'], 'Local Artist')
+  assert.equal(info['专辑'], 'Local Album')
+  assert.equal(info['歌手 ID'], '42')
+  assert.equal(info['专辑 ID'], '99')
+  assert.equal(info['路径'], 'C:/Music/download.flac')
+  assert.equal(info['采样率'], '96000 Hz')
+  assert.equal(info['位深'], '24 bit')
+  assert.equal(info['格式'], 'FLAC')
+})
+
+test('linked local information remains available when the online lookup fails', async () => {
+  const h = harness(undefined, {
+    linked: { path: 'C:/Music/download.flac', sampleRate: 48000, format: 'FLAC' },
+    onlineError: new Error('online unavailable')
+  })
+  h.render().props.value.details({
+    ...track,
+    key: 'netease:1',
+    source: { kind: 'online', track: { reference: { source: 'netease', kind: 'track', id: '1' } } }
+  })
+  h.render()
+  await settle()
+  const info = h.information(h.render())
+  assert.equal(info['采样率'], '48000 Hz')
+  assert.equal(info['歌曲 ID'], '1')
 })
 
 test('official clipboard errors reach the user and allow retry', async () => {

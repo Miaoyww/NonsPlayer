@@ -1249,6 +1249,7 @@ pub fn run() {
             local_library::open_local_entity_folder,
             local_library::open_local_track_folder,
             local_library::local_track_information,
+            local_library::linked_local_track_information,
             crate::local::tag_editor::local_track_tags,
             crate::local::tag_editor::local_track_update_tags,
             crate::local::tag_editor::local_tag_cover_preview,

@@ -680,6 +680,71 @@ pub async fn local_track_information(
     .await
     .map_err(|e| e.to_string())?
 }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkedLocalInformation {
+    path: String,
+    title: Option<String>,
+    artist: Option<String>,
+    album: Option<String>,
+    #[serde(flatten)]
+    information: LocalInformation,
+}
+
+fn linked_local_information(store: &Store, key: &str) -> AppResult<Option<LinkedLocalInformation>> {
+    let Some(link) = store.download_local(key)? else {
+        return Ok(None);
+    };
+    match super::source::metadata(&link.path) {
+        Ok(metadata) if metadata.is_file() => {}
+        Ok(_) => {
+            log::warn!(target: "nons::local", "linked_information.not_file key={key}");
+            return Ok(None);
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            crate::infrastructure::diagnostics::warn("local.linked_information.missing", &error);
+            return Ok(None);
+        }
+        Err(error) => return Err(error.to_string()),
+    }
+    let (file, _, _) = super::encoded_audio::read_tags(&link.path)?;
+    let tag = file.primary_tag().or_else(|| file.first_tag());
+    let text = |key| {
+        tag.and_then(|tag| tag.get_string(key))
+            .filter(|value| !value.trim().is_empty())
+            .map(str::to_owned)
+    };
+    Ok(Some(LinkedLocalInformation {
+        title: text(ItemKey::TrackTitle),
+        artist: text(ItemKey::TrackArtist),
+        album: text(ItemKey::AlbumTitle),
+        information: information(&file, &link.path),
+        path: link.path,
+    }))
+}
+
+#[cfg(test)]
+#[path = "linked_information_tests.rs"]
+mod linked_information_tests;
+
+#[tauri::command]
+pub async fn linked_local_track_information(
+    key: String,
+    backend: State<'_, Backend>,
+) -> AppResult<Option<LinkedLocalInformation>> {
+    let store = backend.store.clone();
+    tauri::async_runtime::spawn_blocking(move || linked_local_information(&store, &key))
+        .await
+        .map_err(|error| {
+            crate::infrastructure::diagnostics::warn("local.linked_information.join", &error);
+            error.to_string()
+        })?
+        .inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("local.linked_information.read", error);
+        })
+}
+
 #[tauri::command]
 pub fn local_preferences(backend: State<'_, Backend>) -> AppResult<LocalPreferences> {
     preferences(&backend.store)

@@ -1,6 +1,6 @@
 import { useSongActions } from '@/components/music/song-actions'
 import { trackSource } from '@/features/music/source-label'
-import type { Track } from '@/lib/player'
+import type { PlayerSnapshot, Track } from '@/lib/player'
 
 const SOURCE_BADGES: Record<string, string> = {
   netease: 'NETEASE',
@@ -27,6 +27,7 @@ export function qualityBadgeLabel(quality?: string | null) {
 export function NowPlayingTags({
   track,
   quality,
+  playbackMode,
   lyricFormat,
   onSource,
   sourceActive = false,
@@ -37,6 +38,7 @@ export function NowPlayingTags({
 }: {
   track?: Track
   quality?: string | null
+  playbackMode?: PlayerSnapshot['playbackMode']
   lyricFormat?: string
   onSource?: () => void
   sourceActive?: boolean
@@ -50,6 +52,8 @@ export function NowPlayingTags({
   const source = trackSource(track)
   const sourceBadge = SOURCE_BADGES[source] ?? source.toUpperCase()
   const lyricBadge = lyricFormat?.trim().toUpperCase() || 'NO-LRC'
+  const qualityBadge =
+    track.source.kind === 'local' || playbackMode === 'local' ? 'Local' : qualityBadgeLabel(quality)
   return (
     <div className="now-playing-tags" aria-label="歌曲来源、音质与歌词格式">
       {track.source.kind === 'online' ? (
@@ -74,13 +78,11 @@ export function NowPlayingTags({
         className="now-playing-tag"
         data-active={informationActive || undefined}
         title={informationActive ? '返回歌词' : '查看歌曲详情'}
-        aria-label={
-          informationActive ? '返回歌词' : `查看歌曲详情，当前音质 ${qualityBadgeLabel(quality)}`
-        }
+        aria-label={informationActive ? '返回歌词' : `查看歌曲详情，当前音质 ${qualityBadge}`}
         aria-pressed={informationActive}
         onClick={() => (onInformation ? onInformation() : actions.details(track))}
       >
-        {qualityBadgeLabel(quality)}
+        {qualityBadge}
       </button>
       <button
         type="button"

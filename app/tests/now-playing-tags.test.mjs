@@ -32,14 +32,15 @@ function harness() {
         ? [node, ...flatten(node.props?.children)]
         : []
   return {
-    render(track) {
+    render(track, props = {}) {
       const nodes = flatten(
         exports.NowPlayingTags({
           track,
           quality: 'lossless',
           lyricFormat: 'lrc',
           onSource: () => sourceCalls++,
-          onLyrics: () => lyricCalls++
+          onLyrics: () => lyricCalls++,
+          ...props
         })
       )
       return {
@@ -51,6 +52,10 @@ function harness() {
         lyricTag: nodes.find(
           (node) =>
             node.type === 'button' && String(node.props?.['aria-label'] ?? '').includes('歌词来源')
+        ),
+        qualityTag: nodes.find(
+          (node) =>
+            node.type === 'button' && String(node.props?.['aria-label'] ?? '').includes('歌曲详情')
         ),
         sourceCalls: () => sourceCalls,
         lyricCalls: () => lyricCalls
@@ -91,4 +96,21 @@ test('lyric format tag requests lyric source switching', () => {
   assert.equal(rendered.lyricTag.props['aria-label'], '选择歌词来源，当前格式 LRC')
   rendered.lyricTag.props.onClick()
   assert.equal(rendered.lyricCalls(), 1)
+})
+
+test('local playback shows Local while retaining the online source badge', () => {
+  const app = harness()
+  const rendered = app.render(stream, { quality: null, playbackMode: 'local' })
+  assert.equal(rendered.qualityTag.props.children, 'Local')
+  assert.match(rendered.qualityTag.props['aria-label'], /Local/)
+  assert.equal(rendered.sourceTag.props.children, 'NETEASE')
+  assert.equal(app.render(local, { quality: null }).qualityTag.props.children, 'Local')
+  assert.equal(
+    app.render(stream, { quality: 'lossless', playbackMode: 'stream' }).qualityTag.props.children,
+    'Lossless'
+  )
+  assert.equal(
+    app.render(stream, { quality: null, playbackMode: 'stream' }).qualityTag.props.children,
+    '—'
+  )
 })

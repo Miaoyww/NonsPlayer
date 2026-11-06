@@ -120,6 +120,7 @@ export default function LyricsView({
   }, [])
   const state = usePlayer(
     'actualQuality',
+    'playbackMode',
     'error',
     'index',
     'mediaError',
@@ -562,6 +563,7 @@ export default function LyricsView({
                   <NowPlayingTags
                     track={track}
                     quality={state.actualQuality}
+                    playbackMode={state.playbackMode}
                     lyricFormat={currentDisplay?.format}
                     onSource={() => togglePanelPage('source')}
                     sourceActive={panelPage === 'source'}
