@@ -48,5 +48,11 @@
             android:name="android.support.FILE_PROVIDER_PATHS"
             android:resource="@xml/file_paths" />
         </provider>
+        <!-- PROVIDERS FOR ANDROID FS PLUGIN. AUTO-GENERATED. DO NOT REMOVE. -->
+        
+        <!-- PROVIDERS FOR ANDROID FS PLUGIN. AUTO-GENERATED. DO NOT REMOVE. -->
     </application>
+    <!-- ANDROID FS PLUGIN. AUTO-GENERATED. DO NOT REMOVE. -->
+    
+    <!-- ANDROID FS PLUGIN. AUTO-GENERATED. DO NOT REMOVE. -->
 </manifest>
