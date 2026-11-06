@@ -29,6 +29,7 @@ const DEFAULT_QUALITY: &str = "lossless";
 const TASKS_KEY: &str = "downloadTasksV1";
 const QUALITY_KEY: &str = "downloadQuality";
 const FILENAME_FORMAT_KEY: &str = "downloadFilenameFormat";
+const DIRECTORY_KEY: &str = "downloadDirectoryV1";
 const DEFAULT_FILENAME_FORMAT: &str = "title-artist";
 const FILENAME_FORMATS: &[&str] = &["title-artist", "title", "artist-title"];
 
@@ -107,9 +108,8 @@ pub struct Downloads {
     http: Arc<Http>,
     covers: CoverRuntime,
     folders: Arc<LocalFolders>,
-    directory: PathBuf,
+    directory: Mutex<PathBuf>,
     temporary: PathBuf,
-    origin: String,
     generation: AtomicU64,
     state: Mutex<StateData>,
 }
@@ -125,17 +125,12 @@ impl Downloads {
         directory: PathBuf,
         temporary: PathBuf,
     ) -> AppResult<Arc<Self>> {
+        let directory = configured_directory(&store, &directory)?;
         if cfg!(windows) {
-            std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
             std::fs::create_dir_all(&temporary).map_err(|error| error.to_string())?;
             cleanup_temporary_files(&temporary);
         }
-        let origin = directory
-            .canonicalize()
-            .unwrap_or_else(|_| directory.clone())
-            .to_string_lossy()
-            .trim_start_matches(r"\\?\")
-            .to_string();
+        let origin = display_path(&directory);
         let this = Arc::new(Self {
             app,
             store,
@@ -143,9 +138,8 @@ impl Downloads {
             http,
             covers,
             folders,
-            directory,
+            directory: Mutex::new(directory),
             temporary,
-            origin: origin.clone(),
             generation: AtomicU64::new(1),
             state: Mutex::new(StateData {
                 tasks: Vec::new(),
@@ -208,7 +202,7 @@ impl Downloads {
 
     fn link_task(&self, task: &DownloadTask) -> AppResult<()> {
         let name = task.path.as_deref().ok_or("下载记录缺少本地文件")?;
-        let path = self.directory.join(name);
+        let path = self.current_directory()?.join(name);
         if !path.is_file() {
             return Err("本地下载文件不存在".into());
         }
@@ -235,6 +229,7 @@ impl Downloads {
         let quality = self.quality()?;
         let filename_format = self.filename_format()?;
         self.ensure_folder()?;
+        let directory = self.current_directory()?;
         let mut state = self.state.lock().map_err(|_| "下载任务锁不可用")?;
         if let Some(existing) = state.tasks.iter().rev().find(|task| {
             task.track.key == track.key
@@ -248,7 +243,7 @@ impl Downloads {
                 && task
                     .path
                     .as_deref()
-                    .is_some_and(|path| self.directory.join(path).is_file())
+                    .is_some_and(|path| directory.join(path).is_file())
         }) {
             return Ok(existing.clone());
         }
@@ -379,10 +374,32 @@ impl Downloads {
 
     pub fn settings(&self) -> AppResult<DownloadSettings> {
         Ok(DownloadSettings {
-            directory: self.origin.clone(),
+            directory: display_path(&self.current_directory()?),
             quality: self.quality()?,
             filename_format: self.filename_format()?,
         })
+    }
+
+    pub fn set_directory(&self, path: String) -> AppResult<DownloadSettings> {
+        if !cfg!(windows) {
+            return Err("下载功能当前仅支持 Windows".into());
+        }
+        let path = PathBuf::from(path.trim());
+        if !path.is_absolute() {
+            return Err("下载目录必须是绝对路径".into());
+        }
+        let path =
+            normalize_directory(&path).map_err(|error| format!("无法使用下载目录：{error}"))?;
+        let origin = display_path(&path);
+        self.store.set_setting(DIRECTORY_KEY, &origin)?;
+        *self.directory.lock().map_err(|_| "下载目录锁不可用")? = path;
+        if let Err(error) = self.folders.add(origin) {
+            crate::infrastructure::diagnostics::warn(
+                "downloads.directory.local_folder.add",
+                &error,
+            );
+        }
+        self.settings()
     }
 
     pub fn set_quality(&self, quality: String) -> AppResult<DownloadSettings> {
@@ -405,8 +422,9 @@ impl Downloads {
         if !cfg!(windows) {
             return Err("下载功能当前仅支持 Windows".into());
         }
+        let directory = self.current_directory()?;
         app.opener()
-            .open_path(self.directory.to_string_lossy(), None::<&str>)
+            .open_path(directory.to_string_lossy(), None::<&str>)
             .map_err(|error| error.to_string())
     }
 
@@ -417,7 +435,7 @@ impl Downloads {
             .iter()
             .find(|task| task.id == id)
             .ok_or("下载任务不存在")?;
-        let path = download_path(&self.directory, task.path.as_deref())?;
+        let path = download_path(&self.current_directory()?, task.path.as_deref())?;
         if !path.is_file() {
             crate::infrastructure::diagnostics::warn(
                 "downloads.reveal.missing",
@@ -454,13 +472,21 @@ impl Downloads {
 
     fn ensure_folder(&self) -> AppResult<()> {
         if cfg!(windows) {
-            std::fs::create_dir_all(&self.directory).map_err(|error| error.to_string())?;
+            let directory = self.current_directory()?;
+            std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
             std::fs::create_dir_all(&self.temporary).map_err(|error| error.to_string())?;
-            if let Err(error) = self.folders.add(self.origin.clone()) {
+            if let Err(error) = self.folders.add(display_path(&directory)) {
                 crate::infrastructure::diagnostics::warn("downloads.local_folder.ensure", &error);
             }
         }
         Ok(())
+    }
+
+    fn current_directory(&self) -> AppResult<PathBuf> {
+        self.directory
+            .lock()
+            .map(|path| path.clone())
+            .map_err(|_| "下载目录锁不可用".into())
     }
 
     fn persist(&self) -> AppResult<()> {
@@ -883,13 +909,14 @@ impl Downloads {
         format: &str,
     ) -> AppResult<PathBuf> {
         let base = filename(track, filename_format);
+        let directory = self.current_directory()?;
         for index in 1..=1000 {
             let name = if index == 1 {
                 format!("{base}.{format}")
             } else {
                 format!("{base} ({index}).{format}")
             };
-            let target = self.directory.join(name);
+            let target = directory.join(name);
             if tokio::fs::try_exists(&target).await.unwrap_or(false) {
                 continue;
             }
@@ -904,7 +931,8 @@ impl Downloads {
 
     async fn index_file(&self, path: &Path) -> AppResult<()> {
         let folders = self.folders.clone();
-        let origin = self.origin.clone();
+        let origin = path.parent().ok_or("下载文件缺少所在目录")?.to_path_buf();
+        let origin = display_path(&origin);
         let path = path
             .to_string_lossy()
             .trim_start_matches(r"\\?\")
@@ -1011,6 +1039,41 @@ fn download_path(directory: &Path, value: Option<&str>) -> AppResult<PathBuf> {
     } else {
         directory.join(path)
     })
+}
+
+fn configured_directory(store: &Store, default: &Path) -> AppResult<PathBuf> {
+    let configured = store
+        .setting(DIRECTORY_KEY)?
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from);
+    if let Some(configured) = configured {
+        if configured.is_absolute() {
+            match normalize_directory(&configured) {
+                Ok(directory) => return Ok(directory),
+                Err(error) => crate::infrastructure::diagnostics::warn(
+                    "downloads.directory.restore",
+                    format!("{}: {error}", configured.display()),
+                ),
+            }
+        } else {
+            crate::infrastructure::diagnostics::warn(
+                "downloads.directory.restore",
+                format!("relative path: {}", configured.display()),
+            );
+        }
+    }
+    normalize_directory(default).map_err(|error| format!("无法创建默认下载目录：{error}"))
+}
+
+fn normalize_directory(path: &Path) -> std::io::Result<PathBuf> {
+    std::fs::create_dir_all(path)?;
+    path.canonicalize()
+}
+
+fn display_path(path: &Path) -> String {
+    path.to_string_lossy()
+        .trim_start_matches(r"\\?\")
+        .to_string()
 }
 
 async fn move_file(source: &Path, target: &Path) -> std::io::Result<()> {
@@ -1185,6 +1248,14 @@ pub fn set_download_filename_format(
 }
 
 #[tauri::command]
+pub fn set_download_directory(
+    path: String,
+    backend: State<'_, Backend>,
+) -> AppResult<DownloadSettings> {
+    backend.downloads.set_directory(path)
+}
+
+#[tauri::command]
 pub fn open_download_directory(
     app: tauri::AppHandle,
     backend: State<'_, Backend>,
@@ -1287,6 +1358,40 @@ mod tests {
             file
         );
         assert!(download_path(directory.path(), None).is_err());
+    }
+
+    #[test]
+    fn saved_absolute_directory_takes_precedence() {
+        let root = tempfile::tempdir().unwrap();
+        let store = Store::open(&root.path().join("settings.sqlite3")).unwrap();
+        let default = root.path().join("default");
+        let configured = root.path().join("custom");
+        store
+            .set_setting(DIRECTORY_KEY, configured.to_str().unwrap())
+            .unwrap();
+
+        let directory = configured_directory(&store, &default).unwrap();
+
+        assert_eq!(directory, configured.canonicalize().unwrap());
+        assert!(configured.is_dir());
+        assert!(!default.exists());
+    }
+
+    #[test]
+    fn invalid_saved_directory_falls_back_to_default() {
+        let root = tempfile::tempdir().unwrap();
+        let store = Store::open(&root.path().join("settings.sqlite3")).unwrap();
+        let default = root.path().join("default");
+        let file = root.path().join("not-a-directory");
+        std::fs::write(&file, b"x").unwrap();
+        store
+            .set_setting(DIRECTORY_KEY, file.to_str().unwrap())
+            .unwrap();
+
+        let directory = configured_directory(&store, &default).unwrap();
+
+        assert_eq!(directory, default.canonicalize().unwrap());
+        assert!(default.is_dir());
     }
 
     #[tokio::test]

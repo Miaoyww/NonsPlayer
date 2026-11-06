@@ -68,7 +68,7 @@ const groups: SearchGroup[] = [
     section: 'download',
     path: '下载设置',
     items: [
-      ['download-directory', '下载目录', '保存位置 downloads 本地音乐库 索引'],
+      ['download-directory', '下载目录', '保存位置 选择位置 打开目录 本地音乐库 索引'],
       ['download-filename-format', '文件名格式', '命名 歌曲名 歌手 艺术家 分隔符'],
       ['download-quality', '下载音质', '标准 较高 极高 无损 Hi-Res'],
       ['mv-save-enabled', '保存在线 MV', 'MV 视频 离线 保存 下载'],

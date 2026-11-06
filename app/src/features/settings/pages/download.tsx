@@ -2,6 +2,7 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { FolderOpen } from 'lucide-react'
+import { open } from '@tauri-apps/plugin-dialog'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { ErrorNotice } from '@/components/error-notice'
@@ -115,6 +116,27 @@ export function DownloadPage() {
       setBusy(false)
     }
   }
+  async function chooseDirectory() {
+    if (busy || !settings) return
+    setBusy(true)
+    setError(undefined)
+    try {
+      const path = await open({
+        directory: true,
+        multiple: false,
+        title: '选择下载位置',
+        defaultPath: settings.directory
+      })
+      if (typeof path === 'string') {
+        setSettings(await nativeCall<DownloadSettings>('set_download_directory', { path }))
+      }
+    } catch (cause) {
+      reportCaughtError('app/src/features/settings/pages/download.tsx', cause)
+      setError(errorText(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
   async function updateMvSaving(enabled: boolean) {
     if (busy) return
     setBusy(true)
@@ -152,20 +174,26 @@ export function DownloadPage() {
       <SettingsCard
         searchId="download-directory"
         title="下载目录"
-        description="固定为应用数据目录下的 downloads，下载完成后自动写入标签并索引。"
+        description={settings?.directory ?? '正在读取…'}
       >
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <code className="min-w-0 break-all rounded-lg bg-muted px-3 py-2 text-xs">
-            {settings?.directory ?? '正在读取…'}
-          </code>
           <Button
             variant="outline"
-            size="sm"
+            size="icon-sm"
             disabled={busy || !isTauri()}
+            aria-label="打开下载目录"
+            title="打开下载目录"
             onClick={() => void openDirectory()}
           >
             <FolderOpen aria-hidden="true" />
-            打开目录
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy || !isTauri() || !settings}
+            onClick={() => void chooseDirectory()}
+          >
+            选择位置
           </Button>
         </div>
       </SettingsCard>
