@@ -410,6 +410,24 @@ impl Downloads {
             .map_err(|error| error.to_string())
     }
 
+    pub fn reveal_path(&self, id: u64) -> AppResult<PathBuf> {
+        let state = self.state.lock().map_err(|_| "下载任务锁不可用")?;
+        let task = state
+            .tasks
+            .iter()
+            .find(|task| task.id == id)
+            .ok_or("下载任务不存在")?;
+        let path = download_path(&self.directory, task.path.as_deref())?;
+        if !path.is_file() {
+            crate::infrastructure::diagnostics::warn(
+                "downloads.reveal.missing",
+                format!("id={id} path={}", path.display()),
+            );
+            return Err("下载文件已被移动或删除。".into());
+        }
+        Ok(path)
+    }
+
     fn quality(&self) -> AppResult<String> {
         let value = self
             .store
@@ -676,10 +694,7 @@ impl Downloads {
             bytes,
             total,
             actual_quality,
-            path: path
-                .file_name()
-                .map(|name| name.to_string_lossy().into_owned())
-                .unwrap_or_default(),
+            path: path_text,
             warning: (!warnings.is_empty()).then(|| warnings.join("；")),
         })
     }
@@ -986,6 +1001,18 @@ async fn audio_format(path: &Path) -> AppResult<&'static str> {
     Err("下载资源不是受支持的音频文件".into())
 }
 
+fn download_path(directory: &Path, value: Option<&str>) -> AppResult<PathBuf> {
+    let value = value
+        .filter(|value| !value.is_empty())
+        .ok_or("下载完成后才能定位文件。")?;
+    let path = Path::new(value);
+    Ok(if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        directory.join(path)
+    })
+}
+
 fn filename(track: &Track, format: &str) -> String {
     let title = if track.title.trim().is_empty() {
         "歌曲"
@@ -1128,6 +1155,18 @@ pub fn open_download_directory(
     backend.downloads.open_directory(&app)
 }
 
+#[tauri::command]
+pub fn downloads_reveal(
+    id: u64,
+    app: tauri::AppHandle,
+    backend: State<'_, Backend>,
+) -> AppResult<()> {
+    let path = backend.downloads.reveal_path(id)?;
+    app.opener()
+        .reveal_item_in_dir(path)
+        .map_err(|error| error.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1195,6 +1234,22 @@ mod tests {
         assert_eq!(filename(&value, "artist-title"), "Singer, Other - Title___");
         assert_eq!(sanitize("CON"), "_CON");
         assert_eq!(sanitize("LPT1"), "_LPT1");
+    }
+
+    #[test]
+    fn download_paths_resolve_relative_files() {
+        let directory = tempfile::tempdir().unwrap();
+        let file = directory.path().join("song.flac");
+        std::fs::write(&file, b"fLaC").unwrap();
+        assert_eq!(
+            download_path(directory.path(), Some("song.flac")).unwrap(),
+            file
+        );
+        assert_eq!(
+            download_path(directory.path(), Some(file.to_str().unwrap())).unwrap(),
+            file
+        );
+        assert!(download_path(directory.path(), None).is_err());
     }
 
     #[tokio::test]

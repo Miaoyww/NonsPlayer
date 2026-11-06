@@ -11,7 +11,15 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { CheckCircle2, CircleAlert, LoaderCircle, RotateCw, Trash2, X } from 'lucide-react'
+import {
+  CheckCircle2,
+  CircleAlert,
+  FolderOpen,
+  LoaderCircle,
+  RotateCw,
+  Trash2,
+  X
+} from 'lucide-react'
 import { cn } from 'cn'
 import { useState } from 'react'
 import { useDownloads, type DownloadState, type DownloadTask } from './download-provider'
@@ -89,12 +97,33 @@ export function DownloadDialog() {
                 <article
                   key={task.id}
                   className={cn(
-                    'rounded-2xl border border-border/70 bg-muted/20',
+                    'download-task-card rounded-2xl border border-border/70 bg-muted/20',
                     task.state === 'completed' ? 'p-3' : 'p-4'
                   )}
                 >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <TrackIdentity track={task.track} />
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <TrackIdentity track={task.track} />
+                    </div>
+                    {task.state === 'running' || task.state === 'waiting' ? (
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <Progress
+                          value={percent(task)}
+                          aria-label={`${task.track.title} 下载进度`}
+                        />
+                        <p className="flex justify-between text-xs tabular-nums text-muted-foreground">
+                          <span>
+                            {bytesText(task.bytes)}
+                            {task.total ? ` / ${bytesText(task.total)}` : ''}
+                          </span>
+                          <span>
+                            {task.actualQuality
+                              ? (qualityLabels[task.actualQuality] ?? task.actualQuality)
+                              : (qualityLabels[task.quality] ?? task.quality)}
+                          </span>
+                        </p>
+                      </div>
+                    ) : null}
                     <span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
                       {task.state === 'running' || task.state === 'waiting' ? (
                         <LoaderCircle className="size-3.5 motion-safe:animate-spin" aria-hidden />
@@ -106,6 +135,18 @@ export function DownloadDialog() {
                       {labels[task.state]}
                     </span>
                     <div className="flex shrink-0 items-center gap-0.5">
+                      {task.state === 'completed' && (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          disabled={busy !== undefined}
+                          aria-label={`在文件夹中显示 ${task.track.title}`}
+                          title="在文件夹中显示"
+                          onClick={() => void run(task.id, () => downloads.reveal(task.id))}
+                        >
+                          <FolderOpen aria-hidden="true" />
+                        </Button>
+                      )}
                       {(task.state === 'running' || task.state === 'waiting') && (
                         <Button
                           variant="ghost"
@@ -144,22 +185,6 @@ export function DownloadDialog() {
                       )}
                     </div>
                   </div>
-                  {task.state === 'running' || task.state === 'waiting' ? (
-                    <div className="mt-2.5 space-y-1.5">
-                      <Progress value={percent(task)} aria-label={`${task.track.title} 下载进度`} />
-                      <p className="flex justify-between text-xs tabular-nums text-muted-foreground">
-                        <span>
-                          {bytesText(task.bytes)}
-                          {task.total ? ` / ${bytesText(task.total)}` : ''}
-                        </span>
-                        <span>
-                          {task.actualQuality
-                            ? (qualityLabels[task.actualQuality] ?? task.actualQuality)
-                            : (qualityLabels[task.quality] ?? task.quality)}
-                        </span>
-                      </p>
-                    </div>
-                  ) : null}
                   {task.error && <p className="mt-1.5 text-xs text-destructive">{task.error}</p>}
                   {task.warning && (
                     <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">

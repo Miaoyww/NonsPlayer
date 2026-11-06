@@ -31,6 +31,7 @@ interface DownloadContextValue {
   cancel: (id: number) => Promise<void>
   retry: (id: number) => Promise<void>
   remove: (id: number) => Promise<void>
+  reveal: (id: number) => Promise<void>
   clearFinished: () => Promise<void>
 }
 
@@ -109,6 +110,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
         cancel: (id) => run(() => nativeCall('downloads_cancel', { id })),
         retry: (id) => run(() => nativeCall('downloads_retry', { id })),
         remove: (id) => run(() => nativeCall('downloads_remove', { id })),
+        reveal: (id) => run(() => nativeCall('downloads_reveal', { id })),
         clearFinished: () => run(() => nativeCall('downloads_clear_finished'))
       }}
     >

@@ -1,0 +1,23 @@
+.download-task-card {
+  transition:
+    background-color 160ms,
+    box-shadow 160ms;
+}
+.download-task-card:is(:hover, :focus-within) {
+  background: var(--background);
+  box-shadow: 0 10px 10px -8px rgb(0 0 0 / 16%);
+}
+.dark .download-task-card:is(:hover, :focus-within) {
+  background: var(--muted);
+}
+.download-task-card:is(:hover, :focus-within) .track-title {
+  color: oklch(0.54 0.23 264);
+}
+.dark .download-task-card:is(:hover, :focus-within) .track-title {
+  color: oklch(0.76 0.13 264);
+}
+@media (prefers-reduced-motion: reduce) {
+  .download-task-card {
+    transition: none;
+  }
+}

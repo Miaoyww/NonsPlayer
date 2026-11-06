@@ -1202,6 +1202,7 @@ pub fn run() {
             crate::downloads::downloads_retry,
             crate::downloads::downloads_remove,
             crate::downloads::downloads_clear_finished,
+            crate::downloads::downloads_reveal,
             crate::downloads::download_settings,
             crate::downloads::set_download_quality,
             crate::downloads::set_download_filename_format,
