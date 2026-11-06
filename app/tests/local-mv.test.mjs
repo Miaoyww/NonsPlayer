@@ -120,6 +120,7 @@ async function hookHarness(
   effects.splice(0).forEach((fn) => fn())
   let hook = render()
   return {
+    exports,
     calls,
     get current() {
       return hook
@@ -153,6 +154,13 @@ async function hookHarness(
     }
   }
 }
+
+test('the MV button returns to lyrics from the selection page and toggles elsewhere', async () => {
+  const harness = await hookHarness(null, null)
+  assert.equal(harness.exports.mvButtonTarget('lyrics', 'lyrics'), 'toggle')
+  assert.equal(harness.exports.mvButtonTarget('lyrics', 'mv'), 'lyrics')
+  assert.equal(harness.exports.mvButtonTarget('mv', 'mv'), 'toggle')
+})
 
 test('an unlinked MV click opens selection without leaving lyrics mode', async () => {
   const mv = { name: 'live.mp4', path: 'C:/Videos/live.mp4', available: true, offsetMs: 0 }

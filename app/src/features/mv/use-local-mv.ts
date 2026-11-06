@@ -12,6 +12,11 @@ import {
 
 export type FullscreenDisplayMode = 'lyrics' | 'mv'
 export type MvActivation = FullscreenDisplayMode | 'select'
+export type MvButtonTarget = 'lyrics' | 'toggle'
+
+export function mvButtonTarget(mode: FullscreenDisplayMode, page: string): MvButtonTarget {
+  return page === 'mv' && mode === 'lyrics' ? 'lyrics' : 'toggle'
+}
 
 async function remoteSource(binding: MvBinding, key: string) {
   const resolved = await nativeCall<ResolvedMv>('resolve_track_mv', { key })

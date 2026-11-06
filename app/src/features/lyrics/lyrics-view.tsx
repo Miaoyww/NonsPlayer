@@ -44,7 +44,7 @@ import { useLyricsSettings } from './use-lyrics-settings'
 import { Panel } from '@/components/ui/panel'
 import { Spinner } from '@/components/ui/spinner'
 import { LocalMvStage } from '@/features/mv/local-mv-stage'
-import { useLocalMv } from '@/features/mv/use-local-mv'
+import { mvButtonTarget, useLocalMv } from '@/features/mv/use-local-mv'
 import { MvAlignmentPopover } from '@/features/mv/mv-alignment-popover'
 import { MvPanel } from '@/features/mv/mv-panel'
 import { MvLyricCard } from '@/features/mv/mv-lyric-card'
@@ -439,7 +439,13 @@ export default function LyricsView({
       </div>
     )
   const showLyrics = !!track
+  const mvPage = panelPage === 'mv'
+  const mvMode = mvActive || mvPage
   const activateMv = async () => {
+    if (mvButtonTarget(mv.mode, panelPage) === 'lyrics') {
+      setPanelPage('lyrics')
+      return
+    }
     const result = await mv.toggle()
     if (result === 'select') setPanelPage('mv')
     else if (result) setPanelPage('lyrics')
@@ -690,12 +696,12 @@ export default function LyricsView({
               variant="ghost"
               size="icon"
               className="fullscreen-mode-button"
-              aria-label={mv.busy ? '正在读取本地 MV' : mvActive ? '返回歌词' : '打开本地 MV'}
-              aria-pressed={mvActive}
+              aria-label={mv.busy ? '正在读取本地 MV' : mvMode ? '返回歌词' : '打开本地 MV'}
+              aria-pressed={mvMode}
               title={
                 mv.busy
                   ? '正在读取本地 MV…'
-                  : mvActive
+                  : mvMode
                     ? '返回歌词'
                     : '打开本地 MV；未关联时进入选择页'
               }
@@ -704,7 +710,7 @@ export default function LyricsView({
             >
               {mv.busy ? (
                 <Spinner />
-              ) : mvActive ? (
+              ) : mvMode ? (
                 <Captions aria-hidden="true" />
               ) : (
                 <Clapperboard aria-hidden="true" />
