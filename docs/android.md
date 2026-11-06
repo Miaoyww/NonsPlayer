@@ -1,6 +1,6 @@
 # Android ARM64 试用版
 
-当前提供 Windows 上直接构建的 Android ARM64 调试 APK，不需要 Android Studio，不运行 `tauri android dev` 或 Vite 开发服务器。最低 Android API 为 24（Android 7.0）；这只是构建下限，兼容性和播放仍需真机验收。
+当前提供 Windows 上直接构建的 Android ARM64 调试 APK，不需要 Android Studio。调试 APK 通过 USB 端口映射连接本机 Vite，支持界面热更新；Release APK 使用内嵌前端。最低 Android API 为 24（Android 7.0）；这只是构建下限，兼容性和播放仍需真机验收。
 
 ## 准备工具链
 
@@ -23,7 +23,7 @@ Android 工程已提交在 `app/src-tauri/gen/android`；不要重新执行 `and
 pnpm --dir app build:android
 ```
 
-构建入口使用项目内的 SDK、NDK 27.2.12479018 和 Gradle 缓存，打包前端与 Rust 服务，并在编译前构建 QQMusic、GDStudio 与 Xiaobai 三套随包适配器。适配器资源嵌入 Android 原生库，首次启动时写入应用私有目录供通用 WASM Host 加载。只编译 ARM64，默认使用调试签名；首次构建需下载 Gradle、Maven 和缺失的 Rust 依赖。
+构建入口使用项目内的 SDK、NDK 27.2.12479018 和 Gradle 缓存，打包前端与 Rust 服务。调试 APK 使用开发模式，通过 USB 端口映射从本机读取前端并支持热更新；Release APK 使用内嵌前端。网易云原生适配器随核心编译，第三方适配器与功能插件不随 APK 提供；Android 不读取构建机的调试附件目录。只编译 ARM64，默认使用调试签名；首次构建需下载 Gradle、Maven 和缺失的 Rust 依赖。
 
 输出：`app/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk`。虽然目录名为 `universal`，此构建入口的安装包仅包含 ARM64 原生库。验证后另存为 `.local/android/Nons-<版本>-android-arm64-debug.apk` 与带 `-compat` 后缀的同内容安装包，并为前者生成 SHA256 校验文件。
 
@@ -56,6 +56,19 @@ APK 校验检查 ARM64 原生库、16 KB 对齐与内嵌前端。WebAudio 解码
 ```powershell
 python scripts/verify-android-apk.py app/src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
 ```
+
+## 开发预览
+
+仅调整 WebUI 时无需重新构建 APK。保持真机 USB 调试连接，在一个终端启动 Vite，在另一个终端建立端口映射并打开已安装的调试包：
+
+```powershell
+pnpm --dir app dev --host 0.0.0.0
+
+.local/android/sdk/platform-tools/adb.exe reverse tcp:1420 tcp:1420
+.local/android/sdk/platform-tools/adb.exe shell am start -n com.miaoyww.nons/.MainActivity
+```
+
+保存前端、样式或测试页面后，Vite 通过 HMR 更新手机页面。Android 断开重连后需重新执行 `adb reverse`。修改 Rust、原生代码或依赖后才重新执行 `pnpm --dir app build:android`、安装 APK，再恢复上面的端口映射和启动步骤。结束时停止 Vite 并执行 `adb reverse --remove tcp:1420`。
 
 ## 当前边界
 

@@ -976,7 +976,7 @@ pub fn run() {
                 &data,
                 music.clone(),
                 player.clone(),
-                cfg!(debug_assertions).then(|| {
+                cfg!(all(debug_assertions, desktop)).then(|| {
                     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bundled-plugins")
                 }),
             )?;
@@ -988,7 +988,7 @@ pub fn run() {
                 plugin_manager.shared_http(),
             )?;
             app.manage(adapter_installer.clone());
-            let component_directory = cfg!(debug_assertions)
+            let component_directory = cfg!(all(debug_assertions, desktop))
                 .then(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bundled-adapters"));
             let component_music = music.clone();
             let extension_store = extension_store::ExtensionStore::new(
