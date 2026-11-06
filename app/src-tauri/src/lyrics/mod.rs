@@ -187,7 +187,7 @@ impl LyricService {
         let requested = serde_json::to_vec(&track).map_err(|e| e.to_string())?;
         let key = track.key.clone();
         let value = self
-            .get_online(track, refresh, skips, separators, app)
+            .get_online(track, refresh, skips, separators, correction.source, app)
             .await?;
         if self.cache.generation() != generation
             || self
@@ -209,6 +209,7 @@ impl LyricService {
         refresh: bool,
         skips: LyricSkips,
         separators: Vec<String>,
+        selected_source: Option<correction::Source>,
         app: tauri::AppHandle,
     ) -> AppResult<Option<Lyrics>> {
         let started = std::time::Instant::now();
@@ -234,7 +235,11 @@ impl LyricService {
             .map(|identity| amll::Request::new(identity, &self.store))
             .transpose()?
             .flatten();
-        let sources = self.sources()?;
+        let mut sources = self.sources()?;
+        let mut skips = skips;
+        if let Some(source) = selected_source {
+            source.select(&mut sources, &mut skips);
+        }
         let subject = self.subject(&track, &separators).await;
         let amll_key = amll_request
             .as_ref()

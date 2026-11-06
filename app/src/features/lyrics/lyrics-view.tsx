@@ -296,8 +296,8 @@ export default function LyricsView({
           refresh || !!selected.localTtml,
           sources,
           (value) => {
-            if (!value && (selected.candidate || selected.localTtml))
-              throw new Error('已选歌词版本暂不可用，请刷新重试或在歌词来源中重新选择。')
+            if (!value && (selected.candidate || selected.localTtml || selected.source))
+              throw new Error('已选歌词版本暂不可用，请刷新重试或在歌词来源中恢复自动匹配。')
             return apply(
               value,
               track.durationMs,
@@ -307,7 +307,8 @@ export default function LyricsView({
             )
           },
           isCurrent,
-          !!(selected.candidate || selected.localTtml)
+          !!(selected.candidate || selected.localTtml || selected.source),
+          selected.source
         )
       } catch (cause) {
         reportCaughtError('app/src/features/lyrics/lyrics-view.tsx', cause)
@@ -334,15 +335,20 @@ export default function LyricsView({
         !disposed &&
         openRef.current &&
         !correction.current.candidate &&
+        (!correction.current.source || payload.lyrics.source === correction.current.source) &&
         getLyricSources() === sources &&
-        !(track.source.kind === 'local' && sources.localSource === 'local') &&
+        !(
+          track.source.kind === 'local' &&
+          sources.localSource === 'local' &&
+          !correction.current.source
+        ) &&
         payload.lyrics.source !== 'local' &&
         isCurrentPlayback(track.key, state.revision, trackVersion) &&
         appliedSource.current === payload.lyrics.source &&
         payload.key === track.key &&
         (!payload.track || lyricTrackVersion(payload.track) === trackVersion) &&
         (payload.lyrics.source !== 'amll' || sources.amll) &&
-        (payload.lyrics.source !== 'qq' || sources.qq)
+        (payload.lyrics.source !== 'qq' || sources.qq || correction.current.source === 'qq')
       ) {
         try {
           apply(payload.lyrics, track.durationMs, track.key, state.revision)

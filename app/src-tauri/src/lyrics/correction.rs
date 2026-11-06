@@ -29,6 +29,16 @@ pub enum Source {
     Netease,
 }
 
+impl Source {
+    pub(super) fn select(self, sources: &mut super::LyricSources, skips: &mut super::LyricSkips) {
+        sources.amll = false;
+        sources.qq = self == Source::Qq;
+        skips.amll = true;
+        skips.qq = self != Source::Qq;
+        skips.netease = self != Source::Netease;
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalTtml {
@@ -38,6 +48,9 @@ pub struct LocalTtml {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Correction {
+    #[serde(default)]
+    pub source: Option<Source>,
+    #[serde(default)]
     pub candidate: Option<Candidate>,
     #[serde(default)]
     pub local_ttml: Option<LocalTtml>,
@@ -78,6 +91,9 @@ impl LocalTtml {
 
 impl Correction {
     pub(super) fn validate(&self) -> AppResult<()> {
+        if self.source.is_some() && (self.candidate.is_some() || self.local_ttml.is_some()) {
+            return Err("歌词来源选择无效".into());
+        }
         if self.candidate.is_some() && self.local_ttml.is_some() {
             return Err("歌词来源选择无效".into());
         }
@@ -293,6 +309,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("library.sqlite3");
         let choice = Correction {
+            source: None,
             candidate: Some(Candidate {
                 source: Source::Qq,
                 id: Some(123),
@@ -328,11 +345,13 @@ mod tests {
     #[test]
     fn correction_offset_can_follow_global_or_override_it_with_zero() {
         let follows_global = Correction {
+            source: None,
             candidate: None,
             local_ttml: None,
             offset_ms: None,
         };
         let overrides_global = Correction {
+            source: None,
             candidate: None,
             local_ttml: None,
             offset_ms: Some(0),
@@ -343,6 +362,73 @@ mod tests {
         );
         assert_ne!(follows_global, overrides_global);
         assert_eq!(overrides_global.offset_ms, Some(0));
+    }
+    #[test]
+    fn source_selection_is_persisted_without_binding_a_candidate() {
+        let correction = Correction {
+            source: Some(Source::Netease),
+            offset_ms: Some(250),
+            ..Default::default()
+        };
+        assert!(correction.validate().is_ok());
+        let decoded: Correction =
+            serde_json::from_str(&serde_json::to_string(&correction).unwrap()).unwrap();
+        assert_eq!(decoded, correction);
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("library.sqlite3");
+        let key = setting_key("online:netease:1");
+        {
+            let store = Store::open(&path).unwrap();
+            store
+                .set_setting(&key, &serde_json::to_string(&correction).unwrap())
+                .unwrap();
+        }
+        let store = Store::open(&path).unwrap();
+        assert_eq!(
+            serde_json::from_str::<Correction>(&store.setting(&key).unwrap().unwrap()).unwrap(),
+            correction
+        );
+        assert!(store
+            .setting(&setting_key("online:qq:1"))
+            .unwrap()
+            .is_none());
+        assert!(Correction {
+            source: Some(Source::Qq),
+            candidate: Some(Candidate {
+                source: Source::Qq,
+                id: Some(1),
+                mid: "abc".into(),
+                title: "Song".into(),
+                artist: "Artist".into(),
+                album: "Album".into(),
+                duration_ms: 1000,
+            }),
+            ..Default::default()
+        }
+        .validate()
+        .is_err());
+    }
+    #[test]
+    fn selecting_a_platform_limits_matching_to_that_platform_and_keeps_qrc_retry() {
+        for selected in [Source::Qq, Source::Netease] {
+            let mut sources = super::super::LyricSources {
+                qq: false,
+                ..Default::default()
+            };
+            let mut skips = super::super::LyricSkips {
+                amll: false,
+                qq: true,
+                netease: false,
+                qrc: true,
+            };
+            selected.select(&mut sources, &mut skips);
+            assert!(!sources.amll);
+            assert!(skips.amll);
+            assert_eq!(sources.qq, selected == Source::Qq);
+            assert_eq!(skips.qq, selected != Source::Qq);
+            assert_eq!(skips.netease, selected != Source::Netease);
+            assert!(skips.qrc);
+        }
     }
     #[test]
     fn manual_candidates_reject_invalid_ids_and_unbounded_metadata() {
@@ -384,6 +470,7 @@ mod tests {
         .validate()
         .is_err());
         assert!(Correction {
+            source: None,
             candidate: Some(Candidate {
                 source: Source::Qq,
                 id: Some(1),

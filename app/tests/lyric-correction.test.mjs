@@ -91,3 +91,42 @@ test('invalid selected lyrics do not silently fall back to another source', asyn
   )
   assert.equal(calls, 1)
 })
+
+for (const selectedSource of ['qq', 'netease']) {
+  test(`selecting ${selectedSource} overrides global/local defaults without enabling other platforms`, async () => {
+    const calls = []
+    const { loadLyrics } = load('../src/features/lyrics/load-lyrics.ts', {
+      '@/lib/player': {
+        nativeCall: async (command, args) => {
+          calls.push({ command, ...args })
+          return {
+            source: selectedSource,
+            format: selectedSource === 'qq' && !args.skipQrc ? 'qrc' : 'lrc',
+            content: 'lyrics'
+          }
+        }
+      }
+    })
+    const result = await loadLyrics(
+      { key: 'local:1', source: { kind: 'local' } },
+      false,
+      { localSource: 'local', amll: true, qq: false },
+      (lyrics) => {
+        if (lyrics.format === 'qrc') throw new Error('QRC parse failure')
+        return lyrics.content
+      },
+      () => true,
+      false,
+      selectedSource
+    )
+    assert.equal(result.parsed, 'lyrics')
+    assert.equal(calls.length, selectedSource === 'qq' ? 2 : 1)
+    for (const call of calls) {
+      assert.equal(call.command, 'track_lyrics')
+      assert.equal(call.skipAmll, true)
+      assert.equal(call.skipQq, selectedSource !== 'qq')
+      assert.equal(call.skipNetease, selectedSource === 'qq')
+    }
+    if (selectedSource === 'qq') assert.equal(calls[1].skipQrc, true)
+  })
+}

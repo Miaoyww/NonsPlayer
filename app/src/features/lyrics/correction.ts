@@ -13,11 +13,13 @@ export interface LocalTtml {
   path: string
 }
 export interface LyricCorrection {
+  source: 'qq' | 'netease' | null
   candidate: LyricCandidate | null
   localTtml: LocalTtml | null
   offsetMs: number | null
 }
 export const automaticLyrics: LyricCorrection = {
+  source: null,
   candidate: null,
   localTtml: null,
   offsetMs: null

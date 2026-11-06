@@ -105,7 +105,8 @@ function useDesktopLyrics(track: Track | undefined) {
                     )
                   : [],
               () => !disposed,
-              !!(correction.candidate || correction.localTtml)
+              !!(correction.candidate || correction.localTtml || correction.source),
+              correction.source
             )
       )
       .then((result) => {

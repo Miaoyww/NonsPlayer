@@ -31,8 +31,10 @@ export async function loadLyrics<T>(
   sources: LyricSources,
   parse: (value: Lyrics | null) => T,
   isCurrent: () => boolean = () => true,
-  manual = false
+  manual = false,
+  selectedSource?: 'qq' | 'netease' | null
 ) {
+  manual ||= !!selectedSource
   if (!manual && track.source?.kind === 'local' && sources.localSource === 'local') {
     let skipEmbedded = false,
       skipTtml = false
@@ -60,10 +62,10 @@ export async function loadLyrics<T>(
     }
     return null
   }
-  let skipAmll = !sources.amll,
-    skipQq = !sources.qq,
+  let skipAmll = !!selectedSource || !sources.amll,
+    skipQq = selectedSource ? selectedSource !== 'qq' : !sources.qq,
     skipQrc = false,
-    skipNetease = false
+    skipNetease = selectedSource === 'qq'
   for (let attempt = 0; attempt < 5; attempt++) {
     if (!isCurrent()) return null
     const lyrics = await nativeCall<Lyrics | null>('track_lyrics', {

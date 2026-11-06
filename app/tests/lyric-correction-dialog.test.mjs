@@ -38,7 +38,7 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
     savedOffset: -100
   }
 ]) {
-  test(`the correction dialog rejects late previews, saves and restores automatic matching when ${name}`, async () => {
+  test(`the source panel saves platforms without searching or displaying previews when ${name}`, async () => {
     const dom = new JSDOM('<div id="root"></div>')
     const previous = {
       window: globalThis.window,
@@ -49,16 +49,7 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
     globalThis.document = dom.window.document
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     const saved = []
-    const candidate = (id) => ({
-      source: 'qq',
-      id,
-      mid: `mid${id}`,
-      title: `Version ${id}`,
-      artist: 'Artist',
-      album: 'Album',
-      durationMs: 10000
-    })
-    let late
+    const calls = []
     let closed = 0
     const wrapper = (tag, props) => React.createElement(tag, props, props.children)
     const modules = {
@@ -88,19 +79,13 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
         getPlayer: () => ({ revision: 1 }),
         errorText: String,
         nativeCall: async (command, args) => {
+          calls.push(command)
           if (command === 'lyric_correction')
-            return { candidate: null, localTtml: null, offsetMs: songOffset }
-          if (command === 'lyric_candidates') return [candidate(1), candidate(2)]
-          if (command === 'preview_lyric_candidate')
-            return args.candidate.id === 1
-              ? new Promise((resolve) => {
-                  late = resolve
-                })
-              : { content: 'Correct version', format: 'lrc' }
+            return { source: 'netease', candidate: null, localTtml: null, offsetMs: songOffset }
           if (command === 'pick_local_ttml') return 'C:/Lyrics/song.ttml'
-          if (command === 'preview_local_ttml')
-            return { content: 'Local TTML version', format: 'ttml' }
+          if (command === 'preview_local_ttml') return { content: 'TTML', format: 'ttml' }
           if (command === 'set_lyric_correction') saved.push(args)
+          else if (command !== 'lyric_correction') throw new Error(`Unexpected command: ${command}`)
         }
       },
       '@/lib/platform': { isAndroid: () => false },
@@ -108,9 +93,9 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
         defaultLyricsOffsetMs: -200,
         useLyricsSettings: () => ({ lyricsOffsetMs: globalOffset })
       },
-      './parse-lyrics': { parseLyrics: (value) => [{ words: [{ word: value.content }] }] },
+      './parse-lyrics': { parseLyrics: () => [{ words: [{ word: 'Validated TTML' }] }] },
       './correction': {
-        automaticLyrics: { candidate: null, localTtml: null, offsetMs: null }
+        automaticLyrics: { source: null, candidate: null, localTtml: null, offsetMs: null }
       }
     }
     const exports = {}
@@ -145,23 +130,11 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
         )
       )
       assert.equal(document.querySelector('#lyric-offset').value, String(displayedOffset))
-      await React.act(async () =>
-        document
-          .querySelector('form')
-          .dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }))
-      )
-      await click(button('Version 1Artist · Album · 0:10'))
-      assert.equal(button('保存').disabled, true)
-      await click(button('Version 2Artist · Album · 0:10'))
-      assert.equal(
-        document.querySelector('[aria-label="歌词预览"]').textContent.includes('Correct version'),
-        true
-      )
-      await React.act(async () => late({ content: 'Stale version', format: 'lrc' }))
-      assert.equal(
-        document.querySelector('[aria-label="歌词预览"]').textContent.includes('Stale version'),
-        false
-      )
+      assert.equal(document.querySelector('form'), null)
+      assert.equal(document.querySelector('[aria-label="歌词候选"]'), null)
+      assert.equal(document.querySelector('[aria-label="歌词预览"]'), null)
+      assert.equal(button('网易云音乐').getAttribute('aria-pressed'), 'true')
+      await click(button('QQ 音乐'))
       if (songOffset === 0) {
         await click(button('保存'))
         assert.equal(saved[0].correction.offsetMs, 0)
@@ -173,25 +146,33 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
       assert.equal(document.querySelector('#lyric-offset').value, String(savedOffset))
       await click(button('保存'))
       assert.equal(saved[0].key, 'original:1')
-      assert.equal(saved[0].correction.candidate.id, 2)
+      assert.equal(saved[0].correction.candidate, null)
+      assert.equal(saved[0].correction.source, 'qq')
       assert.equal(saved[0].correction.offsetMs, savedOffset)
       assert.equal(closed, 1)
-      await click(button('本地歌词'))
-      await click(button('选择 TTML 文件'))
-      assert.equal(
-        document
-          .querySelector('[aria-label="歌词预览"]')
-          .textContent.includes('Local TTML version'),
-        true
-      )
+      await click(button('网易云音乐'))
       await click(button('保存'))
       assert.equal(saved[1].correction.candidate, null)
-      assert.equal(saved[1].correction.localTtml.path, 'C:/Lyrics/song.ttml')
+      assert.equal(saved[1].correction.localTtml, null)
+      assert.equal(saved[1].correction.source, 'netease')
       assert.equal(saved[1].correction.offsetMs, savedOffset)
+      await click(button('本地歌词'))
+      assert.equal(button('保存').disabled, true)
+      await click(button('选择 TTML 文件'))
+      assert.equal(button('保存').disabled, false)
+      assert.equal(document.querySelector('[aria-label="歌词预览"]'), null)
+      await click(button('保存'))
+      assert.equal(saved[2].correction.source, null)
+      assert.equal(saved[2].correction.localTtml.path, 'C:/Lyrics/song.ttml')
+      assert.equal(saved[2].correction.offsetMs, savedOffset)
       await click(button('恢复自动匹配'))
-      assert.equal(saved[2].correction.candidate, null)
-      assert.equal(saved[2].correction.localTtml, null)
-      assert.equal(saved[2].correction.offsetMs, null)
+      assert.equal(saved[3].correction.source, null)
+      assert.equal(saved[3].correction.candidate, null)
+      assert.equal(saved[3].correction.localTtml, null)
+      assert.equal(saved[3].correction.offsetMs, null)
+      assert.equal(document.querySelector('input[aria-label="歌词搜索词"]'), null)
+      assert.ok(!calls.includes('lyric_candidates'))
+      assert.ok(!calls.includes('preview_lyric_candidate'))
     } finally {
       await React.act(async () => root.unmount())
       dom.window.close()

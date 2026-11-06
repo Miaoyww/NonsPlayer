@@ -373,6 +373,12 @@
   flex-direction: column;
   overflow: hidden;
 }
+.lyric-correction-content-scroll {
+  scrollbar-width: none;
+}
+.lyric-correction-content-scroll::-webkit-scrollbar {
+  display: none;
+}
 .now-playing-panel-card .source-panel-action,
 .now-playing-panel-card .source-track-search button[type='submit'] {
   border-color: rgb(255 255 255 / 30%);
