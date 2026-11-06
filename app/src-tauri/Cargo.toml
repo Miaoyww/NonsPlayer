@@ -110,7 +110,7 @@ zune-core = "0.5"
 zune-jpegxl = { version = "0.5.2", default-features = false, features = ["std"] }
 
 [target.'cfg(windows)'.dependencies]
-tauri-plugin-thumbar = "0.1.1"
+tauri-plugin-thumbar = "0.2.0"
 webview2-com = "0.39.1"
 clipboard-win = { version = "5.4", features = ["monitor"] }
 windows = { version = "0.62", features = ["Foundation", "Media", "Media_Control", "Storage_Streams", "Win32_Foundation", "Win32_System_WinRT", "Win32_System_Com", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Pipes", "Win32_System_Threading"] }

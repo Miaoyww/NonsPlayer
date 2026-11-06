@@ -64,6 +64,7 @@ pub struct ThumbarControls {
     window: tauri::WebviewWindow,
     palette: Palette,
     last: Option<State>,
+    last_progress: Option<tauri_plugin_thumbar::Progress>,
     cover: Option<(String, String)>,
     cover_generation: Arc<AtomicU64>,
     cover_lock: Arc<Mutex<()>>,
@@ -110,6 +111,7 @@ impl ThumbarControls {
             window: window.clone(),
             palette,
             last: None,
+            last_progress: None,
             cover: None,
             cover_generation: Arc::new(AtomicU64::new(0)),
             cover_lock: Arc::new(Mutex::new(())),
@@ -119,6 +121,7 @@ impl ThumbarControls {
     pub fn update(&mut self, state: &PlayerSnapshot) -> AppResult<()> {
         use tauri_plugin_thumbar::ButtonUpdate;
         self.sync_cover(state);
+        self.sync_progress(state)?;
         let next = State {
             playing: state.status == PlaybackStatus::Playing,
             previous: state.previous().is_some(),
@@ -209,6 +212,21 @@ impl ThumbarControls {
         });
     }
 
+    fn sync_progress(&mut self, state: &PlayerSnapshot) -> AppResult<()> {
+        let progress = progress_for(state);
+        if self.last_progress == progress {
+            return Ok(());
+        }
+        use tauri_plugin_thumbar::ThumbarExt;
+        self.window
+            .app_handle()
+            .thumbar()
+            .set_progress(&self.window, progress)
+            .map_err(|error| format!("thumbar.set_progress: {error}"))?;
+        self.last_progress = progress;
+        Ok(())
+    }
+
     fn apply_cover(&self, generation: u64, cover: Option<tauri_plugin_thumbar::Cover>) {
         apply_cover(
             &self.window,
@@ -240,6 +258,23 @@ impl ThumbarControls {
             .update(&self.window, update)
             .map_err(|error| format!("thumbar.update: {error}"))
     }
+}
+
+#[cfg(windows)]
+fn progress_for(state: &PlayerSnapshot) -> Option<tauri_plugin_thumbar::Progress> {
+    use tauri_plugin_thumbar::Progress;
+    state.current()?;
+    if state.duration_ms == 0 {
+        return None;
+    }
+    let percent = (state.position_ms.saturating_mul(100) / state.duration_ms).min(100) as u8;
+    Some(match state.status {
+        PlaybackStatus::Playing => Progress::normal(percent),
+        PlaybackStatus::Paused => Progress::paused(percent),
+        PlaybackStatus::Loading | PlaybackStatus::Buffering => Progress::indeterminate(),
+        PlaybackStatus::Error => Progress::error(percent),
+        PlaybackStatus::Stopped => return None,
+    })
 }
 
 #[cfg(windows)]
@@ -282,5 +317,90 @@ impl ThumbarControls {
 
     pub fn set_theme(&mut self, _: tauri::Theme) -> AppResult<()> {
         Ok(())
+    }
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::*;
+    use crate::model::Track;
+
+    fn snapshot(status: PlaybackStatus, position_ms: u64, duration_ms: u64) -> PlayerSnapshot {
+        PlayerSnapshot {
+            status,
+            position_ms,
+            duration_ms,
+            index: Some(0),
+            queue: vec![
+                Track::from_music(nons_music_adapter_sdk::identity::MusicTrack {
+                    title: "歌曲".into(),
+                    aliases: vec![],
+                    artist: "歌手".into(),
+                    artists: vec![],
+                    album: "专辑".into(),
+                    album_reference: None,
+                    duration_ms,
+                    cover: String::new().into(),
+                    reference: nons_music_adapter_sdk::identity::EntityRef {
+                        source: "netease".to_string().try_into().unwrap(),
+                        kind: nons_music_adapter_sdk::identity::EntityKind::Track,
+                        id: "1".to_string().try_into().unwrap(),
+                    },
+                    associations: vec![],
+                    lyric_identifiers: vec![],
+                    unavailable_reason: None,
+                })
+                .unwrap(),
+            ]
+            .into(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn progress_is_hidden_without_a_track_or_duration() {
+        assert_eq!(progress_for(&PlayerSnapshot::default()), None);
+        assert_eq!(
+            progress_for(&snapshot(PlaybackStatus::Playing, 10_000, 0)),
+            None
+        );
+        assert_eq!(
+            progress_for(&snapshot(PlaybackStatus::Stopped, 10_000, 180_000)),
+            None
+        );
+    }
+
+    #[test]
+    fn progress_maps_status_and_percent() {
+        use tauri_plugin_thumbar::{Progress, ProgressState};
+
+        assert_eq!(
+            progress_for(&snapshot(PlaybackStatus::Playing, 45_000, 180_000)),
+            Some(Progress::normal(25))
+        );
+        assert_eq!(
+            progress_for(&snapshot(PlaybackStatus::Paused, 45_000, 180_000)),
+            Some(Progress::paused(25))
+        );
+        assert_eq!(
+            progress_for(&snapshot(PlaybackStatus::Buffering, 45_000, 180_000)),
+            Some(Progress::indeterminate())
+        );
+        assert_eq!(
+            progress_for(&snapshot(PlaybackStatus::Error, 45_000, 180_000)),
+            Some(Progress::error(25))
+        );
+        assert_eq!(
+            progress_for(&snapshot(PlaybackStatus::Playing, 180_000, 180_000))
+                .unwrap()
+                .state,
+            ProgressState::Normal
+        );
+        assert_eq!(
+            progress_for(&snapshot(PlaybackStatus::Playing, 200_000, 180_000))
+                .unwrap()
+                .percent,
+            Some(100)
+        );
     }
 }
