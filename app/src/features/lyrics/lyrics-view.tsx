@@ -177,6 +177,16 @@ export default function LyricsView({
   const [showMvLyrics, setShowMvLyrics] = useState(true)
   const [panelPage, setPanelPage] = useState('lyrics')
   const [panelHidden, setPanelHidden] = usePanelHidden()
+  useEffect(() => {
+    if (!open || panelPage === 'lyrics') return
+    const exit = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      event.preventDefault()
+      setPanelPage('lyrics')
+    }
+    document.addEventListener('keydown', exit)
+    return () => document.removeEventListener('keydown', exit)
+  }, [open, panelPage])
   const pluginPanelPages = usePluginViews(FULLSCREEN_PLAYER_PANEL_SLOT)
   const activePluginPanel = pluginPanelPages.find(
     (page) => `plugin:${page.pluginId}:${page.viewId}` === panelPage

@@ -32,6 +32,7 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
   let open = true
   let panelHidden = false
   let exits = 0
+  const document = new EventTarget()
   let player = { queue: [track], index: 0, status: 'playing', revision: 0 }
   const states = []
   const effects = []
@@ -73,18 +74,24 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
     },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@/components/ui/panel': { Panel: 'Panel' },
+    '@/components/music/action-button': { ActionButton: 'button' },
+    '@/features/playback/now-playing/now-playing-tags': { NowPlayingTags: 'NowPlayingTags' },
+    '@/features/playback/bar/fullscreen-playback-bar': {
+      FullscreenPlaybackBar: 'FullscreenPlaybackBar'
+    },
     '@/components/ui/spinner': { Spinner: 'Spinner' },
     './lyric-offset-control': { LyricOffsetControl: 'LyricOffsetControl' },
     '@/features/mv/local-mv-stage': { LocalMvStage: 'LocalMvStage' },
     '@/features/mv/local-mv': { localMvSource: (mv) => mv.path },
     '@/features/mv/mv-alignment-popover': { MvAlignmentPopover: 'MvAlignmentPopover' },
     '@/features/mv/use-local-mv': {
+      mvButtonTarget: () => 'mv',
       useLocalMv: () => ({
         mode: 'lyrics',
         selection: undefined,
         linked: false,
         busy: false,
-        toggle: async () => {},
+        toggle: async () => 'select',
         refreshBinding: async () => {},
         unlink: async () => false
       })
@@ -173,6 +180,7 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
   )
   runInNewContext(outputText, {
     exports,
+    document,
     require: (name) => {
       if (name === './lyric-renderer') rendererLoads++
       return name === '@/components/error-notice' ? errorNoticeModule : (modules[name] ?? {})
@@ -213,6 +221,7 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
     events,
     render,
     exits: () => exits,
+    keydown: (event) => document.dispatchEvent(event),
     invalidate: () => {
       cache.revision++
     },
@@ -257,6 +266,48 @@ function find(node, predicate) {
     if (found) return found
   }
 }
+
+test('Escape returns non-lyric panels to lyrics before allowing the player to close', async () => {
+  const app = await harness(streamed)
+  const panel = (tree) => find(tree, (node) => node.type === 'Panel').props
+  const press = (key = 'Escape', prevented = false) => {
+    const event = Object.assign(new Event('keydown', { cancelable: true }), { key })
+    if (prevented) event.preventDefault()
+    app.keydown(event)
+    return event
+  }
+  for (const [type, action, page] of [
+    ['NowPlayingTags', 'onInformation', 'information'],
+    ['NowPlayingTags', 'onSource', 'source'],
+    ['NowPlayingTags', 'onLyrics', 'lyric-source'],
+    ['FullscreenPlaybackBar', 'onQueuePanel', 'queue'],
+    ['button', 'onClick', 'mv']
+  ]) {
+    const control = find(
+      app.render(),
+      (node) =>
+        node.type === type && (type !== 'button' || node.props['aria-label'] === '打开本地 MV')
+    )
+    assert.ok(control, `missing control for ${page}`)
+    await control.props[action]()
+    await new Promise(setImmediate)
+    const opened = await app.transition(true)
+    assert.equal(panel(opened).value, page)
+    press('Enter')
+    press('Escape', true)
+    assert.equal(panel(app.render()).value, page, 'other controls retain ownership of their keys')
+    assert.equal(press().defaultPrevented, true)
+    assert.equal(panel(app.render()).value, 'lyrics')
+    await app.transition(true)
+  }
+  assert.equal(
+    press().defaultPrevented,
+    false,
+    'the lyrics page lets the workspace close the player'
+  )
+  await app.transition(false)
+  assert.equal(press().defaultPrevented, false, 'a closed player must not handle Escape')
+})
 
 test('panel toggle hides and restores the right panel while keeping lyrics mounted', async () => {
   const app = await harness(streamed)

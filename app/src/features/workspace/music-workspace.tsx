@@ -165,9 +165,9 @@ export function MusicWorkspace({
     const exit = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) onNowPlayingChange(false)
     }
-    document.addEventListener('keydown', exit)
+    window.addEventListener('keydown', exit)
     return () => {
-      document.removeEventListener('keydown', exit)
+      window.removeEventListener('keydown', exit)
     }
   }, [nowPlaying, onNowPlayingChange])
 
