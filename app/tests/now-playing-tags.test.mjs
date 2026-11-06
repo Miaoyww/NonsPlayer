@@ -5,17 +5,16 @@ import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
 function harness() {
-  let sourcesOpen = false
+  let sourceCalls = 0
+  let lyricCalls = 0
   const jsx = (type, props) => ({ type, props })
   const modules = {
-    react: { useState: () => [sourcesOpen, (value) => (sourcesOpen = value)] },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     '@/components/music/song-actions': { useSongActions: () => ({ details() {} }) },
     '@/features/music/source-label': {
       trackSource: (track) =>
         track.source.kind === 'online' ? track.source.track.reference.source : track.source.kind
-    },
-    './song-source-dialog': { SongSourceDialog: 'SongSourceDialog' }
+    }
   }
   const exports = {}
   const { outputText } = ts.transpileModule(
@@ -39,7 +38,8 @@ function harness() {
           track,
           quality: 'lossless',
           lyricFormat: 'lrc',
-          onLyrics() {}
+          onSource: () => sourceCalls++,
+          onLyrics: () => lyricCalls++
         })
       )
       return {
@@ -48,7 +48,12 @@ function harness() {
             (node.type === 'button' || node.type === 'span') &&
             String(node.props?.['aria-label'] ?? node.props?.title ?? '').includes('歌曲来源')
         ),
-        dialog: nodes.find((node) => node.type === 'SongSourceDialog')
+        lyricTag: nodes.find(
+          (node) =>
+            node.type === 'button' && String(node.props?.['aria-label'] ?? '').includes('歌词来源')
+        ),
+        sourceCalls: () => sourceCalls,
+        lyricCalls: () => lyricCalls
       }
     }
   }
@@ -66,21 +71,24 @@ const local = {
   source: { kind: 'local', path: 'C:/Music/song.flac', neteaseId: 12 }
 }
 
-test('online source tag opens source switching while local source stays static', () => {
+test('online source tag requests source switching while local source stays static', () => {
   const app = harness()
   const online = app.render(stream)
   assert.equal(online.sourceTag.type, 'button')
   assert.equal(online.sourceTag.props['aria-label'], '选择歌曲来源，当前平台 NETEASE')
-  assert.equal(online.dialog, undefined)
   online.sourceTag.props.onClick()
-  const opened = app.render(stream)
-  assert.equal(opened.dialog.props.track.key, stream.key)
-  opened.dialog.props.onClose()
-  assert.equal(app.render(stream).dialog, undefined)
+  assert.equal(online.sourceCalls(), 1)
 
   const localApp = harness()
   const localSource = localApp.render(local)
   assert.equal(localSource.sourceTag.type, 'span')
   assert.equal(localSource.sourceTag.props.title, '歌曲来源：LOCAL')
-  assert.equal(localSource.dialog, undefined)
+})
+
+test('lyric format tag requests lyric source switching', () => {
+  const app = harness()
+  const rendered = app.render(stream)
+  assert.equal(rendered.lyricTag.props['aria-label'], '选择歌词来源，当前格式 LRC')
+  rendered.lyricTag.props.onClick()
+  assert.equal(rendered.lyricCalls(), 1)
 })

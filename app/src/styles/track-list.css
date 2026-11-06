@@ -127,6 +127,23 @@
 .track-row[data-current='true'] td:first-child {
   box-shadow: inset 3px 0 var(--current-track-marker);
 }
+.now-playing-panel-card .track-row:hover td,
+.now-playing-panel-card .track-row:focus-within td {
+  background: rgb(255 255 255 / 8%);
+}
+.now-playing-panel-card .track-row[data-selected='true'] td {
+  background: rgb(255 255 255 / 14%);
+}
+.now-playing-panel-card .track-row:hover .track-title,
+.now-playing-panel-card .track-row:focus-within .track-title,
+.now-playing-panel-card .track-row[data-selected='true'] .track-title {
+  color: oklch(0.76 0.13 264);
+}
+.now-playing-panel-card .track-row[data-current='true'] td,
+.now-playing-panel-card .track-row[data-current='true']:hover td,
+.now-playing-panel-card .track-row[data-current='true']:focus-within td {
+  background: var(--current-track-background);
+}
 
 .song-context-menu {
   min-width: 190px;

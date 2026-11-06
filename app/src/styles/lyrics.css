@@ -162,6 +162,8 @@
   transform: translateX(24px);
 }
 .now-playing-lyrics[data-panel-page='information'],
+.now-playing-lyrics[data-panel-page='source'],
+.now-playing-lyrics[data-panel-page='lyric-source'],
 .now-playing-lyrics[data-panel-page='queue'],
 .now-playing-lyrics[data-panel-page='mv'],
 .now-playing-lyrics[data-plugin-panel='true'] {
@@ -355,6 +357,40 @@
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 20px;
   background: rgb(255 255 255 / 6%);
+}
+.now-playing-panel-card-section {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.now-playing-information-card.now-playing-panel-card {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+.now-playing-panel-card .source-panel-action,
+.now-playing-panel-card .source-track-search button[type='submit'] {
+  border-color: rgb(255 255 255 / 30%);
+  background: transparent;
+  color: rgb(255 255 255 / 76%);
+}
+.now-playing-panel-card .source-panel-action:is(:hover, :focus-visible),
+.now-playing-panel-card .source-track-search button[type='submit']:is(:hover, :focus-visible) {
+  border-color: rgb(255 255 255 / 60%);
+  background: rgb(255 255 255 / 8%);
+  color: rgb(255 255 255 / 92%);
+}
+.now-playing-panel-card .source-panel-action[data-current] {
+  background: rgb(255 255 255 / 12%);
+  color: rgb(255 255 255 / 92%);
+}
+.now-playing-panel-card .source-track-results {
+  scrollbar-width: none;
+}
+.now-playing-panel-card .source-track-results::-webkit-scrollbar {
+  display: none;
 }
 .now-playing-information .song-information-summary {
   align-items: flex-start;

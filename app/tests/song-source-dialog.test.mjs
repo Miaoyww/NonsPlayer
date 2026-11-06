@@ -71,6 +71,7 @@ test('song source selection keeps queue identity, sends explicit alternate keys,
     '@/components/music/action-button': {
       ActionButton: ({ variant, ...props }) => React.createElement('button', props)
     },
+    '@/lib/utils': { cn: (...values) => values.filter(Boolean).join(' ') },
     '@/features/music/use-music-sources': { useMusicSources: () => ({ statuses }) },
     '@/features/music/resource-providers': {
       useResourceProviders: () => ({
@@ -128,7 +129,7 @@ test('song source selection keeps queue identity, sends explicit alternate keys,
       root.render(React.createElement(exports.SongSourceDialog, { track, onClose: () => closes++ }))
     )
     assert.match(document.body.textContent, /仅对当前队列条目有效/)
-    assert.match(document.body.textContent, /播放音源：Huibq/)
+    assert.doesNotMatch(document.body.textContent, /播放音源/)
     await click('Huibq')
     assert.equal(requests[0].command, 'player_select_source')
     assert.deepEqual(JSON.parse(JSON.stringify(requests[0].args)), {

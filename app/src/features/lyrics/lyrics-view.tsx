@@ -26,7 +26,8 @@ import { FullscreenPlaybackBar } from '@/features/playback/bar/fullscreen-playba
 import { NowPlayingMenu } from '@/features/playback/now-playing/now-playing-menu'
 import { QueuePanel } from '@/features/queue/queue-panel'
 import { NowPlayingTags } from '@/features/playback/now-playing/now-playing-tags'
-import { LyricCorrectionDialog } from '@/features/lyrics/correction-dialog'
+import { NowPlayingSource } from '@/features/playback/now-playing/now-playing-source'
+import { NowPlayingLyricSource } from '@/features/lyrics/now-playing-lyric-source'
 import {
   getLyricSources,
   useLyricSources,
@@ -163,7 +164,6 @@ export default function LyricsView({
   const [showTranslation, setShowTranslation] = useState(true)
   const [showPronunciation, setShowPronunciation] = useState(true)
   const [showMvLyrics, setShowMvLyrics] = useState(true)
-  const [lyricsSourceOpen, setLyricsSourceOpen] = useState(false)
   const [panelPage, setPanelPage] = useState('lyrics')
   const [panelHidden, setPanelHidden] = usePanelHidden()
   const pluginPanelPages = usePluginViews(FULLSCREEN_PLAYER_PANEL_SLOT)
@@ -439,6 +439,10 @@ export default function LyricsView({
       </div>
     )
   const showLyrics = !!track
+  const togglePanelPage = (page: string) => {
+    setPanelHidden(false)
+    setPanelPage((value) => (value === page ? 'lyrics' : page))
+  }
   const mvPage = panelPage === 'mv'
   const mvMode = mvActive || mvPage
   const activateMv = async () => {
@@ -559,12 +563,12 @@ export default function LyricsView({
                     track={track}
                     quality={state.actualQuality}
                     lyricFormat={currentDisplay?.format}
-                    onLyrics={() => setLyricsSourceOpen(true)}
+                    onSource={() => togglePanelPage('source')}
+                    sourceActive={panelPage === 'source'}
+                    onLyrics={() => togglePanelPage('lyric-source')}
+                    lyricsActive={panelPage === 'lyric-source'}
                     informationActive={panelPage === 'information'}
-                    onInformation={() => {
-                      setPanelHidden(false)
-                      setPanelPage((value) => (value === 'information' ? 'lyrics' : 'information'))
-                    }}
+                    onInformation={() => togglePanelPage('information')}
                   />
                   <div className="now-playing-meta">
                     <div className="now-playing-meta-row text-white/75">
@@ -601,15 +605,31 @@ export default function LyricsView({
                 >
                   <Panel
                     className="h-full"
-                    value={panelPage}
+                    value={panelHidden ? 'lyrics' : panelPage}
                     pages={[
                       {
                         value: 'lyrics',
-                        content: renderLyrics(panelPage === 'lyrics')
+                        content: renderLyrics(panelPage === 'lyrics' && !panelHidden),
+                        keepMounted: true
                       },
                       {
                         value: 'information',
                         content: <NowPlayingInformation track={track} />
+                      },
+                      {
+                        value: 'source',
+                        content: (
+                          <NowPlayingSource track={track} onClose={() => setPanelPage('lyrics')} />
+                        )
+                      },
+                      {
+                        value: 'lyric-source',
+                        content: (
+                          <NowPlayingLyricSource
+                            track={track}
+                            onClose={() => setPanelPage('lyrics')}
+                          />
+                        )
                       },
                       {
                         value: 'queue',
@@ -661,13 +681,6 @@ export default function LyricsView({
                     ]}
                   />
                 </div>
-              )}
-              {lyricsSourceOpen && track && (
-                <LyricCorrectionDialog
-                  key={track.key}
-                  track={track}
-                  onClose={() => setLyricsSourceOpen(false)}
-                />
               )}
             </div>
           </div>

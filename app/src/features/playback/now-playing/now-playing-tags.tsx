@@ -1,8 +1,6 @@
 import { useSongActions } from '@/components/music/song-actions'
 import { trackSource } from '@/features/music/source-label'
 import type { Track } from '@/lib/player'
-import { useState } from 'react'
-import { SongSourceDialog } from './song-source-dialog'
 
 const SOURCE_BADGES: Record<string, string> = {
   netease: 'NETEASE',
@@ -30,65 +28,71 @@ export function NowPlayingTags({
   track,
   quality,
   lyricFormat,
+  onSource,
+  sourceActive = false,
   onLyrics,
+  lyricsActive = false,
   onInformation,
   informationActive = false
 }: {
   track?: Track
   quality?: string | null
   lyricFormat?: string
+  onSource?: () => void
+  sourceActive?: boolean
   onLyrics: () => void
+  lyricsActive?: boolean
   onInformation?: () => void
   informationActive?: boolean
 }) {
   const actions = useSongActions()
-  const [sourcesOpen, setSourcesOpen] = useState(false)
   if (!track) return null
   const source = trackSource(track)
   const sourceBadge = SOURCE_BADGES[source] ?? source.toUpperCase()
   const lyricBadge = lyricFormat?.trim().toUpperCase() || 'NO-LRC'
   return (
-    <>
-      <div className="now-playing-tags" aria-label="歌曲来源、音质与歌词格式">
-        {track.source.kind === 'online' ? (
-          <button
-            type="button"
-            className="now-playing-tag"
-            title={`选择歌曲来源：${sourceBadge}`}
-            aria-label={`选择歌曲来源，当前平台 ${sourceBadge}`}
-            onClick={() => setSourcesOpen(true)}
-          >
-            {sourceBadge}
-          </button>
-        ) : (
-          <span className="now-playing-tag" title={`歌曲来源：${sourceBadge}`}>
-            {sourceBadge}
-          </span>
-        )}
+    <div className="now-playing-tags" aria-label="歌曲来源、音质与歌词格式">
+      {track.source.kind === 'online' ? (
         <button
           type="button"
           className="now-playing-tag"
-          title={informationActive ? '返回歌词' : '查看歌曲详情'}
-          aria-label={
-            informationActive ? '返回歌词' : `查看歌曲详情，当前音质 ${qualityBadgeLabel(quality)}`
-          }
-          onClick={() => (onInformation ? onInformation() : actions.details(track))}
+          data-active={sourceActive || undefined}
+          title={sourceActive ? '返回歌词' : `选择歌曲来源：${sourceBadge}`}
+          aria-label={sourceActive ? '返回歌词' : `选择歌曲来源，当前平台 ${sourceBadge}`}
+          aria-pressed={sourceActive}
+          onClick={onSource}
         >
-          {qualityBadgeLabel(quality)}
+          {sourceBadge}
         </button>
-        <button
-          type="button"
-          className="now-playing-tag"
-          title="选择歌词来源"
-          aria-label={`选择歌词来源，当前格式 ${lyricBadge}`}
-          onClick={onLyrics}
-        >
-          {lyricBadge}
-        </button>
-      </div>
-      {sourcesOpen && (
-        <SongSourceDialog key={track.key} track={track} onClose={() => setSourcesOpen(false)} />
+      ) : (
+        <span className="now-playing-tag" title={`歌曲来源：${sourceBadge}`}>
+          {sourceBadge}
+        </span>
       )}
-    </>
+      <button
+        type="button"
+        className="now-playing-tag"
+        data-active={informationActive || undefined}
+        title={informationActive ? '返回歌词' : '查看歌曲详情'}
+        aria-label={
+          informationActive ? '返回歌词' : `查看歌曲详情，当前音质 ${qualityBadgeLabel(quality)}`
+        }
+        aria-pressed={informationActive}
+        onClick={() => (onInformation ? onInformation() : actions.details(track))}
+      >
+        {qualityBadgeLabel(quality)}
+      </button>
+      <button
+        type="button"
+        className="now-playing-tag"
+        data-active={lyricsActive || undefined}
+        title={lyricsActive ? '返回歌词' : '选择歌词来源'}
+        aria-label={lyricsActive ? '返回歌词' : `选择歌词来源，当前格式 ${lyricBadge}`}
+        aria-pressed={lyricsActive}
+        onClick={onLyrics}
+      >
+        {lyricBadge}
+      </button>
+    </div>
   )
 }

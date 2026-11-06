@@ -5,6 +5,7 @@ export interface PanelPage {
   value: string
   content: ReactNode
   className?: string
+  keepMounted?: boolean
 }
 
 export function Panel({
@@ -20,6 +21,7 @@ export function Panel({
     <div className={cn('panel', className)}>
       {pages.map((page) => {
         const active = page.value === value
+        const mounted = active || page.keepMounted
         return (
           <div
             key={page.value}
@@ -28,7 +30,7 @@ export function Panel({
             aria-hidden={!active}
             inert={!active}
           >
-            {page.content}
+            {mounted ? page.content : null}
           </div>
         )
       })}

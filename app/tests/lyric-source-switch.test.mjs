@@ -244,8 +244,10 @@ function find(node, predicate) {
   }
 }
 
-test('panel toggle hides and restores the right panel without unmounting song details', async () => {
-  const app = await harness(local)
+test('panel toggle hides and restores the right panel while keeping lyrics mounted', async () => {
+  const app = await harness(streamed)
+  app.pending[0](streamLyrics)
+  await Promise.resolve()
   const layout = (tree) =>
     find(tree, (node) => node.props?.className?.includes('now-playing-layout'))
   const panel = (tree) =>
@@ -257,6 +259,12 @@ test('panel toggle hides and restores the right panel without unmounting song de
   assert.equal(panel(hidden).props['aria-hidden'], true)
   assert.equal(panel(hidden).props.inert, true)
   assert.ok(find(hidden, (node) => node.props?.className?.includes('now-playing-details')))
+  const panelPages = find(hidden, (node) => node.type === 'Panel').props.pages
+  assert.equal(find(hidden, (node) => node.type === 'Panel').props.value, 'lyrics')
+  const lyricPage = panelPages.find((page) => page.value === 'lyrics')
+  assert.equal(lyricPage.keepMounted, true)
+  assert.equal(lyricPage.content.props.active, false)
+  assert.equal(panelPages.find((page) => page.value === 'information').keepMounted, undefined)
 
   app.setPanelHidden(false)
   const shown = app.render()

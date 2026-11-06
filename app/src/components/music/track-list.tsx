@@ -114,6 +114,7 @@ interface Props {
   getRowKey?: (track: Track) => string
   isCurrentTrack?: (track: Track) => boolean
   fitContainer?: boolean
+  showHeader?: boolean
 }
 
 export const TrackList = memo(function TrackList({
@@ -141,7 +142,8 @@ export const TrackList = memo(function TrackList({
   renderSource,
   getRowKey,
   isCurrentTrack,
-  fitContainer = false
+  fitContainer = false,
+  showHeader = true
 }: Props) {
   const mobile = isAndroid()
   const showDuration = !mobile && durationColumn
@@ -403,135 +405,141 @@ export const TrackList = memo(function TrackList({
             ))}
           </colgroup>
           <caption className="sr-only">歌曲列表</caption>
-          <thead className="bg-background text-xs text-muted-foreground">
-            <tr className="border-b border-border">
-              {(!mobile || selection) && (
-                <th className="py-3 text-center" scope="col">
-                  {selection ? (
-                    <input
-                      type="checkbox"
-                      aria-label="选择全部已加载歌曲"
-                      title="选择全部已加载歌曲"
-                      disabled={busy || !visibleTracks.length}
-                      checked={
-                        !!visibleTracks.length &&
-                        visibleTracks.every((track) => selection.keys.has(track.key))
-                      }
-                      ref={(element) => {
-                        if (element)
-                          element.indeterminate =
-                            visibleTracks.some((track) => selection.keys.has(track.key)) &&
-                            !visibleTracks.every((track) => selection.keys.has(track.key))
-                      }}
-                      onChange={(event) =>
-                        selection.onToggleAll(
-                          visibleTracks.map((track) => track.key),
-                          event.target.checked
-                        )
-                      }
-                    />
-                  ) : sortable ? (
-                    <button
-                      type="button"
-                      className="track-sequence-header"
-                      aria-label="按序排列"
-                      title="按序排列"
-                      aria-pressed={sort === 'default'}
-                      onClick={() => {
-                        setSort('default')
-                        setDescending(false)
-                      }}
-                    >
-                      #
-                    </button>
-                  ) : (
-                    '#'
-                  )}
-                  {!mobile && columnSizing.handle('index')}
-                </th>
-              )}
-              <th className="py-3" scope="col" aria-sort={ariaSort(sortable && titleActive)}>
-                {sortable ? (
-                  <SortHeader
-                    label="标题"
-                    active={titleActive}
-                    descending={descending}
-                    detail={
-                      titleActive
-                        ? `${sort === 'artist' ? '歌手' : '标题'}${descending ? '降序' : '升序'}`
-                        : sort === 'default'
-                          ? '按序排列'
-                          : '未排序'
-                    }
-                    next={nextLabel('title')}
-                    onClick={() => cycleSort('title')}
-                  />
-                ) : (
-                  '标题'
+          {showHeader && (
+            <thead className="bg-background text-xs text-muted-foreground">
+              <tr className="border-b border-border">
+                {(!mobile || selection) && (
+                  <th className="py-3 text-center" scope="col">
+                    {selection ? (
+                      <input
+                        type="checkbox"
+                        aria-label="选择全部已加载歌曲"
+                        title="选择全部已加载歌曲"
+                        disabled={busy || !visibleTracks.length}
+                        checked={
+                          !!visibleTracks.length &&
+                          visibleTracks.every((track) => selection.keys.has(track.key))
+                        }
+                        ref={(element) => {
+                          if (element)
+                            element.indeterminate =
+                              visibleTracks.some((track) => selection.keys.has(track.key)) &&
+                              !visibleTracks.every((track) => selection.keys.has(track.key))
+                        }}
+                        onChange={(event) =>
+                          selection.onToggleAll(
+                            visibleTracks.map((track) => track.key),
+                            event.target.checked
+                          )
+                        }
+                      />
+                    ) : sortable ? (
+                      <button
+                        type="button"
+                        className="track-sequence-header"
+                        aria-label="按序排列"
+                        title="按序排列"
+                        aria-pressed={sort === 'default'}
+                        onClick={() => {
+                          setSort('default')
+                          setDescending(false)
+                        }}
+                      >
+                        #
+                      </button>
+                    ) : (
+                      '#'
+                    )}
+                    {!mobile && columnSizing.handle('index')}
+                  </th>
                 )}
-                {!mobile && columnSizing.handle('title')}
-              </th>
-              {!mobile && (
-                <th className="py-3" scope="col" aria-sort={ariaSort(sortable && sort === 'album')}>
+                <th className="py-3" scope="col" aria-sort={ariaSort(sortable && titleActive)}>
                   {sortable ? (
                     <SortHeader
-                      label="专辑"
-                      active={sort === 'album'}
+                      label="标题"
+                      active={titleActive}
                       descending={descending}
-                      detail={sort === 'album' ? (descending ? '降序' : '升序') : '默认'}
-                      next={nextLabel('album')}
-                      onClick={() => cycleSort('album')}
+                      detail={
+                        titleActive
+                          ? `${sort === 'artist' ? '歌手' : '标题'}${descending ? '降序' : '升序'}`
+                          : sort === 'default'
+                            ? '按序排列'
+                            : '未排序'
+                      }
+                      next={nextLabel('title')}
+                      onClick={() => cycleSort('title')}
                     />
                   ) : (
-                    '专辑'
+                    '标题'
                   )}
-                  {!mobile && columnSizing.handle('album')}
+                  {!mobile && columnSizing.handle('title')}
                 </th>
-              )}
-              <th className="py-3" scope="col">
-                来源{!mobile && columnSizing.handle('source')}
-              </th>
-              {showLikes && (
-                <th scope="col">
-                  <span className="sr-only">喜欢</span>
-                  {!mobile && columnSizing.handle('likes')}
+                {!mobile && (
+                  <th
+                    className="py-3"
+                    scope="col"
+                    aria-sort={ariaSort(sortable && sort === 'album')}
+                  >
+                    {sortable ? (
+                      <SortHeader
+                        label="专辑"
+                        active={sort === 'album'}
+                        descending={descending}
+                        detail={sort === 'album' ? (descending ? '降序' : '升序') : '默认'}
+                        next={nextLabel('album')}
+                        onClick={() => cycleSort('album')}
+                      />
+                    ) : (
+                      '专辑'
+                    )}
+                    {!mobile && columnSizing.handle('album')}
+                  </th>
+                )}
+                <th className="py-3" scope="col">
+                  来源{!mobile && columnSizing.handle('source')}
                 </th>
-              )}
-              {showDuration && (
-                <th
-                  className="py-3"
-                  scope="col"
-                  aria-sort={ariaSort(sortable && sort === 'duration')}
-                >
-                  {sortable ? (
-                    <SortHeader
-                      compact
-                      label="时长"
-                      active={sort === 'duration'}
-                      descending={descending}
-                      detail={sort === 'duration' ? (descending ? '降序' : '升序') : '默认'}
-                      next={nextLabel('duration')}
-                      onClick={() => cycleSort('duration')}
-                    />
-                  ) : (
-                    '时长'
-                  )}
-                  {!mobile && columnSizing.handle('duration')}
-                </th>
-              )}
-              {extraColumns.map((column, index) => (
-                <th key={column.label} className="py-3" scope="col">
-                  {column.label}
-                  {!mobile && columnSizing.handle(`extra-${index}`)}
-                </th>
-              ))}
-              {onAppend && (
-                <th scope="col">
-                  <span className="sr-only">加入队列</span>
-                </th>
-              )}
-            </tr>
-          </thead>
+                {showLikes && (
+                  <th scope="col">
+                    <span className="sr-only">喜欢</span>
+                    {!mobile && columnSizing.handle('likes')}
+                  </th>
+                )}
+                {showDuration && (
+                  <th
+                    className="py-3"
+                    scope="col"
+                    aria-sort={ariaSort(sortable && sort === 'duration')}
+                  >
+                    {sortable ? (
+                      <SortHeader
+                        compact
+                        label="时长"
+                        active={sort === 'duration'}
+                        descending={descending}
+                        detail={sort === 'duration' ? (descending ? '降序' : '升序') : '默认'}
+                        next={nextLabel('duration')}
+                        onClick={() => cycleSort('duration')}
+                      />
+                    ) : (
+                      '时长'
+                    )}
+                    {!mobile && columnSizing.handle('duration')}
+                  </th>
+                )}
+                {extraColumns.map((column, index) => (
+                  <th key={column.label} className="py-3" scope="col">
+                    {column.label}
+                    {!mobile && columnSizing.handle(`extra-${index}`)}
+                  </th>
+                ))}
+                {onAppend && (
+                  <th scope="col">
+                    <span className="sr-only">加入队列</span>
+                  </th>
+                )}
+              </tr>
+            </thead>
+          )}
           <tbody ref={body}>
             {loading &&
               Array.from({ length: skeletonCount }, (_, index) => (

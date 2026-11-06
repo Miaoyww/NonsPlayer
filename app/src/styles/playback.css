@@ -138,6 +138,11 @@ button.now-playing-tag:is(:hover, :focus-visible) {
   border-color: rgb(255 255 255 / 60%);
   color: rgb(255 255 255 / 90%);
 }
+button.now-playing-tag[data-active] {
+  border-color: rgb(255 255 255 / 60%);
+  background: rgb(255 255 255 / 12%);
+  color: rgb(255 255 255 / 90%);
+}
 button.now-playing-tag:focus-visible {
   outline: 2px solid rgb(255 255 255 / 75%);
   outline-offset: 2px;

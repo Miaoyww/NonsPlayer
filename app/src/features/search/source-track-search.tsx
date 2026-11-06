@@ -8,18 +8,21 @@ import { InfiniteLoad } from '@/components/music/infinite-load'
 import { ActionButton } from '@/components/music/action-button'
 import { Input } from '@/components/ui/input'
 import { errorText, type Track } from '@/lib/player'
+import { cn } from '@/lib/utils'
 import { Search } from 'lucide-react'
 
 export function SourceTrackSearch({
   initialKeyword,
   sources,
   busy,
-  onSelect
+  onSelect,
+  className
 }: {
   initialKeyword: string
   sources: SearchSource[]
   busy: boolean
   onSelect: (track: Track, provider?: string) => void
+  className?: string
 }) {
   const [input, setInput] = useState(initialKeyword)
   const [keyword, setKeyword] = useState(initialKeyword)
@@ -60,7 +63,10 @@ export function SourceTrackSearch({
     [state.items]
   )
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="搜索其它平台歌曲">
+    <section
+      className={cn('flex min-h-0 min-w-0 flex-1 flex-col', className)}
+      aria-label="搜索其它平台歌曲"
+    >
       <form
         className="mb-3 flex shrink-0 gap-2"
         onSubmit={(event) => {
@@ -80,9 +86,10 @@ export function SourceTrackSearch({
           搜索
         </ActionButton>
       </form>
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
+      <div className="source-track-results min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
         <TrackList
           doubleClickMode="primary"
+          showHeader={false}
           fitContainer
           tracks={tracks}
           busy={busy}

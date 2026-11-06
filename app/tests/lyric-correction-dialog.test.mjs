@@ -78,6 +78,7 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
           React.createElement('button', props, children)
       },
       '@/components/ui/input': { Input: (props) => React.createElement('input', props) },
+      '@/lib/utils': { cn: (...values) => values.filter(Boolean).join(' ') },
       '@/components/error-notice': {
         ErrorNotice: ({ error }) =>
           error ? React.createElement('p', { role: 'alert' }, error) : null
@@ -135,7 +136,7 @@ for (const { name, globalOffset, songOffset, displayedOffset, savedOffset } of [
     try {
       await React.act(async () =>
         root.render(
-          React.createElement(exports.LyricCorrectionDialog, {
+          React.createElement(exports.LyricCorrectionContent, {
             track: { key: 'original:1', title: 'Song', artist: 'Artist', durationMs: 10000 },
             onClose: () => {
               closed++
