@@ -15,7 +15,6 @@ import { errorText, nativeCall, type Track } from '@/lib/player'
 import { open } from '@tauri-apps/plugin-dialog'
 import {
   CalendarDays,
-  Camera,
   Check,
   Disc3,
   Hash,
@@ -260,9 +259,11 @@ export function LocalTagEditorDialog({
                 ) : (
                   <Cover cover={track.cover} className="local-tag-cover-image" loading="eager" />
                 )}
-                <span className="local-tag-cover-badge" aria-hidden="true">
-                  {coverPreview ? <Check /> : <Camera />}
-                </span>
+                {coverPreview && (
+                  <span className="local-tag-cover-badge" aria-hidden="true">
+                    <Check />
+                  </span>
+                )}
               </button>
               <div className="local-tag-cover-actions">
                 <Button
