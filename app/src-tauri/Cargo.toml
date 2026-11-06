@@ -39,7 +39,7 @@ tauri-plugin-clipboard-manager = "2"
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 nons-music-adapter-sdk = { path = "../../packages/music-adapter-sdk", package = "nons-music-adapter-sdk" }
-nons-adapter-netease = { git = "https://github.com/Miaoyww/nsa-netease.git", rev = "b40c00072e11acef266109edbda9b929bc4517bc", package = "nons-adapter-netease" }
+nons-adapter-netease = { git = "https://github.com/Miaoyww/nsa-netease.git", branch = "main", package = "nons-adapter-netease" }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream", "system-proxy"] }
 hyper-util = { version = "0.1.21", default-features = false, features = ["client-proxy", "client-proxy-system"] }
 http = "1"
