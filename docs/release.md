@@ -15,7 +15,7 @@
 
 `node scripts/release-version.mjs <版本号>` 自动完成发布准备与推送：
 
-- 校验工作区干净、版本号高于当前版本、标签在本地和远程都不存在。
+- 校验工作区干净、版本号不低于当前版本、标签在本地和远程都不存在。
 - 生成 `docs/release-assets/header.svg` 与 `header.png`，并同步 `editor.html` 中的版本号、副标题、平台与发布类型；副标题与发布类型默认沿用当前头图，平台默认使用 `Windows x64、Linux x64、Android ARM64`，也可交互覆盖。
 - 同步 `app/package.json`、`app/src-tauri/tauri.conf.json`、`Cargo.toml` 与 `Cargo.lock` 的版本。
 - 在 CHANGELOG 的 `## [Unreleased]` 下插入 `## [版本] - 日期`、头图链接和版本概述；该版本正文沿用 Unreleased 已有内容，发布前仍需在 Unreleased 中写好本次用户可见变化、安装提示与已知限制。

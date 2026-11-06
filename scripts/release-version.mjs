@@ -475,8 +475,8 @@ async function main() {
     const tag = displayVersion
 
     const currentVersion = (await readJsonFile(PATHS.packageJson)).version
-    if (compareVersions(version, currentVersion) <= 0)
-      throw new ReleaseError(`新版本 ${version} 必须高于当前版本 ${currentVersion}`)
+    if (compareVersions(version, currentVersion) < 0)
+      throw new ReleaseError(`新版本 ${version} 不能低于当前版本 ${currentVersion}`)
 
     const branch = verifyPreconditions(tag, options.dryRun)
 
