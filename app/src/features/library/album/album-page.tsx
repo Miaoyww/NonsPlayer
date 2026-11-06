@@ -81,7 +81,7 @@ export default function AlbumPage({
               variant="ghost"
               size="sm"
               onClick={() => {
-                invalidateNativeCache(['music_query'])
+                invalidateNativeCache(['music_query'], 'refresh', 'album-page.refresh')
                 setRefresh((value) => value + 1)
               }}
             >

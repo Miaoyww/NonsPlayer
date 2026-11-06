@@ -165,6 +165,20 @@ export function adjacentIndex(
 }
 
 const musicQueries = new ScopedMusicQueries(requestCache, invoke)
+function diagnosticContext(command: string, args?: Record<string, unknown>) {
+  const request = args?.request as { operation?: unknown } | undefined
+  const reference = args?.reference as { source?: unknown } | undefined
+  return {
+    command,
+    operation: typeof request?.operation === 'string' ? request.operation : command,
+    source:
+      typeof args?.source === 'string'
+        ? args.source
+        : typeof reference?.source === 'string'
+          ? reference.source
+          : undefined
+  }
+}
 export function scopedNativeCall<T>(
   source: string,
   command: string,
@@ -176,12 +190,14 @@ export function scopedNativeCall<T>(
 
 export async function nativeCall<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   if (!isTauri()) throw new Error('请在 NonsPlayer 桌面应用中使用此功能。')
+  const diagnostic = diagnosticContext(command, args)
   if (command === 'runtime_cover') {
     const access = await invoke<string>('runtime_cover_access', { url: args?.url })
     const key = requestKey(command, args)
     type CoverEntry = { access: string; data: string }
     const previous = coverCache.peek<CoverEntry>(key)
-    if (previous && previous.access !== access) coverCache.delete(key)
+    if (previous && previous.access !== access)
+      coverCache.delete(key, 'access', 'runtime_cover.accessChanged')
     const result = await coverCache.get<CoverEntry>(
       key,
       async () => ({
@@ -192,11 +208,13 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
         validate: async () => {
           if ((await invoke<string>('runtime_cover_access', { url: args?.url })) !== access)
             throw new Error('封面来源状态已变化')
-        }
+        },
+        diagnostic,
+        trigger: 'runtime_cover.load'
       }
     )
     if (result.access !== access) {
-      coverCache.delete(key)
+      coverCache.delete(key, 'access', 'runtime_cover.accessChanged')
       throw new Error('封面来源状态已变化')
     }
     return result.data as T
@@ -210,6 +228,8 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
     }
     const value = await requestCache.get<T>(key, () => invoke<T>(command, args), {
       refresh: Boolean(args?.refresh),
+      diagnostic,
+      trigger: `nativeCall.${command}${args?.refresh ? '.refresh' : ''}`,
       retryInvalidated:
         command === 'local_entities' ||
         command === 'local_entity_detail' ||
@@ -217,11 +237,13 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
           ? 2
           : undefined
     })
-    if (command === 'track_lyrics' && value === null) requestCache.delete(key)
+    if (command === 'track_lyrics' && value === null)
+      requestCache.delete(key, 'refresh', 'nativeCall.track_lyrics.empty')
     return value
   }
   const result = await invoke<T>(command, args)
-  if (command === 'aggregate_write') invalidateAggregateCache(String(result))
+  if (command === 'aggregate_write')
+    invalidateAggregateCache(String(result), 'refresh', 'nativeCall.aggregate_write')
   if (
     [
       'create_local_playlist',
@@ -231,7 +253,7 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
       'remove_local_playlist_track'
     ].includes(command)
   )
-    invalidateAggregateCache(String(args?.id ?? result))
+    invalidateAggregateCache(String(args?.id ?? result), 'refresh', `nativeCall.${command}`)
   const affected: Record<string, string[]> = {
     extension_store_install: ['extension_store_index'],
     plugin_install: ['extension_store_index'],
@@ -314,7 +336,12 @@ export async function nativeCall<T>(command: string, args?: Record<string, unkno
   if (affected[command])
     invalidateNativeCache(
       affected[command],
-      ['music_select_account', 'music_remove_account'].includes(command) ? 'context' : 'refresh'
+      ['music_select_account', 'music_remove_account'].includes(command)
+        ? 'context'
+        : command === 'clear_local_cache'
+          ? 'clear'
+          : 'refresh',
+      `nativeCall.${command}`
     )
   return result
 }
@@ -384,10 +411,18 @@ export async function connectPlayer(options: { observerOnly?: boolean } = {}): P
       })
     )
     if (fm) listeners.push(playerStore.subscribeState(() => fm.update()))
-    listeners.push(await listen('lyrics-updated', () => invalidateNativeCache(['track_lyrics'])))
+    listeners.push(
+      await listen('lyrics-updated', () =>
+        invalidateNativeCache(['track_lyrics'], 'event', 'lyrics-updated')
+      )
+    )
     listeners.push(
       await listen('lyric-correction-changed', () =>
-        invalidateNativeCache(['track_lyrics', 'local_track_lyrics'])
+        invalidateNativeCache(
+          ['track_lyrics', 'local_track_lyrics'],
+          'event',
+          'lyric-correction-changed'
+        )
       )
     )
     listeners.push(
@@ -399,11 +434,13 @@ export async function connectPlayer(options: { observerOnly?: boolean } = {}): P
     listeners.push(
       await listen('music-changed', () => {
         clearLibraryPreviews()
-        invalidateNativeCache()
+        invalidateNativeCache(undefined, 'event', 'music-changed')
       })
     )
     listeners.push(
-      await listen('music-account-changed', () => invalidateNativeCache(undefined, 'context'))
+      await listen('music-account-changed', () =>
+        invalidateNativeCache(undefined, 'context', 'music-account-changed')
+      )
     )
     await synchronize()
     recover()

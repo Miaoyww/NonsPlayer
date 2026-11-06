@@ -201,7 +201,11 @@ function ArtistAvatarCompletionDialog({
       })
       setProgress(value)
       onNotice(all ? '已开始补齐艺术家头像。' : '已开始匹配艺术家头像。')
-      invalidateNativeCache(['local_entities', 'local_entity_detail'])
+      invalidateNativeCache(
+        ['local_entities', 'local_entity_detail'],
+        'refresh',
+        'local_artist_avatar_completion'
+      )
     } catch (cause) {
       reportCaughtError('app/src/features/local/artist-avatar/completion-dialog.tsx', cause)
       setError(errorText(cause))

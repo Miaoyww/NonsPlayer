@@ -38,12 +38,12 @@ export function setLibraryAccount(value: AccountRef | null) {
 export function invalidateMusicLibrary() {
   clearLibraryPreviews()
   clearContinuations()
-  invalidateNativeCache(['music_query'])
+  invalidateNativeCache(['music_query'], 'refresh', 'library-api.invalidateMusicLibrary')
 }
 export function resetAccountCache() {
   account = null
   clearContinuations()
-  invalidateNativeCache(undefined, 'context')
+  invalidateNativeCache(undefined, 'context', 'library-api.resetAccountCache')
 }
 function selectAccount(userId: string) {
   if (!account || account.id !== userId) throw new Error('账号上下文已变化')

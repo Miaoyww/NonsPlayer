@@ -7,6 +7,21 @@ import { runInThisContext } from 'node:vm'
 import { LRUCache } from 'lru-cache'
 import ts from 'typescript'
 
+function diagnosticContext(command, args) {
+  const request = args?.request
+  const reference = args?.reference
+  return {
+    command,
+    operation: typeof request?.operation === 'string' ? request.operation : command,
+    source:
+      typeof args?.source === 'string'
+        ? args.source
+        : typeof reference?.source === 'string'
+          ? reference.source
+          : undefined
+  }
+}
+
 function load(path, modules) {
   modules = {
     '@/features/music/cover-image': coverImage,
@@ -24,13 +39,22 @@ function load(path, modules) {
   }
   const exports = {}
   if (modules['@tauri-apps/api/core'])
-    modules['@/lib/diagnostics'] = { diagnosticInvoke: modules['@tauri-apps/api/core'].invoke }
+    modules['@/lib/diagnostics'] = {
+      diagnosticContext,
+      ...modules['@/lib/diagnostics'],
+      diagnosticInvoke: modules['@tauri-apps/api/core'].invoke
+    }
   const { outputText } = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS }
   })
   // Use the same Promise realm as LRUCache, so abort tests exercise real fetch semantics.
   runInThisContext(`(function(exports, require) { ${outputText}\n })`)(exports, (name) => {
-    if (name === '@/lib/diagnostics') return { ...modules[name], reportCaughtError() {} }
+    if (name === '@/lib/diagnostics')
+      return {
+        diagnosticContext,
+        reportCaughtError() {},
+        ...modules[name]
+      }
     assert.ok(name in modules, `unexpected dependency: ${name}`)
     return modules[name]
   })
@@ -39,12 +63,27 @@ function load(path, modules) {
 const tick = () => new Promise((resolve) => setImmediate(resolve))
 function harness() {
   const requests = []
+  const reports = []
+  const reported = new WeakSet()
+  const reportCaughtError = (operation, cause, context) => {
+    if (cause && typeof cause === 'object') {
+      if (reported.has(cause)) return
+      reported.add(cause)
+    }
+    reports.push({ operation, cause, context })
+  }
   let scope = JSON.stringify([{ source: 'netease', account: 'a', generation: 1 }, 1, 1])
   let enabled = true
   let coverEnabled = true
   let coverGeneration = 1
-  const cache = load('../src/lib/runtime-cache.ts', { 'lru-cache': { LRUCache } })
-  const scoped = load('../src/features/music/scoped-query.ts', { '@/lib/runtime-cache': cache })
+  const cache = load('../src/lib/runtime-cache.ts', {
+    'lru-cache': { LRUCache },
+    '@/lib/diagnostics': { reportCaughtError }
+  })
+  const scoped = load('../src/features/music/scoped-query.ts', {
+    '@/lib/runtime-cache': cache,
+    '@/lib/diagnostics': { reportCaughtError }
+  })
   const player = load('../src/lib/player.ts', {
     '@/lib/platform': { isAndroid: () => false },
     '@/features/playback/state/player-store': load(
@@ -54,6 +93,7 @@ function harness() {
     '@/features/music/scoped-query': scoped,
     '@/lib/runtime-cache': cache,
     '@/features/discovery/private-fm': {},
+    '@/lib/diagnostics': { diagnosticContext, reportCaughtError },
     react: {},
     '@tauri-apps/api/event': {},
     '@tauri-apps/api/core': {
@@ -85,6 +125,7 @@ function harness() {
   })
   return {
     requests,
+    reports,
     disableCovers: () => {
       coverEnabled = false
     },
@@ -179,6 +220,8 @@ test('Hitokoto requests coalesce and failures stay retryable', async () => {
 test('runtime TTL is ten minutes, not extended by reads, and capacity evicts old entries', async () => {
   const { cache } = harness()
   assert.equal(cache.RUNTIME_TTL, 600000)
+  assert.equal(cache.RUNTIME_MAX_BYTES, 128 * 1024 * 1024)
+  assert.equal(cache.RUNTIME_MAX_ENTRIES, 8192)
   const tiny = new cache.RuntimeCache(150, 15)
   let calls = 0
   const read = () => tiny.get('query:a', async () => (++calls, 'a'))
@@ -196,10 +239,9 @@ test('runtime TTL is ten minutes, not extended by reads, and capacity evicts old
 test('cover reads survive eviction while the cache reaches its entry limit', async () => {
   const { cache, player, requests } = harness()
   cache.coverCache = new cache.RuntimeCache(
-    48 * 1024 * 1024,
+    cache.RUNTIME_MAX_BYTES,
     cache.RUNTIME_TTL,
     undefined,
-    true,
     512
   )
   const urls = Array.from({ length: 513 }, (_, index) => `https://p1.music.126.net/${index}.jpg`)
@@ -221,10 +263,9 @@ test('cover reads survive eviction while the cache reaches its entry limit', asy
 test('cover cache keeps more than 512 playlist images for fast scrolling', async () => {
   const { cache, player, requests } = harness()
   cache.coverCache = new cache.RuntimeCache(
-    48 * 1024 * 1024,
+    cache.RUNTIME_MAX_BYTES,
     cache.RUNTIME_TTL,
     undefined,
-    true,
     4096
   )
   const urls = Array.from({ length: 513 }, (_, index) => `https://p1.music.126.net/${index}.jpg`)
@@ -369,6 +410,40 @@ test('unified queries recover after writes using the new scope and coalesce', as
   await tick()
   requests.at(-1).resolve(summary)
   assert.deepEqual(await reads, [summary, summary])
+})
+
+test('scoped queries stop after three invalidations and log the exhausted recovery failure', async () => {
+  const { client, reports, cache, requests } = harness()
+  const read = client.query('netease', { operation: 'librarySummary' })
+  const failed = assert.rejects(read, /音乐数据频繁变化/)
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await tick()
+    assert.equal(requests.length, attempt)
+    cache.invalidateNativeCache(['music_query'], 'refresh')
+    await tick()
+  }
+  await failed
+  assert.equal(requests.length, 3, 'ScopedMusicQueries must not stack another retry layer')
+
+  const invalidations = reports.filter(({ cause }) => cause instanceof cache.CacheInvalidatedError)
+  assert.deepEqual(
+    invalidations.map(({ cause }) => cause.attempt),
+    [1, 2, 3]
+  )
+  assert.ok(
+    invalidations.every(
+      ({ context }) =>
+        context.command === 'music_query' &&
+        context.source === 'netease' &&
+        context.operation === 'librarySummary' &&
+        context.trigger === 'invalidateNativeCache'
+    )
+  )
+  const exhausted = reports.at(-1)
+  assert.equal(exhausted.cause.code, 'cacheRecoveryExhausted')
+  assert.ok(exhausted.cause.stack.includes('ScopedMusicQueries.read'))
+  assert.equal(exhausted.context.command, 'music_query')
+  assert.equal(exhausted.context.operation, 'librarySummary')
 })
 
 test('same-key refresh joins a replacement read instead of exposing deleted', async () => {

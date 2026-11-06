@@ -65,7 +65,7 @@ export function redactDiagnosticStack(value: string): string {
   return boundedUtf8(clean, MAX_STACK_BYTES, suffix)
 }
 
-type Diagnostic = {
+export type Diagnostic = {
   level: 'info' | 'warn' | 'error'
   command: string
   operation?: string
@@ -77,6 +77,9 @@ type Diagnostic = {
   stack?: string
   stackKind?: 'origin' | 'observation' | 'unavailable'
   location?: string
+}
+type ErrorContext = Partial<Pick<Diagnostic, 'command' | 'source' | 'operation' | 'location'>> & {
+  trigger?: string
 }
 let pending = 0
 const queue: Diagnostic[] = []
@@ -229,17 +232,40 @@ function errorFields(cause: unknown) {
 
 // Avoid duplicate reports when an IPC error crosses several recovery boundaries.
 const reportedErrors = new WeakSet<object>()
-export function reportCaughtError(operation: string, cause: unknown) {
+export function reportCaughtError(operation: string, cause: unknown, context: ErrorContext = {}) {
   if (cause && typeof cause === 'object') {
     if (reportedErrors.has(cause)) return
     reportedErrors.add(cause)
   }
   const fields = errorFields(cause)
+  const cacheError = cause as { attempt?: unknown; attempts?: unknown } | undefined
+  const attempt =
+    fields.code === 'cacheInvalidated' && Number.isInteger(cacheError?.attempt)
+      ? Number(cacheError?.attempt)
+      : undefined
+  const attempts =
+    fields.code === 'cacheInvalidated' && Number.isInteger(cacheError?.attempts)
+      ? Number(cacheError?.attempts)
+      : undefined
+  const message = [
+    fields.message,
+    context.trigger && `trigger=${context.trigger}`,
+    attempt !== undefined && `attempt=${attempt}${attempts ? `/${attempts}` : ''}`
+  ]
+    .filter(Boolean)
+    .join('; ')
+  const concise = fields.code === 'cacheInvalidated'
   reportDiagnostic({
     level: expectedCodes.has(fields.code) ? 'info' : 'error',
-    command: 'handled_error',
-    operation,
-    ...fields
+    command: context.command ?? 'handled_error',
+    operation: context.operation ?? operation,
+    source: context.source,
+    location: context.location ?? (concise ? operation : undefined),
+    code: fields.code,
+    message,
+    stage: fields.stage,
+    stack: concise ? undefined : fields.stack,
+    stackKind: concise ? undefined : fields.stackKind
   })
 }
 

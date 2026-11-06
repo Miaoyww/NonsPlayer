@@ -47,7 +47,11 @@ export function ArtistAvatarActionsProvider({
         source: ARTIST_AVATAR_SOURCE,
         force: true
       })
-      invalidateNativeCache(['local_entities', 'local_entity_detail'])
+      invalidateNativeCache(
+        ['local_entities', 'local_entity_detail'],
+        'refresh',
+        'artist-avatar.refresh'
+      )
       onNotice(`已开始重新匹配「${artist.name}」的头像。`)
     } catch (cause) {
       reportCaughtError('app/src/features/local/artist-avatar/actions.tsx', cause)
@@ -62,7 +66,11 @@ export function ArtistAvatarActionsProvider({
     setPending(artist.id)
     try {
       await nativeCall('local_artist_avatar_restore', { artistId: artist.id })
-      invalidateNativeCache(['local_entities', 'local_entity_detail'])
+      invalidateNativeCache(
+        ['local_entities', 'local_entity_detail'],
+        'refresh',
+        'nativeCall.local_artist_avatar_restore'
+      )
       onNotice(`已恢复「${artist.name}」的默认封面，并停止自动补齐。`)
     } catch (cause) {
       reportCaughtError('app/src/features/local/artist-avatar/actions.tsx', cause)

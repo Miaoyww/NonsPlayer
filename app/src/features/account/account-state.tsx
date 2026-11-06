@@ -194,7 +194,7 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
     [source, publishLikes]
   )
   const setProfile = useCallback((value: AccountProfile | null) => {
-    invalidateNativeCache(undefined, 'context')
+    invalidateNativeCache(undefined, 'context', 'account-state.setProfile')
     generation.current++
     likesGeneration.current++
     updateProfile(value)
@@ -422,7 +422,7 @@ function SourceAccountProvider({ children, source }: { children: ReactNode; sour
     for (const event of ['media-favorite-changed', 'music-changed'])
       void listen<string>(event, ({ payload }) => {
         if (disposed || payload !== source) return
-        invalidateNativeCache()
+        invalidateNativeCache(undefined, 'event', event)
         invalidateMusicLibrary()
         setLikesRevision((value) => value + 1)
         favoriteEvents.current++

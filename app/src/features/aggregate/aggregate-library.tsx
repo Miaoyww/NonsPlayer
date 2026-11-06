@@ -121,16 +121,24 @@ export function AggregateLibraryProvider({ children }: { children: ReactNode }) 
         void listen(event, ({ payload }) => {
           if (disposed) return
           if (event === 'aggregate-playlist-updated')
-            invalidateAggregateCache(typeof payload === 'string' ? payload : undefined)
+            invalidateAggregateCache(
+              typeof payload === 'string' ? payload : undefined,
+              'event',
+              'aggregate-playlist-updated'
+            )
           else
-            invalidateNativeCache([
-              'aggregate_playlists',
-              'aggregate_playlist',
-              'aggregate_tracks',
-              'local_entities',
-              'local_entity_detail',
-              'local_entity_tracks'
-            ])
+            invalidateNativeCache(
+              [
+                'aggregate_playlists',
+                'aggregate_playlist',
+                'aggregate_tracks',
+                'local_entities',
+                'local_entity_detail',
+                'local_entity_tracks'
+              ],
+              'event',
+              event
+            )
           void reload()
         })
           .then((stop) => {

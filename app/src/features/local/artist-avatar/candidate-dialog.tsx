@@ -97,7 +97,11 @@ export function ArtistAvatarCandidateDialog({
         source: candidate.source,
         platformId: candidate.platformId
       })
-      invalidateNativeCache(['local_entities', 'local_entity_detail'])
+      invalidateNativeCache(
+        ['local_entities', 'local_entity_detail'],
+        'refresh',
+        'nativeCall.local_artist_avatar_select'
+      )
       onNotice(`已为「${target.name}」保存艺术家头像。`)
       onClose()
     } catch (cause) {

@@ -2,6 +2,20 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { CacheInvalidatedError, requestKey, type RuntimeCache } from '@/lib/runtime-cache'
 
 type Invoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
+function diagnosticContext(command: string, args?: Record<string, unknown>) {
+  const request = args?.request as { operation?: unknown } | undefined
+  const reference = args?.reference as { source?: unknown } | undefined
+  return {
+    command,
+    operation: typeof request?.operation === 'string' ? request.operation : command,
+    source:
+      typeof args?.source === 'string'
+        ? args.source
+        : typeof reference?.source === 'string'
+          ? reference.source
+          : undefined
+  }
+}
 const contextChanged = () =>
   Object.assign(new Error('账号或音乐来源状态已变化，请重试'), { code: 'staleContext' })
 class WriteRevisionChangedError extends Error {
@@ -43,6 +57,7 @@ export class ScopedMusicQueries {
   }
 
   async read<T>(source: string, command: string, args?: Record<string, unknown>): Promise<T> {
+    const diagnostic = diagnosticContext(command, { ...args, source })
     const revision = this.cache.contextRevision
     let scope = await this.invoke<string>('music_context', { source })
     const initial = scope
@@ -79,14 +94,19 @@ export class ScopedMusicQueries {
         const value = cached
           ? await this.cache.get<T>(key, load, {
               validate,
-              refresh: attempt === 0 && Boolean(args?.refresh)
+              refresh: attempt === 0 && Boolean(args?.refresh),
+              diagnostic: { ...diagnostic, attempt: attempt + 1, attempts: 3 },
+              trigger: `${command}.refresh`
             })
           : await load()
         if (!cached) await validate()
         this.scopes.set(source, scope)
         return value
       } catch (cause) {
-        reportCaughtError('app/src/features/music/scoped-query.ts', cause)
+        reportCaughtError('app/src/features/music/scoped-query.ts', cause, {
+          ...diagnostic,
+          location: 'app/src/features/music/scoped-query.ts'
+        })
         if (
           paginated &&
           typeof cause === 'object' &&
@@ -114,6 +134,13 @@ export class ScopedMusicQueries {
       if (mutation) throw contextChanged()
       scope = next
     }
-    throw new Error('音乐数据频繁变化，请稍后重试')
+    const failure = Object.assign(new Error('音乐数据频繁变化，请稍后重试'), {
+      code: 'cacheRecoveryExhausted'
+    })
+    reportCaughtError('app/src/features/music/scoped-query.ts', failure, {
+      ...diagnostic,
+      location: 'app/src/features/music/scoped-query.ts'
+    })
+    throw failure
   }
 }

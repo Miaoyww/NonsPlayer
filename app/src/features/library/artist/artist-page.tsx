@@ -144,7 +144,7 @@ export default function ArtistPage({
             variant="ghost"
             size="sm"
             onClick={() => {
-              invalidateNativeCache(['music_query'])
+              invalidateNativeCache(['music_query'], 'refresh', 'artist-page.refresh')
               setRefresh((value) => value + 1)
             }}
           >

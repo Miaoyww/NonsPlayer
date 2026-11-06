@@ -409,6 +409,27 @@ pub(crate) fn diagnostic_report(entry: FrontendEntry) -> Result<(), String> {
         }
         *count += 1;
     }
+    let summary = format!(
+        "command={} source={} operation={} elapsed_ms={} code={} stage={} reason={} location={}",
+        redact(&entry.command),
+        redact(entry.source.as_deref().unwrap_or("-")),
+        redact(entry.operation.as_deref().unwrap_or("-")),
+        entry.elapsed_ms.unwrap_or(0),
+        redact(entry.code.as_deref().unwrap_or("-")),
+        redact(entry.stage.as_deref().unwrap_or("-")),
+        redact(entry.message.as_deref().unwrap_or("-")),
+        redact(entry.location.as_deref().unwrap_or("-")),
+    );
+    if level == log::Level::Info
+        && entry.code.as_deref() == Some("cacheInvalidated")
+        && entry
+            .stack
+            .as_deref()
+            .is_none_or(|stack| stack.trim().is_empty())
+    {
+        log::log!(target: "nons::webview", level, "{summary}");
+        return Ok(());
+    }
     let stack = entry
         .stack
         .as_deref()
@@ -417,7 +438,13 @@ pub(crate) fn diagnostic_report(entry: FrontendEntry) -> Result<(), String> {
         .map(redact)
         .collect::<Vec<_>>()
         .join("\n");
-    log::log!(target: "nons::webview", level, "command={} source={} operation={} elapsed_ms={} code={} stage={} reason={} location={}\nstack_kind={}\n{}", redact(&entry.command), redact(entry.source.as_deref().unwrap_or("-")), redact(entry.operation.as_deref().unwrap_or("-")), entry.elapsed_ms.unwrap_or(0), redact(entry.code.as_deref().unwrap_or("-")), redact(entry.stage.as_deref().unwrap_or("-")), redact(entry.message.as_deref().unwrap_or("-")), redact(entry.location.as_deref().unwrap_or("-")), redact(entry.stack_kind.as_deref().unwrap_or("unavailable")), stack);
+    log::log!(
+        target: "nons::webview",
+        level,
+        "{summary}\nstack_kind={}\n{}",
+        redact(entry.stack_kind.as_deref().unwrap_or("unavailable")),
+        stack
+    );
     Ok(())
 }
 
@@ -521,6 +548,35 @@ mod tests {
             "{output}"
         );
         assert!(!output.contains("backtrace_kind="), "{output}");
+    }
+
+    #[test]
+    fn concise_cache_invalidations_stay_single_line_while_other_missing_stacks_fall_back() {
+        test_log::start();
+        let cache: FrontendEntry = serde_json::from_value(serde_json::json!({
+            "level":"info", "command":"music_query", "source":"netease",
+            "operation":"librarySummary", "code":"cacheInvalidated", "stage":"refresh",
+            "message":"缓存请求已失效，请重试。; attempt=1/3",
+            "location":"app/src/lib/runtime-cache.ts"
+        }))
+        .unwrap();
+        diagnostic_report(cache).unwrap();
+        let output = test_log::take().join("\n");
+        assert_eq!(output.trim_end().lines().count(), 1, "{output}");
+        assert!(output.contains("stage=refresh"), "{output}");
+        assert!(!output.contains("original stack unavailable"), "{output}");
+        assert!(!output.contains("stack_kind="), "{output}");
+
+        test_log::start();
+        let stale: FrontendEntry = serde_json::from_value(serde_json::json!({
+            "level":"info", "command":"music_query", "code":"staleContext",
+            "message":"账号或音乐来源状态已变化，请重试"
+        }))
+        .unwrap();
+        diagnostic_report(stale).unwrap();
+        let output = test_log::take().join("\n");
+        assert!(output.contains("stack_kind=unavailable"), "{output}");
+        assert!(output.contains("original stack unavailable"), "{output}");
     }
 
     #[test]

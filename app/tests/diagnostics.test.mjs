@@ -134,6 +134,56 @@ test('caught errors keep the original cause, deduplicate recovery boundaries and
   assert.match(app.calls.at(-1).args.entry.message, /fallback failed/)
 })
 
+test('cache invalidations retain safe operation context while omitting their stack once', () => {
+  const app = harness()
+  const error = Object.assign(new Error('缓存请求已失效，请重试。'), {
+    code: 'cacheInvalidated',
+    stage: 'clear',
+    attempt: 2,
+    attempts: 3
+  })
+  error.stack =
+    'Error: 缓存请求已失效，请重试。\n    at load (https://example.com/assets/app.js?token=SECRET:4:2)'
+  const context = {
+    command: 'music_query',
+    source: 'netease',
+    operation: 'librarySummary',
+    location: 'app/src/lib/runtime-cache.ts',
+    trigger: 'music-changed'
+  }
+  app.reportCaughtError('runtime-cache', error, context)
+  app.reportCaughtError('scoped-query', error, context)
+  const entries = app.calls
+    .filter((call) => call.command === 'diagnostic_report')
+    .map((call) => call.args.entry)
+  assert.equal(entries.length, 1)
+  assert.deepEqual(
+    {
+      level: entries[0].level,
+      command: entries[0].command,
+      source: entries[0].source,
+      operation: entries[0].operation,
+      code: entries[0].code,
+      stage: entries[0].stage,
+      message: entries[0].message,
+      location: entries[0].location
+    },
+    {
+      level: 'info',
+      command: 'music_query',
+      source: 'netease',
+      operation: 'librarySummary',
+      code: 'cacheInvalidated',
+      stage: 'clear',
+      message: '缓存请求已失效，请重试。; trigger=music-changed; attempt=2/3',
+      location: 'app/src/lib/runtime-cache.ts'
+    }
+  )
+  assert.equal(entries[0].stack, undefined)
+  assert.equal(entries[0].stackKind, undefined)
+  assert.ok(!JSON.stringify(entries[0]).includes('SECRET'))
+})
+
 test('a burst stays bounded and records an overflow count after the sink recovers', async () => {
   const app = harness(false, true)
   for (let i = 0; i < 100; i++) {

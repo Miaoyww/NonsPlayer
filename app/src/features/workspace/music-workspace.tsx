@@ -200,14 +200,18 @@ export function MusicWorkspace({
       if (disposed) return
       if (payload?.error) onError(payload.error)
       if (!payload?.scanning) {
-        invalidateNativeCache([
-          'local_music',
-          'local_entities',
-          'local_entity_detail',
-          'local_entity_tracks',
-          'local_track_information',
-          'track_lyrics'
-        ])
+        invalidateNativeCache(
+          [
+            'local_music',
+            'local_entities',
+            'local_entity_detail',
+            'local_entity_tracks',
+            'local_track_information',
+            'track_lyrics'
+          ],
+          'event',
+          'local-library-updated'
+        )
         setRefresh((value) => value + 1)
       }
     })

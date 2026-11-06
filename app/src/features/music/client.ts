@@ -52,7 +52,7 @@ export const musicClient: MusicSourceClient & {
       source,
       request
     })
-    invalidateNativeCache()
+    invalidateNativeCache(undefined, 'refresh', `musicClient.write.${request.operation}`)
     return response
   },
   accounts: (source) => nativeCall('music_accounts', { source }),
@@ -60,7 +60,7 @@ export const musicClient: MusicSourceClient & {
   async account(source, request) {
     const result = await nativeCall<AccountPresentation>('music_account', { source, request })
     if (request.operation === 'logout' || (result.type === 'progress' && result.data.code === 803))
-      invalidateNativeCache(undefined, 'context')
+      invalidateNativeCache(undefined, 'context', 'musicClient.account.logout')
     return result
   },
   selectAccount: (reference) => nativeCall('music_select_account', { reference }),

@@ -26,9 +26,9 @@ export async function otherCacheStatus(): Promise<OtherCacheStatus> {
 
 export async function clearOtherCache(kind: OtherCacheKind) {
   if (kind !== 'queries') await nativeCall('clear_other_cache', { kind })
-  if (kind === 'covers') coverCache.invalidate()
+  if (kind === 'covers') coverCache.invalidate(undefined, 'clear', 'clearOtherCache.covers')
   if (kind === 'queries' || kind === 'collections') {
-    requestCache.invalidateMatching(isOtherQueryCacheKey)
+    requestCache.invalidateMatching(isOtherQueryCacheKey, 'clear', `clearOtherCache.${kind}`)
     clearContinuations()
     clearLibraryPreviews(true)
   }

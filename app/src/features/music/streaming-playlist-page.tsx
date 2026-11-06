@@ -31,7 +31,7 @@ export default function StreamingPlaylistPage(props: StreamingPlaylistPageProps)
       for (const event of ['music-account-changed', 'adapters-changed', 'music-changed']) {
         void listen<string>(event, ({ payload }) => {
           if (!disposed && payload === source) {
-            invalidateNativeCache(['music_query'])
+            invalidateNativeCache(['music_query'], 'event', event)
             setRevision((value) => value + 1)
           }
         })
