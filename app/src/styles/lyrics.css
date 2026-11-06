@@ -6,7 +6,7 @@
   mix-blend-mode: normal;
 }
 .now-playing.nons-lyrics .amll-lyric-player {
-  --amll-lp-color: color-mix(in srgb, var(--foreground) 80%, transparent);
+  --amll-lp-color: color-mix(in srgb, var(--foreground) 85%, transparent);
 }
 .lyrics-font-preview {
   font-size: calc(clamp(28px, 3vw, 56px) * var(--nons-lyrics-font-scale, 1));
