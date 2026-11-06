@@ -8,16 +8,19 @@ import { findLyricLine } from './mv-lyric-line'
 
 export function MvLyricCard({
   lines,
+  offsetMs = 0,
   showTranslation,
   showPronunciation
 }: {
   lines: LyricLine[]
+  offsetMs?: number
   showTranslation: boolean
   showPronunciation: boolean
 }) {
   const progress = useProgress()
   const reduced = useReducedMotion()
-  const position = progress.status === 'playing' ? currentPosition() : progress.positionMs
+  const position =
+    (progress.status === 'playing' ? currentPosition() : progress.positionMs) - offsetMs
   const line = useMemo(() => findLyricLine(lines, position), [lines, position])
   if (!line) return null
   const translation = showTranslation ? line.translatedLyric.trim() : ''

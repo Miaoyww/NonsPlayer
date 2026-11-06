@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
-function lyricControl({ failure, desktop = true, android = false } = {}) {
+function lyricControl({ failure, desktop = true, android = false, offsetMs = 0 } = {}) {
   const calls = []
   const errors = []
   const stateSets = []
@@ -89,7 +89,7 @@ function lyricControl({ failure, desktop = true, android = false } = {}) {
       return modules[name]
     }
   })
-  const tree = exports.testRenderer({ lines: [], onError: (error) => errors.push(error) })
+  const tree = exports.testRenderer({ lines: [], offsetMs, onError: (error) => errors.push(error) })
   const player = tree.props.children.find((node) => node?.type === 'lyric-player')
   const click = (startTime) =>
     player.props.onLyricLineClick({ line: { getLine: () => ({ startTime }) } })
@@ -114,6 +114,18 @@ test('clicking a lyric line seeks native playback to its start time in milliseco
   control.click(75250)
   assert.equal(control.calls[0].command, 'player_seek')
   assert.equal(control.calls[0].positionMs, 75250)
+})
+
+test('lyric seeking adds the display offset and clamps positions before the audio begins', () => {
+  for (const [offsetMs, lineTime, expected] of [
+    [350, 1000, 1350],
+    [-500, 1000, 500],
+    [-500, 100, 0]
+  ]) {
+    const control = lyricControl({ offsetMs })
+    control.click(lineTime)
+    assert.equal(control.calls[0].positionMs, expected)
+  }
 })
 
 test('lyric seek errors reach the visible playback error handler', async () => {

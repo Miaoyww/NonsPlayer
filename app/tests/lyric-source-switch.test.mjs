@@ -26,7 +26,6 @@ const streamLyrics = {
 
 async function harness(track, settle = true, localSource = 'local', offsetMs = null) {
   let globalOffsetMs = -200
-  const offsets = []
   let sources = { localSource, amll: true, qq: true }
   let present = true
   let open = true
@@ -97,10 +96,6 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
       })
     },
     './correction': {
-      offsetLyrics: (lines, value) => {
-        offsets.push(value)
-        return lines
-      },
       automaticLyrics: { candidate: null, localTtml: null, offsetMs: null }
     },
     './use-lyrics-settings': {
@@ -203,7 +198,6 @@ async function harness(track, settle = true, localSource = 'local', offsetMs = n
   await new Promise(setImmediate)
   return {
     initial,
-    offsets,
     setGlobalOffset: (value) => {
       globalOffsetMs = value
     },
@@ -261,7 +255,10 @@ function menu(node) {
 function find(node, predicate) {
   if (!node || typeof node !== 'object') return
   if (predicate(node)) return node
-  for (const child of [node.props?.children].flat()) {
+  for (const child of [
+    node.props?.children,
+    ...(node.props?.pages ?? []).map((page) => page.content)
+  ].flat()) {
     const found = find(child, predicate)
     if (found) return found
   }
@@ -590,19 +587,23 @@ test('background refresh metadata must match the current song even with the same
   assert.deepEqual(app.parsed, [streamLyrics])
 })
 
-test('lyrics follow the global offset and recalculate when it changes', async () => {
+function lyricRenderer(tree) {
+  return find(tree, (node) => node.type?.name === 'LyricRenderer').props
+}
+
+test('global offsets update the lyric clock without requesting or replacing lyrics', async () => {
   const app = await harness(streamed)
   app.pending[0](streamLyrics)
   await Promise.resolve()
-  app.render()
-  assert.deepEqual(app.offsets, [-200])
+  const initial = lyricRenderer(app.render())
+  assert.equal(initial.offsetMs, -200)
   app.setGlobalOffset(-150)
   await app.transition(true)
-  assert.equal(app.requests.length, 2)
-  app.pending[1](streamLyrics)
-  await Promise.resolve()
-  app.render()
-  assert.equal(app.offsets.at(-1), -150)
+  assert.equal(app.requests.length, 1)
+  const updated = lyricRenderer(app.render())
+  assert.equal(updated.offsetMs, -150)
+  assert.equal(updated.lines, initial.lines)
+  assert.equal(app.parsed.length, 1)
 })
 
 test('saved single-song offsets, including zero, add to the global offset', async () => {
@@ -610,18 +611,19 @@ test('saved single-song offsets, including zero, add to the global offset', asyn
     const app = await harness(streamed, true, 'online', offset)
     app.pending[0](streamLyrics)
     await Promise.resolve()
-    app.render()
-    assert.deepEqual(app.offsets, [-200 + offset])
+    assert.equal(lyricRenderer(app.render()).offsetMs, -200 + offset)
   }
 })
 
-test('offset events recalculate existing lines without fetching or parsing lyrics again', async () => {
+test('offset events update the clock while retaining existing lyric lines', async () => {
   const app = await harness(streamed)
   app.pending[0](streamLyrics)
   await Promise.resolve()
+  const original = lyricRenderer(app.render()).lines
   app.events[2]({ payload: { key: streamed.key, offsetMs: 100 } })
-  app.render()
-  assert.equal(app.offsets.at(-1), -100)
+  const updated = lyricRenderer(app.render())
+  assert.equal(updated.offsetMs, -100)
+  assert.equal(updated.lines, original)
   assert.equal(app.requests.length, 1)
   assert.equal(app.parsed.length, 1)
   app.switchTo(local)
@@ -642,7 +644,7 @@ test('the quick control saves only the song adjustment and rejects stale track c
     { key: streamed.key, offsetMs: 100 }
   ])
   assert.equal(control(app.render()).offsetMs, 100)
-  assert.equal(app.offsets.at(-1), -100)
+  assert.equal(lyricRenderer(app.render()).offsetMs, -100)
   assert.equal(app.requests.length, 1)
   assert.equal(app.parsed.length, 1)
   app.failOffsetSave(new Error('offset persistence failed'))

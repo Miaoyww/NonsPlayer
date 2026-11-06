@@ -17,7 +17,7 @@ import {
   Music2
 } from 'lucide-react'
 import { errorText, getPlayer, nativeCall, usePlayer, type Lyrics, type Track } from '@/lib/player'
-import { offsetLyrics, automaticLyrics, type LyricCorrection } from './correction'
+import { automaticLyrics, type LyricCorrection } from './correction'
 import { ActionButton } from '@/components/music/action-button'
 import { Cover } from '@/components/music/cover'
 import { CoverContextMenu } from '@/features/playback/now-playing/cover-context-menu'
@@ -72,9 +72,11 @@ function isCurrentPlayback(key: string, revision: number, version: string) {
 
 const loadLyricRenderer = () => import('./lyric-renderer')
 const DeferredLyricRenderer = lazy(loadLyricRenderer)
+const emptyLyricLines: LyricLine[] = []
 
 function LyricRenderer(props: {
   lines: LyricLine[]
+  offsetMs: number
   showTranslation: boolean
   showPronunciation: boolean
   active?: boolean
@@ -157,13 +159,8 @@ export default function LyricsView({
     display?.preferences === localPreferences
       ? display
       : undefined
-  const lines = useMemo(
-    () =>
-      currentDisplay?.lines.length
-        ? offsetLyrics(currentDisplay.lines, lyricsOffsetMs + currentDisplay.offsetMs)
-        : [],
-    [currentDisplay, lyricsOffsetMs]
-  )
+  const lines = currentDisplay?.lines ?? emptyLyricLines
+  const offsetMs = lyricsOffsetMs + (currentDisplay?.offsetMs ?? 0)
   const [offsetSaving, setOffsetSaving] = useState(false)
   const offsetBusy = useRef(false)
   const [loading, setLoading] = useState(true)
@@ -227,7 +224,6 @@ export default function LyricsView({
         sources: LyricSources
         preferences: typeof localPreferences
         local: boolean
-        lyricsOffsetMs: number
         cacheRevision: number
         updatedAt: number
       }
@@ -250,7 +246,6 @@ export default function LyricsView({
             sources,
             preferences: localPreferences,
             local: value.source === 'local',
-            lyricsOffsetMs,
             cacheRevision: requestCache.revision,
             updatedAt: Date.now()
           }
@@ -266,7 +261,7 @@ export default function LyricsView({
         format: value?.format
       })
     },
-    [sources, trackVersion, localPreferences, lyricsOffsetMs]
+    [sources, trackVersion, localPreferences]
   )
   const requestLyrics = useCallback(
     async (refresh = false, reuse = false) => {
@@ -284,7 +279,6 @@ export default function LyricsView({
         previous.sources === sources &&
         previous.preferences === localPreferences &&
         !previous.local &&
-        previous.lyricsOffsetMs === lyricsOffsetMs &&
         previous.cacheRevision === requestCache.revision &&
         Date.now() - previous.updatedAt < RUNTIME_TTL
       ) {
@@ -436,7 +430,9 @@ export default function LyricsView({
       offsetRevision.current++
       correction.current = { ...correction.current, offsetMs: payload.offsetMs }
       setDisplay((previous) =>
-        previous?.key === track.key && previous.revision === state.revision
+        previous?.key === track.key &&
+        previous.revision === state.revision &&
+        previous.offsetMs !== payload.offsetMs
           ? { ...previous, offsetMs: payload.offsetMs }
           : previous
       )
@@ -459,6 +455,7 @@ export default function LyricsView({
     if (
       !track ||
       !currentDisplay ||
+      offsetMs === currentDisplay.offsetMs ||
       offsetBusy.current ||
       !isCurrentPlayback(track.key, state.revision, trackVersion)
     )
@@ -471,7 +468,9 @@ export default function LyricsView({
       offsetRevision.current++
       correction.current = { ...correction.current, offsetMs }
       setDisplay((previous) =>
-        previous?.key === track.key && previous.revision === state.revision
+        previous?.key === track.key &&
+        previous.revision === state.revision &&
+        previous.offsetMs !== offsetMs
           ? { ...previous, offsetMs }
           : previous
       )
@@ -516,6 +515,7 @@ export default function LyricsView({
       <LyricRenderer
         key={track?.key}
         lines={lines}
+        offsetMs={offsetMs}
         showTranslation={showTranslation}
         showPronunciation={showPronunciation}
         active={active && rendering && !mvActive}
@@ -840,6 +840,7 @@ export default function LyricsView({
           {mvActive && showMvLyrics && (
             <MvLyricCard
               lines={lines}
+              offsetMs={offsetMs}
               showTranslation={showTranslation && hasTranslation}
               showPronunciation={showPronunciation && hasPronunciation}
             />

@@ -16,6 +16,7 @@ import { useLyricsSettings } from './use-lyrics-settings'
 
 export default function LyricRenderer({
   lines,
+  offsetMs = 0,
   showTranslation = true,
   showPronunciation = true,
   onError,
@@ -23,6 +24,7 @@ export default function LyricRenderer({
   retainWhenHidden = false
 }: {
   lines: LyricLine[]
+  offsetMs?: number
   showTranslation?: boolean
   showPronunciation?: boolean
   onError: (cause: unknown) => void
@@ -102,7 +104,7 @@ export default function LyricRenderer({
     let previous = performance.now()
     const started = previous
     const tick = (now: number) => {
-      player.setCurrentTime(playing ? currentPosition(now) : pausedPosition)
+      player.setCurrentTime((playing ? currentPosition(now) : pausedPosition) - offsetMs)
       player.update(Math.min(50, now - previous))
       previous = now
       // Let initial/seek/resize layout settle even when entering a paused song.
@@ -110,7 +112,17 @@ export default function LyricRenderer({
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [enabled, playing, pausedPosition, renderer, displayedLines, layoutVersion, autoBlur, reduced])
+  }, [
+    enabled,
+    playing,
+    pausedPosition,
+    offsetMs,
+    renderer,
+    displayedLines,
+    layoutVersion,
+    autoBlur,
+    reduced
+  ])
   // AMLL's automatic frame loop is disabled; only the visible lyric subtree
   // receives an interpolated clock. React does not render on every frame.
   return (
@@ -129,14 +141,14 @@ export default function LyricRenderer({
           lyricPlayer={ManualLyricPlayer}
           disabled
           playing={enabled && playing}
-          currentTime={progress.positionMs}
+          currentTime={progress.positionMs - offsetMs}
           onLyricLineClick={(event) => {
             const manualPlayer = renderer?.lyricPlayer as ManualLyricPlayer | undefined
             manualPlayer?.releaseManualScroll?.()
             if (!isTauri() || isAndroid()) return
-            void nativeCall('player_seek', { positionMs: event.line.getLine().startTime }).catch(
-              onError
-            )
+            void nativeCall('player_seek', {
+              positionMs: Math.max(0, event.line.getLine().startTime + offsetMs)
+            }).catch(onError)
           }}
           onLyricLineContextMenu={(event) => {
             event.preventDefault()

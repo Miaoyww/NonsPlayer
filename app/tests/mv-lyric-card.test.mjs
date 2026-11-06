@@ -45,12 +45,17 @@ function harness() {
             lyricPronunciation: () => state.pronunciation
           }
         assert.equal(name, './mv-lyric-line')
-        return { findLyricLine: () => state.line }
+        return {
+          findLyricLine: (_lines, position) => {
+            state.lookupPosition = position
+            return state.line
+          }
+        }
       }
     }
   )
-  const render = (showTranslation, showPronunciation) =>
-    exports.MvLyricCard({ lines: [], showTranslation, showPronunciation })
+  const render = (showTranslation, showPronunciation, offsetMs = 0) =>
+    exports.MvLyricCard({ lines: [], showTranslation, showPronunciation, offsetMs })
   return { state, render }
 }
 
@@ -96,4 +101,12 @@ test('the MV card renders nothing outside a lyric line', () => {
   const h = harness()
   h.state.line = null
   assert.equal(h.render(true, true), null)
+})
+
+test('the MV card selects raw lyric lines using the adjusted display clock', () => {
+  const h = harness()
+  h.render(true, true, 350)
+  assert.equal(h.state.lookupPosition, 1150)
+  h.render(true, true, -200)
+  assert.equal(h.state.lookupPosition, 1700)
 })
