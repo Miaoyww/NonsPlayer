@@ -1049,6 +1049,10 @@ pub fn run() {
                 cover_requests.clone(),
                 online_covers.clone(),
             );
+            #[cfg(windows)]
+            let download_directory = app.path().audio_dir()?.join("Nons");
+            #[cfg(not(windows))]
+            let download_directory = data.join("downloads");
             let downloads = crate::downloads::Downloads::new(
                 app.handle().clone(),
                 store.clone(),
@@ -1056,7 +1060,7 @@ pub fn run() {
                 plugin_manager.shared_http(),
                 cover_runtime,
                 folders.clone(),
-                data.join("downloads"),
+                download_directory,
                 data.join("temp").join("downloads"),
             )?;
             let downloads_startup = downloads.clone();

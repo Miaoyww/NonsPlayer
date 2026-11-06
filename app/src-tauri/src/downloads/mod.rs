@@ -893,7 +893,7 @@ impl Downloads {
             if tokio::fs::try_exists(&target).await.unwrap_or(false) {
                 continue;
             }
-            match tokio::fs::rename(temporary, &target).await {
+            match move_file(temporary, &target).await {
                 Ok(()) => return Ok(target),
                 Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
                 Err(error) => return Err(format!("保存下载文件失败：{error}")),
@@ -1011,6 +1011,43 @@ fn download_path(directory: &Path, value: Option<&str>) -> AppResult<PathBuf> {
     } else {
         directory.join(path)
     })
+}
+
+async fn move_file(source: &Path, target: &Path) -> std::io::Result<()> {
+    match tokio::fs::rename(source, target).await {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::CrossesDevices => {
+            copy_across_devices(source, target).await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+async fn copy_across_devices(source: &Path, target: &Path) -> std::io::Result<()> {
+    let mut reader = tokio::fs::File::open(source).await?;
+    let mut writer = tokio::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(target)
+        .await?;
+    let copied = async {
+        tokio::io::copy(&mut reader, &mut writer).await?;
+        writer.flush().await?;
+        writer.sync_all().await
+    }
+    .await;
+    if let Err(error) = copied {
+        drop(writer);
+        if let Err(cleanup) = tokio::fs::remove_file(target).await {
+            crate::infrastructure::diagnostics::warn("downloads.publish.cleanup", cleanup);
+        }
+        return Err(error);
+    }
+    drop(writer);
+    if let Err(error) = tokio::fs::remove_file(source).await {
+        crate::infrastructure::diagnostics::warn("downloads.publish.source", error);
+    }
+    Ok(())
 }
 
 fn filename(track: &Track, format: &str) -> String {
@@ -1250,6 +1287,33 @@ mod tests {
             file
         );
         assert!(download_path(directory.path(), None).is_err());
+    }
+
+    #[tokio::test]
+    async fn cross_device_copy_publishes_bytes_and_removes_source() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("download.part");
+        let target = directory.path().join("song.flac");
+        std::fs::write(&source, b"fLaC").unwrap();
+
+        copy_across_devices(&source, &target).await.unwrap();
+
+        assert_eq!(std::fs::read(target).unwrap(), b"fLaC");
+        assert!(!source.exists());
+    }
+
+    #[tokio::test]
+    async fn cross_device_copy_does_not_replace_existing_target() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("download.part");
+        let target = directory.path().join("song.flac");
+        std::fs::write(&source, b"new").unwrap();
+        std::fs::write(&target, b"old").unwrap();
+
+        assert!(copy_across_devices(&source, &target).await.is_err());
+
+        assert_eq!(std::fs::read(target).unwrap(), b"old");
+        assert_eq!(std::fs::read(source).unwrap(), b"new");
     }
 
     #[tokio::test]
