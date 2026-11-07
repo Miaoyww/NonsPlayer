@@ -38,11 +38,13 @@ async function harness({
       fades: false,
       crossfade: false,
       crossfadeDurationMs: 3000,
-      taskbarCover: false
+      taskbarCover: false,
+      autoplay: false
     }
   }
   let musicOptions = { quality: 'exhigh', allowDowngrade: true }
   const musicUpdates = []
+  const doubleClickSettings = { action: 'play', scope: 'single' }
   let devices = deviceList
   const listeners = new Set()
   const calls = []
@@ -101,6 +103,11 @@ async function harness({
       SelectTrigger: () => null,
       SelectValue: () => null
     },
+    '@/components/ui/toggle-group': {
+      ToggleGroup: ({ children }) => React.createElement('div', null, children),
+      ToggleGroupItem: ({ value, children }) =>
+        React.createElement('button', { type: 'button', 'data-value': value }, children)
+    },
     '@/features/settings/shell/settings-card': {
       SettingsCard: ({ title, description, children }) =>
         React.createElement(
@@ -141,6 +148,9 @@ async function harness({
       selectBrowserOutput: async (id) => {
         browserCalls.push(['selectBrowserOutput', id])
       }
+    },
+    '@/features/playback/track/use-track-double-click': {
+      useTrackDoubleClickSettings: () => [doubleClickSettings, () => {}]
     },
     '@/lib/player': {
       usePlayer: () =>
@@ -233,6 +243,43 @@ test('quality preference persists the selected streaming quality', async () => {
   }
 })
 
+test('playback settings group controls, song actions and output devices', async () => {
+  const app = await harness()
+  try {
+    const headings = [...document.querySelectorAll('section[aria-labelledby] > h3')].map(
+      (heading) => heading.textContent
+    )
+    assert.deepEqual(headings, ['播放控制', '歌曲操作', '输出设备'])
+    const controls = document.getElementById('playback-controls-heading').closest('section')
+    assert.ok(controls.querySelector('[data-title="自动播放"]'))
+    assert.match(
+      controls.querySelector('[data-title="自动播放"]').textContent,
+      /进入 Nons 后自动播放当前音乐/
+    )
+    assert.ok(controls.querySelector('[data-title="音质偏好"]'))
+    assert.ok(controls.querySelector('[data-title="播放/暂停渐变"]'))
+    const songActions = document.getElementById('playback-song-actions-heading').closest('section')
+    assert.ok(songActions.querySelector('[data-title="双击播放行为"]'))
+    assert.ok(songActions.querySelector('[data-title="双击播放范围"]'))
+    const output = document.getElementById('playback-output-heading').closest('section')
+    assert.ok(output.querySelector('[data-title="输出设备"]'))
+  } finally {
+    await app.dispose()
+  }
+})
+
+test('startup autoplay is opt-in and saved with playback options', async () => {
+  const app = await harness()
+  try {
+    assert.equal(app.input('启动后自动播放').checked, false)
+    await React.act(async () => app.input('启动后自动播放').click())
+    const [, args] = app.calls.find(([command]) => command === 'set_playback_options')
+    assert.equal(args.options.autoplay, true)
+  } finally {
+    await app.dispose()
+  }
+})
+
 test('taskbar cover is opt-in and Windows only', async () => {
   const windows = await harness()
   try {
@@ -285,7 +332,13 @@ test('playback fades and crossfade wait for persistence and retain the previous 
     assert.deepEqual(JSON.parse(JSON.stringify(app.calls.at(-1))), [
       'set_playback_options',
       {
-        options: { fades: true, crossfade: true, crossfadeDurationMs: 6000, taskbarCover: false }
+        options: {
+          fades: true,
+          crossfade: true,
+          crossfadeDurationMs: 6000,
+          taskbarCover: false,
+          autoplay: false
+        }
       }
     ])
   } finally {

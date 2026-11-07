@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 播放
+
+- 播放设置新增“自动播放”开关，开启后进入 Nons 时从上次进度继续播放当前音乐。
+- 播放设置按播放控制、歌曲操作与输出设备分区；常规设置中的双击播放选项移至播放设置。
+
 ## [1.12.0] - 2026-11-07
 
 ![NonsPlayer v1.12.0 哔哩哔哩适配器与全屏 MV头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.0/docs/release-assets/header.png)

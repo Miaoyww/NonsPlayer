@@ -36,7 +36,13 @@ function harness({ platform = 'Windows', tauri = true, readyError } = {}) {
     privateFmSession: null,
     shuffle: false,
     repeatMode: 'off',
-    playbackOptions: { fades: true, crossfade: true, crossfadeDurationMs: 6000 },
+    playbackOptions: {
+      fades: true,
+      crossfade: true,
+      crossfadeDurationMs: 6000,
+      taskbarCover: false,
+      autoplay: false
+    },
     deviceId: 'native-output-id',
     actualQuality: null,
     error: null,
@@ -171,9 +177,15 @@ for (const platform of ['Windows', 'Macintosh', 'Linux'])
       assert.equal(app.player.getPlayer().deviceId, app.state.deviceId)
       assert.equal(app.player.getPlayer().playbackOptions, app.state.playbackOptions)
       assert.equal(app.player.getProgress().positionMs, 12000)
-      app.emit('player-state', { ...app.state, sequence: 2, volume: 0.3 })
+      app.emit('player-state', {
+        ...app.state,
+        sequence: 2,
+        volume: 0.3,
+        playbackOptions: { ...app.state.playbackOptions, autoplay: true }
+      })
       app.emit('player-progress', { ...app.progress, sequence: 2, positionMs: 24000 })
       assert.equal(app.player.getPlayer().volume, 0.3)
+      assert.equal(app.player.getPlayer().playbackOptions.autoplay, true)
       assert.equal(app.player.getProgress().positionMs, 24000)
       assert.deepEqual(app.errors, [])
     } finally {

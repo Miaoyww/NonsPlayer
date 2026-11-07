@@ -971,6 +971,7 @@ pub fn run() {
                 music.clone(),
                 hwnd,
             )?);
+            let startup_player = player.clone();
             let plugin_manager = plugins::PluginManager::new(
                 app.handle().clone(),
                 &data,
@@ -1101,6 +1102,9 @@ pub fn run() {
                 }
                 downloads_startup.start();
                 crate::performance::startup_ready();
+                if let Err(error) = startup_player.autoplay_on_startup() {
+                    crate::infrastructure::diagnostics::warn("playback.autoplay.startup", error);
+                }
                 telemetry.report(telemetry_app, launch_time).await;
             });
             #[cfg(desktop)]

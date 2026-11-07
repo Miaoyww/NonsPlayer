@@ -69,6 +69,7 @@ export interface PlayerSnapshot {
     crossfade: boolean
     crossfadeDurationMs: number
     taskbarCover: boolean
+    autoplay: boolean
   }
   privateFmSession: number | null
   privateFmError?: string
@@ -111,7 +112,8 @@ const initialSnapshot: PlayerSnapshot = {
     fades: false,
     crossfade: false,
     crossfadeDurationMs: 3000,
-    taskbarCover: false
+    taskbarCover: false,
+    autoplay: false
   },
   privateFmSession: null,
   shuffle: false,

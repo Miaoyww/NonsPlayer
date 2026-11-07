@@ -29,6 +29,7 @@ pub struct PlaybackOptions {
     pub crossfade: bool,
     pub crossfade_duration_ms: u32,
     pub taskbar_cover: bool,
+    pub autoplay: bool,
 }
 
 impl Default for PlaybackOptions {
@@ -38,6 +39,7 @@ impl Default for PlaybackOptions {
             crossfade: false,
             crossfade_duration_ms: 3000,
             taskbar_cover: false,
+            autoplay: false,
         }
     }
 }

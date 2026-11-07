@@ -196,6 +196,12 @@ fn restore_player(mut state: PlayerSnapshot) -> PlayerSnapshot {
     state
 }
 
+fn should_autoplay_on_startup(state: &PlayerSnapshot) -> bool {
+    state.playback_options.autoplay
+        && state.status == PlaybackStatus::Stopped
+        && state.current().is_some()
+}
+
 fn stored_options(store: &Store, fallback: PlaybackOptions) -> AppResult<PlaybackOptions> {
     Ok(match store.setting("playbackOptions")? {
         Some(value) => serde_json::from_str(&value)
@@ -367,6 +373,23 @@ impl Player {
                 crate::infrastructure::diagnostics::warn("playback.options.reply_timeout", error);
             })
             .map_err(|_| "保存播放设置超时".to_string())?
+    }
+
+    pub fn autoplay_on_startup(&self) -> AppResult<()> {
+        let should_autoplay = {
+            let state = self
+                .snapshot
+                .read()
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("playback.autoplay.state_read", error);
+                })
+                .map_err(|_| "播放状态不可用")?;
+            should_autoplay_on_startup(&state.snapshot)
+        };
+        if should_autoplay {
+            self.send(Command::Resume)?;
+        }
+        Ok(())
     }
 
     pub fn web_ready(&self) -> AppResult<super::engine::Control> {
@@ -2077,7 +2100,7 @@ mod tests {
     }
 
     #[test]
-    fn playback_options_restore_defaults_and_persist_both_switches_independently() {
+    fn playback_options_restore_defaults_and_persist_independently() {
         let directory = crate::test_support::TestDir::new();
         let path = directory.0.join("options.sqlite3");
         let store = Store::open(&path).unwrap();
@@ -2093,21 +2116,24 @@ mod tests {
             serde_json::from_str::<PlaybackOptions>("{}").unwrap(),
             PlaybackOptions::default()
         );
-        for fades in [false, true] {
-            for crossfade in [false, true] {
-                let options = PlaybackOptions {
-                    fades,
-                    crossfade,
-                    ..PlaybackOptions::default()
-                };
-                store
-                    .set_setting("playbackOptions", &serde_json::to_string(&options).unwrap())
-                    .unwrap();
-                let reopened = Store::open(&path).unwrap();
-                assert_eq!(
-                    stored_options(&reopened, PlaybackOptions::default()).unwrap(),
-                    options
-                );
+        for autoplay in [false, true] {
+            for fades in [false, true] {
+                for crossfade in [false, true] {
+                    let options = PlaybackOptions {
+                        fades,
+                        crossfade,
+                        autoplay,
+                        ..PlaybackOptions::default()
+                    };
+                    store
+                        .set_setting("playbackOptions", &serde_json::to_string(&options).unwrap())
+                        .unwrap();
+                    let reopened = Store::open(&path).unwrap();
+                    assert_eq!(
+                        stored_options(&reopened, PlaybackOptions::default()).unwrap(),
+                        options
+                    );
+                }
             }
         }
     }
@@ -2200,6 +2226,20 @@ mod tests {
         let restored = restore_player(saved);
         assert_eq!(restored.duration_ms, 180_000);
         assert_eq!(restored.position_ms, 42_000);
+    }
+
+    #[test]
+    fn startup_autoplay_requires_enabled_setting_and_a_stopped_current_track() {
+        let mut state = snapshot(1, 42_000, RepeatMode::Off);
+        state.status = PlaybackStatus::Stopped;
+        assert!(!should_autoplay_on_startup(&state));
+        state.playback_options.autoplay = true;
+        assert!(should_autoplay_on_startup(&state));
+        state.index = None;
+        assert!(!should_autoplay_on_startup(&state));
+        state.index = Some(1);
+        state.status = PlaybackStatus::Paused;
+        assert!(!should_autoplay_on_startup(&state));
     }
 
     #[test]

@@ -12,14 +12,24 @@ import {
 } from 'lucide-react'
 
 export const settingsSections = [
-  { id: 'general', label: '常规设置', description: '调整应用行为与匿名使用统计。', icon: Settings },
+  {
+    id: 'general',
+    label: '常规设置',
+    description: '调整窗口与启动、引导和隐私统计。',
+    icon: Settings
+  },
   {
     id: 'personalization',
     label: '个性化设置',
     description: '调整主题、字体、播放栏与界面密度。',
     icon: SlidersHorizontal
   },
-  { id: 'playback', label: '播放设置', description: '调整音质与播放行为。', icon: Volume2 },
+  {
+    id: 'playback',
+    label: '播放设置',
+    description: '调整播放控制、歌曲操作与输出设备。',
+    icon: Volume2
+  },
   {
     id: 'download',
     label: '下载设置',

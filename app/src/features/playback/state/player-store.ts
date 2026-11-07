@@ -65,7 +65,8 @@ export function createPlayerStore(initial: PlayerSnapshot, now = () => performan
           value.playbackOptions.crossfade === snapshot.playbackOptions.crossfade &&
           value.playbackOptions.crossfadeDurationMs ===
             snapshot.playbackOptions.crossfadeDurationMs &&
-          value.playbackOptions.taskbarCover === snapshot.playbackOptions.taskbarCover
+          value.playbackOptions.taskbarCover === snapshot.playbackOptions.taskbarCover &&
+          value.playbackOptions.autoplay === snapshot.playbackOptions.autoplay
             ? snapshot.playbackOptions
             : value.playbackOptions,
         queue: queue.queue,

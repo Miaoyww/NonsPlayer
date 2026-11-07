@@ -19,14 +19,6 @@ type SearchGroup = {
 const groups: SearchGroup[] = [
   {
     section: 'general',
-    path: '常规设置 / 歌曲操作',
-    items: [
-      ['track-double-click-action', '双击播放行为', '歌曲 加入下一曲 立即播放'],
-      ['track-double-click-scope', '双击播放范围', '歌曲 播放此队列 当前列表 仅播放这一首 单曲']
-    ]
-  },
-  {
-    section: 'general',
     path: '常规设置 / 窗口与启动',
     items: [
       ['close-behavior', '关闭主面板时', '未定 询问 记住 最小化 托盘 退出'],
@@ -55,15 +47,28 @@ const groups: SearchGroup[] = [
   },
   {
     section: 'playback',
-    path: '播放设置',
+    path: '播放设置 / 播放控制',
     items: [
-      ['output-device', '输出设备', '扬声器 耳机 声卡 系统默认'],
+      ['autoplay', '自动播放', '进入 Nons 启动 当前音乐 继续播放'],
       ['quality-preference', '音质偏好', '标准 较高 极高 无损 Hi-Res 流媒体'],
       ['quality-downgrade', '允许音质降级', '不可用'],
       ['playback-fades', '播放/暂停渐变', '淡入 淡出 过渡'],
       ['crossfade', '交叉淡入淡出', 'WebAudio 自动切歌 重叠 过渡时长'],
       ['taskbar-cover', '任务栏封面', '缩略图 悬停 当前歌曲 封面']
     ]
+  },
+  {
+    section: 'playback',
+    path: '播放设置 / 歌曲操作',
+    items: [
+      ['track-double-click-action', '双击播放行为', '歌曲 加入下一曲 立即播放'],
+      ['track-double-click-scope', '双击播放范围', '歌曲 播放此队列 当前列表 仅播放这一首 单曲']
+    ]
+  },
+  {
+    section: 'playback',
+    path: '播放设置 / 输出设备',
+    items: [['output-device', '输出设备', '扬声器 耳机 声卡 系统默认']]
   },
   {
     section: 'download',
