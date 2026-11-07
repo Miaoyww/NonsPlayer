@@ -6,6 +6,11 @@
   position: relative;
   padding-top: var(--nons-safe-area-top, env(safe-area-inset-top));
 }
+:root[data-platform='android'] .android-titlebar {
+  flex-shrink: 0;
+  padding-top: var(--nons-safe-area-top, env(safe-area-inset-top));
+  background: var(--background);
+}
 :root[data-platform='android'] .music-workspace {
   padding-top: 0;
 }

@@ -1,6 +1,7 @@
 import { AggregateLibraryProvider } from '@/features/aggregate/aggregate-library'
 import { MotionConfig } from 'motion/react'
 import { Titlebar } from '@/features/workspace/titlebar'
+import { AndroidTitlebar } from '@/features/workspace/android-titlebar'
 import { WelcomeTitlebar } from '@/features/onboarding/welcome-titlebar'
 import { MusicWorkspace } from '@/features/workspace/music-workspace'
 import { MusicOptionsProvider } from '@/features/playback/now-playing/music-options'
@@ -60,7 +61,14 @@ function App() {
                         </>
                       ) : (
                         <>
-                          <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
+                          {isAndroid() ? (
+                            <AndroidTitlebar playerMode={nowPlaying} />
+                          ) : (
+                            <Titlebar
+                              playerMode={nowPlaying}
+                              onBack={() => setNowPlaying(false)}
+                            />
+                          )}
                           <MusicWorkspace
                             nowPlaying={nowPlaying}
                             playerVisible={playerPhase !== 'closed'}
