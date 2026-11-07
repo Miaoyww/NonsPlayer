@@ -176,6 +176,31 @@
   padding-inline: 0;
   font-size: 1rem;
 }
+.mobile-library-tabs-row {
+  gap: 8px;
+  margin: 28px 0 16px;
+}
+.mobile-library-tabs-row .library-tabs {
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+}
+.mobile-library-tabs-row .library-tab {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.mobile-library-tabs-row .library-playlist-tab .library-tab {
+  padding-right: 2px;
+}
+.mobile-library-tabs-row .library-filter-trigger {
+  width: 24px;
+  padding: 0 4px 0 0;
+}
+.mobile-library-tabs-row > div:last-child {
+  gap: 4px;
+}
 .track-table-container[data-mobile='true'] {
   overflow-x: hidden;
   margin-inline: 0;

@@ -81,7 +81,6 @@ const filters = [
 const tabs = [
   { value: 'playlist', label: '歌单' },
   { value: 'album', label: '专辑' },
-  { value: 'artist', label: '艺人' },
   { value: 'history', label: '听歌记录' }
 ] as const
 
@@ -585,7 +584,7 @@ export default function MobileMusicLibrary({
               )}
             </div>
           </div>
-          <div className="library-tabs-row">
+          <div className="library-tabs-row mobile-library-tabs-row">
             <div className="library-tabs" aria-label="音乐收藏分类">
               <div className="library-playlist-tab" data-active={tab === 'playlist'}>
                 <ActionButton
@@ -643,9 +642,10 @@ export default function MobileMusicLibrary({
                 ))}
             </div>
             <div className="flex items-center gap-2">
-              {tab === 'playlist' && <CreateAggregatePlaylist onError={onError} />}
+              {tab === 'playlist' && <CreateAggregatePlaylist onError={onError} iconOnly />}
               {tab === 'playlist' && profile && !readOnly && (
                 <CreatePlaylist
+                  iconOnly
                   onCreated={() => {
                     setRefresh((value) => value + 1)
                   }}

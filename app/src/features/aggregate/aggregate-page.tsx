@@ -33,10 +33,12 @@ import {
 
 export function CreateAggregatePlaylist({
   onError,
-  variant = 'ghost'
+  variant = 'ghost',
+  iconOnly = false
 }: {
   onError: (cause: unknown) => void
   variant?: 'ghost' | 'outline'
+  iconOnly?: boolean
 }) {
   const { reload } = useAggregateLibrary()
   const { navigate } = useMusicNavigation()
@@ -45,9 +47,15 @@ export function CreateAggregatePlaylist({
   const [busy, setBusy] = useState(false)
   return (
     <>
-      <ActionButton variant={variant} disabled={!isTauri()} onClick={() => setCreate(true)}>
+      <ActionButton
+        variant={variant}
+        size={iconOnly ? 'icon' : 'default'}
+        aria-label="创建聚合歌单"
+        disabled={!isTauri()}
+        onClick={() => setCreate(true)}
+      >
         <Plus aria-hidden="true" />
-        创建聚合歌单
+        {!iconOnly && '创建聚合歌单'}
       </ActionButton>
       <Dialog
         open={create}
