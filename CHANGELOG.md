@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-11-07
+
+![NonsPlayer v1.12.0 哔哩哔哩适配器与全屏 MV头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.0/docs/release-assets/header.png)
+
+NonsPlayer 1.12.0 哔哩哔哩适配器与全屏 MV。本次 Release 提供 **Windows x64、Linux x64、Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 ### 音乐库与发现
 
 - 新增哔哩哔哩 Rust 适配器，支持视频搜索、音轨播放与 MV 搜索和解析，并保留 CDN 备用地址；适配器支持二维码登录，Cookie 由通用账号管理器统一保存、校验并在失效后处理。
