@@ -2,7 +2,7 @@ import { presentationKey } from '@/lib/runtime-cache'
 import { reportCaughtError } from '@/lib/diagnostics'
 import { ErrorNotice } from '@/components/error-notice'
 import { TrackListSkeleton } from '@/components/music/loading'
-import { CollectionHeader } from '@/features/library/collection/collection-header'
+import { PlaylistCollectionHeader } from '@/features/library/playlist/playlist-collection-header'
 import { PlaylistPageShell } from '@/features/library/playlist/playlist-page-shell'
 import { useCallback, useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
@@ -113,7 +113,7 @@ export default function LocalPlaylistPage({
       <PlaylistPageShell
         hasMore={list.more}
         header={
-          <CollectionHeader
+          <PlaylistCollectionHeader
             collection={collection}
             total={collection.trackCount}
             busy={playing}

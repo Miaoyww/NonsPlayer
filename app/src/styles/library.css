@@ -521,6 +521,53 @@
     min-height: 0;
   }
 }
+.library-detail-header.playlist-collection-header {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.playlist-detail-summary {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+.playlist-collection-header .library-detail-info {
+  align-self: flex-end;
+  width: auto;
+  min-height: 0;
+}
+.playlist-collection-header .library-detail-title {
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.library-collection-header.playlist-collection-header .library-detail-actions {
+  gap: 10px;
+  margin-top: 0;
+}
+.playlist-collection-header .library-detail-actions button {
+  height: 44px;
+  padding-inline: 18px;
+  font-size: 14px;
+}
+.playlist-collection-header .library-detail-actions button[data-size='icon'] {
+  width: 44px;
+}
+.playlist-collection-header .library-detail-actions .library-detail-play {
+  padding-inline: 20px 24px;
+}
+.playlist-collection-header .library-detail-actions .collection-search {
+  flex: 1 1 180px;
+  width: auto;
+  margin-left: 0;
+}
+.playlist-collection-header .collection-search > svg {
+  top: 15px;
+}
+.playlist-collection-header .collection-search input {
+  height: 44px;
+}
 .library-liked-open:focus-visible,
 .library-song:focus-visible,
 .library-cover-open:focus-visible,

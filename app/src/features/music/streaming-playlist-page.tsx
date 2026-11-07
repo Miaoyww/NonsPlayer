@@ -4,7 +4,7 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { CollectionHeader } from '@/features/library/collection/collection-header'
+import { PlaylistCollectionHeader } from '@/features/library/playlist/playlist-collection-header'
 import { PlaylistPageShell } from '@/features/library/playlist/playlist-page-shell'
 import { PlatformPlaylistMenu } from '@/features/aggregate/platform-playlist-menu'
 import { playLibraryCollection } from '@/features/library/shared/library-api'
@@ -156,7 +156,7 @@ function StreamingPlaylistContent({ collection, onError, onNotice }: StreamingPl
     <PlaylistPageShell
       hasMore={query.current.more}
       header={
-        <CollectionHeader
+        <PlaylistCollectionHeader
           collection={detail}
           description={description}
           actions={
