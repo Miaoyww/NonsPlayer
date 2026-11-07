@@ -1,5 +1,5 @@
 import { reportCaughtError } from '@/lib/diagnostics'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import {
@@ -38,8 +38,13 @@ import { SettingsSearchDestination, type SettingsSearchTarget } from './settings
 
 export function SettingsDialog({
   onOpenPage,
-  onOpenAccounts
-}: { onOpenPage?: (section?: string) => void; onOpenAccounts?: () => void } = {}) {
+  onOpenAccounts,
+  trigger
+}: {
+  onOpenPage?: (section?: string) => void
+  onOpenAccounts?: () => void
+  trigger?: ReactElement
+} = {}) {
   const openPage = useRef(onOpenPage)
   openPage.current = onOpenPage
   const [open, setOpen] = useState(false)
@@ -120,18 +125,22 @@ export function SettingsDialog({
   if (onOpenPage)
     return (
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon-lg"
-              aria-label="打开菜单"
-              className="titlebar-settings"
-            />
-          }
-        >
-          <Menu aria-hidden="true" />
-        </SheetTrigger>
+        {trigger ? (
+          <SheetTrigger render={trigger} />
+        ) : (
+          <SheetTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-lg"
+                aria-label="打开菜单"
+                className="titlebar-settings"
+              />
+            }
+          >
+            <Menu aria-hidden="true" />
+          </SheetTrigger>
+        )}
         <SheetContent>
           <div className="flex shrink-0 items-center justify-between gap-3 px-4 pb-4 pt-6">
             <div>

@@ -30,14 +30,13 @@ import { AlbumCard } from '@/features/library/album/album-card'
 import { ArtistCard } from '@/features/library/artist/artist-card'
 import { PlaylistCard } from '@/features/library/playlist/playlist-card'
 import { CollectionHeader } from '@/features/library/collection/collection-header'
-import { ListeningStatisticsCard } from '@/features/library/music-library/listening-statistics-card'
 import { SongContextMenu } from '@/components/music/song-actions'
 import { TrackTitle } from '@/components/music/track-title'
 // Layout and interaction adapted from YesPlayMusic src/views/library.vue.
 // Copyright (c) 2020-2023 qier222, MIT. See notices/YesPlayMusic-LICENSE.txt.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { Play, RefreshCw, UserRound } from 'lucide-react'
+import { ChevronRight, Play, RefreshCw, Settings } from 'lucide-react'
 import { errorText, nativeCall, usePlayer, type Track } from '@/lib/player'
 import {
   getLibraryCollections,
@@ -72,6 +71,11 @@ import { InfiniteLoad } from '@/components/music/infinite-load'
 import { usePagedList } from '@/lib/use-paged-list'
 import { LyricExcerpt } from '@/features/lyrics/lyric-excerpt'
 import { reconcileTracks } from '@/features/library/music-library/reconcile-tracks'
+import { Button } from '@/components/ui/button'
+import { SettingsDialog } from '@/features/settings/shell/settings-dialog'
+import { AccountAvatar } from '@/features/account/account-avatar'
+import { useMusicSources } from '@/features/music/use-music-sources'
+import { sourceLabel } from '@/features/music/source-label'
 
 const filters = [
   { value: 'all', label: '全部歌单' },
@@ -150,6 +154,7 @@ export default function MobileMusicLibrary({
   const aggregate = useAggregateLibrary()
   const replacement = useAggregateReplacement()
   const { page, navigate } = useMusicNavigation()
+  const sources = useMusicSources()
   const player = usePlayer('index', 'queue')
   const currentKey = player.index !== null ? player.queue[player.index]?.key : undefined
   const [summaryState, setSummary] = useState<LibrarySummary | undefined>(() =>
@@ -416,21 +421,46 @@ export default function MobileMusicLibrary({
         <>
           <header className="library-profile">
             <div className="library-profile-main">
-              {profile?.avatarUrl ? (
-                <Cover
-                  size="small"
-                  cover={profile.avatarUrl}
-                  className="library-avatar rounded-full"
-                />
-              ) : (
-                <UserRound className="library-avatar bg-muted p-2" aria-hidden="true" />
-              )}
-              <h1 className="library-heading">
-                {profile ? `${profile.nickname}的音乐库` : '我的音乐库'}
-              </h1>
+              <h1 className="library-heading">音乐库</h1>
+              <SettingsDialog
+                onOpenPage={(section = '') => navigate('settings', section)}
+                onOpenAccounts={() => navigate('accounts')}
+                trigger={
+                  <Button
+                    variant="ghost"
+                    size="icon-lg"
+                    className="mobile-library-settings"
+                    aria-label="设置"
+                    title="设置"
+                  >
+                    <Settings aria-hidden="true" />
+                  </Button>
+                }
+              />
             </div>
-            <ListeningStatisticsCard revision={currentKey} />
           </header>
+          <button
+            type="button"
+            className="mobile-library-account-card"
+            onClick={() => navigate('accounts')}
+          >
+            <AccountAvatar
+              avatar={profile?.avatarUrl}
+              className="mobile-library-account-avatar"
+            />
+            <span className="mobile-library-account-copy">
+              <span className="mobile-library-account-name">{profile?.nickname ?? '音乐账号'}</span>
+              <span className="mobile-library-account-source">
+                {profile
+                  ? sourceLabel(
+                      profile.reference.source,
+                      sources.statuses.map((item) => item.descriptor)
+                    )
+                  : '点击登录'}
+              </span>
+            </span>
+            <ChevronRight className="mobile-library-account-chevron" aria-hidden="true" />
+          </button>
           {(accountLoading || accountError) && (
             <div
               role={accountError ? 'alert' : 'status'}

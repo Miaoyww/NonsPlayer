@@ -198,6 +198,67 @@
   width: 24px;
   padding: 0 4px 0 0;
 }
+:root[data-platform='android'] .library-profile-main {
+  width: 100%;
+  justify-content: space-between;
+}
+.mobile-library-settings {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+.mobile-library-settings svg {
+  width: 24px;
+  height: 24px;
+}
+.mobile-library-account-card {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 8px;
+  border-radius: 20px;
+  text-align: left;
+}
+.mobile-library-account-card:is(:hover, :focus-visible) {
+  background: color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+.mobile-library-account-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+.mobile-library-account-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+.mobile-library-account-name {
+  overflow: hidden;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobile-library-account-source {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobile-library-account-chevron {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
 .mobile-library-actions {
   margin-bottom: 16px;
 }
