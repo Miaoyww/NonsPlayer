@@ -7,7 +7,7 @@ import { useMusicNavigation, type MusicView } from './music-navigation'
 const pages = [
   ['library', '音乐库'],
   ['discover', '发现'],
-  ['local', '我的']
+  ['local', '本地']
 ] as const
 
 function isSelected(view: MusicView, current: MusicView) {
