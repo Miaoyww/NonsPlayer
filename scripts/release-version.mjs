@@ -107,8 +107,9 @@ function updateCargoToml(source, version) {
   const nextSection = source.indexOf('\n[', start + marker.length)
   const end = nextSection < 0 ? source.length : nextSection
   const section = source.slice(start, end)
+  if (!/^version\s*=\s*"[^"]*"/m.test(section))
+    throw new ReleaseError('Cargo.toml 的 [package] 缺少 version')
   const updated = section.replace(/^version\s*=\s*"[^"]*"/m, `version = "${version}"`)
-  if (updated === section) throw new ReleaseError('Cargo.toml 的 [package] 缺少 version')
   return source.slice(0, start) + updated + source.slice(end)
 }
 
