@@ -2,6 +2,7 @@ import { useLocalPreferences } from '@/features/local/use-local-preferences'
 import { Fragment, type MouseEvent } from 'react'
 import { type MusicCredit, type Track } from '@/lib/player'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
+import { isAndroid } from '@/lib/platform'
 
 export function ArtistLinks({
   artists,
@@ -13,6 +14,7 @@ export function ArtistLinks({
   separator?: string
 }) {
   const { navigate } = useMusicNavigation()
+  const mobile = isAndroid()
   const credits = artists?.length
     ? artists
     : name.split(' / ').map((name) => ({ name }) as MusicCredit)
@@ -21,7 +23,7 @@ export function ArtistLinks({
       {credits.map((artist, index) => (
         <Fragment key={`${artist.reference?.id ?? artist.name}:${index}`}>
           {index > 0 && <span className="music-credit-separator"> {separator} </span>}
-          {artist.reference ? (
+          {artist.reference && !mobile ? (
             <button
               type="button"
               className="music-entity-link"
@@ -130,6 +132,7 @@ export function formatReleaseDate(value?: number | null) {
 
 function LocalTrackArtists({ track }: { track: Track }) {
   const { navigate } = useMusicNavigation()
+  const mobile = isAndroid()
   const { options } = useLocalPreferences()
   let names = [track.artist]
   for (const separator of options.artistSeparators)
@@ -140,25 +143,29 @@ function LocalTrackArtists({ track }: { track: Track }) {
       {names.map((name, index) => (
         <Fragment key={name}>
           {index > 0 && <span className="music-credit-separator"> / </span>}
-          <button
-            type="button"
-            className="music-entity-link"
-            onClick={(event) => {
-              event.stopPropagation()
-              navigate('local-artist', '', {
-                id: 0,
-                localId: name,
-                reference: null,
-                kind: 'artist',
-                name,
-                cover: track.cover,
-                subtitle: '',
-                trackCount: 0
-              })
-            }}
-          >
-            {name}
-          </button>
+          {mobile ? (
+            <span>{name}</span>
+          ) : (
+            <button
+              type="button"
+              className="music-entity-link"
+              onClick={(event) => {
+                event.stopPropagation()
+                navigate('local-artist', '', {
+                  id: 0,
+                  localId: name,
+                  reference: null,
+                  kind: 'artist',
+                  name,
+                  cover: track.cover,
+                  subtitle: '',
+                  trackCount: 0
+                })
+              }}
+            >
+              {name}
+            </button>
+          )}
         </Fragment>
       ))}
     </span>

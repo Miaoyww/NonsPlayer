@@ -639,6 +639,7 @@ export const TrackList = memo(function TrackList({
                         data-selected={selectedKey === rowKey}
                         aria-selected={selectedKey === rowKey}
                         onDoubleClick={(event) => {
+                          if (mobile) return
                           const control = (event.target as HTMLElement).closest(
                             'button, a, input, select, textarea, [role="button"]'
                           )
@@ -650,11 +651,13 @@ export const TrackList = memo(function TrackList({
                         }}
                         onClick={(event) => {
                           if (
-                            !(event.target as HTMLElement).closest(
+                            (event.target as HTMLElement).closest(
                               'button, a, input, [role="button"]'
                             )
                           )
-                            setSelectedKey(rowKey)
+                            return
+                          setSelectedKey(rowKey)
+                          if (mobile) doubleClickPlay(playIndex)
                         }}
                         onKeyDown={(event) => {
                           if (event.target !== event.currentTarget) return
