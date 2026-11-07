@@ -251,7 +251,7 @@ export const TrackList = memo(function TrackList({
       body.current
         ? scrollParent(body.current.closest<HTMLElement>('.track-table-container')!)
         : null,
-    estimateSize: () => (cardMode === 'compact' ? 52 : 72),
+    estimateSize: () => (cardMode === 'compact' ? 52 : cardMode === 'mobile' ? 62 : 72),
     scrollMargin,
     overscan: 8,
     getItemKey,

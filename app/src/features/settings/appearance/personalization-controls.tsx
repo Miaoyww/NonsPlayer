@@ -83,22 +83,24 @@ export function PersonalizationControls({
           </ToggleGroup>
         </SettingsCard>
       )}
-      <SettingsCard
-        searchId="interface-density"
-        title="界面密度"
-        description="统一调整音乐页面的留白、详情封面、标题与歌曲行高。紧凑式显示更多内容，封面、歌名和艺术家仍一起放在左侧。"
-      >
-        <ToggleGroup
-          aria-label="界面密度"
-          value={[density]}
-          onValueChange={(values) => {
-            if (values[0]) setDensity(values[0] as InterfaceDensity)
-          }}
+      {!isAndroid() && (
+        <SettingsCard
+          searchId="interface-density"
+          title="界面密度"
+          description="统一调整音乐页面的留白、详情封面、标题与歌曲行高。紧凑式显示更多内容，封面、歌名和艺术家仍一起放在左侧。"
         >
-          <ToggleGroupItem value="standard">标准式</ToggleGroupItem>
-          <ToggleGroupItem value="compact">紧凑式</ToggleGroupItem>
-        </ToggleGroup>
-      </SettingsCard>
+          <ToggleGroup
+            aria-label="界面密度"
+            value={[density]}
+            onValueChange={(values) => {
+              if (values[0]) setDensity(values[0] as InterfaceDensity)
+            }}
+          >
+            <ToggleGroupItem value="standard">标准式</ToggleGroupItem>
+            <ToggleGroupItem value="compact">紧凑式</ToggleGroupItem>
+          </ToggleGroup>
+        </SettingsCard>
+      )}
     </div>
   )
 }

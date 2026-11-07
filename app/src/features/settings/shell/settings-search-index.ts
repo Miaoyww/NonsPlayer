@@ -196,7 +196,13 @@ const groups: SearchGroup[] = [
   }
 ]
 
-const desktopOnly = new Set(['close-behavior', 'autostart', 'playback-bar', 'taskbar-cover'])
+const desktopOnly = new Set([
+  'close-behavior',
+  'autostart',
+  'playback-bar',
+  'taskbar-cover',
+  'interface-density'
+])
 const windowsOnly = new Set(['taskbar-cover'])
 
 export function getSettingsSearchItems(): SettingsSearchItem[] {

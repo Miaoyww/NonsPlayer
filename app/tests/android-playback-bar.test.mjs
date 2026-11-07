@@ -7,7 +7,8 @@ import ts from 'typescript'
 function harness(android) {
   let expanded = false,
     lyrics = 0,
-    queue = 0
+    queue = 0,
+    actions = []
   const jsx = (type, props) => ({ type, props })
   const modules = {
     react: {
@@ -27,8 +28,11 @@ function harness(android) {
         queue: [{ title: 'Song', artist: 'Artist' }],
         status: 'playing'
       }),
+      useProgress: () => ({ positionMs: 0, durationMs: 0 }),
+      nativeCall: async (_command, payload) => actions.push(payload.action),
       statusLabels: { playing: '播放中' }
     },
+    '@tauri-apps/api/core': { isTauri: () => true },
     '@/components/music/track-title': { trackDisplayTitle: (track) => track.title },
     '@/components/music/track-identity': {
       TrackIdentity: ({ cover }) => jsx('track-identity', { children: cover })
@@ -46,6 +50,20 @@ function harness(android) {
       DesktopLyricsButton: 'desktop-lyrics-button'
     }
   }
+  const mobileExports = {}
+  runInNewContext(
+    ts.transpileModule(
+      readFileSync(
+        new URL('../src/features/playback/bar/mobile-playback-bar.tsx', import.meta.url),
+        'utf8'
+      ),
+      {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }
+      }
+    ).outputText,
+    { exports: mobileExports, require: (name) => modules[name] }
+  )
+  modules['@/features/playback/bar/mobile-playback-bar'] = mobileExports
   const exports = {}
   runInNewContext(
     ts.transpileModule(
@@ -66,7 +84,8 @@ function harness(android) {
         onQueue: () => queue++,
         onError: assert.fail
       }),
-    counts: () => ({ lyrics, queue })
+    counts: () => ({ lyrics, queue }),
+    actions: () => actions
   }
 }
 function find(node, predicate) {
@@ -82,29 +101,18 @@ const byType = (type) => (node) => node.type === type
 const details = (node) => node.props?.id === 'mobile-playback-details'
 const toggle = (node) => node.props?.['aria-controls'] === 'mobile-playback-details'
 
-test('Android starts collapsed, expands the upper card and retains the same transport on collapse', () => {
+test('Android uses the capsule with track, toggle and queue actions', () => {
   const app = harness(true)
-  let tree = app.render()
-  assert.equal(find(tree, details).props.inert, true)
-  assert.equal(find(tree, details).props['aria-hidden'], true)
-  assert.equal(find(tree, toggle).props['aria-expanded'], false)
+  const tree = app.render()
   assert.equal(find(tree, byType('volume')), undefined)
   assert.equal(find(tree, byType('timeline')), undefined)
   assert.equal(find(tree, byType('desktop-lyrics-button')), undefined)
-  assert.equal(find(tree, byType('transport')).props.withModes, true)
-  find(tree, toggle).props.onClick()
-  tree = app.render()
-  const card = find(tree, details)
-  assert.equal(card.props.inert, false)
-  assert.equal(find(tree, toggle).props['aria-expanded'], true)
-  find(card, (node) => node.props?.['aria-label'] === '打开正在播放').props.onClick()
-  find(card, byType('queue')).props.onPage()
+  assert.equal(find(tree, byType('like')), undefined)
+  find(tree, (node) => node.props?.['aria-label'] === '打开正在播放').props.onClick()
+  find(tree, (node) => node.props?.['aria-label'] === '暂停').props.onClick()
+  find(tree, (node) => node.props?.['aria-label'] === '打开播放队列').props.onClick()
   assert.deepEqual(app.counts(), { lyrics: 1, queue: 1 })
-  assert.ok(find(card, byType('like')))
-  find(tree, toggle).props.onClick()
-  tree = app.render()
-  assert.equal(find(tree, details).props.inert, true)
-  assert.ok(find(tree, byType('transport')))
+  assert.deepEqual(app.actions(), ['toggle'])
 })
 
 test('desktop retains track details, timeline and volume without the mobile expand control', () => {

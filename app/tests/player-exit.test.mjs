@@ -122,6 +122,7 @@ function harness(initialMode = 'collapsible', storage) {
     './use-android-back': { useAndroidBack() {} },
     './use-primary-music-page': { usePrimaryMusicPage: () => true },
     './mobile-page-header': { MobilePageHeader: 'MobilePageHeader' },
+    './mobile-navigation': { MobileNavigation: 'MobileNavigation' },
     '@/components/music/track-search-context': {
       TrackSearchContext: { Provider: 'TrackSearchContext' }
     },

@@ -4,13 +4,14 @@ import { test } from 'node:test'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
 import ts from 'typescript'
 
-function harness() {
+function harness(android = false) {
   const navigations = []
   const jsx = (type, props) => ({ type, props })
   const exports = {}
   const modules = {
     react: { Fragment: 'fragment' },
     'react/jsx-runtime': { jsx, jsxs: jsx },
+    '@/lib/platform': { isAndroid: () => android },
     '@/lib/player': {},
     '@/features/workspace/music-navigation': {
       useMusicNavigation: () => ({ navigate: (...args) => navigations.push(args) })
@@ -56,6 +57,15 @@ test('each structured artist navigates independently and preserves slash-contain
   assert.equal(app.navigations[0][0], 'artist')
   assert.equal(app.navigations[0][2].id, '10')
   assert.equal(entries[2].props.children[1].type, 'span')
+})
+
+test('mobile artists stay plain text so the song card can receive the tap', () => {
+  const app = harness(true)
+  const tree = app.ArtistLinks({
+    artists: [{ reference: { source: 'netease', kind: 'artist', id: '9' }, name: 'AC/DC' }]
+  })
+  assert.equal(tree.props.children[0].props.children[1].type, 'span')
+  assert.equal(app.navigations.length, 0)
 })
 
 test('album navigation retains ID and cover and prevents a parent play action', () => {

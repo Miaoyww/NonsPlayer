@@ -94,7 +94,7 @@ function QueuePanelTrackList({
   const virtualizer = useVirtualizer({
     count: state.queue.length,
     getScrollElement: () => parent.current,
-    estimateSize: () => (density === 'compact' ? 52 : 72),
+    estimateSize: () => (density === 'compact' ? 52 : density === 'mobile' ? 62 : 72),
     overscan: 6
   })
   useLayoutEffect(() => {

@@ -20,7 +20,7 @@ function isSelected(view: MusicView, current: MusicView) {
   )
 }
 
-export function MusicNavButtons({ mobile = false }: { mobile?: boolean }) {
+export function MusicNavButtons({ mobile = false }: { mobile?: boolean } = {}) {
   const sources = useMusicSources()
   const current = sources.statuses.find(
     (item) => item.descriptor.source === sources.preferences?.current && item.enabled

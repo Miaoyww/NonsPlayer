@@ -51,6 +51,11 @@
   gap: 12px;
   padding: 6px 12px;
 }
+.queue-track-card[data-mode='mobile'] {
+  height: 58px;
+  gap: 14px;
+  padding: 9px 14px;
+}
 .queue-track-card[data-current='true'] {
   background: var(--current-track-background);
   box-shadow: inset 3px 0 var(--current-track-marker);

@@ -19,14 +19,30 @@
 .track-identity[data-mode='compact'] .track-identity-artist {
   margin-top: 0;
 }
+.track-identity[data-mode='mobile'] {
+  gap: 11px;
+}
+.track-identity[data-mode='mobile'] .track-identity-cover {
+  width: 40px;
+  height: 40px;
+}
+.track-identity[data-mode='mobile'] .track-identity-artist {
+  margin-top: 2px;
+}
 .track-list .track-identity-cell {
   padding-block: 12px;
 }
 .track-list[data-mode='compact'] .track-identity-cell {
   padding-block: 6px;
 }
+.track-list[data-mode='mobile'] .track-identity-cell {
+  padding-block: 9px;
+}
 .track-list[data-mode='compact'] .track-cover {
   border-radius: 8px;
+}
+.track-list[data-mode='mobile'] .track-cover {
+  border-radius: 9px;
 }
 .track-list {
   border-collapse: separate;

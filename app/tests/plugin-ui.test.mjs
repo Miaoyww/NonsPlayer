@@ -16,7 +16,11 @@ import ts from 'typescript'
 import { buildFrontend } from '../../scripts/plugin-build-ui.mjs'
 
 function load(path, modules) {
-  modules = { '@/features/music/cover-image': coverImage, ...modules }
+  modules = {
+    '@/features/music/cover-image': coverImage,
+    '@/lib/platform': { isAndroid: () => false, isWindows: () => true },
+    ...modules
+  }
   const exports = {}
   const { outputText } = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX }

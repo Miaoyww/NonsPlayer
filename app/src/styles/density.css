@@ -142,6 +142,150 @@
 :where(.music-workspace[data-density='compact']) .queue-page-scroll {
   padding-inline: 24px;
 }
+
+:where(.music-workspace[data-density='mobile']) .music-page {
+  --music-page-inline: clamp(28px, 6vw, 112px);
+  --music-page-top: 76px;
+}
+:where(.music-workspace[data-density='mobile']) .library-detail-header {
+  --detail-cover-size: clamp(224px, 20.5vw, 280px);
+  gap: 38px;
+  margin-bottom: 30px;
+}
+:where(.music-workspace[data-density='mobile']) .library-detail-cover {
+  flex-shrink: 0;
+}
+:where(.music-workspace[data-density='mobile']) .library-detail-title {
+  font-size: clamp(32px, 3.4vw, 46px);
+}
+:where(.music-workspace[data-density='mobile']) .library-detail-info {
+  padding-block: 0;
+}
+:where(.music-workspace[data-density='mobile']) .library-detail-meta,
+:where(.music-workspace[data-density='mobile']) .library-detail-description {
+  margin-top: 16px;
+}
+:where(.music-workspace[data-density='mobile']) .library-detail-actions {
+  margin-top: auto;
+  padding-top: 14px;
+}
+:where(.music-workspace[data-density='mobile']) .library-collection-header .library-detail-meta,
+:where(.music-workspace[data-density='mobile'])
+  .library-collection-header
+  .library-detail-description {
+  margin-top: 12px;
+}
+:where(.music-workspace[data-density='mobile']) .library-collection-header .library-detail-actions {
+  margin-top: 22px;
+  padding-top: 0;
+}
+:where(.music-workspace[data-density='mobile']) .library-heading {
+  font-size: clamp(28px, 3.15vw, 38px);
+}
+:where(.music-workspace[data-density='mobile']) .music-page-heading {
+  margin-bottom: 20px;
+}
+:where(.music-workspace[data-density='mobile']) .library-featured {
+  gap: 30px;
+  margin-top: 26px;
+}
+:where(.music-workspace[data-density='mobile']) .library-liked-card,
+:where(.music-workspace[data-density='mobile']) .library-liked-open {
+  min-height: 198px;
+}
+:where(.music-workspace[data-density='mobile']) .library-liked-open {
+  gap: 20px;
+  padding: 18px 22px;
+}
+:where(.music-workspace[data-density='mobile']) .library-stats {
+  gap: 22px;
+  padding-left: 22px;
+}
+:where(.music-workspace[data-density='mobile']) .library-stats-list {
+  gap: 22px;
+}
+:where(.music-workspace[data-density='mobile']) .library-tabs-row {
+  margin: 30px 0 16px;
+}
+:where(.music-workspace[data-density='mobile']) .library-tab {
+  height: 38px;
+  font-size: 17px;
+}
+:where(.music-workspace[data-density='mobile']) .discover-playlist-grid,
+:where(.music-workspace[data-density='mobile']) .library-cover-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  gap: 24px 20px;
+}
+:where(.music-workspace[data-density='mobile']) .discover-playlist-grid > *,
+:where(.music-workspace[data-density='mobile']) .library-cover-grid > * {
+  max-width: 220px;
+}
+:where(.music-workspace[data-density='mobile']) .artist-releases {
+  margin-block: 28px;
+}
+:where(.music-workspace[data-density='mobile']) .artist-release-grid {
+  gap: 20px;
+}
+:where(.music-workspace[data-density='mobile']) .artist-release {
+  gap: 18px;
+}
+:where(.music-workspace[data-density='mobile']) .artist-release-cover {
+  width: clamp(96px, 9.5vw, 136px);
+}
+:where(.music-workspace[data-density='mobile']) .music-page-section-bar {
+  gap: 20px;
+  margin: 24px 0 18px;
+}
+:where(.music-workspace[data-density='mobile']) .music-page-section-bar h2 {
+  font-size: 24px;
+}
+:where(.music-workspace[data-density='mobile']) .discover-featured {
+  gap: 18px;
+}
+:where(.music-workspace[data-density='mobile']) .discover-shortcut {
+  gap: 11px;
+  padding: 11px;
+}
+:where(.music-workspace[data-density='mobile']) .discover-shortcut-cover {
+  width: 56px;
+  height: 56px;
+}
+:where(.music-workspace[data-density='mobile']) .discover-shortcut-title {
+  font-size: 20px;
+}
+:where(.music-workspace[data-density='mobile']) .discover-fm {
+  gap: 20px;
+  padding: 14px;
+}
+:where(.music-workspace[data-density='mobile']) .discover-fm-cover {
+  flex-shrink: 0;
+  width: clamp(112px, 13cqw, 152px);
+}
+:where(.music-workspace[data-density='mobile']) .discover-filters {
+  gap: 14px;
+  margin-bottom: 18px;
+}
+:where(.music-workspace[data-density='mobile']) .local-tabs-row {
+  gap: 20px;
+  margin-bottom: 22px;
+}
+:where(.music-workspace[data-density='mobile']) .local-folder-actions {
+  margin-bottom: 18px;
+}
+:where(.music-workspace[data-density='mobile']) .music-tabs {
+  height: 42px;
+}
+:where(.music-workspace[data-density='mobile']) .music-tabs [data-slot='tabs-tab'] {
+  padding: 7px 16px;
+  font-size: 15px;
+}
+:where(.music-workspace[data-density='mobile']) .queue-page-header {
+  padding: 32px 28px 18px;
+}
+:where(.music-workspace[data-density='mobile']) .queue-page-scroll {
+  padding-inline: 28px;
+}
+
 @media (max-width: 700px) {
   :where(.music-workspace[data-density='compact']) .music-page {
     --music-page-inline: 24px;
@@ -158,14 +302,40 @@
     font-size: 24px;
   }
 }
+@media (max-width: 700px) {
+  :where(.music-workspace[data-density='mobile']) .music-page {
+    --music-page-inline: 20px;
+  }
+  :where(.music-workspace[data-density='mobile']) .library-detail-header {
+    --detail-cover-size: 144px;
+    flex-direction: row;
+    gap: 20px;
+  }
+  :where(.music-workspace[data-density='mobile']) .library-detail-cover {
+    width: 144px;
+  }
+  :where(.music-workspace[data-density='mobile']) .library-detail-title {
+    font-size: 28px;
+  }
+}
 @container (max-width: 560px) {
   :where(.music-workspace[data-density='compact']) .discover-playlist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 560px) {
+  :where(.music-workspace[data-density='mobile']) .discover-playlist-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 700px) {
   :where(.music-workspace[data-density='compact']) .library-detail-cover {
+    width: max(var(--detail-cover-size), var(--detail-content-height, 0px));
+  }
+}
+@media (max-width: 700px) {
+  :where(.music-workspace[data-density='mobile']) .library-detail-cover {
     width: max(var(--detail-cover-size), var(--detail-content-height, 0px));
   }
 }

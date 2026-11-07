@@ -72,6 +72,7 @@ function harness(playerMode = false, initialFullscreen = false) {
     },
     '@/features/search/music-search': { MusicSearch: 'search' },
     './music-nav-buttons': { MusicNavButtons: 'nav-buttons' },
+    './music-navigation-items': { MusicNavigationItems: 'navigation-items' },
     '@/plugins/host': { usePlugins: () => ({ plugins: [], loaded: new Set() }) },
     '@/plugins/types': {},
     '@/features/lyrics/panel-visibility': {

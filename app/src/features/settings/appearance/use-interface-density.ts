@@ -2,16 +2,19 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { useSyncExternalStore } from 'react'
 import { isAndroid } from '@/lib/platform'
 
-export type InterfaceDensity = 'standard' | 'compact'
+export type InterfaceDensity = 'standard' | 'mobile' | 'compact'
 const storageKey = 'nons-interface-density'
 const listeners = new Set<() => void>()
-let mode: InterfaceDensity = isAndroid() ? 'compact' : 'standard'
+const mobile = isAndroid()
+let mode: InterfaceDensity = mobile ? 'mobile' : 'standard'
 function isMode(value: unknown): value is InterfaceDensity {
-  return value === 'standard' || value === 'compact'
+  return value === 'standard' || value === 'mobile' || value === 'compact'
 }
 try {
-  const saved = localStorage.getItem(storageKey)
-  if (isMode(saved)) mode = saved
+  if (!mobile) {
+    const saved = localStorage.getItem(storageKey)
+    if (isMode(saved)) mode = saved
+  }
 } catch (cause) {
   reportCaughtError('app/src/features/settings/appearance/use-interface-density.ts', cause)
 
@@ -24,7 +27,7 @@ const subscribe = (listener: () => void) => {
   }
 }
 function setMode(value: InterfaceDensity) {
-  if (!isMode(value) || value === mode) return
+  if (mobile || !isMode(value) || value === mode) return
   mode = value
   try {
     localStorage.setItem(storageKey, value)
