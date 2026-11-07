@@ -129,6 +129,13 @@ test('uniform details retain cursor and rows on failure, reload only their own s
       PlaylistPageShell: ({ header, children }) =>
         React.createElement(React.Fragment, {}, header, children)
     },
+    '@/features/library/playlist/playlist-collection-header': {
+      PlaylistCollectionHeader: (props) =>
+        React.createElement(
+          modules['@/features/library/collection/collection-header'].CollectionHeader,
+          props
+        )
+    },
     './collection-content': { CollectionSearch: () => null },
     './collection-kind': { CollectionKind: () => null },
     '@/components/music/music-links': { ArtistLinks: () => null },

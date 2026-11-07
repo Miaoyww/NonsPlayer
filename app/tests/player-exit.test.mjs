@@ -77,6 +77,7 @@ function harness(initialMode = 'collapsible', storage) {
       },
       'motion/react': { MotionConfig: 'MotionConfig' },
       '@/features/workspace/titlebar': { Titlebar: 'Titlebar' },
+      '@/features/workspace/android-titlebar': { AndroidTitlebar: 'AndroidTitlebar' },
       '@/features/onboarding/welcome-titlebar': { WelcomeTitlebar: 'WelcomeTitlebar' },
       '@/features/workspace/music-workspace': { MusicWorkspace: 'MusicWorkspace' },
       '@/features/desktop-lyrics/state': {
