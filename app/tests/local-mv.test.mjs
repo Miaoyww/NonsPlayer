@@ -44,6 +44,7 @@ async function hookHarness(
   const calls = []
   const slots = []
   const effects = []
+  const listeners = new Map()
   let cursor = 0
   const React = {
     useState(initial) {
@@ -96,6 +97,20 @@ async function hookHarness(
           return {
             localMvSource: (mv) => `asset://${mv.path}`,
             resolvedMvSource: (mv) => (mv.local ? `asset://${mv.source}` : mv.source)
+          }
+        if (name === '@tauri-apps/api/event')
+          return {
+            listen: async (event, handler) => {
+              const handlers = listeners.get(event) ?? []
+              handlers.push(handler)
+              listeners.set(event, handlers)
+              return () => {
+                listeners.set(
+                  event,
+                  (listeners.get(event) ?? []).filter((value) => value !== handler)
+                )
+              }
+            }
           }
         assert.equal(name, '@/lib/player')
         return {
@@ -150,6 +165,11 @@ async function hookHarness(
     },
     async setOffset(value) {
       await hook.setOffset(value)
+      hook = render()
+    },
+    async emit(event, payload) {
+      await Promise.resolve()
+      for (const handler of listeners.get(event) ?? []) handler({ payload })
       hook = render()
     }
   }
@@ -304,4 +324,42 @@ test('a saved adapter MV uses the asset protocol without becoming a local fallba
   assert.equal(await harness.toggle(), 'mv')
   assert.equal(harness.current.selection.url, 'asset://C:/data/mvs/saved.mp4')
   assert.equal(harness.current.selection.local, false)
+})
+
+test('a completed save switches the playing adapter MV to the saved file', async () => {
+  const binding = {
+    source: 'bilibili',
+    id: 'BV1xx411c7mD',
+    title: 'Official MV',
+    offsetMs: 250
+  }
+  const harness = await hookHarness(binding, null)
+  assert.equal(await harness.toggle(), 'mv')
+  await harness.emit('mv-saved', {
+    source: 'bilibili',
+    id: 'BV1xx411c7mD',
+    path: 'C:/data/mvs/saved.mp4'
+  })
+  assert.equal(harness.current.selection.url, 'asset://C:/data/mvs/saved.mp4')
+  assert.equal(harness.current.selection.localPath, 'C:/data/mvs/saved.mp4')
+  assert.equal(harness.current.selection.offsetMs, 250)
+  assert.equal(harness.current.selection.local, false)
+  assert.equal(harness.current.mode, 'mv')
+})
+
+test('a save event for another MV keeps the current source', async () => {
+  const binding = {
+    source: 'bilibili',
+    id: 'BV1xx411c7mD',
+    title: 'Official MV',
+    offsetMs: 0
+  }
+  const harness = await hookHarness(binding, null)
+  assert.equal(await harness.toggle(), 'mv')
+  await harness.emit('mv-saved', {
+    source: 'bilibili',
+    id: 'BV1other',
+    path: 'C:/data/mvs/other.mp4'
+  })
+  assert.equal(harness.current.selection.url, 'http://127.0.0.1/mv')
 })

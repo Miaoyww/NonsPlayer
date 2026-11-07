@@ -11,7 +11,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-use tauri::State;
+use tauri::{Emitter, State};
 use tauri_plugin_opener::OpenerExt;
 use tokio::io::AsyncWriteExt;
 
@@ -43,12 +43,18 @@ pub struct SavedMvs {
     http: Arc<Http>,
     directory: PathBuf,
     origin: String,
+    app: Option<tauri::AppHandle>,
     jobs: Mutex<HashSet<String>>,
     permits: Arc<tokio::sync::Semaphore>,
 }
 
 impl SavedMvs {
-    pub fn new(store: Arc<Store>, http: Arc<Http>, directory: PathBuf) -> AppResult<Arc<Self>> {
+    pub fn new(
+        store: Arc<Store>,
+        http: Arc<Http>,
+        directory: PathBuf,
+        app: Option<tauri::AppHandle>,
+    ) -> AppResult<Arc<Self>> {
         std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
         cleanup_partials(&directory);
         let origin = directory
@@ -62,6 +68,7 @@ impl SavedMvs {
             http,
             directory,
             origin,
+            app,
             jobs: Mutex::new(HashSet::new()),
             permits: Arc::new(tokio::sync::Semaphore::new(2)),
         }))
@@ -370,6 +377,19 @@ impl SavedMvs {
             let _ = tokio::fs::remove_file(&final_path).await;
             return Err(format!("保存 MV 记录失败：{error}"));
         }
+        if let Some(app) = &self.app {
+            let _ = (app.emit(
+                "mv-saved",
+                SavedMv {
+                    source: source.as_str().to_owned(),
+                    id: mv_id.to_owned(),
+                    path: path.clone(),
+                },
+            ))
+            .inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("mv.save.emit", error);
+            });
+        }
         Ok(())
     }
 
@@ -383,6 +403,13 @@ impl SavedMvs {
             }
         }
     }
+}
+
+#[derive(Clone, Serialize)]
+struct SavedMv {
+    source: String,
+    id: String,
+    path: String,
 }
 
 fn identity(source: &str, mv_id: &str) -> String {
@@ -479,6 +506,7 @@ mod tests {
             store,
             Arc::new(Http::new().unwrap()),
             directory.path().join("mvs"),
+            None,
         )
         .unwrap();
         assert!(saved.settings().unwrap().enabled);
@@ -494,6 +522,7 @@ mod tests {
             store.clone(),
             Arc::new(Http::new().unwrap()),
             directory.path().join("mvs"),
+            None,
         )
         .unwrap();
         saved.set_enabled(false).unwrap();
@@ -544,6 +573,7 @@ mod tests {
             store.clone(),
             Arc::new(Http::for_test(reqwest::Client::new())),
             directory.path().join("mvs"),
+            None,
         )
         .unwrap();
         let source = SourceId::try_from("test".to_owned()).unwrap();

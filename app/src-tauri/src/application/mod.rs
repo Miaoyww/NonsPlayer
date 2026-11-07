@@ -1066,8 +1066,12 @@ pub fn run() {
             )?;
             let downloads_startup = downloads.clone();
             let mv_proxy = crate::mv::MvProxy::new()?;
-            let saved_mvs =
-                crate::mv::SavedMvs::new(store.clone(), plugin_manager.shared_http(), mvs)?;
+            let saved_mvs = crate::mv::SavedMvs::new(
+                store.clone(),
+                plugin_manager.shared_http(),
+                mvs,
+                Some(app.handle().clone()),
+            )?;
             let plugins_startup = tauri::async_runtime::spawn(async move {
                 plugin_manager.startup().await;
             });

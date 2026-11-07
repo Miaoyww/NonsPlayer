@@ -1,4 +1,5 @@
 import { errorText, nativeCall } from '@/lib/player'
+import { listen } from '@tauri-apps/api/event'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clampLocalMvOffset } from './sync'
 import {
@@ -13,6 +14,12 @@ import {
 export type FullscreenDisplayMode = 'lyrics' | 'mv'
 export type MvActivation = FullscreenDisplayMode | 'select'
 export type MvButtonTarget = 'lyrics' | 'toggle'
+
+interface SavedMv {
+  source: string
+  id: string
+  path: string
+}
 
 export function mvButtonTarget(mode: FullscreenDisplayMode, page: string): MvButtonTarget {
   return page === 'mv' && mode === 'lyrics' ? 'lyrics' : 'toggle'
@@ -73,6 +80,44 @@ export function useLocalMv(trackKey: string | undefined, onError: (message: stri
     },
     []
   )
+
+  useEffect(() => {
+    let disposed = false
+    let stop: (() => void) | undefined
+    void listen<SavedMv>('mv-saved', ({ payload }) => {
+      if (disposed) return
+      setSelection((current) => {
+        if (
+          !current ||
+          current.local ||
+          current.source !== payload.source ||
+          current.id !== payload.id
+        )
+          return current
+        return {
+          ...current,
+          url: localMvSource({
+            name: '',
+            path: payload.path,
+            available: true,
+            offsetMs: current.offsetMs
+          }),
+          localPath: payload.path
+        }
+      })
+    })
+      .then((cleanup) => {
+        if (disposed) cleanup()
+        else stop = cleanup
+      })
+      .catch((cause) => {
+        if (!disposed) onError(errorText(cause))
+      })
+    return () => {
+      disposed = true
+      stop?.()
+    }
+  }, [onError])
 
   const activate = useCallback(
     async (binding: MvBinding) => {
