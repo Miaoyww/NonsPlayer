@@ -35,6 +35,7 @@ import { MobilePageHeader } from './mobile-page-header'
 import { settingsSections } from '@/features/settings/shell/settings-sections'
 import { PlaybackRecovery } from '@/features/playback/recovery/playback-recovery'
 import { TrackSearchContext } from '@/components/music/track-search-context'
+import { MobileNavigation } from './mobile-navigation'
 
 const PerformanceProbe = lazy(() => import('@/features/performance/performance-probe'))
 const LocalPage = lazy(() => import('@/features/local/local-page'))
@@ -580,6 +581,7 @@ export function MusicWorkspace({
                   onError={onError}
                 />
               ) : null)}
+            {isAndroid() && !playerVisible && primaryPage && <MobileNavigation />}
           </div>
         </ListFindProvider>
       </SongActionsProvider>

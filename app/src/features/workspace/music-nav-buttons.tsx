@@ -20,7 +20,7 @@ function isSelected(view: MusicView, current: MusicView) {
   )
 }
 
-export function MusicNavButtons() {
+export function MusicNavButtons({ mobile = false }: { mobile?: boolean }) {
   const sources = useMusicSources()
   const current = sources.statuses.find(
     (item) => item.descriptor.source === sources.preferences?.current && item.enabled
@@ -37,6 +37,7 @@ export function MusicNavButtons() {
         variant="ghost"
         className={cn(
           'cursor-pointer',
+          mobile && 'mobile-navigation-item',
           selected && 'text-[var(--music-accent)] hover:text-[var(--music-accent)]'
         )}
         aria-current={selected ? 'page' : undefined}

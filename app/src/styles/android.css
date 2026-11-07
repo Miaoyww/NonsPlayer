@@ -54,6 +54,7 @@
   display: none;
 }
 :root[data-platform='android'] .titlebar > nav {
+  display: none;
   min-width: 0;
   flex: 1;
   overflow-x: auto;
@@ -65,6 +66,49 @@
 }
 :root[data-platform='android'] .titlebar > nav button {
   flex-shrink: 0;
+}
+.mobile-navigation {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: calc(56px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom)));
+  padding: 4px calc(12px + var(--nons-safe-area-right, 0px))
+    calc(4px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom)))
+    calc(12px + var(--nons-safe-area-left, 0px));
+  border-top: 1px solid color-mix(in oklch, var(--foreground) 7%, transparent);
+  background: color-mix(in oklch, var(--background) 94%, transparent);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mobile-navigation::-webkit-scrollbar {
+  display: none;
+}
+.mobile-navigation-item {
+  position: relative;
+  flex: 1 0 72px;
+  min-width: 72px;
+  height: 48px;
+  padding-inline: 8px;
+  border-radius: 12px;
+  color: var(--muted-foreground);
+  font-size: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.mobile-navigation-item.is-selected,
+.mobile-navigation-item[aria-current='page'] {
+  color: var(--foreground);
+  font-weight: 650;
+}
+.mobile-navigation-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 :root[data-platform='android'] .titlebar > div:last-child {
   grid-row: 1;

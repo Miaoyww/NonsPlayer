@@ -15,7 +15,6 @@ import {
   PanelRightOpen,
   Square,
   Search,
-  Wrench,
   X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -26,10 +25,9 @@ import { AccountMenu } from '@/features/account/account-menu'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { MusicSearch } from '@/features/search/music-search'
 import { usePlugins } from '@/plugins/host'
-import { pluginPath } from '@/plugins/types'
 import { isAndroid } from '@/lib/platform'
 import { usePrimaryMusicPage } from './use-primary-music-page'
-import { MusicNavButtons } from './music-nav-buttons'
+import { MusicNavigationItems } from './music-navigation-items'
 import { setPanelHidden, usePanelHidden } from '@/features/lyrics/panel-visibility'
 
 export function Titlebar({
@@ -47,15 +45,7 @@ export function Titlebar({
   )
   const native = isTauri() && !isAndroid()
   const primaryPage = usePrimaryMusicPage()
-  const { page, navigate, back, forward, canBack, canForward } = useMusicNavigation()
-  const toolsSelected =
-    page.view === 'tools' ||
-    (page.view === 'plugin' &&
-      plugins.some(
-        (plugin) =>
-          plugin.manifest.contributes.navigation.some((item) => item.category === 'tool') &&
-          page.query.startsWith(`/plugins/${plugin.manifest.id}/`)
-      ))
+  const { navigate, back, forward, canBack, canForward } = useMusicNavigation()
   const [maximized, setMaximized] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [panelHidden] = usePanelHidden()
@@ -279,41 +269,7 @@ export function Titlebar({
         </div>
         {!playerMode && (
           <nav aria-label="音乐导航" className="flex shrink-0 items-center gap-1">
-            {isAndroid() && hasTools && (
-              <Button
-                variant={toolsSelected ? 'secondary' : 'ghost'}
-                onClick={() => navigate('tools')}
-              >
-                <Wrench aria-hidden="true" />
-                工具
-              </Button>
-            )}
-            <MusicNavButtons />
-            {plugins
-              .filter((p) => p.loaded)
-              .flatMap((plugin) =>
-                plugin.manifest.contributes.navigation
-                  .filter((item) => item.category !== 'tool')
-                  .map((item) => {
-                    const target = plugin.manifest.contributes.pages.find(
-                      (p) => p.id === item.page
-                    )!
-                    const path = pluginPath(plugin.manifest.id, target.path)
-                    const selected =
-                      page.view === 'plugin' &&
-                      (page.query === path || page.query.startsWith(`${path.replace(/\/$/, '')}/`))
-                    return (
-                      <Button
-                        key={`${plugin.manifest.id}:${item.id}`}
-                        variant={selected ? 'secondary' : 'ghost'}
-                        aria-current={selected ? 'page' : undefined}
-                        onClick={() => navigate('plugin', path)}
-                      >
-                        {item.label}
-                      </Button>
-                    )
-                  })
-              )}
+            <MusicNavigationItems />
           </nav>
         )}
         <div className="flex h-full min-w-0 items-center justify-end pl-3">

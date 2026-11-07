@@ -1118,6 +1118,14 @@ button.now-playing-tag:focus-visible {
     88px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom))
   );
 }
+.music-workspace:has(.mobile-navigation) {
+  --mobile-playback-clearance: calc(
+    144px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom))
+  );
+}
+.music-workspace:has(.mobile-navigation) .persistent-playback[data-mobile-expanded] {
+  bottom: calc(68px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom)));
+}
 .music-workspace:has(.persistent-playback[data-mobile-expanded='true']) {
   --mobile-playback-clearance: calc(
     88px + var(--nons-safe-area-bottom, env(safe-area-inset-bottom))
