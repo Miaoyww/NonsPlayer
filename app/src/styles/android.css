@@ -178,7 +178,7 @@
 }
 .mobile-library-tabs-row {
   gap: 8px;
-  margin: 28px 0 16px;
+  margin: 28px 0 12px;
 }
 .mobile-library-tabs-row .library-tabs {
   flex-wrap: nowrap;
@@ -198,8 +198,8 @@
   width: 24px;
   padding: 0 4px 0 0;
 }
-.mobile-library-tabs-row > div:last-child {
-  gap: 4px;
+.mobile-library-actions {
+  margin-bottom: 16px;
 }
 .track-table-container[data-mobile='true'] {
   overflow-x: hidden;

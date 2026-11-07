@@ -641,17 +641,6 @@ export default function MobileMusicLibrary({
                   </ActionButton>
                 ))}
             </div>
-            <div className="flex items-center gap-2">
-              {tab === 'playlist' && <CreateAggregatePlaylist onError={onError} iconOnly />}
-              {tab === 'playlist' && profile && !readOnly && (
-                <CreatePlaylist
-                  iconOnly
-                  onCreated={() => {
-                    setRefresh((value) => value + 1)
-                  }}
-                />
-              )}
-            </div>
           </div>
           <ErrorNotice error={aggregate.error} />
           {tab === 'history' && (
