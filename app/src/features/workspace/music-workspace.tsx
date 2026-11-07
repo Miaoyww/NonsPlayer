@@ -47,6 +47,9 @@ const AlbumPage = lazy(() => import('@/features/library/album/album-page'))
 const Discovery = lazy(() => import('@/features/discovery/discovery'))
 const AccountLoginPage = lazy(() => import('@/features/account/account-login-page'))
 const MusicLibrary = lazy(() => import('@/features/library/music-library/music-library'))
+const MobileMusicLibrary = lazy(
+  () => import('@/features/library/music-library/mobile-music-library')
+)
 const EntityPage = lazy(() => import('@/features/music/entity-page'))
 const StreamingPlaylistPage = lazy(() => import('@/features/music/streaming-playlist-page'))
 interface ImportReport {
@@ -541,14 +544,29 @@ export function MusicWorkspace({
                         )
                       }
                     >
-                      <MusicLibrary
-                        readOnly={!currentStatus?.descriptor.capabilities.includes('playlistWrite')}
-                        key={
-                          view === 'library' ? `${currentSource}:${sources.revision}` : undefined
-                        }
-                        onError={onError}
-                        onNotice={showNotice}
-                      />
+                      {isAndroid() ? (
+                        <MobileMusicLibrary
+                          readOnly={
+                            !currentStatus?.descriptor.capabilities.includes('playlistWrite')
+                          }
+                          key={
+                            view === 'library' ? `${currentSource}:${sources.revision}` : undefined
+                          }
+                          onError={onError}
+                          onNotice={showNotice}
+                        />
+                      ) : (
+                        <MusicLibrary
+                          readOnly={
+                            !currentStatus?.descriptor.capabilities.includes('playlistWrite')
+                          }
+                          key={
+                            view === 'library' ? `${currentSource}:${sources.revision}` : undefined
+                          }
+                          onError={onError}
+                          onNotice={showNotice}
+                        />
+                      )}
                     </Suspense>
                   ) : (
                     <Suspense fallback={<MusicPageSkeleton view="local" />}>
