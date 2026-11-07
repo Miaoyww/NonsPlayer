@@ -1350,6 +1350,10 @@ pub fn run() {
             }
         }
         if matches!(event, tauri::RunEvent::Exit) {
+            #[cfg(desktop)]
+            if let Some(window) = app.get_window("main") {
+                desktop::save_main_window_size(&window);
+            }
             app.state::<Arc<extension_store::ExtensionStore>>()
                 .cleanup();
             #[cfg(desktop)]

@@ -1,11 +1,38 @@
 use crate::{application::Backend, model::AppResult};
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
+    time::{Duration, Instant},
+};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, Window, WindowEvent,
+    AppHandle, Emitter, LogicalSize, Manager, Window, WindowEvent,
 };
+
+const WINDOW_SIZE_KEY: &str = "mainWindowSize";
+const WINDOW_SIZE_SAVE_INTERVAL: Duration = Duration::from_millis(300);
+const DEFAULT_WIDTH: f64 = 1200.0;
+const DEFAULT_HEIGHT: f64 = 720.0;
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+struct WindowSize {
+    width: f64,
+    height: f64,
+    #[serde(default)]
+    maximized: bool,
+}
+
+struct WindowSizeSave(Mutex<Instant>);
+
+impl Default for WindowSizeSave {
+    fn default() -> Self {
+        Self(Mutex::new(Instant::now() - WINDOW_SIZE_SAVE_INTERVAL))
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -81,6 +108,139 @@ fn notify_close_behavior(app: &AppHandle, behavior: CloseBehavior) {
     }
 }
 
+fn parse_window_size(raw: Option<&str>) -> Option<WindowSize> {
+    let size: WindowSize = serde_json::from_str(raw?).ok()?;
+    (size.width.is_finite() && size.height.is_finite() && size.width > 0.0 && size.height > 0.0)
+        .then_some(size)
+}
+
+fn read_window_size(store: &crate::storage::Store) -> Option<WindowSize> {
+    let raw = store.setting(WINDOW_SIZE_KEY).unwrap_or_else(|error| {
+        crate::infrastructure::diagnostics::warn("window.size.read", error);
+        None
+    });
+    parse_window_size(raw.as_deref())
+}
+
+fn write_window_size(store: &crate::storage::Store, size: WindowSize) {
+    let Ok(value) = serde_json::to_string(&size) else {
+        crate::infrastructure::diagnostics::warn("window.size.write", "主窗口尺寸序列化失败");
+        return;
+    };
+    if let Err(error) = store.set_setting(WINDOW_SIZE_KEY, &value) {
+        crate::infrastructure::diagnostics::warn("window.size.write", error);
+    }
+}
+
+fn configured_size(window: &Window) -> (f64, f64) {
+    window
+        .app_handle()
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|config| config.label == window.label())
+        .map_or((DEFAULT_WIDTH, DEFAULT_HEIGHT), |config| {
+            (config.width, config.height)
+        })
+}
+
+fn logical_inner_size(window: &Window) -> Option<LogicalSize<f64>> {
+    let scale = window.scale_factor().ok()?;
+    let size = window.inner_size().ok()?.to_logical::<f64>(scale);
+    (size.width.is_finite() && size.height.is_finite()).then_some(size)
+}
+
+pub(crate) fn save_main_window_size(window: &Window) {
+    let Some(backend) = window.try_state::<Backend>() else {
+        return;
+    };
+    let maximized = window.is_maximized().unwrap_or(false);
+    let size = if maximized {
+        let previous = read_window_size(&backend.store);
+        let (width, height) = previous
+            .map(|size| (size.width, size.height))
+            .unwrap_or_else(|| configured_size(window));
+        WindowSize {
+            width,
+            height,
+            maximized: true,
+        }
+    } else {
+        let Some(size) = logical_inner_size(window) else {
+            crate::infrastructure::diagnostics::warn("window.size.read", "无法读取主窗口尺寸");
+            return;
+        };
+        WindowSize {
+            width: size.width.round(),
+            height: size.height.round(),
+            maximized: false,
+        }
+    };
+    write_window_size(&backend.store, size);
+}
+
+fn save_main_window_size_throttled(window: &Window) {
+    let Some(state) = window.try_state::<WindowSizeSave>() else {
+        return;
+    };
+    let Ok(mut last_save) = state.0.lock() else {
+        crate::infrastructure::diagnostics::warn("window.size.lock", "主窗口尺寸锁不可用");
+        return;
+    };
+    if last_save.elapsed() < WINDOW_SIZE_SAVE_INTERVAL {
+        return;
+    }
+    *last_save = Instant::now();
+    save_main_window_size(window);
+}
+
+fn restore_main_window_size(app: &tauri::App) -> AppResult<()> {
+    let Some(window) = app.get_window("main") else {
+        return Ok(());
+    };
+    let store = &app.state::<Backend>().store;
+    let Some(saved) = read_window_size(store) else {
+        return Ok(());
+    };
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|config| config.label == "main");
+    let min_width = config
+        .and_then(|config| config.min_width)
+        .unwrap_or(DEFAULT_WIDTH);
+    let min_height = config
+        .and_then(|config| config.min_height)
+        .unwrap_or(DEFAULT_HEIGHT);
+    let monitor = window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| window.primary_monitor().ok().flatten());
+    let (max_width, max_height) = monitor.map_or((f64::MAX, f64::MAX), |monitor| {
+        let size = monitor.size().to_logical::<f64>(monitor.scale_factor());
+        (size.width, size.height)
+    });
+    let width = saved.width.clamp(min_width, max_width.max(min_width));
+    let height = saved.height.clamp(min_height, max_height.max(min_height));
+    if let Some(state) = app.try_state::<WindowSizeSave>() {
+        if let Ok(mut last_save) = state.0.lock() {
+            *last_save = Instant::now();
+        }
+    }
+    window
+        .set_size(LogicalSize::new(width, height))
+        .map_err(|error| error.to_string())?;
+    if saved.maximized {
+        window.maximize().map_err(|error| error.to_string())?;
+    }
+    write_window_size(store, saved);
+    Ok(())
+}
+
 #[tauri::command]
 pub(crate) fn close_behavior(backend: tauri::State<'_, Backend>) -> AppResult<CloseBehavior> {
     read_close_behavior(&backend.store)
@@ -148,7 +308,12 @@ fn menu_action(app: &AppHandle, action: &str) -> AppResult<()> {
         "settings" => {
             super::main_webview::open(app, true)?;
         }
-        "exit" => app.exit(0),
+        "exit" => {
+            if let Some(window) = app.get_window("main") {
+                save_main_window_size(&window);
+            }
+            app.exit(0);
+        }
         _ => {}
     }
     Ok(())
@@ -156,6 +321,10 @@ fn menu_action(app: &AppHandle, action: &str) -> AppResult<()> {
 
 pub(crate) fn setup(app: &tauri::App) -> tauri::Result<()> {
     app.manage(CloseRequests::default());
+    app.manage(WindowSizeSave::default());
+    if let Err(error) = restore_main_window_size(app) {
+        crate::infrastructure::diagnostics::warn("window.size.restore", error);
+    }
     let open = MenuItem::with_id(app, "open", "打开", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;
     let exit = MenuItem::with_id(app, "exit", "退出", true, None::<&str>)?;
@@ -194,12 +363,20 @@ pub(crate) fn on_window_event(window: &Window, event: &WindowEvent) {
     if window.label() != "main" {
         return;
     }
+    if matches!(
+        event,
+        WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. }
+    ) {
+        save_main_window_size_throttled(window);
+        return;
+    }
     if let WindowEvent::ThemeChanged(theme) = event {
         window.state::<Backend>().player.theme_changed(*theme);
         return;
     }
     if let WindowEvent::CloseRequested { api, .. } = event {
         api.prevent_close();
+        save_main_window_size(window);
         let backend = window.state::<Backend>();
         match read_close_behavior(&backend.store).unwrap_or_default() {
             CloseBehavior::Undecided => {
@@ -318,6 +495,55 @@ mod tests {
         assert_eq!(
             read_close_behavior(&store).unwrap(),
             CloseBehavior::Undecided
+        );
+    }
+
+    #[test]
+    fn window_size_accepts_legacy_payloads_and_rejects_invalid_dimensions() {
+        assert_eq!(
+            parse_window_size(Some(r#"{"width":1440,"height":900,"maximized":true}"#)),
+            Some(WindowSize {
+                width: 1440.0,
+                height: 900.0,
+                maximized: true,
+            })
+        );
+        assert_eq!(
+            parse_window_size(Some(r#"{"width":1440,"height":900}"#)),
+            Some(WindowSize {
+                width: 1440.0,
+                height: 900.0,
+                maximized: false,
+            })
+        );
+        assert!(parse_window_size(Some(r#"{"width":0,"height":900}"#)).is_none());
+        assert!(parse_window_size(Some(r#"{"width":1440}"#)).is_none());
+        assert!(parse_window_size(Some("invalid")).is_none());
+        assert!(parse_window_size(None).is_none());
+    }
+
+    #[test]
+    fn window_size_survives_restart_and_preserves_the_maximized_flag() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("settings.sqlite3");
+        let store = crate::storage::Store::open(&path).unwrap();
+        write_window_size(
+            &store,
+            WindowSize {
+                width: 1360.0,
+                height: 820.0,
+                maximized: true,
+            },
+        );
+        drop(store);
+        let store = crate::storage::Store::open(&path).unwrap();
+        assert_eq!(
+            read_window_size(&store),
+            Some(WindowSize {
+                width: 1360.0,
+                height: 820.0,
+                maximized: true,
+            })
         );
     }
 }
