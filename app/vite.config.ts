@@ -150,6 +150,14 @@ export default defineConfig(({ mode }) => ({
     port: 1420,
     strictPort: true,
     host: host || false,
+    ws: host
+      ? {
+          protocol: 'ws',
+          host: host,
+          port: 1421,
+          clientPort: 1421
+        }
+      : undefined,
     hmr: host
       ? {
           protocol: 'ws',
