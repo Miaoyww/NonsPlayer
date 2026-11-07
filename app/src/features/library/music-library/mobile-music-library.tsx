@@ -1,6 +1,5 @@
 import { PlatformPlaylistMenu } from '@/features/aggregate/platform-playlist-menu'
 import { mergeLibraryPlaylists } from '@/features/aggregate/playlist-targets'
-import { CreateAggregatePlaylist } from '@/features/aggregate/aggregate-page'
 import {
   aggregateCollection,
   useAggregateLibrary,
@@ -52,7 +51,6 @@ import {
   type LibraryTab,
   type PlaylistFilter
 } from '@/features/library/shared/library-api'
-import { CreatePlaylist } from '@/features/library/playlist/create-playlist'
 import {
   Select,
   SelectContent,
@@ -444,10 +442,7 @@ export default function MobileMusicLibrary({
             className="mobile-library-account-card"
             onClick={() => navigate('accounts')}
           >
-            <AccountAvatar
-              avatar={profile?.avatarUrl}
-              className="mobile-library-account-avatar"
-            />
+            <AccountAvatar avatar={profile?.avatarUrl} className="mobile-library-account-avatar" />
             <span className="mobile-library-account-copy">
               <span className="mobile-library-account-name">{profile?.nickname ?? '音乐账号'}</span>
               <span className="mobile-library-account-source">

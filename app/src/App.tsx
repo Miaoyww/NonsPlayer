@@ -64,10 +64,7 @@ function App() {
                           {isAndroid() ? (
                             <AndroidTitlebar playerMode={nowPlaying} />
                           ) : (
-                            <Titlebar
-                              playerMode={nowPlaying}
-                              onBack={() => setNowPlaying(false)}
-                            />
+                            <Titlebar playerMode={nowPlaying} onBack={() => setNowPlaying(false)} />
                           )}
                           <MusicWorkspace
                             nowPlaying={nowPlaying}
