@@ -3,6 +3,7 @@ use super::{
 };
 use crate::model::AppResult;
 use std::{
+    collections::BTreeMap,
     path::{Path, PathBuf},
     sync::{atomic::Ordering, Arc},
     time::Duration,
@@ -88,6 +89,57 @@ fn check_upgrade(old: &Manifest, new: &Manifest, confirmed: bool) -> AppResult<(
     Ok(())
 }
 
+fn check_replacement(
+    destination: &Path,
+    previous: Option<&Descriptor>,
+    new: &Manifest,
+    confirmed: bool,
+) -> AppResult<bool> {
+    if let Some(previous) = previous {
+        check_upgrade(&previous.manifest, new, confirmed)?;
+    } else if destination.exists() {
+        let old = Manifest::read_metadata(destination)?;
+        if old.id != new.id {
+            return Err("已安装插件 ID 与目录不匹配，不能替换".into());
+        }
+        check_upgrade(&old, new, confirmed)?;
+        return Ok(true);
+    }
+    Ok(previous.is_some())
+}
+
+fn installed_versions(root: &Path) -> AppResult<BTreeMap<String, String>> {
+    let mut versions = BTreeMap::new();
+    for entry in std::fs::read_dir(root).map_err(|error| error.to_string())? {
+        let entry = entry.map_err(|error| error.to_string())?;
+        let id = entry.file_name().to_string_lossy().to_string();
+        if !super::manifest::valid_id(&id)
+            || !entry
+                .file_type()
+                .map_err(|error| error.to_string())?
+                .is_dir()
+        {
+            continue;
+        }
+        let result = Manifest::read_metadata(&entry.path()).and_then(|manifest| {
+            if manifest.id != id {
+                return Err("插件 ID 与目录不匹配".to_owned());
+            }
+            Ok(manifest)
+        });
+        match result {
+            Ok(manifest) => {
+                versions.insert(id, manifest.version);
+            }
+            Err(error) => crate::infrastructure::diagnostics::warn(
+                "plugins.inventory",
+                format!("plugin={id} ignored_package reason={error}"),
+            ),
+        }
+    }
+    Ok(versions)
+}
+
 fn check_reviewed(actual: &Manifest, expected: Option<&Manifest>) -> AppResult<()> {
     if let Some(expected) = expected {
         if actual.id != expected.id
@@ -101,6 +153,10 @@ fn check_reviewed(actual: &Manifest, expected: Option<&Manifest>) -> AppResult<(
 }
 
 impl PluginManager {
+    pub(crate) fn installed_versions(&self) -> AppResult<BTreeMap<String, String>> {
+        installed_versions(&self.root)
+    }
+
     pub(crate) fn preview(&self, source: &Path) -> AppResult<Manifest> {
         Ok(Package::prepare(&self.root, source)?.manifest.clone())
     }
@@ -127,6 +183,9 @@ impl PluginManager {
             manager
                 .install_package(source, confirmed, expected_manifest)
                 .await
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("plugins.install", error);
+                })
         })
         .await
         .map_err(|error| error.to_string())?
@@ -199,17 +258,18 @@ impl PluginManager {
             .lock()?
             .get(&id)
             .map(|record| record.descriptor.clone());
-        if let Some(previous) = &previous {
-            check_upgrade(&previous.manifest, &package.manifest, confirmed)?;
-        } else if destination.exists() {
-            return Err("插件目录已存在但未登记，请先检查插件目录并重新发现".into());
-        }
+        let replacing = check_replacement(
+            &destination,
+            previous.as_ref(),
+            &package.manifest,
+            confirmed,
+        )?;
         let authorization = self.database.authorization_state(&id)?;
         if previous.is_some() {
             self.unload(&id).await?;
         }
         let result: AppResult<()> = async {
-            package.publish(&destination, previous.is_some())?;
+            package.publish(&destination, replacing)?;
             let enabled = previous.as_ref().is_some_and(|old| old.enabled);
             self.database.restore_authorization(
                 &id,
@@ -241,7 +301,7 @@ impl PluginManager {
                     retained.display()
                 ));
             }
-            return Err(if previous.is_some() {
+            return Err(if replacing {
                 format!("安装失败：{error}；已恢复原插件包、授权和加载状态")
             } else {
                 format!("安装失败：{error}；已撤回安装并保留原有数据")
@@ -308,6 +368,55 @@ mod tests {
         )
         .unwrap();
         source
+    }
+
+    #[test]
+    fn incompatible_installed_plugin_can_be_replaced_and_rolled_back() {
+        let temp = tempfile::tempdir().unwrap();
+        let old = source(temp.path(), "1.0.0");
+        let destination = temp.path().join("upgrade-test");
+        fs::rename(&old, &destination).unwrap();
+        let path = destination.join("manifest.json");
+        let mut manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        manifest["engines"]["pluginApi"] = "^2.0.0".into();
+        fs::write(&path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        let original = fs::read(&path).unwrap();
+        assert!(Manifest::read(&destination).unwrap_err().contains("不兼容"));
+        assert_eq!(
+            installed_versions(temp.path())
+                .unwrap()
+                .get("upgrade-test")
+                .map(String::as_str),
+            Some("1.0.0")
+        );
+        let candidate = Package::prepare(temp.path(), &source(temp.path(), "1.1.0")).unwrap();
+        assert!(
+            check_replacement(&destination, None, &candidate.manifest, false)
+                .unwrap_err()
+                .contains("确认")
+        );
+        for version in ["0.9.0", "1.0.0", "1.0.0+rebuilt"] {
+            let mut manifest = candidate.manifest.clone();
+            manifest.version = version.into();
+            assert!(check_replacement(&destination, None, &manifest, true)
+                .unwrap_err()
+                .contains("更高版本"));
+        }
+        let replacing = check_replacement(&destination, None, &candidate.manifest, true)
+            .expect("a compatible update must replace the incompatible undiscovered package");
+        assert!(replacing);
+        candidate.publish(&destination, replacing).unwrap();
+        assert_eq!(Manifest::read(&destination).unwrap().version, "1.1.0");
+        candidate.rollback(&destination).unwrap();
+        assert_eq!(fs::read(&path).unwrap(), original);
+        manifest["id"] = "other-plugin".into();
+        fs::write(&path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        assert!(
+            check_replacement(&destination, None, &candidate.manifest, true)
+                .unwrap_err()
+                .contains("ID")
+        );
     }
 
     #[test]

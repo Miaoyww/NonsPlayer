@@ -60,6 +60,8 @@ cd my-plugin && pnpm install && pnpm build
 
 桌面端安装适配器页支持选择或拖入单个 ZIP／目录。包根包含 `manifest.json`，Component 位于包根的 `adapter.component.wasm` 或 `dist/adapter.component.wasm`；压缩包也可用单个外层目录包裹上述内容。安装前显示来源、版本和 Host 权限，勾选信任后复制到 `<app_data>/adapters/<source>/` 并加载，启动时恢复已授权包。升级只接受更高版本，加载失败恢复旧包；卸载默认保留账号与专属状态，可主动选择清理。
 
+旧插件或适配器因 API／契约版本不兼容而未加载时，商店仍读取其已安装版本，支持安装同一 ID 的更高兼容版本。旧包仅提供升级所需的清单信息，新包仍完整校验兼容性、权限与入口；替换复用备份与回滚，不删除配置、账号或专属数据。未登记的旧插件更新后保持关闭，需在已安装页启用。身份与目录不一致、版本号无效或清单不可解析的目录仍拒绝替换。
+
 ## Manifest
 
 编辑器 schema：`plugins/manifest.schema.json`。Rust 是运行时权威校验器，额外验证 SemVer、API 范围、路径、Windows 保留名、扩展引用、权限和文件存在性。

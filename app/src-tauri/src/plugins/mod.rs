@@ -351,7 +351,10 @@ impl PluginManager {
                     continue;
                 }
                 Err(error) => {
-                    crate::infrastructure::diagnostics::warn("plugins.discover", error);
+                    crate::infrastructure::diagnostics::warn(
+                        "plugins.discover",
+                        format!("plugin={id} skipped_package reason={error}"),
+                    );
                     continue;
                 }
             };

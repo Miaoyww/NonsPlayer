@@ -121,7 +121,10 @@ impl AdapterInstaller {
                 Err(error) => {
                     crate::infrastructure::diagnostics::warn(
                         "adapter.install_startup_package",
-                        error,
+                        format!(
+                            "adapter={} skipped_package reason={error}",
+                            entry.file_name().to_string_lossy()
+                        ),
                     );
                     continue;
                 }
@@ -183,9 +186,13 @@ impl AdapterInstaller {
         let directory = temp.path().join("package");
         install_source(source, &directory)?;
         let info = read_package(&directory)?;
-        let installed_version = source_of(&info.package)
-            .and_then(|id| read_package(&self.root.join(id.as_str())).ok())
-            .and_then(|installed| installed.package.version);
+        let id = source_of(&info.package).ok_or("适配器描述缺失")?;
+        let destination = self.root.join(id.as_str());
+        let installed_version = if destination.exists() {
+            read_installed_package(&destination)?.version
+        } else {
+            None
+        };
         self.info(&info, installed_version)
     }
 
@@ -208,7 +215,7 @@ impl AdapterInstaller {
             }
             let destination = self.root.join(id.as_str());
             let previous = if destination.exists() {
-                Some(read_package(&destination)?)
+                Some(read_installed_package(&destination)?)
             } else {
                 None
             };
@@ -217,12 +224,12 @@ impl AdapterInstaller {
                     .map_err(|_| "适配器版本无效")?;
             if let Some(previous) = &previous {
                 let old_version =
-                    semver::Version::parse(previous.package.version.as_deref().unwrap_or("0.0.0"))
+                    semver::Version::parse(previous.version.as_deref().unwrap_or("0.0.0"))
                         .map_err(|_| "已安装适配器版本无效")?;
-                if new_version <= old_version {
+                if !new_version.cmp_precedence(&old_version).is_gt() {
                     return Err("只能安装更高版本的适配器".into());
                 }
-                if std::mem::discriminant(&previous.package.descriptor)
+                if std::mem::discriminant(&previous.descriptor)
                     != std::mem::discriminant(&package.package.descriptor)
                 {
                     return Err("适配器类型不能在升级时改变".into());
@@ -242,10 +249,20 @@ impl AdapterInstaller {
             }
             if let Err(error) = move_directory(&staging, &destination) {
                 if destination.exists() {
-                    let _ = fs::remove_dir_all(&destination);
+                    let _ = fs::remove_dir_all(&destination).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn(
+                            "adapter.install_remove_partial",
+                            error,
+                        );
+                    });
                 }
                 if backup.exists() {
-                    let _ = move_directory(&backup, &destination);
+                    let _ = move_directory(&backup, &destination).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn(
+                            "adapter.install_restore_package",
+                            error,
+                        );
+                    });
                 }
                 restore_setting(&self.store, &auth_key(&id), old_auth.as_deref())?;
                 return Err(format!("适配器包移动失败：{error}"));
@@ -255,29 +272,48 @@ impl AdapterInstaller {
                 .load_package(&destination, &package.package, replacing)
                 .await
             {
-                let _ = fs::remove_dir_all(&destination);
+                let _ = fs::remove_dir_all(&destination).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn(
+                        "adapter.install_remove_rejected",
+                        error,
+                    );
+                });
                 if backup.exists() {
-                    let _ = move_directory(&backup, &destination);
+                    let _ = move_directory(&backup, &destination).inspect_err(|error| {
+                        crate::infrastructure::diagnostics::warn(
+                            "adapter.install_restore_package",
+                            error,
+                        );
+                    });
                 }
                 restore_setting(&self.store, &auth_key(&id), old_auth.as_deref())?;
                 return Err(format!("适配器 Component 加载失败：{error}"));
             }
             if backup.exists() {
-                let _ = fs::remove_dir_all(&backup);
+                let _ = fs::remove_dir_all(&backup).inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn(
+                        "adapter.install_remove_backup",
+                        error,
+                    );
+                });
             }
             Ok(self.info(
                 &PackageWithPath {
                     path: destination,
                     package: package.package,
                 },
-                previous.and_then(|item| item.package.version),
+                previous.and_then(|item| item.version),
             )?)
         }
         .await;
         if result.is_err() && staging.exists() {
-            let _ = fs::remove_dir_all(&staging);
+            let _ = fs::remove_dir_all(&staging).inspect_err(|error| {
+                crate::infrastructure::diagnostics::warn("adapter.install_remove_staging", error);
+            });
         }
-        result
+        result.inspect_err(|error| {
+            crate::infrastructure::diagnostics::warn("adapter.install", error);
+        })
     }
 
     pub(crate) async fn uninstall(&self, id: SourceId, remove_data: bool) -> AppResult<()> {
@@ -349,6 +385,36 @@ impl AdapterInstaller {
         Ok(result)
     }
 
+    pub(crate) fn installed_versions(&self) -> AppResult<Vec<(SourceId, String)>> {
+        let mut versions = Vec::new();
+        for entry in fs::read_dir(&self.root).map_err(|error| error.to_string())? {
+            let entry = entry.map_err(|error| error.to_string())?;
+            if !entry
+                .file_type()
+                .map_err(|error| error.to_string())?
+                .is_dir()
+                || entry.file_name().to_string_lossy().starts_with('.')
+            {
+                continue;
+            }
+            match read_installed_package(&entry.path()) {
+                Ok(package) => {
+                    if let (Some(id), Some(version)) = (source_of(&package), package.version) {
+                        versions.push((id, version));
+                    }
+                }
+                Err(error) => crate::infrastructure::diagnostics::warn(
+                    "adapter.installed_versions",
+                    format!(
+                        "adapter={} ignored_package reason={error}",
+                        entry.file_name().to_string_lossy()
+                    ),
+                ),
+            }
+        }
+        Ok(versions)
+    }
+
     fn info(
         &self,
         info: &PackageWithPath,
@@ -391,9 +457,12 @@ impl AdapterInstaller {
         let permission_changes = if self.root.join(id.as_str()) != info.path
             && self.root.join(id.as_str()).is_dir()
         {
-            read_package(&self.root.join(id.as_str()))
+            read_installed_package(&self.root.join(id.as_str()))
+                .inspect_err(|error| {
+                    crate::infrastructure::diagnostics::warn("adapter.preview_permissions", error);
+                })
                 .ok()
-                .map(|old| permission_changes(&old.package.permissions, &info.package.permissions))
+                .map(|old| permission_changes(&old.permissions, &info.package.permissions))
                 .unwrap_or_default()
         } else {
             Vec::new()
@@ -612,7 +681,17 @@ pub(crate) fn parse_package(bytes: &[u8]) -> Result<Package, serde_json::Error> 
     serde_json::from_slice(bytes)
 }
 
-fn read_package(directory: &Path) -> AppResult<PackageWithPath> {
+/// Reads inventory metadata without requiring the installed runtime contract to be supported.
+fn read_installed_package(directory: &Path) -> AppResult<Package> {
+    let package = read_package_manifest(directory)?;
+    let id = source_of(&package).ok_or("适配器描述缺失")?;
+    if directory.file_name().and_then(|name| name.to_str()) != Some(id.as_str()) {
+        return Err("已安装适配器 ID 与目录不匹配，不能替换".into());
+    }
+    Ok(package)
+}
+
+fn read_package_manifest(directory: &Path) -> AppResult<Package> {
     let meta =
         fs::symlink_metadata(directory).map_err(|error| format!("适配器包目录不可读：{error}"))?;
     if !meta.is_dir() || is_link(&meta) {
@@ -631,6 +710,32 @@ fn read_package(directory: &Path) -> AppResult<PackageWithPath> {
     let package = parse_package(&bytes).map_err(|_| "适配器描述无效")?;
     let version = package.version.as_deref().ok_or("适配器版本缺失")?;
     semver::Version::parse(version).map_err(|_| "适配器版本无效")?;
+    match (&package.descriptor, &package.resource_provider) {
+        (Some(_), None) | (None, Some(_)) => (),
+        _ => return Err("适配器必须声明一种描述".into()),
+    }
+    Ok(package)
+}
+
+fn read_package(directory: &Path) -> AppResult<PackageWithPath> {
+    let package = read_package_manifest(directory)?;
+    let contract_version = package
+        .descriptor
+        .as_ref()
+        .map(|d| d.contract_version)
+        .or_else(|| {
+            package
+                .resource_provider
+                .as_ref()
+                .map(|d| d.contract_version)
+        })
+        .ok_or("适配器描述缺失")?;
+    if !nons_music_adapter_sdk::supports_contract_version(contract_version) {
+        return Err(format!(
+            "适配器契约版本不兼容：包声明 {contract_version}，当前支持 {}",
+            super::CONTRACT_VERSION
+        ));
+    }
     match (&package.descriptor, &package.resource_provider) {
         (Some(d), None) => d.validate().map_err(|e| e.to_string())?,
         (None, Some(d)) => {
@@ -1158,5 +1263,212 @@ mod tests {
             installed.id.as_str(),
             installed.version
         );
+    }
+
+    #[tokio::test]
+    async fn incompatible_installed_adapter_can_be_updated_and_restored_on_restart() {
+        use crate::music::accounts::{AccountManager, CredentialStore};
+        struct Secrets;
+        impl CredentialStore for Secrets {
+            fn read(&self, _: &str) -> crate::music::MusicResult<Option<Vec<u8>>> {
+                Ok(None)
+            }
+            fn write(&self, _: &str, _: &[u8]) -> crate::music::MusicResult<()> {
+                Ok(())
+            }
+            fn delete(&self, _: &str) -> crate::music::MusicResult<()> {
+                Ok(())
+            }
+        }
+        let directory = tempfile::tempdir().unwrap();
+        let store = Arc::new(Store::open(&directory.path().join("state.sqlite3")).unwrap());
+        let create = || {
+            let accounts = Arc::new(AccountManager::new(store.clone(), Arc::new(Secrets)).unwrap());
+            let (music, _) = crate::music::bundled::service(accounts).unwrap();
+            AdapterInstaller::new(
+                directory.path().join("adapters"),
+                Arc::new(music),
+                store.clone(),
+                Arc::new(Http::new().unwrap()),
+            )
+            .unwrap()
+        };
+        let installer = create();
+        let old = installer.root.join("fixture-radio");
+        fs::create_dir(&old).unwrap();
+        let mut manifest = serde_json::json!({
+            "version": "1.0.0",
+            "descriptor": {
+                "source": "fixture-radio", "displayName": "外部测试来源",
+                "description": "验证通用音源能力的测试平台",
+                "platforms": ["fixture-radio", "netease"],
+                "contractVersion": 1, "capabilities": ["search", "browse"]
+            },
+            "permissions": {"system": false, "state": false, "credentials": false}
+        });
+        fs::write(
+            old.join("manifest.json"),
+            serde_json::to_vec(&manifest).unwrap(),
+        )
+        .unwrap();
+        fs::write(old.join("adapter.component.wasm"), b"obsolete component").unwrap();
+        assert!(read_package(&old).is_err());
+        installer.startup().await;
+        assert_eq!(
+            installer.installed_versions().unwrap(),
+            vec![(
+                SourceId::try_from("fixture-radio".to_owned()).unwrap(),
+                "1.0.0".into()
+            )]
+        );
+        let new = directory.path().join("new");
+        fs::create_dir(&new).unwrap();
+        manifest["version"] = "1.1.0".into();
+        manifest["descriptor"]["contractVersion"] = crate::music::CONTRACT_VERSION.into();
+        fs::write(
+            new.join("manifest.json"),
+            serde_json::to_vec(&manifest).unwrap(),
+        )
+        .unwrap();
+        fs::write(new.join("adapter.component.wasm"), b"broken update").unwrap();
+        for version in ["0.9.0", "1.0.0", "1.0.0+rebuilt"] {
+            manifest["version"] = version.into();
+            fs::write(
+                new.join("manifest.json"),
+                serde_json::to_vec(&manifest).unwrap(),
+            )
+            .unwrap();
+            assert!(installer
+                .install(new.clone(), true)
+                .await
+                .err()
+                .unwrap()
+                .contains("更高版本"));
+        }
+        manifest["version"] = "1.1.0".into();
+        manifest["descriptor"]["contractVersion"] = 1.into();
+        fs::write(
+            new.join("manifest.json"),
+            serde_json::to_vec(&manifest).unwrap(),
+        )
+        .unwrap();
+        assert!(installer
+            .preview(&new)
+            .err()
+            .unwrap()
+            .contains("契约版本不兼容"));
+        assert!(installer
+            .install(new.clone(), true)
+            .await
+            .err()
+            .unwrap()
+            .contains("契约版本不兼容"));
+        manifest["descriptor"]["contractVersion"] = crate::music::CONTRACT_VERSION.into();
+        fs::write(
+            new.join("manifest.json"),
+            serde_json::to_vec(&manifest).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            installer
+                .preview(&new)
+                .unwrap()
+                .installed_version
+                .as_deref(),
+            Some("1.0.0")
+        );
+        let id = SourceId::try_from("fixture-radio".to_owned()).unwrap();
+        store
+            .set_setting(&auth_key(&id), "original-authorization")
+            .unwrap();
+        let old_manifest = fs::read(old.join("manifest.json")).unwrap();
+        let error = installer.install(new.clone(), true).await.err().unwrap();
+        assert!(error.contains("Component 加载失败"), "{error}");
+        assert_eq!(fs::read(old.join("manifest.json")).unwrap(), old_manifest);
+        assert_eq!(
+            fs::read(old.join("adapter.component.wasm")).unwrap(),
+            b"obsolete component"
+        );
+        assert_eq!(
+            store.setting(&auth_key(&id)).unwrap().as_deref(),
+            Some("original-authorization")
+        );
+        let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join(
+            "../../plugins/music-fixture/backend/target/wasm32-unknown-unknown/release/music_fixture.wasm",
+        );
+        fs::copy(fixture, new.join("adapter.component.wasm"))
+            .expect("Build music fixture before running tests");
+        store
+            .set_setting("musicAdapterStateV1:fixture-radio", "preserved")
+            .unwrap();
+        let installed = installer
+            .install(new.clone(), true)
+            .await
+            .unwrap_or_else(|error| {
+                panic!("compatible update blocked by incompatible old adapter: {error}")
+            });
+        assert_eq!(installed.version, "1.1.0");
+        assert!(installed.loaded && installed.authorized);
+        assert!(installer
+            .install(new, true)
+            .await
+            .err()
+            .unwrap()
+            .contains("更高版本"));
+        drop(installer);
+        let restored = create();
+        restored.startup().await;
+        let installed = restored.list().unwrap().pop().unwrap();
+        assert_eq!(installed.version, "1.1.0");
+        assert!(installed.loaded && installed.authorized);
+        assert_eq!(
+            store
+                .setting("musicAdapterStateV1:fixture-radio")
+                .unwrap()
+                .as_deref(),
+            Some("preserved")
+        );
+    }
+
+    #[test]
+    fn incompatible_installed_provider_metadata_checks_identity_and_version() {
+        let directory = tempfile::tempdir().unwrap();
+        let package = directory.path().join("fixture");
+        fs::create_dir(&package).unwrap();
+        let path = package.join("manifest.json");
+        let mut manifest = serde_json::json!({
+            "version": "1.0.0",
+            "resourceProvider": {
+                "id": "fixture", "displayName": "Fixture", "contractVersion": 1,
+                "platforms": ["netease"], "searchPlatforms": []
+            },
+            "permissions": {"system": false, "state": false, "credentials": false}
+        });
+        fs::write(&path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        fs::write(
+            package.join("adapter.component.wasm"),
+            b"obsolete component",
+        )
+        .unwrap();
+        assert!(read_package(&package)
+            .err()
+            .unwrap()
+            .contains("契约版本不兼容"));
+        let metadata = read_installed_package(&package).unwrap();
+        assert!(metadata.resource_provider.is_some());
+        assert_eq!(metadata.version.as_deref(), Some("1.0.0"));
+        manifest["resourceProvider"]["id"] = "other".into();
+        fs::write(&path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        assert!(read_installed_package(&package)
+            .err()
+            .unwrap()
+            .contains("ID"));
+        manifest["resourceProvider"]["id"] = "fixture".into();
+        manifest["version"] = "invalid".into();
+        fs::write(&path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        assert!(read_installed_package(&package)
+            .err()
+            .unwrap()
+            .contains("版本无效"));
     }
 }

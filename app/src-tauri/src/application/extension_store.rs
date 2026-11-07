@@ -578,16 +578,13 @@ impl ExtensionStore {
         let this = self.clone();
         blocking(move || {
             let mut result = Inventory::default();
-            for plugin in this.plugins.list()? {
+            for (id, version) in this.plugins.installed_versions()? {
+                result.installed.insert((Kind::Plugin, id), version);
+            }
+            for (id, version) in this.adapters.installed_versions()? {
                 result
                     .installed
-                    .insert((Kind::Plugin, plugin.manifest.id), plugin.manifest.version);
-            }
-            for adapter in this.adapters.list()? {
-                result.installed.insert(
-                    (Kind::Adapter, adapter.id.as_str().to_owned()),
-                    adapter.version,
-                );
+                    .insert((Kind::Adapter, id.as_str().to_owned()), version);
             }
             // Cargo.lock identifies the native library actually linked into this host.
             let native_version = native_version(include_str!("../../Cargo.lock"))?;
@@ -679,12 +676,7 @@ impl ExtensionStore {
                 match kind {
                     Kind::Plugin => {
                         let manifest = this.plugins.preview(&path)?;
-                        let installed = this
-                            .plugins
-                            .list()?
-                            .into_iter()
-                            .find(|p| p.manifest.id == manifest.id)
-                            .map(|p| p.manifest.version);
+                        let installed = this.plugins.installed_versions()?.remove(&manifest.id);
                         let mut permissions = manifest.permissions.clone();
                         permissions
                             .extend(manifest.file_roots.iter().map(|h| format!("files:{h}")));

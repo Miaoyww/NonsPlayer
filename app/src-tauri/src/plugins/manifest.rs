@@ -230,13 +230,7 @@ impl Manifest {
     pub fn read_configured(
         root: &Path,
     ) -> AppResult<(Self, Option<std::sync::Arc<super::configuration::Compiled>>)> {
-        let path = checked_file(root, "manifest.json")?;
-        if path.metadata().map_err(|e| e.to_string())?.len() > 64 * 1024 {
-            return Err("Manifest 过大".into());
-        }
-        let manifest: Self =
-            serde_json::from_slice(&std::fs::read(path).map_err(|e| e.to_string())?)
-                .map_err(|e| e.to_string())?;
+        let manifest = Self::read_metadata(root)?;
         manifest.validate()?;
         let configuration = super::configuration::Compiled::read(root, &manifest)?;
         for entry in [manifest.backend.as_ref(), manifest.frontend.as_ref()]
@@ -252,6 +246,21 @@ impl Manifest {
             }
         }
         Ok((manifest, configuration))
+    }
+    /// Package identity for inventory/replacement; this does not authorize loading.
+    pub(super) fn read_metadata(root: &Path) -> AppResult<Self> {
+        let path = checked_file(root, "manifest.json")?;
+        if path.metadata().map_err(|e| e.to_string())?.len() > 64 * 1024 {
+            return Err("Manifest 过大".into());
+        }
+        let manifest: Self =
+            serde_json::from_slice(&std::fs::read(path).map_err(|e| e.to_string())?)
+                .map_err(|e| e.to_string())?;
+        if !valid_id(&manifest.id) {
+            return Err("插件 ID 无效".into());
+        }
+        semver::Version::parse(&manifest.version).map_err(|error| error.to_string())?;
+        Ok(manifest)
     }
     pub fn validate(&self) -> AppResult<()> {
         if !self.file_roots.is_empty()
