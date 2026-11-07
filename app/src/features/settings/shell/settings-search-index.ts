@@ -36,6 +36,7 @@ const groups: SearchGroup[] = [
     path: '个性化设置 / 外观',
     items: [
       ['theme', '界面主题', '浅色 深色 跟随系统'],
+      ['glass-effect', '毛玻璃效果', '模糊 透明 背景 GPU backdrop'],
       ['app-font', '应用字体', '字型'],
       ['interface-density', '界面密度', '紧凑式 标准式 留白 行高']
     ]

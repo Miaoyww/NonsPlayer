@@ -9,10 +9,12 @@ import {
   type PlaybackBarMode
 } from '@/features/playback/bar/use-playback-bar-mode'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Switch } from '@/components/ui/switch'
 import {
   useInterfaceDensity,
   type InterfaceDensity
 } from '@/features/settings/appearance/use-interface-density'
+import { useGlassEffect } from '@/features/settings/appearance/use-glass-effect'
 
 const themes = [
   { value: 'light', label: '浅色', icon: Sun },
@@ -30,6 +32,7 @@ export function PersonalizationControls({
   const { fonts, setFont } = useFontSettings()
   const [barMode, setBarMode] = usePlaybackBarMode()
   const [density, setDensity] = useInterfaceDensity()
+  const [glassEffect, setGlassEffect] = useGlassEffect()
   return (
     <div className="flex flex-col gap-8">
       <SettingsCard searchId="theme" title="界面主题" description="选择浅色、深色或跟随系统。">
@@ -51,6 +54,13 @@ export function PersonalizationControls({
             </label>
           ))}
         </div>
+      </SettingsCard>
+      <SettingsCard
+        searchId="glass-effect"
+        title="毛玻璃效果"
+        description="为标题栏、播放栏和浮层启用背景模糊；关闭后使用不透明背景，减少 GPU 占用。"
+      >
+        <Switch aria-label="毛玻璃效果" checked={glassEffect} onCheckedChange={setGlassEffect} />
       </SettingsCard>
       <SettingsCard
         searchId="app-font"

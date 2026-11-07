@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import '@/styles/globals.css'
 import { initializeFontSettings } from '@/features/settings/appearance/font-settings'
+import { initializeGlassEffect } from '@/features/settings/appearance/use-glass-effect'
 import { installPluginBridge } from '@/plugins/host'
 import { isAndroid } from '@/lib/platform'
 import { installDiagnostics } from '@/lib/diagnostics'
@@ -12,6 +13,7 @@ if (isAndroid()) document.documentElement.dataset.platform = 'android'
 
 installDiagnostics()
 initializeFontSettings()
+initializeGlassEffect()
 installPluginBridge()
 const pluginWindow = isPluginWindow()
 if (pluginWindow) {

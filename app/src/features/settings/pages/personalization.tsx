@@ -13,7 +13,7 @@ export function PersonalizationPage({
       <div>
         <h2 className="text-xl font-bold">个性化</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          调整界面主题、应用字体、播放栏显示方式与界面密度。
+          调整界面主题、毛玻璃效果、应用字体、播放栏显示方式与界面密度。
         </p>
       </div>
       <PersonalizationControls theme={theme} onThemeChange={onThemeChange} />

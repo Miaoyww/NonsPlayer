@@ -1,0 +1,15 @@
+/* Skip backdrop sampling and keep surfaces opaque when the glass effect is off. */
+:root[data-glass-effect='off'] .glass-surface,
+:root[data-glass-effect='off'] .mobile-navigation,
+:root[data-glass-effect='off'] .mv-lyric-card-surface,
+:root[data-glass-effect='off'] [data-slot='dialog-overlay'] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-glass-effect='off'] .glass-surface,
+:root[data-glass-effect='off'] .mobile-navigation {
+  background: var(--background);
+}
+:root[data-glass-effect='off'] .mv-lyric-card-surface {
+  background: rgb(10 10 12 / 82%);
+}

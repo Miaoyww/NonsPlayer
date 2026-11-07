@@ -51,7 +51,7 @@ const steps: {
     id: 'personalization',
     eyebrow: 'STEP 05 / PERSONALIZATION',
     title: '调整成你的样子',
-    description: '设置主题、字体、播放栏和界面密度，所有选择都会立即保存。'
+    description: '设置主题、毛玻璃效果、字体、播放栏和界面密度，所有选择都会立即保存。'
   }
 ]
 

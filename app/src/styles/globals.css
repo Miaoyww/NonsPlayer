@@ -20,6 +20,7 @@
 @import './welcome.css';
 @import './density.css';
 @import './android.css';
+@import './glass.css';
 
 @source "../components";
 @source "../../../plugins";
