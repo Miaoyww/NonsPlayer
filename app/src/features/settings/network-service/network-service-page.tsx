@@ -123,7 +123,7 @@ export function NetworkServicePage() {
 
   async function configure(patch: Partial<OpenApiConfig>) {
     if (!status || busy.current) return
-    const usesDraft = patch.port !== undefined || patch.lan !== undefined
+    const usesDraft = patch.port !== undefined
     const config = usesDraft
       ? {
           ...status.config,
@@ -198,44 +198,17 @@ export function NetworkServicePage() {
           无需身份验证，允许连接的应用可读取信息并控制播放。
         </p>
       </div>
-      <section aria-labelledby="network-service-heading" className="flex flex-col gap-8">
-        <h3 id="network-service-heading" className="text-base font-semibold">
-          开放 API
-        </h3>
-        <SettingsCard
-          searchId="open-api-enabled"
-          title="启用开放 API"
-          description="启动本机 HTTP 与 WebSocket 服务。"
-        >
-          <Switch
-            aria-label="启用开放 API"
-            checked={status?.config.enabled ?? false}
-            disabled={!status || saving}
-            onCheckedChange={(value) => void configure({ enabled: value })}
-          />
-        </SettingsCard>
-        <SettingsCard
-          searchId="open-api-docs"
-          title="协议文档"
-          description="在浏览器中查看接口说明。"
-        >
-          <div className="flex flex-col items-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!status?.running || !status.addresses.length}
-              onClick={() => void openDocs()}
-            >
-              <BookOpen aria-hidden="true" />
-              打开文档
-            </Button>
-            {actionError && <ErrorNotice error={actionError} />}
-          </div>
-        </SettingsCard>
-        <SettingsCard
-          searchId="open-api-status"
-          title="服务状态"
-          description="当前运行状态、访问地址与连接数。"
+      <section aria-labelledby="open-api-status-heading" className="flex flex-col gap-4">
+        <div>
+          <h3 id="open-api-status-heading" className="text-base font-semibold">
+            服务状态
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">当前运行状态、访问地址与连接数。</p>
+        </div>
+        <div
+          data-setting-id="open-api-status"
+          tabIndex={-1}
+          className="settings-card scroll-my-6 rounded-lg bg-muted/40 px-6 py-4 outline-none data-[search-highlighted]:ring-2 data-[search-highlighted]:ring-ring data-[search-highlighted]:ring-offset-2 data-[search-highlighted]:ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
         >
           <div className="flex w-full flex-col gap-3 lg:w-[32rem]">
             <div className="flex flex-wrap items-center gap-3">
@@ -309,20 +282,52 @@ export function NetworkServicePage() {
               )
             )}
           </div>
+        </div>
+      </section>
+      <section aria-labelledby="network-service-heading" className="flex flex-col gap-8">
+        <h3 id="network-service-heading" className="text-base font-semibold">
+          开放 API
+        </h3>
+        <SettingsCard
+          searchId="open-api-enabled"
+          title="启用开放 API"
+          description="启动本机 HTTP 与 WebSocket 服务。"
+        >
+          <Switch
+            aria-label="启用开放 API"
+            checked={status?.config.enabled ?? false}
+            disabled={!status || saving}
+            onCheckedChange={(value) => void configure({ enabled: value })}
+          />
         </SettingsCard>
         <SettingsCard
-          searchId="open-api-listen"
-          title="监听范围"
-          description="默认仅本机可连接；允许局域网后，同一网络中的设备也能访问。"
+          searchId="open-api-docs"
+          title="协议文档"
+          description="在浏览器中查看接口说明。"
         >
-          <div className="flex w-72 flex-col items-stretch gap-3">
-            <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col items-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!status?.running || !status.addresses.length}
+              onClick={() => void openDocs()}
+            >
+              <BookOpen aria-hidden="true" />
+              打开文档
+            </Button>
+            {actionError && <ErrorNotice error={actionError} />}
+          </div>
+        </SettingsCard>
+        <SettingsCard searchId="open-api-port" title="监听端口" description="服务监听的本机端口。">
+          <div className="flex w-full flex-col gap-2 lg:w-auto">
+            <div className="flex flex-wrap items-center gap-3">
               <label htmlFor="open-api-port" className="text-xs font-medium">
                 端口
               </label>
               <Input
                 id="open-api-port"
                 type="number"
+                className="w-24"
                 min={1}
                 max={65535}
                 step={1}
@@ -332,31 +337,33 @@ export function NetworkServicePage() {
                 aria-describedby={portError ? 'open-api-port-error' : undefined}
                 onChange={(event) => setPort(event.currentTarget.value)}
               />
-              {portError && (
-                <p id="open-api-port-error" className="text-xs text-destructive">
-                  {portError}
-                </p>
-              )}
+              <Button
+                size="sm"
+                disabled={!status || saving || !!portError || !dirty}
+                onClick={() => void configure({ port: portNumber, lan })}
+              >
+                {saving ? '保存中…' : '应用更改'}
+              </Button>
             </div>
-            <label className="flex items-center justify-between gap-4 text-sm">
-              <span>允许局域网访问</span>
-              <Switch
-                aria-label="允许局域网访问"
-                checked={lan}
-                disabled={!status || saving}
-                onCheckedChange={setLan}
-              />
-            </label>
-            <Button
-              className="self-end"
-              size="sm"
-              disabled={!status || saving || !!portError || !dirty}
-              onClick={() => void configure({ port: portNumber, lan })}
-            >
-              {saving ? '保存中…' : '应用更改'}
-            </Button>
+            {portError && (
+              <p id="open-api-port-error" className="text-xs text-destructive">
+                {portError}
+              </p>
+            )}
             {saveError && <ErrorNotice error={saveError} />}
           </div>
+        </SettingsCard>
+        <SettingsCard
+          searchId="open-api-lan"
+          title="允许局域网访问"
+          description="同一网络中的设备也能连接。"
+        >
+          <Switch
+            aria-label="允许局域网访问"
+            checked={status?.config.lan ?? lan}
+            disabled={!status || saving}
+            onCheckedChange={(value) => void configure({ lan: value })}
+          />
         </SettingsCard>
       </section>
     </div>

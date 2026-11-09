@@ -82,7 +82,8 @@ const groups: SearchGroup[] = [
       ['open-api-enabled', '启用开放 API', 'HTTP WebSocket 外部应用 控制 播放'],
       ['open-api-status', '服务状态', '地址 连接 错误 运行'],
       ['open-api-docs', '协议文档', 'API 接口 文档'],
-      ['open-api-listen', '监听范围', '端口 局域网 LAN']
+      ['open-api-port', '监听端口', '端口 46321'],
+      ['open-api-lan', '允许局域网访问', '局域网 LAN 同一网络 设备']
     ]
   },
   {
@@ -220,7 +221,8 @@ const desktopOnly = new Set([
   'open-api-enabled',
   'open-api-status',
   'open-api-docs',
-  'open-api-listen'
+  'open-api-port',
+  'open-api-lan'
 ])
 const windowsOnly = new Set(['taskbar-cover'])
 
