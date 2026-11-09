@@ -11,24 +11,12 @@ import {
 import { cn } from '@/lib/utils'
 import { version } from '../../package.json'
 
-export function WorkspaceDialogPopup({
+export function WorkspaceDialogShell({
   title,
-  description,
-  navigationHeader,
-  navigation,
-  contentLabel,
-  contentKey,
-  contentClassName,
   className,
   children
 }: {
   title: string
-  description: string
-  navigationHeader?: ReactNode
-  navigation: ReactNode
-  contentLabel: string
-  contentKey?: string
-  contentClassName?: string
   className?: string
   children: ReactNode
 }) {
@@ -56,6 +44,34 @@ export function WorkspaceDialogPopup({
       >
         <X aria-hidden="true" />
       </DialogClose>
+      {children}
+    </DialogPopup>
+  )
+}
+
+export function WorkspaceDialogPopup({
+  title,
+  description,
+  navigationHeader,
+  navigation,
+  contentLabel,
+  contentKey,
+  contentClassName,
+  className,
+  children
+}: {
+  title: string
+  description: string
+  navigationHeader?: ReactNode
+  navigation: ReactNode
+  contentLabel: string
+  contentKey?: string
+  contentClassName?: string
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <WorkspaceDialogShell title={title} className={className}>
       <div className="flex h-full min-h-0 w-full overflow-hidden">
         <aside className="flex w-44 shrink-0 flex-col bg-muted/50 sm:w-60">
           <div className="px-5 pb-4 pt-5">
@@ -90,6 +106,6 @@ export function WorkspaceDialogPopup({
           {children}
         </section>
       </div>
-    </DialogPopup>
+    </WorkspaceDialogShell>
   )
 }
