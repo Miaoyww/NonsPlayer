@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.12.4] - 2026-11-09
+
+![NonsPlayer v1.12.4 启动崩溃修复头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.4/docs/release-assets/header.png)
+
+NonsPlayer 1.12.4 启动崩溃修复。本次 Release 提供 **Windows x64、Linux x64、Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 ### 稳定性修复
 
 - 修复启动恢复含在线封面的歌曲时，任务栏封面可能在后端状态就绪前读取而触发崩溃日志的问题。
