@@ -164,6 +164,6 @@ codegen-units = 1
 lto = true
 opt-level = 3
 panic = "abort"
-debug = "line-tables-only"
-strip = "none"
+debug = false
+strip = "symbols"
 

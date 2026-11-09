@@ -21,6 +21,11 @@ $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
 $env:NDK_HOME = Join-Path $env:ANDROID_HOME "ndk/$nonsNdkVersion"
 $env:GRADLE_USER_HOME = Join-Path $nonsAndroid 'gradle'
 $env:CARGO_PROFILE_DEV_DEBUG = '0'
+# Android release ships without native debug data; desktop release keeps its
+# line tables for backtraces. Keep a symbol table only when it is useful for
+# ad-hoc native inspection, not the full DWARF payload.
+$env:CARGO_PROFILE_RELEASE_DEBUG = '0'
+$env:CARGO_PROFILE_RELEASE_STRIP = 'symbols'
 $nonsInheritedRustflags = $env:RUSTFLAGS
 # Android's page-size linker flag is only valid for the native Android target.
 # The Android beforeBuildCommand also builds wasm32 adapters, whose rust-lld
@@ -82,6 +87,14 @@ try {
         $nonsApk = Join-Path $nonsRoot "app/src-tauri/gen/android/app/build/outputs/apk/universal/$nonsBuildType/app-universal-$nonsBuildType.apk"
         & python scripts/verify-android-apk.py $nonsApk
         if ($LASTEXITCODE -ne 0) { throw "Android $nonsBuildType APK verification failed with exit code $LASTEXITCODE" }
+        if ($Release) {
+            $nonsMaxApkMiB = 64
+            $nonsApkMiB = [math]::Round((Get-Item -LiteralPath $nonsApk).Length / 1MB, 2)
+            if ($nonsApkMiB -gt $nonsMaxApkMiB) {
+                throw "Android release APK is too large: $nonsApkMiB MiB (limit: $nonsMaxApkMiB MiB)"
+            }
+            Write-Host "APK size: $nonsApkMiB MiB"
+        }
         $nonsSignature = & (Join-Path $env:ANDROID_HOME 'build-tools/37.0.0/apksigner.bat') verify --verbose --print-certs $nonsApk
         if ($LASTEXITCODE -ne 0) { throw "Android $nonsBuildType APK signature verification failed with exit code $LASTEXITCODE" }
         $nonsSignature | Write-Host
