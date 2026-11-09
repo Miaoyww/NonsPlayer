@@ -194,7 +194,8 @@ test('uniform details retain cursor and rows on failure, reload only their own s
             }
           },
           '下载'
-        )
+        ),
+      BatchMenuItem: ({ onClick }) => React.createElement('button', { onClick }, '批量操作')
     },
     '@/features/library/collection/collection-content': {
       CollectionContent: ({ children }) => children

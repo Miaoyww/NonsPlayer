@@ -408,10 +408,9 @@ test('aggregate detail reuses the platform header and keeps deletion and refresh
   assert.equal(trigger.props.render.props['aria-label'], '歌单菜单')
   assert.equal(trigger.props.children.type, 'Ellipsis')
   const item = (label) =>
-    actions.find(
-      (node) =>
-        ['Menu.Item', 'BatchMenuItem'].includes(node.type) && node.props.children[1] === label
-    )
+    label === '批量操作'
+      ? actions.find((node) => node.type === 'BatchMenuItem')
+      : actions.find((node) => node.type === 'Menu.Item' && node.props.children[1] === label)
   item('批量操作').props.onClick()
   assert.ok(calls.some((call) => call[0] === 'batch'))
   item('删除本机歌单').props.onClick()
@@ -442,6 +441,7 @@ test('ordinary playlist menu exposes only derivation for owned playlists and ope
     },
     'lucide-react': { Ellipsis: 'Ellipsis', GitBranch: 'GitBranch', ListChecks: 'ListChecks' },
     '@/components/music/action-button': { ActionButton: 'Button' },
+    '@/components/music/batch-toolbar': batchModule(),
     '@/features/music/references': { collectionReference: (item) => item.reference },
     '@/features/music/client': {
       musicClient: { currentAccount: async () => ({ reference: { source: 'netease', id: '42' } }) }

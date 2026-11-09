@@ -37,6 +37,7 @@ test('likes refresh the loaded playlist in the background without unmounting its
       )
   }
   modules['@/lib/runtime-cache'] = createRuntimeCache()
+  modules['@/components/music/batch-toolbar'] = batchModule()
   const profile = { userId: '1', reference: { source: 'netease', id: '1' } }
   const collection = {
     kind: 'playlist',
@@ -222,6 +223,7 @@ test('playlist detail siblings have distinct keys and search state resets when s
         bindings.elements.map((item) => [item.name.text, placeholder])
       )
   }
+  modules['@/components/music/batch-toolbar'] = batchModule()
   let collection = { kind: 'playlist', id: 18282029444, name: 'First' }
   Object.assign(modules, {
     '@/features/aggregate/aggregate-library': {
@@ -343,6 +345,7 @@ test('library home limits the featured preview to twelve without changing the fa
       )
   }
   modules['@/lib/runtime-cache'] = createRuntimeCache()
+  modules['@/components/music/batch-toolbar'] = batchModule()
   const profile = { userId: 'qq-user', nickname: 'QQ', reference: { source: 'qqmusic' } }
   const summary = {
     profile,
