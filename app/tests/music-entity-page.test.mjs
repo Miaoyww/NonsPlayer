@@ -23,6 +23,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
   const pending = []
   const calls = []
   const playback = []
+  const downloads = []
   const derivations = []
   const navigation = []
   let table
@@ -105,7 +106,13 @@ test('uniform details retain cursor and rows on failure, reload only their own s
         query: (source, request) =>
           new Promise((resolve, reject) => pending.push({ source, request, resolve, reject })),
         storedTracks: async (source, items) =>
-          items.map((item) => ({ key: `${source}:${item.id}` }))
+          items.map((item) => ({
+            key: `${source}:${item.id}`,
+            source: {
+              kind: 'online',
+              track: { reference: { source, kind: 'track', id: item.id } }
+            }
+          }))
       }
     }
   }
@@ -121,7 +128,31 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     '@/components/music/action-button': {
       ActionButton: ({ children, ...props }) => React.createElement('button', props, children)
     },
-    'lucide-react': { Play: () => null, Ellipsis: () => null, GitBranch: () => null },
+    'lucide-react': {
+      Play: () => null,
+      Ellipsis: () => null,
+      GitBranch: () => null,
+      ListChecks: () => null,
+      Download: () => null
+    },
+    '@/lib/platform': { isWindows: () => true },
+    '@/features/downloads/download-provider': {
+      useDownloads: () => ({
+        start: async (track) => {
+          downloads.push(track.key)
+          return '已加入下载'
+        }
+      })
+    },
+    '@/components/music/batch-toolbar': {
+      BatchToolbar: ({ children, onDone }) =>
+        React.createElement(
+          'div',
+          {},
+          children,
+          React.createElement('button', { onClick: onDone }, '完成')
+        )
+    },
     '@/features/library/collection/collection-content': {
       CollectionContent: ({ children }) => children
     },
@@ -274,6 +305,22 @@ test('uniform details retain cursor and rows on failure, reload only their own s
       'qqmusic:replacement',
       'background first page replaces cached rows'
     )
+    const batch = [...document.querySelectorAll('header button')].find(
+      (button) => button.textContent === '批量操作'
+    )
+    assert.ok(batch)
+    await act(async () => batch.click())
+    assert.ok(table.selection)
+    await act(async () => table.selection.onToggle('qqmusic:replacement', true))
+    const download = [...document.querySelectorAll('button')].find(
+      (button) => button.textContent === '下载'
+    )
+    assert.ok(download)
+    await act(async () => {
+      download.click()
+      await new Promise((resolve) => setImmediate(resolve))
+    })
+    assert.deepEqual(downloads, ['qqmusic:replacement'])
     for (const kind of ['artist', 'album']) {
       await act(async () =>
         root.render(

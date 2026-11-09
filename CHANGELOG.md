@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 聚合歌单批量操作改用统一的选中控件，并在普通歌单中新增批量下载。
+
 ## [1.12.2] - 2026-11-09
 
 ![NonsPlayer v1.12.2 开放 API 与 Android 包体优化头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.2/docs/release-assets/header.png)

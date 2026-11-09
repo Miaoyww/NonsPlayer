@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Trash2, ArrowUpDown, Check, ListChecks } from 'lucide-react'
+import { Plus, Trash2, ArrowUpDown } from 'lucide-react'
 import { isTauri } from '@tauri-apps/api/core'
 import { MusicPage } from '@/components/music/music-page'
 import { PlaylistPageShell } from '@/features/library/playlist/playlist-page-shell'
 import { ActionButton } from '@/components/music/action-button'
+import { BatchToolbar } from '@/components/music/batch-toolbar'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { ErrorNotice } from '@/components/error-notice'
@@ -247,15 +248,7 @@ export default function AggregatePage({
         }
       >
         {batch && (
-          <div
-            className="mb-4 flex flex-wrap items-center gap-2"
-            role="toolbar"
-            aria-label="批量操作"
-          >
-            <span className="mr-2 inline-flex items-center gap-2 text-sm text-muted-foreground">
-              <ListChecks aria-hidden="true" className="size-4" />
-              已选 {selected.size} 首
-            </span>
+          <BatchToolbar selected={selected.size} busy={busy} onDone={toggleBatch}>
             <ActionButton
               disabled={
                 busy ||
@@ -293,16 +286,7 @@ export default function AggregatePage({
               <ArrowUpDown aria-hidden="true" />
               移动到位置
             </ActionButton>
-            <ActionButton
-              variant="outline"
-              className="ml-auto"
-              disabled={busy}
-              onClick={toggleBatch}
-            >
-              <Check aria-hidden="true" />
-              完成
-            </ActionButton>
-          </div>
+          </BatchToolbar>
         )}
         <TrackList
           tracks={list.items.map((m) => m.track)}

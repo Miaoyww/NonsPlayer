@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Menu } from '@base-ui/react/menu'
-import { Ellipsis, GitBranch } from 'lucide-react'
+import { Ellipsis, GitBranch, ListChecks } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { collectionReference } from '@/features/music/references'
 import { musicClient } from '@/features/music/client'
@@ -12,11 +12,15 @@ import type { AccountRef } from '@/features/music/types'
 export function PlatformPlaylistMenu({
   collection,
   account,
-  onError
+  onError,
+  batch = false,
+  onBatch
 }: {
   collection: MusicCollection
   account?: AccountRef
   onError: (cause: unknown) => void
+  batch?: boolean
+  onBatch?: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const mounted = useRef(true)
@@ -62,7 +66,7 @@ export function PlatformPlaylistMenu({
       if (mounted.current) setBusy(false)
     }
   }
-  if (!eligible) return null
+  if (!eligible && !onBatch) return null
   return (
     <Menu.Root>
       <Menu.Trigger
@@ -82,14 +86,22 @@ export function PlatformPlaylistMenu({
       <Menu.Portal>
         <Menu.Positioner className="z-[70]" side="bottom" align="end" sideOffset={6}>
           <Menu.Popup className="song-context-menu" aria-label="歌单操作">
-            <Menu.Item
-              disabled={!eligible || busy}
-              onClick={() => void derive()}
-              title={eligible ? undefined : '仅支持当前账号自建的普通歌单'}
-            >
-              <GitBranch aria-hidden="true" />
-              派生为聚合歌单
-            </Menu.Item>
+            {onBatch && (
+              <Menu.Item onClick={onBatch}>
+                <ListChecks aria-hidden="true" />
+                {batch ? '完成批量操作' : '批量操作'}
+              </Menu.Item>
+            )}
+            {eligible && (
+              <Menu.Item
+                disabled={busy}
+                onClick={() => void derive()}
+                title="仅支持当前账号自建的普通歌单"
+              >
+                <GitBranch aria-hidden="true" />
+                派生为聚合歌单
+              </Menu.Item>
+            )}
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>

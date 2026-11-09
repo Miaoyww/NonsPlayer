@@ -435,7 +435,7 @@ test('ordinary playlist menu exposes only derivation for owned playlists and ope
         ['Root', 'Trigger', 'Portal', 'Positioner', 'Popup', 'Item'].map((name) => [name, name])
       )
     },
-    'lucide-react': { Ellipsis: 'Ellipsis', GitBranch: 'GitBranch' },
+    'lucide-react': { Ellipsis: 'Ellipsis', GitBranch: 'GitBranch', ListChecks: 'ListChecks' },
     '@/components/music/action-button': { ActionButton: 'Button' },
     '@/features/music/references': { collectionReference: (item) => item.reference },
     '@/features/music/client': {
