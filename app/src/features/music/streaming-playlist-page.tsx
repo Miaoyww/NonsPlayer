@@ -175,19 +175,28 @@ function StreamingPlaylistContent({ collection, onError, onNotice }: StreamingPl
     let skipped = 0
     let failed = 0
     try {
-      for (const track of items) {
-        try {
-          const message = await downloads.start(track)
-          if (message === '该歌曲已下载') skipped++
-          else queued++
-        } catch (cause) {
+      const results = await downloads.startMany(items)
+      for (const result of results) {
+        if (result.error) {
           failed++
-          reportCaughtError('app/src/features/music/streaming-playlist-page.tsx', cause)
+          reportCaughtError(
+            'app/src/features/music/streaming-playlist-page.tsx:downloads_add_many',
+            new Error(result.error)
+          )
+        } else if (result.reason) {
+          skipped++
+        } else {
+          queued++
         }
       }
-      const skippedText = skipped ? `，跳过 ${skipped} 首已下载` : ''
+      const skippedText = skipped ? `，跳过 ${skipped} 首重复` : ''
       const failedText = failed ? `，${failed} 首失败` : ''
       onNotice?.(`已加入下载 ${queued} 首${skippedText}${failedText}。`)
+      setBatch(false)
+      setSelected(new Set())
+    } catch (cause) {
+      reportCaughtError('app/src/features/music/streaming-playlist-page.tsx', cause)
+      onError(cause)
     } finally {
       setDownloading(false)
     }

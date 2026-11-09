@@ -8,6 +8,7 @@ import { isWindows } from '@/lib/platform'
 import { DownloadDialog } from './download-dialog'
 
 export type DownloadState = 'waiting' | 'running' | 'completed' | 'failed' | 'cancelled'
+export type DownloadSkipReason = 'alreadyQueued' | 'alreadyDownloaded'
 
 export interface DownloadTask {
   id: number
@@ -23,11 +24,19 @@ export interface DownloadTask {
   completedAt?: number
 }
 
+export interface DownloadEnqueueResult {
+  trackKey: string
+  task?: DownloadTask
+  reason?: DownloadSkipReason
+  error?: string
+}
+
 interface DownloadContextValue {
   tasks: DownloadTask[]
   open: boolean
   setOpen: (open: boolean) => void
   start: (track: Track) => Promise<string>
+  startMany: (tracks: Track[]) => Promise<DownloadEnqueueResult[]>
   cancel: (id: number) => Promise<void>
   retry: (id: number) => Promise<void>
   remove: (id: number) => Promise<void>
@@ -85,14 +94,22 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
     setTasks(list)
   }
 
+  async function startMany(tracks: Track[]) {
+    const results = await nativeCall<DownloadEnqueueResult[]>('downloads_add_many', { tracks })
+    const returned = results.flatMap((result) => (result.task ? [result.task] : []))
+    if (returned.length) {
+      const ids = new Set(returned.map((task) => task.id))
+      setTasks((current) => [...current.filter((task) => !ids.has(task.id)), ...returned])
+      setOpen(true)
+    }
+    return results
+  }
+
   async function start(track: Track) {
-    const task = await nativeCall<DownloadTask>('downloads_add', { track })
-    setTasks((current) => {
-      const next = current.filter((value) => value.id !== task.id)
-      return [...next, task]
-    })
-    setOpen(true)
-    return task.state === 'completed' ? '该歌曲已下载' : `已加入下载：${track.title}`
+    const [result] = await startMany([track])
+    if (result?.error) throw new Error(result.error)
+    if (!result?.task) throw new Error('没有可加入的下载任务')
+    return result.reason === 'alreadyDownloaded' ? '该歌曲已下载' : `已加入下载：${track.title}`
   }
 
   async function run(action: () => Promise<unknown>) {
@@ -107,6 +124,7 @@ export function DownloadProvider({ children }: { children: ReactNode }) {
         open,
         setOpen,
         start,
+        startMany,
         cancel: (id) => run(() => nativeCall('downloads_cancel', { id })),
         retry: (id) => run(() => nativeCall('downloads_retry', { id })),
         remove: (id) => run(() => nativeCall('downloads_remove', { id })),

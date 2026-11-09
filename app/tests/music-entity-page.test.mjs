@@ -23,7 +23,7 @@ test('uniform details retain cursor and rows on failure, reload only their own s
   const pending = []
   const calls = []
   const playback = []
-  const downloads = []
+  const downloadBatches = []
   const derivations = []
   const navigation = []
   let table
@@ -138,9 +138,9 @@ test('uniform details retain cursor and rows on failure, reload only their own s
     '@/lib/platform': { isWindows: () => true },
     '@/features/downloads/download-provider': {
       useDownloads: () => ({
-        start: async (track) => {
-          downloads.push(track.key)
-          return '已加入下载'
+        startMany: async (tracks) => {
+          downloadBatches.push(tracks.map((track) => track.key))
+          return tracks.map((track) => ({ trackKey: track.key }))
         }
       })
     },
@@ -320,7 +320,9 @@ test('uniform details retain cursor and rows on failure, reload only their own s
       download.click()
       await new Promise((resolve) => setImmediate(resolve))
     })
-    assert.deepEqual(downloads, ['qqmusic:replacement'])
+    assert.deepEqual(downloadBatches, [['qqmusic:replacement']])
+    assert.equal(table.selection, undefined)
+    assert.equal(batch.textContent, '批量操作')
     for (const kind of ['artist', 'album']) {
       await act(async () =>
         root.render(

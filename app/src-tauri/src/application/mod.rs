@@ -1232,6 +1232,7 @@ pub fn run() {
             plugins::plugin_ready,
             plugins::plugin_fault,
             crate::downloads::downloads_add,
+            crate::downloads::downloads_add_many,
             crate::downloads::downloads_list,
             crate::downloads::downloads_cancel,
             crate::downloads::downloads_retry,

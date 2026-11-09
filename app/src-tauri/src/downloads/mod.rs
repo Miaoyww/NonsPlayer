@@ -9,7 +9,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
@@ -21,7 +21,8 @@ use tauri::{Emitter, State};
 use tauri_plugin_opener::OpenerExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-const MAX_TASKS: usize = 32;
+const MAX_FINISHED_TASKS: usize = 32;
+const MAX_BATCH_TRACKS: usize = 1000;
 const MAX_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_NETWORK_WAIT: Duration = Duration::from_secs(10 * 60);
 const QUALITIES: &[&str] = &["standard", "higher", "exhigh", "lossless", "hires"];
@@ -41,6 +42,25 @@ pub enum DownloadState {
     Completed,
     Failed,
     Cancelled,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DownloadSkipReason {
+    AlreadyQueued,
+    AlreadyDownloaded,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadEnqueueResult {
+    pub track_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task: Option<DownloadTask>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<DownloadSkipReason>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -99,6 +119,30 @@ struct DownloadOutcome {
 
 fn default_filename_format() -> String {
     DEFAULT_FILENAME_FORMAT.into()
+}
+
+fn is_finished(task: &DownloadTask) -> bool {
+    matches!(
+        task.state,
+        DownloadState::Completed | DownloadState::Failed | DownloadState::Cancelled
+    )
+}
+
+fn prune_finished(tasks: &mut Vec<DownloadTask>, keep: usize) -> bool {
+    let finished = tasks.iter().filter(|task| is_finished(task)).count();
+    let mut remove = finished.saturating_sub(keep);
+    if remove == 0 {
+        return false;
+    }
+    tasks.retain(|task| {
+        if remove > 0 && is_finished(task) {
+            remove -= 1;
+            false
+        } else {
+            true
+        }
+    });
+    true
 }
 
 pub struct Downloads {
@@ -172,7 +216,6 @@ impl Downloads {
                     .ok()
             })
             .unwrap_or_default();
-        tasks.truncate(MAX_TASKS);
         for task in &mut tasks {
             if !QUALITIES.contains(&task.quality.as_str()) {
                 task.quality = DEFAULT_QUALITY.into();
@@ -196,6 +239,7 @@ impl Downloads {
                 }
             }
         }
+        prune_finished(&mut tasks, MAX_FINISHED_TASKS);
         self.state.lock().map_err(|_| "下载任务锁不可用")?.tasks = tasks;
         self.persist()
     }
@@ -215,81 +259,146 @@ impl Downloads {
     }
 
     pub fn enqueue(self: &Arc<Self>, track: Track) -> AppResult<DownloadTask> {
+        let mut results = self.enqueue_many(vec![track])?;
+        let result = results.pop().ok_or("没有可入队的下载任务")?;
+        if let Some(error) = result.error {
+            return Err(error.into());
+        }
+        result.task.ok_or_else(|| "没有可入队的下载任务".into())
+    }
+
+    pub fn enqueue_many(
+        self: &Arc<Self>,
+        tracks: Vec<Track>,
+    ) -> AppResult<Vec<DownloadEnqueueResult>> {
         if !cfg!(windows) {
             return Err("下载功能当前仅支持 Windows".into());
         }
-        online_source(&track)?;
-        if serde_json::to_vec(&track)
-            .map_err(|error| error.to_string())?
-            .len()
-            > 64 * 1024
-        {
-            return Err("歌曲信息超过 64KiB".into());
+        if tracks.len() > MAX_BATCH_TRACKS {
+            return Err(format!("单次最多批量下载 {MAX_BATCH_TRACKS} 首"));
         }
         let quality = self.quality()?;
         let filename_format = self.filename_format()?;
         self.ensure_folder()?;
         let directory = self.current_directory()?;
         let mut state = self.state.lock().map_err(|_| "下载任务锁不可用")?;
-        if let Some(existing) = state.tasks.iter().rev().find(|task| {
-            task.track.key == track.key
-                && matches!(task.state, DownloadState::Waiting | DownloadState::Running)
-        }) {
-            return Ok(existing.clone());
-        }
-        if let Some(existing) = state.tasks.iter().rev().find(|task| {
-            task.track.key == track.key
-                && task.state == DownloadState::Completed
+        let pruned = prune_finished(&mut state.tasks, MAX_FINISHED_TASKS);
+
+        let mut active = HashMap::new();
+        let mut completed = HashMap::new();
+        for task in state.tasks.iter().rev() {
+            let identity = (task.track.key.clone(), task.quality.clone());
+            if matches!(task.state, DownloadState::Waiting | DownloadState::Running) {
+                active.entry(identity).or_insert_with(|| task.clone());
+            } else if task.state == DownloadState::Completed
                 && task
                     .path
                     .as_deref()
                     .is_some_and(|path| directory.join(path).is_file())
-        }) {
-            return Ok(existing.clone());
+            {
+                completed.entry(identity).or_insert_with(|| task.clone());
+            }
         }
-        while state.tasks.len() >= MAX_TASKS {
-            let Some(index) = state.tasks.iter().position(|task| {
-                matches!(
-                    task.state,
-                    DownloadState::Completed | DownloadState::Failed | DownloadState::Cancelled
-                )
-            }) else {
-                return Err(format!("下载队列已满（最多 {MAX_TASKS} 首）"));
-            };
-            state.tasks.remove(index);
-        }
-        let id = state
+
+        let mut next_id = state
             .tasks
             .iter()
             .map(|task| task.id)
             .max()
             .unwrap_or(0)
             .saturating_add(1);
-        let task = DownloadTask {
-            id,
-            track,
-            state: DownloadState::Waiting,
-            quality,
-            filename_format,
-            actual_quality: None,
-            bytes: 0,
-            total: None,
-            path: None,
-            error: None,
-            warning: None,
-            completed_at: None,
-        };
-        state.tasks.push(task.clone());
+        let mut accepted = Vec::new();
+        let mut results = Vec::with_capacity(tracks.len());
+        for track in tracks {
+            let track_key = track.key.clone();
+            if let Err(error) = online_source(&track) {
+                results.push(DownloadEnqueueResult {
+                    track_key,
+                    task: None,
+                    reason: None,
+                    error: Some(error),
+                });
+                continue;
+            }
+            if serde_json::to_vec(&track)
+                .map_err(|error| error.to_string())?
+                .len()
+                > 64 * 1024
+            {
+                results.push(DownloadEnqueueResult {
+                    track_key,
+                    task: None,
+                    reason: None,
+                    error: Some("歌曲信息超过 64KiB".into()),
+                });
+                continue;
+            }
+            let identity = (track_key.clone(), quality.clone());
+            if let Some(existing) = active.get(&identity) {
+                results.push(DownloadEnqueueResult {
+                    track_key,
+                    task: Some(existing.clone()),
+                    reason: Some(DownloadSkipReason::AlreadyQueued),
+                    error: None,
+                });
+                continue;
+            }
+            if let Some(existing) = completed.get(&identity) {
+                results.push(DownloadEnqueueResult {
+                    track_key,
+                    task: Some(existing.clone()),
+                    reason: Some(DownloadSkipReason::AlreadyDownloaded),
+                    error: None,
+                });
+                continue;
+            }
+            let id = next_id;
+            next_id = next_id.saturating_add(1);
+            let task = DownloadTask {
+                id,
+                track,
+                state: DownloadState::Waiting,
+                quality: quality.clone(),
+                filename_format: filename_format.clone(),
+                actual_quality: None,
+                bytes: 0,
+                total: None,
+                path: None,
+                error: None,
+                warning: None,
+                completed_at: None,
+            };
+            active.insert(identity, task.clone());
+            accepted.push(task.clone());
+            results.push(DownloadEnqueueResult {
+                track_key,
+                task: Some(task),
+                reason: None,
+                error: None,
+            });
+        }
+        if accepted.is_empty() {
+            drop(state);
+            if pruned {
+                if let Err(error) = self.persist() {
+                    crate::infrastructure::diagnostics::warn("downloads.persist.prune", &error);
+                }
+                self.changed();
+            }
+            return Ok(results);
+        }
+        state.tasks.extend(accepted.iter().cloned());
         drop(state);
         if let Err(error) = self.persist() {
+            let ids: HashSet<u64> = accepted.iter().map(|task| task.id).collect();
             if let Ok(mut state) = self.state.lock() {
-                state.tasks.retain(|task| task.id != id);
+                state.tasks.retain(|task| !ids.contains(&task.id));
             }
             return Err(error);
         }
         self.changed();
         self.pump();
-        Ok(task)
+        Ok(results)
     }
 
     pub fn list(&self) -> AppResult<Vec<DownloadTask>> {
@@ -1202,6 +1311,14 @@ pub fn downloads_add(track: Track, backend: State<'_, Backend>) -> AppResult<Dow
 }
 
 #[tauri::command]
+pub fn downloads_add_many(
+    tracks: Vec<Track>,
+    backend: State<'_, Backend>,
+) -> AppResult<Vec<DownloadEnqueueResult>> {
+    backend.downloads.enqueue_many(tracks)
+}
+
+#[tauri::command]
 pub fn downloads_list(backend: State<'_, Backend>) -> AppResult<Vec<DownloadTask>> {
     backend.downloads.list()
 }
@@ -1316,6 +1433,58 @@ mod tests {
             }
         }))
         .unwrap()
+    }
+
+    fn task(id: u64, key: &str, state: DownloadState) -> DownloadTask {
+        DownloadTask {
+            id,
+            track: track(&id.to_string(), "Artist", key),
+            state,
+            quality: DEFAULT_QUALITY.into(),
+            filename_format: DEFAULT_FILENAME_FORMAT.into(),
+            actual_quality: None,
+            bytes: 0,
+            total: None,
+            path: None,
+            error: None,
+            warning: None,
+            completed_at: None,
+        }
+    }
+
+    #[test]
+    fn finished_history_is_pruned_before_active_tasks() {
+        let mut tasks = vec![
+            task(1, "old-done", DownloadState::Completed),
+            task(2, "waiting", DownloadState::Waiting),
+            task(3, "old-failed", DownloadState::Failed),
+            task(4, "running", DownloadState::Running),
+            task(5, "new-done", DownloadState::Completed),
+        ];
+
+        prune_finished(&mut tasks, 1);
+
+        assert_eq!(
+            tasks
+                .iter()
+                .map(|task| task.track.title.as_str())
+                .collect::<Vec<_>>(),
+            ["waiting", "running", "new-done"]
+        );
+    }
+
+    #[test]
+    fn enqueue_results_use_camel_case_skip_reasons() {
+        let value = serde_json::to_value(DownloadEnqueueResult {
+            track_key: "netease:1".into(),
+            task: None,
+            reason: Some(DownloadSkipReason::AlreadyQueued),
+            error: None,
+        })
+        .unwrap();
+
+        assert_eq!(value["trackKey"], "netease:1");
+        assert_eq!(value["reason"], "alreadyQueued");
     }
 
     #[test]
