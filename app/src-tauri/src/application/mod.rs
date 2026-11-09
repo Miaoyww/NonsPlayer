@@ -291,19 +291,26 @@ async fn local_cache_status(backend: State<'_, Backend>) -> AppResult<lyric_cach
 #[tauri::command]
 async fn set_local_cache_options(
     options: lyric_cache::CacheOptions,
+    app: tauri::AppHandle,
     backend: State<'_, Backend>,
 ) -> AppResult<()> {
     let cache = backend.cache.clone();
     tauri::async_runtime::spawn_blocking(move || cache.configure(options))
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())??;
+    use tauri::Emitter;
+    app.emit("lyric-cache-changed", ())
+        .map_err(|error| error.to_string())
 }
 #[tauri::command]
-async fn clear_local_cache(backend: State<'_, Backend>) -> AppResult<()> {
+async fn clear_local_cache(app: tauri::AppHandle, backend: State<'_, Backend>) -> AppResult<()> {
     let cache = backend.cache.clone();
     tauri::async_runtime::spawn_blocking(move || cache.clear())
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())??;
+    use tauri::Emitter;
+    app.emit("lyric-cache-changed", ())
+        .map_err(|error| error.to_string())
 }
 #[tauri::command]
 fn local_options(backend: State<'_, Backend>) -> AppResult<serde_json::Value> {
@@ -772,9 +779,13 @@ fn set_music_options(
 fn set_lyric_endpoints(
     endpoints: Vec<String>,
     platform: Option<String>,
+    app: tauri::AppHandle,
     backend: State<'_, Backend>,
 ) -> AppResult<()> {
-    backend.lyrics.set_endpoints(platform, endpoints)
+    backend.lyrics.set_endpoints(platform, endpoints)?;
+    use tauri::Emitter;
+    app.emit("lyric-cache-changed", ())
+        .map_err(|error| error.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1095,6 +1106,18 @@ pub fn run() {
                 mv_proxy,
                 saved_mvs,
             });
+            #[cfg(desktop)]
+            let open_api = {
+                let backend = app.state::<Backend>();
+                Arc::new(crate::open_api::Manager::new(app.handle().clone(), &backend))
+            };
+            #[cfg(desktop)]
+            {
+                app.manage(open_api.clone());
+                tauri::async_runtime::spawn(async move {
+                    open_api.restore().await;
+                });
+            }
             let telemetry_app = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let (adapters, plugins) = tokio::join!(adapters_startup, plugins_startup);
@@ -1302,6 +1325,14 @@ pub fn run() {
             append_private_fm,
             append_queue,
             player_action,
+            #[cfg(desktop)]
+            crate::open_api::open_api_status,
+            #[cfg(desktop)]
+            crate::open_api::open_api_configure,
+            #[cfg(desktop)]
+            crate::open_api::settings::lyric_global_offset,
+            #[cfg(desktop)]
+            crate::open_api::settings::set_lyric_global_offset,
             player_jump,
             player_retry,
             crate::performance::performance_probe,
@@ -1354,6 +1385,11 @@ pub fn run() {
             }
         }
         if matches!(event, tauri::RunEvent::Exit) {
+            #[cfg(desktop)]
+            {
+                let manager = app.state::<Arc<crate::open_api::Manager>>().inner().clone();
+                tauri::async_runtime::block_on(manager.stop());
+            }
             #[cfg(desktop)]
             if let Some(window) = app.get_window("main") {
                 desktop::save_main_window_size(&window);

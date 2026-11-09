@@ -1,4 +1,8 @@
+import { isTauri } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { reportCaughtError } from '@/lib/diagnostics'
+import { nativeCall } from '@/lib/player'
+import { isAndroid } from '@/lib/platform'
 import { useSyncExternalStore } from 'react'
 
 const storageKey = 'nons-lyrics-background-speed'
@@ -23,6 +27,7 @@ export const defaultLyricsFontWeight = 400
 export const defaultDesktopLyricsSungColor = '#87afff'
 const colorPattern = /^#[0-9a-f]{6}$/i
 const listeners = new Set<() => void>()
+const runsInNativeOffset = typeof window !== 'undefined' && isTauri() && !isAndroid()
 
 function readNumber(key: string, fallback: number, valid: (value: number) => boolean) {
   try {
@@ -63,11 +68,17 @@ let backgroundSpeed = readNumber(
   defaultBackgroundSpeed,
   (value) => Number.isFinite(value) && value >= 0 && value <= 4
 )
-let lyricsOffsetMs = readNumber(
+const legacyLyricsOffsetMs = readNumber(
   offsetStorageKey,
   defaultLyricsOffsetMs,
   (value) => Number.isInteger(value) && value >= -60000 && value <= 60000
 )
+let lyricsOffsetMs = runsInNativeOffset ? defaultLyricsOffsetMs : legacyLyricsOffsetMs
+let lyricsOffsetTarget = lyricsOffsetMs
+let offsetRequest = 0
+let offsetPending = 0
+let offsetEventVersion = 0
+let offsetSave: Promise<void> = Promise.resolve()
 let autoBlur = readBoolean(blurStorageKey, true)
 let fontWeight = readNumber(
   weightStorageKey,
@@ -96,6 +107,59 @@ let desktopLyricsSungColor = readColor(
   desktopLyricsSungColorStorageKey,
   defaultDesktopLyricsSungColor
 )
+function validLyricsOffset(value: number) {
+  return Number.isInteger(value) && value >= -60000 && value <= 60000
+}
+
+function saveOffsetToStorage(value: number) {
+  try {
+    localStorage.setItem(offsetStorageKey, String(value))
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+
+    /* Changes still work for this session. */
+  }
+}
+
+function applyLyricsOffset(value: number, updateTarget = true) {
+  if (!validLyricsOffset(value)) return
+  if (updateTarget) lyricsOffsetTarget = value
+  saveOffsetToStorage(value)
+  if (value === lyricsOffsetMs) return
+  lyricsOffsetMs = value
+  listeners.forEach((notify) => notify())
+}
+
+async function initializeNativeLyricsOffset() {
+  let eventVersion = offsetEventVersion
+  try {
+    await listen<number>('lyric-global-offset-changed', ({ payload }) => {
+      offsetEventVersion += 1
+      applyLyricsOffset(payload, offsetPending === 0)
+    })
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+  }
+  eventVersion = offsetEventVersion
+  const requestVersion = offsetRequest
+  try {
+    const value = await nativeCall<number>('lyric_global_offset', {
+      legacyOffsetMs: legacyLyricsOffsetMs
+    })
+    if (
+      eventVersion === offsetEventVersion &&
+      requestVersion === offsetRequest &&
+      offsetPending === 0
+    )
+      applyLyricsOffset(value)
+  } catch (cause) {
+    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+  }
+}
+
+export const nativeLyricsOffsetReady = runsInNativeOffset
+  ? initializeNativeLyricsOffset()
+  : Promise.resolve()
 
 // Settings are stored per origin, so another window's change arrives as a storage event.
 function reloadFromStorage() {
@@ -104,11 +168,13 @@ function reloadFromStorage() {
     defaultBackgroundSpeed,
     (value) => Number.isFinite(value) && value >= 0 && value <= 4
   )
-  const nextLyricsOffsetMs = readNumber(
-    offsetStorageKey,
-    defaultLyricsOffsetMs,
-    (value) => Number.isInteger(value) && value >= -60000 && value <= 60000
-  )
+  const nextLyricsOffsetMs = runsInNativeOffset
+    ? lyricsOffsetMs
+    : readNumber(
+        offsetStorageKey,
+        defaultLyricsOffsetMs,
+        (value) => Number.isInteger(value) && value >= -60000 && value <= 60000
+      )
   const nextAutoBlur = readBoolean(blurStorageKey, true)
   const nextFontWeight = readNumber(
     weightStorageKey,
@@ -155,6 +221,7 @@ function reloadFromStorage() {
     return
   backgroundSpeed = nextBackgroundSpeed
   lyricsOffsetMs = nextLyricsOffsetMs
+  if (!runsInNativeOffset) lyricsOffsetTarget = nextLyricsOffsetMs
   autoBlur = nextAutoBlur
   fontWeight = nextFontWeight
   fontScale = nextFontScale
@@ -207,17 +274,41 @@ function setBackgroundSpeed(value: number) {
 }
 
 function setLyricsOffsetMs(value: number) {
-  if (!Number.isInteger(value) || value < -60000 || value > 60000 || value === lyricsOffsetMs)
+  if (!validLyricsOffset(value) || value === lyricsOffsetTarget) return
+  lyricsOffsetTarget = value
+  if (!runsInNativeOffset) {
+    lyricsOffsetMs = value
+    saveOffsetToStorage(value)
+    listeners.forEach((notify) => notify())
     return
-  lyricsOffsetMs = value
-  try {
-    localStorage.setItem(offsetStorageKey, String(value))
-  } catch (cause) {
-    reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
-
-    /* Changes still work for this session. */
   }
-  listeners.forEach((notify) => notify())
+  const request = ++offsetRequest
+  offsetPending += 1
+  offsetSave = offsetSave
+    .catch(() => undefined)
+    .then(async () => {
+      try {
+        applyLyricsOffset(
+          await nativeCall<number>('set_lyric_global_offset', { offsetMs: value }),
+          request === offsetRequest
+        )
+      } catch (cause) {
+        reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', cause)
+        if (request !== offsetRequest) return
+        const eventVersion = offsetEventVersion
+        try {
+          const current = await nativeCall<number>('lyric_global_offset')
+          if (request === offsetRequest && eventVersion === offsetEventVersion) {
+            offsetEventVersion += 1
+            applyLyricsOffset(current)
+          }
+        } catch (readCause) {
+          reportCaughtError('app/src/features/lyrics/use-lyrics-settings.ts', readCause)
+        }
+      } finally {
+        offsetPending -= 1
+      }
+    })
 }
 
 function setAutoBlur(value: boolean) {

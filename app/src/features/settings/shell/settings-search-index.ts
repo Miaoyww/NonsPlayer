@@ -76,6 +76,16 @@ const groups: SearchGroup[] = [
     items: [['output-device', '输出设备', '扬声器 耳机 声卡 系统默认']]
   },
   {
+    section: 'network-services',
+    path: '网络与服务 / 开放 API',
+    items: [
+      ['open-api-enabled', '启用开放 API', 'HTTP WebSocket 外部应用 控制 播放'],
+      ['open-api-status', '服务状态', '地址 连接 错误 运行'],
+      ['open-api-docs', '协议文档', 'API 接口 文档'],
+      ['open-api-listen', '监听范围', '端口 局域网 LAN']
+    ]
+  },
+  {
     section: 'download',
     path: '下载设置',
     items: [
@@ -206,7 +216,11 @@ const desktopOnly = new Set([
   'autostart',
   'playback-bar',
   'taskbar-cover',
-  'interface-density'
+  'interface-density',
+  'open-api-enabled',
+  'open-api-status',
+  'open-api-docs',
+  'open-api-listen'
 ])
 const windowsOnly = new Set(['taskbar-cover'])
 

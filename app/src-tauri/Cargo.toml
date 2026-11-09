@@ -20,12 +20,17 @@ path = "src/main.rs"
 name = "nons_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[[test]]
+name = "windows-test-resource"
+path = "tests/windows_test_resource.rs"
+
 [features]
 custom-protocol = ["tauri/custom-protocol"]
 plugin-probe = []
 performance-probe = ["custom-protocol"]
 
 [build-dependencies]
+embed-resource = "3"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
@@ -71,8 +76,9 @@ rayon = "1.11"
 tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
 futures-util = { version = "0.3", features = ["sink"] }
-axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
-tower-http = { version = "0.6", features = ["fs"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "query", "tokio", "ws"] }
+tower-http = { version = "0.6", features = ["cors", "fs"] }
+if-addrs = "0.14"
 http-range = "0.1.5"
 mime_guess = "2"
 semver = "1"
@@ -89,6 +95,8 @@ jxl-oxide = { version = "0.12", default-features = false, features = ["image"] }
 tauri-plugin-android-fs = { version = "=30.2.0", default-features = false }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
+amll-lyric = { version = "0.3", default-features = false, features = ["lrc", "qrc", "yrc"] }
+ttml_processor = { path = "vendor/ttml_processor" }
 ffmpeg_audio = { version = "0.3.1", default-features = false, features = ["http", "tracing"] }
 cpal = { version = "0.18.2", default-features = false, features = ["pipewire", "pulseaudio"] }
 crossbeam-queue = "0.3.14"

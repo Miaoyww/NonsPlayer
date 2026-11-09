@@ -1,0 +1,365 @@
+[
+  {
+    "name": "qrc-last-line-auxiliary",
+    "lyrics": {
+      "translation": "[00:01.00]你好世界\n[00:03.00]再次",
+      "romanization": "[1000,1000]hello (1000,400)world(1400,600)\n[3000,1000]again(3000,1000)",
+      "source": "qq",
+      "format": "qrc",
+      "content": "[1000,1000]Hello (1000,400)world(1400,600)\n[3000,1000]Again(3000,1000)"
+    },
+    "durationMs": 10000,
+    "cue": null,
+    "expected": [
+      {
+        "startTime": 1000,
+        "endTime": 2000,
+        "text": "Hello world",
+        "translation": "你好世界",
+        "romanization": "hello world",
+        "words": [
+          {
+            "text": "Hello ",
+            "startTime": 1000,
+            "endTime": 1400
+          },
+          {
+            "text": "world",
+            "startTime": 1400,
+            "endTime": 2000
+          }
+        ]
+      },
+      {
+        "startTime": 3000,
+        "endTime": 4000,
+        "text": "Again",
+        "translation": "再次",
+        "romanization": "again",
+        "words": [
+          {
+            "text": "Again",
+            "startTime": 3000,
+            "endTime": 4000
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "yrc-metadata-xml",
+    "lyrics": {
+      "translation": "[00:01.00]甲与乙",
+      "romanization": null,
+      "source": "netease",
+      "format": "yrc",
+      "content": "{\"t\":0,\"c\":[{\"tx\":\"制作人员\"}]}\n[1000,1000](1000,400,0)A & (1400,600,0)<B>"
+    },
+    "durationMs": 10000,
+    "cue": null,
+    "expected": [
+      {
+        "startTime": 1000,
+        "endTime": 2000,
+        "text": "A & <B>",
+        "translation": "甲与乙",
+        "romanization": "",
+        "words": [
+          {
+            "text": "A & ",
+            "startTime": 1000,
+            "endTime": 1400
+          },
+          {
+            "text": "<B>",
+            "startTime": 1400,
+            "endTime": 2000
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "lrc-final-duration",
+    "lyrics": {
+      "translation": "[00:01.00]第一\n[00:03.00]最后",
+      "romanization": null,
+      "source": "netease",
+      "format": "lrc",
+      "content": "[00:01.00]First\n[00:03.00]Last"
+    },
+    "durationMs": 10000,
+    "cue": null,
+    "expected": [
+      {
+        "startTime": 1000,
+        "endTime": 3000,
+        "text": "First",
+        "translation": "第一",
+        "romanization": "",
+        "words": [
+          {
+            "text": "First",
+            "startTime": 1000,
+            "endTime": 3000
+          }
+        ]
+      },
+      {
+        "startTime": 3000,
+        "endTime": 59999999,
+        "text": "Last",
+        "translation": "最后",
+        "romanization": "",
+        "words": [
+          {
+            "text": "Last",
+            "startTime": 3000,
+            "endTime": 59999999
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "local-inline",
+    "lyrics": {
+      "translation": null,
+      "romanization": null,
+      "source": "local",
+      "format": "lrc",
+      "content": "[00:01.00]First / 第一句\n[00:03.00]Second／第二句"
+    },
+    "durationMs": 10000,
+    "cue": null,
+    "expected": [
+      {
+        "startTime": 1000,
+        "endTime": 3000,
+        "text": "First",
+        "translation": "第一句",
+        "romanization": "",
+        "words": [
+          {
+            "text": "First",
+            "startTime": 1000,
+            "endTime": 3000
+          }
+        ]
+      },
+      {
+        "startTime": 3000,
+        "endTime": 59999999,
+        "text": "Second",
+        "translation": "第二句",
+        "romanization": "",
+        "words": [
+          {
+            "text": "Second",
+            "startTime": 3000,
+            "endTime": 59999999
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "local-interleaved",
+    "lyrics": {
+      "translation": null,
+      "romanization": null,
+      "source": "local",
+      "format": "lrc",
+      "content": "[00:01.00]First\n[00:01.00]第一句\n[00:03.00]Second\n[00:03.00]第二句"
+    },
+    "durationMs": 10000,
+    "cue": null,
+    "expected": [
+      {
+        "startTime": 1000,
+        "endTime": 3000,
+        "text": "First",
+        "translation": "第一句",
+        "romanization": "",
+        "words": [
+          {
+            "text": "First",
+            "startTime": 1000,
+            "endTime": 3000
+          }
+        ]
+      },
+      {
+        "startTime": 3000,
+        "endTime": 59999999,
+        "text": "Second",
+        "translation": "第二句",
+        "romanization": "",
+        "words": [
+          {
+            "text": "Second",
+            "startTime": 3000,
+            "endTime": 59999999
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "local-translation-block",
+    "lyrics": {
+      "translation": null,
+      "romanization": null,
+      "source": "local",
+      "format": "lrc",
+      "content": "[00:01.00]First\n[00:03.00]Second\n\n[00:01.00]第一句\n[00:03.00]第二句"
+    },
+    "durationMs": 10000,
+    "cue": null,
+    "expected": [
+      {
+        "startTime": 1000,
+        "endTime": 3000,
+        "text": "First",
+        "translation": "第一句",
+        "romanization": "",
+        "words": [
+          {
+            "text": "First",
+            "startTime": 1000,
+            "endTime": 3000
+          }
+        ]
+      },
+      {
+        "startTime": 3000,
+        "endTime": 59999999,
+        "text": "Second",
+        "translation": "第二句",
+        "romanization": "",
+        "words": [
+          {
+            "text": "Second",
+            "startTime": 3000,
+            "endTime": 59999999
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "aux-nearest-placeholder",
+    "lyrics": {
+      "translation": "[00:01.10]甲\n[00:01.40]//\n[00:02.50]丙\n[00:03.501]丁",
+      "romanization": null,
+      "source": "qq",
+      "format": "lrc",
+      "content": "[00:01.00]A\n[00:01.40]B\n[00:02.00]C\n[00:03.00]D"
+    },
+    "durationMs": 10000,
+    "cue": null,
+    "expected": [
+      {
+        "startTime": 1000,
+        "endTime": 1400,
+        "text": "A",
+        "translation": "甲",
+        "romanization": "",
+        "words": [
+          {
+            "text": "A",
+            "startTime": 1000,
+            "endTime": 1400
+          }
+        ]
+      },
+      {
+        "startTime": 1400,
+        "endTime": 2000,
+        "text": "B",
+        "translation": "",
+        "romanization": "",
+        "words": [
+          {
+            "text": "B",
+            "startTime": 1400,
+            "endTime": 2000
+          }
+        ]
+      },
+      {
+        "startTime": 2000,
+        "endTime": 3000,
+        "text": "C",
+        "translation": "丙",
+        "romanization": "",
+        "words": [
+          {
+            "text": "C",
+            "startTime": 2000,
+            "endTime": 3000
+          }
+        ]
+      },
+      {
+        "startTime": 3000,
+        "endTime": 59999999,
+        "text": "D",
+        "translation": "",
+        "romanization": "",
+        "words": [
+          {
+            "text": "D",
+            "startTime": 3000,
+            "endTime": 59999999
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "local-cue",
+    "lyrics": {
+      "translation": "[00:03.00]第一\n[00:05.00]第二",
+      "romanization": null,
+      "source": "local",
+      "format": "lrc",
+      "content": "[00:01.00]Before\n[00:03.00]First\n[00:05.00]Second\n[00:08.00]After"
+    },
+    "durationMs": 10000,
+    "cue": {
+      "startMs": 2000,
+      "endMs": 7000
+    },
+    "expected": [
+      {
+        "startTime": 1000,
+        "endTime": 3000,
+        "text": "First",
+        "translation": "第一",
+        "romanization": "",
+        "words": [
+          {
+            "text": "First",
+            "startTime": 1000,
+            "endTime": 3000
+          }
+        ]
+      },
+      {
+        "startTime": 3000,
+        "endTime": 5000,
+        "text": "Second",
+        "translation": "第二",
+        "romanization": "",
+        "words": [
+          {
+            "text": "Second",
+            "startTime": 3000,
+            "endTime": 5000
+          }
+        ]
+      }
+    ]
+  }
+]

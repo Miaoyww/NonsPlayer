@@ -2,10 +2,10 @@
 use crate::model::{
     PlaybackMode, PlaybackOptions, PlaybackStatus, PlayerSnapshot, Progress, RepeatMode, Track,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerState {
     pub sequence: u64,
@@ -20,6 +20,7 @@ pub struct PlayerState {
     pub volume: f64,
     pub device_id: Option<String>,
     pub actual_quality: Option<String>,
+    #[serde(skip_deserializing)]
     pub playback_source: Option<crate::music::manager::PlaybackSource>,
     pub playback_mode: Option<PlaybackMode>,
     pub local_playback_available: bool,
@@ -28,7 +29,7 @@ pub struct PlayerState {
     pub media_error: Option<String>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerQueue {
     pub sequence: u64,
@@ -37,14 +38,14 @@ pub struct PlayerQueue {
     pub shuffle_order: Arc<Vec<usize>>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct PlayerProgress {
     pub sequence: u64,
     #[serde(flatten)]
     pub value: Progress,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct PlayerBootstrap {
     pub state: PlayerState,
     pub queue: PlayerQueue,
@@ -108,6 +109,10 @@ impl Publication {
             },
             progress: self.progress.clone(),
         }
+    }
+
+    pub fn queue_revision(&self) -> u64 {
+        self.queue_revision
     }
 
     pub fn update(

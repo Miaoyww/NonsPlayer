@@ -6,6 +6,7 @@ import {
   Blocks,
   Download,
   FolderCog,
+  Globe2,
   Info,
   Keyboard,
   LayoutGrid,
@@ -102,6 +103,7 @@ export function SettingsDialog({
     | 'general'
     | 'personalization'
     | 'playback'
+    | 'network-services'
     | 'download'
     | 'lyrics'
     | 'local-cache'
@@ -246,6 +248,18 @@ export function SettingsDialog({
               <Volume2 aria-hidden="true" />
               <span>播放设置</span>
             </Button>
+            <Button
+              variant={section === 'network-services' ? 'secondary' : 'ghost'}
+              className="justify-start gap-2.5 rounded-lg px-3"
+              aria-current={section === 'network-services' ? 'page' : undefined}
+              onClick={() => {
+                setSearchTarget(undefined)
+                setSection('network-services')
+              }}
+            >
+              <Globe2 aria-hidden="true" />
+              <span>网络与服务</span>
+            </Button>
             {isWindows() && (
               <Button
                 variant={section === 'download' ? 'secondary' : 'ghost'}
@@ -341,19 +355,21 @@ export function SettingsDialog({
               ? '个性化设置'
               : section === 'playback'
                 ? '播放设置'
-                : section === 'download'
-                  ? '下载设置'
-                  : section === 'lyrics'
-                    ? '歌词设置'
-                    : section === 'local-cache'
-                      ? '本地与缓存'
-                      : section === 'adapters'
-                        ? '适配器设置'
-                        : section === 'plugins'
-                          ? '插件设置'
-                          : section === 'shortcuts'
-                            ? '快捷键设置'
-                            : '关于 Nons'
+                : section === 'network-services'
+                  ? '网络与服务'
+                  : section === 'download'
+                    ? '下载设置'
+                    : section === 'lyrics'
+                      ? '歌词设置'
+                      : section === 'local-cache'
+                        ? '本地与缓存'
+                        : section === 'adapters'
+                          ? '适配器设置'
+                          : section === 'plugins'
+                            ? '插件设置'
+                            : section === 'shortcuts'
+                              ? '快捷键设置'
+                              : '关于 Nons'
         }
       >
         <motion.div

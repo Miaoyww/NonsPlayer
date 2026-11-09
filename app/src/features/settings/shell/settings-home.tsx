@@ -57,7 +57,7 @@ export function SettingsHome({
                 (item) =>
                   item.id !== 'plugins' &&
                   item.id !== 'about' &&
-                  !(isAndroid() && item.id === 'shortcuts') &&
+                  !(isAndroid() && ['shortcuts', 'network-services'].includes(item.id)) &&
                   (isWindows() || item.id !== 'download')
               )
               .map(card)}

@@ -8,6 +8,7 @@ import { AdaptersPage } from '../pages/adapters'
 import { PluginsPage } from '../pages/plugins'
 import { ShortcutsPage } from '../pages/shortcuts'
 import { AboutPage } from '../pages/about'
+import { NetworkServicePage } from '../network-service/network-service-page'
 import type { Theme } from '../appearance/use-theme'
 import type { SettingsSection } from './settings-sections'
 import { version } from '../../../../package.json'
@@ -30,6 +31,8 @@ export function SettingsContent({
       return <PersonalizationPage theme={theme} onThemeChange={onThemeChange} />
     case 'playback':
       return <PlaybackPage />
+    case 'network-services':
+      return <NetworkServicePage />
     case 'download':
       return <DownloadPage />
     case 'lyrics':

@@ -2,6 +2,7 @@ import {
   Blocks,
   Download,
   FolderCog,
+  Globe2,
   Info,
   Keyboard,
   LayoutGrid,
@@ -29,6 +30,12 @@ export const settingsSections = [
     label: '播放设置',
     description: '调整播放控制、歌曲操作与输出设备。',
     icon: Volume2
+  },
+  {
+    id: 'network-services',
+    label: '网络与服务',
+    description: '控制开放 API 与局域网访问。',
+    icon: Globe2
   },
   {
     id: 'download',

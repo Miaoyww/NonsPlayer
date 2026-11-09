@@ -9,12 +9,18 @@ mod model;
 pub mod music;
 mod mv;
 mod netease;
+#[cfg(desktop)]
+mod open_api;
 mod performance;
 mod platform;
 mod playback;
 mod plugins;
 #[cfg(test)]
 mod test_support;
+
+#[cfg(all(test, windows))]
+#[link(name = "windows-test", kind = "static", modifiers = "+whole-archive")]
+extern "C" {}
 
 use application::Backend;
 use discovery::hitokoto;

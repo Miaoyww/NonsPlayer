@@ -1,7 +1,6 @@
 use super::history::PlaybackHistory;
 use super::publication::{PlayerBootstrap, Publication};
 use super::thumbar::ThumbarControls;
-#[cfg(test)]
 use crate::model::RepeatMode;
 use crate::{
     media::MediaControls,
@@ -75,6 +74,22 @@ pub enum Command {
     PlayNext(Vec<Track>),
     PlayNextNow(Vec<Track>),
     Jump(usize),
+    JumpTrack {
+        queue_revision: u64,
+        key: String,
+    },
+    SetShuffle {
+        queue_revision: u64,
+        value: bool,
+    },
+    SetRepeat {
+        queue_revision: u64,
+        mode: RepeatMode,
+    },
+    External {
+        command: Box<Command>,
+        reply: tokio::sync::oneshot::Sender<AppResult<()>>,
+    },
     Retry {
         revision: u64,
         key: String,
@@ -140,6 +155,23 @@ fn previous_command(state: &PlayerSnapshot) -> Option<Command> {
     // Manual navigation always selects a queue entry, regardless of position.
     // Jump goes through load(), invalidating pending preload work.
     state.previous().map(Command::Jump)
+}
+
+fn set_shuffle(state: &mut PlayerSnapshot, value: bool) {
+    if state.shuffle != value {
+        state.toggle_shuffle(state.index);
+    }
+}
+
+fn set_repeat(state: &mut PlayerSnapshot, mode: RepeatMode) {
+    if state.repeat_mode == mode {
+        return;
+    }
+    state.repeat_mode = mode;
+    if mode != RepeatMode::Off {
+        state.shuffle = false;
+        state.shuffle_order = Arc::default();
+    }
 }
 
 fn retry_position(state: &PlayerSnapshot, revision: u64, key: &str) -> Option<(usize, u64)> {
@@ -328,6 +360,18 @@ impl Player {
                 .and_then(|state| state.snapshot.error.clone())
                 .unwrap_or_else(|| "播放核心不可用，请重启应用".into()),
         })
+    }
+
+    pub async fn send_external(&self, command: Command) -> AppResult<()> {
+        let (reply, receiver) = tokio::sync::oneshot::channel();
+        self.send(Command::External {
+            command: Box::new(command),
+            reply,
+        })?;
+        tokio::time::timeout(Duration::from_secs(5), receiver)
+            .await
+            .map_err(|_| "播放核心命令处理超时".to_string())?
+            .map_err(|_| "播放核心未返回命令结果".to_string())?
     }
 
     pub fn theme_changed(&self, theme: tauri::Theme) {
@@ -812,6 +856,25 @@ impl Actor {
             }
             command => command,
         };
+        if let Command::External { command, reply } = command {
+            let result = self.command(*command);
+            let validation_error = matches!(
+                &result,
+                Err(error)
+                    if error.contains("播放队列已变化")
+                        || error.contains("歌曲不在播放队列")
+            );
+            if let Err(error) = &result {
+                crate::infrastructure::diagnostics::warn("playback.external.command", error);
+            }
+            let _ = (reply.send(result.clone())).inspect_err(|_| {
+                crate::infrastructure::diagnostics::warn(
+                    "playback.external.reply",
+                    "reply receiver dropped",
+                );
+            });
+            return if validation_error { Ok(()) } else { result };
+        }
         if matches!(&command, Command::Toggle) {
             return self.command(if self.desired_playing {
                 Command::Pause
@@ -828,6 +891,18 @@ impl Actor {
             Command::Jump(index) if *index >= self.state.queue.len() => {
                 return Err("歌曲不在播放队列中".into());
             }
+            Command::JumpTrack { queue_revision, .. }
+            | Command::SetShuffle { queue_revision, .. }
+            | Command::SetRepeat { queue_revision, .. } => {
+                let current = self
+                    .shared
+                    .read()
+                    .map_err(|_| "播放队列版本不可用")?
+                    .queue_revision();
+                if *queue_revision != current {
+                    return Err("播放队列已变化，请重新同步".into());
+                }
+            }
             Command::Next if self.state.following(true).is_none() => return Ok(()),
             _ => {}
         }
@@ -838,6 +913,8 @@ impl Actor {
                 | Command::Remove(_, _)
                 | Command::Repeat
                 | Command::Shuffle
+                | Command::SetShuffle { .. }
+                | Command::SetRepeat { .. }
                 | Command::Seek(_)
                 | Command::AppendFm { .. }
                 | Command::SelectSource { .. }
@@ -855,6 +932,7 @@ impl Actor {
     }
 
     fn command_now(&mut self, command: Command) -> AppResult<()> {
+        debug_assert!(!matches!(&command, Command::External { .. }));
         if matches!(
             &command,
             Command::PlayNext(_)
@@ -868,6 +946,7 @@ impl Actor {
         }
         let play_now = matches!(&command, Command::PlayNextNow(_));
         match command {
+            Command::External { .. } => unreachable!("external commands are unwrapped first"),
             Command::Theme(theme) => {
                 if let Some(thumbar) = &mut self.thumbar {
                     thumbar.set_theme(theme)?;
@@ -1335,6 +1414,15 @@ impl Actor {
                 }
             }
             Command::Jump(index) => self.load(index, true)?,
+            Command::JumpTrack { key, .. } => {
+                let index = self
+                    .state
+                    .queue
+                    .iter()
+                    .position(|track| track.key == key)
+                    .ok_or("歌曲不在播放队列中")?;
+                self.load(index, true)?;
+            }
             Command::Repeat | Command::Shuffle => {
                 self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
                 if matches!(command, Command::Shuffle) {
@@ -1342,6 +1430,26 @@ impl Actor {
                 } else {
                     self.state.cycle_repeat();
                 }
+                if let Some(job) = self.next_job.take() {
+                    job.abort();
+                }
+                self.next_attempt = None;
+                self.next_attempts = 0;
+                self.publish();
+            }
+            Command::SetShuffle { value, .. } => {
+                self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
+                set_shuffle(&mut self.state, value);
+                if let Some(job) = self.next_job.take() {
+                    job.abort();
+                }
+                self.next_attempt = None;
+                self.next_attempts = 0;
+                self.publish();
+            }
+            Command::SetRepeat { mode, .. } => {
+                self.prepared.lock().map_err(|_| "预加载状态不可用")?.take();
+                set_repeat(&mut self.state, mode);
                 if let Some(job) = self.next_job.take() {
                     job.abort();
                 }
@@ -1995,6 +2103,39 @@ impl Actor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn assignment_commands_preserve_the_existing_shuffle_repeat_matrix() {
+        let mut state = snapshot(0, 0, RepeatMode::Off);
+        set_shuffle(&mut state, true);
+        assert!(state.shuffle);
+        assert_eq!(state.repeat_mode, RepeatMode::Off);
+
+        set_repeat(&mut state, RepeatMode::Off);
+        assert!(state.shuffle);
+        assert_eq!(state.repeat_mode, RepeatMode::Off);
+
+        set_repeat(&mut state, RepeatMode::All);
+        assert!(!state.shuffle);
+        assert!(state.shuffle_order.is_empty());
+        assert_eq!(state.repeat_mode, RepeatMode::All);
+
+        set_repeat(&mut state, RepeatMode::Off);
+        assert_eq!(state.repeat_mode, RepeatMode::Off);
+        assert!(!state.shuffle);
+    }
+
+    #[test]
+    fn assignment_commands_are_noops_when_already_at_the_target() {
+        let mut state = snapshot(0, 0, RepeatMode::One);
+        state.shuffle = false;
+        let order = state.shuffle_order.clone();
+        set_repeat(&mut state, RepeatMode::One);
+        assert!(Arc::ptr_eq(&order, &state.shuffle_order));
+        set_shuffle(&mut state, false);
+        assert!(!state.shuffle);
+        assert_eq!(state.repeat_mode, RepeatMode::One);
+    }
 
     #[test]
     fn local_preference_is_online_only_and_respects_explicit_streaming() {
