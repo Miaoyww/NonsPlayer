@@ -1,13 +1,5 @@
 import { Menu } from '@base-ui/react/menu'
-import {
-  Ellipsis,
-  Unlink,
-  Trash2,
-  Pencil,
-  ExternalLink,
-  RefreshCw,
-  X
-} from 'lucide-react'
+import { Ellipsis, Unlink, Trash2, Pencil, ExternalLink, RefreshCw, X } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
 import { BatchMenuItem } from '@/components/music/batch-toolbar'
 import { ErrorNotice } from '@/components/error-notice'
@@ -80,7 +72,7 @@ export function AggregateHeader({
               <Menu.Portal>
                 <Menu.Positioner className="z-[70]" side="bottom" align="end" sideOffset={6}>
                   <Menu.Popup className="song-context-menu" aria-label="歌单操作">
-                    <BatchMenuItem batch={batch} onClick={onBatch} />
+                    <BatchMenuItem batch={batch} onClick={() => onBatch?.()} />
                     {!playlist.link && (
                       <Menu.Item onClick={() => onEdit('rename')}>
                         <Pencil aria-hidden="true" />

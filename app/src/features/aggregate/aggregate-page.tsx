@@ -4,11 +4,7 @@ import { isTauri } from '@tauri-apps/api/core'
 import { MusicPage } from '@/components/music/music-page'
 import { PlaylistPageShell } from '@/features/library/playlist/playlist-page-shell'
 import { ActionButton } from '@/components/music/action-button'
-import {
-  BatchDownloadButton,
-  BatchToolbar,
-  useTrackBatch
-} from '@/components/music/batch-toolbar'
+import { BatchDownloadButton, BatchToolbar, useTrackBatch } from '@/components/music/batch-toolbar'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { ErrorNotice } from '@/components/error-notice'
@@ -343,8 +339,8 @@ export default function AggregatePage({
               void run(async () => {
                 if (edit === 'order') {
                   const all = (await allAggregateTracks(id)).map((m) => m.track.key)
-                  const moving = all.filter((k) => selected.has(k))
-                  const rest = all.filter((k) => !selected.has(k))
+                  const moving = all.filter((k) => selection.selected.has(k))
+                  const rest = all.filter((k) => !selection.selected.has(k))
                   const target = Number(position)
                   if (!Number.isInteger(target) || target < 1 || target > rest.length + 1)
                     throw new Error(`位置需要为 1–${rest.length + 1}`)
