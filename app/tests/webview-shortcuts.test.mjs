@@ -15,6 +15,7 @@ function session(development = false) {
     isAndroid: () => false,
     isPluginWindow: () => false,
     initializeFontSettings() {},
+    initializeGlassEffect() {},
     installDiagnostics() {},
     installPluginBridge() {}
   })
