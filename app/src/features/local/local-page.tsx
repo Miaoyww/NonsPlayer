@@ -33,11 +33,7 @@ import {
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { ActionButton } from '@/components/music/action-button'
-import {
-  BatchMenuButton,
-  BatchToolbar,
-  useTrackBatch
-} from '@/components/music/batch-toolbar'
+import { BatchMenuButton, BatchToolbar, useTrackBatch } from '@/components/music/batch-toolbar'
 import { Cover } from '@/components/music/cover'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'

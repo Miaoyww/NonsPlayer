@@ -82,13 +82,7 @@ export function useTrackBatch(tracks: Track[]) {
   }
 }
 
-export function BatchMenuItem({
-  batch,
-  onClick
-}: {
-  batch: boolean
-  onClick: () => void
-}) {
+export function BatchMenuItem({ batch, onClick }: { batch: boolean; onClick: () => void }) {
   return (
     <Menu.Item onClick={onClick}>
       <ListChecks aria-hidden="true" />
@@ -97,13 +91,7 @@ export function BatchMenuItem({
   )
 }
 
-export function BatchMenuButton({
-  batch,
-  onBatch
-}: {
-  batch: boolean
-  onBatch: () => void
-}) {
+export function BatchMenuButton({ batch, onBatch }: { batch: boolean; onBatch: () => void }) {
   return (
     <Menu.Root>
       <Menu.Trigger

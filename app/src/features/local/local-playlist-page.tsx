@@ -20,11 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { useMusicNavigation, type MusicCollection } from '@/features/workspace/music-navigation'
 import { ActionButton } from '@/components/music/action-button'
-import {
-  BatchMenuButton,
-  BatchToolbar,
-  useTrackBatch
-} from '@/components/music/batch-toolbar'
+import { BatchMenuButton, BatchToolbar, useTrackBatch } from '@/components/music/batch-toolbar'
 import { Cover } from '@/components/music/cover'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'

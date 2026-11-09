@@ -87,9 +87,7 @@ export function PlatformPlaylistMenu({
       <Menu.Portal>
         <Menu.Positioner className="z-[70]" side="bottom" align="end" sideOffset={6}>
           <Menu.Popup className="song-context-menu" aria-label="歌单操作">
-            {onBatch && (
-              <BatchMenuItem batch={batch} onClick={onBatch} />
-            )}
+            {onBatch && <BatchMenuItem batch={batch} onClick={onBatch} />}
             {eligible && (
               <Menu.Item
                 disabled={busy}

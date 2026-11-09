@@ -9,11 +9,7 @@ import { PlaylistPageShell } from '@/features/library/playlist/playlist-page-she
 import { PlatformPlaylistMenu } from '@/features/aggregate/platform-playlist-menu'
 import { playLibraryCollection } from '@/features/library/shared/library-api'
 import { TrackList } from '@/components/music/track-list'
-import {
-  BatchDownloadButton,
-  BatchToolbar,
-  useTrackBatch
-} from '@/components/music/batch-toolbar'
+import { BatchDownloadButton, BatchToolbar, useTrackBatch } from '@/components/music/batch-toolbar'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { errorText, nativeCall, usePlayer, type Track } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
