@@ -18,10 +18,6 @@ mod plugins;
 #[cfg(test)]
 mod test_support;
 
-#[cfg(all(test, windows))]
-#[link(name = "windows-test", kind = "static", modifiers = "+whole-archive")]
-extern "C" {}
-
 use application::Backend;
 use discovery::hitokoto;
 use infrastructure::{storage, wasm_runtime};
