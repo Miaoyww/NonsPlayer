@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.12.3] - 2026-11-09
+
+![NonsPlayer v1.12.3 批量选择与下载管理更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.3/docs/release-assets/header.png)
+
+NonsPlayer 1.12.3 批量选择与下载管理更新。本次 Release 提供 **Windows x64、Linux x64、Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 ### 音乐库与发现
 
 - 聚合歌单、普通歌单、本地歌单、专辑、艺术家及每日推荐统一支持歌曲批量选择，新增反选、添加到歌单和添加到播放列表；聚合歌单保留移动选曲等专属操作。
