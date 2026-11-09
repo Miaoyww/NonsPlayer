@@ -8,7 +8,7 @@ import { musicCollection } from '@/features/music/entities'
 import { DetailHeader } from '@/features/library/collection/detail-header'
 import { DetailDescription } from '@/features/library/collection/detail-description'
 import { MusicPage } from '@/components/music/music-page'
-import { useCallback, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { RefreshCw } from 'lucide-react'
 import { nativeCall, usePlayer, type Track } from '@/lib/player'
@@ -17,6 +17,12 @@ import { useEntityDetail } from '@/features/library/shared/music-entities'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { usePagedList } from '@/lib/use-paged-list'
 import { ActionButton } from '@/components/music/action-button'
+import {
+  BatchDownloadButton,
+  BatchMenuButton,
+  BatchToolbar,
+  useTrackBatch
+} from '@/components/music/batch-toolbar'
 import { PlayButton } from '@/components/music/play-button'
 import { AlbumCard } from '@/features/library/album/album-card'
 import { Cover } from '@/components/music/cover'
@@ -74,6 +80,10 @@ export default function ArtistPage({
   const songs = usePagedList<Track>(songLoader, 100, isTauri(), {
     cacheKey: presentationKey('artist-tracks', collection.reference ?? collection)
   })
+  const selection = useTrackBatch(songs.items)
+  useEffect(() => {
+    if (tab !== 'songs') selection.exit()
+  }, [tab])
   // The first album page also supplies the two latest releases; further pages load in the album tab.
   const albums = usePagedList<MusicCollection>(albumLoader, 30, isTauri(), {
     cacheKey: presentationKey('artist-albums', collection.reference ?? collection)
@@ -133,6 +143,12 @@ export default function ArtistPage({
                 }).catch(onError)
               }}
             ></PlayButton>
+            {tab === 'songs' && (
+              <BatchMenuButton
+                batch={selection.active}
+                onBatch={() => (selection.active ? selection.exit() : selection.enter())}
+              />
+            )}
           </div>
         </div>
       </DetailHeader>
@@ -191,7 +207,7 @@ export default function ArtistPage({
           />
         )}
       </section>
-      <CollectionContent hasMore={songs.more}>
+      <CollectionContent hasMore={songs.more} searchable={!selection.active}>
         <div className="artist-list-toolbar">
           <div className="library-tabs" role="tablist" aria-label="歌手作品">
             {(['songs', 'albums'] as const).map((value, index) => (
@@ -225,25 +241,44 @@ export default function ArtistPage({
           tabIndex={0}
         >
           {songs.items.length ? (
-            <TrackList
-              key={`${collection.kind}:${collection.id}`}
-              tracks={songs.items}
-              sortable
-              hasMore={songs.more}
-              currentKey={currentKey}
-              busy={playing}
-              onPlay={(index, tracks) => {
-                void nativeCall('play_queue', {
-                  keys: tracks.map((track) => track.key),
-                  index
-                }).catch(onError)
-              }}
-              onAppend={(track) => {
-                void nativeCall('append_queue', { keys: [track.key] })
-                  .then(() => onNotice(`已将「${track.title}」设为下一首播放。`))
-                  .catch(onError)
-              }}
-            />
+            <>
+              {selection.active && (
+                <BatchToolbar
+                  tracks={selection.selectedTracks}
+                  busy={playing}
+                  onInvert={selection.invert}
+                  onDone={selection.exit}
+                >
+                  <BatchDownloadButton
+                    tracks={selection.selectedTracks}
+                    onComplete={selection.exit}
+                    onError={onError}
+                    onNotice={onNotice}
+                  />
+                </BatchToolbar>
+              )}
+              <TrackList
+                key={`${collection.kind}:${collection.id}`}
+                tracks={songs.items}
+                sortable
+                searchable={!selection.active}
+                hasMore={songs.more}
+                currentKey={currentKey}
+                busy={playing}
+                selection={selection.active ? selection.selection : undefined}
+                onPlay={(index, tracks) => {
+                  void nativeCall('play_queue', {
+                    keys: tracks.map((track) => track.key),
+                    index
+                  }).catch(onError)
+                }}
+                onAppend={(track) => {
+                  void nativeCall('append_queue', { keys: [track.key] })
+                    .then(() => onNotice(`已将「${track.title}」设为下一首播放。`))
+                    .catch(onError)
+                }}
+              />
+            </>
           ) : songs.busy ? (
             <TrackListSkeleton />
           ) : (

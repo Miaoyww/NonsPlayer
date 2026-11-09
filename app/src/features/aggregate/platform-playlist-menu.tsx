@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Menu } from '@base-ui/react/menu'
-import { Ellipsis, GitBranch, ListChecks } from 'lucide-react'
+import { Ellipsis, GitBranch } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
+import { BatchMenuItem } from '@/components/music/batch-toolbar'
 import { collectionReference } from '@/features/music/references'
 import { musicClient } from '@/features/music/client'
 import { useMusicNavigation, type MusicCollection } from '@/features/workspace/music-navigation'
@@ -87,10 +88,7 @@ export function PlatformPlaylistMenu({
         <Menu.Positioner className="z-[70]" side="bottom" align="end" sideOffset={6}>
           <Menu.Popup className="song-context-menu" aria-label="歌单操作">
             {onBatch && (
-              <Menu.Item onClick={onBatch}>
-                <ListChecks aria-hidden="true" />
-                {batch ? '完成批量操作' : '批量操作'}
-              </Menu.Item>
+              <BatchMenuItem batch={batch} onClick={onBatch} />
             )}
             {eligible && (
               <Menu.Item

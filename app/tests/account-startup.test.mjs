@@ -8,6 +8,7 @@ import * as jsx from 'react/jsx-runtime'
 import { JSDOM } from 'jsdom'
 import ts from 'typescript'
 import { LRUCache } from 'lru-cache'
+import { batchModule } from './helpers/track-batch.mjs'
 
 function load(file, modules) {
   const exports = {}
@@ -139,6 +140,7 @@ for (const changedMetadata of [false, true])
         '@/features/aggregate/playlist-targets': {
           mergeLibraryPlaylists: (remote, local) => [...remote, ...local]
         },
+        '@/components/music/batch-toolbar': batchModule(),
         '@/features/library/collection/collection-actions': {
           useCollectionActions: () => ({ revision: 0 }),
           CollectionContextMenu: wrapper

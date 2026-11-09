@@ -33,6 +33,11 @@ import {
 import { MusicPage, MusicPageHeader } from '@/components/music/music-page'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { ActionButton } from '@/components/music/action-button'
+import {
+  BatchMenuButton,
+  BatchToolbar,
+  useTrackBatch
+} from '@/components/music/batch-toolbar'
 import { Cover } from '@/components/music/cover'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
@@ -386,6 +391,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
   const list = usePagedList<Track>(loader, 100, isTauri() && !!collection, {
     cacheKey: presentationKey('local-detail', collection?.kind, collection?.localId)
   })
+  const selection = useTrackBatch(list.items)
   const player = usePlayer('index', 'queue')
   const [playing, setPlaying] = useState(false)
   async function play() {
@@ -437,6 +443,7 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
           <CollectionContent
             key={`${collection.kind}:${collection.localId ?? collection.id}`}
             hasMore={list.more}
+            searchable={!selection.active}
           >
             <CollectionHeader
               collection={collection}
@@ -456,40 +463,55 @@ export default function LocalPage({ refresh, importing, onImport, onError, onNot
                 ) : undefined
               }
               actions={
-                collection.kind === 'album' ? (
-                  !isAndroid() && (
-                    <ActionButton
-                      variant="ghost"
-                      disabled={playing || !isTauri() || !list.items.length}
-                      onClick={() =>
-                        void nativeCall('open_local_entity_folder', {
-                          kind: 'album',
-                          id: collection.localId
-                        }).catch(onError)
-                      }
-                    >
-                      <FolderOpen aria-hidden="true" />
-                      打开文件夹
-                    </ActionButton>
-                  )
-                ) : collection.kind === 'artist' ? (
-                  <ArtistAvatarDetailMenu
-                    artistId={collection.localId!}
-                    artistName={collection.name}
+                <>
+                  <BatchMenuButton
+                    batch={selection.active}
+                    onBatch={() => (selection.active ? selection.exit() : selection.enter())}
                   />
-                ) : undefined
+                  {collection.kind === 'album' ? (
+                    !isAndroid() && (
+                      <ActionButton
+                        variant="ghost"
+                        disabled={playing || !isTauri() || !list.items.length}
+                        onClick={() =>
+                          void nativeCall('open_local_entity_folder', {
+                            kind: 'album',
+                            id: collection.localId
+                          }).catch(onError)
+                        }
+                      >
+                        <FolderOpen aria-hidden="true" />
+                        打开文件夹
+                      </ActionButton>
+                    )
+                  ) : collection.kind === 'artist' ? (
+                    <ArtistAvatarDetailMenu
+                      artistId={collection.localId!}
+                      artistName={collection.name}
+                    />
+                  ) : null}
+                </>
               }
             />
+            {selection.active && (
+              <BatchToolbar
+                tracks={selection.selectedTracks}
+                busy={!isTauri()}
+                onInvert={selection.invert}
+                onDone={selection.exit}
+              />
+            )}
             {list.busy && !list.items.length ? (
               <TrackListSkeleton online={false} />
             ) : list.items.length > 0 ? (
               <TrackList
                 tracks={list.items}
                 key={`${collection.kind}:${collection.localId ?? collection.id}`}
-                searchable
+                searchable={!selection.active}
                 sortable
                 hasMore={list.more}
                 busy={!isTauri()}
+                selection={selection.active ? selection.selection : undefined}
                 currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
                 onPlay={(index, tracks) => {
                   const start = index >= 1000 ? index : 0

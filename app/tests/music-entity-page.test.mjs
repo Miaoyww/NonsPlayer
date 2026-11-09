@@ -145,12 +145,55 @@ test('uniform details retain cursor and rows on failure, reload only their own s
       })
     },
     '@/components/music/batch-toolbar': {
+      useTrackBatch: (tracks) => {
+        const [active, setActive] = React.useState(false)
+        const [selected, setSelected] = React.useState(new Set())
+        const selectedTracks = tracks.filter((track) => selected.has(track.key))
+        const toggle = (key, checked) =>
+          setSelected((old) => {
+            const next = new Set(old)
+            if (checked) next.add(key)
+            else next.delete(key)
+            return next
+          })
+        return {
+          active,
+          selected,
+          selectedTracks,
+          selectedCount: selectedTracks.length,
+          selection: {
+            keys: selected,
+            onToggle: toggle,
+            onToggleAll: (keys, checked) => {
+              for (const key of keys) toggle(key, checked)
+            },
+            onVisibleChange() {}
+          },
+          enter: () => setActive(true),
+          exit: () => {
+            setSelected(new Set())
+            setActive(false)
+          },
+          invert() {}
+        }
+      },
       BatchToolbar: ({ children, onDone }) =>
         React.createElement(
           'div',
           {},
           children,
           React.createElement('button', { onClick: onDone }, '完成')
+        ),
+      BatchDownloadButton: ({ tracks, onComplete }) =>
+        React.createElement(
+          'button',
+          {
+            onClick: () => {
+              downloadBatches.push(tracks.map((track) => track.key))
+              onComplete()
+            }
+          },
+          '下载'
         )
     },
     '@/features/library/collection/collection-content': {

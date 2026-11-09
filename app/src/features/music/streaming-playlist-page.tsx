@@ -9,14 +9,15 @@ import { PlaylistPageShell } from '@/features/library/playlist/playlist-page-she
 import { PlatformPlaylistMenu } from '@/features/aggregate/platform-playlist-menu'
 import { playLibraryCollection } from '@/features/library/shared/library-api'
 import { TrackList } from '@/components/music/track-list'
-import { BatchToolbar } from '@/components/music/batch-toolbar'
-import { ActionButton } from '@/components/music/action-button'
+import {
+  BatchDownloadButton,
+  BatchToolbar,
+  useTrackBatch
+} from '@/components/music/batch-toolbar'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { errorText, nativeCall, usePlayer, type Track } from '@/lib/player'
 import type { MusicCollection } from '@/features/workspace/music-navigation'
-import { useDownloads } from '@/features/downloads/download-provider'
 import { isWindows } from '@/lib/platform'
-import { Download } from 'lucide-react'
 import { musicCollection } from './entities'
 import { musicClient } from './client'
 
@@ -74,12 +75,9 @@ function StreamingPlaylistContent({ collection, onError, onNotice }: StreamingPl
   const [detail, setDetail] = useState(collection)
   const [total, setTotal] = useState(cached?.total ?? collection.trackCount)
   const [playing, setPlaying] = useState(false)
-  const [batch, setBatch] = useState(false)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [downloading, setDownloading] = useState(false)
   const [description, setDescription] = useState<string>()
   const player = usePlayer('index', 'queue')
-  const downloads = useDownloads()
+  const selection = useTrackBatch(tracks)
   const active = useRef(false)
   const query = useRef({ cursor: null as string | null, more: true, busy: false })
   const load = useCallback(async () => {
@@ -161,50 +159,11 @@ function StreamingPlaylistContent({ collection, onError, onNotice }: StreamingPl
       query.current = { ...state }
     }
   }, [load, reference, onError])
-  const toggleBatch = () => {
-    setBatch((value) => !value)
-    setSelected(new Set())
-  }
-  async function downloadSelected() {
-    const items = tracks.filter(
-      (track) => selected.has(track.key) && track.source.kind === 'online'
-    )
-    if (!items.length || downloading) return
-    setDownloading(true)
-    let queued = 0
-    let skipped = 0
-    let failed = 0
-    try {
-      const results = await downloads.startMany(items)
-      for (const result of results) {
-        if (result.error) {
-          failed++
-          reportCaughtError(
-            'app/src/features/music/streaming-playlist-page.tsx:downloads_add_many',
-            new Error(result.error)
-          )
-        } else if (result.reason) {
-          skipped++
-        } else {
-          queued++
-        }
-      }
-      const skippedText = skipped ? `，跳过 ${skipped} 首重复` : ''
-      const failedText = failed ? `，${failed} 首失败` : ''
-      onNotice?.(`已加入下载 ${queued} 首${skippedText}${failedText}。`)
-      setBatch(false)
-      setSelected(new Set())
-    } catch (cause) {
-      reportCaughtError('app/src/features/music/streaming-playlist-page.tsx', cause)
-      onError(cause)
-    } finally {
-      setDownloading(false)
-    }
-  }
+  const toggleBatch = () => (selection.active ? selection.exit() : selection.enter())
   return (
     <PlaylistPageShell
       hasMore={query.current.more}
-      searchable={!batch}
+      searchable={!selection.active}
       header={
         <PlaylistCollectionHeader
           collection={detail}
@@ -215,7 +174,7 @@ function StreamingPlaylistContent({ collection, onError, onNotice }: StreamingPl
               collection={detail}
               account={profile?.reference}
               onError={onError}
-              batch={batch}
+              batch={selection.active}
               onBatch={isWindows() ? toggleBatch : undefined}
             />
           }
@@ -235,50 +194,31 @@ function StreamingPlaylistContent({ collection, onError, onNotice }: StreamingPl
         />
       }
     >
-      {batch && (
-        <BatchToolbar selected={selected.size} busy={busy || downloading} onDone={toggleBatch}>
-          <ActionButton
-            variant="outline"
-            disabled={busy || downloading || !selected.size}
-            onClick={() => void downloadSelected()}
-          >
-            <Download aria-hidden="true" />
-            下载
-          </ActionButton>
+      {selection.active && (
+        <BatchToolbar
+          tracks={selection.selectedTracks}
+          busy={busy}
+          onInvert={selection.invert}
+          onDone={selection.exit}
+        >
+          <BatchDownloadButton
+            tracks={selection.selectedTracks}
+            onComplete={selection.exit}
+            onError={onError}
+            onNotice={onNotice}
+          />
         </BatchToolbar>
       )}
       <TrackList
         tracks={tracks}
         hasMore={query.current.more}
         loading={busy && tracks.length === 0 && !cached}
-        busy={busy || downloading}
+        busy={busy}
         showLikes
-        searchable={!batch}
+        searchable={!selection.active}
         sortable
         currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
-        selection={
-          batch
-            ? {
-                keys: selected,
-                onToggle: (key, checked) =>
-                  setSelected((old) => {
-                    const next = new Set(old)
-                    if (checked) next.add(key)
-                    else next.delete(key)
-                    return next
-                  }),
-                onToggleAll: (keys, checked) =>
-                  setSelected((old) => {
-                    const next = new Set(old)
-                    for (const key of keys) {
-                      if (checked) next.add(key)
-                      else next.delete(key)
-                    }
-                    return next
-                  })
-              }
-            : undefined
-        }
+        selection={selection.active ? selection.selection : undefined}
         onPlay={(index, items) => {
           const start = Math.max(0, index - 999)
           void nativeCall('play_queue', {

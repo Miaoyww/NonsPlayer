@@ -1,5 +1,6 @@
 import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import { errorNoticeModule } from './helpers/error-notice.mjs'
+import { batchModule } from './helpers/track-batch.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -52,6 +53,7 @@ function harness() {
   }
   const jsx = (type, props) => ({ type, props })
   const modules = {
+    '@/components/music/batch-toolbar': batchModule(),
     '@/lib/runtime-cache': createRuntimeCache(),
     react,
     'react/jsx-runtime': { jsx, jsxs: jsx },

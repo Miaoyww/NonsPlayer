@@ -106,6 +106,7 @@ interface Props {
     keys: ReadonlySet<string>
     onToggle: (key: string, checked: boolean) => void
     onToggleAll: (keys: string[], checked: boolean) => void
+    onVisibleChange?: (keys: string[]) => void
   }
   sortable?: boolean
   searchable?: boolean
@@ -221,6 +222,9 @@ export const TrackList = memo(function TrackList({
     return result
   }, [tracks, searchQuery, searchable, externalQuery, sortable, sort, descending, getRowKey])
   const visibleTracks = useMemo(() => entries.map(({ track }) => track), [entries])
+  useEffect(() => {
+    selection?.onVisibleChange?.(visibleTracks.map((track) => track.key))
+  }, [selection, visibleTracks])
   const doubleClickPlay = (index: number) => {
     if (busy || !isTauri() || doubleClickBusy.current) return
     const track = visibleTracks[index]

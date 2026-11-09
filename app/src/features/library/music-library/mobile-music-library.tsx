@@ -60,6 +60,12 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { ActionButton } from '@/components/music/action-button'
+import {
+  BatchDownloadButton,
+  BatchMenuButton,
+  BatchToolbar,
+  useTrackBatch
+} from '@/components/music/batch-toolbar'
 import { useAccount } from '@/features/account/account'
 import { Cover } from '@/components/music/cover'
 import { PlayingIndicator } from '@/components/music/playing-indicator'
@@ -266,6 +272,10 @@ export default function MobileMusicLibrary({
     total: detailList.metadata?.total ?? 0,
     more: detailList.more
   }
+  const selection = useTrackBatch(detail.tracks)
+  useEffect(() => {
+    selection.exit()
+  }, [collection?.id, showingDetail])
   const detailBusy = detailList.busy
   useEffect(() => {
     if (!summary || summary.likedError || !account) return
@@ -354,20 +364,30 @@ export default function MobileMusicLibrary({
   return (
     <MusicPage aria-label="音乐库">
       {showingDetail ? (
-        <CollectionContent key={`${collection.kind}:${collection.id}`} hasMore={detail.more}>
+        <CollectionContent
+          key={`${collection.kind}:${collection.id}`}
+          hasMore={detail.more}
+          searchable={!selection.active}
+        >
           <CollectionHeader
             key={`header:${collection.kind}:${collection.id}`}
             collection={collection}
             description={detail.description}
             actions={
-              collection.kind === 'playlist' ? (
-                <PlatformPlaylistMenu
-                  key={`${account?.source}:${account?.id}:${collection.id}`}
-                  collection={collection}
-                  account={account}
-                  onError={onError}
+              <>
+                {collection.kind === 'playlist' && (
+                  <PlatformPlaylistMenu
+                    key={`${account?.source}:${account?.id}:${collection.id}`}
+                    collection={collection}
+                    account={account}
+                    onError={onError}
+                  />
+                )}
+                <BatchMenuButton
+                  batch={selection.active}
+                  onBatch={() => (selection.active ? selection.exit() : selection.enter())}
                 />
-              ) : undefined
+              </>
             }
             total={detailList.metadata?.total ?? collection.trackCount}
             busy={playing}
@@ -382,27 +402,45 @@ export default function MobileMusicLibrary({
               </ActionButton>
             </div>
           ) : detailBusy || detail.tracks.length ? (
-            <TrackList
-              key={`${collection.kind}:${collection.id}`}
-              tracks={detail.tracks}
-              loading={detailBusy && !detail.tracks.length}
-              showLikes
-              sortable
-              searchable
-              hasMore={detail.more}
-              currentKey={currentKey}
-              busy={playing}
-              onPlay={(index, tracks) => playPage(tracks, index)}
-              onAppend={append}
-              removeLabel={collection.kind === 'playlist' ? '从歌单删除' : '从列表删除'}
-              onRemove={
-                !readOnly &&
-                collection.kind === 'playlist' &&
-                collection.creatorId === profile.userId
-                  ? (track) => removeFromPlaylist(collection, track)
-                  : undefined
-              }
-            />
+            <>
+              {selection.active && (
+                <BatchToolbar
+                  tracks={selection.selectedTracks}
+                  busy={playing}
+                  onInvert={selection.invert}
+                  onDone={selection.exit}
+                >
+                  <BatchDownloadButton
+                    tracks={selection.selectedTracks}
+                    onComplete={selection.exit}
+                    onError={onError}
+                    onNotice={onNotice}
+                  />
+                </BatchToolbar>
+              )}
+              <TrackList
+                key={`${collection.kind}:${collection.id}`}
+                tracks={detail.tracks}
+                loading={detailBusy && !detail.tracks.length}
+                showLikes
+                sortable
+                searchable={!selection.active}
+                hasMore={detail.more}
+                currentKey={currentKey}
+                busy={playing}
+                selection={selection.active ? selection.selection : undefined}
+                onPlay={(index, tracks) => playPage(tracks, index)}
+                onAppend={append}
+                removeLabel={collection.kind === 'playlist' ? '从歌单删除' : '从列表删除'}
+                onRemove={
+                  !readOnly &&
+                  collection.kind === 'playlist' &&
+                  collection.creatorId === profile.userId
+                    ? (track) => removeFromPlaylist(collection, track)
+                    : undefined
+                }
+              />
+            </>
           ) : (
             <p className="library-empty">这里还没有歌曲。</p>
           )}

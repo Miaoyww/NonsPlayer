@@ -18,6 +18,12 @@ import { useEntityDetail } from '@/features/library/shared/music-entities'
 import { invalidateNativeCache } from '@/lib/runtime-cache'
 import { usePagedList } from '@/lib/use-paged-list'
 import { ActionButton } from '@/components/music/action-button'
+import {
+  BatchDownloadButton,
+  BatchMenuButton,
+  BatchToolbar,
+  useTrackBatch
+} from '@/components/music/batch-toolbar'
 import { formatReleaseDate } from '@/components/music/music-links'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
@@ -48,6 +54,7 @@ export default function AlbumPage({
   const list = usePagedList<Track, CollectionTracks>(loader, 100, isTauri(), {
     cacheKey: presentationKey('album-tracks', collection.reference ?? collection)
   })
+  const selection = useTrackBatch(list.items)
   async function play() {
     if (playing) return
     setPlaying(true)
@@ -64,7 +71,11 @@ export default function AlbumPage({
   }
   return (
     <MusicPage aria-label="专辑详情">
-      <CollectionContent key={`${collection.kind}:${collection.id}`} hasMore={list.more}>
+      <CollectionContent
+        key={`${collection.kind}:${collection.id}`}
+        hasMore={list.more}
+        searchable={!selection.active}
+      >
         <CollectionHeader
           collection={album}
           description={detail?.description}
@@ -73,6 +84,12 @@ export default function AlbumPage({
           busy={playing}
           disabled={playing || !isTauri() || !list.items.length}
           onPlay={() => void play()}
+          actions={
+            <BatchMenuButton
+              batch={selection.active}
+              onBatch={() => (selection.active ? selection.exit() : selection.enter())}
+            />
+          }
         />
         {error && (
           <div className="mb-5 flex items-center gap-3 text-sm text-destructive">
@@ -93,26 +110,44 @@ export default function AlbumPage({
         {(busy || list.busy) && !list.items.length ? (
           <TrackListSkeleton />
         ) : list.items.length ? (
-          <TrackList
-            key={`${collection.kind}:${collection.id}`}
-            tracks={list.items}
-            sortable
-            searchable
-            hasMore={list.more}
-            currentKey={currentKey}
-            busy={playing}
-            onPlay={(index, tracks) => {
-              void nativeCall('play_queue', {
-                keys: tracks.map((track) => track.key),
-                index
-              }).catch(onError)
-            }}
-            onAppend={(track) => {
-              void nativeCall('append_queue', { keys: [track.key] })
-                .then(() => onNotice(`已将「${track.title}」设为下一首播放。`))
-                .catch(onError)
-            }}
-          />
+          <>
+            {selection.active && (
+              <BatchToolbar
+                tracks={selection.selectedTracks}
+                busy={playing}
+                onInvert={selection.invert}
+                onDone={selection.exit}
+              >
+                <BatchDownloadButton
+                  tracks={selection.selectedTracks}
+                  onComplete={selection.exit}
+                  onError={onError}
+                  onNotice={onNotice}
+                />
+              </BatchToolbar>
+            )}
+            <TrackList
+              key={`${collection.kind}:${collection.id}`}
+              tracks={list.items}
+              sortable
+              searchable={!selection.active}
+              hasMore={list.more}
+              currentKey={currentKey}
+              busy={playing}
+              selection={selection.active ? selection.selection : undefined}
+              onPlay={(index, tracks) => {
+                void nativeCall('play_queue', {
+                  keys: tracks.map((track) => track.key),
+                  index
+                }).catch(onError)
+              }}
+              onAppend={(track) => {
+                void nativeCall('append_queue', { keys: [track.key] })
+                  .then(() => onNotice(`已将「${track.title}」设为下一首播放。`))
+                  .catch(onError)
+              }}
+            />
+          </>
         ) : (
           <p className="library-empty">这里还没有歌曲。</p>
         )}

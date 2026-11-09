@@ -1,5 +1,6 @@
 import { createRuntimeCache } from './helpers/runtime-cache.mjs'
 import { errorNoticeModule } from './helpers/error-notice.mjs'
+import { batchModule } from './helpers/track-batch.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
@@ -16,7 +17,8 @@ test('likes refresh the loaded playlist in the background without unmounting its
     'utf8'
   )
   const modules = {
-    '@/lib/runtime-cache': createRuntimeCache()
+    '@/lib/runtime-cache': createRuntimeCache(),
+    '@/components/music/batch-toolbar': batchModule()
   }
   const placeholder = ({ children }) => React.createElement('div', {}, children)
   const parsed = ts.createSourceFile(
@@ -201,7 +203,8 @@ test('playlist detail siblings have distinct keys and search state resets when s
     'utf8'
   )
   const modules = {
-    '@/lib/runtime-cache': createRuntimeCache()
+    '@/lib/runtime-cache': createRuntimeCache(),
+    '@/components/music/batch-toolbar': batchModule()
   }
   const placeholder = ({ children }) => React.createElement('div', {}, children)
   const parsed = ts.createSourceFile(
@@ -320,7 +323,8 @@ test('library home limits the featured preview to twelve without changing the fa
     'utf8'
   )
   const modules = {
-    '@/lib/runtime-cache': createRuntimeCache()
+    '@/lib/runtime-cache': createRuntimeCache(),
+    '@/components/music/batch-toolbar': batchModule()
   }
   const placeholder = ({ children }) => React.createElement('div', {}, children)
   const parsed = ts.createSourceFile(

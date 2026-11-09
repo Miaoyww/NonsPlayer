@@ -1,4 +1,5 @@
 import { errorNoticeModule } from './helpers/error-notice.mjs'
+import { batchModule } from './helpers/track-batch.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
@@ -41,6 +42,7 @@ function harness() {
     }
   }
   const modules = {
+    '@/components/music/batch-toolbar': batchModule(),
     '@/features/discovery/discovery-api': {
       dislikeTrack: (track) =>
         modules['@/lib/player'].nativeCall('music_write', {

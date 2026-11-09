@@ -4,7 +4,11 @@ import { isTauri } from '@tauri-apps/api/core'
 import { MusicPage } from '@/components/music/music-page'
 import { PlaylistPageShell } from '@/features/library/playlist/playlist-page-shell'
 import { ActionButton } from '@/components/music/action-button'
-import { BatchToolbar } from '@/components/music/batch-toolbar'
+import {
+  BatchDownloadButton,
+  BatchToolbar,
+  useTrackBatch
+} from '@/components/music/batch-toolbar'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { ErrorNotice } from '@/components/error-notice'
@@ -18,7 +22,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
 import { useMusicSources } from '@/features/music/use-music-sources'
-import { useSongActions } from '@/components/music/song-actions'
 import { usePagedList } from '@/lib/use-paged-list'
 import { nativeCall, usePlayer } from '@/lib/player'
 import { AggregateHeader } from './aggregate-header'
@@ -151,9 +154,6 @@ export default function AggregatePage({
   const playlist = playlists.find((p) => p.id === id)
   const { navigate } = useMusicNavigation()
   const { statuses } = useMusicSources()
-  const actions = useSongActions()
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [batch, setBatch] = useState(false)
   const [busy, setBusy] = useState(false)
   const [edit, setEdit] = useState<'rename' | 'delete' | 'unlink' | 'order'>()
   const [name, setName] = useState('')
@@ -170,16 +170,11 @@ export default function AggregatePage({
   )
   const list = usePagedList(loader, 100, isTauri())
   const members = useMemo(() => new Map(list.items.map((m) => [m.track.key, m])), [list.items])
+  const selection = useTrackBatch(list.items.map((member) => member.track))
   useEffect(() => {
-    setSelected(new Set())
+    selection.exit()
   }, [id, revision])
-  useEffect(() => {
-    setBatch(false)
-  }, [id])
-  const toggleBatch = () => {
-    setBatch((value) => !value)
-    setSelected(new Set())
-  }
+  const toggleBatch = () => (selection.active ? selection.exit() : selection.enter())
   async function run(work: () => Promise<unknown>, message?: string) {
     if (busy) return
     setBusy(true)
@@ -193,7 +188,7 @@ export default function AggregatePage({
       setBusy(false)
     }
   }
-  const mutate = (operation: 'remove', keys = [...selected]) =>
+  const mutate = (operation: 'remove', keys = [...selection.selected]) =>
     run(() => writeAggregate({ operation, id, keys }))
   if (!playlist)
     return (
@@ -224,12 +219,12 @@ export default function AggregatePage({
       <PlaylistPageShell
         key={id}
         hasMore={list.more}
-        searchable={!batch}
+        searchable={!selection.active}
         header={
           <AggregateHeader
             key={id}
             playlist={playlist}
-            batch={batch}
+            batch={selection.active}
             onBatch={toggleBatch}
             busy={busy}
             onPlay={() =>
@@ -247,17 +242,22 @@ export default function AggregatePage({
           />
         }
       >
-        {batch && (
-          <BatchToolbar selected={selected.size} busy={busy} onDone={toggleBatch}>
+        {selection.active && (
+          <BatchToolbar
+            tracks={selection.selectedTracks}
+            busy={busy}
+            onInvert={selection.invert}
+            onDone={selection.exit}
+          >
             <ActionButton
               disabled={
                 busy ||
-                !selected.size ||
-                list.items.some((m) => selected.has(m.track.key) && m.remote)
+                !selection.selectedCount ||
+                list.items.some((m) => selection.selected.has(m.track.key) && m.remote)
               }
               variant="outline"
               title={
-                list.items.some((m) => selected.has(m.track.key) && m.remote)
+                list.items.some((m) => selection.selected.has(m.track.key) && m.remote)
                   ? '原歌单歌曲始终跟随平台，请在原歌单中删除'
                   : undefined
               }
@@ -267,56 +267,28 @@ export default function AggregatePage({
               移除
             </ActionButton>
             <ActionButton
-              disabled={busy || !selected.size}
-              variant="outline"
-              onClick={() =>
-                actions.collectGroup(
-                  list.items.filter((m) => selected.has(m.track.key)).map((m) => m.track)
-                )
-              }
-            >
-              <Plus aria-hidden="true" />
-              添加到其他聚合歌单
-            </ActionButton>
-            <ActionButton
-              disabled={busy || !selected.size}
+              disabled={busy || !selection.selectedCount}
               variant="outline"
               onClick={() => setEdit('order')}
             >
               <ArrowUpDown aria-hidden="true" />
               移动到位置
             </ActionButton>
+            <BatchDownloadButton
+              tracks={selection.selectedTracks}
+              onComplete={selection.exit}
+              onError={onError}
+              onNotice={onNotice}
+            />
           </BatchToolbar>
         )}
         <TrackList
           tracks={list.items.map((m) => m.track)}
           busy={busy}
           currentKey={currentKey}
-          searchable={!batch}
+          searchable={!selection.active}
           hasMore={list.more}
-          selection={
-            batch
-              ? {
-                  keys: selected,
-                  onToggle: (key, checked) =>
-                    setSelected((old) => {
-                      const next = new Set(old)
-                      if (checked) next.add(key)
-                      else next.delete(key)
-                      return next
-                    }),
-                  onToggleAll: (keys, checked) =>
-                    setSelected((old) => {
-                      const next = new Set(old)
-                      for (const key of keys) {
-                        if (checked) next.add(key)
-                        else next.delete(key)
-                      }
-                      return next
-                    })
-                }
-              : undefined
-          }
+          selection={selection.active ? selection.selection : undefined}
           onPlay={(_, tracks) => {
             void run(() => playAggregate(id, tracks[_]?.key))
           }}

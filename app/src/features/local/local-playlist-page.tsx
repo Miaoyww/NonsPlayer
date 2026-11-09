@@ -20,6 +20,11 @@ import {
 } from '@/components/ui/dialog'
 import { useMusicNavigation, type MusicCollection } from '@/features/workspace/music-navigation'
 import { ActionButton } from '@/components/music/action-button'
+import {
+  BatchMenuButton,
+  BatchToolbar,
+  useTrackBatch
+} from '@/components/music/batch-toolbar'
 import { Cover } from '@/components/music/cover'
 import { TrackList } from '@/components/music/track-list'
 import { InfiniteLoad } from '@/components/music/infinite-load'
@@ -72,6 +77,7 @@ export default function LocalPlaylistPage({
   const list = usePagedList<Track>(loader, 100, isTauri(), {
     cacheKey: presentationKey('local-detail', 'playlist', id)
   })
+  const selection = useTrackBatch(list.items)
   const player = usePlayer('index', 'queue')
   async function play() {
     if (playing) return
@@ -112,6 +118,7 @@ export default function LocalPlaylistPage({
     <>
       <PlaylistPageShell
         hasMore={list.more}
+        searchable={!selection.active}
         header={
           <PlaylistCollectionHeader
             collection={collection}
@@ -127,6 +134,10 @@ export default function LocalPlaylistPage({
             }
             actions={
               <>
+                <BatchMenuButton
+                  batch={selection.active}
+                  onBatch={() => (selection.active ? selection.exit() : selection.enter())}
+                />
                 <ActionButton
                   variant="ghost"
                   disabled={!isTauri()}
@@ -151,15 +162,24 @@ export default function LocalPlaylistPage({
           />
         }
       >
+        {selection.active && (
+          <BatchToolbar
+            tracks={selection.selectedTracks}
+            busy={!isTauri()}
+            onInvert={selection.invert}
+            onDone={selection.exit}
+          />
+        )}
         {list.busy && !list.items.length ? (
           <TrackListSkeleton online={false} />
         ) : list.items.length > 0 ? (
           <TrackList
             tracks={list.items}
-            searchable
+            searchable={!selection.active}
             sortable
             hasMore={list.more}
             busy={!isTauri()}
+            selection={selection.active ? selection.selection : undefined}
             currentKey={player.index === null ? undefined : player.queue[player.index]?.key}
             onPlay={(index, tracks) => {
               const start = index >= 1000 ? index : 0

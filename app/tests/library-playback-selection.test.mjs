@@ -1,4 +1,5 @@
 import { errorNoticeModule } from './helpers/error-notice.mjs'
+import { batchModule } from './helpers/track-batch.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from './helpers/diagnostic-vm.mjs'
@@ -43,6 +44,7 @@ test('homepage allows a newer song selection while the previous collection is pr
     errors = [],
     notices = []
   Object.assign(modules, {
+    '@/components/music/batch-toolbar': batchModule(),
     '@/features/aggregate/aggregate-page': {
       CreateAggregatePlaylist: () => React.createElement('button', {}, '创建聚合歌单')
     },

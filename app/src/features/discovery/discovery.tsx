@@ -58,6 +58,12 @@ import {
 } from '@/features/discovery/discovery-api'
 import { useAccount } from '@/features/account/account'
 import { ActionButton } from '@/components/music/action-button'
+import {
+  BatchDownloadButton,
+  BatchMenuButton,
+  BatchToolbar,
+  useTrackBatch
+} from '@/components/music/batch-toolbar'
 import { Cover } from '@/components/music/cover'
 import { InfiniteLoad } from '@/components/music/infinite-load'
 import { PlaylistCard } from '@/features/library/playlist/playlist-card'
@@ -434,6 +440,7 @@ export default function Discovery({
   const songs = usePagedList(dailyLoader, 100, isTauri() && daily && !!profile, {
     cacheKey: presentationKey('daily', source, profile?.reference)
   })
+  const selection = useTrackBatch(songs.items)
   async function play(item: MusicCollection) {
     if (pending.current) return
     pending.current = true
@@ -476,9 +483,17 @@ export default function Discovery({
     <MusicPage className="discovery" aria-label="发现音乐">
       {daily ? (
         <>
-          <header className="mb-8">
-            <h1 className="library-heading">每日推荐</h1>
-            <p className="mt-2 text-sm text-muted-foreground">根据你的音乐口味，每日更新。</p>
+          <header className="mb-8 flex items-start justify-between gap-4">
+            <div>
+              <h1 className="library-heading">每日推荐</h1>
+              <p className="mt-2 text-sm text-muted-foreground">根据你的音乐口味，每日更新。</p>
+            </div>
+            {profile && (
+              <BatchMenuButton
+                batch={selection.active}
+                onBatch={() => (selection.active ? selection.exit() : selection.enter())}
+              />
+            )}
           </header>
           {!profile ? (
             <div className="library-empty">
@@ -489,6 +504,21 @@ export default function Discovery({
             </div>
           ) : (
             <>
+              {selection.active && (
+                <BatchToolbar
+                  tracks={selection.selectedTracks}
+                  busy={playing}
+                  onInvert={selection.invert}
+                  onDone={selection.exit}
+                >
+                  <BatchDownloadButton
+                    tracks={selection.selectedTracks}
+                    onComplete={selection.exit}
+                    onError={onError}
+                    onNotice={onNotice}
+                  />
+                </BatchToolbar>
+              )}
               {songs.busy && !songs.items.length ? (
                 <TrackListSkeleton />
               ) : (
@@ -496,6 +526,7 @@ export default function Discovery({
                   tracks={songs.items}
                   sortable
                   busy={playing}
+                  selection={selection.active ? selection.selection : undefined}
                   currentKey={current?.key}
                   onPlay={(index, tracks) =>
                     void nativeCall('play_queue', {

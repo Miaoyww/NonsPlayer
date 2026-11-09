@@ -6,10 +6,10 @@ import {
   Pencil,
   ExternalLink,
   RefreshCw,
-  X,
-  ListChecks
+  X
 } from 'lucide-react'
 import { ActionButton } from '@/components/music/action-button'
+import { BatchMenuItem } from '@/components/music/batch-toolbar'
 import { ErrorNotice } from '@/components/error-notice'
 import { CollectionHeader } from '@/features/library/collection/collection-header'
 import { useMusicNavigation } from '@/features/workspace/music-navigation'
@@ -80,10 +80,7 @@ export function AggregateHeader({
               <Menu.Portal>
                 <Menu.Positioner className="z-[70]" side="bottom" align="end" sideOffset={6}>
                   <Menu.Popup className="song-context-menu" aria-label="歌单操作">
-                    <Menu.Item onClick={onBatch}>
-                      <ListChecks aria-hidden="true" />
-                      {batch ? '完成批量操作' : '批量操作'}
-                    </Menu.Item>
+                    <BatchMenuItem batch={batch} onClick={onBatch} />
                     {!playlist.link && (
                       <Menu.Item onClick={() => onEdit('rename')}>
                         <Pencil aria-hidden="true" />
