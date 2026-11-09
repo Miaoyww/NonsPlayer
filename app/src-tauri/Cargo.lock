@@ -4347,7 +4347,7 @@ dependencies = [
 
 [[package]]
 name = "nons"
-version = "1.12.1"
+version = "1.12.2"
 dependencies = [
  "aes",
  "amll-lyric",

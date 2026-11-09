@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.12.2] - 2026-11-09
+
+![NonsPlayer v1.12.2 开放 API 与 Android 包体优化头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.2/docs/release-assets/header.png)
+
+NonsPlayer 1.12.2 开放 API 与 Android 包体优化。本次 Release 提供 **Windows x64、Linux x64、Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 - Android Release APK 去除原生调试数据，安装包体积由约 220 MiB 降至约 50 MiB，并增加发布体积上限检查。
 - 任务栏封面开关从播放设置移至个性化设置的任务栏分区。
 - 桌面端新增“网络与服务”设置，可启用无需身份验证的 HTTP／WebSocket 开放 API，配置端口和局域网访问，供外部应用读取歌曲、队列、封面并控制播放。
