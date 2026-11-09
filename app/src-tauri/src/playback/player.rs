@@ -266,6 +266,7 @@ impl Player {
         store: Arc<Store>,
         music: Arc<MusicService>,
         hwnd: isize,
+        cover_runtime: crate::infrastructure::covers::CoverRuntime,
     ) -> AppResult<Self> {
         let mut restored = store
             .setting("player")?
@@ -295,7 +296,7 @@ impl Player {
         let thumbar = app
             .get_webview_window("main")
             .ok_or_else(|| "主窗口不可用".to_string())
-            .and_then(|window| ThumbarControls::new(&window, sender.clone()));
+            .and_then(|window| ThumbarControls::new(&window, sender.clone(), cover_runtime));
         let thread = std::thread::Builder::new()
             .name("nons-audio".into())
             .spawn(move || {

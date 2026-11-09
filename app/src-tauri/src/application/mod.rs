@@ -976,11 +976,23 @@ pub fn run() {
                 .0 as isize;
             #[cfg(not(windows))]
             let hwnd = 0;
+            let cover_client = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(8))
+                .redirect(reqwest::redirect::Policy::none())
+                .build()?;
+            let cover_requests = Arc::new(tokio::sync::Semaphore::new(8));
+            let cover_runtime = crate::infrastructure::covers::CoverRuntime::new(
+                music.adapters.clone(),
+                cover_client.clone(),
+                cover_requests.clone(),
+                online_covers.clone(),
+            );
             let player = Arc::new(Player::start(
                 app.handle().clone(),
                 store.clone(),
                 music.clone(),
                 hwnd,
+                cover_runtime.clone(),
             )?);
             let startup_player = player.clone();
             let plugin_manager = plugins::PluginManager::new(
@@ -1050,17 +1062,6 @@ pub fn run() {
             });
             #[cfg(feature = "plugin-probe")]
             plugins::probe::start(plugin_manager.clone());
-            let cover_client = reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(8))
-                .redirect(reqwest::redirect::Policy::none())
-                .build()?;
-            let cover_requests = Arc::new(tokio::sync::Semaphore::new(8));
-            let cover_runtime = crate::infrastructure::covers::CoverRuntime::new(
-                music.adapters.clone(),
-                cover_client.clone(),
-                cover_requests.clone(),
-                online_covers.clone(),
-            );
             #[cfg(windows)]
             let download_directory = app.path().audio_dir()?.join("Nons");
             #[cfg(not(windows))]

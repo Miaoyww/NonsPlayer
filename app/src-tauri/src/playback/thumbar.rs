@@ -68,13 +68,18 @@ pub struct ThumbarControls {
     cover: Option<(String, String)>,
     cover_generation: Arc<AtomicU64>,
     cover_lock: Arc<Mutex<()>>,
+    cover_runtime: crate::infrastructure::covers::CoverRuntime,
 }
 
 #[cfg(windows)]
 impl ThumbarControls {
     /// Windows only lets a window add thumbnail toolbar buttons once, so the
     /// complete list is installed here and later changes go through `update`.
-    pub fn new(window: &tauri::WebviewWindow, sender: SyncSender<Command>) -> AppResult<Self> {
+    pub fn new(
+        window: &tauri::WebviewWindow,
+        sender: SyncSender<Command>,
+        cover_runtime: crate::infrastructure::covers::CoverRuntime,
+    ) -> AppResult<Self> {
         use tauri_plugin_thumbar::{Button, ButtonHandler, ThumbarExt};
         let palette = Palette::for_theme(window.theme().unwrap_or(tauri::Theme::Dark));
         let handler: ButtonHandler = Box::new(move |_, id| {
@@ -115,6 +120,7 @@ impl ThumbarControls {
             cover: None,
             cover_generation: Arc::new(AtomicU64::new(0)),
             cover_lock: Arc::new(Mutex::new(())),
+            cover_runtime,
         })
     }
 
@@ -175,15 +181,10 @@ impl ThumbarControls {
         let window = self.window.clone();
         let cover_generation = self.cover_generation.clone();
         let cover_lock = self.cover_lock.clone();
+        let cover_runtime = self.cover_runtime.clone();
         tauri::async_runtime::spawn(async move {
             let app = window.app_handle().clone();
-            let path = match crate::infrastructure::covers::fetch(
-                source,
-                &app.state::<crate::Backend>(),
-                &app,
-            )
-            .await
-            {
+            let path = match cover_runtime.fetch(source, &app).await {
                 Ok(path) => path,
                 Err(error) => {
                     crate::infrastructure::diagnostics::warn(
@@ -315,7 +316,11 @@ pub struct ThumbarControls;
 
 #[cfg(not(windows))]
 impl ThumbarControls {
-    pub fn new(_: &tauri::WebviewWindow, _: SyncSender<Command>) -> AppResult<Self> {
+    pub fn new(
+        _: &tauri::WebviewWindow,
+        _: SyncSender<Command>,
+        _: crate::infrastructure::covers::CoverRuntime,
+    ) -> AppResult<Self> {
         Ok(Self)
     }
 

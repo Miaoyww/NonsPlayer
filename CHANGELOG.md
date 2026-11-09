@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 修复启动恢复含在线封面的歌曲时，任务栏封面可能在后端状态就绪前读取而触发崩溃日志的问题。
+
 ## [1.12.3] - 2026-11-09
 
 ![NonsPlayer v1.12.3 批量选择与下载管理更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.3/docs/release-assets/header.png)
