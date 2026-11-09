@@ -4,7 +4,19 @@
 
 ## [Unreleased]
 
+### 稳定性修复
+
 - 修复启动恢复含在线封面的歌曲时，任务栏封面可能在后端状态就绪前读取而触发崩溃日志的问题。
+
+### 安装与使用提示
+
+- Windows x64 安装版可通过内置更新获取新版；便携版请完整解压 `Nons_1.12.4_windows_x64_portable.zip` 后运行 `Nons.exe`，并保留 `data/` 目录。系统需已有 Microsoft Edge WebView2 Runtime。
+- Linux x64 提供 AppImage 与 deb；Android 提供 ARM64 试用 APK。
+
+### 已知限制与发布验收
+
+- 本次未提供 macOS 构建；macOS 安装与基本播放尚未完成验收。Android 仍为 ARM64 试用版，正式移动端发布待后续完成。
+- 本次修复需在恢复包含在线封面歌曲且启用任务栏封面的 Windows 发布构建上确认启动稳定性；自动化测试不替代实机启动验收。
 
 ## [1.12.3] - 2026-11-09
 
