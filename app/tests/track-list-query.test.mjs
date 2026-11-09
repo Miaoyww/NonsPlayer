@@ -677,12 +677,14 @@ test('detail toolbar search filters the actual list without rendering a duplicat
   })
 })
 
-test('selection keeps titles inert, double-click plays the selected occurrence and survives insertion', async () => {
+test('clicking a title keeps rows unselected, double-click plays the occurrence and survives insertion', async () => {
   await harness(async ({ dom, doublePlays, tracks, render, plays }) => {
     const row = document.querySelectorAll('.track-row')[2]
+    assert.equal(row.hasAttribute('data-selected'), false)
+    assert.equal(row.getAttribute('aria-selected'), null)
     assert.equal(document.querySelector('.track-title-copy'), null)
     await act(async () => row.querySelector('.track-title').click())
-    assert.equal(row.dataset.selected, 'true')
+    assert.equal(row.hasAttribute('data-selected'), false)
     await act(async () => row.querySelector('.track-title').click())
     assert.equal(document.querySelector('.track-title-copy'), null)
     assert.equal(doublePlays.length, 0)
@@ -697,7 +699,7 @@ test('selection keeps titles inert, double-click plays the selected occurrence a
     assert.equal(plays.length, 0)
     await render({ tracks: [{ ...tracks[1], key: 'new' }, ...tracks] })
     assert.equal(document.querySelectorAll('.track-row')[3], row)
-    assert.equal(row.dataset.selected, 'true')
+    assert.equal(row.hasAttribute('data-selected'), false)
     await act(async () => row.querySelector('.track-cover').click())
     assert.equal(plays.length, 1)
     await act(async () =>

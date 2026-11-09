@@ -151,7 +151,6 @@ export const TrackList = memo(function TrackList({
   const showDuration = !mobile && durationColumn
   const findElement = useRef<HTMLDivElement>(null)
   const [findTarget, setFindTarget] = useState<{ index: number; serial: number }>()
-  const [selectedKey, setSelectedKey] = useState<string>()
   const songActions = useSongActions()
   const doubleClickBusy = useRef(false)
   const [sort, setSort] = useState<SortKey>('default')
@@ -296,7 +295,6 @@ export const TrackList = memo(function TrackList({
         busy,
         play: (index: number) => onPlay(index, visibleTracks),
         locate: (index: number) => {
-          setSelectedKey(entries[index]?.rowKey)
           setFindTarget({ index, serial: Date.now() })
         },
         remove: onRemove
@@ -315,10 +313,7 @@ export const TrackList = memo(function TrackList({
   }, [findTarget, scrollMargin, virtualizer])
   useEffect(() => {
     if (!findTarget) return
-    const timer = window.setTimeout(() => {
-      setSelectedKey(undefined)
-      setFindTarget(undefined)
-    }, 2500)
+    const timer = window.setTimeout(() => setFindTarget(undefined), 2500)
     const frame = requestAnimationFrame(() => {
       findElement.current
         ?.querySelector<HTMLElement>(`tr[data-index="${findTarget.index}"]`)
@@ -639,8 +634,6 @@ export const TrackList = memo(function TrackList({
                       <tr
                         ref={virtualizer.measureElement}
                         data-index={row.index}
-                        data-selected={selectedKey === rowKey}
-                        aria-selected={selectedKey === rowKey}
                         onDoubleClick={(event) => {
                           if (mobile) return
                           const control = (event.target as HTMLElement).closest(
@@ -649,7 +642,6 @@ export const TrackList = memo(function TrackList({
                           if (event.button !== 0 || (control && control !== event.currentTarget))
                             return
                           event.preventDefault()
-                          setSelectedKey(rowKey)
                           doubleClickPlay(playIndex)
                         }}
                         onClick={(event) => {
@@ -659,15 +651,14 @@ export const TrackList = memo(function TrackList({
                             )
                           )
                             return
-                          setSelectedKey(rowKey)
                           if (mobile) doubleClickPlay(playIndex)
                         }}
                         onKeyDown={(event) => {
                           if (event.target !== event.currentTarget) return
                           if (event.key === 'Enter') {
                             event.preventDefault()
-                            setSelectedKey(rowKey)
-                          } else if (event.key === 'Escape') setSelectedKey(undefined)
+                            doubleClickPlay(playIndex)
+                          }
                         }}
                         className="track-row group"
                         data-current={current}
