@@ -124,6 +124,20 @@ async function harness(run, android = false, rangeStart = 0, rangeSize = Infinit
       TrackSearchContext: trackSearchContext
     },
     '@/components/ui/input': { Input: (props) => React.createElement('input', props) },
+    '@/components/ui/checkbox': {
+      Checkbox: ({ checked, indeterminate, onCheckedChange, className, ...props }) =>
+        React.createElement('input', {
+          ...props,
+          type: 'checkbox',
+          className,
+          checked: !!checked,
+          onChange: onCheckedChange ? (event) => onCheckedChange(event.target.checked) : undefined,
+          readOnly: !onCheckedChange,
+          ref: (element) => {
+            if (element) element.indeterminate = !!indeterminate
+          }
+        })
+    },
     '@/components/music/music-links': { TrackAlbum: ({ track }) => track.album },
     './music-links': { TrackArtists: ({ track }) => track.artist },
     './cover': { Cover: () => null },

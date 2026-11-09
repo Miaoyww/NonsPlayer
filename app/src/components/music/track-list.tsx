@@ -2,6 +2,7 @@ import { reportCaughtError } from '@/lib/diagnostics'
 import { errorNotices } from '@/features/playback/recovery/error-notices'
 import { useListFind } from './list-find'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Checkbox } from '@/components/ui/checkbox'
 import { favoriteId, onlineReference } from '@/features/music/references'
 import { Input } from '@/components/ui/input'
 import { TrackAlbum } from '@/components/music/music-links'
@@ -411,25 +412,23 @@ export const TrackList = memo(function TrackList({
                 {(!mobile || selection) && (
                   <th className="py-3 text-center" scope="col">
                     {selection ? (
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         aria-label="选择全部已加载歌曲"
                         title="选择全部已加载歌曲"
+                        className="mx-auto"
                         disabled={busy || !visibleTracks.length}
                         checked={
                           !!visibleTracks.length &&
                           visibleTracks.every((track) => selection.keys.has(track.key))
                         }
-                        ref={(element) => {
-                          if (element)
-                            element.indeterminate =
-                              visibleTracks.some((track) => selection.keys.has(track.key)) &&
-                              !visibleTracks.every((track) => selection.keys.has(track.key))
-                        }}
-                        onChange={(event) =>
+                        indeterminate={
+                          visibleTracks.some((track) => selection.keys.has(track.key)) &&
+                          !visibleTracks.every((track) => selection.keys.has(track.key))
+                        }
+                        onCheckedChange={(checked) =>
                           selection.onToggleAll(
                             visibleTracks.map((track) => track.key),
-                            event.target.checked
+                            checked
                           )
                         }
                       />
@@ -641,7 +640,7 @@ export const TrackList = memo(function TrackList({
                         onDoubleClick={(event) => {
                           if (mobile) return
                           const control = (event.target as HTMLElement).closest(
-                            'button, a, input, select, textarea, [role="button"]'
+                            'button, a, input, select, textarea, [role="button"], [role="checkbox"]'
                           )
                           if (event.button !== 0 || (control && control !== event.currentTarget))
                             return
@@ -652,7 +651,7 @@ export const TrackList = memo(function TrackList({
                         onClick={(event) => {
                           if (
                             (event.target as HTMLElement).closest(
-                              'button, a, input, [role="button"]'
+                              'button, a, input, [role="button"], [role="checkbox"]'
                             )
                           )
                             return
@@ -675,15 +674,13 @@ export const TrackList = memo(function TrackList({
                     {(!mobile || selection) && (
                       <td className="text-center tabular-nums text-muted-foreground">
                         {selection ? (
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             aria-label={`选择 ${track.title}`}
+                            className="mx-auto"
                             disabled={busy}
                             checked={selection.keys.has(track.key)}
                             onClick={(event) => event.stopPropagation()}
-                            onChange={(event) =>
-                              selection.onToggle(track.key, event.target.checked)
-                            }
+                            onCheckedChange={(checked) => selection.onToggle(track.key, checked)}
                           />
                         ) : current ? (
                           <PlayingIndicator />
