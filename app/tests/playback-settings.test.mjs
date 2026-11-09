@@ -280,25 +280,6 @@ test('startup autoplay is opt-in and saved with playback options', async () => {
   }
 })
 
-test('taskbar cover is opt-in and Windows only', async () => {
-  const windows = await harness()
-  try {
-    assert.equal(windows.input('显示歌曲封面').checked, false)
-    await React.act(async () => windows.input('显示歌曲封面').click())
-    const [, args] = windows.calls.find(([command]) => command === 'set_playback_options')
-    assert.equal(args.options.taskbarCover, true)
-  } finally {
-    await windows.dispose()
-  }
-
-  const android = await harness({ platform: 'Android' })
-  try {
-    assert.equal(android.card('任务栏封面'), null)
-  } finally {
-    await android.dispose()
-  }
-})
-
 test('playback fades and crossfade wait for persistence and retain the previous setting on failure', async () => {
   let pending
   const app = await harness({

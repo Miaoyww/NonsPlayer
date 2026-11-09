@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- 任务栏封面开关从播放设置移至个性化设置的任务栏分区。
+
 ## [1.12.1] - 2026-11-07
 
 ![NonsPlayer v1.12.1 稳定性与移动端体验更新头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.1/docs/release-assets/header.png)

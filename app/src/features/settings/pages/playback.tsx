@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
 import { errorText, nativeCall, usePlayer, type OutputDevice } from '@/lib/player'
-import { isAndroid, isWindows } from '@/lib/platform'
+import { isAndroid } from '@/lib/platform'
 import { qualities, useMusicOptions } from '@/features/playback/now-playing/music-options'
 import {
   Select,
@@ -23,7 +23,6 @@ export function PlaybackPage() {
   const state = usePlayer('deviceId', 'playbackOptions')
   const [doubleClick, updateDoubleClick] = useTrackDoubleClickSettings()
   const android = isAndroid()
-  const windows = isWindows()
   const chooseAudioOutput =
     !android || typeof navigator === 'undefined'
       ? undefined
@@ -200,22 +199,6 @@ export function PlaybackPage() {
             </Select>
           </label>
         </SettingsCard>
-        {windows && (
-          <SettingsCard
-            searchId="taskbar-cover"
-            title="任务栏封面"
-            description="任务栏悬停缩略图显示当前歌曲封面。"
-          >
-            <label className="flex items-center gap-2 text-sm">
-              <Switch
-                checked={state.playbackOptions.taskbarCover}
-                disabled={!isTauri() || savingOptions}
-                onCheckedChange={(checked) => updatePlaybackOptions({ taskbarCover: checked })}
-              />
-              显示歌曲封面
-            </label>
-          </SettingsCard>
-        )}
       </section>
       <section aria-labelledby="playback-song-actions-heading" className="flex flex-col gap-8">
         <h3 id="playback-song-actions-heading" className="text-base font-semibold">

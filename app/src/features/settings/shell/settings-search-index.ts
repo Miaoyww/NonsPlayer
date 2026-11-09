@@ -47,6 +47,11 @@ const groups: SearchGroup[] = [
     items: [['playback-bar', '播放栏', '折叠式 常驻式 关闭 播放器样式']]
   },
   {
+    section: 'personalization',
+    path: '个性化设置 / 任务栏',
+    items: [['taskbar-cover', '任务栏封面', '缩略图 悬停 当前歌曲 封面']]
+  },
+  {
     section: 'playback',
     path: '播放设置 / 播放控制',
     items: [
@@ -54,8 +59,7 @@ const groups: SearchGroup[] = [
       ['quality-preference', '音质偏好', '标准 较高 极高 无损 Hi-Res 流媒体'],
       ['quality-downgrade', '允许音质降级', '不可用'],
       ['playback-fades', '播放/暂停渐变', '淡入 淡出 过渡'],
-      ['crossfade', '交叉淡入淡出', 'WebAudio 自动切歌 重叠 过渡时长'],
-      ['taskbar-cover', '任务栏封面', '缩略图 悬停 当前歌曲 封面']
+      ['crossfade', '交叉淡入淡出', 'WebAudio 自动切歌 重叠 过渡时长']
     ]
   },
   {
