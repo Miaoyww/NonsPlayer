@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 本地音乐
+
+- 修复从旧版本升级后本地音乐扫描失败并反复提示 `no such column: value` 的问题；旧版本地歌单成员记录会在启动时补齐字段并从曲库回填歌曲数据。
+
 ## [1.12.4] - 2026-11-09
 
 ![NonsPlayer v1.12.4 启动崩溃修复头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.4/docs/release-assets/header.png)

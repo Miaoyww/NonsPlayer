@@ -145,6 +145,37 @@ impl Store {
                 )
                 .map_err(|e| e.to_string())?;
         }
+        let legacy_playlist_members = !has_column(&connection, "local_playlist_tracks", "value")
+            .map_err(|e| e.to_string())?;
+        for (column, declaration) in [
+            ("manual", "INTEGER NOT NULL DEFAULT 1"),
+            ("remote", "INTEGER NOT NULL DEFAULT 0"),
+            ("excluded", "INTEGER NOT NULL DEFAULT 0"),
+            ("value", "TEXT NOT NULL DEFAULT ''"),
+        ] {
+            if !has_column(&connection, "local_playlist_tracks", column)
+                .map_err(|e| e.to_string())?
+            {
+                connection
+                    .execute(
+                        &format!(
+                            "ALTER TABLE local_playlist_tracks ADD COLUMN {column} {declaration}"
+                        ),
+                        [],
+                    )
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+        if legacy_playlist_members {
+            // Rows written before playlist snapshots existed cannot be read back once their
+            // track leaves the library, so the unusable ones are dropped instead of kept empty.
+            connection
+                .execute_batch(
+                    "UPDATE local_playlist_tracks SET value=(SELECT value FROM tracks WHERE tracks.key=local_playlist_tracks.key) WHERE value='';
+                     DELETE FROM local_playlist_tracks WHERE value='';",
+                )
+                .map_err(|e| e.to_string())?;
+        }
         let recorded_days: i64 = connection
             .query_row("SELECT COUNT(*) FROM listening_days", [], |row| row.get(0))
             .map_err(|e| e.to_string())?;
@@ -930,6 +961,69 @@ mod tests {
         );
     }
     use super::*;
+
+    #[test]
+    fn legacy_playlist_members_survive_the_playlist_schema_upgrade() {
+        use crate::model::{Track, TrackSource};
+        let connection = Connection::open_in_memory().unwrap();
+        let track = Track {
+            key: "local:a".into(),
+            title: "A".into(),
+            aliases: vec![],
+            artist: "".into(),
+            artists: vec![],
+            album: "".into(),
+            duration_ms: 1000,
+            cover: "".into(),
+            source: TrackSource::Local {
+                path: "a.mp3".into(),
+                netease_id: None,
+                cue: None,
+            },
+        };
+        let value = serde_json::to_string(&track).unwrap();
+        connection
+            .execute_batch(
+                "CREATE TABLE tracks (key TEXT PRIMARY KEY, source TEXT NOT NULL, title TEXT NOT NULL, artist TEXT NOT NULL, value TEXT NOT NULL);
+                 CREATE TABLE local_playlist_tracks (playlist_id INTEGER NOT NULL, key TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(playlist_id,key));",
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO tracks(key,source,title,artist,value) VALUES(?1,'local','A','',?2)",
+                params![track.key, value],
+            )
+            .unwrap();
+        connection
+            .execute_batch(
+                "INSERT INTO local_playlist_tracks(playlist_id,key,position) VALUES(1,'local:a',0);
+                 INSERT INTO local_playlist_tracks(playlist_id,key,position) VALUES(1,'local:removed',1);",
+            )
+            .unwrap();
+        let store = Store::initialize(connection).unwrap();
+        let db = store.0.lock().unwrap();
+        let rows = db
+            .prepare(
+                "SELECT key,value,manual,remote,excluded FROM local_playlist_tracks ORDER BY key",
+            )
+            .unwrap()
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, bool>(2)?,
+                    row.get::<_, bool>(3)?,
+                    row.get::<_, bool>(4)?,
+                ))
+            })
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(
+            rows,
+            vec![("local:a".to_string(), value, true, false, false)]
+        );
+    }
 
     #[test]
     fn download_links_replace_the_previous_file_and_survive_as_store_data() {
