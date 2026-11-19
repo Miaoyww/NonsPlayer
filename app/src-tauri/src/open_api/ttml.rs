@@ -260,7 +260,6 @@ fn convert_timed(
     duration_ms: u64,
     cue: Option<LyricCue>,
 ) -> Result<GeneratedTtml, ConversionError> {
-    validate_source_timings(&lyrics.format, &lyrics.content)?;
     let stripped;
     let content = match lyrics.format.as_str() {
         "qrc" => &lyrics.content,
@@ -270,6 +269,8 @@ fn convert_timed(
         }
         _ => unreachable!(),
     };
+    // NetEase credit lines are JSON whose brackets hold URLs and long ids, not timestamps.
+    validate_source_timings(&lyrics.format, content)?;
     let mut lines: Vec<PreparedLine> = match lyrics.format.as_str() {
         "qrc" => qrc::parse_qrc(content)
             .into_iter()
@@ -1490,6 +1491,23 @@ mod tests {
         assert_eq!(parsed.metadata.timing_mode.as_deref(), Some("Word"));
         let line = convert(&lyrics("[00:01.00]line", "lrc", "qq"), 10_000, None).unwrap();
         assert_eq!(line.timing, LyricTiming::Line);
+    }
+
+    #[test]
+    fn netease_credit_lines_are_not_timestamps() {
+        let credit = r#"{"t":0,"c":[{"tx":"作词: "},{"tx":"歌手","li":"http://p1.music.126.net/gIzja58gpq750oSvkvoAow==/109951173977380392.jpg","or":"orpheus://nm/artist/home?id=129104667&type=artist"}]}"#;
+        for (content, format) in [
+            (
+                format!("{credit}\n[00:18.18]第一句\n[00:25.71]第二句"),
+                "lrc",
+            ),
+            (format!("{credit}\n[18180,2000](18180,2000,0)第一句"), "yrc"),
+        ] {
+            let output = convert(&lyrics(&content, format, "netease"), 60_000, None).unwrap();
+            let parsed = ttml_processor::parse_ttml(&output.content).unwrap();
+            assert!(!output.content.contains("orpheus"), "{format}");
+            assert_eq!(parsed.lines[0].start_time, 18_180, "{format}");
+        }
     }
 
     #[test]
