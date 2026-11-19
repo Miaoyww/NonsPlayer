@@ -4428,6 +4428,7 @@ dependencies = [
  "webview2-com",
  "windows 0.62.2",
  "winreg 0.55.0",
+ "zbus",
  "zip",
  "zune-core",
  "zune-jpegxl",
