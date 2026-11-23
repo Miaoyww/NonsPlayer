@@ -22,6 +22,29 @@ function session(development = false) {
   return window
 }
 
+function desktopLyricsSession() {
+  const { window } = new JSDOM('<div id="root"></div>')
+  const source = readFileSync(new URL('../src/desktop-lyrics/main.tsx', import.meta.url), 'utf8')
+    .split('createRoot(')[0]
+    .replace(/^import .*$/gm, '')
+  runInNewContext(source, {
+    window,
+    document: window.document,
+    initializeFontSettings() {}
+  })
+  return window
+}
+
+test('desktop lyrics suppress the WebView context menu', () => {
+  const window = desktopLyricsSession()
+  const event = new window.MouseEvent('contextmenu', {
+    bubbles: true,
+    cancelable: true
+  })
+  window.document.body.dispatchEvent(event)
+  assert.equal(event.defaultPrevented, true)
+})
+
 test('release prevents browser shortcuts even inside inputs', () => {
   const window = session()
   for (const options of [

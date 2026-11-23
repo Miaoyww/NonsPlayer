@@ -9,6 +9,10 @@ document.body.style.background = 'transparent'
 document.documentElement.dataset.desktopLyrics = 'true'
 initializeFontSettings()
 
+window.addEventListener('contextmenu', (event) => {
+  event.preventDefault()
+})
+
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
     <DesktopLyricsApp />
