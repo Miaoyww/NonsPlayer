@@ -81,6 +81,7 @@ pub struct ResourceTicket {
     provider: Option<providers::ProviderLease>,
     lease: ResourceLease,
     resource: PlaybackResource,
+    issued_at: Instant,
 }
 impl std::fmt::Debug for ResourceTicket {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -91,6 +92,16 @@ impl ResourceTicket {
     #[cfg(test)]
     pub(crate) fn for_audio_test(url: String, headers: Vec<(String, String)>) -> Arc<Self> {
         Self::for_audio_test_access(ResourceAccess::Http(HttpAccess { url, headers }))
+    }
+    #[cfg(test)]
+    pub(crate) fn for_audio_test_expired(url: String) -> Arc<Self> {
+        Self::for_audio_test_access_with_ttl(
+            ResourceAccess::Http(HttpAccess {
+                url,
+                headers: vec![],
+            }),
+            Duration::ZERO,
+        )
     }
     #[cfg(test)]
     pub(crate) fn for_audio_test_fallback(url: String, backups: Vec<String>) -> Arc<Self> {
@@ -104,6 +115,10 @@ impl ResourceTicket {
     }
     #[cfg(test)]
     fn for_audio_test_access(access: ResourceAccess) -> Arc<Self> {
+        Self::for_audio_test_access_with_ttl(access, Duration::from_secs(3600))
+    }
+    #[cfg(test)]
+    fn for_audio_test_access_with_ttl(access: ResourceAccess, ttl: Duration) -> Arc<Self> {
         Arc::new(Self {
             entry: None,
             provider: None,
@@ -120,7 +135,7 @@ impl ResourceTicket {
                     cancellation: Cancellation::default(),
                 },
                 playback_generation: 0,
-                valid_until: Instant::now() + Duration::from_secs(3600),
+                valid_until: Instant::now() + ttl,
             },
             resource: PlaybackResource {
                 access,
@@ -130,6 +145,7 @@ impl ResourceTicket {
                     expires_at_ms: None,
                 },
             },
+            issued_at: Instant::now(),
         })
     }
     /// Lightweight atomic checks validate prepared resources without network/IO.
@@ -178,6 +194,21 @@ impl ResourceTicket {
             ResourceAccess::Http(http) => &http.headers,
             ResourceAccess::HttpFallback { primary, .. } => &primary.headers,
         }
+    }
+    pub(crate) fn age_ms(&self) -> u64 {
+        self.issued_at
+            .elapsed()
+            .as_millis()
+            .try_into()
+            .unwrap_or(u64::MAX)
+    }
+    pub(crate) fn valid_for_ms(&self) -> u64 {
+        self.lease
+            .valid_until
+            .saturating_duration_since(Instant::now())
+            .as_millis()
+            .try_into()
+            .unwrap_or(u64::MAX)
     }
 }
 impl AdapterManager {
@@ -1196,6 +1227,7 @@ impl AdapterManager {
                 valid_until: Instant::now() + Duration::from_millis(ttl),
             },
             resource,
+            issued_at: Instant::now(),
         });
         resources.insert(ticket.lease.handle.as_str().into(), Arc::downgrade(&ticket));
         ticket.check(playback_generation)?;

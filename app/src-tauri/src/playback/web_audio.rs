@@ -48,6 +48,8 @@ pub struct Feedback {
     pub position_ms: u64,
     pub duration_ms: u64,
     pub error: Option<String>,
+    #[serde(default)]
+    pub retryable: bool,
     pub next_source: Option<String>,
 }
 
@@ -71,6 +73,7 @@ pub enum FeedbackKind {
 
 struct Source {
     token: String,
+    generation: u64,
     resolved: ResolvedTrack,
     resource: super::engine::Resource,
     cancelled: tokio::sync::watch::Sender<bool>,
@@ -84,6 +87,23 @@ impl Source {
             _ => true,
         }
     }
+    #[cfg(not(target_os = "android"))]
+    fn lease_error(&self) -> Option<String> {
+        self.resource
+            .as_ref()
+            .and_then(|resource| resource.check(self.generation).err())
+            .map(|error| error.to_string())
+    }
+    fn lease_age_ms(&self) -> u64 {
+        self.resource
+            .as_ref()
+            .map_or(0, |resource| resource.age_ms())
+    }
+    fn lease_remaining_ms(&self) -> u64 {
+        self.resource
+            .as_ref()
+            .map_or(0, |resource| resource.valid_for_ms())
+    }
 }
 #[derive(Clone)]
 struct StreamState {
@@ -92,6 +112,18 @@ struct StreamState {
     client: reqwest::Client,
     requests: Arc<tokio::sync::Semaphore>,
     authority: String,
+}
+
+struct StreamAudit {
+    status: u16,
+    host: String,
+    range: String,
+    content_type: String,
+    content_range: String,
+    expected_bytes: Option<u64>,
+    proxy: &'static str,
+    lease_age_ms: u64,
+    lease_remaining_ms: u64,
 }
 
 pub struct WebAudio {
@@ -163,7 +195,7 @@ impl WebAudio {
     }
 
     #[cfg(target_os = "android")]
-    pub fn configure(&mut self, state: &crate::model::PlayerSnapshot) -> AppResult<()> {
+    pub fn configure(&mut self, state: &crate::model::PlayerSnapshot) -> AppResult<bool> {
         self.control.fades = state.playback_options.fades;
         self.control.crossfade_ms = if state.playback_options.crossfade {
             state.playback_options.crossfade_duration_ms
@@ -171,7 +203,7 @@ impl WebAudio {
             0
         };
         self.control.device_id = state.device_id.clone();
-        Ok(())
+        Ok(false)
     }
 
     pub(super) fn clear_secondary(&mut self) -> AppResult<()> {
@@ -197,6 +229,7 @@ impl WebAudio {
         resolved: ResolvedTrack,
         resource: super::engine::Resource,
         secondary: bool,
+        generation: u64,
     ) -> AppResult<String> {
         let token = uuid::Uuid::new_v4().to_string();
         let uri = format!("http://{}/{}", self.streams.authority, token);
@@ -211,6 +244,7 @@ impl WebAudio {
             .map_err(|_| "音频资源状态不可用")?
             .replace(Arc::new(Source {
                 token,
+                generation,
                 resolved,
                 resource,
                 cancelled,
@@ -282,6 +316,7 @@ impl WebAudio {
             .write()
             .map_err(|_| "音频资源状态不可用")? = Some(Arc::new(Source {
             token,
+            generation,
             resolved,
             resource,
             cancelled,
@@ -395,6 +430,7 @@ impl WebAudio {
             .write()
             .map_err(|_| "音频资源状态不可用")? = Some(Arc::new(Source {
             token,
+            generation,
             resolved,
             resource,
             cancelled,
@@ -480,6 +516,18 @@ async fn stream(
     if !source.authorized() {
         return Err(StatusCode::GONE);
     }
+    #[cfg(not(target_os = "android"))]
+    if let Some(error) = source.lease_error() {
+        log::warn!(
+            target: "nons::audio",
+            "operation=audio_stream.lease_rejected status=410 lease_age_ms={} lease_remaining_ms=0 reason={}",
+            source.lease_age_ms(),
+            error
+        );
+        return Err(StatusCode::GONE);
+    }
+    let lease_age_ms = source.lease_age_ms();
+    let lease_remaining_ms = source.lease_remaining_ms();
     let permit = state
         .requests
         .clone()
@@ -488,6 +536,7 @@ async fn stream(
     let mut cancelled = source.cancelled.subscribe();
     let uri = url::Url::parse(&source.resolved.uri).map_err(|_| StatusCode::BAD_GATEWAY)?;
     let requested_range = requested_range(request.headers().get(header::RANGE));
+    let mut audit = None;
     let mut response = if uri.scheme() == "file" {
         let path = uri.to_file_path().map_err(|_| StatusCode::BAD_GATEWAY)?;
         tower_http::services::ServeFile::new(path)
@@ -554,6 +603,7 @@ async fn stream(
             break;
         }
         let upstream = last.ok_or(StatusCode::BAD_GATEWAY)?;
+        let upstream_url = upstream.url().clone();
         let ignored_range = (upstream.status() == StatusCode::OK)
             .then_some(requested_range)
             .flatten()
@@ -649,7 +699,52 @@ async fn stream(
         } else {
             Body::from_stream(upstream.bytes_stream())
         };
-        response.body(body).map_err(|_| StatusCode::BAD_GATEWAY)?
+        let response = response.body(body).map_err(|_| StatusCode::BAD_GATEWAY)?;
+        let header = |name: header::HeaderName| {
+            response
+                .headers()
+                .get(&name)
+                .and_then(|value| value.to_str().ok())
+                .unwrap_or("-")
+                .to_owned()
+        };
+        let value = StreamAudit {
+            status: response.status().as_u16(),
+            host: upstream_url.host_str().unwrap_or("-").to_owned(),
+            range: request
+                .headers()
+                .get(header::RANGE)
+                .and_then(|value| value.to_str().ok())
+                .unwrap_or("-")
+                .to_owned(),
+            content_type: header(header::CONTENT_TYPE),
+            content_range: header(header::CONTENT_RANGE),
+            expected_bytes: (request.method() != axum::http::Method::HEAD)
+                .then(|| header(header::CONTENT_LENGTH).parse::<u64>().ok())
+                .flatten(),
+            proxy: if crate::infrastructure::http::uses_system_proxy(&upstream_url) {
+                "system"
+            } else {
+                "direct"
+            },
+            lease_age_ms,
+            lease_remaining_ms,
+        };
+        log::info!(
+            target: "nons::audio",
+            "operation=audio_stream.upstream status={} host={} range={} content_type={} content_range={} expected_bytes={} proxy={} lease_age_ms={} lease_remaining_ms={}",
+            value.status,
+            value.host,
+            value.range,
+            value.content_type,
+            value.content_range,
+            value.expected_bytes.map_or_else(|| "-".to_owned(), |bytes| bytes.to_string()),
+            value.proxy,
+            value.lease_age_ms,
+            value.lease_remaining_ms,
+        );
+        audit = Some(value);
+        response
     } else {
         return Err(StatusCode::BAD_GATEWAY);
     };
@@ -662,14 +757,86 @@ async fn stream(
     let (parts, body) = response.into_parts();
     // Hold both the permit and decoded-file ownership for the body lifetime.
     let stream = futures_util::stream::unfold(
-        (body.into_data_stream(), cancelled, permit, source),
-        |(mut body, mut cancelled, permit, source)| async move {
+        (
+            body.into_data_stream(),
+            cancelled,
+            permit,
+            source,
+            audit,
+            0_u64,
+        ),
+        |(mut body, mut cancelled, permit, source, audit, mut delivered)| async move {
             if *cancelled.borrow() || !source.authorized() {
+                if let Some(audit) = &audit {
+                    log::info!(
+                        target: "nons::audio",
+                        "operation=audio_stream.body_stop status={} host={} delivered_bytes={} expected_bytes={}",
+                        audit.status,
+                        audit.host,
+                        delivered,
+                        audit.expected_bytes.map_or_else(|| "-".to_owned(), |bytes| bytes.to_string()),
+                    );
+                }
                 return None;
             }
             tokio::select! {
-                _ = cancelled.changed() => None,
-                item = body.next() => item.map(|item| (item, (body, cancelled, permit, source))),
+                _ = cancelled.changed() => {
+                    if let Some(audit) = &audit {
+                        log::info!(
+                            target: "nons::audio",
+                            "operation=audio_stream.body_cancelled status={} host={} delivered_bytes={} expected_bytes={}",
+                            audit.status,
+                            audit.host,
+                            delivered,
+                            audit.expected_bytes.map_or_else(|| "-".to_owned(), |bytes| bytes.to_string()),
+                        );
+                    }
+                    None
+                }
+                item = body.next() => match item {
+                    Some(Ok(chunk)) => {
+                        delivered = delivered.saturating_add(chunk.len() as u64);
+                        Some((Ok(chunk), (body, cancelled, permit, source, audit, delivered)))
+                    }
+                    Some(Err(error)) => {
+                        if let Some(audit) = &audit {
+                            log::warn!(
+                                target: "nons::audio",
+                                "operation=audio_stream.body_error status={} host={} delivered_bytes={} expected_bytes={}",
+                                audit.status,
+                                audit.host,
+                                delivered,
+                                audit.expected_bytes.map_or_else(|| "-".to_owned(), |bytes| bytes.to_string()),
+                            );
+                        }
+                        Some((Err(error), (body, cancelled, permit, source, audit, delivered)))
+                    }
+                    None => {
+                        if let Some(audit) = &audit {
+                            let complete = audit.expected_bytes.is_none_or(|expected| expected == delivered);
+                            if complete {
+                                log::info!(
+                                    target: "nons::audio",
+                                    "operation=audio_stream.body_end status={} host={} delivered_bytes={} expected_bytes={}",
+                                    audit.status,
+                                    audit.host,
+                                    delivered,
+                                    audit.expected_bytes.map_or_else(|| "-".to_owned(), |bytes| bytes.to_string()),
+                                );
+                            } else {
+                                log::warn!(
+                                    target: "nons::audio",
+                                    "operation=audio_stream.body_incomplete status={} host={} delivered_bytes={} expected_bytes={}",
+                                    audit.status,
+                                    audit.host,
+                                    delivered,
+                                    audit.expected_bytes.map_or_else(|| "-".to_owned(), |bytes| bytes.to_string()),
+                                );
+                            }
+                        }
+                        None
+                    }
+                },
             }
         },
     );
@@ -721,6 +888,31 @@ mod tests {
         }
     }
 
+    fn online_resolved(uri: String) -> ResolvedTrack {
+        let mut value = resolved(uri, None);
+        value.track.source = crate::model::TrackSource::Online {
+            track: Box::new(nons_music_adapter_sdk::identity::MusicTrack {
+                reference: nons_music_adapter_sdk::identity::EntityRef {
+                    source: "test".to_owned().try_into().unwrap(),
+                    kind: nons_music_adapter_sdk::identity::EntityKind::Track,
+                    id: "1".to_owned().try_into().unwrap(),
+                },
+                title: "test".into(),
+                aliases: vec![],
+                artist: "test".into(),
+                artists: vec![],
+                album: String::new(),
+                album_reference: None,
+                duration_ms: 0,
+                cover: Default::default(),
+                associations: vec![],
+                lyric_identifiers: vec![],
+                unavailable_reason: None,
+            }),
+        };
+        value
+    }
+
     #[tokio::test]
     async fn opaque_stream_serves_local_ranges_and_rejects_revoked_handles() {
         let audio = WebAudio::new().unwrap();
@@ -729,6 +921,7 @@ mod tests {
         let (cancelled, _) = tokio::sync::watch::channel(false);
         *audio.streams.source.write().unwrap() = Some(Arc::new(Source {
             token: "only-current".into(),
+            generation: 0,
             resolved: resolved(
                 url::Url::from_file_path(file.path()).unwrap().into(),
                 Some(file),
@@ -773,6 +966,7 @@ mod tests {
             position_ms: 0,
             duration_ms: 0,
             error: None,
+            retryable: false,
             next_source: None,
         };
         assert!(!audio.accepts(&feedback));
@@ -797,6 +991,7 @@ mod tests {
             let (cancelled, _) = tokio::sync::watch::channel(false);
             *slot.write().unwrap() = Some(Arc::new(Source {
                 token: token.into(),
+                generation: 0,
                 resolved: resolved(uri.clone(), Some(file.clone())),
                 resource: None,
                 cancelled,
@@ -818,6 +1013,32 @@ mod tests {
                 assert_eq!(response.err(), Some(StatusCode::NOT_FOUND));
             }
         }
+    }
+
+    #[tokio::test]
+    async fn expired_online_lease_is_rejected_before_upstream() {
+        let audio = WebAudio::new().unwrap();
+        let (cancelled, _) = tokio::sync::watch::channel(false);
+        *audio.streams.source.write().unwrap() = Some(Arc::new(Source {
+            token: "expired".into(),
+            generation: 0,
+            resolved: online_resolved("http://127.0.0.1:9/expired".into()),
+            resource: Some(
+                crate::music::manager::ResourceTicket::for_audio_test_expired(
+                    "http://127.0.0.1:9/expired".into(),
+                ),
+            ),
+            cancelled,
+        }));
+        let request = Request::builder()
+            .uri("/expired")
+            .header(header::HOST, &audio.streams.authority)
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(
+            stream(State(audio.streams.clone()), request).await.err(),
+            Some(StatusCode::GONE)
+        );
     }
 
     #[tokio::test]
@@ -847,6 +1068,7 @@ mod tests {
         let (cancelled, _) = tokio::sync::watch::channel(false);
         *audio.streams.source.write().unwrap() = Some(Arc::new(Source {
             token: "online".into(),
+            generation: 0,
             resolved: resolved(format!("http://{address}/private?secret=hidden"), None),
             resource: None,
             cancelled,
@@ -887,6 +1109,7 @@ mod tests {
         let (cancelled, _) = tokio::sync::watch::channel(false);
         *audio.streams.source.write().unwrap() = Some(Arc::new(Source {
             token: "range".into(),
+            generation: 0,
             resolved: resolved(format!("http://{address}/full"), None),
             resource: None,
             cancelled,
@@ -945,6 +1168,7 @@ mod tests {
         let (cancelled, _) = tokio::sync::watch::channel(false);
         *audio.streams.source.write().unwrap() = Some(Arc::new(Source {
             token: "fallback".into(),
+            generation: 0,
             resolved: resolved(primary_url.clone(), None),
             resource: Some(
                 crate::music::manager::ResourceTicket::for_audio_test_fallback(

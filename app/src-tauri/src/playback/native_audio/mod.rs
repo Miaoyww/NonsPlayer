@@ -77,7 +77,7 @@ impl AudioEngine {
         self.control.clone()
     }
 
-    pub fn configure(&mut self, state: &PlayerSnapshot) -> AppResult<()> {
+    pub fn configure(&mut self, state: &PlayerSnapshot) -> AppResult<bool> {
         let previous = self.control.device_id.clone();
         let changed = previous != state.device_id
             || self
@@ -86,7 +86,21 @@ impl AudioEngine {
                 .is_some_and(|session| session.output_failed.load(Ordering::Acquire));
         if changed {
             // Validate saved endpoint IDs even when nothing is playing.
-            select_device(state.device_id.as_deref())?;
+            let device = select_device(state.device_id.as_deref())?;
+            let supported = device.default_output_config().map_err(|error| {
+                crate::infrastructure::diagnostics::warn_error(
+                    "playback.audio.output_config",
+                    &error,
+                );
+                format!("读取音频设备配置失败：{error}")
+            })?;
+            if supported.channels() == 0
+                || supported.channels() > 32
+                || supported.sample_rate() == 0
+            {
+                return Err("不支持的音频设备配置".into());
+            }
+            self.control.device_id = state.device_id.clone();
         }
         self.control.fades = state.playback_options.fades;
         self.control.crossfade_ms = if state.playback_options.crossfade {
@@ -94,41 +108,6 @@ impl AudioEngine {
         } else {
             0
         };
-        if changed {
-            let position = self
-                .session
-                .as_ref()
-                .map(|session| {
-                    let mixer = session.mixer.lock().unwrap();
-                    mixer
-                        .current
-                        .position_ms()
-                        .saturating_sub(mixer.current.cue_start_ms)
-                })
-                .unwrap_or(self.control.position_ms);
-            self.control.device_id = state.device_id.clone();
-            if let Some((resolved, resource, generation)) = self.current.clone() {
-                if let Err(error) = self.load_internal(
-                    resolved.clone(),
-                    resource.clone(),
-                    generation,
-                    position,
-                    self.control.playing,
-                    self.control.volume,
-                ) {
-                    self.control.device_id = previous;
-                    let _ = self.load_internal(
-                        resolved,
-                        resource,
-                        generation,
-                        position,
-                        self.control.playing,
-                        self.control.volume,
-                    );
-                    return Err(error);
-                }
-            }
-        }
         if let Some(session) = &self.session {
             session
                 .mixer
@@ -136,7 +115,7 @@ impl AudioEngine {
                 .unwrap()
                 .configure(self.control.fades, self.control.crossfade_ms);
         }
-        Ok(())
+        Ok(changed)
     }
 
     pub fn emit(&mut self, _app: &tauri::AppHandle) -> AppResult<()> {
@@ -195,14 +174,21 @@ impl AudioEngine {
                 .map_err(|error| error.to_string())?;
         }
         let session = self.session.as_mut().ok_or("当前音频尚未启动")?;
-        let uri = self
-            .transport
-            .install_source(resolved.clone(), resource.clone(), true)?;
+        let uri =
+            self.transport
+                .install_source(resolved.clone(), resource.clone(), true, generation)?;
         let (rate, channels) = {
             let mixer = session.mixer.lock().unwrap();
             (mixer.current.buffer.rate, mixer.current.buffer.channels)
         };
-        let decoder = Decoder::spawn(resolved.clone(), uri.clone(), rate, channels, 0)?;
+        let decoder = Decoder::spawn_with_resource(
+            resolved.clone(),
+            uri.clone(),
+            rate,
+            channels,
+            0,
+            resource.clone(),
+        )?;
         let start_ms = resolved.track.cue().map_or(0, |cue| cue.start_ms);
         session.mixer.lock().unwrap().next = Some(Voice::new(
             decoder.buffer.clone(),
@@ -331,6 +317,7 @@ impl AudioEngine {
             .saturating_add(mixer.current.duration_ms());
         let mut next_source = None;
         let mut error = None;
+        let mut retryable = false;
         let kind = if session.output_failed.load(Ordering::Acquire) {
             if self.recovering_device {
                 error = Some("系统默认音频设备不可用".into());
@@ -350,10 +337,16 @@ impl AudioEngine {
             .is_some_and(|voice| voice.buffer.failed.load(Ordering::Acquire))
         {
             let next = mixer.next.as_ref().unwrap();
+            retryable = next.buffer.failure_retryable.load(Ordering::Acquire);
             next_source = Some(next.token.clone());
             FeedbackKind::PreloadError
         } else if mixer.current.buffer.failed.load(Ordering::Acquire) {
             error = mixer.current.buffer.error.lock().unwrap().clone();
+            retryable = mixer
+                .current
+                .buffer
+                .failure_retryable
+                .load(Ordering::Acquire);
             FeedbackKind::Error
         } else if mixer.playing && mixer.current.finished() && mixer.outgoing.is_none() {
             let drained_at = session.drained_at.get_or_insert_with(Instant::now);
@@ -391,6 +384,7 @@ impl AudioEngine {
             position_ms,
             duration_ms,
             error,
+            retryable,
             next_source,
         })
     }
@@ -415,16 +409,17 @@ impl AudioEngine {
         self.session.take();
         self.prepared = None;
         self.transport.clear_secondary()?;
-        let uri = self
-            .transport
-            .install_source(resolved.clone(), resource.clone(), false)?;
+        let uri =
+            self.transport
+                .install_source(resolved.clone(), resource.clone(), false, generation)?;
         let cue_start_ms = resolved.track.cue().map_or(0, |cue| cue.start_ms);
-        let decoder = Decoder::spawn(
+        let decoder = Decoder::spawn_with_resource(
             resolved.clone(),
             uri.clone(),
             supported.sample_rate(),
             supported.channels() as usize,
             position_ms,
+            resource.clone(),
         )?;
         let mixer = Arc::new(Mutex::new(Mixer::new(
             Voice::new(

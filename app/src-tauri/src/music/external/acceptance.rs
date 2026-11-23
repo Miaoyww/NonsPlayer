@@ -771,6 +771,7 @@ async fn bilibili_component_live_pcdn_range_probe() {
             },
             Some(ticket),
             false,
+            0,
         )
         .unwrap();
     tokio::task::spawn_blocking(move || {

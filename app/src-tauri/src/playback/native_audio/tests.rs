@@ -520,7 +520,7 @@ async fn ffmpeg_http_uses_controlled_ranges_and_stop_cancels_a_hung_probe() {
         vec![("Authorization".into(), "Bearer audio-fixture".into())],
     );
     let uri = transport
-        .install_source(source.clone(), Some(ticket.clone()), false)
+        .install_source(source.clone(), Some(ticket.clone()), false, 0)
         .unwrap();
     let shared = tokio::task::spawn_blocking(move || {
         let decoder = Decoder::spawn(source, uri, 48000, 2, 137).unwrap();
@@ -547,7 +547,9 @@ async fn ffmpeg_http_uses_controlled_ranges_and_stop_cancels_a_hung_probe() {
     let mut hung = resolved(wave(48000, 2, 100));
     hung.decoded_audio = None;
     hung.uri = format!("http://{address}/hang");
-    let uri = transport.install_source(hung, Some(ticket), true).unwrap();
+    let uri = transport
+        .install_source(hung, Some(ticket), true, 0)
+        .unwrap();
     let buffer = buffer::Buffer::new(48000, 2, 0);
     let handle = buffer.cancel.clone();
     let probe = tokio::task::spawn_blocking(move || {

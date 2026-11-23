@@ -710,6 +710,7 @@ impl AdapterManager {
                 valid_until: Instant::now() + Duration::from_millis(ttl),
             },
             resource,
+            issued_at: Instant::now(),
         });
         diagnostic.stage("resource_handoff", "resource_invalid_before_handoff");
         ticket.check(generation)?;

@@ -1,5 +1,6 @@
 use super::buffer::{Buffer, CHUNK_FRAMES};
 use crate::model::{AppResult, ResolvedTrack};
+use crate::playback::engine::Resource;
 use ffmpeg_audio::{AudioReader, HttpAudioSource, ResampleOptions, Resampler, SeekMode};
 use std::{
     fs::File,
@@ -13,13 +14,32 @@ pub(super) struct Decoder {
     thread: Option<JoinHandle<()>>,
 }
 
+#[derive(Default)]
+struct DecodeStats {
+    decoded_samples: u64,
+    source_rate: u64,
+    declared_end_ms: Option<u64>,
+}
+
 impl Decoder {
+    #[cfg(test)]
     pub fn spawn(
         resolved: ResolvedTrack,
         uri: String,
         rate: u32,
         channels: usize,
         position_ms: u64,
+    ) -> AppResult<Self> {
+        Self::spawn_with_resource(resolved, uri, rate, channels, position_ms, None)
+    }
+
+    pub(super) fn spawn_with_resource(
+        resolved: ResolvedTrack,
+        uri: String,
+        rate: u32,
+        channels: usize,
+        position_ms: u64,
+        resource: Resource,
     ) -> AppResult<Self> {
         let cue = resolved.track.cue();
         let start_ms = cue
@@ -33,7 +53,8 @@ impl Decoder {
         let thread = thread::Builder::new()
             .name("nons-ffmpeg".into())
             .spawn(move || {
-                if let Err(error) = decode(&resolved, &uri, &shared, start_ms, end_ms) {
+                let mut stats = DecodeStats::default();
+                if let Err(error) = decode(&resolved, &uri, &shared, start_ms, end_ms, &mut stats) {
                     if !shared.stop.load(Ordering::Acquire) {
                         let source =
                             crate::infrastructure::diagnostics::field(resolved.track.source_id());
@@ -45,11 +66,26 @@ impl Decoder {
                             }
                             crate::model::TrackSource::Local { .. } => "local".into(),
                         };
+                        let retryable = is_retryable_playback_error(&error);
+                        let decoded_ms = if stats.source_rate == 0 {
+                            0
+                        } else {
+                            stats.decoded_samples.saturating_mul(1000) / stats.source_rate
+                        };
+                        let resource_age_ms =
+                            resource.as_ref().map_or(0, |resource| resource.age_ms());
                         crate::infrastructure::diagnostics::warn(
                             "playback.decoder",
-                            format_args!("source={source} track_id={track_id} {error}"),
+                            format_args!(
+                                "source={source} track_id={track_id} position_ms={start_ms} decoded_samples={} decoded_ms={decoded_ms} source_rate={} declared_end_ms={} resource_age_ms={resource_age_ms} retryable={retryable} {error}",
+                                stats.decoded_samples,
+                                stats.source_rate,
+                                stats
+                                    .declared_end_ms
+                                    .map_or_else(|| "-".to_owned(), |value| value.to_string()),
+                            ),
                         );
-                        shared.fail(error);
+                        shared.fail(error, retryable);
                     }
                 }
                 shared.done.store(true, Ordering::Release);
@@ -77,6 +113,7 @@ fn decode(
     shared: &Arc<Buffer>,
     start_ms: u64,
     end_ms: Option<u64>,
+    stats: &mut DecodeStats,
 ) -> AppResult<()> {
     let mut reader = if let Some(file) = &resolved.decoded_audio {
         AudioReader::new(
@@ -119,6 +156,8 @@ fn decode(
         .duration()
         .map(|duration| duration.as_millis().min(u64::MAX as u128) as u64);
     let source_rate = u64::try_from(reader.source_info().sample_rate).unwrap_or(0);
+    stats.declared_end_ms = declared_end_ms;
+    stats.source_rate = source_rate;
     let limit = end_ms
         .map(|end| {
             end.saturating_sub(start_ms)
@@ -128,11 +167,10 @@ fn decode(
         })
         .unwrap_or(u64::MAX);
     let mut written = 0;
-    let mut decoded = 0;
     while !shared.stop.load(Ordering::Acquire) && written < limit {
         match reader.receive_frame() {
             Ok(Some(frame)) => {
-                decoded += frame.samples() as u64;
+                stats.decoded_samples += frame.samples() as u64;
                 resampler
                     .process::<f32>(Some(&frame))
                     .map_err(|error| format!("音频重采样失败：{error}"))?;
@@ -145,7 +183,14 @@ fn decode(
             // Some formats leave non-audio tags at the end of the stream, which the
             // parser forwards as a junk frame. Once every declared sample is decoded,
             // a decode error can only come from those trailing bytes.
-            Err(_) if reached_declared_end(declared_end_ms, start_ms, source_rate, decoded) => {
+            Err(_)
+                if reached_declared_end(
+                    declared_end_ms,
+                    start_ms,
+                    source_rate,
+                    stats.decoded_samples,
+                ) =>
+            {
                 drain(&mut resampler, shared, &mut written, limit)?;
                 break;
             }
@@ -153,6 +198,13 @@ fn decode(
         }
     }
     Ok(())
+}
+
+pub(super) fn is_retryable_playback_error(error: &str) -> bool {
+    let error = error.to_ascii_lowercase();
+    error.contains("http error status: 403")
+        || error.contains("http error status: 410")
+        || error.contains("invalid data found when processing input")
 }
 
 fn drain(
@@ -217,4 +269,25 @@ fn push(shared: &Buffer, samples: &[f32], limit: u64) -> u64 {
         written += samples.len() as u64;
     }
     written
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_retryable_playback_error;
+
+    #[test]
+    fn retryable_playback_errors_cover_stale_and_invalid_streams() {
+        assert!(is_retryable_playback_error(
+            "打开在线音频失败：HTTP error: HTTP error status: 403"
+        ));
+        assert!(is_retryable_playback_error(
+            "打开在线音频失败：HTTP error: HTTP error status: 410"
+        ));
+        assert!(is_retryable_playback_error(
+            "音频解码失败：FFmpeg error -1094995529: Invalid data found when processing input"
+        ));
+        assert!(!is_retryable_playback_error(
+            "打开在线音频失败：HTTP error: HTTP error status: 404"
+        ));
+    }
 }

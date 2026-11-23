@@ -187,6 +187,17 @@ fn retry_position(state: &PlayerSnapshot, revision: u64, key: &str) -> Option<(u
     Some((state.index?, state.position_ms))
 }
 
+fn resource_retry_allowed(
+    retryable: bool,
+    mode: Option<PlaybackMode>,
+    current_key: Option<&str>,
+    retried_key: Option<&str>,
+) -> bool {
+    retryable
+        && mode.is_some_and(|mode| mode != PlaybackMode::Local)
+        && current_key.is_some_and(|key| retried_key != Some(key))
+}
+
 fn prefers_local(
     track: &Track,
     selection: Option<&crate::music::service::PlaybackSelection>,
@@ -482,6 +493,7 @@ struct Actor {
     thumbar: Option<ThumbarControls>,
     desired_playing: bool,
     failed_keys: std::collections::HashSet<String>,
+    resource_retry: Option<String>,
     generation: Arc<AtomicU64>,
     prepared: Arc<Mutex<Option<Prepared>>>,
     current_job: Option<tauri::async_runtime::JoinHandle<()>>,
@@ -631,6 +643,7 @@ impl Actor {
             crate::audio::track_position(self.state.current(), feedback.position_ms);
         if self.state.position_ms >= 1000 && feedback.kind == FeedbackKind::Playing {
             self.failed_keys.clear();
+            self.resource_retry = None;
         }
         if feedback.duration_ms > 0 {
             self.state.duration_ms =
@@ -662,6 +675,47 @@ impl Actor {
                     .error
                     .filter(|e| e.len() <= 256)
                     .unwrap_or_else(|| "无法解码或播放此音频".into());
+                let current_key = self.state.current().map(|track| track.key.clone());
+                if resource_retry_allowed(
+                    feedback.retryable,
+                    self.state.playback_mode,
+                    current_key.as_deref(),
+                    self.resource_retry.as_deref(),
+                ) {
+                    if let (Some(index), Some(track)) =
+                        (self.state.index, self.state.current().cloned())
+                    {
+                        let position = self.state.position_ms;
+                        let playing = self.desired_playing;
+                        log::warn!(
+                            target: "nons::playback",
+                            "operation=playback_retry stage=start key={} position_ms={position} reason={}",
+                            crate::infrastructure::diagnostics::field(&track.key),
+                            crate::infrastructure::diagnostics::field(&error),
+                        );
+                        self.resource_retry = Some(track.key);
+                        return self.load_at_internal(index, playing, position, true);
+                    }
+                }
+                if feedback.retryable
+                    && self
+                        .state
+                        .playback_mode
+                        .is_some_and(|mode| mode != PlaybackMode::Local)
+                    && current_key
+                        .as_deref()
+                        .is_some_and(|key| self.resource_retry.as_deref() == Some(key))
+                {
+                    log::warn!(
+                        target: "nons::playback",
+                        "operation=playback_retry stage=exhausted key={} position_ms={} reason={}",
+                        current_key
+                            .as_deref()
+                            .map_or("-".into(), crate::infrastructure::diagnostics::field),
+                        self.state.position_ms,
+                        crate::infrastructure::diagnostics::field(&error),
+                    );
+                }
                 let local = self.state.current().cloned().filter(|track| {
                     self.state.playback_mode == Some(PlaybackMode::Local)
                         && matches!(&track.source, TrackSource::Online { .. })
@@ -767,6 +821,7 @@ impl Actor {
             thumbar,
             desired_playing: false,
             failed_keys: Default::default(),
+            resource_retry: None,
             generation,
             prepared,
             current_job: None,
@@ -838,6 +893,7 @@ impl Actor {
                 | Command::WebReady(_)
         ) {
             self.failed_keys.clear();
+            self.resource_retry = None;
         }
 
         #[cfg(target_os = "android")]
@@ -1670,7 +1726,9 @@ impl Actor {
             &serde_json::to_string(&options).map_err(|e| e.to_string())?,
         )?;
         self.state.playback_options = options;
-        self.audio_engine.configure(&self.state)?;
+        if self.audio_engine.configure(&self.state)? {
+            self.reload_current_after_device_change()?;
+        }
         if !options.crossfade {
             if let Some(job) = self.next_job.take() {
                 job.abort();
@@ -1722,6 +1780,19 @@ impl Actor {
     }
 
     fn load_at(&mut self, index: usize, playing: bool, position: u64) -> AppResult<()> {
+        self.load_at_internal(index, playing, position, false)
+    }
+
+    fn load_at_internal(
+        &mut self,
+        index: usize,
+        playing: bool,
+        position: u64,
+        retrying: bool,
+    ) -> AppResult<()> {
+        if !retrying {
+            self.resource_retry = None;
+        }
         let track = self
             .state
             .queue
@@ -1733,8 +1804,10 @@ impl Actor {
         self.audio_engine.stop(&self.app)?;
 
         self.state.revision += 1;
-        self.play_instance_id = uuid::Uuid::new_v4().to_string();
-        self.recorded_instance_id = None;
+        if !retrying {
+            self.play_instance_id = uuid::Uuid::new_v4().to_string();
+            self.recorded_instance_id = None;
+        }
         self.state.index = Some(index);
         self.state.position_ms = if track.duration_ms > 0 {
             position.min(track.duration_ms)
@@ -2086,18 +2159,51 @@ impl Actor {
             &serde_json::to_string(&id).map_err(|e| e.to_string())?,
         )?;
         self.state.device_id = id;
-        if let Err(error) = self.audio_engine.configure(&self.state) {
-            self.state.device_id = previous.clone();
-            self.store.set_setting(
-                "webAudioDevice",
-                &serde_json::to_string(&previous).map_err(|e| e.to_string())?,
-            )?;
-            let _ = self.audio_engine.configure(&self.state);
-            return Err(error);
+        let changed = match self.audio_engine.configure(&self.state) {
+            Ok(changed) => changed,
+            Err(error) => {
+                self.state.device_id = previous.clone();
+                self.store.set_setting(
+                    "webAudioDevice",
+                    &serde_json::to_string(&previous).map_err(|e| e.to_string())?,
+                )?;
+                let _ = self.audio_engine.configure(&self.state);
+                return Err(error);
+            }
+        };
+        if changed {
+            if let Err(error) = self.reload_current_after_device_change() {
+                self.state.device_id = previous.clone();
+                self.store.set_setting(
+                    "webAudioDevice",
+                    &serde_json::to_string(&previous).map_err(|e| e.to_string())?,
+                )?;
+                let _ = self.audio_engine.configure(&self.state);
+                return Err(error);
+            }
         }
         self.audio_engine.emit(&self.app)?;
         self.publish();
         return Ok(());
+    }
+
+    fn reload_current_after_device_change(&mut self) -> AppResult<()> {
+        if self.audio_engine.control().source.is_none() && self.current_job.is_none() {
+            return Ok(());
+        }
+        let Some(index) = self.state.index else {
+            return Ok(());
+        };
+        if self.state.current().is_none() {
+            return Ok(());
+        }
+        let position = self.state.position_ms;
+        let playing = self.desired_playing;
+        log::info!(
+            target: "nons::playback",
+            "operation=playback_device_reload index={index} position_ms={position} playing={playing}"
+        );
+        self.load_at_internal(index, playing, position, false)
     }
 }
 
@@ -2160,6 +2266,35 @@ mod tests {
             cue: None,
         };
         assert!(!prefers_local(&local, None, false));
+    }
+
+    #[test]
+    fn resource_retry_is_limited_to_stream_playback_and_one_attempt() {
+        assert!(resource_retry_allowed(
+            true,
+            Some(PlaybackMode::Stream),
+            Some("track"),
+            None,
+        ));
+        assert!(!resource_retry_allowed(
+            true,
+            Some(PlaybackMode::Local),
+            Some("track"),
+            None,
+        ));
+        assert!(!resource_retry_allowed(
+            true,
+            Some(PlaybackMode::Stream),
+            Some("track"),
+            Some("track"),
+        ));
+        assert!(!resource_retry_allowed(
+            false,
+            Some(PlaybackMode::Stream),
+            Some("track"),
+            None,
+        ));
+        assert!(!resource_retry_allowed(true, None, Some("track"), None));
     }
 
     #[test]

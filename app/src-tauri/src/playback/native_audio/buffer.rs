@@ -14,6 +14,7 @@ pub(super) struct Buffer {
     pub stop: AtomicBool,
     pub done: AtomicBool,
     pub failed: AtomicBool,
+    pub failure_retryable: AtomicBool,
     pub consumed: AtomicU64,
     pub duration_ms: AtomicU64,
     pub error: Mutex<Option<String>>,
@@ -39,6 +40,7 @@ impl Buffer {
             stop: AtomicBool::new(false),
             done: AtomicBool::new(false),
             failed: AtomicBool::new(false),
+            failure_retryable: AtomicBool::new(false),
             consumed: AtomicU64::new(0),
             duration_ms: AtomicU64::new(duration_ms),
             error: Mutex::new(None),
@@ -53,8 +55,9 @@ impl Buffer {
         self.cancel.cancel();
     }
 
-    pub fn fail(&self, error: String) {
+    pub fn fail(&self, error: String, retryable: bool) {
         *self.error.lock().unwrap() = Some(error);
+        self.failure_retryable.store(retryable, Ordering::Release);
         self.failed.store(true, Ordering::Release);
     }
 

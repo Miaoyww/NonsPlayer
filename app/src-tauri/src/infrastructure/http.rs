@@ -75,6 +75,13 @@ pub(crate) fn checked_url(input: &str) -> AppResult<url::Url> {
     Ok(url)
 }
 
+pub(crate) fn uses_system_proxy(url: &url::Url) -> bool {
+    url[..url::Position::BeforePath]
+        .parse::<http::Uri>()
+        .ok()
+        .is_some_and(|uri| Matcher::from_system().intercept(&uri).is_some())
+}
+
 fn checked_method(input: &str) -> AppResult<reqwest::Method> {
     reqwest::Method::from_bytes(input.as_bytes())
         .inspect_err(|error| {
