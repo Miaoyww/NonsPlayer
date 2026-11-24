@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [1.12.5] - 2026-11-24
+
+![NonsPlayer v1.12.5 播放恢复与升级兼容修复头图](https://raw.githubusercontent.com/Miaoyww/Nons/v1.12.5/docs/release-assets/header.png)
+
+NonsPlayer 1.12.5 播放恢复与升级兼容修复。本次 Release 提供 **Windows x64、Linux x64、Android ARM64** 构建附件：Windows 提供 MSI、EXE 安装包与免安装便携 ZIP，Linux 提供 AppImage 与 deb，Android 提供 ARM64 试用 APK。
+
 ### 本地音乐与播放
 
 - 桌面在线播放遇到临时地址 403、资源租约失效或解码中途无效数据时，会重新解析当前曲目并从原进度重试一次；第二次失败才跳过。
